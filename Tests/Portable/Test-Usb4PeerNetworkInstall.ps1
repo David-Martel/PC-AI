@@ -244,6 +244,94 @@ function Assert-Usb4NetworkPolicy {
     Assert-InstallCondition (@($script:TaskCalls | Where-Object { $_ -match '^(?:register|enabled|remove):' }).Count -eq 0) 'Concurrent task owner was mutated.'
     Write-Output 'PASS: ConcurrentTaskWriterIsPreserved'
 
+    # Release manifests bind declared source provenance to the exact staged bytes.
+    $releasePolicy = Join-Path $workspace 'release-policy.json'
+    $releaseHost = [Environment]::MachineName
+    [IO.File]::WriteAllText($releasePolicy, (@{ schemaVersion = 1; hostName = $releaseHost; mode = 'Peer' } | ConvertTo-Json))
+    $releaseSource = Join-Path $workspace 'release.json'
+    $policyRecord = @{ path = 'Config/usb4-fleet/fixture-policy.json'; sha256 = (Get-FileHash -LiteralPath $releasePolicy -Algorithm SHA256).Hash; size = (Get-Item -LiteralPath $releasePolicy).Length; gitBlob = ('a' * 40) }
+    $release = @{ schemaVersion = 1; artifactType = 'pcai-usb4-fleet-release'; kind = 'deployable'; runtimeQualified = $false;
+        source = @{ repository = 'https://github.com/David-Martel/PC-AI'; commit = ('b' * 40) };
+        host   = @{ id = $releaseHost; platform = 'windows'; architecture = (Get-Usb4ReleaseArchitecture) };
+        policy = $policyRecord;
+        files  = @(@{ path = 'Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1'; sha256 = (Get-FileHash -LiteralPath $controller -Algorithm SHA256).Hash; size = (Get-Item -LiteralPath $controller).Length; gitBlob = ('c' * 40) },
+            @{ path = 'Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1'; sha256 = (Get-FileHash -LiteralPath $SourcePath -Algorithm SHA256).Hash; size = (Get-Item -LiteralPath $SourcePath).Length; gitBlob = ('d' * 40) }, $policyRecord)
+    }
+    $releaseDestination = Join-Path $workspace 'release-runtime'
+    foreach ($case in @('Malformed', 'ForeignHost', 'HostArray', 'SchemaString', 'SchemaBoolean', 'KindArray', 'WrongArchitecture', 'WrongPlatform', 'WrongKind', 'ControllerHash', 'InstallerHash', 'PolicyHash', 'PolicyRecord', 'DuplicatePayload', 'Commit', 'PayloadSize')) {
+        $bad = $release | ConvertTo-Json -Depth 10 | ConvertFrom-Json -AsHashtable
+        switch ($case) {
+            'ForeignHost' { $bad.host.id = 'foreign-host' }
+            'HostArray' { $bad.host.id = @($releaseHost) }
+            'SchemaString' { $bad.schemaVersion = '1' }
+            'SchemaBoolean' { $bad.schemaVersion = $true }
+            'KindArray' { $bad.kind = @('deployable') }
+            'WrongArchitecture' { $bad.host.architecture = $(if ((Get-Usb4ReleaseArchitecture) -eq 'x86') { 'x86_64' } else { 'x86' }) }
+            'WrongPlatform' { $bad.host.platform = 'linux' }
+            'WrongKind' { $bad.kind = 'source-only' }
+            'ControllerHash' { $bad.files[0].sha256 = '0' * 64 }
+            'InstallerHash' { $bad.files[1].sha256 = '0' * 64 }
+            'PolicyHash' { $bad.files[2].sha256 = '0' * 64 }
+            'PolicyRecord' { $bad.policy.sha256 = '0' * 64 }
+            'DuplicatePayload' { $bad.files += $bad.files[0] }
+            'Commit' { $bad.source.commit = 'main' }
+            'PayloadSize' { $bad.files[0].size++ }
+        }
+        $text = $(if ($case -eq 'Malformed') { '{invalid' } else { $bad | ConvertTo-Json -Depth 10 })
+        [IO.File]::WriteAllText($releaseSource, $text)
+        $operations = New-TaskFixture
+        Assert-InstallThrows { Get-Usb4PeerInstallPlan -PolicySource $releasePolicy -ControllerSource $controller -Destination $releaseDestination -Executable $executable -CurrentHost $releaseHost -ReleaseManifestSource $releaseSource } '.'
+        Assert-InstallCondition ($script:TaskCalls.Count -eq 0 -and -not (Test-Path -LiteralPath $releaseDestination)) "$case release refusal touched task or runtime state."
+    }
+    Write-Output 'PASS: ReleaseManifestMalformedForeignOrMismatchedRefusedBeforeMutation'
+
+    [IO.File]::WriteAllText($releaseSource, ($release | ConvertTo-Json -Depth 10))
+    $releasePlan = Get-Usb4PeerInstallPlan -PolicySource $releasePolicy -ControllerSource $controller -Destination $releaseDestination -Executable $executable -CurrentHost $releaseHost -ReleaseManifestSource $releaseSource
+    $changed = $release | ConvertTo-Json -Depth 10 | ConvertFrom-Json -AsHashtable
+    $changed.source.commit = 'e' * 40
+    [IO.File]::WriteAllText($releaseSource, ($changed | ConvertTo-Json -Depth 10))
+    $operations = New-TaskFixture
+    Assert-InstallThrows { Invoke-Usb4PeerInstall -Plan $releasePlan -Operations $operations -Apply } 'changed after planning'
+    Assert-InstallCondition ($script:TaskCalls.Count -eq 0 -and -not (Test-Path -LiteralPath $releaseDestination)) 'Release race made task or runtime changes.'
+    Write-Output 'PASS: ChangedReleaseManifestPreservesTasks'
+
+    [IO.File]::WriteAllText($releaseSource, ($release | ConvertTo-Json -Depth 10))
+    $releaseResult = Invoke-Usb4PeerInstall -Plan $releasePlan -Operations $operations -Apply
+    $installedPath = Join-Path $releaseDestination 'installed.json'
+    $installedBytes = [IO.File]::ReadAllBytes($installedPath)
+    $installedRelease = Get-Content -LiteralPath $installedPath -Raw | ConvertFrom-Json -AsHashtable
+    Assert-InstallCondition (-not $releaseResult.RuntimeQualified -and -not $installedRelease.runtimeQualified -and $installedRelease.sourceCommit -eq ('b' * 40) -and $installedRelease.sourceRepository -eq $release.source.repository) 'Install lost declared source provenance or claimed runtime qualification.'
+    Assert-InstallCondition ($installedRelease.releaseManifestPath -eq $releasePlan.releaseManifestPath -and (Get-FileHash -LiteralPath $releasePlan.releaseManifestPath -Algorithm SHA256).Hash -eq $releasePlan.releaseManifestSha256) 'Immutable release manifest copy changed bytes or path.'
+    $verification = Test-Usb4PeerInstallation -Root $releaseDestination -Operations $operations
+    Assert-InstallCondition ($verification.Installed -and -not $verification.RuntimeQualified) 'Release-bound verification lost optional-less semantics.'
+    $releaseBytes = [IO.File]::ReadAllBytes($releasePlan.releaseManifestPath)
+    [IO.File]::AppendAllText($releasePlan.releaseManifestPath, "`n")
+    Assert-InstallThrows { Test-Usb4PeerInstallation -Root $releaseDestination -Operations $operations } 'release manifest path or hash mismatch'
+    [IO.File]::WriteAllBytes($releasePlan.releaseManifestPath, $releaseBytes)
+    $raceOperations = $operations.Clone()
+    $script:ReleaseReadbackRacePath = $releasePlan.releaseManifestPath
+    $raceOperations.AssertRoot = { param($Path)
+        if ($Path -ceq $script:ReleaseReadbackRacePath) { [IO.File]::AppendAllText($Path, "`n") }
+    }
+    Assert-InstallThrows { Test-Usb4PeerInstallation -Root $releaseDestination -Operations $raceOperations } 'source binding mismatch'
+    [IO.File]::WriteAllBytes($releasePlan.releaseManifestPath, $releaseBytes)
+    $changed = $release | ConvertTo-Json -Depth 10 | ConvertFrom-Json -AsHashtable
+    $changed.files[0].sha256 = '0' * 64
+    [IO.File]::WriteAllText($releasePlan.releaseManifestPath, ($changed | ConvertTo-Json -Depth 10))
+    $installedRelease.releaseManifestSha256 = (Get-FileHash -LiteralPath $releasePlan.releaseManifestPath -Algorithm SHA256).Hash
+    [IO.File]::WriteAllText($installedPath, ($installedRelease | ConvertTo-Json -Depth 10))
+    Assert-InstallThrows { Test-Usb4PeerInstallation -Root $releaseDestination -Operations $operations } 'Release payload hash or size'
+    [IO.File]::WriteAllBytes($releasePlan.releaseManifestPath, $releaseBytes); [IO.File]::WriteAllBytes($installedPath, $installedBytes)
+    Write-Output 'PASS: ImmutableReleaseReadbackAndInstalledPayloadBinding'
+
+    $releaseRollbackRoot = Join-Path $workspace 'release-rollback'
+    $releaseRollbackPlan = Get-Usb4PeerInstallPlan -PolicySource $releasePolicy -ControllerSource $controller -Destination $releaseRollbackRoot -Executable $executable -CurrentHost $releaseHost -ReleaseManifestSource $releaseSource
+    $operations = New-TaskFixture; $legacy = New-LegacyTaskFixture; $script:FailNewEnable = $true
+    Assert-InstallThrows { Invoke-Usb4PeerInstall -Plan $releaseRollbackPlan -Operations $operations -Apply -ReplaceLegacyTasks } 'injected enable failure'
+    Assert-InstallCondition ($script:TaskStore['\PC-AI-ThunderboltPeerAgent'].Enabled -and -not $script:TaskStore.ContainsKey('\PC-AI\Usb4PeerNetwork') -and -not (Test-Path -LiteralPath (Join-Path $releaseRollbackRoot 'installed.json'))) 'Release install failure did not restore original task/pointer custody.'
+    Assert-InstallCondition ((Get-FileHash -LiteralPath $releaseRollbackPlan.releaseManifestPath -Algorithm SHA256).Hash -eq $releaseRollbackPlan.releaseManifestSha256 -and (Test-Path -LiteralPath (Join-Path $releaseRollbackPlan.revisionPath 'preimages/PC-AI-ThunderboltPeerAgent.xml'))) 'Failed release install discarded exact recovery evidence.'
+    Write-Output 'PASS: FailedReleaseInstallationPreservesPreimagesAndRollsBack'
+
     if ($IsWindows) {
         # Selector: WindowsTaskSchemaAndServiceAccount. This invokes the actual
         # scheduler parser in memory, never registering or running a task.

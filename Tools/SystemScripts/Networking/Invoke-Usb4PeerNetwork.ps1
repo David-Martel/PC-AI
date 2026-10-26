@@ -193,7 +193,7 @@ function Get-Usb4NetworkSnapshot {
                 prefixOrigin = [string]$_.PrefixOrigin; suffixOrigin = [string]$_.SuffixOrigin; skipAsSource = [bool]$_.SkipAsSource
             }
         })
-    $interfaces = @(Get-NetIPInterface -ErrorAction Stop)
+    $interfaces = @(Get-NetIPInterface -PolicyStore ActiveStore -ErrorAction Stop)
     $dns = @(Get-DnsClientServerAddress -ErrorAction Stop)
     $adapters = @(Get-NetAdapter -IncludeHidden -ErrorAction Stop | ForEach-Object {
             $adapter = $_; $ipif = @($interfaces | Where-Object { $_.InterfaceIndex -eq $adapter.ifIndex -and $_.AddressFamily -eq 'IPv4' })
@@ -228,7 +228,10 @@ function Get-Usb4NetworkSnapshot {
             if ($configuration.SharingEnabled) { @{ guid = ([string]$properties.Guid).Trim('{}').ToLowerInvariant(); type = [int]$configuration.SharingConnectionType } }
         })
     $nat = $(if ($SkipNat) { @() } else { @(Get-NetNat -ErrorAction Stop | ForEach-Object { @{ name = [string]$_.Name; prefix = [string]$_.InternalIPInterfaceAddressPrefix } }) })
-    @{ hostName = [Environment]::MachineName; adapters = $adapters; addresses = $addresses; routes = $routes; sharing = $sharing; nat = @($nat); natObserved = -not $SkipNat }
+    $routingInterfaces = @($interfaces | ForEach-Object {
+            @{ index = [int]$_.InterfaceIndex; family = [string]$_.AddressFamily; metric = $(if ($null -ne $_.InterfaceMetric) { [int]$_.InterfaceMetric } else { $null }); state = [string]$_.ConnectionState }
+        })
+    @{ hostName = [Environment]::MachineName; adapters = $adapters; addresses = $addresses; routes = $routes; sharing = $sharing; nat = @($nat); natObserved = -not $SkipNat; routingInterfaces = $routingInterfaces }
 }
 
 function Invoke-Usb4BoundTcpProbe {
@@ -311,6 +314,52 @@ function Set-Usb4IcsPair {
         }
         throw "ICS change failed: $failure. Restoration errors: $($restoreErrors -join '; ')"
     }
+}
+
+function Get-Usb4DefaultRouteSelection {
+    <# .SYNOPSIS
+    Describe per-family default candidates without claiming destination or source selection.
+    .EXAMPLE
+    Get-Usb4DefaultRouteSelection -Snapshot $snapshot -Family IPv6
+    #>
+    param([hashtable]$Snapshot, [ValidateSet('IPv4', 'IPv6')][string]$Family = 'IPv4',
+        [int]$ExpectedInterfaceIndex = -1, [string]$ExpectedNextHop)
+    $destination = $(if ($Family -eq 'IPv4') { '0.0.0.0/0' } else { '::/0' })
+    $result = @{ family = $Family; state = 'Absent'; candidates = @(); selectedInterfaceIndex = $null; selectedNextHop = $null;
+        selectedEffectiveMetric = $null; sourceAddress = $null; sourceSelection = 'NotObserved'; desiredPreferenceMet = $null;
+        selectionBasis = 'ActiveStore default candidates only; more-specific routes and source policy may override'
+    }
+    $interfaces = $(if ($Snapshot.ContainsKey('routingInterfaces')) { @($Snapshot.routingInterfaces) } else { @() })
+    $unknown = $false
+    foreach ($route in @($Snapshot.routes | Where-Object destination -EQ $destination)) {
+        $ipif = @($interfaces | Where-Object { $_.index -eq $route.index -and $_.family -eq $Family })
+        $candidate = @{ index = $route.index; nextHop = $route.nextHop; routeMetric = $route.metric; interfaceMetric = $null; effectiveMetric = $null; eligible = $false; state = 'Unknown' }
+        if ($ipif.Count -eq 1 -and $ipif[0].ContainsKey('metric') -and $ipif[0].ContainsKey('state') -and
+            ($ipif[0].metric -is [int] -or $ipif[0].metric -is [long] -or $ipif[0].metric -is [uint32]) -and $ipif[0].metric -ge 0 -and
+            ($route.metric -is [int] -or $route.metric -is [long] -or $route.metric -is [uint32]) -and $route.metric -ge 0) {
+            $candidate.interfaceMetric = $ipif[0].metric; $candidate.effectiveMetric = [long]$route.metric + [long]$ipif[0].metric
+            $candidate.state = $ipif[0].state
+            $candidate.eligible = $ipif[0].state -eq 'Connected'
+            if ($ipif[0].state -notin @('Connected', 'Disconnected')) { $unknown = $true }
+        }
+        else { $unknown = $true }
+        $result.candidates += $candidate
+    }
+    $eligible = @($result.candidates | Where-Object eligible | Sort-Object effectiveMetric)
+    if ($unknown) { $result.state = 'Unknown' }
+    elseif ($eligible.Count) {
+        $best = @($eligible | Where-Object effectiveMetric -EQ $eligible[0].effectiveMetric)
+        $identities = @($best | ForEach-Object { "$($_.index)|$($_.nextHop)" } | Select-Object -Unique)
+        if ($identities.Count -eq 1) {
+            $result.state = 'Selected'; $result.selectedInterfaceIndex = $best[0].index; $result.selectedNextHop = $best[0].nextHop; $result.selectedEffectiveMetric = $best[0].effectiveMetric
+        }
+        else { $result.state = 'Tie' }
+    }
+    if ($ExpectedInterfaceIndex -ge 0) {
+        $result.desiredPreferenceMet = $result.state -eq 'Selected' -and $result.selectedInterfaceIndex -eq $ExpectedInterfaceIndex -and
+        (-not $ExpectedNextHop -or $result.selectedNextHop -eq $ExpectedNextHop)
+    }
+    $result
 }
 
 function Get-Usb4SelectedIPv4Route {
@@ -758,13 +807,21 @@ function Invoke-Usb4NetworkReconcile {
         preservedNat = $(if ($Snapshot.ContainsKey('natObserved') -and -not $Snapshot.natObserved) { $null } else { Copy-Usb4NetworkValue @($Snapshot.nat) }); authentication = 'PinnedPhysicalLink; not cryptographic authentication';
         attemptId = [guid]::NewGuid().ToString('D'); phase = 'Preflight'; reconcileElapsedMilliseconds = 0;
         operationTimings = [Collections.Generic.List[hashtable]]::new(); firstFailure = $null; diagnosticPublicationErrors = @(); lastOperation = $null
+        sharedPathInternetReady = $false; internetProofScope = 'NotVerified'; desiredDefaultPreferenceMet = $null;
+        defaultPreferenceRequested = $p.mode -eq 'Consumer' -and $p.sharing.preferSharedInternet;
+        ipv4DefaultSelection       = (Get-Usb4DefaultRouteSelection -Snapshot $Snapshot -Family IPv4);
+        ipv6                       = @{ linkLocalPeerReady = $false; ulaConfigured = $false; ulaPeerVerified = $null; internetVerified = $false; internetState = 'NotVerified';
+            defaultSelection = (Get-Usb4DefaultRouteSelection -Snapshot $Snapshot -Family IPv6)
+        }
     }
+    $record.ipv6.defaultRoutePresent = $record.ipv6.defaultSelection.candidates.Count -gt 0
     if ($state.ContainsKey('pendingTransaction')) {
         $record.exitCode = 1; $record.phase = 'PendingOwnershipReview'; $record.preservedNat = $null
         $record.pendingTransaction = Copy-Usb4NetworkValue $state.pendingTransaction
         $record.originalAttemptId = $(if ($state.pendingTransaction.ContainsKey('attemptId')) { $state.pendingTransaction.attemptId } else { $null })
         $record.firstFailure = $(if ($state.pendingTransaction.ContainsKey('firstFailure')) { Copy-Usb4NetworkValue $state.pendingTransaction.firstFailure } else { $null })
         $record.originalFailureKnown = $null -ne $record.firstFailure
+        $record.ipv4DefaultSelection.state = 'NotObserved'; $record.ipv6.defaultSelection.state = 'NotObserved'; $record.ipv6.defaultRoutePresent = $null
         $record.errors += 'An interrupted or incompletely rolled-back transaction requires exact preimage review before another apply.'
         if ($record.firstFailure) { $record.errors += "Original failure: $($record.firstFailure.message)" }
         else { $record.errors += 'The interrupted journal does not contain the original failure cause.' }
@@ -775,6 +832,7 @@ function Invoke-Usb4NetworkReconcile {
     $publishFailure = {
         param([Management.Automation.ErrorRecord]$FailureRecord)
         $record.exitCode = 1; $record.networkReady = $false; $record.internetReady = $false; $record.peerReady = $false; $record.ipv4Ready = $false
+        $record.sharedPathInternetReady = $false; $record.desiredDefaultPreferenceMet = $null; $record.ipv6.linkLocalPeerReady = $false; $record.ipv6.ulaConfigured = $false
         $record.sharingConfigured = $false; $record.upstreamInternetReady = $false; $record.peerInternetVerified = $null
         if (-not $record.firstFailure) {
             $record.firstFailure = @{ attemptId = $record.attemptId; observedAt = [DateTimeOffset]::UtcNow.ToString('o');
@@ -924,6 +982,7 @@ function Invoke-Usb4NetworkReconcile {
     }
     $record.peerProof = $proof
     $record.linkLocalReady = $true
+    $record.ipv6.linkLocalPeerReady = $true
     # Conflicting sharing ownership is rejected before the first network write.
     $sharing = @($Snapshot.sharing)
     if ($p.mode -eq 'Consumer' -and (@($sharing | Where-Object guid -EQ $adapter.guid).Count -gt 0 -or
@@ -1018,6 +1077,7 @@ function Invoke-Usb4NetworkReconcile {
             }
         }
     }
+    $preferenceSnapshot = $Snapshot
     try {
         $record.phase = 'ReconcileTransport'
         foreach ($item in $desired) { & $ensureAddress $item }
@@ -1127,6 +1187,7 @@ function Invoke-Usb4NetworkReconcile {
             }
             else {
                 $record.internetReady = $true
+                $record.sharedPathInternetReady = $true; $record.internetProofScope = 'SourceBoundIpv4TlsAndDnsViaDedicatedProbeRoutes'
                 $record.peerInternetVerified = $true; $record.sharingConfigured = $true; $record.qualification = 'ConsumerSourceBoundHttpsAndDns'
                 if ($p.sharing.preferSharedInternet) {
                     & $ensureRoute '0.0.0.0/0' $p.sharing.providerAddress $p.sharing.routeMetric
@@ -1150,6 +1211,14 @@ function Invoke-Usb4NetworkReconcile {
         if ($Apply) {
             $record.phase = 'FinalInvariantReadback'
             $after = & $call 'Snapshot' @{}
+            $preferenceSnapshot = $after
+            $record.ipv4DefaultSelection = Get-Usb4DefaultRouteSelection -Snapshot $after -Family IPv4
+            $record.ipv6.defaultSelection = Get-Usb4DefaultRouteSelection -Snapshot $after -Family IPv6
+            $record.ipv6.defaultRoutePresent = $record.ipv6.defaultSelection.candidates.Count -gt 0
+            if ($p.ContainsKey('localUla')) {
+                $record.ipv6.ulaConfigured = @($after.addresses | Where-Object { $_.index -eq $adapter.index -and $_.address -eq $p.localUla -and $_.prefix -in @(64, 128) }).Count -eq 1 -and
+                @($after.routes | Where-Object { $_.index -eq $adapter.index -and $_.destination -eq "$($p.peerUla)/128" -and $_.nextHop -eq '::' }).Count -eq 1
+            }
             $ownedDnsTransition = $p.mode -eq 'Consumer' -and ($state.dns -or ($PreviousState.ContainsKey('dns') -and $PreviousState.dns))
             if ((Get-Usb4UnrelatedNetworkFingerprint $Snapshot $adapter.index $record.allowedForwardingGuids -AllowManagedAutomaticDnsFallback:$ownedDnsTransition) -cne
                 (Get-Usb4UnrelatedNetworkFingerprint $after $adapter.index $record.allowedForwardingGuids -AllowManagedAutomaticDnsFallback:$ownedDnsTransition)) { throw 'Unrelated addressing, routes, DNS, or WinNAT changed during reconciliation; refusing readiness.' }
@@ -1186,6 +1255,15 @@ function Invoke-Usb4NetworkReconcile {
         }
         elseif ($record.planned.Count -gt 0) {
             $record.networkReady = $false; $record.exitCode = 2
+        }
+        if ($record.internetReady -and $p.mode -eq 'Consumer' -and $p.sharing.preferSharedInternet) {
+            $record.ipv4DefaultSelection = Get-Usb4DefaultRouteSelection -Snapshot $preferenceSnapshot -Family IPv4 -ExpectedInterfaceIndex $adapter.index -ExpectedNextHop $p.sharing.providerAddress
+            $record.desiredDefaultPreferenceMet = $record.ipv4DefaultSelection.desiredPreferenceMet
+            if (-not $record.desiredDefaultPreferenceMet) {
+                $record.internetReady = $false; $record.networkReady = $false; $record.exitCode = 2
+                $record.qualification = 'ConsumerScopedIpv4InternetVerified; requested general IPv4 default preference unmet'
+                $record.errors += 'Requested shared Internet default preference is unmet or unknown; foreign defaults and interface metrics were preserved.'
+            }
         }
     }
     catch {
@@ -1295,6 +1373,10 @@ try {
         Write-Usb4NetworkJson -Path $ReportPath -Value @{ schema = 'pcai.usb4-peer-network/v1'; observedAt = [DateTimeOffset]::UtcNow.ToString('o');
             scope = 'generic-usb4-transport'; invocationId = $invocationId; phase = $mainPhase; inProgress = $true;
             networkReady = $false; peerReady = $false; ipv4Ready = $false; internetReady = $false; exitCode = 2
+            sharedPathInternetReady = $false; internetProofScope = 'NotVerified'; desiredDefaultPreferenceMet = $null
+            defaultPreferenceRequested = $null
+            ipv4DefaultSelection       = @{ state = 'NotObserved'; sourceAddress = $null }
+            ipv6                       = @{ linkLocalPeerReady = $false; ulaConfigured = $false; ulaPeerVerified = $null; internetVerified = $false; internetState = 'NotVerified'; defaultRoutePresent = $null; defaultSelection = @{ state = 'NotObserved' } }
         }
     }
     $snapshotClock = [Diagnostics.Stopwatch]::StartNew()

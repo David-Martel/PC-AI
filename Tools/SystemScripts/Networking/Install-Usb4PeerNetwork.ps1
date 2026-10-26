@@ -6,6 +6,10 @@ Install the standalone USB4 peer-network controller without changing networking.
 Plans by default. Apply stages verified immutable revisions, protects the runtime,
 registers a bounded SYSTEM task, and retains task/configuration preimages. The task
 applies the explicitly enrolled policy later. No machine registry is overwritten.
+.PARAMETER ReleaseManifestPath
+Optional deployable fleet release manifest. Installation validates and preserves
+the exact bytes; Verify reads its installed copy. Source authentication and
+network runtime qualification are separate from matching declared payload hashes.
 #>
 [CmdletBinding()]
 param(
@@ -14,6 +18,7 @@ param(
     [string]$InstallRoot = (Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) 'pcai-usb4/peer-network'),
     [string]$PwshPath = (Join-Path $PSHOME 'pwsh.exe'),
     [string]$ExpectedControllerSha256,
+    [string]$ReleaseManifestPath,
     [switch]$Apply,
     [switch]$DryRun,
     [switch]$Verify,
@@ -23,6 +28,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $script:Usb4InstallOwner = 'PC-AI standalone USB4 peer-network installer v1'
+$script:Usb4InstallerSource = $PSCommandPath
 
 function Assert-Usb4InstallPath {
     <# .SYNOPSIS
@@ -88,13 +94,72 @@ function New-Usb4PeerTaskXml {
 "@
 }
 
+function Get-Usb4ReleaseArchitecture {
+    <# .SYNOPSIS
+    Map the actual operating-system architecture to the fleet release identifier.
+    #>
+    switch ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()) {
+        'X64' { 'x86_64' }
+        'Arm64' { 'aarch64' }
+        'X86' { 'x86' }
+        default { throw 'Unsupported operating-system architecture for this release.' }
+    }
+}
+
+function Assert-Usb4ReleaseBinding {
+    <# .SYNOPSIS
+    Validate declared release provenance and bind payload hashes to reviewed bytes.
+    #>
+    param([Parameter(Mandatory)][string]$ManifestPath, [Parameter(Mandatory)][string]$HostName,
+        [Parameter(Mandatory)][string]$ControllerHash, [Parameter(Mandatory)][string]$PolicyHash,
+        [Parameter(Mandatory)][string]$InstallerHash, [long]$ControllerSize = -1, [long]$PolicySize = -1, [long]$InstallerSize = -1)
+    if (-not [IO.Path]::IsPathFullyQualified($ManifestPath) -or -not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) { throw 'Release manifest must be an existing absolute file.' }
+    $item = Get-Item -LiteralPath $ManifestPath -Force -ErrorAction Stop
+    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Release manifest cannot be a reparse point.' }
+    $manifestBytes = [IO.File]::ReadAllBytes($ManifestPath)
+    $manifest = [Text.Encoding]::UTF8.GetString($manifestBytes).TrimStart([char]0xFEFF) | ConvertFrom-Json -AsHashtable
+    if ($manifest -isnot [Collections.IDictionary] -or ($manifest.schemaVersion -isnot [int] -and $manifest.schemaVersion -isnot [long]) -or $manifest.schemaVersion -ne 1 -or
+        $manifest.artifactType -isnot [string] -or $manifest.artifactType -cne 'pcai-usb4-fleet-release' -or
+        $manifest.kind -isnot [string] -or $manifest.kind -cne 'deployable') { throw 'Invalid deployable fleet release manifest.' }
+    if ($manifest.source -isnot [Collections.IDictionary] -or $manifest.source.repository -isnot [string] -or
+        $manifest.source.repository -notmatch '^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?$' -or
+        $manifest.source.commit -isnot [string] -or $manifest.source.commit -notmatch '^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$') { throw 'Release source repository or commit is invalid.' }
+    if ($manifest.host -isnot [Collections.IDictionary] -or $manifest.host.id -isnot [string] -or $manifest.host.id -ine $HostName -or
+        $manifest.host.platform -isnot [string] -or $manifest.host.platform -cne 'windows' -or
+        $manifest.host.architecture -isnot [string] -or $manifest.host.architecture -cne (Get-Usb4ReleaseArchitecture)) { throw 'Release host, platform, or operating-system architecture does not match.' }
+    if ($manifest.files -isnot [array] -or -not $manifest.files.Count -or $manifest.policy -isnot [Collections.IDictionary]) { throw 'Release payload records or policy binding are missing.' }
+    $paths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($entry in $manifest.files) {
+        if ($entry -isnot [Collections.IDictionary] -or $entry.path -isnot [string] -or $entry.path -notmatch '^[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*$' -or
+            @($entry.path.Split('/') | Where-Object { $_ -in @('.', '..') }).Count -or -not $paths.Add($entry.path) -or
+            $entry.sha256 -isnot [string] -or $entry.sha256 -notmatch '^[a-fA-F0-9]{64}$' -or
+            ($entry.size -isnot [int] -and $entry.size -isnot [long]) -or $entry.size -lt 0) { throw 'Release payload record is invalid or duplicated.' }
+    }
+    $required = @(@{ path = 'Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1'; hash = $ControllerHash; size = $ControllerSize },
+        @{ path = 'Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1'; hash = $InstallerHash; size = $InstallerSize })
+    if (-not $manifest.policy.Contains('path') -or $manifest.policy.path -isnot [string] -or -not $manifest.policy.Contains('sha256') -or -not $manifest.policy.Contains('size')) { throw 'Release policy record is incomplete.' }
+    $required += @{ path = $manifest.policy.path; hash = $PolicyHash; size = $PolicySize }
+    foreach ($expected in $required) {
+        $payloadMatches = @($manifest.files | Where-Object path -CEQ $expected.path)
+        if ($payloadMatches.Count -ne 1 -or $payloadMatches[0].sha256 -ine $expected.hash -or ($expected.size -ge 0 -and $payloadMatches[0].size -ne $expected.size)) { throw 'Release payload hash or size does not match the reviewed controller, installer, or policy bytes.' }
+    }
+    $policyRecord = @($manifest.files | Where-Object path -CEQ $manifest.policy.path)[0]
+    if ($manifest.policy.sha256 -ine $PolicyHash -or $manifest.policy.size -ne $policyRecord.size) { throw 'Release policy record differs from its payload binding.' }
+    $digest = [Security.Cryptography.SHA256]::Create()
+    try { $manifestHash = [BitConverter]::ToString($digest.ComputeHash($manifestBytes)).Replace('-', '') } finally { $digest.Dispose() }
+    @{ manifest = $manifest; sha256 = $manifestHash;
+        sourceCommit = $manifest.source.commit.ToLowerInvariant(); sourceRepository = $manifest.source.repository;
+        authenticity = 'NotVerified; declared source identity with matching payload bytes'
+    }
+}
+
 function Get-Usb4PeerInstallPlan {
     <# .SYNOPSIS
     Read and validate sources without creating files, tasks or receipts.
     #>
     param([Parameter(Mandatory)][string]$PolicySource, [Parameter(Mandatory)][string]$ControllerSource,
         [Parameter(Mandatory)][string]$Destination, [Parameter(Mandatory)][string]$Executable,
-        [string]$ExpectedHash, [string]$CurrentHost = [Environment]::MachineName)
+        [string]$ExpectedHash, [string]$CurrentHost = [Environment]::MachineName, [string]$ReleaseManifestSource)
     $root = Assert-Usb4InstallPath $Destination
     foreach ($source in @($PolicySource, $ControllerSource, $Executable)) {
         if (-not [IO.Path]::IsPathFullyQualified($source) -or -not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Required absolute source file is unavailable: $source" }
@@ -104,10 +169,18 @@ function Get-Usb4PeerInstallPlan {
     $parseTokens = $null; $parseErrors = $null
     $null = [Management.Automation.Language.Parser]::ParseFile($ControllerSource, [ref]$parseTokens, [ref]$parseErrors)
     if ($parseErrors.Count) { throw 'Controller source does not parse.' }
-    $policy = Get-Content -LiteralPath $PolicySource -Raw | ConvertFrom-Json -AsHashtable
+    $policyBytes = [IO.File]::ReadAllBytes($PolicySource)
+    $policy = [Text.Encoding]::UTF8.GetString($policyBytes).TrimStart([char]0xFEFF) | ConvertFrom-Json -AsHashtable
     . $ControllerSource
     if (-not (Get-Command Assert-Usb4NetworkPolicy -CommandType Function -ErrorAction SilentlyContinue)) { throw 'Controller policy validator is unavailable.' }
     $null = Assert-Usb4NetworkPolicy -Policy $policy -CurrentHost $CurrentHost
+    $digest = [Security.Cryptography.SHA256]::Create()
+    try { $policyHash = [BitConverter]::ToString($digest.ComputeHash($policyBytes)).Replace('-', '') } finally { $digest.Dispose() }
+    $release = $null; $installerHash = $null
+    if ($ReleaseManifestSource) {
+        $installerHash = (Get-FileHash -LiteralPath $script:Usb4InstallerSource -Algorithm SHA256).Hash
+        $release = Assert-Usb4ReleaseBinding -ManifestPath $ReleaseManifestSource -HostName $CurrentHost -ControllerHash $hash -PolicyHash $policyHash -InstallerHash $installerHash -ControllerSize (Get-Item -LiteralPath $ControllerSource).Length -PolicySize $policyBytes.Length -InstallerSize (Get-Item -LiteralPath $script:Usb4InstallerSource).Length
+    }
     $revisions = @(if (Test-Path -LiteralPath $root) {
             Get-ChildItem -LiteralPath $root -Directory | Where-Object Name -Match '^r[1-9][0-9]*$' | ForEach-Object { [int]$_.Name.Substring(1) }
         })
@@ -122,9 +195,13 @@ function Get-Usb4PeerInstallPlan {
         revisionPath = $revisionPath; stagingPath = (Join-Path $root ('.staging-' + $revision))
         controllerSource = [IO.Path]::GetFullPath($ControllerSource); policySource = [IO.Path]::GetFullPath($PolicySource)
         controllerPath = $controller; policyPath = $policyTarget; statePath = $state; reportPath = $report
-        controllerSha256 = $hash; policySha256 = (Get-FileHash -LiteralPath $PolicySource -Algorithm SHA256).Hash
+        controllerSha256 = $hash; policySha256 = $policyHash
+        releaseManifestSource = $ReleaseManifestSource; releaseManifestPath = $(if ($release) { Join-Path $revisionPath 'release.json' } else { $null })
+        releaseManifestSha256 = $(if ($release) { $release.sha256 } else { $null }); installerSource = $script:Usb4InstallerSource; installerSha256 = $installerHash
+        installerSize = $(if ($release) { (Get-Item -LiteralPath $script:Usb4InstallerSource).Length } else { $null })
+        sourceCommit = $(if ($release) { $release.sourceCommit } else { $null }); sourceRepository = $(if ($release) { $release.sourceRepository } else { $null })
         executable = [IO.Path]::GetFullPath($Executable); taskName = 'Usb4PeerNetwork'; taskPath = '\PC-AI\'
-        taskXml = (New-Usb4PeerTaskXml -Executable $Executable -Controller $controller -Policy $policyTarget -State $state -Report $report)
+        taskXml       = (New-Usb4PeerTaskXml -Executable $Executable -Controller $controller -Policy $policyTarget -State $state -Report $report)
         mode = $policy.mode; hostName = $policy.hostName
     }
 }
@@ -278,6 +355,11 @@ function Invoke-Usb4PeerInstall {
     #>
     param([Parameter(Mandatory)][object]$Plan, [hashtable]$Operations = (New-Usb4InstallerOperations),
         [switch]$Apply, [switch]$ReplaceLegacyTasks)
+    if ($Plan.releaseManifestSource) {
+        if ((Get-FileHash -LiteralPath $Plan.installerSource -Algorithm SHA256).Hash -ine $Plan.installerSha256) { throw 'Installer source changed after release planning.' }
+        $binding = Assert-Usb4ReleaseBinding -ManifestPath $Plan.releaseManifestSource -HostName $Plan.hostName -ControllerHash $Plan.controllerSha256 -PolicyHash $Plan.policySha256 -InstallerHash $Plan.installerSha256 -ControllerSize (Get-Item -LiteralPath $Plan.controllerSource).Length -PolicySize (Get-Item -LiteralPath $Plan.policySource).Length -InstallerSize $Plan.installerSize
+        if ($binding.sha256 -ine $Plan.releaseManifestSha256) { throw 'Release manifest changed after planning; no task changes performed.' }
+    }
     $existing = & $Operations.GetTask $Plan.taskName $Plan.taskPath
     if ($existing -and -not (Test-Usb4OwnedTask $existing $Plan.root)) { throw 'Refusing to replace a foreign task with the same name.' }
     if ($existing -and $existing.Running) { throw 'The installed controller task is active; retry after its bounded run completes.' }
@@ -334,6 +416,11 @@ function Invoke-Usb4PeerInstall {
         foreach ($entry in @(@{ Name = 'Invoke-Usb4PeerNetwork.ps1'; Hash = $Plan.controllerSha256 }, @{ Name = 'policy.json'; Hash = $Plan.policySha256 })) {
             if ((Get-FileHash -LiteralPath (Join-Path $Plan.stagingPath $entry.Name) -Algorithm SHA256).Hash -cne $entry.Hash) { throw 'Staged file readback failed.' }
         }
+        if ($Plan.releaseManifestSource) {
+            $releaseTarget = Join-Path $Plan.stagingPath 'release.json'
+            Copy-Item -LiteralPath $Plan.releaseManifestSource -Destination $releaseTarget -ErrorAction Stop
+            if ((Get-FileHash -LiteralPath $releaseTarget -Algorithm SHA256).Hash -ine $Plan.releaseManifestSha256) { throw 'Staged release manifest readback failed.' }
+        }
         $preimages = Join-Path $Plan.stagingPath 'preimages'; [IO.Directory]::CreateDirectory($preimages) | Out-Null
         $preimageManifest = @()
         $allSnapshots = @($legacy); if ($existing) { $allSnapshots += $existing }
@@ -348,6 +435,11 @@ function Invoke-Usb4PeerInstall {
             statePath = $Plan.statePath; reportPath = $Plan.reportPath
             taskName = $Plan.taskName; taskPath = $Plan.taskPath; executable = $Plan.executable; installedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
             preimages = $preimageManifest; runtimeQualified = $false
+        }
+        if ($Plan.releaseManifestSource) {
+            $manifest.releaseManifestPath = $Plan.releaseManifestPath; $manifest.releaseManifestSha256 = $Plan.releaseManifestSha256
+            $manifest.sourceCommit = $Plan.sourceCommit; $manifest.sourceRepository = $Plan.sourceRepository
+            $manifest.installerSha256 = $Plan.installerSha256; $manifest.installerSize = $Plan.installerSize
         }
         $manifestText = $manifest | ConvertTo-Json -Depth 10
         [IO.File]::WriteAllText((Join-Path $Plan.stagingPath 'manifest.json'), $manifestText, [Text.UTF8Encoding]::new($false))
@@ -439,6 +531,16 @@ function Test-Usb4PeerInstallation {
         if ((Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash -cne $entry.Hash) { throw 'Installed file hash mismatch.' }
         & $Operations.AssertRoot $entry.Path | Out-Null
     }
+    if ($manifest.PSObject.Properties['releaseManifestPath']) {
+        $expectedRelease = Join-Path (Join-Path $rootPath $manifest.revision) 'release.json'
+        if ([IO.Path]::GetFullPath($manifest.releaseManifestPath) -ine $expectedRelease -or
+            (Get-FileHash -LiteralPath $manifest.releaseManifestPath -Algorithm SHA256).Hash -ine $manifest.releaseManifestSha256) { throw 'Installed release manifest path or hash mismatch.' }
+        & $Operations.AssertRoot $manifest.releaseManifestPath | Out-Null
+        $binding = Assert-Usb4ReleaseBinding -ManifestPath $manifest.releaseManifestPath -HostName $manifest.hostName -ControllerHash $manifest.controllerSha256 -PolicyHash $manifest.policySha256 -InstallerHash $manifest.installerSha256 -ControllerSize (Get-Item -LiteralPath $manifest.controllerPath).Length -PolicySize (Get-Item -LiteralPath $manifest.policyPath).Length -InstallerSize $manifest.installerSize
+        $installedPolicy = Get-Content -LiteralPath $manifest.policyPath -Raw | ConvertFrom-Json -AsHashtable
+        if ($binding.sha256 -ine $manifest.releaseManifestSha256 -or $installedPolicy.hostName -ine $manifest.hostName -or $manifest.hostName -ine [Environment]::MachineName -or
+            $binding.sourceCommit -cne $manifest.sourceCommit -or $binding.sourceRepository -cne $manifest.sourceRepository) { throw 'Installed release host or source binding mismatch.' }
+    }
     $task = & $Operations.GetTask $manifest.taskName $manifest.taskPath
     Assert-Usb4InstalledTask -Snapshot $task -Executable $manifest.executable -Controller $manifest.controllerPath -Policy $manifest.policyPath -State $manifest.statePath -Report $manifest.reportPath -Enabled $true
     [pscustomobject]@{ State = 'Verified'; Installed = $true; RuntimeQualified = $false; Revision = $manifest.revision }
@@ -450,7 +552,7 @@ if ($Apply -and $DryRun) { throw 'Apply and DryRun cannot be combined.' }
 if (-not $IsWindows) { throw 'The installer runtime requires Windows; portable planning helpers can be dot-sourced.' }
 if ($Verify) { Test-Usb4PeerInstallation -Root $InstallRoot | ConvertTo-Json -Depth 12; return }
 if (-not $PolicyPath) { throw 'PolicyPath is required.' }
-$plan = Get-Usb4PeerInstallPlan -PolicySource $PolicyPath -ControllerSource $ControllerPath -Destination $InstallRoot -Executable $PwshPath -ExpectedHash $ExpectedControllerSha256
+$plan = Get-Usb4PeerInstallPlan -PolicySource $PolicyPath -ControllerSource $ControllerPath -Destination $InstallRoot -Executable $PwshPath -ExpectedHash $ExpectedControllerSha256 -ReleaseManifestSource $ReleaseManifestPath
 if (-not $Apply) { Invoke-Usb4PeerInstall -Plan $plan -ReplaceLegacyTasks:$ReplaceLegacyTasks | ConvertTo-Json -Depth 15; return }
 $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Installation requires an elevated administrator.' }
@@ -459,7 +561,7 @@ $held = $false
 try {
     $held = $mutex.WaitOne(0)
     if (-not $held) { throw 'Another USB4 installation is active.' }
-    $plan = Get-Usb4PeerInstallPlan -PolicySource $PolicyPath -ControllerSource $ControllerPath -Destination $InstallRoot -Executable $PwshPath -ExpectedHash $ExpectedControllerSha256
+    $plan = Get-Usb4PeerInstallPlan -PolicySource $PolicyPath -ControllerSource $ControllerPath -Destination $InstallRoot -Executable $PwshPath -ExpectedHash $ExpectedControllerSha256 -ReleaseManifestSource $ReleaseManifestPath
     Invoke-Usb4PeerInstall -Plan $plan -Apply -ReplaceLegacyTasks:$ReplaceLegacyTasks | ConvertTo-Json -Depth 15
 }
 finally {

@@ -26,7 +26,7 @@ function Initialize-Fixture([string]$Mode = 'Peer') {
     }
     $usb = @{ mac = 'C094EB144DCA'; guid = '11111111-1111-1111-1111-111111111111'; index = 31; name = 'renumberable-usb4';
         description = 'USB4(TM) P2P Network Adapter'; up = $true; hardware = $false; wired = $false; wireless = $false;
-        metric = 15; mtu = 62000; dhcp = 'Disabled'; weakHostSend = 'Disabled'; weakHostReceive = 'Disabled'; forwarding = 'Disabled';
+        metric = 5; mtu = 62000; dhcp = 'Disabled'; weakHostSend = 'Disabled'; weakHostReceive = 'Disabled'; forwarding = 'Disabled';
         addresses = @(); dns = @('8.8.8.8'); dns6 = @('2001:4860:4860::8888'); dnsMode = 'Dhcp'
     }
     $wiredAddress = @{ address = '192.168.50.42'; prefix = 24; index = 30; family = 'IPv4'; state = 'Preferred'; prefixOrigin = 'Manual'; suffixOrigin = 'Manual'; skipAsSource = $false }
@@ -54,6 +54,7 @@ function Initialize-Fixture([string]$Mode = 'Peer') {
     $script:failCommit = $false
     $script:natInventory = $null
     $script:automaticDns6Fallback = $false
+    $script:unknownRoutingMetricIndex = -1
 }
 function Initialize-NatFixture([string]$Mode = 'Provider') {
     Initialize-Fixture $Mode
@@ -75,6 +76,17 @@ function Add-FixtureAddress([hashtable]$Arguments) {
     $adapter = @($script:model.adapters | Where-Object index -EQ $Arguments.index)[0]
     $adapter.addresses += $entry
 }
+function Get-FixtureSnapshot {
+    $snapshot = Copy-Usb4NetworkValue $script:model
+    $snapshot.routingInterfaces = @(foreach ($a in $snapshot.adapters) {
+            foreach ($family in @('IPv4', 'IPv6')) {
+                @{ index = $a.index; family = $family; metric = $(if ($a.index -eq $script:unknownRoutingMetricIndex) { $null } else { $a.metric });
+                    state = $(if ($a.up) { 'Connected' } else { 'Disconnected' })
+                }
+            }
+        })
+    $snapshot
+}
 function Invoke-FixtureOperation {
     param([string]$Name, [hashtable]$Arguments)
     $script:calls.Add(@{ name = $Name; arguments = Copy-Usb4NetworkValue $Arguments })
@@ -82,7 +94,7 @@ function Invoke-FixtureOperation {
     if ($script:failOperation -eq $Name -and -not $script:failAfterMutation) { throw "Injected $Name failure before mutation." }
     if ($script:noOpOperation -eq $Name) { return }
     switch ($Name) {
-        { $_ -in @('Snapshot', 'ReadAddressState', 'ReadRouteState', 'ReadAdapterState', 'ReadSharingState') } { return Copy-Usb4NetworkValue $script:model }
+        { $_ -in @('Snapshot', 'ReadAddressState', 'ReadRouteState', 'ReadAdapterState', 'ReadSharingState') } { return Get-FixtureSnapshot }
         'ReadExistingNat' { if ($null -eq $script:natInventory) { throw 'Unexpected NAT inventory dependency.' }; return Copy-Usb4NetworkValue $script:natInventory }
         'ProbePeer' {
             if (-not $script:peerHealthy) { return @{ success = $false; error = 'Peer disconnected.' } }
@@ -144,7 +156,7 @@ function Save-FixtureCheckpoint([hashtable]$State) {
     $script:timeline.Add(@{ kind = 'Checkpoint'; firstFailure = $(if ($State.ContainsKey('pendingTransaction') -and $State.pendingTransaction.ContainsKey('firstFailure')) { Copy-Usb4NetworkValue $State.pendingTransaction.firstFailure } else { $null }) })
 }
 function Invoke-Fixture([hashtable]$Previous = @{}, [switch]$Apply) {
-    Invoke-Usb4NetworkReconcile -Policy $script:policy -Snapshot (Copy-Usb4NetworkValue $script:model) -PreviousState $Previous -Operation ${function:Invoke-FixtureOperation} -StateCheckpoint ${function:Save-FixtureCheckpoint} -ReportCheckpoint { param($Report); $script:failureReports.Add((Copy-Usb4NetworkValue $Report)); $script:timeline.Add(@{ kind = 'FailureReport'; firstFailure = Copy-Usb4NetworkValue $Report.firstFailure }) } -Apply:$Apply
+    Invoke-Usb4NetworkReconcile -Policy $script:policy -Snapshot (Get-FixtureSnapshot) -PreviousState $Previous -Operation ${function:Invoke-FixtureOperation} -StateCheckpoint ${function:Save-FixtureCheckpoint} -ReportCheckpoint { param($Report); $script:failureReports.Add((Copy-Usb4NetworkValue $Report)); $script:timeline.Add(@{ kind = 'FailureReport'; firstFailure = Copy-Usb4NetworkValue $Report.firstFailure }) } -Apply:$Apply
 }
 function Get-FixtureMutation {
     @($script:calls | Where-Object { $_.name -notin @('Snapshot', 'ReadAddressState', 'ReadRouteState', 'ReadAdapterState', 'ReadSharingState', 'ReadExistingNat', 'ProbePeer', 'ProbeTransport', 'ProbeInternet', 'ProbeDns') })
@@ -466,5 +478,54 @@ foreach ($kind in @('StaticSentinels', 'DhcpSentinels', 'UnknownOrigin', 'RealSe
     Assert-Check ((Get-Usb4UnrelatedNetworkFingerprint $original 31 -AllowManagedAutomaticDnsFallback) -cne (Get-Usb4UnrelatedNetworkFingerprint $changed 31 -AllowManagedAutomaticDnsFallback)) "IPv6 DNS invariant ignored $kind drift."
 }
 Write-Output 'PASS: ConfiguredUnknownAndForeignIpv6DnsRemainStrict'
+
+Initialize-NatFixture Consumer
+$script:natInventory = $null; $model.nat = @()
+$model.routes += @{ destination = '9.9.9.9/32'; nextHop = '192.168.50.1'; index = 30; metric = 1 }
+$foreignBefore = Get-Usb4UnrelatedNetworkFingerprint $model 31
+$r = Invoke-Fixture -Apply
+Assert-Check ($r.exitCode -eq 0 -and $r.internetReady -and $r.sharedPathInternetReady -and $r.desiredDefaultPreferenceMet -and $r.ipv4DefaultSelection.selectedInterfaceIndex -eq 31 -and $r.ipv4DefaultSelection.selectedEffectiveMetric -eq 15) 'Default preference ignored the effective interface-plus-route metric.'
+Assert-Check ($null -eq $r.ipv4DefaultSelection.sourceAddress -and $r.ipv4DefaultSelection.sourceSelection -eq 'NotObserved' -and $r.internetProofScope -eq 'SourceBoundIpv4TlsAndDnsViaDedicatedProbeRoutes') 'Default receipt invented an unbound source or broadened dedicated probe evidence.'
+Assert-Check ((Get-Usb4UnrelatedNetworkFingerprint $model 31) -ceq $foreignBefore -and @($model.routes | Where-Object destination -EQ '9.9.9.9/32').Count -eq 1) 'Default observation rewrote foreign or more-specific routes.'
+Write-Output 'PASS: EffectiveDefaultPreferenceAndScopedInternetEvidence'
+
+foreach ($case in @('ForeignWins', 'Tie', 'UnknownMetric')) {
+    Initialize-NatFixture Consumer
+    $script:natInventory = $null; $model.nat = @()
+    switch ($case) {
+        'ForeignWins' { $model.adapters[0].metric = 20; $expectedState = 'Selected' }
+        'Tie' { $model.adapters[0].metric = 10; $expectedState = 'Tie' }
+        'UnknownMetric' { $script:unknownRoutingMetricIndex = 31; $expectedState = 'Unknown' }
+    }
+    $foreignBefore = Get-Usb4UnrelatedNetworkFingerprint $model 31
+    $r = Invoke-Fixture -Apply
+    Assert-Check ($r.exitCode -eq 2 -and -not $r.networkReady -and -not $r.internetReady -and $r.sharedPathInternetReady -and $r.peerInternetVerified -and -not $r.desiredDefaultPreferenceMet -and $r.ipv4DefaultSelection.state -eq $expectedState) "$case was falsely claimed as preferred shared Internet."
+    Assert-Check ($r.state.dns -and $r.rollbackErrors.Count -eq 0 -and -not $r.state.ContainsKey('pendingTransaction') -and (Get-Usb4UnrelatedNetworkFingerprint $model 31) -ceq $foreignBefore) "$case rewrote foreign policy or discarded healthy scoped custody."
+    $owned = $r.state; $script:calls.Clear(); $r = Invoke-Fixture $owned -Apply
+    Assert-Check ($r.exitCode -eq 2 -and $r.sharedPathInternetReady -and @(Get-FixtureMutation).Count -eq 0) "$case caused recurring route or metric mutations."
+    $script:calls.Clear(); $checkpointBefore = $checkpointCalls; $r = Invoke-Fixture $owned
+    Assert-Check ($r.exitCode -eq 2 -and -not $r.networkReady -and -not $r.internetReady -and $r.sharedPathInternetReady -and -not $r.desiredDefaultPreferenceMet -and @(Get-FixtureMutation).Count -eq 0 -and $checkpointCalls -eq $checkpointBefore) "$case idempotent DryRun falsely claimed preference or wrote state."
+}
+Write-Output 'PASS: UnmetDefaultPreferenceDoesNotRewriteForeignRouting'
+
+Initialize-Fixture
+$empty = Get-FixtureSnapshot; $empty.routes = @()
+$v4 = Get-Usb4DefaultRouteSelection $empty IPv4 -ExpectedInterfaceIndex 31
+Assert-Check ($v4.state -eq 'Absent' -and -not $v4.desiredPreferenceMet -and $null -eq $v4.selectedInterfaceIndex) 'Absent default route acquired a fabricated choice.'
+$empty.routes = @(@{ destination = '0.0.0.0/0'; nextHop = '192.168.50.1'; index = 30; metric = 10 })
+$empty.routingInterfaces = @()
+Assert-Check ((Get-Usb4DefaultRouteSelection $empty IPv4).state -eq 'Unknown') 'Unobserved routing interface metric became a selected route.'
+$empty = Get-FixtureSnapshot; $empty.routes += @{ destination = '0.0.0.0/0'; nextHop = '192.168.50.2'; index = 30; metric = 10 }
+Assert-Check ((Get-Usb4DefaultRouteSelection $empty IPv4).state -eq 'Tie') 'Different equal-cost gateways on one interface were collapsed into a unique route.'
+Write-Output 'PASS: AbsentUnknownAndEqualCostGatewaySelection'
+
+Initialize-Fixture
+$policy.localUla = 'fd00:7462:7032::7'; $policy.peerUla = 'fd00:7462:7032::9'
+$r = Invoke-Fixture -Apply
+Assert-Check ($r.ipv6.linkLocalPeerReady -and $r.ipv6.ulaConfigured -and $null -eq $r.ipv6.ulaPeerVerified -and -not $r.ipv6.defaultRoutePresent -and -not $r.ipv6.internetVerified -and $r.ipv6.internetState -eq 'NotVerified') 'IPv6 peer transport was confused with ULA packet proof or routed Internet.'
+$model.routes += @{ destination = '::/0'; nextHop = 'fe80::1'; index = 30; metric = 10 }
+$owned = $r.state; $r = Invoke-Fixture $owned -Apply
+Assert-Check ($r.ipv6.defaultRoutePresent -and $r.ipv6.defaultSelection.state -eq 'Selected' -and $r.ipv6.defaultSelection.selectedInterfaceIndex -eq 30 -and -not $r.ipv6.internetVerified) 'IPv6 default presence was falsely elevated to verified IPv6 Internet.'
+Write-Output 'PASS: Ipv6TransportConfigurationAndInternetAreDistinct'
 
 Write-Output "PASS: $script:checks detecting assertions across policy, real reconciliation, recovery, and publication controls."

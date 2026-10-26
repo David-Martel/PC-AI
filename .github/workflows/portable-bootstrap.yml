@@ -12,6 +12,7 @@ on:
       - 'Deploy/Cargo.lock'
       - 'Deploy/**/Cargo.toml'
       - 'Tests/Portable/**'
+      - 'Tools/SystemScripts/SerenaLauncher/run-serena-codex.js'
       - 'Tools/Test-PcaiModuleManifests.ps1'
       - 'lefthook.yml'
       - 'Tests/Invoke-BenchmarkGate.ps1'
@@ -30,6 +31,7 @@ on:
       - 'Deploy/Cargo.lock'
       - 'Deploy/**/Cargo.toml'
       - 'Tests/Portable/**'
+      - 'Tools/SystemScripts/SerenaLauncher/run-serena-codex.js'
       - 'Tools/Test-PcaiModuleManifests.ps1'
       - 'lefthook.yml'
       - 'Tests/Invoke-BenchmarkGate.ps1'
@@ -52,6 +54,15 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Serena complete-message framing contracts
+        shell: pwsh
+        run: |
+          node --test Tests/Portable/test-serena-stdio.js
+          if ($LASTEXITCODE -ne 0) { throw 'Serena stdio contracts failed' }
       - uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
         with:
           python-version: '3.12'
@@ -91,6 +102,16 @@ jobs:
           $env:PCAI_TOKEN_NATIVE_PATH = Join-Path $target "debug/$filename"
           # Nested script invocation exercises closure scope under the CI wrapper.
           ./Tests/Portable/Test-TokenBenchmarkParity.ps1
+      - name: CPU inference and FFI compatibility contracts
+        shell: pwsh
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'pcai-parity-core'
+          cargo test --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-inference --no-default-features --features server,ffi --lib --target-dir $target -- --test-threads=1
+          if ($LASTEXITCODE -ne 0) { throw 'CPU inference and FFI library tests failed' }
+          cargo clippy --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-inference --no-default-features --features server,ffi --lib --target-dir $target -- -D warnings
+          if ($LASTEXITCODE -ne 0) { throw 'CPU inference and FFI strict analysis failed' }
       - name: Build managed bridge for host
         shell: pwsh
         env:

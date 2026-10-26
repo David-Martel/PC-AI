@@ -570,7 +570,7 @@ function Invoke-PcaiNativeDirectoryManifest {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, Position = 0)]
-        [ValidateScript({ Test-Path $_ -PathType Container })]
+        [ValidateScript({ Test-Path -LiteralPath $_ -PathType Container })]
         [string]$Path,
 
         [Parameter()]
@@ -587,7 +587,7 @@ function Invoke-PcaiNativeDirectoryManifest {
         throw 'PCAI Native tools not available.'
     }
 
-    $resolvedPath = Resolve-Path $Path | Select-Object -ExpandProperty Path
+    $resolvedPath = Resolve-Path -LiteralPath $Path | Select-Object -ExpandProperty Path
 
     if ($StatsOnly) {
         return [PcaiNative.PcaiSearch]::CollectDirectoryManifestStats($resolvedPath, $MaxDepth, $MaxResults)

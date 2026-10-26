@@ -82,7 +82,9 @@ Describe 'Actual routed diagnosis JSON contract' -Tag 'Unit', 'LLM', 'Router', '
     # Needs: real router/parser with only final-provider/prompt/endpoint boundaries inert.
     # Breadcrumb: source-bound empty-response reproduction in the fleet signal audit.
     It 'rejects <Label> diagnosis output when JSON is enforced' -ForEach @(
-        @{ Label = 'empty'; Content = '' }, @{ Label = 'whitespace'; Content = " `t`r`n" }
+        @{ Label = 'empty'; Content = '' }, @{ Label = 'whitespace'; Content = " `t`r`n" },
+        @{ Label = 'empty JSON fence'; Content = '```json' + "`n" + '```' },
+        @{ Label = 'whitespace JSON fence'; Content = '```json' + "`n   `n" + '```' }
     ) {
         & $script:JsonContractModule { param($Value) $script:FixtureContent = $Value } $Content
         { & $script:JsonContractModule { Invoke-LLMChatRouted -Message 'fixture' -Mode diagnose -BypassRouter -ToolsPath 'inert' } } |
@@ -90,7 +92,9 @@ Describe 'Actual routed diagnosis JSON contract' -Tag 'Unit', 'LLM', 'Router', '
     }
 
     It 'marks <Label> output invalid without throwing when enforcement is disabled' -ForEach @(
-        @{ Label = 'empty'; Content = '' }, @{ Label = 'whitespace'; Content = '   ' }
+        @{ Label = 'empty'; Content = '' }, @{ Label = 'whitespace'; Content = '   ' },
+        @{ Label = 'empty JSON fence'; Content = '```json' + "`n" + '```' },
+        @{ Label = 'whitespace JSON fence'; Content = '```json' + "`n   `n" + '```' }
     ) {
         & $script:JsonContractModule { param($Value) $script:FixtureContent = $Value } $Content
         $result = & $script:JsonContractModule { Invoke-LLMChatRouted -Message 'fixture' -Mode diagnose -BypassRouter -ToolsPath 'inert' -EnforceJson:$false }

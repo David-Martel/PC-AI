@@ -16,7 +16,10 @@ function ConvertFrom-LLMJson {
     )
 
     process {
-        if ([string]::IsNullOrWhiteSpace($Content)) { return $null }
+        if ([string]::IsNullOrWhiteSpace($Content)) {
+            if ($Strict) { throw 'JSON content is empty or whitespace.' }
+            return $null
+        }
 
         # Size guard: 5MB limit to prevent OOM
         if ($Content.Length -gt 5MB) {
@@ -51,7 +54,10 @@ function ConvertFrom-LLMJson {
             }
         }
 
-        if (-not $jsonStr) { return $null }
+        if ([string]::IsNullOrWhiteSpace($jsonStr)) {
+            if ($Strict) { throw 'Extracted JSON content is empty or whitespace.' }
+            return $null
+        }
 
         # 3. Parse JSON
         try {

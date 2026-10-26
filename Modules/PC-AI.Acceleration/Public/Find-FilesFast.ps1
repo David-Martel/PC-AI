@@ -9,7 +9,8 @@
     than PowerShell's Get-ChildItem for large directory trees.
 
 .PARAMETER Path
-    Root path to search from
+    Literal filesystem root to search from.
+    Use Pattern for filename regular expressions.
 
 .PARAMETER Pattern
     Filename pattern (supports regex)
@@ -111,6 +112,9 @@ function Find-FilesFast {
             $forwardParams[$key] = $PSBoundParameters[$key]
         }
     }
+    # PSBoundParameters omits the default Path. Both backends need the same
+    # resolved literal root used for cache identity, including the default cwd.
+    $forwardParams['Path'] = $resolvedPath
 
     if ($useFd) {
         $results = @(Find-WithFd @forwardParams -FdPath $fdPath)
@@ -425,7 +429,7 @@ function Find-WithGetChildItem {
     )
 
     $params = @{
-        Path    = $Path
+        LiteralPath = $Path
         Recurse = $true
         ErrorAction = 'SilentlyContinue'
     }

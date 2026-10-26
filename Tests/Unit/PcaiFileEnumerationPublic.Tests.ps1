@@ -75,6 +75,20 @@ Describe 'Canonical public file enumeration on owned bytes' -Tag 'Unit', 'Accele
         Should -Invoke Initialize-PcaiNative -ModuleName PC-AI.Acceleration -Times 0 -Exactly
     }
 
+    # Protects: the default current-directory root. Detects: dropping the public
+    # default when forwarding only explicitly bound parameters to a backend.
+    # Needs: a real owned working directory; no enumeration mocks.
+    # Breadcrumb: Find-FilesFast root forwarding to Find-WithGetChildItem.
+    It 'uses the actual current directory when Path is omitted' {
+        Push-Location -LiteralPath $script:EnumerationRoot
+        try {
+            $rows = @(Find-FilesFast -Extension txt -Type file -NoIgnore -FullPath)
+        } finally { Pop-Location }
+        Assert-EnumerationPaths $rows @(
+            'alpha.txt', 'upper.TXT', 'docs/notes.txt', 'docs/deep/last.txt', 'keep[1]/skip.txt', 'keep1/retain.txt'
+        ).ForEach({ [IO.Path]::GetFullPath((Join-Path $script:EnumerationRoot $_)) })
+    }
+
     # Protects: extension selection. Detects: dot/case handling, accidental directories or wrong extensions.
     # Needs: mixed physical suffixes. Breadcrumb: public Extension/Type parameters.
     It 'accepts <Suffix> while retaining only matching physical files' -ForEach @(
@@ -127,6 +141,35 @@ Describe 'Canonical public file enumeration on owned bytes' -Tag 'Unit', 'Accele
         Assert-EnumerationPaths $rows @(
             'alpha.txt', 'readme.md', 'upper.TXT', 'docs/notes.txt', 'docs/deep/last.txt', 'keep1/retain.txt'
         ).ForEach({ [IO.Path]::GetFullPath((Join-Path $script:EnumerationRoot $_)) })
+    }
+
+    # Protects: literal public roots. Detects: wildcard resolution selecting a
+    # similar sibling or silently dropping a real bracket-bearing directory.
+    # Needs: owned physical roots and unavailable optional tools; no enumeration mocks.
+    # Breadcrumb: Resolve-PcaiPath and Find-WithGetChildItem root handling.
+    It 'enumerates the literal root <RootName> without selecting a wildcard-similar sibling' -ForEach @(
+        @{ RootName = 'literal[ab]'; SiblingName = 'literala' }
+        @{ RootName = 'unmatched[scope]'; SiblingName = $null }
+    ) {
+        $literalRoot = Join-Path $script:EnumerationRoot $RootName
+        $expected = @('first.txt', 'second.txt').ForEach({ Join-Path $literalRoot $_ })
+        foreach ($path in $expected) { New-EnumerationBytes -Path $path -Length 3 }
+        if ($SiblingName) {
+            New-EnumerationBytes -Path (Join-Path $script:EnumerationRoot "$SiblingName/decoy.txt") -Length 7
+        }
+
+        $rows = @(Find-FilesFast -Path $literalRoot -Extension txt -Type file -NoIgnore -FullPath)
+
+        Assert-EnumerationPaths $rows $expected
+        $rows.Count | Should -Be 2
+        @($rows | Where-Object Length -NE 3).Count | Should -Be 0
+        if ($SiblingName) {
+            # A wildcard-resolved cache key must not let the first root poison
+            # a later query of its genuinely different physical sibling.
+            $sibling = @(Find-FilesFast -Path (Join-Path $script:EnumerationRoot $SiblingName) -Extension txt -Type file -NoIgnore -FullPath)
+            Assert-EnumerationPaths $sibling @((Join-Path $script:EnumerationRoot "$SiblingName/decoy.txt"))
+        }
+        Should -Invoke Initialize-PcaiNative -ModuleName PC-AI.Acceleration -Times 0 -Exactly
     }
 
     # Protects: opt-in hidden visibility. Detects: discarded Hidden or accidental inclusion by default.

@@ -143,7 +143,9 @@ function Resolve-PcaiPath {
         [string]$Path = '.'
     )
 
-    $resolved = Resolve-Path -Path $Path -ErrorAction SilentlyContinue | Select-Object -First 1
+    # Search roots identify physical paths; filename patterns are separate.
+    # Wildcard expansion here can alias distinct roots in query-cache keys.
+    $resolved = Resolve-Path -LiteralPath $Path -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($resolved) {
         return $resolved.Path
     }

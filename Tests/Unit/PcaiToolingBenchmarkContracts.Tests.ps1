@@ -187,6 +187,24 @@ Export-ModuleMember -Function Test-PcaiNativeAvailable,Get-PcaiNativeStatus,Get-
         } $Returned
         {Invoke-FixtureCase directory-manifest -Limit $Limit}|Should -Throw '*Manifest native useful output mismatch: EntriesReturned*'
     }
+    It 'admits a complete capped count below the full corpus size without claiming subset parity' -Tag 'UtilityRegression' {
+        [IO.File]::WriteAllBytes((Join-Path $script:DataRoot 'second.txt'),[byte[]](4,5))
+        [IO.File]::WriteAllBytes((Join-Path $script:DataRoot 'third.txt'),[byte[]](6))
+        (Get-PowerShellDirectoryManifest -Path $script:DataRoot -MaxResults 0).EntriesReturned|Should -Be 3
+        (Get-PowerShellDirectoryManifest -Path $script:DataRoot -MaxResults 2).EntriesReturned|Should -Be 2
+        & $script:AccelerationModule {
+            $script:Available=$true;$script:Loaded=$true
+            $script:ManifestOutcome.EntriesReturned=[uint64]2
+            $script:ManifestOutcome.FileCount=[uint64]2
+            $script:ManifestOutcome.DirectoryCount=[uint64]0
+            $script:ManifestOutcome.TotalSize=[uint64]0
+        }
+        $result=Invoke-FixtureCase directory-manifest -Limit 2
+        @($result.Results.Backend)|Should -Be @('native','powershell')
+        $result.Qualification.ComparisonQualified|Should -BeFalse
+        $result.Qualification.UsefulOutputParity|Should -Be 'not-established'
+        foreach($row in @(Get-FixtureReportRows $result)){$row.SpeedupVsBaseline|Should -BeNullOrEmpty}
+    }
     It 'accepts a zero capped count for an actual empty corpus without claiming subset parity' -Tag 'UtilityRegression' {
         $script:DataRoot=Join-Path $script:DataRoot 'empty'
         $null=[IO.Directory]::CreateDirectory($script:DataRoot)

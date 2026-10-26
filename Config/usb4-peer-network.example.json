@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "hostName": "HOST-A",
+  "mode": "Peer",
+  "adapterMac": "02-00-00-00-00-01",
+  "peerMac": "02-00-00-00-00-02",
+  "peerLinkLocal": "fe80::200:ff:fe00:2",
+  "localIPv4": "172.31.252.133",
+  "peerIPv4": "172.31.252.134",
+  "prefixLength": 30,
+  "localUla": "fd00:7462:7032::7",
+  "peerUla": "fd00:7462:7032::9"
+}

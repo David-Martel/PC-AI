@@ -53,6 +53,20 @@ BeforeAll {
         }
         return $null
     }
+    function Get-FdContractLocationState {
+        $location = Microsoft.PowerShell.Management\Get-Location -ErrorAction Stop
+        $stack = Microsoft.PowerShell.Management\Get-Location -Stack -ErrorAction Stop
+        $frames = @(foreach ($frame in $stack) {
+            [ordered]@{ Path = $frame.Path; ProviderPath = $frame.ProviderPath; Drive = $frame.Drive.Name }
+        })
+        [pscustomobject]@{
+            Path = $location.Path
+            ProviderPath = $location.ProviderPath
+            Drive = $location.Drive.Name
+            StackName = $stack.Name
+            StackFrames = ConvertTo-Json -InputObject $frames -Compress -Depth 4
+        }
+    }
     $env:PCAI_PREFER_NATIVE_SEARCH = '0'
 }
 
@@ -175,28 +189,67 @@ Describe 'fd search failure and cache contracts' -Tag 'Unit', 'Acceleration' -Sk
             [void][IO.Directory]::CreateDirectory($decoy)
             [IO.File]::WriteAllText((Join-Path $decoy 'match-wrong.txt'), 'wrong')
         }
+        $originalLocation = Microsoft.PowerShell.Management\Get-Location -ErrorAction Stop
+        if ($originalLocation.Provider.Name -cne 'FileSystem' -or
+            -not [IO.Directory]::Exists($originalLocation.ProviderPath)) {
+            throw 'The fd fixture requires an existing physical filesystem location before drive creation.'
+        }
+        if ($RootMode -like 'custom-drive*' -and
+            @(Microsoft.PowerShell.Management\Get-PSDrive -ErrorAction Stop | Where-Object Name -EQ 'PcaiFdReview').Count -ne 0) {
+            throw 'A pre-existing PcaiFdReview drive must be preserved.'
+        }
+        $originalProviderPath = $originalLocation.ProviderPath
         $driveCreated = $false
-        $locationPushed = $false
+        $primaryFailure = $null
+        $cleanupFailures = [Collections.Generic.List[object]]::new()
         try {
             if ($RootMode -like 'custom-drive*') {
-                New-PSDrive -Name PcaiFdReview -PSProvider FileSystem -Root $root -Scope Script | Out-Null
+                New-PSDrive -Name PcaiFdReview -PSProvider FileSystem -Root $root -Scope Script -ErrorAction Stop | Out-Null
                 $driveCreated = $true
                 $root = 'PcaiFdReview:\'
             }
             if ($RootMode -like '*cwd') {
-                Push-Location -LiteralPath $root
-                $locationPushed = $true
+                Microsoft.PowerShell.Management\Set-Location -LiteralPath $root -ErrorAction Stop
+            }
+            $beforeFdLocation = Get-FdContractLocationState
+            if ($RootMode -like '*cwd') {
                 $observed = Get-FdContractObservation { Find-FilesFast -Pattern '^match' -Type file -NoIgnore }
             } else {
                 $observed = Get-FdContractObservation { Find-FilesFast -Path $root -Pattern '^match' -Type file -NoIgnore }
             }
+            $afterFdLocation = Get-FdContractLocationState
+            # Observe the producer before restoration so cleanup cannot conceal a side effect.
+            foreach ($field in @('Path', 'ProviderPath', 'Drive', 'StackName', 'StackFrames')) {
+                $afterFdLocation.$field | Should -BeExactly $beforeFdLocation.$field
+            }
             $observed.ErrorRecord | Should -BeNullOrEmpty
             @($observed.Rows.FullName | Sort-Object) | Should -Be @($expected | Sort-Object)
             $script:FdCacheCalls | Should -Be 1
+        } catch {
+            $primaryFailure = $_
         } finally {
-            if ($locationPushed) { Pop-Location }
-            if ($driveCreated) { Remove-PSDrive -Name PcaiFdReview -Scope Script }
+            # Restore the captured physical location without reading or mutating a location stack.
+            try { Microsoft.PowerShell.Management\Set-Location -LiteralPath $originalProviderPath -ErrorAction Stop }
+            catch { $cleanupFailures.Add($_) }
+            try {
+                if ($driveCreated) { Microsoft.PowerShell.Management\Remove-PSDrive -Name PcaiFdReview -Scope Script -ErrorAction Stop }
+            } catch { $cleanupFailures.Add($_) }
         }
+        $cleanupDiagnostics = @($cleanupFailures | ForEach-Object {
+            [pscustomobject]@{ Message = $_.Exception.Message; ErrorId = $_.FullyQualifiedErrorId; Stack = $_.ScriptStackTrace }
+        })
+        if ($null -ne $primaryFailure) {
+            if ($cleanupFailures.Count -gt 0) {
+                $primaryFailure.Exception.Data['PcaiFdCleanupFailures'] = $cleanupDiagnostics
+            }
+            throw $primaryFailure
+        }
+        if ($cleanupFailures.Count -gt 0) {
+            $cleanupFailures[0].Exception.Data['PcaiFdCleanupFailures'] = $cleanupDiagnostics
+            throw $cleanupFailures[0]
+        }
+        (Microsoft.PowerShell.Management\Get-Location -ErrorAction Stop).ProviderPath | Should -BeExactly $originalProviderPath
+        if ($driveCreated) { @(Microsoft.PowerShell.Management\Get-PSDrive -ErrorAction Stop | Where-Object Name -EQ 'PcaiFdReview').Count | Should -Be 0 }
     }
     # Protects: caller native-error preference. Detects: manual cause substitution/cache.
     # Needs: physical fd and preference true. Breadcrumb: exact NativeCommandExitException.

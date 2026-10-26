@@ -10,6 +10,11 @@ on:
       - 'Deploy/Cargo.lock'
       - 'Deploy/**/Cargo.toml'
       - 'Config/thunderbolt-peers.json'
+      - 'Config/usb4-peer-network.example.json'
+      - 'Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1'
+      - 'Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1'
+      - 'Tests/Portable/Test-Usb4PeerNetwork.ps1'
+      - 'Tests/Portable/Test-Usb4PeerNetworkInstall.ps1'
       - 'Tools/SystemScripts/Networking/Configure-ThunderboltSwitchRoutes.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltRcloneMount.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltEnrolledPeer.ps1'
@@ -50,6 +55,15 @@ jobs:
           ./Tests/Portable/Test-ThunderboltMountGate.ps1
           ./Tests/Portable/Test-ThunderboltEnrolledPeer.ps1
           ./Tests/Portable/Test-ThunderboltStartup.ps1
+      # Exercises standalone sharing/rollback and native scheduler COM/CIM.
+      # Windows-only: no adapter or network changes, no VIGIL dependencies.
+      - name: Standalone USB4 peer and installer contracts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./Tests/Portable/Test-Usb4PeerNetwork.ps1
+          ./Tests/Portable/Test-Usb4PeerNetworkInstall.ps1
       # Protects route/identity/custody decisions on both native backends.
       # Detects stale-edge deletion, foreign ownership mutation and CLI evidence leaks.
       # Needs standard Rust/MSVC host tools; no attached devices or privileged Apply.

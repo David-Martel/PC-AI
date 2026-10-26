@@ -975,9 +975,11 @@ pub unsafe extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: 
             return -1;
         }
         Err(AdmissionError::Closed) => {
+            // Shutdown closes internal admission but preserves the public FFI
+            // contract: generation requires initialization, not backend failure.
             set_last_error_with_code(
                 "Async admission closed; initialize before submitting",
-                PcaiErrorCode::BackendError,
+                PcaiErrorCode::NotInitialized,
             );
             return -1;
         }
@@ -1315,14 +1317,14 @@ mod tests {
     }
 
     #[test]
-    fn test_async_generate_after_shutdown_reports_closed_admission() {
+    fn test_async_generate_after_shutdown_preserves_not_initialized_error() {
         let fixture = AdmissionFixture::new();
         pcai_shutdown();
         assert_eq!(fixture.0.ready_ticket(), Err(AdmissionError::Closed));
 
         let prompt = CString::new("hello").expect("test: CString::new must accept an ASCII prompt");
         assert_eq!(unsafe { pcai_generate_async(prompt.as_ptr(), 10, 0.7) }, -1);
-        assert_eq!(pcai_last_error_code(), PcaiErrorCode::BackendError as i32);
+        assert_eq!(pcai_last_error_code(), PcaiErrorCode::NotInitialized as i32);
         let error = pcai_last_error();
         assert!(!error.is_null());
         // SAFETY: the non-null CString is library-owned thread-local storage. No

@@ -128,7 +128,9 @@ function Assert-PcaiManifestBenchmarkStats {
         if (-not $property -or $null -eq $property.Value -or $property.Value.GetType() -notin @([byte],[uint16],[uint32],[uint64],[sbyte],[int16],[int32],[int64]) -or $property.Value -lt 0) {
             throw "Manifest native statistic is missing or invalid: $name"
         }
-        if ($MaxResults -eq 0 -and [uint64]$property.Value -ne [uint64]$Expected.$name) {
+        # A cap may select different entry identities, but cannot justify doing
+        # less work than the independently enumerated bounded corpus requires.
+        if (($MaxResults -eq 0 -or $name -ceq 'EntriesReturned') -and [uint64]$property.Value -ne [uint64]$Expected.$name) {
             throw "Manifest native useful output mismatch: $name"
         }
     }
@@ -541,7 +543,7 @@ function Get-ToolingCaseBenchmarks {
                 Qualification=[pscustomobject]@{
                     ComparisonQualified=($nativeAvailable -and $maxResults -eq 0)
                     UsefulOutputParity=if ($nativeAvailable -and $maxResults -eq 0) {'matched-aggregate-stats'} else {'not-established'}
-                    OutputContract=if ($maxResults -eq 0) {'Ordinary file/directory counts, other entry count and ordinary file bytes; entry identities are not measured.'} else {'Capped parallel traversal selects an unaligned subset; speedup is unqualified.'}
+                    OutputContract=if ($maxResults -eq 0) {'Ordinary file/directory counts, other entry count and ordinary file bytes; entry identities are not measured.'} else {'Returned entry count matches the bounded reference; selected identities, category counts and bytes remain unverified. Speedup is unqualified.'}
                 }
             }
         }

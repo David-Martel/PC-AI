@@ -168,6 +168,36 @@ Export-ModuleMember -Function Test-PcaiNativeAvailable,Get-PcaiNativeStatus,Get-
             $row.SpeedupVsBaseline|Should -BeNullOrEmpty
         }
     }
+    # Capped traversal can select a different subset, but an empty or incomplete
+    # result must not become a fast timing for work the real fixture requires.
+    It 'rejects a capped native sample that omits eligible entries (<Limit>/<Returned>)' -Tag 'UtilityRegression' -TestCases @(
+        @{Limit=10;Returned=0},@{Limit=10;Returned=1},@{Limit=2;Returned=0},@{Limit=2;Returned=1}
+    ) {
+        param([uint64]$Limit,[uint64]$Returned)
+        [IO.File]::WriteAllBytes((Join-Path $script:DataRoot 'second.txt'),[byte[]](4,5))
+        [IO.File]::WriteAllBytes((Join-Path $script:DataRoot 'third.txt'),[byte[]](6))
+        $reference=Get-PowerShellDirectoryManifest -Path $script:DataRoot -MaxResults $Limit
+        $reference.EntriesReturned|Should -Be ([Math]::Min(3,$Limit))
+        & $script:AccelerationModule {param($returned)
+            $script:Available=$true;$script:Loaded=$true
+            $script:ManifestOutcome.EntriesReturned=$returned
+            $script:ManifestOutcome.FileCount=$returned
+            $script:ManifestOutcome.DirectoryCount=[uint64]0
+            $script:ManifestOutcome.TotalSize=[uint64]0
+        } $Returned
+        {Invoke-FixtureCase directory-manifest -Limit $Limit}|Should -Throw '*Manifest native useful output mismatch: EntriesReturned*'
+    }
+    It 'accepts a zero capped count for an actual empty corpus without claiming subset parity' -Tag 'UtilityRegression' {
+        $script:DataRoot=Join-Path $script:DataRoot 'empty'
+        $null=[IO.Directory]::CreateDirectory($script:DataRoot)
+        & $script:AccelerationModule {
+            $script:Available=$true;$script:Loaded=$true
+            foreach($name in 'EntriesReturned','FileCount','DirectoryCount','TotalSize'){$script:ManifestOutcome.$name=[uint64]0}
+        }
+        $result=Invoke-FixtureCase directory-manifest -Limit 10
+        @($result.Results.Backend)|Should -Be @('native','powershell')
+        $result.Qualification.ComparisonQualified|Should -BeFalse
+    }
     It 'matches direct-child native depth semantics using actual private files' {
         $nested=Join-Path $script:DataRoot 'nested';$null=[IO.Directory]::CreateDirectory($nested)
         [IO.File]::WriteAllBytes((Join-Path $nested 'deep.txt'),[byte[]](4,5))

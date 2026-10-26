@@ -200,6 +200,119 @@ Describe 'Shipped duplicate scan fallback contracts' -Tag 'Unit','Portable','Acc
         Should -Invoke Invoke-ParallelFileHash -Exactly -Times 0
     }
 
+    # Protects: Public path-list shape independently of caller StrictMode.
+    # Detects: Singleton property enumeration that turns one duplicate into a string.
+    # Needs: Real public fallback and shipped hash helper on equal owned file bytes.
+    # Breadcrumb: Invoke-PowerShellDuplicateScan Duplicates projection.
+    It 'returns array-valued exact duplicate paths for <PathCount> equal files' -TestCases @(@{PathCount=2},@{PathCount=3}) {
+        param($PathCount)
+        $names=@('keep-a.txt','keep-b.txt','skip-c.txt') | Select-Object -First $PathCount
+        $expected=@($names | ForEach-Object { Join-Path $script:FixtureRoot $_ } | Sort-Object)
+        $rows=@(Find-DuplicatesFast -Path $script:FixtureRoot -Include $names -MinimumSize 4 -MaximumSize 4 -DisableNative -ThrottleLimit 1)
+        $rows.Count | Should -Be 1
+        $rows[0].Files -is [array] | Should -BeTrue
+        $rows[0].Duplicates -is [array] | Should -BeTrue
+        $rows[0].Count | Should -Be $PathCount
+        $rows[0].Duplicates.Count | Should -Be ($PathCount-1)
+        ($rows[0].Files -join '|') | Should -Be ($expected -join '|')
+        ($rows[0].Duplicates -join '|') | Should -Be (@($expected | Select-Object -Skip 1) -join '|')
+        $rows[0].Original | Should -Be $expected[0]
+        $rows[0].Hash | Should -Be (Get-FileHash -LiteralPath $expected[0] -Algorithm SHA256).Hash
+        $rows[0].FileSize | Should -Be 4
+        $rows[0].WastedBytes | Should -Be (4*($PathCount-1))
+    }
+
+    # Protects: Exact multiple groups and genuine hashes across every public algorithm.
+    # Detects: Missing/extra paths, size-only grouping, scalar duplicates and savings drift.
+    # Needs: Existing eight-file/27-byte fixture and actual shipped .NET hashing.
+    # Breadcrumb: Find-DuplicatesFast one-byte and four-byte groups in one result set.
+    It 'preserves exact multiple groups and array paths with <Algorithm>' -TestCases @(@{Algorithm='SHA256'},@{Algorithm='SHA1'},@{Algorithm='MD5'}) {
+        param($Algorithm)
+        $rows=@(Find-DuplicatesFast -Path $script:FixtureRoot -Recurse -MinimumSize 1 -MaximumSize 4 -Algorithm $Algorithm -DisableNative -ThrottleLimit 1)
+        $rows.Count | Should -Be 2
+        $specifications=@(
+            @{Size=4;Names=@('keep-a.txt','keep-b.txt','skip-c.txt','nested/deep.txt')},
+            @{Size=1;Names=@('low-a.bin','low-b.bin')}
+        )
+        foreach($specification in $specifications) {
+            $expected=@($specification.Names | ForEach-Object { Join-Path $script:FixtureRoot $_ } | Sort-Object)
+            $hash=(Get-FileHash -LiteralPath $expected[0] -Algorithm $Algorithm).Hash
+            $group=@($rows | Where-Object Hash -CEQ $hash)
+            $group.Count | Should -Be 1
+            $group[0].Files -is [array] | Should -BeTrue
+            $group[0].Duplicates -is [array] | Should -BeTrue
+            $group[0].Count | Should -Be $expected.Count
+            $group[0].Duplicates.Count | Should -Be ($expected.Count-1)
+            $group[0].FileSize | Should -Be $specification.Size
+            $group[0].WastedBytes | Should -Be ($specification.Size*($expected.Count-1))
+            $group[0].Algorithm | Should -Be $Algorithm
+            ($group[0].Files -join '|') | Should -Be ($expected -join '|')
+            ($group[0].Duplicates -join '|') | Should -Be (@($expected | Select-Object -Skip 1) -join '|')
+            $group[0].Original | Should -Be $expected[0]
+        }
+    }
+
+    # Protects: Zero output and truthful summary after real same-size/different-byte hashes.
+    # Detects: Null Sum access under strict callers and phantom duplicate groups.
+    # Needs: Existing different-content four-byte files and actual hash helper.
+    # Breadcrumb: Invoke-PowerShellDuplicateScan observed empty result summary.
+    It 'summarizes an observed empty duplicate result as exactly zero' {
+        # Exercise a strict caller locally; ordinary CI need not inherit global StrictMode.
+        Set-StrictMode -Version Latest
+        . $SourcePath
+        $rows=@(Find-DuplicatesFast -Path $script:FixtureRoot -Include 'keep-a.txt','same-size-different.txt' -MinimumSize 4 -MaximumSize 4 -DisableNative -ThrottleLimit 1)
+        $rows.Count | Should -Be 0
+        Should -Invoke Write-Host -Exactly -Times 1 -ParameterFilter { $Object -ceq '  Total duplicate files: 0' }
+    }
+
+    # Protects: Explicit hashing failures remain failures rather than zero-result success.
+    # Detects: Blanket exception-to-empty recovery around the actual public controller.
+    # Needs: Real enumeration/size admission; only the failing hash I/O collaborator is injected.
+    # Breadcrumb: Find-DuplicatesFast -> Invoke-PowerShellDuplicateScan -> hash boundary.
+    It 'propagates a hash-boundary failure with the exact admitted paths and limits' {
+        $script:HashFailureExpected=@('keep-a.txt','keep-b.txt','skip-c.txt','same-size-different.txt','nested/deep.txt' | ForEach-Object { Join-Path $script:FixtureRoot $_ } | Sort-Object)
+        Mock Invoke-ParallelFileHash { throw 'Owned explicit hash-boundary failure.' }
+        { Find-DuplicatesFast -Path $script:FixtureRoot -Recurse -MinimumSize 4 -MaximumSize 4 -Algorithm SHA256 -DisableNative -ThrottleLimit 1 } | Should -Throw '*Owned explicit hash-boundary failure*'
+        Should -Invoke Invoke-ParallelFileHash -Exactly -Times 1 -ParameterFilter {
+            $Algorithm -ceq 'SHA256' -and $MaxDegreeOfParallelism -eq 1 -and
+            (@($FilePaths | Sort-Object) -join '|') -ceq ($script:HashFailureExpected -join '|')
+        }
+    }
+
+    # Protects: Native result projection has the same path-list contract as fallback.
+    # Detects: Invalid zero/singleton groups and one-item if-output array collapse.
+    # Needs: Actual converter plus literal native-result inputs over existing owned files.
+    # Breadcrumb: ConvertFrom-PcaiDuplicateResult only; native executor remains NOT_RUN.
+    It 'retains native projection group and array shape for <PathCount> paths' -TestCases @(@{PathCount=0},@{PathCount=1},@{PathCount=2},@{PathCount=3}) {
+        param($PathCount)
+        $allPaths=@('keep-a.txt','keep-b.txt','skip-c.txt' | ForEach-Object { Join-Path $script:FixtureRoot $_ } | Sort-Object)
+        $expected=@($allPaths | Select-Object -First $PathCount)
+        $hash=(Get-FileHash -LiteralPath $allPaths[0] -Algorithm SHA256).Hash
+        $duplicates=[Math]::Max(0,$PathCount-1)
+        $native=[pscustomobject]@{
+            Groups=@([pscustomobject]@{Paths=$expected;Size=4;Hash=$hash;WastedBytes=4*$duplicates})
+            FilesScanned=$PathCount;DuplicateFiles=$duplicates;WastedBytes=4*$duplicates;ElapsedMs=0
+        }
+        $rows=@(ConvertFrom-PcaiDuplicateResult -NativeResult $native -Algorithm SHA256 -MaximumSize 4)
+        if($PathCount -lt 2) {
+            $rows.Count | Should -Be 0
+        } else {
+            $rows.Count | Should -Be 1
+            $rows[0].Files -is [array] | Should -BeTrue
+            $rows[0].Duplicates -is [array] | Should -BeTrue
+            $rows[0].Count | Should -Be $PathCount
+            $rows[0].Duplicates.Count | Should -Be $duplicates
+            ($rows[0].Files -join '|') | Should -Be ($expected -join '|')
+            ($rows[0].Duplicates -join '|') | Should -Be (@($expected | Select-Object -Skip 1) -join '|')
+            $rows[0].Original | Should -Be $expected[0]
+            $rows[0].Hash | Should -Be $hash
+            $rows[0].FileSize | Should -Be 4
+            $rows[0].WastedBytes | Should -Be (4*$duplicates)
+            $rows[0].Algorithm | Should -Be 'SHA256'
+        }
+    }
+
+
     AfterAll {
         foreach ($pin in $script:BoundPins) {
             if ((Get-FileHash -LiteralPath $pin.Path -Algorithm SHA256).Hash -cne $pin.SHA) { throw 'Bound source changed during execution.' }

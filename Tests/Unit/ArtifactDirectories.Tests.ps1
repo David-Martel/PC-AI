@@ -80,6 +80,8 @@ Describe 'Stable artifact revisions preserve evidence' {
             foreach ($leaf in @('PcaiNative.dll', 'PcaiNative.deps.json', 'pcai_core_lib.dll')) {
                 [IO.File]::WriteAllText((Join-Path $source $leaf), "$sourceName-$leaf")
             }
+            [IO.File]::WriteAllText((Join-Path $source 'PcaiNative.deps.json'),
+                '{"runtimeTarget":{"name":"net8-test"},"targets":{"net8-test":{}}}')
             $publications += Publish-PcaiNativeBundle -PublishRoot $source -Configuration Release
         }
         $publications[0].BundleRoot | Should -Not -Be $publications[1].BundleRoot
@@ -94,6 +96,52 @@ Describe 'Stable artifact revisions preserve evidence' {
             }
         }
         [IO.File]::ReadAllText((Join-Path $publications[0].BundleRoot 'PcaiNative.dll')) | Should -Be 'build-root-one-PcaiNative.dll'
+    }
+
+    It 'publishes declared <AssetKind> dependencies with their actual bytes and manifest hashes' -ForEach @(
+        @{AssetKind='runtime'}, @{AssetKind='native'}
+    ) {
+        $script:ProjectRoot = Join-Path $TestDrive ('dependency-repo-' + $AssetKind)
+        $tools = Join-Path $script:ProjectRoot 'Tools'
+        [void][IO.Directory]::CreateDirectory($tools)
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'Tools/PcaiArtifactDirectories.ps1') -Destination $tools
+        $script:BuildRunLabel = 'build-r1'
+        $script:VersionInfo = $null
+        $source = Join-Path $TestDrive ('dependency-publish-' + $AssetKind)
+        [void][IO.Directory]::CreateDirectory($source)
+        foreach ($leaf in @('PcaiNative.dll', 'pcai_core_lib.dll', 'required-dependency.dll', 'unlisted.dll')) {
+            [IO.File]::WriteAllBytes((Join-Path $source $leaf), [byte[]]@(0, 128, 255, 4))
+        }
+        $library = @{$AssetKind=@{'lib/net8.0/required-dependency.dll'=@{}}}
+        @{runtimeTarget=@{name='net8-test'};targets=@{
+            'net8-test'=@{'Dependency/1.0'=$library}
+            'another-rid'=@{'Unselected/1.0'=@{runtime=@{'lib/net8.0/unavailable-other-rid.dll'=@{}}}}
+        }} |
+            ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $source 'PcaiNative.deps.json')
+        $published = Publish-PcaiNativeBundle -PublishRoot $source -Configuration Release
+        $destination = Join-Path $published.BundleRoot 'required-dependency.dll'
+        Test-Path -LiteralPath $destination | Should -BeTrue
+        (Get-FileHash -LiteralPath $destination).Hash | Should -BeExactly (Get-FileHash -LiteralPath (Join-Path $source 'required-dependency.dll')).Hash
+        $manifest = Get-Content -LiteralPath $published.ManifestPath -Raw | ConvertFrom-Json
+        $entries = @($manifest.files | Where-Object Name -EQ 'required-dependency.dll')
+        $entries.Count | Should -Be 1
+        $entries[0].Sha256 | Should -BeExactly (Get-FileHash -LiteralPath $destination).Hash
+        Test-Path -LiteralPath (Join-Path $published.BundleRoot 'unlisted.dll') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $published.BundleRoot 'unavailable-other-rid.dll') | Should -BeFalse
+    }
+
+    It 'refuses publication when a declared runtime dependency is absent' {
+        $script:ProjectRoot = Join-Path $TestDrive 'missing-dependency-repo'
+        $tools = Join-Path $script:ProjectRoot 'Tools'
+        [void][IO.Directory]::CreateDirectory($tools)
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'Tools/PcaiArtifactDirectories.ps1') -Destination $tools
+        $script:BuildRunLabel = 'build-r1'; $script:VersionInfo = $null
+        $source = Join-Path $TestDrive 'missing-dependency-publish'
+        [void][IO.Directory]::CreateDirectory($source)
+        foreach ($leaf in @('PcaiNative.dll', 'pcai_core_lib.dll')) {[IO.File]::WriteAllText((Join-Path $source $leaf), 'owned')}
+        [IO.File]::WriteAllText((Join-Path $source 'PcaiNative.deps.json'),
+            '{"runtimeTarget":{"name":"net8-test"},"targets":{"net8-test":{"Dependency/1.0":{"runtime":{"lib/net8.0/absent.dll":{}}}}}}')
+        { Publish-PcaiNativeBundle -PublishRoot $source -Configuration Release } | Should -Throw '*absent.dll*'
     }
 
     It 'preserves repeated aggregate payloads and packages for the same source version' {

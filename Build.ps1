@@ -1076,6 +1076,36 @@ function Publish-PcaiNativeBundle {
         @{ Name = 'pcai_inference.dll'; Source = (Join-Path $coreTargetDir 'pcai_inference.dll'); Fallback = (Join-Path $PublishRoot 'pcai_inference.dll'); Kind = 'native-rust'; Required = $false }
     )
 
+    # A bridge that loads in the build host can still fail on another supported
+    # runtime if its declared dependencies are absent from the delivered bundle.
+    # Use the selected publish target, not another RID or the host's assemblies.
+    $dependencyPath = Join-Path $PublishRoot 'PcaiNative.deps.json'
+    $dependencies = Get-Content -LiteralPath $dependencyPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    $runtimeTargetName = [string]$dependencies.runtimeTarget.name
+    $runtimeTarget = $dependencies.targets.PSObject.Properties[$runtimeTargetName]
+    if ([string]::IsNullOrWhiteSpace($runtimeTargetName) -or -not $runtimeTarget) {
+        throw 'Native bundle dependency manifest has no selected runtime target.'
+    }
+    $bundleNames = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($spec in $bundleSpecs) { [void]$bundleNames.Add($spec.Name) }
+    foreach ($library in $runtimeTarget.Value.PSObject.Properties) {
+        foreach ($assetKind in @('runtime', 'native')) {
+            $assets = $library.Value.PSObject.Properties[$assetKind]
+            if (-not $assets) { continue }
+            foreach ($asset in $assets.Value.PSObject.Properties) {
+                $leaf = [IO.Path]::GetFileName($asset.Name)
+                if ($leaf -eq '_._') { continue }
+                if ([string]::IsNullOrWhiteSpace($leaf) -or
+                    $leaf.TrimEnd(' ', '.') -match '^(?i:\$null|AUX|CON|NUL|PRN|COM[1-9]|LPT[1-9])(?:\.|$)') {
+                    throw 'Unsafe native bundle dependency filename.'
+                }
+                if ($bundleNames.Add($leaf)) {
+                    $bundleSpecs += @{ Name = $leaf; Source = (Join-Path $PublishRoot $leaf); Kind = 'runtime-dependency'; Required = $true }
+                }
+            }
+        }
+    }
+
     foreach ($spec in $bundleSpecs) {
         $sourcePath = $spec.Source
         if ((-not $sourcePath -or -not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) -and $spec.ContainsKey('Fallback')) {

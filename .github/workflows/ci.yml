@@ -330,27 +330,7 @@ jobs:
           # These evaluation and routed-provider fixtures exercise real algorithms
           # and consumer contracts with synthetic inference/HTTP boundaries.
           # They do not depend on a native DLL, a model, or workstation services.
-          $config.Run.Path = @(
-            'Tests/Unit',
-            'Tests/Evaluation/PC-AI.Evaluation.Tests.ps1',
-            'Tests/Integration/ModuleLoading.Tests.ps1',
-            'Tests/Boot/WorkloadResourceProfile.Tests.ps1',
-            'Tests/Boot/CloudClientGate.Tests.ps1',
-            'Tests/Boot/ArchiveSourceCustody.Tests.ps1',
-            'Tests/Boot/CloudCacheRepairIdentity.Tests.ps1',
-            'Tests/Boot/CloudMountGate.Tests.ps1',
-            'Tests/Boot/CloudMountGateRunner.Tests.ps1',
-            'Tests/Boot/MachineCapabilities.Tests.ps1',
-            'Tests/Boot/MediaToolchain.Tests.ps1',
-            'Tests/Boot/HardwareMeasurementContracts.Tests.ps1',
-            'Tests/Boot/DevModuleDeployment.Tests.ps1',
-            'Tests/Boot/FleetToolRouting.Tests.ps1',
-            'Tests/Boot/TelemetryPromptContracts.Tests.ps1',
-            'Tests/Boot/PackagedRuntimeRoot.Tests.ps1',
-            'Tests/Boot/ProfileBootstrap.Tests.ps1',
-            'Tests/Boot/CrashProfileSafety.Tests.ps1',
-            'Tests/Boot/CrashTelemetry.Tests.ps1'
-          )
+          $config.Run.Path = (Import-PowerShellDataFile ./Tests/TestProfiles.psd1).WindowsCI.Path
           # Capture Pester's result before enforcing coverage; Run.Exit only
           # enforces test failures and exits before caller coverage assertions.
           $config.Run.Exit = $false

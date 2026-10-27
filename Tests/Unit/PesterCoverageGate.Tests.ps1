@@ -1,22 +1,46 @@
 BeforeAll {
     . "$PSScriptRoot/../../Tools/Assert-PesterCoverageGate.ps1"
     function New-GateResult {
-        [pscustomobject]@{FailedCount=0;FailedContainersCount=0;FailedBlocksCount=0;TotalCount=1;CodeCoverage=[pscustomobject]@{CoveragePercent=85.0;CommandsAnalyzedCount=100;CommandsExecutedCount=85}}
+        [pscustomobject]@{FailedCount = 0; FailedContainersCount = 0; FailedBlocksCount = 0; TotalCount = 1; CodeCoverage = [pscustomobject]@{CoveragePercent = 85.0; CommandsAnalyzedCount = 100; CommandsExecutedCount = 85 } }
+    }
+}
+
+Describe 'Shared Pester result validation without coverage' {
+    BeforeAll { . "$PSScriptRoot/../../Tools/Assert-PesterCoverageGate.ps1" }
+    It 'accepts a successful actual result shape without a coverage property' {
+        $result = [pscustomobject]@{ TotalCount = 1; FailedCount = 0; FailedBlocksCount = 0; FailedContainersCount = 0 }
+        { Assert-PesterResult -Result $result } | Should -Not -Throw
+    }
+    It 'rejects <Field>=<Value> without relying on coverage' -ForEach @(
+        @{Field = 'FailedCount'; Value = 1 }, @{Field = 'FailedBlocksCount'; Value = 1 }, @{Field = 'FailedContainersCount'; Value = 1 },
+        @{Field = 'TotalCount'; Value = 0 }, @{Field = 'FailedCount'; Value = -1 }, @{Field = 'TotalCount'; Value = 'unknown' }
+    ) {
+        $result = [pscustomobject]@{ TotalCount = 1; FailedCount = 0; FailedBlocksCount = 0; FailedContainersCount = 0 }
+        $result.$Field = $Value
+        { Assert-PesterResult -Result $result } | Should -Throw
+    }
+    It 'rejects a missing failure field without reporting success' {
+        $result = [pscustomobject]@{ TotalCount = 1; FailedCount = 0; FailedContainersCount = 0 }
+        { Assert-PesterResult -Result $result } | Should -Throw '*Missing*'
+    }
+    It 'rejects an actual all-NotRun selection without requiring coverage' {
+        $result = [pscustomobject]@{ TotalCount = 12; FailedCount = 0; FailedBlocksCount = 0; FailedContainersCount = 0; NotRunCount = 12 }
+        { Assert-PesterResult -Result $result } | Should -Throw '*all discovered tests are NotRun*'
     }
 }
 Describe 'Explicit Pester gate fail-closed contracts' {
     It 'accepts exactly 85 percent' { { Assert-PesterCoverageGate (New-GateResult) } | Should -Not -Throw }
-    It 'rejects below target with zero test failures' { $r=New-GateResult;$r.CodeCoverage.CoveragePercent=84.999;{Assert-PesterCoverageGate $r}|Should -Throw '*below required*' }
-    It 'rejects invalid percentage <Value>' -ForEach @(@{Value=[double]::NaN},@{Value=[double]::PositiveInfinity},@{Value=-1},@{Value=101},@{Value='invalid'}) { $r=New-GateResult;$r.CodeCoverage.CoveragePercent=$Value;{Assert-PesterCoverageGate $r}|Should -Throw }
-    It 'rejects missing coverage' { $r=New-GateResult;$r.CodeCoverage=$null;{Assert-PesterCoverageGate $r}|Should -Throw '*Missing*' }
-    It 'rejects missing percentage' { $r=New-GateResult;$r.CodeCoverage.PSObject.Properties.Remove('CoveragePercent');{Assert-PesterCoverageGate $r}|Should -Throw '*Missing*' }
-    It 'rejects zero analyzed commands' { $r=New-GateResult;$r.CodeCoverage.CommandsAnalyzedCount=0;{Assert-PesterCoverageGate $r}|Should -Throw '*zero*' }
-    It 'rejects impossible executed count' { $r=New-GateResult;$r.CodeCoverage.CommandsExecutedCount=101;{Assert-PesterCoverageGate $r}|Should -Throw '*executed*' }
-    It 'does not trust rounded or inconsistent percentage over actual commands' { $r=New-GateResult;$r.CodeCoverage.CommandsExecutedCount=84;{Assert-PesterCoverageGate $r}|Should -Throw '*below required*' }
-    It 'rejects actual test failure' { $r=New-GateResult;$r.FailedCount=1;{Assert-PesterCoverageGate $r}|Should -Throw '*failures*' }
-    It 'rejects container failure' { $r=New-GateResult;$r.FailedContainersCount=1;{Assert-PesterCoverageGate $r}|Should -Throw '*failures*' }
-    It 'rejects no test discovery' { $r=New-GateResult;$r.TotalCount=0;{Assert-PesterCoverageGate $r}|Should -Throw '*No tests*' }
-    It 'rejects missing failure field' { $r=New-GateResult;$r.PSObject.Properties.Remove('FailedCount');{Assert-PesterCoverageGate $r}|Should -Throw '*Missing*' }
+    It 'rejects below target with zero test failures' { $r = New-GateResult; $r.CodeCoverage.CoveragePercent = 84.999; { Assert-PesterCoverageGate $r } | Should -Throw '*below required*' }
+    It 'rejects invalid percentage <Value>' -ForEach @(@{Value = [double]::NaN }, @{Value = [double]::PositiveInfinity }, @{Value = -1 }, @{Value = 101 }, @{Value = 'invalid' }) { $r = New-GateResult; $r.CodeCoverage.CoveragePercent = $Value; { Assert-PesterCoverageGate $r } | Should -Throw }
+    It 'rejects missing coverage' { $r = New-GateResult; $r.CodeCoverage = $null; { Assert-PesterCoverageGate $r } | Should -Throw '*Missing*' }
+    It 'rejects missing percentage' { $r = New-GateResult; $r.CodeCoverage.PSObject.Properties.Remove('CoveragePercent'); { Assert-PesterCoverageGate $r } | Should -Throw '*Missing*' }
+    It 'rejects zero analyzed commands' { $r = New-GateResult; $r.CodeCoverage.CommandsAnalyzedCount = 0; { Assert-PesterCoverageGate $r } | Should -Throw '*zero*' }
+    It 'rejects impossible executed count' { $r = New-GateResult; $r.CodeCoverage.CommandsExecutedCount = 101; { Assert-PesterCoverageGate $r } | Should -Throw '*executed*' }
+    It 'does not trust rounded or inconsistent percentage over actual commands' { $r = New-GateResult; $r.CodeCoverage.CommandsExecutedCount = 84; { Assert-PesterCoverageGate $r } | Should -Throw '*below required*' }
+    It 'rejects actual test failure' { $r = New-GateResult; $r.FailedCount = 1; { Assert-PesterCoverageGate $r } | Should -Throw '*failures*' }
+    It 'rejects container failure' { $r = New-GateResult; $r.FailedContainersCount = 1; { Assert-PesterCoverageGate $r } | Should -Throw '*failures*' }
+    It 'rejects no test discovery' { $r = New-GateResult; $r.TotalCount = 0; { Assert-PesterCoverageGate $r } | Should -Throw '*No tests*' }
+    It 'rejects missing failure field' { $r = New-GateResult; $r.PSObject.Properties.Remove('FailedCount'); { Assert-PesterCoverageGate $r } | Should -Throw '*Missing*' }
 }
 
 Describe 'Actual Pester coverage admission' {
@@ -139,12 +163,12 @@ exit 0
             (Resolve-Path -Path (Join-Path $repo $relative) -ErrorAction Stop).ProviderPath
         }
         $actual = @(& (Get-Module Pester) {
-            param($Paths, $Recurse)
-            Get-CodeCoverageFilePaths -Paths $Paths -IncludeTests $false -RecursePaths $Recurse
-        } $paths $configuration.CodeCoverage.RecursePaths)
+                param($Paths, $Recurse)
+                Get-CodeCoverageFilePaths -Paths $Paths -IncludeTests $false -RecursePaths $Recurse
+            } $paths $configuration.CodeCoverage.RecursePaths)
         $expected = @(Get-ChildItem -LiteralPath (Join-Path $repo 'Modules') -Recurse -File |
-            Where-Object { $_.Extension -in @('.ps1', '.psm1') -and $_.Name -notlike '*.Tests.ps1' } |
-            Select-Object -ExpandProperty FullName)
+                Where-Object { $_.Extension -in @('.ps1', '.psm1') -and $_.Name -notlike '*.Tests.ps1' } |
+                Select-Object -ExpandProperty FullName)
         $actual.Count | Should -Be $expected.Count
         @(Compare-Object -ReferenceObject $expected -DifferenceObject $actual).Count | Should -Be 0
         $actual | Should -Contain (Join-Path $repo 'Modules/PC-AI.Acceleration/Private/Initialize-PcaiNative.ps1')

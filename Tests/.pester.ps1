@@ -1,223 +1,157 @@
 <#
 .SYNOPSIS
-    Pester 5.x test runner for PC_AI testing framework
-
+    Plans or executes the selected checkout's Pester tests.
 .DESCRIPTION
-    Executes unit and integration tests with flexible configuration options.
-    Supports coverage analysis, CI mode, and selective test execution.
-
-.PARAMETER Type
-    Test type to run: Unit, Integration, or All (default: All)
-
-.PARAMETER Coverage
-    Enable code coverage analysis (85% target)
-
-.PARAMETER CI
-    Enable CI mode: exit codes, XML output, Normal verbosity
-
-.PARAMETER Tag
-    Run only tests with specific tags
-
-.PARAMETER ExcludeTag
-    Exclude tests with specific tags
-
+    Type All retains Unit plus Integration. WindowsCI retains the complete
+    maintained 19-path cohort and the 85 percent all-Modules coverage gate.
+    Plan performs no Pester import/discovery, writes or process-state changes.
+    Path selects literal test files; combine it with FullName for focused runs.
+    PassThru returns only the actual validated Pester result.
 .EXAMPLE
-    .\Tests\.pester.ps1 -Type Unit
-    Run fast unit tests only
-
+    ./Tests/.pester.ps1 -Type Unit -Path Tests/Unit/PesterCoverageGate.Tests.ps1 -Plan
 .EXAMPLE
-    .\Tests\.pester.ps1 -Type All -Coverage
-    Run full suite with coverage analysis
-
-.EXAMPLE
-    .\Tests\.pester.ps1 -CI
-    Run in CI mode with XML output
+    ./Tests/.pester.ps1 -Profile WindowsCI -CI
 #>
-
 [CmdletBinding()]
 param(
-    [Parameter()]
-    [ValidateSet('Unit', 'Integration', 'All')]
-    [string]$Type = 'All',
-
-    [Parameter()]
-    [switch]$Coverage,
-
-    [Parameter()]
-    [switch]$CI,
-
-    [Parameter()]
+    [ValidateSet('Unit', 'Integration', 'All')][string]$Type = 'All',
+    [ValidateSet('Unit', 'Integration', 'All', 'LegacyUnit', 'LegacyIntegration', 'LegacyAll', 'LegacyE2E', 'LegacyFunctional', 'Portable', 'WindowsCI')]
+    [string]$Profile,
+    [string[]]$Path,
+    [string[]]$FullName,
     [string[]]$Tag,
-
-    [Parameter()]
-    [string[]]$ExcludeTag
+    [string[]]$ExcludeTag,
+    [switch]$Coverage,
+    [switch]$CI,
+    [switch]$Plan,
+    [switch]$PassThru,
+    [ValidateSet('None', 'NUnitXml', 'JUnitXml', 'NUnit3')][string]$OutputFormat,
+    [string]$OutputFile,
+    [string]$OutputDirectory
 )
-
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-
-# Tests/PesterConfiguration.psd1 declares every path relative to the REPO ROOT
-# (Run.Path = 'Tests/Unit', CodeCoverage.Path = './Modules/**'), because that is
-# the working directory ci.yml invokes Invoke-Pester from. This runner must use
-# the same cwd or coverage resolution dies with
-# "Cannot find path '<repo>\Tests\Modules' because it does not exist".
-$TestRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RepoRoot = Split-Path -Parent $TestRoot
-$originalPSModulePath = $env:PSModulePath
-Push-Location $RepoRoot
-
-try {
-    # Resolve dependencies from this candidate before any test module autoload.
-    # Keep the binding process-local and restore the caller's exact value below.
-    $env:PSModulePath = (Join-Path $RepoRoot 'Modules') + [IO.Path]::PathSeparator + $originalPSModulePath
-    # Check Pester version
-    $pesterModule = Get-Module -Name Pester -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
-
-    if (-not $pesterModule) {
-        Write-Error "Pester module not found. Install with: Install-Module -Name Pester -MinimumVersion 5.0.0 -Force"
-        exit 1
-    }
-
-    if ($pesterModule.Version.Major -lt 5) {
-        Write-Error "Pester 5.x required. Current version: $($pesterModule.Version). Update with: Install-Module -Name Pester -Force"
-        exit 1
-    }
-
-    Import-Module Pester -MinimumVersion 5.0.0 -ErrorAction Stop
-    Write-Host "Using Pester version: $($pesterModule.Version)" -ForegroundColor Cyan
-
-    # Load base configuration
-    $configPath = Join-Path $TestRoot 'PesterConfiguration.psd1'
-    $config = New-PesterConfiguration -Hashtable (Import-PowerShellDataFile $configPath)
-
-    # Configure paths based on test type
-    switch ($Type) {
-        'Unit' {
-            $config.Run.Path = @('Tests/Unit')
-            Write-Host "Running unit tests only" -ForegroundColor Yellow
-        }
-        'Integration' {
-            $config.Run.Path = @('Tests/Integration')
-            Write-Host "Running integration tests only" -ForegroundColor Yellow
-        }
-        'All' {
-            $config.Run.Path = @('Tests/Unit', 'Tests/Integration')
-            Write-Host "Running all tests" -ForegroundColor Yellow
+$testRoot = $PSScriptRoot
+$repoRoot = Split-Path -Parent $testRoot
+$pathComparison = if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+if ($Profile -and $PSBoundParameters.ContainsKey('Type')) { throw 'Choose Profile or Type, not both.' }
+if (-not $Profile) { $Profile = $Type }
+$profiles = Import-PowerShellDataFile -LiteralPath (Join-Path $testRoot 'TestProfiles.psd1') -ErrorAction Stop
+$settings = Import-PowerShellDataFile -LiteralPath (Join-Path $testRoot 'PesterConfiguration.psd1') -ErrorAction Stop
+$selected = $profiles[$Profile]
+if ($Profile -eq 'WindowsCI' -and ($Path -or $FullName -or $Tag -or $ExcludeTag)) { throw 'WindowsCI cannot be narrowed. Use a focused profile for diagnostics.' }
+$declaredPaths = @($selected.Path)
+$runPaths = @(if ($Path) {
+        foreach ($target in $Path) {
+            $absolute = if ([IO.Path]::IsPathRooted($target)) { [IO.Path]::GetFullPath($target) } else { [IO.Path]::GetFullPath((Join-Path $repoRoot $target)) }
+            $prefix = $testRoot + [IO.Path]::DirectorySeparatorChar
+            if (-not $absolute.StartsWith($prefix, $pathComparison) -or -not $absolute.EndsWith('.Tests.ps1', [StringComparison]::OrdinalIgnoreCase)) { throw "Path must name a literal test file inside Tests: $target" }
+            if (-not (Test-Path -LiteralPath $absolute -PathType Leaf -ErrorAction Stop)) { throw "Test file does not exist: $target" }
+            $absolute
         }
     }
-
-    # Configure coverage. The base configuration enables it, so -Coverage is an
-    # explicit opt-in here and its absence must actually turn coverage off --
-    # otherwise every plain run pays the instrumentation cost and the -Coverage
-    # switch is decorative.
-    $config.CodeCoverage.Enabled = [bool]$Coverage
-    if ($Coverage) {
-        # OutputPath is repo-root relative; Pester will not create the parent.
-        $coverageDir = Split-Path -Parent $config.CodeCoverage.OutputPath.Value
-        if ($coverageDir -and -not (Test-Path $coverageDir)) {
-            New-Item -ItemType Directory -Path $coverageDir -Force | Out-Null
+    else {
+        foreach ($relative in $declaredPaths) {
+            $absolute = Join-Path $repoRoot $relative
+            if ([Management.Automation.WildcardPattern]::ContainsWildcardCharacters($relative)) {
+                if (-not (Test-Path -LiteralPath (Split-Path -Parent $absolute) -PathType Container -ErrorAction Stop)) { continue }
+                Get-ChildItem -Path $absolute -File -ErrorAction Stop | ForEach-Object FullName
+            }
+            else {
+                if (-not (Test-Path -LiteralPath $absolute -ErrorAction Stop)) { throw "Profile path does not exist: $relative" }
+                $absolute
+            }
         }
-        Write-Host "Code coverage enabled (target: 85%)" -ForegroundColor Green
-    }
-
-    # Configure CI mode
-    if ($CI) {
-        # Keep the returned result so the caller can enforce coverage as well
-        # as test failures instead of exiting early inside Pester.
-        $config.Run.Exit = $false
-        $config.Run.PassThru = $true
-        $config.TestResult.Enabled = $true
-        $config.Output.Verbosity = 'Normal'
-        Write-Host "CI mode enabled: exit codes + XML output" -ForegroundColor Cyan
-    }
-
-    # Configure tags
-    if ($Tag) {
-        $config.Filter.Tag = $Tag
-        Write-Host "Filtering by tags: $($Tag -join ', ')" -ForegroundColor Magenta
-    }
-
-    if ($ExcludeTag) {
-        $config.Filter.ExcludeTag = $ExcludeTag
-        Write-Host "Excluding tags: $($ExcludeTag -join ', ')" -ForegroundColor Magenta
-    }
-
-    # Run tests
-    Write-Host "`nStarting test execution..." -ForegroundColor Cyan
-    Write-Host ("=" * 80) -ForegroundColor Gray
-
-    $result = Invoke-Pester -Configuration $config
-    if ($Coverage) {
-        . (Join-Path $RepoRoot 'Tools/Assert-PesterCoverageGate.ps1')
-        Assert-PesterCoverageGate -Result $result -Target $config.CodeCoverage.CoveragePercentTarget.Value
-    }
-    if ($result.TotalCount -eq 0) { throw 'No tests discovered.' }
-
-    # Report results
-    Write-Host "`n" -NoNewline
-    Write-Host ("=" * 80) -ForegroundColor Gray
-    Write-Host "`nTest Results:" -ForegroundColor Cyan
-    Write-Host "  Total:    $($result.TotalCount)" -ForegroundColor White
-    Write-Host "  Passed:   $($result.PassedCount)" -ForegroundColor Green
-    Write-Host "  Failed:   $($result.FailedCount)" -ForegroundColor $(if ($result.FailedCount -eq 0) { 'Green' } else { 'Red' })
-    Write-Host "  Skipped:  $($result.SkippedCount)" -ForegroundColor Yellow
-    Write-Host "  Duration: $($result.Duration.TotalSeconds)s" -ForegroundColor White
-
-    # Coverage report
-    if ($Coverage -and $result.CodeCoverage) {
-        $coveredPercent = [math]::Round(($result.CodeCoverage.CommandsExecutedCount / $result.CodeCoverage.CommandsAnalyzedCount) * 100, 2)
-        $coverageColor = if ($coveredPercent -ge 85) { 'Green' } else { 'Yellow' }
-
-        Write-Host "`nCode Coverage:" -ForegroundColor Cyan
-        Write-Host "  Commands Analyzed: $($result.CodeCoverage.CommandsAnalyzedCount)" -ForegroundColor White
-        Write-Host "  Commands Executed: $($result.CodeCoverage.CommandsExecutedCount)" -ForegroundColor White
-        Write-Host "  Coverage:          $coveredPercent%" -ForegroundColor $coverageColor
-        Write-Host "  Target:            85%" -ForegroundColor White
-
-        if ($coveredPercent -lt 85) {
-            Write-Warning "Coverage below target (85%). Current: $coveredPercent%"
-        }
-
-        # Show missed commands
-        if ($result.CodeCoverage.MissedCommands.Count -gt 0) {
-            Write-Host "`nTop Missed Commands:" -ForegroundColor Yellow
-            $result.CodeCoverage.MissedCommands |
-                Group-Object File |
-                Sort-Object Count -Descending |
-                Select-Object -First 5 |
-                ForEach-Object {
-                    $fileName = Split-Path $_.Name -Leaf
-                    Write-Host "  ${fileName}: $($_.Count) missed" -ForegroundColor Gray
-                }
-        }
-
-        Write-Host "`nCoverage report: $($config.CodeCoverage.OutputPath.Value)" -ForegroundColor Cyan
-    }
-
-    # Output file locations
-    if ($config.TestResult.Enabled.Value) {
-        Write-Host "`nTest results: $($config.TestResult.OutputPath.Value)" -ForegroundColor Cyan
-    }
-
-    # Exit with appropriate code
-    if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
-        Write-Host "`nTests FAILED" -ForegroundColor Red
-        if ($CI) {
-            exit 1
-        }
-    } else {
-        Write-Host "`nAll tests PASSED" -ForegroundColor Green
-        if ($CI) {
-            exit 0
-        }
-    }
-
-} catch {
-    Write-Error "Test execution failed: $_"
-    if ($CI) {
-        exit 1
-    }
-} finally {
-    $env:PSModulePath = $originalPSModulePath
-    Pop-Location
+    })
+if ($runPaths.Count -eq 0) { throw 'No test paths selected.' }
+$settings.Run.Path = $runPaths
+$settings.Run.PassThru = $true
+$settings.Run.Exit = $false
+$settings.CodeCoverage.Enabled = [bool]$Coverage -or $Profile -eq 'WindowsCI'
+$settings.CodeCoverage.Path = @((Join-Path $repoRoot 'Modules'))
+$settings.CodeCoverage.RecursePaths = $true
+$settings.CodeCoverage.CoveragePercentTarget = 85
+$settings.Filter.Tag = if ($Tag) { @($Tag) } elseif ($selected.ContainsKey('Tag')) { @($selected.Tag) } else { @() }
+$settings.Filter.ExcludeTag = @($ExcludeTag | Where-Object { $_ })
+$settings.Filter.FullName = @($FullName | Where-Object { $_ })
+$directorySpecified = [bool]$OutputDirectory
+if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repoRoot $(if ($Profile -eq 'WindowsCI') { 'Tests/TestResults' } else { 'TestResults' }) }
+elseif (-not [IO.Path]::IsPathRooted($OutputDirectory)) { $OutputDirectory = Join-Path $repoRoot $OutputDirectory }
+if (-not $OutputFormat) { $OutputFormat = if ($CI) { 'NUnitXml' } else { 'None' } }
+if (-not $OutputFile) { $OutputFile = if ($directorySpecified -or $Profile -eq 'WindowsCI') { Join-Path $OutputDirectory 'test-results.xml' } else { Join-Path $repoRoot $settings.TestResult.OutputPath } }
+elseif (-not [IO.Path]::IsPathRooted($OutputFile)) { $OutputFile = Join-Path $repoRoot $OutputFile }
+$settings.TestResult.Enabled = $OutputFormat -ne 'None'
+if ($settings.TestResult.Enabled) { $settings.TestResult.OutputFormat = $OutputFormat }
+$settings.TestResult.OutputPath = $OutputFile
+$settings.CodeCoverage.OutputPath = Join-Path $OutputDirectory 'coverage.xml'
+foreach ($outputPath in @($OutputFile, $settings.CodeCoverage.OutputPath)) {
+    $leaf = [IO.Path]::GetFileName($outputPath).TrimEnd('.', ' ')
+    if ($leaf -match '^(?:\$null|AUX|CON|NUL|PRN|COM[1-9]|LPT[1-9])(?:\..*)?$') { throw "Reserved output filename: $leaf" }
 }
+if ($CI) { $settings.Output.Verbosity = 'Normal' }
+$testPlan = [pscustomobject]@{
+    Profile = $Profile; Repository = $repoRoot; DeclaredPaths = $declaredPaths
+    Targeted                = [bool]($Path -or $FullName -or $Tag -or $ExcludeTag)
+    FullWindowsScope        = $Profile -eq 'WindowsCI'
+    Configuration           = $settings
+    SourceBoundCoveragePath = Join-Path $OutputDirectory 'source-bound-coverage.json'
+}
+if ($Plan) { return $testPlan }
+
+$ErrorActionPreference = 'Stop'
+$originalModulePath = $env:PSModulePath
+$originalLocation = (Microsoft.PowerShell.Management\Get-Location -ErrorAction Stop).Path
+$primaryFailure = $null
+$cleanupFailure = $null
+$result = $null
+try {
+    $env:PSModulePath = (Join-Path $repoRoot 'Modules') + [IO.Path]::PathSeparator + $originalModulePath
+    Microsoft.PowerShell.Management\Set-Location -LiteralPath $repoRoot -ErrorAction Stop
+    $sourceCommit = $null
+    if ($settings.CodeCoverage.Enabled -and (Test-Path -LiteralPath (Join-Path $repoRoot '.git') -ErrorAction Stop)) {
+        $gitRoot = & git -C $repoRoot rev-parse --show-toplevel 2>&1
+        if ($LASTEXITCODE -ne 0 -or -not [IO.Path]::GetFullPath([string]$gitRoot).Equals([IO.Path]::GetFullPath($repoRoot), $pathComparison)) { throw 'Coverage repository identity does not match the selected checkout.' }
+        $sourceCommit = & git -C $repoRoot rev-parse --verify HEAD 2>&1
+        if ($LASTEXITCODE -ne 0 -or $sourceCommit -isnot [string] -or $sourceCommit -cnotmatch '^[a-f0-9]{40}$') { throw 'Cannot establish exact coverage source commit.' }
+    }
+    Import-Module Pester -MinimumVersion 5.0.0 -ErrorAction Stop
+    $config = New-PesterConfiguration -Hashtable $settings
+    foreach ($output in @($(if ($settings.TestResult.Enabled) { $OutputFile }), $(if ($settings.CodeCoverage.Enabled) { $settings.CodeCoverage.OutputPath }))) {
+        if ($output) { [IO.Directory]::CreateDirectory((Split-Path -Parent $output)) | Out-Null }
+    }
+    $sourceBindings = @(if ($settings.CodeCoverage.Enabled) {
+            Get-ChildItem -LiteralPath (Join-Path $repoRoot 'Modules') -Recurse -File |
+                Where-Object Extension -In '.ps1', '.psm1' | ForEach-Object {
+                    [pscustomobject]@{ Path = $_.FullName; SHA = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }
+                }
+        })
+    $result = Invoke-Pester -Configuration $config
+    . (Join-Path $repoRoot 'Tools/Assert-PesterCoverageGate.ps1')
+    if ($settings.CodeCoverage.Enabled) {
+        if ($sourceCommit) {
+            $headAfter = & git -C $repoRoot rev-parse --verify HEAD 2>&1
+            if ($LASTEXITCODE -ne 0 -or $headAfter -cne $sourceCommit) { throw 'Coverage source HEAD changed during execution.' }
+        }
+        . (Join-Path $repoRoot 'Tools/Merge-PesterChildCoverage.ps1')
+        $snapshot = New-PesterCoverageSnapshot -Coverage $result.CodeCoverage -SourceBindings $sourceBindings
+        $attachments = @(foreach ($test in @($result.Tests)) {
+                if ($null -ne $test -and $null -ne $test.PSObject.Properties['PcaiChildCoverage']) { [pscustomobject]@{ Result = $test.Result; Receipt = $test.PcaiChildCoverage } }
+            })
+        [ordered]@{ SchemaVersion = 1; SourceCommit = $sourceCommit; Profile = $Profile; Parent = $snapshot; Attachments = $attachments } |
+            ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $testPlan.SourceBoundCoveragePath -Encoding utf8
+        Assert-PesterCoverageGate -Result $result -Target 85
+    }
+    else { Assert-PesterResult -Result $result }
+    $result | Add-Member -NotePropertyName PcaiTestPlan -NotePropertyValue $testPlan -Force
+}
+catch { $primaryFailure = $_ }
+finally {
+    $env:PSModulePath = $originalModulePath
+    try { Microsoft.PowerShell.Management\Set-Location -LiteralPath $originalLocation -ErrorAction Stop }
+    catch { $cleanupFailure = $_ }
+}
+if ($primaryFailure) {
+    if ($cleanupFailure) { $primaryFailure.Exception.Data['PcaiRunnerCleanupFailure'] = $cleanupFailure.Exception.Message }
+    throw $primaryFailure
+}
+if ($cleanupFailure) { throw $cleanupFailure }
+if ($PassThru) { return $result }
+Write-Host "Tests: $($result.PassedCount) passed, $($result.FailedCount) failed, $($result.SkippedCount) skipped. Profile: $Profile"

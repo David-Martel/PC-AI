@@ -225,6 +225,115 @@ function Invoke-BackendBenchmark {
     }
 }
 
+
+function Get-PcaiBenchmarkLoadedIdentity {
+    param([Parameter(Mandatory)][System.Management.Automation.PSModuleInfo]$Module)
+    $binding = & $Module {
+        [pscustomobject]@{ CorePath=Get-PcaiNativeLoadedCorePath; BridgePath=Get-PcaiNativeLoadedBridgePath }
+    }
+    foreach ($name in 'CorePath','BridgePath') {
+        if (-not $binding.$name -or -not [IO.Path]::IsPathFullyQualified($binding.$name) -or
+            -not (Test-Path -LiteralPath $binding.$name -PathType Leaf)) {
+            throw "Native benchmark loaded identity is unproven: $name"
+        }
+    }
+    [pscustomobject]@{
+        CorePath=[IO.Path]::GetFullPath($binding.CorePath)
+        BridgePath=[IO.Path]::GetFullPath($binding.BridgePath)
+        CoreSHA256=(Get-FileHash -LiteralPath $binding.CorePath -Algorithm SHA256).Hash
+        BridgeSHA256=(Get-FileHash -LiteralPath $binding.BridgePath -Algorithm SHA256).Hash
+        Scope='Loaded binding paths and current file bytes; compilation/source admission is separate.'
+    }
+}
+
+function Invoke-ValidatedBackendBenchmark {
+    param(
+        [Parameter(Mandatory)][string]$CaseId,
+        [Parameter(Mandatory)][string]$Backend,
+        [Parameter(Mandatory)][scriptblock]$Command,
+        [Parameter(Mandatory)][int]$Iterations,
+        [Parameter(Mandatory)][int]$Warmup,
+        [Parameter(Mandatory)][scriptblock]$ValidateOutput,
+        [scriptblock]$BeforeSample = {},
+        [scriptblock]$AfterSample = {}
+    )
+    if ($Iterations -le 0 -or $Warmup -lt 0) { throw 'Invalid validated benchmark sample counts.' }
+    $state=[pscustomobject]@{ Calls=0; Samples=[Collections.Generic.List[object]]::new(); Failures=[Collections.Generic.List[string]]::new() }
+    # Measure-CommandPerformance still owns iteration/warmup execution and its
+    # normal completeness guard. A scriptblock selects its in-process transport.
+    # The inner clock times only the useful command. No validation is removed.
+    $guarded = {
+        $kind=if($state.Calls -lt $Warmup){'warmup'}else{'measured'}
+        $state.Calls++
+        $process=$null
+        try {
+            $selection=[Diagnostics.Stopwatch]::StartNew()
+            $null=& $BeforeSample
+            $selection.Stop()
+            $observer=[Diagnostics.Stopwatch]::StartNew()
+            $process=[Diagnostics.Process]::GetCurrentProcess();$process.Refresh()
+            $wsBefore=$process.WorkingSet64;$privateBefore=$process.PrivateMemorySize64
+            $managedBefore=[GC]::GetTotalMemory($false)
+            $allocatedBefore=[GC]::GetTotalAllocatedBytes($false)
+            $cpuBefore=$process.TotalProcessorTime.TotalMilliseconds
+            $observer.Stop()
+            $body=[Diagnostics.Stopwatch]::StartNew()
+            $output=& $Command
+            $body.Stop()
+            $observer.Start();$process.Refresh()
+            $cpuDelta=$process.TotalProcessorTime.TotalMilliseconds-$cpuBefore
+            $wsDelta=$process.WorkingSet64-$wsBefore;$privateDelta=$process.PrivateMemorySize64-$privateBefore
+            $managedDelta=[GC]::GetTotalMemory($false)-$managedBefore
+            $allocatedDelta=[GC]::GetTotalAllocatedBytes($false)-$allocatedBefore
+            $observer.Stop()
+            $selection.Start();$null=& $AfterSample;$selection.Stop()
+            $validation=[Diagnostics.Stopwatch]::StartNew()
+            $null=& $ValidateOutput $output
+            $validation.Stop()
+            $state.Samples.Add([pscustomobject]@{
+                Kind=$kind;BodyMs=$body.Elapsed.TotalMilliseconds;SelectionMs=$selection.Elapsed.TotalMilliseconds
+                ValidationMs=$validation.Elapsed.TotalMilliseconds;ObserverMs=$observer.Elapsed.TotalMilliseconds
+                CpuMs=$cpuDelta;WorkingSetDeltaBytes=$wsDelta;PrivateMemoryDeltaBytes=$privateDelta
+                ManagedMemoryDeltaBytes=$managedDelta;ManagedAllocatedBytes=$allocatedDelta
+            })
+        } catch {
+            # The existing measurer catches iteration/warmup exceptions. Retain
+            # every failure so an invalid warmup cannot disappear into a mean.
+            $state.Failures.Add($_.Exception.Message)
+            throw
+        } finally {
+            if ($null -ne $process) { $process.Dispose() }
+        }
+    }.GetNewClosure()
+    $outer=Invoke-BackendBenchmark -CaseId $CaseId -Backend $Backend -Command $guarded -Iterations $Iterations -Warmup $Warmup
+    if ($state.Failures.Count) { throw "Validated benchmark sample failed: $($state.Failures -join '; ')" }
+    $samples=@($state.Samples | Where-Object Kind -eq 'measured')
+    if ($state.Calls -ne ($Iterations+$Warmup) -or $samples.Count -ne $Iterations) { throw 'Incomplete validated benchmark samples.' }
+    $times=@($samples.BodyMs | Sort-Object);$mean=($times|Measure-Object -Average).Average
+    $variance=($times|ForEach-Object{[Math]::Pow($_-$mean,2)}|Measure-Object -Average).Average
+    $median=if($times.Count%2){$times[[int][Math]::Floor($times.Count/2)]}else{($times[$times.Count/2-1]+$times[$times.Count/2])/2}
+    $outer|Add-Member -NotePropertyName GuardInclusiveMeanMs -NotePropertyValue $outer.MeanMs -Force
+    $outer.MeanMs=$mean;$outer.MedianMs=$median;$outer.MinMs=$times[0];$outer.MaxMs=$times[-1];$outer.StdDevMs=[Math]::Sqrt($variance)
+    $outer.Tool='validated-body-stopwatch'
+    foreach($field in @(
+        @('WorkingSetDelta','WorkingSetDeltaBytes'),@('PrivateMemoryDelta','PrivateMemoryDeltaBytes'),
+        @('ManagedMemoryDelta','ManagedMemoryDeltaBytes'),@('ManagedAllocated','ManagedAllocatedBytes')
+    )) {
+        $values=@($samples|ForEach-Object{$_.$($field[1])})
+        $outer.($field[0]+'MeanBytes')=($values|Measure-Object -Average).Average
+        $outer.($field[0]+'MaxBytes')=($values|Measure-Object -Maximum).Maximum
+    }
+    foreach($phase in 'Selection','Validation','Observer','Cpu') {
+        $outer|Add-Member -NotePropertyName ($phase+'MeanMs') -NotePropertyValue (($samples|ForEach-Object{$_.$($phase+'Ms')}|Measure-Object -Average).Average)
+    }
+    $outer|Add-Member -NotePropertyName TimingScope -NotePropertyValue 'Public useful command only; external selection, validation and observer are separately reported. Public consumer internal guards remain timed.'
+    $outer|Add-Member -NotePropertyName CpuScope -NotePropertyValue 'Process-wide interval includes the post-body process refresh; not exclusive backend CPU.'
+    $outer|Add-Member -NotePropertyName MemoryScope -NotePropertyValue 'Process-wide snapshot/allocation deltas include observer work and concurrent process threads; not exclusive useful-body allocation or peak memory.'
+    $outer|Add-Member -NotePropertyName ObserverScope -NotePropertyValue 'Inner snapshot observer only; outer maintained measurer observer is not separately clocked.'
+    $outer|Add-Member -NotePropertyName PhaseSamples -NotePropertyValue @($state.Samples)
+    $outer
+}
+
 function Add-BenchmarkMeasurement {
     param(
         [Parameter(Mandatory)]
@@ -475,75 +584,93 @@ function Get-ToolingCaseBenchmarks {
         }
         'token-estimate' {
             $testNativeReady = ${function:Test-PcaiBenchmarkNativeReady}
-            $assertParity = ${function:Assert-TokenEstimateParity}
+            $getIdentity = ${function:Get-PcaiBenchmarkLoadedIdentity}
             $referenceTokenEstimator = ${function:Get-ReferenceTokenEstimate}
+            $caseSetup=[Diagnostics.Stopwatch]::StartNew()
+            $expectedTokens = & $referenceTokenEstimator -Text $TokenSample
             $nativeAvailable = & $testNativeReady -Module $accelerationModule
-            $nativeBlock = {
-                if (-not (& $testNativeReady -Module $accelerationModule)) { throw 'Token benchmark native backend became unavailable.' }
-                $nativeTokens = & $accelerationModule {
-                    param($InnerTokenSample)
-                    Get-PcaiTokenEstimate -Text $InnerTokenSample
-                } $TokenSample
-                if (-not (& $testNativeReady -Module $accelerationModule)) { throw 'Token benchmark native backend became unavailable.' }
-                # Bind the complete reference body inside the closure's module.
-                function Get-ReferenceTokenEstimate { param($Text) & $referenceTokenEstimator -Text $Text }
-                & $assertParity -Text $TokenSample -NativeTokens $nativeTokens
+            $nativeIdentity = $null
+            $validate = {
+                param($tokens)
+                # Both transports get exactly the same scalar validation against
+                # an independently prepared reference, outside the body clock.
+                if ($null -eq $tokens -or $tokens.GetType() -notin @([byte],[uint16],[uint32],[uint64],[sbyte],[int16],[int32],[int64]) -or
+                    $tokens -lt 0 -or [uint64]$tokens -ne [uint64]$expectedTokens) {
+                    throw 'Token native useful output mismatch: scalar reference parity failed.'
+                }
+            }.GetNewClosure()
+            $nativeBody = {
+                & $accelerationModule {param($text) Get-PcaiTokenEstimate -Text $text} $TokenSample
             }.GetNewClosure()
             if ($nativeAvailable) {
-                & $nativeBlock
-                Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'native' -Command $nativeBlock -Iterations $iterations -Warmup $warmup)
+                if (-not (& $testNativeReady -Module $accelerationModule)) { throw 'Token benchmark native backend became unavailable.' }
+                $nativeIdentity = & $getIdentity -Module $accelerationModule
+                $selection = {
+                    if (-not (& $testNativeReady -Module $accelerationModule)) { throw 'Token benchmark native backend became unavailable.' }
+                    $current=& $getIdentity -Module $accelerationModule
+                    foreach($field in 'CorePath','BridgePath','CoreSHA256','BridgeSHA256') {
+                        if($current.$field -cne $nativeIdentity.$field){throw 'Token benchmark loaded artifact identity changed.'}
+                    }
+                }.GetNewClosure()
+                # Preserve the existing detecting preflight before timed samples.
+                $preflight=& $nativeBody
+                $null=& $selection
+                $null=& $validate $preflight
+                $caseSetup.Stop()
+                Add-BenchmarkMeasurement $benchmarks (Invoke-ValidatedBackendBenchmark -CaseId $Case.Id -Backend native -Command $nativeBody -Iterations $iterations -Warmup $warmup -BeforeSample $selection -AfterSample $selection -ValidateOutput $validate)
             }
-            # Capture the actual function body: GetNewClosure creates a module whose
-            # function lookup cannot depend on the caller's script scope.
-            $baselineBlock = { $ErrorActionPreference = 'Stop'; & $referenceTokenEstimator -Text $TokenSample | Out-Null }.GetNewClosure()
-            Add-BenchmarkMeasurement -Collection $benchmarks -Measurement (Invoke-BackendBenchmark -CaseId $Case.Id -Backend 'powershell' -Command $baselineBlock -Iterations $iterations -Warmup $warmup)
+            $caseSetup.Stop()
+            $baselineBody = { & $referenceTokenEstimator -Text $TokenSample }.GetNewClosure()
+            Add-BenchmarkMeasurement $benchmarks (Invoke-ValidatedBackendBenchmark -CaseId $Case.Id -Backend powershell -Command $baselineBody -Iterations $iterations -Warmup $warmup -ValidateOutput $validate)
             return [PSCustomObject]@{
-                Case        = $Case
-                Path        = $resolvedPath
-                CoverageKey = 'TokenEstimate'
-                EquivalenceVerified = $nativeAvailable
-                Coverage    = $coverageLookup['TokenEstimate']
-                Results     = @($benchmarks)
-                UnavailableReason = if (-not $nativeAvailable) { 'Native core unavailable; only the PowerShell scalar-reference baseline ran.' } else { $null }
-                Qualification = [pscustomobject]@{ ComparisonQualified=$nativeAvailable; UsefulOutputParity=if($nativeAvailable){'matched-scalar-reference'}else{'not-established'} }
+                Case=$Case;Path=$resolvedPath;CoverageKey='TokenEstimate';EquivalenceVerified=$nativeAvailable
+                Coverage=$coverageLookup['TokenEstimate'];Results=@($benchmarks);NativeIdentity=$nativeIdentity;SharedCaseSetupMs=$caseSetup.Elapsed.TotalMilliseconds
+                UnavailableReason=if(-not $nativeAvailable){'Native core unavailable; only the PowerShell scalar-reference baseline ran.'}else{$null}
+                Qualification=[pscustomobject]@{ComparisonQualified=$nativeAvailable;UsefulOutputParity=if($nativeAvailable){'matched-scalar-reference'}else{'not-established'}}
             }
         }
         'directory-manifest' {
-            $baselineCommand = ${function:Get-PowerShellDirectoryManifest}
-            $assertStats = ${function:Assert-PcaiManifestBenchmarkStats}
-            $testNativeReady = ${function:Test-PcaiBenchmarkNativeReady}
-            $nativeAvailable = & $testNativeReady -Module $accelerationModule
-            $expected = & $baselineCommand -Path $resolvedPath -MaxDepth $maxDepth -MaxResults $maxResults
-            $nativeBlock = {
-                if (-not (& $testNativeReady -Module $accelerationModule)) {
-                    throw 'Manifest benchmark native backend became unavailable.'
-                }
-                $stats = & $accelerationModule {
-                    param($path,$depth,$limit)
-                    Invoke-PcaiNativeDirectoryManifest -Path $path -MaxDepth $depth -MaxResults $limit -StatsOnly
-                } $resolvedPath $maxDepth $maxResults
-                & $assertStats -Stats $stats -Expected $expected -MaxResults $maxResults
-                if (-not (& $testNativeReady -Module $accelerationModule)) {
-                    throw 'Manifest benchmark native backend became unavailable.'
+            $caseSetup=[Diagnostics.Stopwatch]::StartNew()
+            $baselineCommand=${function:Get-PowerShellDirectoryManifest}
+            $assertStats=${function:Assert-PcaiManifestBenchmarkStats}
+            $testNativeReady=${function:Test-PcaiBenchmarkNativeReady}
+            $getIdentity=${function:Get-PcaiBenchmarkLoadedIdentity}
+            $nativeAvailable=& $testNativeReady -Module $accelerationModule
+            $expected=& $baselineCommand -Path $resolvedPath -MaxDepth $maxDepth -MaxResults $maxResults
+            $nativeIdentity=$null
+            $validateNative={param($stats) & $assertStats -Stats $stats -Expected $expected -MaxResults $maxResults}.GetNewClosure()
+            $validateReference={
+                param($stats)
+                foreach($field in 'EntriesReturned','FileCount','DirectoryCount','OtherEntries','TotalSize') {
+                    if($null -eq $stats -or $stats.$field -ne $expected.$field){throw "Manifest baseline changed: $field"}
                 }
             }.GetNewClosure()
-            if ($nativeAvailable) {
-                Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'native' $nativeBlock $iterations $warmup)
+            $nativeBody={
+                & $accelerationModule {param($path,$depth,$limit) Invoke-PcaiNativeDirectoryManifest -Path $path -MaxDepth $depth -MaxResults $limit -StatsOnly} $resolvedPath $maxDepth $maxResults
+            }.GetNewClosure()
+            if($nativeAvailable) {
+                if(-not (& $testNativeReady -Module $accelerationModule)){throw 'Manifest benchmark native backend became unavailable.'}
+                $nativeIdentity=& $getIdentity -Module $accelerationModule
+                $selection={
+                    if(-not (& $testNativeReady -Module $accelerationModule)){throw 'Manifest benchmark native backend became unavailable.'}
+                    $current=& $getIdentity -Module $accelerationModule
+                    foreach($field in 'CorePath','BridgePath','CoreSHA256','BridgeSHA256') {
+                        if($current.$field -cne $nativeIdentity.$field){throw 'Manifest benchmark loaded artifact identity changed.'}
+                    }
+                }.GetNewClosure()
+                $caseSetup.Stop()
+                Add-BenchmarkMeasurement $benchmarks (Invoke-ValidatedBackendBenchmark -CaseId $Case.Id -Backend native -Command $nativeBody -Iterations $iterations -Warmup $warmup -BeforeSample $selection -AfterSample $selection -ValidateOutput $validateNative)
             }
-            $baselineBlock = {
-                $current = & $baselineCommand -Path $resolvedPath -MaxDepth $maxDepth -MaxResults $maxResults
-                foreach ($name in 'EntriesReturned','FileCount','DirectoryCount','TotalSize') {
-                    if ($current.$name -ne $expected.$name) { throw "Manifest baseline changed: $name" }
-                }
-            }.GetNewClosure()
-            Add-BenchmarkMeasurement $benchmarks (Invoke-BackendBenchmark $Case.Id 'powershell' $baselineBlock $iterations $warmup)
+            $caseSetup.Stop()
+            $baselineBody={& $baselineCommand -Path $resolvedPath -MaxDepth $maxDepth -MaxResults $maxResults}.GetNewClosure()
+            Add-BenchmarkMeasurement $benchmarks (Invoke-ValidatedBackendBenchmark -CaseId $Case.Id -Backend powershell -Command $baselineBody -Iterations $iterations -Warmup $warmup -ValidateOutput $validateReference)
             return [pscustomobject]@{
-                Case=$Case;Path=$resolvedPath;CoverageKey='DirectoryManifest';Coverage=$coverageLookup['DirectoryManifest'];Results=@($benchmarks)
-                UnavailableReason=if (-not $nativeAvailable) {'Native core unavailable; only the PowerShell manifest baseline ran.'} else {$null}
+                Case=$Case;Path=$resolvedPath;CoverageKey='DirectoryManifest';Coverage=$coverageLookup['DirectoryManifest'];Results=@($benchmarks);NativeIdentity=$nativeIdentity;SharedCaseSetupMs=$caseSetup.Elapsed.TotalMilliseconds
+                UnavailableReason=if(-not $nativeAvailable){'Native core unavailable; only the PowerShell manifest baseline ran.'}else{$null}
                 Qualification=[pscustomobject]@{
                     ComparisonQualified=($nativeAvailable -and $maxResults -eq 0)
-                    UsefulOutputParity=if ($nativeAvailable -and $maxResults -eq 0) {'matched-aggregate-stats'} else {'not-established'}
-                    OutputContract=if ($maxResults -eq 0) {'Ordinary file/directory counts, other entry count and ordinary file bytes; entry identities are not measured.'} else {'Returned entry count matches the bounded reference; selected identities, category counts and bytes remain unverified. Speedup is unqualified.'}
+                    UsefulOutputParity=if($nativeAvailable -and $maxResults -eq 0){'matched-aggregate-stats'}else{'not-established'}
+                    OutputContract=if($maxResults -eq 0){'Ordinary file/directory counts, other entry count and ordinary file bytes; entry identities are not measured.'}else{'Returned entry count matches the bounded reference; selected identities, category counts and bytes remain unverified. Speedup is unqualified.'}
                 }
             }
         }
@@ -919,6 +1046,18 @@ $benchmarkRows = foreach ($caseResult in $caseResults) {
             Category           = $caseResult.Case.category
             Path               = $caseResult.Path
             Backend            = $row.Backend
+            SharedCaseSetupMs = if($caseResult.PSObject.Properties['SharedCaseSetupMs']){$caseResult.SharedCaseSetupMs}else{$null}
+            CpuScope = if($row.PSObject.Properties['CpuScope']){$row.CpuScope}else{$null}
+            MemoryScope = if($row.PSObject.Properties['MemoryScope']){$row.MemoryScope}else{$null}
+            ObserverScope = if($row.PSObject.Properties['ObserverScope']){$row.ObserverScope}else{$null}
+            TimingScope = if($row.PSObject.Properties['TimingScope']){$row.TimingScope}else{'guard-inclusive command; phases not separated'}
+            GuardInclusiveMeanMs = if($row.PSObject.Properties['GuardInclusiveMeanMs']){$row.GuardInclusiveMeanMs}else{$row.MeanMs}
+            SelectionMeanMs = if($row.PSObject.Properties['SelectionMeanMs']){$row.SelectionMeanMs}else{$null}
+            ValidationMeanMs = if($row.PSObject.Properties['ValidationMeanMs']){$row.ValidationMeanMs}else{$null}
+            ObserverMeanMs = if($row.PSObject.Properties['ObserverMeanMs']){$row.ObserverMeanMs}else{$null}
+            CpuMeanMs = if($row.PSObject.Properties['CpuMeanMs']){$row.CpuMeanMs}else{$null}
+            PhaseSamples = @(if($row.PSObject.Properties['PhaseSamples']){$row.PhaseSamples})
+            NativeIdentity = if($caseResult.PSObject.Properties['NativeIdentity']){$caseResult.NativeIdentity}else{$null}
             MeanMs             = $row.MeanMs
             MedianMs           = $row.MedianMs
             StdDevMs           = $row.StdDevMs
@@ -1020,6 +1159,8 @@ if ($toolCoverageJson) {
 }
 
 $null = $md.AppendLine('## Performance Results')
+$null = $md.AppendLine()
+$null = $md.AppendLine('Token-estimate and directory-manifest Mean/Median time only the useful public command; external selection, validation and observer costs are excluded. JSON retains guard-inclusive means and per-phase samples. These body timings are not end-to-end latency. Memory deltas are process-wide and include observer/concurrent-thread activity; they are not exclusive backend allocations or peak memory. Compare only baselines bound to the same benchmark harness.')
 $null = $md.AppendLine()
 $null = $md.AppendLine('| Case | Backend | Mean ms | Median ms | StdDev ms | WS delta KB | Private delta KB | Managed delta KB | Managed alloc KB | Speedup vs PS | Coverage |')
 $null = $md.AppendLine('| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |')

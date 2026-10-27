@@ -15,7 +15,7 @@ Describe 'Tooling benchmark provenance and useful output admission' -Tag 'Unit',
         }
         $script:BenchmarkAst=Get-FixtureAst $BenchmarkSourcePath
         foreach($name in @('Get-ConfigValue','Get-ReferenceTokenEstimate','Assert-TokenEstimateParity','Test-BenchmarkCaseEquivalence','Get-PowerShellDirectoryManifest','Test-PcaiBenchmarkNativeReady','Assert-PcaiManifestBenchmarkStats',
-                'Get-ToolingCaseBenchmarks','Add-BenchmarkMeasurement','Invoke-AccelerationModuleCommand','Invoke-ImportedModuleCommand')){
+                'Get-ToolingCaseBenchmarks','Get-PcaiBenchmarkLoadedIdentity','Invoke-ValidatedBackendBenchmark','Add-BenchmarkMeasurement','Invoke-AccelerationModuleCommand','Invoke-ImportedModuleCommand')){
             $definition=$script:BenchmarkAst.Find({param($n)$n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name},$false)
             if(-not $definition){throw "Missing maintained benchmark definition: $name"}
             . ([scriptblock]::Create($definition.Extent.Text))
@@ -33,7 +33,10 @@ Describe 'Tooling benchmark provenance and useful output admission' -Tag 'Unit',
         $script:ReportRowsSource=$reportAssignment.Extent.Text
         function Invoke-BackendBenchmark {
             param($CaseId,$Backend,$Command,$Iterations,$Warmup)
-            & $Command | Out-Null
+            # Keep the maintained measurer's warmup catch boundary. The actual
+            # validated producer must retain failures instead of losing them.
+            for($index=0;$index -lt $Warmup;$index++){try{$null=& $Command}catch{}}
+            for($index=0;$index -lt $Iterations;$index++){$null=& $Command}
             # These are algebraic input controls for the report gate, never measured
             # timings or a performance claim. No stopwatch/native process runs here.
             [pscustomobject]@{CaseId=$CaseId;Backend=$Backend;MeanMs=3;MedianMs=3;StdDevMs=0;MinMs=3;MaxMs=3
@@ -42,8 +45,8 @@ Describe 'Tooling benchmark provenance and useful output admission' -Tag 'Unit',
                 ManagedAllocatedMeanBytes=$null;ManagedAllocatedMaxBytes=$null}
         }
         function Invoke-FixtureCase {
-            param([string]$Id,[string]$Sample='hello world',[uint32]$Depth=0,[uint64]$Limit=0)
-            Get-ToolingCaseBenchmarks -Case ([pscustomobject]@{id=$Id;name='contract';category='contract'}) -Defaults ([pscustomobject]@{iterations=1;warmup=0;maxDepth=$Depth;maxResults=$Limit}) -RepoRoot $script:DataRoot -Capabilities ([pscustomobject]@{BackendCoverage=@([pscustomobject]@{Operation='TokenEstimate';CoverageState='PSOnly'},[pscustomobject]@{Operation='DirectoryManifest';CoverageState='PSOnly'})}) -TokenSample $Sample
+            param([string]$Id,[string]$Sample='hello world',[uint32]$Depth=0,[uint64]$Limit=0,[int]$Iterations=1,[int]$Warmup=0)
+            Get-ToolingCaseBenchmarks -Case ([pscustomobject]@{id=$Id;name='contract';category='contract'}) -Defaults ([pscustomobject]@{iterations=$Iterations;warmup=$Warmup;maxDepth=$Depth;maxResults=$Limit}) -RepoRoot $script:DataRoot -Capabilities ([pscustomobject]@{BackendCoverage=@([pscustomobject]@{Operation='TokenEstimate';CoverageState='PSOnly'},[pscustomobject]@{Operation='DirectoryManifest';CoverageState='PSOnly'})}) -TokenSample $Sample
         }
         function Get-FixtureReportRows {
             param([object]$Result)
@@ -61,6 +64,14 @@ Describe 'Tooling benchmark provenance and useful output admission' -Tag 'Unit',
         $null=[IO.Directory]::CreateDirectory($script:DataRoot)
         [IO.File]::WriteAllBytes((Join-Path $script:DataRoot 'first.txt'),[byte[]](1,2,3))
         $script:ExpectedStats=Get-PowerShellDirectoryManifest -Path $script:DataRoot
+        # Inert identity bytes live outside the enumerated corpus. These prove
+        # orchestration checks only; no native DLL is loaded by this fixture.
+        $identityRoot=Join-Path $TestDrive ('native-identity-r'+$script:FixtureRevision)
+        $null=[IO.Directory]::CreateDirectory($identityRoot)
+        $coreIdentity=Join-Path $identityRoot 'core.fixture'
+        $bridgeIdentity=Join-Path $identityRoot 'bridge.fixture'
+        [IO.File]::WriteAllText($coreIdentity,'inert core binding bytes')
+        [IO.File]::WriteAllText($bridgeIdentity,'inert bridge binding bytes')
         $moduleBody=$script:TokenBody+@'
 function Test-PcaiNativeAvailable {
     $script:ReadyProbeCount++
@@ -68,9 +79,13 @@ function Test-PcaiNativeAvailable {
     return $script:Loaded
 }
 function Get-PcaiNativeStatus { [pscustomobject]@{CoreAvailable=$script:Available} }
+function Get-PcaiNativeLoadedCorePath {$script:FixtureCoreIdentity}
+function Get-PcaiNativeLoadedBridgePath {$script:FixtureBridgeIdentity}
 function Get-PcaiTokenEstimate {
     param([AllowEmptyString()][string]$Text)
     $script:TokenCalls++
+    if($script:CorruptTokenBinding){[IO.File]::AppendAllText($script:FixtureCoreIdentity,'changed')}
+    if($script:InvalidTokenCall -eq $script:TokenCalls){return [uint64]0}
     if($script:LoseCoreAfterToken){$script:Available=$script:CoreAfterValue}
     if($script:SyntheticToken){return $script:TokenOutcome}
     Invoke-FixtureActualTokenEstimate -Text $Text
@@ -84,13 +99,15 @@ function Invoke-PcaiNativeDirectoryManifest {
 Export-ModuleMember -Function Test-PcaiNativeAvailable,Get-PcaiNativeStatus,Get-PcaiTokenEstimate,Invoke-PcaiNativeDirectoryManifest
 '@
         $script:AccelerationModule=New-Module -ScriptBlock ([scriptblock]::Create($moduleBody))
-        & $script:AccelerationModule {param($stats)
+        & $script:AccelerationModule {param($stats,$coreIdentity,$bridgeIdentity)
+            $script:FixtureCoreIdentity=$coreIdentity;$script:FixtureBridgeIdentity=$bridgeIdentity
             $script:Loaded=$false;$script:Available=$false;$script:SyntheticToken=$false;$script:TokenOutcome=$null
             $script:TokenCalls=0;$script:ManifestCalls=0;$script:ManifestOutcome=$stats
+            $script:CorruptTokenBinding=$false;$script:InvalidTokenCall=0
             $script:ReadyProbeCount=0;$script:LoseLoadedOnProbe=0
             $script:LoseCoreAfterToken=$false;$script:LoseCoreAfterManifest=$false
             $script:CoreAfterValue=$false
-        } ([pscustomobject]@{Status='Success';EntriesReturned=$script:ExpectedStats.EntriesReturned;FileCount=$script:ExpectedStats.FileCount;DirectoryCount=$script:ExpectedStats.DirectoryCount;TotalSize=$script:ExpectedStats.TotalSize})
+        } ([pscustomobject]@{Status='Success';EntriesReturned=$script:ExpectedStats.EntriesReturned;FileCount=$script:ExpectedStats.FileCount;DirectoryCount=$script:ExpectedStats.DirectoryCount;TotalSize=$script:ExpectedStats.TotalSize}) $coreIdentity $bridgeIdentity
     }
     AfterEach {if($script:AccelerationModule){Remove-Module $script:AccelerationModule -ErrorAction Stop}}
 
@@ -311,5 +328,61 @@ Export-ModuleMember -Function Test-PcaiNativeAvailable,Get-PcaiNativeStatus,Get-
         & $script:AccelerationModule {param($value)$script:Loaded=$true;$script:Available=$true;$script:SyntheticToken=$true;$script:TokenOutcome=[uint64]4;$script:LoseCoreAfterToken=$true;$script:CoreAfterValue=$value} $LossValue
         {Invoke-FixtureCase token-estimate}|Should -Throw '*native backend became unavailable*'
         (& $script:AccelerationModule {$script:TokenCalls})|Should -Be 1
+    }
+
+    It 'retains warmup and measured phases with exact body, selection and validation calls' {
+        $timingControl=[pscustomobject]@{Bodies=0;Selections=0;Validations=0}
+        $result=Invoke-ValidatedBackendBenchmark -CaseId control -Backend inert -Iterations 2 -Warmup 1 -Command {$timingControl.Bodies++;[byte]7} -BeforeSample {$timingControl.Selections++} -AfterSample {$timingControl.Selections++} -ValidateOutput {
+            param($value)
+            $timingControl.Validations++
+            if($value -isnot [byte] -or $value -ne 7){throw 'Incorrect useful control output'}
+        }
+        $timingControl.Bodies|Should -Be 3
+        $timingControl.Selections|Should -Be 6
+        $timingControl.Validations|Should -Be 3
+        @($result.PhaseSamples|Where-Object Kind -eq 'warmup').Count|Should -Be 1
+        @($result.PhaseSamples|Where-Object Kind -eq 'measured').Count|Should -Be 2
+        $result.GuardInclusiveMeanMs|Should -Be 3
+        $result.Tool|Should -BeExactly 'validated-body-stopwatch'
+        $result.MemoryScope|Should -Match 'Process-wide.*observer.*not exclusive'
+        $result.CpuScope|Should -Match 'not exclusive'
+        foreach($sample in $result.PhaseSamples){
+            $sample.BodyMs|Should -BeGreaterOrEqual 0
+            $sample.SelectionMs|Should -BeGreaterOrEqual 0
+            $sample.ValidationMs|Should -BeGreaterOrEqual 0
+        }
+    }
+    It 'rejects invalid configured sample counts iterations=<Iterations> warmup=<Warmup>' -ForEach @(
+        @{Iterations=0;Warmup=0},@{Iterations=-1;Warmup=0},@{Iterations=1;Warmup=-1}
+    ) {
+        {Invoke-ValidatedBackendBenchmark -CaseId control -Backend inert -Iterations $Iterations -Warmup $Warmup -Command {throw 'Must not execute'} -ValidateOutput {throw 'Must not execute'}}|Should -Throw '*Invalid validated benchmark sample counts*'
+    }
+    It 'preserves actual useful body errors instead of returning timing success' {
+        {Invoke-ValidatedBackendBenchmark -CaseId control -Backend inert -Iterations 1 -Warmup 0 -Command {throw 'owned-body-error'} -ValidateOutput {throw 'Must not execute'}}|Should -Throw '*owned-body-error*'
+    }
+    It 'refuses a native timing with no proven loaded core path' {
+        & $script:AccelerationModule {$script:Loaded=$true;$script:Available=$true;$script:FixtureCoreIdentity=$null}
+        {Invoke-FixtureCase token-estimate}|Should -Throw '*loaded identity is unproven*'
+        (& $script:AccelerationModule {$script:TokenCalls})|Should -Be 0
+    }
+    It 'rejects changed loaded file bytes after an actual token body' {
+        & $script:AccelerationModule {$script:Loaded=$true;$script:Available=$true;$script:SyntheticToken=$true;$script:TokenOutcome=[uint64]4;$script:CorruptTokenBinding=$true}
+        {Invoke-FixtureCase token-estimate}|Should -Throw '*loaded artifact identity changed*'
+        (& $script:AccelerationModule {$script:TokenCalls})|Should -Be 1
+    }
+    It 'retains invalid native warmup output even when the ordinary measurer catches it' {
+        & $script:AccelerationModule {$script:Loaded=$true;$script:Available=$true;$script:SyntheticToken=$true;$script:TokenOutcome=[uint64]4;$script:InvalidTokenCall=2}
+        {Invoke-FixtureCase token-estimate -Iterations 1 -Warmup 1}|Should -Throw '*Validated benchmark sample failed*'
+        # Preflight succeeds, warmup fails its oracle, and the measured body
+        # succeeds. Discarding only the warmup must still fail the whole case.
+        (& $script:AccelerationModule {$script:TokenCalls})|Should -Be 3
+    }
+    It 'preserves memory and useful-clock scope in actual exported report rows' {
+        $rows=@(Get-FixtureReportRows (Invoke-FixtureCase token-estimate))
+        $rows.Count|Should -Be 1
+        $rows[0].TimingScope|Should -Match 'Public useful command only'
+        $rows[0].MemoryScope|Should -Match 'not exclusive useful-body allocation or peak memory'
+        $rows[0].GuardInclusiveMeanMs|Should -Be 3
+        @($rows[0].PhaseSamples).Count|Should -Be 1
     }
 }

@@ -263,7 +263,7 @@ public sealed class PcaiVsockFixtureKey : IDisposable {
         $r = Optimize-VSock -RestoreBackup -BackupPath $script:Backup -Confirm:$false
         @($r.Errors).Count | Should -Be 0
         @($r.ChangesApplied).Count | Should -Be 1
-        Should -Invoke Set-ItemProperty -Times 1 -Exactly -ParameterFilter { $Path -eq 'HKLM:\OwnedFixture' -and $Name -eq 'FixtureValue' -and $Value -eq 10 -and $ErrorAction -eq 'Stop' -and -not $Type }
+        Should -Invoke Set-ItemProperty -Times 1 -Exactly -ParameterFilter { $PesterBoundParameters.Path -eq 'HKLM:\OwnedFixture' -and $PesterBoundParameters.Name -eq 'FixtureValue' -and $PesterBoundParameters.Value -eq 10 -and $PesterBoundParameters.ErrorAction -eq 'Stop' -and -not $PesterBoundParameters.ContainsKey('Type') }
         Should -Invoke Remove-ItemProperty -Times 0 -Exactly
     }
     It 'reports restore WhatIf as pending and preserves actual backup bytes' {

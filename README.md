@@ -39,6 +39,12 @@ Use `Config/media-toolchain-requirements.txt` in an isolated qualification venv.
 VIGIL application repositories retain their own dependency lockfiles. For
 development module publication, `Tools/Install-PcaiDevModules.ps1` supports
 scoped selection, dry-run planning, staged validation, and recoverable backups.
+Deployment roots reject ordinary directory components ending in a dot or space
+before path normalization can alias an existing installation. Internal spaces
+and explicit `.` / `..` navigation remain supported. The fake-only
+[deployment controls](Tests/Boot/DevModuleDeployment.Tests.ps1) exercise refusal
+before file/environment changes and preserve the existing rollback checks; their
+[review record](Tests/Boot/module-install-path-review.json) binds the source and tests.
 
 - **Hardware Diagnostics** -- Device errors, SMART disk health, USB controllers, network adapters
 - **Boot And Sync Reliability** -- VHD startup, Task Scheduler, Filter Manager, Process Lasso, and cloud-sync health tooling

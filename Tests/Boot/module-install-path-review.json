@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "rejects aliased RepoRoot before any publication IO (space)",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "22802582c6a1afaf1f527ec76b3d5c77abc2fdea47cc47a817392c828c638e9d",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "cd77d8e6c058e97a46642aac3195dd659ea605224bafc85743510ae449dfa018"
+      },
+      "protects": "The requested source, destination or backup identity before Windows path normalization.",
+      "detects": "An ordinary component ending in a space accepted through the actual installer entrypoint.",
+      "requires": "Pester 5, native Windows filesystem, fake TestDrive modules only; no installed module or environment mutation.",
+      "reviewer": "codex-dtm-fleet-reconcile",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-26",
+      "base_commit": "0df84a8882ff42dcb283c0558b39d17895f6eac9",
+      "disposition": "keep",
+      "scope": "Detecting test-only RED followed by full-entrypoint refusal; original Alpha payload, entry inventory and process module path retained. Independent KEEP covers this exact source/test/base and the 38-test focused suite only; no full-repository 85% coverage or runtime qualification is claimed.",
+      "documentation_ref": "README.md",
+      "raw_evidence": [
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-red.xml",
+          "sha256": "5A8DAFFF96A1A57E4475CC3C9061B40A11C949142B63A457C982DF07F6C37FAF"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.xml",
+          "sha256": "37CE78E83BCA180910EC3B2248FA91A13DF7B9D43604EFBE84F7259EFFAD131F"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.log.json",
+          "sha256": "3F405DB6E17FC4BDC2EC2B9E282EC0285B01F1AA60DEEDF60BDD8DF788C69BB1"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main\\result.json",
+          "sha256": "F2FA32E000874E717B0B6203383EC45F11287C90B67D752689DCE22934806CFA"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main-candidate\\result.json",
+          "sha256": "5C3960C3208B7D98C7191DE9832A7EF2F1CE58476500BA2AD6B69A556E502478"
+        }
+      ]
+    },
+    {
+      "selector": "rejects aliased RepoRoot before any publication IO (dot)",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "22802582c6a1afaf1f527ec76b3d5c77abc2fdea47cc47a817392c828c638e9d",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "cd77d8e6c058e97a46642aac3195dd659ea605224bafc85743510ae449dfa018"
+      },
+      "protects": "The requested source, destination or backup identity before Windows path normalization.",
+      "detects": "An ordinary component ending in a dot accepted through the actual installer entrypoint.",
+      "requires": "Pester 5, native Windows filesystem, fake TestDrive modules only; no installed module or environment mutation.",
+      "reviewer": "codex-dtm-fleet-reconcile",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-26",
+      "base_commit": "0df84a8882ff42dcb283c0558b39d17895f6eac9",
+      "disposition": "keep",
+      "scope": "Detecting test-only RED followed by full-entrypoint refusal; original Alpha payload, entry inventory and process module path retained. Independent KEEP covers this exact source/test/base and the 38-test focused suite only; no full-repository 85% coverage or runtime qualification is claimed.",
+      "documentation_ref": "README.md",
+      "raw_evidence": [
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-red.xml",
+          "sha256": "5A8DAFFF96A1A57E4475CC3C9061B40A11C949142B63A457C982DF07F6C37FAF"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.xml",
+          "sha256": "37CE78E83BCA180910EC3B2248FA91A13DF7B9D43604EFBE84F7259EFFAD131F"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.log.json",
+          "sha256": "3F405DB6E17FC4BDC2EC2B9E282EC0285B01F1AA60DEEDF60BDD8DF788C69BB1"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main\\result.json",
+          "sha256": "F2FA32E000874E717B0B6203383EC45F11287C90B67D752689DCE22934806CFA"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main-candidate\\result.json",
+          "sha256": "5C3960C3208B7D98C7191DE9832A7EF2F1CE58476500BA2AD6B69A556E502478"
+        }
+      ]
+    },
+    {
+      "selector": "rejects aliased InstallRoot before any publication IO (space)",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "22802582c6a1afaf1f527ec76b3d5c77abc2fdea47cc47a817392c828c638e9d",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "cd77d8e6c058e97a46642aac3195dd659ea605224bafc85743510ae449dfa018"
+      },
+      "protects": "The requested source, destination or backup identity before Windows path normalization.",
+      "detects": "An ordinary component ending in a space accepted through the actual installer entrypoint.",
+      "requires": "Pester 5, native Windows filesystem, fake TestDrive modules only; no installed module or environment mutation.",
+      "reviewer": "codex-dtm-fleet-reconcile",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-26",
+      "base_commit": "0df84a8882ff42dcb283c0558b39d17895f6eac9",
+      "disposition": "keep",
+      "scope": "Detecting test-only RED followed by full-entrypoint refusal; original Alpha payload, entry inventory and process module path retained. Independent KEEP covers this exact source/test/base and the 38-test focused suite only; no full-repository 85% coverage or runtime qualification is claimed.",
+      "documentation_ref": "README.md",
+      "raw_evidence": [
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-red.xml",
+          "sha256": "5A8DAFFF96A1A57E4475CC3C9061B40A11C949142B63A457C982DF07F6C37FAF"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.xml",
+          "sha256": "37CE78E83BCA180910EC3B2248FA91A13DF7B9D43604EFBE84F7259EFFAD131F"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.log.json",
+          "sha256": "3F405DB6E17FC4BDC2EC2B9E282EC0285B01F1AA60DEEDF60BDD8DF788C69BB1"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main\\result.json",
+          "sha256": "F2FA32E000874E717B0B6203383EC45F11287C90B67D752689DCE22934806CFA"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main-candidate\\result.json",
+          "sha256": "5C3960C3208B7D98C7191DE9832A7EF2F1CE58476500BA2AD6B69A556E502478"
+        }
+      ]
+    },
+    {
+      "selector": "rejects aliased InstallRoot before any publication IO (dot)",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "22802582c6a1afaf1f527ec76b3d5c77abc2fdea47cc47a817392c828c638e9d",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "cd77d8e6c058e97a46642aac3195dd659ea605224bafc85743510ae449dfa018"
+      },
+      "protects": "The requested source, destination or backup identity before Windows path normalization.",
+      "detects": "An ordinary component ending in a dot accepted through the actual installer entrypoint.",
+      "requires": "Pester 5, native Windows filesystem, fake TestDrive modules only; no installed module or environment mutation.",
+      "reviewer": "codex-dtm-fleet-reconcile",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-26",
+      "base_commit": "0df84a8882ff42dcb283c0558b39d17895f6eac9",
+      "disposition": "keep",
+      "scope": "Detecting test-only RED followed by full-entrypoint refusal; original Alpha payload, entry inventory and process module path retained. Independent KEEP covers this exact source/test/base and the 38-test focused suite only; no full-repository 85% coverage or runtime qualification is claimed.",
+      "documentation_ref": "README.md",
+      "raw_evidence": [
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-red.xml",
+          "sha256": "5A8DAFFF96A1A57E4475CC3C9061B40A11C949142B63A457C982DF07F6C37FAF"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.xml",
+          "sha256": "37CE78E83BCA180910EC3B2248FA91A13DF7B9D43604EFBE84F7259EFFAD131F"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.log.json",
+          "sha256": "3F405DB6E17FC4BDC2EC2B9E282EC0285B01F1AA60DEEDF60BDD8DF788C69BB1"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main\\result.json",
+          "sha256": "F2FA32E000874E717B0B6203383EC45F11287C90B67D752689DCE22934806CFA"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main-candidate\\result.json",
+          "sha256": "5C3960C3208B7D98C7191DE9832A7EF2F1CE58476500BA2AD6B69A556E502478"
+        }
+      ]
+    },
+    {
+      "selector": "rejects aliased BackupRoot before any publication IO (space)",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "22802582c6a1afaf1f527ec76b3d5c77abc2fdea47cc47a817392c828c638e9d",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "cd77d8e6c058e97a46642aac3195dd659ea605224bafc85743510ae449dfa018"
+      },
+      "protects": "The requested source, destination or backup identity before Windows path normalization.",
+      "detects": "An ordinary component ending in a space accepted through the actual installer entrypoint.",
+      "requires": "Pester 5, native Windows filesystem, fake TestDrive modules only; no installed module or environment mutation.",
+      "reviewer": "codex-dtm-fleet-reconcile",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-26",
+      "base_commit": "0df84a8882ff42dcb283c0558b39d17895f6eac9",
+      "disposition": "keep",
+      "scope": "Detecting test-only RED followed by full-entrypoint refusal; original Alpha payload, entry inventory and process module path retained. Independent KEEP covers this exact source/test/base and the 38-test focused suite only; no full-repository 85% coverage or runtime qualification is claimed.",
+      "documentation_ref": "README.md",
+      "raw_evidence": [
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-red.xml",
+          "sha256": "5A8DAFFF96A1A57E4475CC3C9061B40A11C949142B63A457C982DF07F6C37FAF"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.xml",
+          "sha256": "37CE78E83BCA180910EC3B2248FA91A13DF7B9D43604EFBE84F7259EFFAD131F"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.log.json",
+          "sha256": "3F405DB6E17FC4BDC2EC2B9E282EC0285B01F1AA60DEEDF60BDD8DF788C69BB1"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main\\result.json",
+          "sha256": "F2FA32E000874E717B0B6203383EC45F11287C90B67D752689DCE22934806CFA"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main-candidate\\result.json",
+          "sha256": "5C3960C3208B7D98C7191DE9832A7EF2F1CE58476500BA2AD6B69A556E502478"
+        }
+      ]
+    },
+    {
+      "selector": "rejects aliased BackupRoot before any publication IO (dot)",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "22802582c6a1afaf1f527ec76b3d5c77abc2fdea47cc47a817392c828c638e9d",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "cd77d8e6c058e97a46642aac3195dd659ea605224bafc85743510ae449dfa018"
+      },
+      "protects": "The requested source, destination or backup identity before Windows path normalization.",
+      "detects": "An ordinary component ending in a dot accepted through the actual installer entrypoint.",
+      "requires": "Pester 5, native Windows filesystem, fake TestDrive modules only; no installed module or environment mutation.",
+      "reviewer": "codex-dtm-fleet-reconcile",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-26",
+      "base_commit": "0df84a8882ff42dcb283c0558b39d17895f6eac9",
+      "disposition": "keep",
+      "scope": "Detecting test-only RED followed by full-entrypoint refusal; original Alpha payload, entry inventory and process module path retained. Independent KEEP covers this exact source/test/base and the 38-test focused suite only; no full-repository 85% coverage or runtime qualification is claimed.",
+      "documentation_ref": "README.md",
+      "raw_evidence": [
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-red.xml",
+          "sha256": "5A8DAFFF96A1A57E4475CC3C9061B40A11C949142B63A457C982DF07F6C37FAF"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.xml",
+          "sha256": "37CE78E83BCA180910EC3B2248FA91A13DF7B9D43604EFBE84F7259EFFAD131F"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.log.json",
+          "sha256": "3F405DB6E17FC4BDC2EC2B9E282EC0285B01F1AA60DEEDF60BDD8DF788C69BB1"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main\\result.json",
+          "sha256": "F2FA32E000874E717B0B6203383EC45F11287C90B67D752689DCE22934806CFA"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main-candidate\\result.json",
+          "sha256": "5C3960C3208B7D98C7191DE9832A7EF2F1CE58476500BA2AD6B69A556E502478"
+        }
+      ]
+    },
+    {
+      "selector": "rejects aliased CargoToolsSourcePath before any publication IO (space)",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "22802582c6a1afaf1f527ec76b3d5c77abc2fdea47cc47a817392c828c638e9d",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "cd77d8e6c058e97a46642aac3195dd659ea605224bafc85743510ae449dfa018"
+      },
+      "protects": "The requested source, destination or backup identity before Windows path normalization.",
+      "detects": "An ordinary component ending in a space accepted through the actual installer entrypoint.",
+      "requires": "Pester 5, native Windows filesystem, fake TestDrive modules only; no installed module or environment mutation.",
+      "reviewer": "codex-dtm-fleet-reconcile",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-26",
+      "base_commit": "0df84a8882ff42dcb283c0558b39d17895f6eac9",
+      "disposition": "keep",
+      "scope": "Detecting test-only RED followed by full-entrypoint refusal; original Alpha payload, entry inventory and process module path retained. Independent KEEP covers this exact source/test/base and the 38-test focused suite only; no full-repository 85% coverage or runtime qualification is claimed.",
+      "documentation_ref": "README.md",
+      "raw_evidence": [
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-red.xml",
+          "sha256": "5A8DAFFF96A1A57E4475CC3C9061B40A11C949142B63A457C982DF07F6C37FAF"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.xml",
+          "sha256": "37CE78E83BCA180910EC3B2248FA91A13DF7B9D43604EFBE84F7259EFFAD131F"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.log.json",
+          "sha256": "3F405DB6E17FC4BDC2EC2B9E282EC0285B01F1AA60DEEDF60BDD8DF788C69BB1"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main\\result.json",
+          "sha256": "F2FA32E000874E717B0B6203383EC45F11287C90B67D752689DCE22934806CFA"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main-candidate\\result.json",
+          "sha256": "5C3960C3208B7D98C7191DE9832A7EF2F1CE58476500BA2AD6B69A556E502478"
+        }
+      ]
+    },
+    {
+      "selector": "rejects aliased CargoToolsSourcePath before any publication IO (dot)",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "22802582c6a1afaf1f527ec76b3d5c77abc2fdea47cc47a817392c828c638e9d",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "cd77d8e6c058e97a46642aac3195dd659ea605224bafc85743510ae449dfa018"
+      },
+      "protects": "The requested source, destination or backup identity before Windows path normalization.",
+      "detects": "An ordinary component ending in a dot accepted through the actual installer entrypoint.",
+      "requires": "Pester 5, native Windows filesystem, fake TestDrive modules only; no installed module or environment mutation.",
+      "reviewer": "codex-dtm-fleet-reconcile",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-26",
+      "base_commit": "0df84a8882ff42dcb283c0558b39d17895f6eac9",
+      "disposition": "keep",
+      "scope": "Detecting test-only RED followed by full-entrypoint refusal; original Alpha payload, entry inventory and process module path retained. Independent KEEP covers this exact source/test/base and the 38-test focused suite only; no full-repository 85% coverage or runtime qualification is claimed.",
+      "documentation_ref": "README.md",
+      "raw_evidence": [
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-red.xml",
+          "sha256": "5A8DAFFF96A1A57E4475CC3C9061B40A11C949142B63A457C982DF07F6C37FAF"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.xml",
+          "sha256": "37CE78E83BCA180910EC3B2248FA91A13DF7B9D43604EFBE84F7259EFFAD131F"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.log.json",
+          "sha256": "3F405DB6E17FC4BDC2EC2B9E282EC0285B01F1AA60DEEDF60BDD8DF788C69BB1"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main\\result.json",
+          "sha256": "F2FA32E000874E717B0B6203383EC45F11287C90B67D752689DCE22934806CFA"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main-candidate\\result.json",
+          "sha256": "5C3960C3208B7D98C7191DE9832A7EF2F1CE58476500BA2AD6B69A556E502478"
+        }
+      ]
+    },
+    {
+      "selector": "publishes ordinary spaced names through dot navigation without changing source or module paths",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "22802582c6a1afaf1f527ec76b3d5c77abc2fdea47cc47a817392c828c638e9d",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "cd77d8e6c058e97a46642aac3195dd659ea605224bafc85743510ae449dfa018"
+      },
+      "protects": "Ordinary internal spaces/dots and explicit . / .. navigation remain usable.",
+      "detects": "Overbroad refusal of valid paths or loss of backup/source/environment behavior.",
+      "requires": "Pester 5, fake TestDrive source and installation only.",
+      "reviewer": "codex-dtm-fleet-reconcile",
+      "reviewer_type": "independent agent",
+      "reviewed_utc": "2026-10-26",
+      "base_commit": "0df84a8882ff42dcb283c0558b39d17895f6eac9",
+      "disposition": "keep",
+      "scope": "Actual publication retains old bytes in backup, new source bytes unchanged, and process module path unchanged. Independent KEEP covers this exact source/test/base and the 38-test focused suite only; no full-repository 85% coverage or runtime qualification is claimed.",
+      "documentation_ref": "README.md",
+      "raw_evidence": [
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-red.xml",
+          "sha256": "5A8DAFFF96A1A57E4475CC3C9061B40A11C949142B63A457C982DF07F6C37FAF"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.xml",
+          "sha256": "37CE78E83BCA180910EC3B2248FA91A13DF7B9D43604EFBE84F7259EFFAD131F"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\pester-path-fixed.log.json",
+          "sha256": "3F405DB6E17FC4BDC2EC2B9E282EC0285B01F1AA60DEEDF60BDD8DF788C69BB1"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main\\result.json",
+          "sha256": "F2FA32E000874E717B0B6203383EC45F11287C90B67D752689DCE22934806CFA"
+        },
+        {
+          "local_only_path": "C:\\Users\\david\\.codex\\evidence\\fleet-reconciliation\\usb4-acceleration\\continuation\\path-controls\\main-candidate\\result.json",
+          "sha256": "5C3960C3208B7D98C7191DE9832A7EF2F1CE58476500BA2AD6B69A556E502478"
+        }
+      ]
+    }
+  ]
+}

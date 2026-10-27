@@ -333,6 +333,17 @@ function Resolve-CombinedDeploymentPath {
     param([string]$Path,[switch]$AllowLeafLink)
     if ([string]::IsNullOrWhiteSpace($Path) -or -not [IO.Path]::IsPathFullyQualified($Path)) { throw 'Deployment paths must be absolute filesystem paths.' }
     if ($Path.Substring([IO.Path]::GetPathRoot($Path).Length).Contains(':')) { throw 'Deployment paths must not use alternate data streams.' }
+    # Validate raw Windows components before normalization can erase aliases.
+    # Keep the consolidated resolver and cloud-file custody policy; do not
+    # resurrect the older installer-only resolver from the merged branch.
+    if ($IsWindows) {
+        foreach ($part in $Path.Substring([IO.Path]::GetPathRoot($Path).Length) -split '[\\/]') {
+            if ($part -match '^(?i:\$null|AUX|CON|NUL|PRN|COM[1-9]|LPT[1-9])(?:[. ]|$)') { throw "Unsafe Windows path: $Path" }
+            if ($part -notin @('.', '..') -and $part -match '[. ]$') {
+                throw "Deployment path components must not end with a dot or space: '$Path'."
+            }
+        }
+    }
     $resolved = [IO.Path]::GetFullPath($Path).TrimEnd('\','/')
     Assert-SafePath -Path $resolved -AllowLeafLink:$AllowLeafLink
     return $resolved

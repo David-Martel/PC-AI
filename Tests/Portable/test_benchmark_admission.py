@@ -1,5 +1,7 @@
 """Exercise actual benchmark admission in pwsh; no timing or hardware claims."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 import os
@@ -8,6 +10,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from typing import cast
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNNER = r"""
@@ -57,7 +60,16 @@ $r|ConvertTo-Json -Depth 8|Set-Content (Join-Path $d 'tooling-benchmark-report.j
 
 
 class AdmissionTests(unittest.TestCase):
-    def setUp(self):
+    tmp: tempfile.TemporaryDirectory[str]
+    root: Path
+    gate: Path
+    baseline: Path
+
+    @property
+    def breadcrumb(self) -> Path:
+        return self.root / "runner-invoked.txt"
+
+    def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory(prefix="pcai-admission-")
         self.root = Path(self.tmp.name)
         (self.root / "Tests/Benchmarks").mkdir(parents=True)
@@ -66,24 +78,25 @@ class AdmissionTests(unittest.TestCase):
             ["git", "-C", str(ROOT), "rev-parse", "--absolute-git-dir"], text=True
         ).strip()
         # Read-only metadata pointer, no checkout/source mutation in the real repo.
-        (self.root / ".git").write_text("gitdir: " + gitdir + "\n")
+        _ = (self.root / ".git").write_text("gitdir: " + gitdir + "\n")
         self.gate = self.root / "Tests/Invoke-BenchmarkGate.ps1"
-        shutil.copyfile(ROOT / "Tests/Invoke-BenchmarkGate.ps1", self.gate)
-        (self.root / "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1").write_text(
-            RUNNER
-        )
-        (self.root / "Config/pcai-tooling-benchmarks.json").write_text(
+        _ = shutil.copyfile(ROOT / "Tests/Invoke-BenchmarkGate.ps1", self.gate)
+        _ = (
+            self.root / "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1"
+        ).write_text(RUNNER)
+        _ = (self.root / "Config/pcai-tooling-benchmarks.json").write_text(
             json.dumps({"suites": {"quick": ["one", "two"]}})
         )
         self.baseline = self.root / "baseline.json"
-        self.breadcrumb = self.root / "runner-invoked.txt"
         good = self.run_gate("good", save=True)
         self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.tmp.cleanup()
 
-    def run_gate(self, mode, save=False):
+    def run_gate(
+        self, mode: str, save: bool = False
+    ) -> subprocess.CompletedProcess[str]:
         self.breadcrumb.unlink(missing_ok=True)
         args = [
             "pwsh",
@@ -153,7 +166,10 @@ class AdmissionTests(unittest.TestCase):
     # The real runner bytes, not just case/config labels, define the clocked
     # workload. These controls would all pass the former admission incorrectly.
     def test_saved_baseline_binds_exact_harness(self):
-        saved = json.loads(self.baseline.read_text(encoding="utf-8-sig"))
+        saved = cast(
+            "dict[str, object]",
+            json.loads(self.baseline.read_text(encoding="utf-8-sig")),
+        )
         runner = self.root / "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1"
         self.assertEqual(
             saved["runner_sha256"],
@@ -163,9 +179,12 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_unbound_legacy_baseline_is_rejected(self):
-        saved = json.loads(self.baseline.read_text(encoding="utf-8-sig"))
+        saved = cast(
+            "dict[str, object]",
+            json.loads(self.baseline.read_text(encoding="utf-8-sig")),
+        )
         del saved["runner_sha256"]
-        self.baseline.write_text(json.dumps(saved))
+        _ = self.baseline.write_text(json.dumps(saved))
         result = self.run_gate("good")
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("Baseline benchmark harness differs or is unbound", result.stderr)
@@ -177,7 +196,7 @@ class AdmissionTests(unittest.TestCase):
         runner = self.root / "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1"
         # All reported numbers/host/config/case identities stay identical. The
         # changed harness represents a changed timing boundary or implementation.
-        runner.write_text(RUNNER + "\n# changed measurement implementation\n")
+        _ = runner.write_text(RUNNER + "\n# changed measurement implementation\n")
         result = self.run_gate("good")
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("Baseline benchmark harness differs or is unbound", result.stderr)
@@ -187,7 +206,7 @@ class AdmissionTests(unittest.TestCase):
 
     def test_explicit_rebaseline_admits_new_harness(self):
         runner = self.root / "Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1"
-        runner.write_text(RUNNER + "\n# explicitly reviewed new harness\n")
+        _ = runner.write_text(RUNNER + "\n# explicitly reviewed new harness\n")
         saved = self.run_gate("good", save=True)
         self.assertEqual(saved.returncode, 0, saved.stdout + saved.stderr)
         self.assertTrue(self.breadcrumb.exists(), "Explicit rebaseline did not run")

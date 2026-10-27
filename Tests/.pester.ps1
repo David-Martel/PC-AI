@@ -135,8 +135,18 @@ try {
         $attachments = @(foreach ($test in @($result.Tests)) {
                 if ($null -ne $test -and $null -ne $test.PSObject.Properties['PcaiChildCoverage']) { [pscustomobject]@{ Result = $test.Result; Receipt = $test.PcaiChildCoverage } }
             })
-        [ordered]@{ SchemaVersion = 1; SourceCommit = $sourceCommit; Profile = $Profile; Parent = $snapshot; Attachments = $attachments } |
+        [ordered]@{ SchemaVersion = 1; SourceCommit = $sourceCommit; Profile = $Profile; RunId = $env:GITHUB_RUN_ID; RunAttempt = $env:GITHUB_RUN_ATTEMPT; Parent = $snapshot; Attachments = $attachments } |
             ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $testPlan.SourceBoundCoveragePath -Encoding utf8
+        # Save actual outcomes before enforcing the gate, including failures.
+        # A failed covered run must remain inspectable without another runner.
+        [ordered]@{
+            SchemaVersion=1; SourceCommit=$sourceCommit; Profile=$Profile
+            Total=$result.TotalCount; Passed=$result.PassedCount; Failed=$result.FailedCount
+            Skipped=$result.SkippedCount; NotRun=$result.NotRunCount
+            FailedBlocks=$result.FailedBlocksCount; FailedContainers=$result.FailedContainersCount
+            DurationSeconds=$result.Duration.TotalSeconds; CoverageTarget=85
+            ParentAnalyzed=$snapshot.Analyzed; ParentExecuted=$snapshot.Executed
+        } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $OutputDirectory 'pester-run-summary.json') -Encoding utf8
         Assert-PesterCoverageGate -Result $result -Target 85
     }
     else { Assert-PesterResult -Result $result }

@@ -49,6 +49,68 @@ Describe 'Actual Pester coverage admission' {
         $script:PesterManifest = Join-Path (Get-Module Pester).ModuleBase 'Pester.psd1'
     }
 
+    It 'retains actual failed outcomes before the canonical covered runner rejects them' {
+        $repo = Split-Path -Parent (Split-Path -Parent $script:GatePath)
+        $owned = Join-Path $TestDrive 'canonical-covered-runner'
+        foreach ($directory in @('Tests/Unit', 'Modules', 'Tools')) {
+            [void][IO.Directory]::CreateDirectory((Join-Path $owned $directory))
+        }
+        foreach ($file in @('Tests/.pester.ps1', 'Tests/TestProfiles.psd1', 'Tests/PesterConfiguration.psd1', 'Tools/Assert-PesterCoverageGate.ps1', 'Tools/Merge-PesterChildCoverage.ps1')) {
+            Copy-Item -LiteralPath (Join-Path $repo $file) -Destination (Join-Path $owned $file)
+        }
+        @'
+function Get-CanonicalFixtureValue {
+    param([bool]$Positive)
+    if ($Positive) { return 'positive' }
+    return 'other'
+}
+'@ | Set-Content -LiteralPath (Join-Path $owned 'Modules/Fixture.ps1')
+        @'
+BeforeAll { . "$PSScriptRoot/../../Modules/Fixture.ps1" }
+Describe 'Actual canonical covered failure' {
+    It 'executes both branches and retains its genuine failure' {
+        $actual = Get-CanonicalFixtureValue $true
+        Get-CanonicalFixtureValue $false | Should -Be 'other'
+        $actual | Should -Be 'intentionally wrong expectation'
+    }
+}
+'@ | Set-Content -LiteralPath (Join-Path $owned 'Tests/Unit/Fixture.Tests.ps1')
+        $output = Join-Path $owned 'results'
+        $start = [Diagnostics.ProcessStartInfo]::new()
+        $start.FileName = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
+        $start.UseShellExecute = $false
+        $start.RedirectStandardOutput = $true
+        $start.RedirectStandardError = $true
+        foreach ($argument in @('-NoLogo', '-NoProfile', '-File', (Join-Path $owned 'Tests/.pester.ps1'), '-Path', 'Tests/Unit/Fixture.Tests.ps1', '-Coverage', '-CI', '-OutputDirectory', $output)) {
+            $start.ArgumentList.Add($argument)
+        }
+        $process = [Diagnostics.Process]::new()
+        $process.StartInfo = $start
+        try {
+            [void]$process.Start()
+            $stdout = $process.StandardOutput.ReadToEndAsync()
+            $stderr = $process.StandardError.ReadToEndAsync()
+            if (-not $process.WaitForExit(60000)) {
+                $process.Kill($true)
+                $process.WaitForExit()
+                throw 'Owned canonical coverage child exceeded its 60-second bound.'
+            }
+            $process.ExitCode | Should -Be 1 -Because ($stdout.GetAwaiter().GetResult() + $stderr.GetAwaiter().GetResult())
+            $summary = Get-Content -LiteralPath (Join-Path $output 'pester-run-summary.json') -Raw | ConvertFrom-Json
+            $summary.Total | Should -Be 1
+            $summary.Passed | Should -Be 0
+            $summary.Failed | Should -Be 1
+            $summary.FailedBlocks | Should -Be 0
+            $summary.FailedContainers | Should -Be 0
+            $summary.CoverageTarget | Should -Be 85
+            $summary.ParentAnalyzed | Should -BeGreaterThan 0
+            $summary.ParentExecuted | Should -Be $summary.ParentAnalyzed
+            $packet = Get-Content -LiteralPath (Join-Path $output 'source-bound-coverage.json') -Raw | ConvertFrom-Json -Depth 20
+            $packet.Parent.Executed | Should -Be $summary.ParentExecuted
+            $packet.Parent.Analyzed | Should -Be $summary.ParentAnalyzed
+        } finally { $process.Dispose() }
+    }
+
     It 'returns a native failure below target and success for fully executed branches' {
         $fixture = Join-Path $TestDrive 'Fixture.ps1'
         $test = Join-Path $TestDrive 'Fixture.Tests.ps1'

@@ -23,10 +23,15 @@ pose-worker, Windows/Linux and signal-provenance acceptance boundaries.
 - [x] Review PR182's canonical LLM-helper test admission repair. Its owner
   concurrently published the approved-name fix; preserve the tested alternate
   proposal and retire its owned temporary worktree.
-- [ ] Resolve PR182's nine integration conflicts and qualify its final head.
-  At `fac1d1a`, tests pass but the explicit coverage gate fails at 66.9936%
-  against 85%. Audit coverage selection/enforcement separately: successful
-  fleet CI reports 51.83%, unchanged by PR183; neither result meets the target.
+- [x] Review historical PR182 disposition: GitHub confirms CLOSED without a
+  merge. Preserved integration work continues in draft PR233; conflict repair
+  against the closed PR is no longer the active integration path.
+- [ ] Qualify PR233's current frozen head with the consolidated WindowsCI
+  profile and unchanged 85% source-bound coverage gate. Prior head `50d1ee7`
+  has 4,011 pass / 1 fail / 40 skip and 65.950882% coverage; the fixture setup
+  failure occurs before the search producer. Target actual missed commands,
+  preserve real failures, and retain role-specific deployment admission.
+  See [testing architecture and owners](docs/test-architecture.md).
 - [ ] Integrate Candle dependency upgrades together with media/CUDA coverage,
   and validate mistral.rs upgrades with that backend enabled. CPU-only green CI
   does not establish optional backend compatibility.

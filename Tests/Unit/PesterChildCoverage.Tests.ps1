@@ -43,6 +43,76 @@ Describe 'Source-bound child coverage command union' -Tag 'Unit','Coverage','Por
         $merged.CommandsExecutedCount|Should -Be 0
         $merged.CoveragePercent|Should -Be 0
     }
+    Context 'Saved command-gap reporting' -Tag 'CoverageReport' {
+        BeforeAll {
+            $script:Reporter=Join-Path $script:RepositoryRoot 'Tests/coverage-report.ps1'
+            function Write-ReportPacket([bool]$First,[bool]$Second,[bool]$ChildFirst,[bool]$ChildSecond,[string]$Result='Passed') {
+                $parent=New-ParentResult $First $Second (New-ChildSnapshot $ChildFirst $ChildSecond)
+                $packet=[ordered]@{
+                    SchemaVersion=1; SourceCommit=('a'*40)
+                    Parent=(New-PesterCoverageSnapshot -Coverage $parent.CodeCoverage -SourceBindings @($script:Binding))
+                    Attachments=@([pscustomobject]@{Result=$Result;Receipt=$parent.Tests[0].PcaiChildCoverage})
+                }
+                $path=Join-Path $TestDrive ('packet-'+[guid]::NewGuid().ToString('N')+'.json')
+                $packet|ConvertTo-Json -Depth 20|Set-Content -LiteralPath $path
+                $path
+            }
+        }
+        It 'ranks the exact remaining gap after admitting real attachment identities' {
+            $packet=Write-ReportPacket $false $false $false $true
+            $before=(Get-FileHash -LiteralPath $packet).Hash
+            $output=Join-Path $TestDrive 'measured-report.md'
+            $report=& $script:Reporter -CoverageSnapshotPath $packet -OutputPath $output
+            $report.Analyzed|Should -Be 2
+            $report.Executed|Should -Be 1
+            $report.CoveragePercent|Should -Be 50
+            $report.AdditionalUniqueHitsFor85|Should -Be 1
+            $report.Sources.Count|Should -Be 1
+            $report.Sources[0].Missed|Should -Be 1
+            $report.Scope|Should -BeLike '*test acceptance remains separate*'
+            (Get-FileHash -LiteralPath $packet).Hash|Should -BeExactly $before
+            (Get-Content -LiteralPath $output -Raw)|Should -Match 'Original failed/skipped test outcomes'
+        }
+        It 'does not inflate repeated child hits in a saved report' {
+            $packet=Write-ReportPacket $true $false $true $false
+            $data=Get-Content -LiteralPath $packet -Raw|ConvertFrom-Json -Depth 20
+            $data.Attachments+= $data.Attachments[0]
+            $data|ConvertTo-Json -Depth 20|Set-Content -LiteralPath $packet
+            $report=& $script:Reporter -CoverageSnapshotPath $packet -OutputPath (Join-Path $TestDrive 'overlap-report.md')
+            $report.Executed|Should -Be 1
+            $report.Analyzed|Should -Be 2
+        }
+        It 'rejects a failed attachment without writing a report' {
+            $packet=Write-ReportPacket $false $false $true $true 'Failed'
+            $output=Join-Path $TestDrive 'failed-report.md'
+            {& $script:Reporter -CoverageSnapshotPath $packet -OutputPath $output}|Should -Throw '*Unpassed parent*'
+            Test-Path -LiteralPath $output|Should -BeFalse
+        }
+        It 'rejects stale measured source bytes without writing a report' {
+            $packet=Write-ReportPacket $false $false $true $true
+            $bytes=[IO.File]::ReadAllBytes($script:Source)
+            $output=Join-Path $TestDrive 'stale-report.md'
+            try {
+                [IO.File]::AppendAllText($script:Source,'# changed after measurement')
+                {& $script:Reporter -CoverageSnapshotPath $packet -OutputPath $output}|Should -Throw '*source identity mismatch*'
+                Test-Path -LiteralPath $output|Should -BeFalse
+            } finally { [IO.File]::WriteAllBytes($script:Source,$bytes) }
+        }
+        It 'labels filename counts as inventory without measured coverage' {
+            $output=Join-Path $TestDrive 'inventory.md'
+            $report=& $script:Reporter -OutputPath $output
+            $report.Scope|Should -BeExactly 'Inventory only; command coverage NOT_MEASURED'
+            (Get-Content -LiteralPath $output -Raw)|Should -Match 'command coverage not measured'
+            $report.PSObject.Properties.Name|Should -Not -Contain 'CoveragePercent'
+        }
+        It 'rejects reserved report output <Leaf> before writing' -ForEach @(
+            @{Leaf='$null'}, @{Leaf='NUL.md'}
+        ) {
+            $output=Join-Path $TestDrive $Leaf
+            {& $script:Reporter -OutputPath $output}|Should -Throw '*Reserved output filename*'
+            Test-Path -LiteralPath $output|Should -BeFalse
+        }
+    }
     It 'rejects a child source SHA different from its exact parent preimage' {
         $result=New-ParentResult $false $false (New-ChildSnapshot $false $true)
         $result.Tests[0].PcaiChildCoverage.ParentSources=@([pscustomobject]@{Path=$script:Source;SHA=('0'*64)})

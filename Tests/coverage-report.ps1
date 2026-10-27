@@ -1,129 +1,132 @@
+#Requires -Version 7.0
 <#
 .SYNOPSIS
-    Generates test coverage report for PC_AI project.
-
-.PARAMETER OutputPath
-    Path for the markdown report. Default: Reports/COVERAGE_REPORT.md
-
+Reports source-bound missed commands, or an explicitly unmeasured test inventory.
+.PARAMETER CoverageSnapshotPath
+Source-bound-coverage.json from a maintained run. Source bytes and actual child
+receipts are validated by the same merger as the coverage gate. This report
+never admits a full test run or changes its result.
 .PARAMETER RunTests
-    Actually run the tests (slower). Default: just count test files.
-
-.EXAMPLE
-    .\Tests\coverage-report.ps1
-    .\Tests\coverage-report.ps1 -RunTests
+Compatibility option: execute the canonical Unit/Integration runner and return
+its actual validated result. A full Windows gate is a separate explicit profile.
 #>
+[CmdletBinding()]
 param(
-    [string]$OutputPath = (Join-Path $PSScriptRoot '..\Reports\COVERAGE_REPORT.md'),
+    [string]$OutputPath = (Join-Path $PSScriptRoot '../Reports/COVERAGE_REPORT.md'),
+    [string]$CoverageSnapshotPath,
     [switch]$RunTests
 )
-
 $ErrorActionPreference = 'Stop'
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
-
-# Count test files
-$testFiles = Get-ChildItem -Path (Join-Path $projectRoot 'Tests') -Filter '*.Tests.ps1' -Recurse
-$unitTests = $testFiles | Where-Object { $_.FullName -match '\\Unit\\' }
-$integrationTests = $testFiles | Where-Object { $_.FullName -match '\\Integration\\' }
-
-# Count modules and functions
-$modules = Get-ChildItem -Path (Join-Path $projectRoot 'Modules') -Filter '*.psd1' -Recurse |
-    Where-Object { $_.FullName -notmatch '\\bin\\' -and $_.Directory.Name -match '^PC-AI\.' }
-$publicFunctions = Get-ChildItem -Path (Join-Path $projectRoot 'Modules') -Filter '*.ps1' -Recurse |
-    Where-Object { $_.FullName -match '\\Public\\' }
-
-# Count Rust test files
-$rustTests = Get-ChildItem -Path $projectRoot -Filter '*.rs' -Recurse |
-    Where-Object { $_.FullName -match '\\tests\\' -or $_.Name -match '_test\.rs$' }
-
-# Initialize results
-$testResults = $null
+$projectRoot = Split-Path -Parent $PSScriptRoot
 if ($RunTests) {
-    Write-Host "Running Pester tests..." -ForegroundColor Cyan
-    $pesterConfig = New-PesterConfiguration
-    $pesterConfig.Run.Path = Join-Path $projectRoot 'Tests'
-    $pesterConfig.Run.PassThru = $true
-    $pesterConfig.Output.Verbosity = 'Minimal'
-    $testResults = Invoke-Pester -Configuration $pesterConfig
+    if ($CoverageSnapshotPath) { throw 'Choose saved coverage or test execution, not both.' }
+    & (Join-Path $PSScriptRoot '.pester.ps1') -Type All -PassThru
+    return
+}
+$leaf = [IO.Path]::GetFileName($OutputPath).TrimEnd('.', ' ')
+if ($leaf -match '^(?:\$null|AUX|CON|NUL|PRN|COM[1-9]|LPT[1-9])(?:\..*)?$') {
+    throw "Reserved output filename: $leaf"
 }
 
-# Calculate module coverage
-$moduleCoverage = $modules | ForEach-Object {
-    $moduleName = $_.BaseName
-    $moduleTests = $testFiles | Where-Object { $_.Name -match $moduleName }
-    [PSCustomObject]@{
-        Module = $moduleName
-        TestFiles = $moduleTests.Count
+if ($CoverageSnapshotPath) {
+    . (Join-Path $projectRoot 'Tools/Merge-PesterChildCoverage.ps1')
+    $packet = Get-Content -LiteralPath $CoverageSnapshotPath -Raw | ConvertFrom-Json -Depth 40
+    if ($packet.SchemaVersion -ne 1 -or $packet.SourceCommit -cnotmatch '^[a-f0-9]{40}$') {
+        throw 'Unsupported source-bound coverage packet or missing source commit.'
     }
-} | Sort-Object Module
-
-# Generate report
-$report = @"
-# PC_AI Test Coverage Report
-
-Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm')
-
-## Summary
-
-| Metric | Count |
-|--------|-------|
-| PowerShell Modules | $($modules.Count) |
-| Public Functions | $($publicFunctions.Count) |
-| Unit Test Files | $($unitTests.Count) |
-| Integration Test Files | $($integrationTests.Count) |
-| Rust Test Files | $($rustTests.Count) |
-| Total Test Files | $($testFiles.Count + $rustTests.Count) |
-
-## PowerShell Test Coverage by Module
-
-| Module | Test Files |
-|--------|------------|
-$($moduleCoverage | ForEach-Object { "| $($_.Module) | $($_.TestFiles) |" } | Out-String)
-
-## Rust Test Coverage
-
-| Crate | Test Files |
-|-------|------------|
-| rust-functiongemma-runtime | $(@($rustTests | Where-Object { $_.FullName -match 'rust-functiongemma-runtime' }).Count) |
-| rust-functiongemma-train | $(@($rustTests | Where-Object { $_.FullName -match 'rust-functiongemma-train' }).Count) |
-| pcai_core | $(@($rustTests | Where-Object { $_.FullName -match 'pcai_core' }).Count) |
-
-$(if ($testResults) {
-@"
-
-## Test Execution Results
-
-| Metric | Value |
-|--------|-------|
-| Total Tests | $($testResults.TotalCount) |
-| Passed | $($testResults.PassedCount) |
-| Failed | $($testResults.FailedCount) |
-| Skipped | $($testResults.SkippedCount) |
-| Pass Rate | $([math]::Round($testResults.PassedCount / [Math]::Max(1, $testResults.TotalCount) * 100, 1))% |
-"@
-})
-
-## Recommendations
-
-1. Target 85% test coverage for all modules
-2. Add integration tests for cross-module functionality
-3. Run tests before each commit
-"@
-
-# Ensure Reports directory exists
-$reportsDir = Split-Path $OutputPath -Parent
-if (-not (Test-Path $reportsDir)) {
-    New-Item -ItemType Directory -Path $reportsDir -Force | Out-Null
+    $parent = Get-PesterChildCoverageMap -Snapshot $packet.Parent
+    $coverage = [pscustomobject]@{
+        CommandsAnalyzedCount = $packet.Parent.Analyzed
+        CommandsExecutedCount = $packet.Parent.Executed
+        CoveragePercent = 100.0 * $packet.Parent.Executed / $packet.Parent.Analyzed
+        CommandsExecuted = @($packet.Parent.Commands | Where-Object Executed)
+        CommandsMissed = @($packet.Parent.Commands | Where-Object { -not $_.Executed })
+    }
+    # Reuse admission and exact command identity checks; never turn an unpassed
+    # child attachment into Passed just to calculate a larger numerator.
+    $tests = @(foreach ($attachment in @($packet.Attachments)) {
+        [pscustomobject]@{ Result=$attachment.Result; PcaiChildCoverage=$attachment.Receipt }
+    })
+    $merged = Merge-PesterChildCoverage -Result ([pscustomobject]@{ CodeCoverage=$coverage; Tests=$tests })
+    $hits = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($entry in $parent.GetEnumerator()) {
+        if ($entry.Value.Executed) { [void]$hits.Add($entry.Key) }
+    }
+    foreach ($attachment in @($packet.Attachments)) {
+        $child = Get-PesterChildCoverageMap -Snapshot $attachment.Receipt.Child
+        foreach ($entry in $child.GetEnumerator()) {
+            if ($entry.Value.Executed) { [void]$hits.Add($entry.Key) }
+        }
+    }
+    if ($hits.Count -ne $merged.CommandsExecutedCount) { throw 'Coverage report union does not reconcile.' }
+    # The admitted map already has exact command keys. Reuse them rather than
+    # serializing every command identity again merely to group missed counts.
+    $bySource = [Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
+    foreach ($entry in $parent.GetEnumerator()) {
+        $file = $entry.Value.File
+        if (-not $bySource.ContainsKey($file)) {
+            $bySource.Add($file, [pscustomobject]@{
+                Source=[IO.Path]::GetRelativePath($projectRoot,$file).Replace('\','/')
+                Analyzed=0; Executed=0; Missed=0
+            })
+        }
+        $row = $bySource[$file]
+        $row.Analyzed++
+        if ($hits.Contains($entry.Key)) { $row.Executed++ } else { $row.Missed++ }
+    }
+    $rows = @($bySource.Values)
+    $rows = @($rows | Sort-Object @{Expression='Missed';Descending=$true}, Source)
+    $summary = [pscustomobject]@{
+        Scope='Source-bound command inventory; test acceptance remains separate'
+        SourceCommit=$packet.SourceCommit
+        SnapshotSHA256=(Get-FileHash -LiteralPath $CoverageSnapshotPath -Algorithm SHA256).Hash
+        Analyzed=$merged.CommandsAnalyzedCount
+        Executed=$merged.CommandsExecutedCount
+        CoveragePercent=$merged.CoveragePercent
+        AdditionalUniqueHitsFor85=[Math]::Max(0, [Math]::Ceiling(0.85*$merged.CommandsAnalyzedCount)-$merged.CommandsExecutedCount)
+        Sources=$rows
+        ReportPath=$OutputPath
+    }
+    $lines = @(
+        '# Source-bound command coverage gaps'
+        ''
+        ('Source commit: `' + $packet.SourceCommit + '`. Snapshot SHA256: `' + $summary.SnapshotSHA256 + '`.')
+        ''
+        ('Measured commands: {0}/{1} ({2:F4}%). Additional unique hits needed for 85%: {3}.' -f $summary.Executed,$summary.Analyzed,$summary.CoveragePercent,$summary.AdditionalUniqueHitsFor85)
+        ''
+        'Diagnostic only. Original failed/skipped test outcomes and full-run gates remain unchanged.'
+        'Rank actual missed commands, then run the smallest relevant test cohort. File counts are not coverage.'
+        ''
+        '| Source | Executed | Analyzed | Missed |'
+        '|---|---:|---:|---:|'
+    ) + @($rows | ForEach-Object { '| {0} | {1} | {2} | {3} |' -f $_.Source,$_.Executed,$_.Analyzed,$_.Missed })
+} else {
+    # Inventory is useful for navigation, but test filenames cannot establish
+    # behavioral or command coverage. Avoid recursively scanning caches/worktrees.
+    $files = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.Tests.ps1' -Recurse -File)
+    $modules = @(Get-ChildItem -LiteralPath (Join-Path $projectRoot 'Modules') -Filter '*.psd1' -Recurse -File)
+    $public = @(Get-ChildItem -LiteralPath (Join-Path $projectRoot 'Modules') -Filter '*.ps1' -Recurse -File |
+        Where-Object { $_.Directory.Name -eq 'Public' })
+    $summary = [pscustomobject]@{
+        Scope='Inventory only; command coverage NOT_MEASURED'
+        Modules=$modules.Count
+        PublicFunctions=$public.Count
+        UnitTestFiles=@($files | Where-Object { $_.Directory.Name -eq 'Unit' }).Count
+        IntegrationTestFiles=@($files | Where-Object { $_.Directory.Name -eq 'Integration' }).Count
+        TotalTestFiles=$files.Count
+        ReportPath=$OutputPath
+    }
+    $lines = @(
+        '# Test inventory (command coverage not measured)'
+        ''
+        ('Modules: {0}; public scripts: {1}; test files: {2}.' -f $summary.Modules,$summary.PublicFunctions,$summary.TotalTestFiles)
+        ''
+        'Provide -CoverageSnapshotPath with a maintained source-bound-coverage.json for actual command gaps.'
+        'Use .pester.ps1 -Plan to inspect a named cohort, or -Path to select exact tests.'
+        'The unchanged repository coverage target is 85%; inventory counts grant no coverage credit.'
+    )
 }
-
-Set-Content -Path $OutputPath -Value $report
-Write-Host "Coverage report saved to: $OutputPath" -ForegroundColor Green
-
-# Return summary object
-[PSCustomObject]@{
-    Modules = $modules.Count
-    PublicFunctions = $publicFunctions.Count
-    UnitTestFiles = $unitTests.Count
-    IntegrationTestFiles = $integrationTests.Count
-    RustTestFiles = $rustTests.Count
-    ReportPath = $OutputPath
-}
+$parentDirectory = Split-Path -Parent ([IO.Path]::GetFullPath($OutputPath))
+[void][IO.Directory]::CreateDirectory($parentDirectory)
+$lines | Set-Content -LiteralPath $OutputPath -Encoding utf8
+$summary

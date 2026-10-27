@@ -2,6 +2,14 @@
 
 Comprehensive Pester 5.x testing framework for PC_AI diagnostics and optimization system.
 
+## Canonical runner and measured coverage
+
+Use [the testing architecture guide](../docs/test-architecture.md) for the single
+execution engine, preserved cohort meanings, targeted `-Path`/`-FullName`, pure
+`-Plan`, source-bound missed-command reports and benchmark baseline compatibility.
+`TestProfiles.psd1` owns the fixed WindowsCI cohort; its 85% all-Modules gate is
+unchanged. Filename counts are inventory, not coverage. Older measurements below
+retain their source/date boundaries and do not qualify a newer checkout.
 ## Overview
 
 This testing framework provides unit and integration tests with 85% coverage target for all PC_AI modules.

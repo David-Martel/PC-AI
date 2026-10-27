@@ -315,6 +315,16 @@ Do not normalize admission hashes or relax registers to accept transformed bytes
 
 ## Testing expectations
 
+Use [the testing architecture guide](docs/test-architecture.md) before adding a
+runner. `Tests/.pester.ps1` is the canonical Pester engine; `-Plan` inspects an
+explicit cohort without Pester discovery or execution, and `-Path`/`-FullName`
+target exact diagnostics. `Tests/TestProfiles.psd1` owns the unchanged WindowsCI
+cohort and 85% all-Modules target. Compatibility entrypoints preserve their
+different historical All meanings. Use `Tests/coverage-report.ps1` with an actual
+source-bound snapshot to rank missed commands; filename counts are inventory.
+Benchmark baselines must bind the exact measurement harness; review and
+explicitly regenerate incompatible baselines instead of comparing changed clocks.
+
 At minimum, choose the narrowest relevant validation path:
 
 - Pester for PowerShell module behavior

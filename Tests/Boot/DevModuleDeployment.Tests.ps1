@@ -47,6 +47,37 @@ Describe 'Scoped module publication with recovery' {
         (Get-Content -LiteralPath $result.Receipt -Raw | ConvertFrom-Json).State | Should -BeExactly 'Installed'
     }
 
+    It 'rejects an explicit alternate CargoTools manifest before any publication' {
+        $source = New-TestDevModule (Join-Path $caseRoot 'external') CargoTools
+        $old = New-TestDevModule $install CargoTools 'original'
+        $alternate = Join-Path $source 'ReviewedCargo.psd1'
+        [IO.File]::WriteAllText($alternate, "@{ RootModule='CargoTools.psm1'; ModuleVersion='2.0.0' }")
+        $originalHash = (Get-FileHash -LiteralPath (Join-Path $source 'CargoTools.psd1')).Hash
+        $alternateHash = (Get-FileHash -LiteralPath $alternate).Hash
+        { & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames CargoTools -CargoToolsSourcePath $alternate -UpdatePSModulePath:$false -DryRun } |
+            Should -Throw '*manifest must be named CargoTools.psd1*'
+        [IO.File]::ReadAllText((Join-Path $old 'payload.txt')) | Should -BeExactly 'original'
+        (Get-FileHash -LiteralPath (Join-Path $source 'CargoTools.psd1')).Hash | Should -BeExactly $originalHash
+        (Get-FileHash -LiteralPath $alternate).Hash | Should -BeExactly $alternateHash
+        Test-Path -LiteralPath (Join-Path $install '.pcai-module-install') | Should -BeFalse
+    }
+
+    It 'publishes the exact canonical CargoTools manifest version for <Selection>' -ForEach @(
+        @{Selection='File'}, @{Selection='Directory'}
+    ) {
+        $source = New-TestDevModule (Join-Path $caseRoot 'external') CargoTools
+        $manifest = Join-Path $source 'CargoTools.psd1'
+        [IO.File]::WriteAllText($manifest, "@{ RootModule='CargoTools.psm1'; ModuleVersion='2.0.0'; FileList=@('CargoTools.psm1','payload.txt') }")
+        $hash = (Get-FileHash -LiteralPath $manifest).Hash
+        $selected = if ($Selection -eq 'File') { $manifest } else { $source }
+        $result = & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames CargoTools -CargoToolsSourcePath $selected -UpdatePSModulePath:$false -Mode Copy
+        $result.Status | Should -BeExactly 'Installed'
+        $published = Join-Path $result.InstalledPath 'CargoTools.psd1'
+        (Get-FileHash -LiteralPath $published).Hash | Should -BeExactly $hash
+        (Import-PowerShellDataFile -LiteralPath $published).ModuleVersion | Should -BeExactly '2.0.0'
+        (Get-FileHash -LiteralPath $manifest).Hash | Should -BeExactly $hash
+    }
+
     It 'deep merges installed CargoTools host overrides with new defaults and preserves other Config files' {
         $source = New-TestDevModule (Join-Path $caseRoot 'external') CargoTools
         $old = New-TestDevModule $install CargoTools 'old'

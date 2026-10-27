@@ -13,6 +13,9 @@ other placeholder families and unknown reparse tags remain rejected.
 Plans without filesystem, process-environment or registry writes.
 .PARAMETER Help
 Displays usage. -h and --help are accepted.
+.PARAMETER CargoToolsSourcePath
+Explicit CargoTools directory or canonical CargoTools.psd1 file. Other manifest
+filenames are rejected before staging to preserve the selected module identity.
 .PARAMETER IncludeCargoTools
 Uses PcaiModuleBootstrap resolver precedence, including environment overrides.
 Root .git metadata is excluded; nested Git stores and linked payloads are rejected.
@@ -396,6 +399,7 @@ if($IncludeCargoTools -or $CargoToolsSourcePath -or $wanted.Contains('CargoTools
         if([IO.Directory]::Exists($cargoSource)){Join-Path $cargoSource 'CargoTools.psd1'}else{$cargoSource}
     }else{Resolve-PcaiModuleManifestPath -ModuleName CargoTools -RepoRoot $RepoRoot -InstallRoot $InstallRoot}
     if(-not $manifest -or -not (Test-Path -LiteralPath $manifest -PathType Leaf)){throw 'CargoTools source manifest was not found.'}
+    if([IO.Path]::GetFileName($manifest) -ine 'CargoTools.psd1'){throw 'Explicit CargoTools manifest must be named CargoTools.psd1; refusing to select a different sibling manifest.'}
     $sources.Add([pscustomobject]@{Name='CargoTools';SourcePath=(Split-Path -Parent $manifest);SourceType='external-module';PayloadFiles=$null})
 }
 if($wanted.Count){$sources=[Collections.Generic.List[object]]::new([object[]]@($sources | Where-Object {$wanted.Contains($_.Name)}))}

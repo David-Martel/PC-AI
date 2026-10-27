@@ -116,8 +116,56 @@ function Set-PrivateRepairAcl {
     }
     Set-Acl -LiteralPath $Path -AclObject $acl
 }
+function Get-ModulePathSkipAnchorUpdate {
+    <# .SYNOPSIS Guard the unique executable optimizer call, preserving documentation. #>
+    param([string]$Text, [string]$New, [string]$Name)
+    $tokens = $null; $errors = $null
+    $ast = [Management.Automation.Language.Parser]::ParseInput($Text, [ref]$tokens, [ref]$errors)
+    if ($errors.Count) { throw "Unknown or duplicate profile anchor: $Name" }
+    $commands = @($ast.FindAll({ param($node)
+        $node -is [Management.Automation.Language.CommandAst] -and
+        $node.GetCommandName() -ieq 'Optimize-PSModulePath'
+    }, $true))
+    if ($commands.Count -ne 1) { throw "Unknown or duplicate profile anchor: $Name" }
+    $command = $commands[0]
+    $argument = if ($command.CommandElements.Count -eq 2) { $command.CommandElements[1] } else { $null }
+    if ($command.Redirections.Count -ne 0 -or
+        $command.InvocationOperator -ne [Management.Automation.Language.TokenKind]::Unknown -or
+        $argument -isnot [Management.Automation.Language.CommandParameterAst] -or
+        $argument.ParameterName -ine 'AllowNetworkPaths' -or
+        $argument.Argument -isnot [Management.Automation.Language.VariableExpressionAst] -or
+        $argument.Argument.VariablePath.UserPath -ine 'script:AllowNetworkModulePath') {
+        throw "Unknown or duplicate profile anchor: $Name"
+    }
+    $pipeline = $command.Parent
+    if ($pipeline -isnot [Management.Automation.Language.PipelineAst] -or $pipeline.PipelineElements.Count -ne 1 -or $pipeline.Background) {
+        throw "Unknown or duplicate profile anchor: $Name"
+    }
+    # An existing guard is accepted only when its complete executable token
+    # sequence matches the maintained guard; a decoy string never contributes.
+    $block = $pipeline.Parent
+    if ($block -is [Management.Automation.Language.StatementBlockAst] -and
+        $block.Parent -is [Management.Automation.Language.IfStatementAst]) {
+        $guard = $block.Parent
+        if ($guard.Parent.Parent -ne $ast) { throw "Unknown or duplicate profile anchor: $Name" }
+        $expectedTokens = $null; $expectedErrors = $null
+        [void][Management.Automation.Language.Parser]::ParseInput($New, [ref]$expectedTokens, [ref]$expectedErrors)
+        $actualTokens = $null; $actualErrors = $null
+        [void][Management.Automation.Language.Parser]::ParseInput($guard.Extent.Text, [ref]$actualTokens, [ref]$actualErrors)
+        $expected = @($expectedTokens | Where-Object { $_.Kind -notin 'NewLine', 'EndOfInput', 'Comment' } | ForEach-Object { $_.Text }) -join "`n"
+        $actual = @($actualTokens | Where-Object { $_.Kind -notin 'NewLine', 'EndOfInput', 'Comment' } | ForEach-Object { $_.Text }) -join "`n"
+        if ($actual -cne $expected) { throw "Unknown or duplicate profile anchor: $Name" }
+        return [pscustomobject]@{ Text = $Text; Changed = $false; Name = $Name }
+    }
+    if ($block.Parent -ne $ast) { throw "Unknown or duplicate profile anchor: $Name" }
+    $following = $Text.Substring($command.Extent.EndOffset)
+    $separator = if ($following.StartsWith("`r`n")) { "`r`n" } else { "`n" }
+    $replacement = $New.Replace("`r`n", "`n").Replace("`n", $separator)
+    return [pscustomobject]@{ Text = $Text.Substring(0, $command.Extent.StartOffset) + $replacement + $following; Changed = $true; Name = $Name }
+}
 function Update-UniqueProfileAnchor {
     param([string]$Text, [string]$Old, [string]$New, [string]$Name)
+    if ($Name -eq 'ModulePathSkip') { return Get-ModulePathSkipAnchorUpdate -Text $Text -New $New -Name $Name }
     # Existing private profiles may contain mixed CRLF/LF from independent edits.
     # Match only the exact known line contents; retain their individual separators.
     $oldPattern = (($Old.Replace("`r`n", "`n").Split("`n") | ForEach-Object { [regex]::Escape($_) }) -join '(?:\r\n|\n)')

@@ -1,3 +1,51 @@
+Describe 'Portable runner native argument boundary' -Tag 'Unit', 'Fast', 'Portable' -Skip:($PSVersionTable.PSVersion.Major -lt 7) {
+    It 'passes the complete Cargo feature list as one native argument' {
+        $source = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'Tests/Invoke-PortableTests.ps1'
+        $tokens = $null; $parseErrors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseFile($source, [ref]$tokens, [ref]$parseErrors)
+        @($parseErrors) | Should -HaveCount 0
+        $commands = @($ast.FindAll({
+                    param($node)
+                    $node -is [Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'cargo' -and
+                    $node.CommandElements.Count -gt 1 -and $node.CommandElements[1].Extent.Text -eq 'test'
+                }, $true))
+        $commands | Should -HaveCount 1
+        $command = $commands[0]
+        # Preserve the actual argument/redirection bytes; replace only Cargo's
+        # executable with a real native pwsh receiver. No Cargo build is needed.
+        $tail = $command.Extent.Text.Substring($command.CommandElements[1].Extent.StartOffset - $command.Extent.StartOffset)
+        $receiver = Join-Path $TestDrive 'native-argv-receiver.ps1'
+        [IO.File]::WriteAllText($receiver, 'ConvertTo-Json -InputObject @($args) -Compress')
+        $driver = Join-Path $TestDrive 'native-argv-driver.ps1'
+        $native = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
+        $driverText = "& '$($native.Replace("'", "''"))' -NoLogo -NoProfile -File '$($receiver.Replace("'", "''"))' $tail" + "`nexit `$LASTEXITCODE`n"
+        [IO.File]::WriteAllText($driver, $driverText)
+        $start = [Diagnostics.ProcessStartInfo]::new()
+        $start.FileName = $native
+        $start.UseShellExecute = $false
+        $start.RedirectStandardOutput = $true
+        $start.RedirectStandardError = $true
+        foreach ($argument in @('-NoLogo', '-NoProfile', '-File', $driver)) { $start.ArgumentList.Add($argument) }
+        $process = [Diagnostics.Process]::new()
+        $process.StartInfo = $start
+        try {
+            [void]$process.Start()
+            $stdout = $process.StandardOutput.ReadToEndAsync()
+            $stderr = $process.StandardError.ReadToEndAsync()
+            if (-not $process.WaitForExit(15000)) {
+                $process.Kill($true)
+                if (-not $process.WaitForExit(5000)) { throw 'Owned native argv child did not confirm termination.' }
+                throw 'Owned native argv child exceeded its 15-second bound.'
+            }
+            $output = $stdout.GetAwaiter().GetResult()
+            $process.ExitCode | Should -Be 0 -Because $stderr.GetAwaiter().GetResult()
+            $observed = @($output | ConvertFrom-Json)
+            Write-Information "Observed Cargo argv: $output" -InformationAction Continue
+            $observed | Should -Be @('test', '--workspace', '--no-default-features', '--features', 'server,ffi') -Because $output
+        } finally { $process.Dispose() }
+    }
+}
+
 Describe 'test runner candidate module binding' -Tag 'Unit', 'Fast', 'Portable' -Skip:($PSVersionTable.PSVersion.Major -lt 7) {
     BeforeAll {
         $script:CandidateRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)

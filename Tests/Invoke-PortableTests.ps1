@@ -160,7 +160,7 @@ if ($RunSections -contains 'Rust' -and -not $AnyFail) {
         $env:RUSTC_WRAPPER = ''
         Push-Location $RustRoot
         try {
-            $output = & cargo test --workspace --no-default-features --features server, ffi 2>&1
+            $output = & cargo test --workspace --no-default-features --features 'server,ffi' 2>&1
             $passed = 0; $failed = 0; $ignored = 0
             foreach ($line in $output) {
                 if ($line -match 'test result: \w+\.\s+(\d+) passed; (\d+) failed; (\d+) ignored') {

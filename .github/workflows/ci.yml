@@ -465,7 +465,7 @@ jobs:
       # runner given only 8.0.x, which is part of why this gap went unnoticed.
       # Installing both makes the gate work today; aligning the TFMs is a
       # separate decision.
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
             8.0.x

@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "CLI command discovery with absent or changing manifests.retains the existing null-manifest fallback through actual parameter binding",
+      "test_path": "Tests/Unit/PcaiCommandMapEmptyModules.Tests.ps1",
+      "test_sha256": "09050373c04099234f788de38e430555e478512a28f78931aa37bf720a27a1f9",
+      "source_sha256": {
+        "Modules/PC-AI.CLI/Private/Get-PcCommandMapCacheKey.ps1": "5426ebd26d77d14ee3fc576ef442654b613a1a91dcc11a176ebbe3c8e3b49c2a",
+        "Modules/PC-AI.CLI/Public/Get-PCCommandMap.ps1": "bd60ffaac5924697a379236b98a4c2402fe92fef681cc5086358766172351262",
+        "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7"
+      },
+      "protects": "Null discovery output reaches the existing zero-manifest cache key.",
+      "detects": "Mandatory parameter binding rejects null before the fallback body runs.",
+      "requires": "PowerShell 7, Pester 5; no native provider, network, model or hardware.",
+      "breadcrumb": "Modules/PC-AI.CLI/Private/Get-PcCommandMapCacheKey.ps1",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
+      "disposition": "unreviewed",
+      "scope": "Prepared source-and-fixture proposal; independent exact-source review pending. Windows final fixture runs detect baseline 1 pass/4 failures and candidate 5 passes for both main and PR233 producer snapshots. No full-suite coverage, Linux execution, speedup or runtime admission claimed.",
+      "receipt": "command-map-empty-review.md",
+      "selector_sha256": "96cc2ab4be6b260a90bc41e4fd9f62e49c261a90a7b9c03c9b53d8a6df680933"
+    },
+    {
+      "selector": "CLI command discovery with absent or changing manifests.retains the existing empty-array fallback through actual parameter binding",
+      "test_path": "Tests/Unit/PcaiCommandMapEmptyModules.Tests.ps1",
+      "test_sha256": "09050373c04099234f788de38e430555e478512a28f78931aa37bf720a27a1f9",
+      "source_sha256": {
+        "Modules/PC-AI.CLI/Private/Get-PcCommandMapCacheKey.ps1": "5426ebd26d77d14ee3fc576ef442654b613a1a91dcc11a176ebbe3c8e3b49c2a",
+        "Modules/PC-AI.CLI/Public/Get-PCCommandMap.ps1": "bd60ffaac5924697a379236b98a4c2402fe92fef681cc5086358766172351262",
+        "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7"
+      },
+      "protects": "An explicit empty manifest collection preserves the zero-manifest cache key.",
+      "detects": "Mandatory parameter binding rejects an empty array before the fallback body runs.",
+      "requires": "PowerShell 7, Pester 5; no native provider, network, model or hardware.",
+      "breadcrumb": "Modules/PC-AI.CLI/Private/Get-PcCommandMapCacheKey.ps1",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
+      "disposition": "unreviewed",
+      "scope": "Prepared source-and-fixture proposal; independent exact-source review pending. Windows final fixture runs detect baseline 1 pass/4 failures and candidate 5 passes for both main and PR233 producer snapshots. No full-suite coverage, Linux execution, speedup or runtime admission claimed.",
+      "receipt": "command-map-empty-review.md",
+      "selector_sha256": "da7f0810ca4aecedbe658976e229ae49283dd2e9b7c17dae4b791c8b9d9bf2a9"
+    },
+    {
+      "selector": "CLI command discovery with absent or changing manifests.returns help and version for an existing empty Modules directory",
+      "test_path": "Tests/Unit/PcaiCommandMapEmptyModules.Tests.ps1",
+      "test_sha256": "09050373c04099234f788de38e430555e478512a28f78931aa37bf720a27a1f9",
+      "source_sha256": {
+        "Modules/PC-AI.CLI/Private/Get-PcCommandMapCacheKey.ps1": "5426ebd26d77d14ee3fc576ef442654b613a1a91dcc11a176ebbe3c8e3b49c2a",
+        "Modules/PC-AI.CLI/Public/Get-PCCommandMap.ps1": "bd60ffaac5924697a379236b98a4c2402fe92fef681cc5086358766172351262",
+        "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7"
+      },
+      "protects": "Public command discovery remains usable before any module manifests exist.",
+      "detects": "Real Get-ChildItem null output aborts Get-PCCommandMap instead of returning base commands.",
+      "requires": "PowerShell 7, Pester 5 and disposable TestDrive filesystem; memory cache only.",
+      "breadcrumb": "Modules/PC-AI.CLI/Public/Get-PCCommandMap.ps1",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
+      "disposition": "unreviewed",
+      "scope": "Prepared source-and-fixture proposal; independent exact-source review pending. Windows final fixture runs detect baseline 1 pass/4 failures and candidate 5 passes for both main and PR233 producer snapshots. No full-suite coverage, Linux execution, speedup or runtime admission claimed.",
+      "receipt": "command-map-empty-review.md",
+      "selector_sha256": "9fd83edfbab4b24b07907e6c088ef690da04d44eb6dc6d7719fd5090f8235d17"
+    },
+    {
+      "selector": "CLI command discovery with absent or changing manifests.isolates the cached empty-module command map from caller mutation",
+      "test_path": "Tests/Unit/PcaiCommandMapEmptyModules.Tests.ps1",
+      "test_sha256": "09050373c04099234f788de38e430555e478512a28f78931aa37bf720a27a1f9",
+      "source_sha256": {
+        "Modules/PC-AI.CLI/Private/Get-PcCommandMapCacheKey.ps1": "5426ebd26d77d14ee3fc576ef442654b613a1a91dcc11a176ebbe3c8e3b49c2a",
+        "Modules/PC-AI.CLI/Public/Get-PCCommandMap.ps1": "bd60ffaac5924697a379236b98a4c2402fe92fef681cc5086358766172351262",
+        "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7"
+      },
+      "protects": "Public discovery uses valid empty-directory cache entries and isolates callers from stored values.",
+      "detects": "Ignored matching cache entries or shallow cache returns that persist caller mutation.",
+      "requires": "PowerShell 7, Pester 5 and TestDrive; explicit memory cache with restored global/environment state.",
+      "breadcrumb": "Modules/PC-AI.CLI/Public/Get-PCCommandMap.ps1; Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
+      "disposition": "unreviewed",
+      "scope": "Prepared source-and-fixture proposal; independent exact-source review pending. Windows final fixture runs detect baseline 1 pass/4 failures and candidate 5 passes for both main and PR233 producer snapshots. No full-suite coverage, Linux execution, speedup or runtime admission claimed.",
+      "receipt": "command-map-empty-review.md",
+      "selector_sha256": "51ac767ea91f42ae4c708f4b18dc71944b997a3da1d6109053000e1dca884c87"
+    },
+    {
+      "selector": "CLI command discovery with absent or changing manifests.still maps real manifest commands and invalidates after manifest changes",
+      "test_path": "Tests/Unit/PcaiCommandMapEmptyModules.Tests.ps1",
+      "test_sha256": "09050373c04099234f788de38e430555e478512a28f78931aa37bf720a27a1f9",
+      "source_sha256": {
+        "Modules/PC-AI.CLI/Private/Get-PcCommandMapCacheKey.ps1": "5426ebd26d77d14ee3fc576ef442654b613a1a91dcc11a176ebbe3c8e3b49c2a",
+        "Modules/PC-AI.CLI/Public/Get-PCCommandMap.ps1": "bd60ffaac5924697a379236b98a4c2402fe92fef681cc5086358766172351262",
+        "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7"
+      },
+      "protects": "Nonempty manifest discovery and dependency-stamp cache invalidation while admitting empty inputs.",
+      "detects": "An unconditional empty result, missing manifest commands or reuse after changed file metadata.",
+      "requires": "PowerShell 7, Pester 5 and TestDrive files with controlled UTC modification times; memory cache.",
+      "breadcrumb": "Modules/PC-AI.CLI/Public/Get-PCCommandMap.ps1; Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
+      "disposition": "unreviewed",
+      "scope": "Prepared source-and-fixture proposal; independent exact-source review pending. Windows final fixture runs detect baseline 1 pass/4 failures and candidate 5 passes for both main and PR233 producer snapshots. No full-suite coverage, Linux execution, speedup or runtime admission claimed.",
+      "receipt": "command-map-empty-review.md",
+      "selector_sha256": "e0dfd23dfb9689250048ad2872e1c73ba29e58162221958e4c500eee7149dc82"
+    }
+  ],
+  "raw_evidence": [
+    {
+      "variant": "main-baseline",
+      "skipped": 0,
+      "sha256": "1dcc7cae36005bf805b70972c851d7b09e8fd34565695473caa5417f9927c0d7",
+      "failed": 4,
+      "local_only_path": "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-fleet-review\\windows\\empty-manifest-controls\\main-baseline-review-result.json",
+      "passed": 1,
+      "base": "06b33e541760ab75402d24235a2ba645a10bb7b3"
+    },
+    {
+      "variant": "main-candidate",
+      "skipped": 0,
+      "sha256": "bf94d41d927ebc8ce71d79eac51e6b8d1c8b1700b48074fda04edfbd4f1dbbb2",
+      "failed": 0,
+      "local_only_path": "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-fleet-review\\windows\\empty-manifest-controls\\main-candidate-review-result.json",
+      "passed": 5,
+      "base": "06b33e541760ab75402d24235a2ba645a10bb7b3"
+    },
+    {
+      "variant": "pr233-baseline",
+      "skipped": 0,
+      "sha256": "683c211b78ab94f0cd2021c0207d0859760811d81b917b42a50177a192192d6a",
+      "failed": 4,
+      "local_only_path": "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-fleet-review\\windows\\empty-manifest-controls\\pr233-baseline-review-result.json",
+      "passed": 1,
+      "base": "55201a778a2fed555484bf3538b2013fbaebc703"
+    },
+    {
+      "variant": "pr233-candidate",
+      "skipped": 0,
+      "sha256": "090297f7db850eea02dab08b4996a8908fb752c264b2ead1bc26b8a4edc2cb8f",
+      "failed": 0,
+      "local_only_path": "C:\\Users\\david\\AppData\\Local\\Temp\\pcai-fleet-review\\windows\\empty-manifest-controls\\pr233-candidate-review-result.json",
+      "passed": 5,
+      "base": "55201a778a2fed555484bf3538b2013fbaebc703"
+    }
+  ]
+}

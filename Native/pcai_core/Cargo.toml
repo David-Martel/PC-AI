@@ -59,7 +59,7 @@ sysinfo = "0.39"
 walkdir = "2.5"
 
 # Concurrency primitives
-parking_lot = "0.12"
+parking_lot = "0.13"
 
 # Windows Registry access
 winreg = "0.56"

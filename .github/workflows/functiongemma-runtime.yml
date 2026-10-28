@@ -34,7 +34,7 @@ jobs:
     # Bounds a cold CPU-only build/test job; timeout is failure, never a pass.
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - name: Test locked default runtime and documentation examples
         run: cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime

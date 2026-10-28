@@ -20,6 +20,8 @@ Tests/Portable/test_usb4_fleet_release.py text eol=lf
 
 # Configuration files
 *.json text eol=crlf
+# Git stores normalized LF blobs; eol=crlf affects working copies only.
+# Keep workflow version bumps normalized with git add --renormalize -- .github/workflows.
 *.yml text eol=crlf
 *.yaml text eol=crlf
 *.xml text eol=crlf
@@ -100,3 +102,10 @@ Modules/PC-AI.Common/Private/PcaiPortableProcessCapture.cs -text -eol whitespace
 Tests/Fixtures/PortableCaptureChild.ps1 -text -eol whitespace=cr-at-eol
 Tests/Portable/Test-PortableProcessCapture.ps1 -text -eol whitespace=cr-at-eol
 Tests/ProcessCapture/portable-source-review.json -text -eol whitespace=cr-at-eol
+
+# Preserve mixed-line-ending capture blobs; see docs/captured-evidence-custody.md.
+Reports/input-stack-investigation-20260606/H3_intel_serialio_controllers.txt -text -eol
+Reports/input-stack-investigation-20260606/H4_processlasso.txt -text -eol
+Reports/input-stack-investigation-20260606/H5_io_cpu_load.txt -text -eol
+Reports/input-stack-investigation-20260606/H7_vendor_services.txt -text -eol
+Reports/onedrive-triage-20260509/27-stepC.txt -text -eol

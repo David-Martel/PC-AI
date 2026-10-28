@@ -17,7 +17,7 @@ jobs:
       security-events: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The scan now lives in Tools/Test-CredentialScan.ps1 so it can be run and
       # tested locally. It carries its own positive controls (planted secrets
@@ -85,7 +85,7 @@ jobs:
 
       - name: Upload Security Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: security-report
           path: security-report.json
@@ -95,7 +95,7 @@ jobs:
     name: Dependency Health
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check PowerShell Gallery Updates
         shell: pwsh
@@ -256,7 +256,7 @@ jobs:
 
       - name: Upload NVIDIA Status Snapshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nvidia-status-${{ github.run_number }}
           path: Reports/nvidia-status-snapshot.json
@@ -275,7 +275,7 @@ jobs:
           - name: "Rust MSRV"
             type: rust-msrv
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # `shell: pwsh` is PowerShell 7 -- this job was named "PowerShell 5.1"
       # but had never executed under 5.1, so the compatibility claim was
@@ -353,7 +353,7 @@ jobs:
     name: Documentation Pipeline
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Every `shell: pwsh` / `shell: powershell` step here ends with an
       # explicit exit. GitHub appends `exit $LASTEXITCODE` to the script, so a
@@ -382,7 +382,7 @@ jobs:
           exit $LASTEXITCODE
 
       - name: Upload Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: maintenance-docs-${{ github.run_number }}
           path: |
@@ -397,7 +397,7 @@ jobs:
     needs: [security-scan, dependency-health, compatibility, documentation]
     if: always()
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Generate Summary
         shell: pwsh
@@ -437,7 +437,7 @@ jobs:
           "@ | Out-File $env:GITHUB_STEP_SUMMARY -Encoding utf8
 
       - name: Upload Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: health-report-${{ github.run_number }}
           path: health-report.json

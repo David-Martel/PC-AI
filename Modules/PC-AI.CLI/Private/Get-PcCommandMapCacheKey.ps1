@@ -3,6 +3,8 @@ function Get-PcCommandMapCacheKey {
         [Parameter(Mandatory)]
         [string]$ModulesRoot,
         [Parameter(Mandatory)]
+        [AllowNull()]
+        [AllowEmptyCollection()]
         [System.IO.FileInfo[]]$Manifests
     )
 

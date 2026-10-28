@@ -322,7 +322,7 @@ pre-commit run --all-files
 ### Hooks Configured
 
 1. **PSScriptAnalyzer** - Lint PowerShell code
-2. **Syntax Check** - Validate PowerShell syntax
+2. **Syntax Check** - Parse literal source paths with [Test-PowerShellSyntax.ps1](Tools/Test-PowerShellSyntax.ps1), without executing staged files; [safety tests](Tests/Unit/PowerShellSyntaxHook.Tests.ps1) and [hash-bound review](Tests/Unit/powershell-syntax-review.md) cover the configured entrypoint
 3. **Pester Tests** - Run unit tests
 4. **Module Manifests** - Validate `.psd1` files
 5. **Trailing Whitespace** - Remove trailing spaces

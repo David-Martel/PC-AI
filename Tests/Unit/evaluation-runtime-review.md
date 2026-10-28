@@ -54,7 +54,10 @@ summary artifacts. Portable cohort qualification for the
 [Linux CI allowlist](../linux-ci-pester.txt) is recorded separately in that root.
 With the new fixture first, the existing allowlisted cohort passed 338 cases
 with zero failures, 33 explicit skips and five unrun non-Portable cases. The new
-five cases passed without skips. The first source archive omitted Git metadata,
+five cases passed without skips. A second fresh-process cohort with the new
+fixture last produced the same counts. These cohorts use the original main
+baseline plus the four-line correction; the subsequently merged lifecycle suite
+has its own three cases and recorded review. The first source archive omitted Git metadata,
 so its benchmark fixture could not bind a source commit; adding isolated Git
 metadata at the archive's actual baseline corrected that prerequisite. Both
 incomplete-fixture receipts remain in external custody.

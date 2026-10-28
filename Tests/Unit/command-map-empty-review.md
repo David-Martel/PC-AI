@@ -30,4 +30,4 @@ $container = New-PesterContainer -Path Tests/Unit/PcaiCommandMapEmptyModules.Tes
 Invoke-Pester -Container $container -Output Detailed
 ```
 
-The [selector register](command-map-empty-review.json) binds the final test bytes and main producer sources to the local raw controls. Its disposition remains unreviewed until an independent reviewer assesses those exact bytes. Full Windows suite/85% coverage, Linux execution, installed-consumer admission and performance remain separate boundaries. This fix changes no timing or inference behavior.
+The [selector register](command-map-empty-review.json) binds the final test bytes and main producer sources to the local raw controls. Independent selector review retains all five controls at their bound hashes. ASUS Linux x86_64 with PowerShell 7.6.9 and Pester 5.7.1 independently reproduces the main baseline (1 pass, 4 failures) and candidate (5 passes), with zero skips. Full Windows suite/85% coverage, installed-consumer admission and performance remain separate boundaries. This fix changes no timing or inference behavior.

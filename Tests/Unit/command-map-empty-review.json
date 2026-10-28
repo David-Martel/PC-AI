@@ -15,14 +15,15 @@
       "detects": "Mandatory parameter binding rejects null before the fallback body runs.",
       "requires": "PowerShell 7, Pester 5; no native provider, network, model or hardware.",
       "breadcrumb": "Modules/PC-AI.CLI/Private/Get-PcCommandMapCacheKey.ps1",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T19:53:35Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "disposition": "unreviewed",
-      "scope": "Prepared source-and-fixture proposal; independent exact-source review pending. Windows final fixture runs detect baseline 1 pass/4 failures and candidate 5 passes for both main and PR233 producer snapshots. No full-suite coverage, Linux execution, speedup or runtime admission claimed.",
+      "disposition": "keep",
+      "scope": "Independent source and selector review at bound hashes; actual Windows and Linux baseline 1 pass/4 failures, candidate 5 passes/0 failures, zero skips. No full-suite coverage or installed runtime acceptance.",
       "receipt": "command-map-empty-review.md",
-      "selector_sha256": "96cc2ab4be6b260a90bc41e4fd9f62e49c261a90a7b9c03c9b53d8a6df680933"
+      "selector_sha256": "96cc2ab4be6b260a90bc41e4fd9f62e49c261a90a7b9c03c9b53d8a6df680933",
+      "reviewed_commit": "ed8f74d4cd75273bec315c6af61e9e11468a37f5"
     },
     {
       "selector": "CLI command discovery with absent or changing manifests.retains the existing empty-array fallback through actual parameter binding",
@@ -37,14 +38,15 @@
       "detects": "Mandatory parameter binding rejects an empty array before the fallback body runs.",
       "requires": "PowerShell 7, Pester 5; no native provider, network, model or hardware.",
       "breadcrumb": "Modules/PC-AI.CLI/Private/Get-PcCommandMapCacheKey.ps1",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T19:53:35Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "disposition": "unreviewed",
-      "scope": "Prepared source-and-fixture proposal; independent exact-source review pending. Windows final fixture runs detect baseline 1 pass/4 failures and candidate 5 passes for both main and PR233 producer snapshots. No full-suite coverage, Linux execution, speedup or runtime admission claimed.",
+      "disposition": "keep",
+      "scope": "Independent source and selector review at bound hashes; actual Windows and Linux baseline 1 pass/4 failures, candidate 5 passes/0 failures, zero skips. No full-suite coverage or installed runtime acceptance.",
       "receipt": "command-map-empty-review.md",
-      "selector_sha256": "da7f0810ca4aecedbe658976e229ae49283dd2e9b7c17dae4b791c8b9d9bf2a9"
+      "selector_sha256": "da7f0810ca4aecedbe658976e229ae49283dd2e9b7c17dae4b791c8b9d9bf2a9",
+      "reviewed_commit": "ed8f74d4cd75273bec315c6af61e9e11468a37f5"
     },
     {
       "selector": "CLI command discovery with absent or changing manifests.returns help and version for an existing empty Modules directory",
@@ -59,14 +61,15 @@
       "detects": "Real Get-ChildItem null output aborts Get-PCCommandMap instead of returning base commands.",
       "requires": "PowerShell 7, Pester 5 and disposable TestDrive filesystem; memory cache only.",
       "breadcrumb": "Modules/PC-AI.CLI/Public/Get-PCCommandMap.ps1",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T19:53:35Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "disposition": "unreviewed",
-      "scope": "Prepared source-and-fixture proposal; independent exact-source review pending. Windows final fixture runs detect baseline 1 pass/4 failures and candidate 5 passes for both main and PR233 producer snapshots. No full-suite coverage, Linux execution, speedup or runtime admission claimed.",
+      "disposition": "keep",
+      "scope": "Independent source and selector review at bound hashes; actual Windows and Linux baseline 1 pass/4 failures, candidate 5 passes/0 failures, zero skips. No full-suite coverage or installed runtime acceptance.",
       "receipt": "command-map-empty-review.md",
-      "selector_sha256": "9fd83edfbab4b24b07907e6c088ef690da04d44eb6dc6d7719fd5090f8235d17"
+      "selector_sha256": "9fd83edfbab4b24b07907e6c088ef690da04d44eb6dc6d7719fd5090f8235d17",
+      "reviewed_commit": "ed8f74d4cd75273bec315c6af61e9e11468a37f5"
     },
     {
       "selector": "CLI command discovery with absent or changing manifests.isolates the cached empty-module command map from caller mutation",
@@ -81,14 +84,15 @@
       "detects": "Ignored matching cache entries or shallow cache returns that persist caller mutation.",
       "requires": "PowerShell 7, Pester 5 and TestDrive; explicit memory cache with restored global/environment state.",
       "breadcrumb": "Modules/PC-AI.CLI/Public/Get-PCCommandMap.ps1; Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T19:53:35Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "disposition": "unreviewed",
-      "scope": "Prepared source-and-fixture proposal; independent exact-source review pending. Windows final fixture runs detect baseline 1 pass/4 failures and candidate 5 passes for both main and PR233 producer snapshots. No full-suite coverage, Linux execution, speedup or runtime admission claimed.",
+      "disposition": "keep",
+      "scope": "Independent source and selector review at bound hashes; actual Windows and Linux baseline 1 pass/4 failures, candidate 5 passes/0 failures, zero skips. No full-suite coverage or installed runtime acceptance.",
       "receipt": "command-map-empty-review.md",
-      "selector_sha256": "51ac767ea91f42ae4c708f4b18dc71944b997a3da1d6109053000e1dca884c87"
+      "selector_sha256": "51ac767ea91f42ae4c708f4b18dc71944b997a3da1d6109053000e1dca884c87",
+      "reviewed_commit": "ed8f74d4cd75273bec315c6af61e9e11468a37f5"
     },
     {
       "selector": "CLI command discovery with absent or changing manifests.still maps real manifest commands and invalidates after manifest changes",
@@ -103,14 +107,15 @@
       "detects": "An unconditional empty result, missing manifest commands or reuse after changed file metadata.",
       "requires": "PowerShell 7, Pester 5 and TestDrive files with controlled UTC modification times; memory cache.",
       "breadcrumb": "Modules/PC-AI.CLI/Public/Get-PCCommandMap.ps1; Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T19:53:35Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "disposition": "unreviewed",
-      "scope": "Prepared source-and-fixture proposal; independent exact-source review pending. Windows final fixture runs detect baseline 1 pass/4 failures and candidate 5 passes for both main and PR233 producer snapshots. No full-suite coverage, Linux execution, speedup or runtime admission claimed.",
+      "disposition": "keep",
+      "scope": "Independent source and selector review at bound hashes; actual Windows and Linux baseline 1 pass/4 failures, candidate 5 passes/0 failures, zero skips. No full-suite coverage or installed runtime acceptance.",
       "receipt": "command-map-empty-review.md",
-      "selector_sha256": "e0dfd23dfb9689250048ad2872e1c73ba29e58162221958e4c500eee7149dc82"
+      "selector_sha256": "e0dfd23dfb9689250048ad2872e1c73ba29e58162221958e4c500eee7149dc82",
+      "reviewed_commit": "ed8f74d4cd75273bec315c6af61e9e11468a37f5"
     }
   ],
   "raw_evidence": [
@@ -150,5 +155,23 @@
       "passed": 5,
       "base": "55201a778a2fed555484bf3538b2013fbaebc703"
     }
-  ]
+  ],
+  "linux_receipt": {
+    "host": "asuspro13",
+    "platform": "linux-x64",
+    "PowerShell": "7.6.9",
+    "Pester": "5.7.1",
+    "SourceCommit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
+    "baseline": {
+      "failed": 4,
+      "passed": 1,
+      "skipped": 0
+    },
+    "candidate": {
+      "failed": 0,
+      "passed": 5,
+      "skipped": 0
+    },
+    "raw_sha256": "47a9f2bd1ee01568239f9d4af439748ddaa9224328c8d6315364a14956703f0f"
+  }
 }

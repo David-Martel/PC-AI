@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "Windows archive source byte and identity custody.creates receipt descendants only under held native parents and appends durably",
+      "selector_sha256": "57b1652e5f88b45078ec699a49c103f82c3a3d4d81f53e50f7666bdb9ac83948",
+      "test_path": "Tests/Boot/ArchiveSourceCustody.Tests.ps1",
+      "test_sha256": "928b098c5a138e3271f0b0db05790c73134192bd8d4f7342840808b19b3ee84b",
+      "source_sha256": {
+        "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
+      },
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:27:38.5653611Z",
+      "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
+      "disposition": "keep",
+      "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
+      "receipt": "archive-source-custody-review.md"
+    },
+    {
+      "selector": "Windows archive source byte and identity custody.blocks parent replacement in the pre-leaf-open race window",
+      "selector_sha256": "ea6d8790c09d5522c6fbd0351c053f7bf5df38ebda052c54a6eaea21d608eb7c",
+      "test_path": "Tests/Boot/ArchiveSourceCustody.Tests.ps1",
+      "test_sha256": "928b098c5a138e3271f0b0db05790c73134192bd8d4f7342840808b19b3ee84b",
+      "source_sha256": {
+        "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
+      },
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:27:38.5709781Z",
+      "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
+      "disposition": "keep",
+      "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
+      "receipt": "archive-source-custody-review.md"
+    },
+    {
+      "selector": "Windows archive source byte and identity custody.blocks leaf renames and rival writers until source deletion custody ends",
+      "selector_sha256": "e71b973a0c4434309b5ada6c91ee346144a34b83caf1387636ba0726c6473ef8",
+      "test_path": "Tests/Boot/ArchiveSourceCustody.Tests.ps1",
+      "test_sha256": "928b098c5a138e3271f0b0db05790c73134192bd8d4f7342840808b19b3ee84b",
+      "source_sha256": {
+        "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
+      },
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:27:38.5732189Z",
+      "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
+      "disposition": "keep",
+      "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
+      "receipt": "archive-source-custody-review.md"
+    },
+    {
+      "selector": "Windows archive source byte and identity custody.rejects a real leaf symlink installed after ancestor admission without writing its target",
+      "selector_sha256": "e47e5e6915cf7848ca2747ddd42eb29942f173afad73d3209a61f810dffa756f",
+      "test_path": "Tests/Boot/ArchiveSourceCustody.Tests.ps1",
+      "test_sha256": "928b098c5a138e3271f0b0db05790c73134192bd8d4f7342840808b19b3ee84b",
+      "source_sha256": {
+        "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
+      },
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:27:38.5755378Z",
+      "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
+      "disposition": "keep",
+      "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
+      "receipt": "archive-source-custody-review.md"
+    },
+    {
+      "selector": "Windows archive source byte and identity custody.rejects redirected receipt ancestry before any append and preserves source custody",
+      "selector_sha256": "feee012d40bf810c333443d28175d1ccb9bd913f658a472429eeeefa74cc06eb",
+      "test_path": "Tests/Boot/ArchiveSourceCustody.Tests.ps1",
+      "test_sha256": "928b098c5a138e3271f0b0db05790c73134192bd8d4f7342840808b19b3ee84b",
+      "source_sha256": {
+        "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
+      },
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:27:38.5777986Z",
+      "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
+      "disposition": "keep",
+      "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
+      "receipt": "archive-source-custody-review.md"
+    },
+    {
+      "selector": "Windows archive source byte and identity custody.rejects a hardlinked receipt instead of appending into rival content",
+      "selector_sha256": "c6032d63dfb6fbe746209fdc9b2ec85785b6b528e0dfeee5876e0d2a48ec886b",
+      "test_path": "Tests/Boot/ArchiveSourceCustody.Tests.ps1",
+      "test_sha256": "928b098c5a138e3271f0b0db05790c73134192bd8d4f7342840808b19b3ee84b",
+      "source_sha256": {
+        "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
+      },
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:27:38.5802794Z",
+      "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
+      "disposition": "keep",
+      "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
+      "receipt": "archive-source-custody-review.md"
+    },
+    {
+      "selector": "Windows archive source byte and identity custody.does not authorize deletion when strict receipt encoding fails before flushing",
+      "selector_sha256": "2585bae295cfb7dee924c5436209e53026d5689e08c39bccd12f959982b38d36",
+      "test_path": "Tests/Boot/ArchiveSourceCustody.Tests.ps1",
+      "test_sha256": "928b098c5a138e3271f0b0db05790c73134192bd8d4f7342840808b19b3ee84b",
+      "source_sha256": {
+        "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
+      },
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:27:38.5825492Z",
+      "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
+      "disposition": "keep",
+      "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
+      "receipt": "archive-source-custody-review.md"
+    }
+  ],
+  "execution": {
+    "receipt": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/independent-archive-root.json",
+    "total": 63,
+    "passed": 63,
+    "failed": 0,
+    "skipped": 0,
+    "not_run": 0,
+    "scope": "Unchanged entire suite executed in fresh profile-free Windows process; only seven named selectors semantically reviewed here."
+  }
+}

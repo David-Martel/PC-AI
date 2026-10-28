@@ -1,3 +1,6 @@
+# Fresh real evaluation consumers and endpoint contracts; see Unit/evaluation-runtime-review.md.
+EvaluationSuiteType.Tests.ps1
+
 # Syntax-only staged source must never execute; see Unit/powershell-syntax-review.md.
 PowerShellSyntaxHook.Tests.ps1
 

@@ -624,6 +624,19 @@ Describe "Get-HardwareDiagnostics" {
 
 ## Additional Resources
 
+### Evaluation smoke lifecycle
+
+The manually dispatched [evaluation smoke workflow](.github/workflows/evaluation-smoke.yml)
+uses environment variables for literal dispatch arguments, starts its Windows mock
+helper with a hidden window, and stops the recorded process from an always-run step.
+The [portable lifecycle tests](Tests/Unit/EvaluationSmokeWorkflow.Tests.ps1) execute
+the cleanup and argument blocks without killing processes or contacting a model.
+Their [review record](Tests/Unit/evaluation-smoke-review.md) describes the failing
+controls and the [hash-bound register](Tests/Unit/evaluation-smoke-review.json).
+The Linux allowlist runs these tests in portable CI. A passing lifecycle suite
+does not qualify evaluation-module behavior, model quality, or GPU inference;
+the actual mock evaluation must also complete before enabling the dispatch.
+
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [PSScriptAnalyzer Rules](https://github.com/PowerShell/PSScriptAnalyzer)
 - [Pester Documentation](https://pester.dev/)

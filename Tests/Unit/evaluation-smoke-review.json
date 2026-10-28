@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "Evaluation smoke workflow lifecycle.stops the recorded mock process through the actual cleanup block",
+      "test_path": "Tests/Unit/EvaluationSmokeWorkflow.Tests.ps1",
+      "test_sha256": "39382eb2ca20b510da585f620193d222ea02edb9f8839550d22fd090b30b5df6",
+      "selector_sha256": "3c9584260f4da604430ea7ad1a8eab0163de87738e095151451ae6ca971e8b25",
+      "source_sha256": {
+        ".github/workflows/evaluation-smoke.yml": "624c588369a41f220680d1a71d98050575b9a6b552fdd41a1576c1d5a15ae73d"
+      },
+      "protects": "The always-run cleanup reaches Stop-Process without assigning the read-only PID variable.",
+      "detects": "Executing the original cleanup block throws on PID assignment before the mocked Stop-Process call.",
+      "requires": "PowerShell7, Pester5 and TestDrive; Stop-Process is mocked.",
+      "breadcrumb": ".github/workflows/evaluation-smoke.yml Stop Mock Server",
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T21:52:36.5555359Z",
+      "base_commit": "8f3743c4a2a1879206c4db8424d1c9d8b128d48e",
+      "reviewed_commit": null,
+      "disposition": "keep",
+      "scope": "Independent final-source review and fresh-process replay of all three actual workflow-block controls. Source-hash binding precedes commit. No executed GitHub dispatch interpolation, real inference/evaluation success, installation, model quality, full-suite coverage or runtime class visibility qualification.",
+      "receipt": "evaluation-smoke-review.md"
+    },
+    {
+      "selector": "Evaluation smoke workflow lifecycle.passes dispatch input through environment values as literal evaluation arguments",
+      "test_path": "Tests/Unit/EvaluationSmokeWorkflow.Tests.ps1",
+      "test_sha256": "39382eb2ca20b510da585f620193d222ea02edb9f8839550d22fd090b30b5df6",
+      "selector_sha256": "4bf2d4ff43b86fe6dd391c4a4fd28ce7a425e18e85b7589437eb754a53bd3f57",
+      "source_sha256": {
+        ".github/workflows/evaluation-smoke.yml": "624c588369a41f220680d1a71d98050575b9a6b552fdd41a1576c1d5a15ae73d"
+      },
+      "protects": "Dispatch inputs remain literal evaluation arguments outside PowerShell source interpolation.",
+      "detects": "An expression inside the run block is refused; the corrected block forwards the adversarial dataset as one captured argument.",
+      "requires": "PowerShell7, Pester5, process environment restoration and a pwsh argv-capture function; no evaluator starts.",
+      "breadcrumb": ".github/workflows/evaluation-smoke.yml Run Evaluation Smoke",
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T21:52:36.5593368Z",
+      "base_commit": "8f3743c4a2a1879206c4db8424d1c9d8b128d48e",
+      "reviewed_commit": null,
+      "disposition": "keep",
+      "scope": "Independent final-source review and fresh-process replay of all three actual workflow-block controls. Source-hash binding precedes commit. No executed GitHub dispatch interpolation, real inference/evaluation success, installation, model quality, full-suite coverage or runtime class visibility qualification.",
+      "receipt": "evaluation-smoke-review.md"
+    },
+    {
+      "selector": "Evaluation smoke workflow lifecycle.starts the Windows mock helper with a hidden window",
+      "test_path": "Tests/Unit/EvaluationSmokeWorkflow.Tests.ps1",
+      "test_sha256": "39382eb2ca20b510da585f620193d222ea02edb9f8839550d22fd090b30b5df6",
+      "selector_sha256": "2d6c3f74ca837739144f2ae1f85ac0ee1f609206a9cafad94703efbd900bc565",
+      "source_sha256": {
+        ".github/workflows/evaluation-smoke.yml": "624c588369a41f220680d1a71d98050575b9a6b552fdd41a1576c1d5a15ae73d"
+      },
+      "protects": "The Windows mock-server launcher explicitly hides its helper window.",
+      "detects": "AST inspection of the actual Start-Process command rejects a missing WindowStyle Hidden argument.",
+      "requires": "PowerShell AST parser and Pester5; the test does not start Python.",
+      "breadcrumb": ".github/workflows/evaluation-smoke.yml Start Mock LLM Server",
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T21:52:36.5594157Z",
+      "base_commit": "8f3743c4a2a1879206c4db8424d1c9d8b128d48e",
+      "reviewed_commit": null,
+      "disposition": "keep",
+      "scope": "Independent final-source review and fresh-process replay of all three actual workflow-block controls. Source-hash binding precedes commit. No executed GitHub dispatch interpolation, real inference/evaluation success, installation, model quality, full-suite coverage or runtime class visibility qualification.",
+      "receipt": "evaluation-smoke-review.md"
+    }
+  ],
+  "runtime_boundary": "Actual smoke currently exposes a separate pre-existing EvaluationSuite type-visibility failure. These three lifecycle/source-boundary fixes neither resolve nor qualify that runtime path.",
+  "independent_controls": {
+    "Pester": "5.7.1",
+    "PowerShell": "7.6.7",
+    "candidate": {
+      "failed": 0,
+      "skipped": 0,
+      "passed": 3
+    },
+    "baseline": {
+      "failed": 3,
+      "skipped": 0,
+      "passed": 0
+    }
+  },
+  "raw_evidence": [
+    {
+      "variant": "baseline",
+      "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/fleet/evaluation-review-control/baseline-result.json",
+      "sha256": "7af7401417d9246af5c5f80a4c5051bd98cb8c8b507847ef3e6358470c12e39e"
+    },
+    {
+      "variant": "candidate",
+      "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/fleet/evaluation-review-control/candidate-result.json",
+      "sha256": "24a64ce33c07881eeee185afcd8dbf58425b78294189b0e744a5797cc0a583a5"
+    },
+    {
+      "variant": "actual-smoke-separate-runtime-failure",
+      "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/evaluation-smoke.log",
+      "sha256": "3d10fe8de481b461bb1049ca3577fad32846d51d4689efcc986c07abe616e734"
+    }
+  ]
+}

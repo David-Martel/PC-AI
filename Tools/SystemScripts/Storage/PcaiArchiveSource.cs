@@ -218,7 +218,11 @@ namespace Pcai.Storage
                         string parent = parents.Pop();
                         // Only missing descendants of an already held parent can be created.
                         // A rival junction or file is opened without following reparse points.
-                        SafeFileHandle guard = CreateFileW(parent, 1, ShareRead, IntPtr.Zero, OpenExisting, DirectoryFlag | OpenReparse, IntPtr.Zero);
+                        // A volume root is not a renameable receipt directory. Coexist
+                        // with root writers while retaining its no-delete/GUID guard.
+                        // Descendants still deny write sharing to prevent reparse edits.
+                        uint sharing = guards.Count == 0 ? ShareRead | ShareWrite : ShareRead;
+                        SafeFileHandle guard = CreateFileW(parent, 1, sharing, IntPtr.Zero, OpenExisting, DirectoryFlag | OpenReparse, IntPtr.Zero);
                         if (guard.IsInvalid)
                         {
                             int error = Marshal.GetLastWin32Error(); guard.Dispose();

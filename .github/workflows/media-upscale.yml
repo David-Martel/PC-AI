@@ -38,7 +38,7 @@ jobs:
     env:
       CARGO_BUILD_JOBS: '2'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - name: Check default FFI and optional CPU upscale
         run: cargo check --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale

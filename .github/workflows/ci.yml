@@ -24,7 +24,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Was a second, divergent copy of the credential patterns inlined here.
       # It matched on the PATTERN alone, with no check on the matched VALUE, so
@@ -83,7 +83,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -98,7 +98,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install PSScriptAnalyzer
         shell: pwsh
         run: Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
@@ -127,7 +127,7 @@ jobs:
     timeout-minutes: 30
     needs: rust-fmt
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -152,7 +152,7 @@ jobs:
     timeout-minutes: 30
     needs: rust-check
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -218,7 +218,7 @@ jobs:
       - name: Upload LCOV Artifact
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rust-lcov-${{ github.sha }}
           path: Native/pcai_core/pcai_inference/lcov.info
@@ -230,7 +230,7 @@ jobs:
     timeout-minutes: 60
     needs: powershell-lint
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Pester
         shell: pwsh
         run: Install-Module Pester -MinimumVersion 5.6.1 -MaximumVersion 5.99.99 -Force -Scope CurrentUser
@@ -289,7 +289,7 @@ jobs:
       # Keep the raw report available even while the remote upload is optional.
       - name: Upload JaCoCo Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: powershell-jacoco-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: Tests/TestResults/coverage.xml
@@ -333,7 +333,7 @@ jobs:
     timeout-minutes: 45
     needs: rust-test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -401,7 +401,7 @@ jobs:
               exit 1
           }
       - name: Upload DLL
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pcai-inference-dll-${{ github.sha }}
           path: bin/pcai_inference.dll
@@ -416,7 +416,7 @@ jobs:
     timeout-minutes: 30
     needs: [build-llamacpp, powershell-test]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v4
         with:
           name: pcai-inference-dll-${{ github.sha }}
@@ -458,7 +458,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Both SDKs: four projects target net8.0, but PcaiChatTui.Tests targets
       # net10.0 -- a test project on a newer TFM than the code it exercises.
       # That builds locally where the 10.x SDK is installed and would fail on a
@@ -512,7 +512,7 @@ jobs:
     # The actual network/advisory audit keeps its separate ten-minute bound.
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:

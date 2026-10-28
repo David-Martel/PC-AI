@@ -15,7 +15,7 @@
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5653611Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -33,7 +33,7 @@
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5709781Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -51,7 +51,7 @@
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5732189Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -69,7 +69,7 @@
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5755378Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -87,7 +87,7 @@
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5777986Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -105,7 +105,7 @@
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5802794Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -123,7 +123,7 @@
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5825492Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"

@@ -9,11 +9,16 @@
   - Compares C# DllImport declarations to Rust exported functions
   - Compares PowerShell wrapper calls to available C# methods
   Writes Reports\API_SIGNATURE_REPORT.json and Reports\API_SIGNATURE_REPORT.md
+.PARAMETER RepoRoot
+  Repository containing the source modules and native code to inspect.
+.PARAMETER ReportDirectory
+  Output directory. Defaults to Reports under RepoRoot; tests use private output.
 #>
 
 [CmdletBinding()]
 param(
-    [string]$RepoRoot
+    [string]$RepoRoot,
+    [string]$ReportDirectory
 )
 
 Set-StrictMode -Version Latest
@@ -24,7 +29,7 @@ if (-not $RepoRoot) {
     $RepoRoot = Split-Path -Parent $scriptRoot
 }
 
-$reportDir = Join-Path $RepoRoot 'Reports'
+$reportDir = if ($ReportDirectory) { $ReportDirectory } else { Join-Path $RepoRoot 'Reports' }
 if (-not (Test-Path $reportDir)) {
     New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
 }
@@ -110,6 +115,31 @@ foreach ($file in $publicFiles) {
     $psFunctions += Get-PublicFunctionInfo -Path $file.FullName
 }
 
+$standaloneExports = @()
+foreach ($manifest in Get-ChildItem -LiteralPath $modulesRoot -Filter '*.psd1' -File) {
+    $data = Import-PowerShellDataFile -LiteralPath $manifest.FullName
+    if (-not $data.ContainsKey('RootModule') -or $data.RootModule -cne "$($manifest.BaseName).psm1") {
+        throw "Standalone manifest does not select its paired script: $($manifest.Name)"
+    }
+    $declared = @($data.FunctionsToExport)
+    $functions = @(Get-PublicFunctionInfo -Path (Join-Path $modulesRoot $data.RootModule) |
+        Where-Object { $_.Name -in $declared })
+    foreach ($name in $declared) {
+        if ($name -notin $functions.Name) { throw "Standalone export lacks a function definition: $name" }
+    }
+    $psFunctions += $functions
+    $standaloneExports += $functions.Name
+}
+
+# Reports describe repository code independently of the checkout's machine path.
+$sourcePrefix = [IO.Path]::GetFullPath($RepoRoot).TrimEnd([char[]]'\/') + [IO.Path]::DirectorySeparatorChar
+foreach ($functionInfo in $psFunctions) {
+    if (-not $functionInfo.SourcePath.StartsWith($sourcePrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Function source escapes the selected repository.'
+    }
+    $functionInfo.SourcePath = $functionInfo.SourcePath.Substring($sourcePrefix.Length).Replace('\', '/')
+}
+
 $missingHelp = @($psFunctions | Where-Object { -not $_.HelpPresent })
 $missingHelpParams = @($psFunctions | Where-Object { @($_.MissingHelpParameters).Count -gt 0 })
 $extraHelpParams = @($psFunctions | Where-Object { @($_.ExtraHelpParameters).Count -gt 0 })
@@ -136,11 +166,14 @@ $report = [PSCustomObject]@{
     Generated          = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
     PowerShell         = [PSCustomObject]@{
         FunctionCount         = @($psFunctions).Count
+        StandaloneExports     = @($standaloneExports | Sort-Object -Unique)
         MissingHelpCount      = @($missingHelp).Count
         MissingHelpParameters = $missingHelpParams
         ExtraHelpParameters   = $extraHelpParams
     }
     CSharp             = [PSCustomObject]@{
+        ImportScope        = 'internal static extern pcai_* DllImport declarations'
+        RustSourceScope    = 'Native/pcai_core/pcai_core_lib/src'
         DllImportCount     = @($csDllImports).Count
         MissingRustExports = $missingRustExports
     }

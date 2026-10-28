@@ -69,7 +69,8 @@ function Get-ThunderboltNetworkStatus {
 
         try {
             return @(Get-CimInstance -Namespace $Namespace -ClassName $ClassName -ErrorAction Stop)
-        } catch {
+        }
+        catch {
             Write-Verbose "CIM query failed for ${Namespace}:${ClassName}: $($_.Exception.Message)"
             return @()
         }
@@ -93,12 +94,12 @@ function Get-ThunderboltNetworkStatus {
         $text = [string]$State
         if ([string]::IsNullOrWhiteSpace($text)) { return 'Unknown' }
         switch ($text) {
-            '0' { return 'Unknown' }
+            '0' { return 'Unreachable' }
             '1' { return 'Incomplete' }
-            '2' { return 'Reachable' }
-            '3' { return 'Stale' }
-            '4' { return 'Delay' }
-            '5' { return 'Probe' }
+            '2' { return 'Probe' }
+            '3' { return 'Delay' }
+            '4' { return 'Stale' }
+            '5' { return 'Reachable' }
             '6' { return 'Permanent' }
         }
         return $text
@@ -114,7 +115,8 @@ function Get-ThunderboltNetworkStatus {
 
         try {
             return Get-CimInstance -Query $query -ErrorAction Stop | Select-Object -First 1
-        } catch {
+        }
+        catch {
             Write-Verbose "Signed driver lookup failed for '$DeviceId': $($_.Exception.Message)"
             return $null
         }
@@ -128,13 +130,13 @@ function Get-ThunderboltNetworkStatus {
     }
 
     $adapters = @(Get-SafeCimInstance -ClassName 'Win32_NetworkAdapter' |
-        Where-Object {
-            $_.NetConnectionID -and (
-                $_.Name -match 'Thunderbolt|USB4|P2P Network Adapter' -or
-                $_.Description -match 'Thunderbolt|USB4|P2P Network Adapter' -or
-                $_.PNPDeviceID -match 'PROT_USB4NET|THUNDERBOLT|USB4'
-            )
-        })
+            Where-Object {
+                $_.NetConnectionID -and (
+                    $_.Name -match 'Thunderbolt|USB4|P2P Network Adapter' -or
+                    $_.Description -match 'Thunderbolt|USB4|P2P Network Adapter' -or
+                    $_.PNPDeviceID -match 'PROT_USB4NET|THUNDERBOLT|USB4'
+                )
+            })
 
     if ($aliasFilter.Count -gt 0) {
         $adapters = @($adapters | Where-Object { $aliasFilter.ContainsKey($_.NetConnectionID) })
@@ -186,7 +188,7 @@ function Get-ThunderboltNetworkStatus {
     }
 
     $observedAtUtc = [datetime]::UtcNow
-    $expiresAtUtc  = $observedAtUtc.AddSeconds($EvidenceTtlSeconds)
+    $expiresAtUtc = $observedAtUtc.AddSeconds($EvidenceTtlSeconds)
 
     $results = foreach ($adapter in $adapters) {
         $cfg = $configsByIndex[$adapter.Index]
@@ -198,7 +200,8 @@ function Get-ThunderboltNetworkStatus {
             foreach ($ip in @($cfg.IPAddress)) {
                 if ($ip -match '^\d+\.\d+\.\d+\.\d+$') {
                     $ipv4 += $ip
-                } elseif ($ip -match ':') {
+                }
+                elseif ($ip -match ':') {
                     $ipv6 += $ip
                 }
             }
@@ -234,7 +237,8 @@ function Get-ThunderboltNetworkStatus {
                 try {
                     Test-WSMan -ComputerName $ip -ErrorAction Stop | Out-Null
                     $peer.WsManReachable = $true
-                } catch {
+                }
+                catch {
                     $peer.WsManReachable = $false
                 }
 
@@ -245,19 +249,23 @@ function Get-ThunderboltNetworkStatus {
                     if ($localSourceIp.Count -gt 0 -and $ip -like '169.254.*') {
                         $ep = [System.Net.IPEndPoint]::new([System.Net.IPAddress]::Parse($localSourceIp[0]), 0)
                         $sshClient = [System.Net.Sockets.TcpClient]::new($ep)
-                    } else {
+                    }
+                    else {
                         $sshClient = [System.Net.Sockets.TcpClient]::new()
                     }
                     $async = $sshClient.BeginConnect($ip, 22, $null, $null)
                     if ($async.AsyncWaitHandle.WaitOne(1000, $false)) {
                         $sshClient.EndConnect($async)
                         $peer.SshReachable = [bool]$sshClient.Connected
-                    } else {
+                    }
+                    else {
                         $peer.SshReachable = $false
                     }
-                } catch {
+                }
+                catch {
                     $peer.SshReachable = $false
-                } finally {
+                }
+                finally {
                     if ($null -ne $sshClient) { $sshClient.Close() }
                 }
 
@@ -273,7 +281,8 @@ function Get-ThunderboltNetworkStatus {
                         $resp = $null
                         try {
                             $resp = $req.GetResponse()
-                        } catch [System.Net.WebException] {
+                        }
+                        catch [System.Net.WebException] {
                             $resp = $_.Exception.Response
                         }
                         if ($resp -and $resp.Headers['WWW-Authenticate'] -match 'Negotiate\s+([A-Za-z0-9+/=]+)') {
@@ -297,7 +306,8 @@ function Get-ThunderboltNetworkStatus {
                                 }
                             }
                         }
-                    } catch { }
+                    }
+                    catch { }
                 }
             }
 
@@ -306,11 +316,14 @@ function Get-ThunderboltNetworkStatus {
 
         $role = if ($adapter.PNPDeviceID -match 'PROT_USB4NET') {
             'P2PNetwork'
-        } elseif ($adapter.Name -match 'Host Router') {
+        }
+        elseif ($adapter.Name -match 'Host Router') {
             'HostRouter'
-        } elseif ($adapter.Name -match 'Router|Thunderbolt') {
+        }
+        elseif ($adapter.Name -match 'Router|Thunderbolt') {
             'Router'
-        } else {
+        }
+        else {
             'Peripheral'
         }
 
@@ -320,33 +333,39 @@ function Get-ThunderboltNetworkStatus {
 
         $selectiveSuspend = if ($pmRow -and $null -ne $pmRow.PSObject.Properties['SelectiveSuspend']) {
             Resolve-PowerCapabilityState -Value $pmRow.SelectiveSuspend -DefaultValue ($advSelectiveSuspend ?? $defaultSelectiveSuspend)
-        } elseif (-not [string]::IsNullOrWhiteSpace($advSelectiveSuspend)) {
+        }
+        elseif (-not [string]::IsNullOrWhiteSpace($advSelectiveSuspend)) {
             Resolve-PowerCapabilityState -Value $advSelectiveSuspend -DefaultValue $defaultSelectiveSuspend
-        } else {
+        }
+        else {
             $defaultSelectiveSuspend
         }
 
         $wakeOnMagicPacket = if ($pmRow -and $null -ne $pmRow.PSObject.Properties['WakeOnMagicPacket']) {
             Resolve-PowerCapabilityState -Value $pmRow.WakeOnMagicPacket -DefaultValue 'Unsupported'
-        } else {
+        }
+        else {
             'Unsupported'
         }
 
         $wakeOnPattern = if ($pmRow -and $null -ne $pmRow.PSObject.Properties['WakeOnPattern']) {
             Resolve-PowerCapabilityState -Value $pmRow.WakeOnPattern -DefaultValue 'Unsupported'
-        } else {
+        }
+        else {
             'Unsupported'
         }
 
         $arpOffload = if ($pmRow -and $null -ne $pmRow.PSObject.Properties['ArpOffload']) {
             Resolve-PowerCapabilityState -Value $pmRow.ArpOffload -DefaultValue 'Unsupported'
-        } else {
+        }
+        else {
             'Unsupported'
         }
 
         $nsOffload = if ($pmRow -and $null -ne $pmRow.PSObject.Properties['NSOffload']) {
             Resolve-PowerCapabilityState -Value $pmRow.NSOffload -DefaultValue 'Unsupported'
-        } else {
+        }
+        else {
             'Unsupported'
         }
 
@@ -366,13 +385,17 @@ function Get-ThunderboltNetworkStatus {
 
         $lifecycleState = if (-not $isConnected) {
             'disconnected'
-        } elseif ($peerCandidates.Count -gt 0 -and (-not $ProbeWinRM -or (@($peerCandidates | Where-Object { $_.WsManReachable -eq $true -or $_.SshReachable -eq $true })).Count -gt 0)) {
+        }
+        elseif ($peerCandidates.Count -gt 0 -and (-not $ProbeWinRM -or (@($peerCandidates | Where-Object { $_.WsManReachable -eq $true -or $_.SshReachable -eq $true })).Count -gt 0)) {
             'ready'
-        } elseif ($peerCandidates.Count -gt 0) {
+        }
+        elseif ($peerCandidates.Count -gt 0) {
             'probing'
-        } elseif ($selectiveSuspend -eq 'Enabled') {
+        }
+        elseif ($selectiveSuspend -eq 'Enabled') {
             'asleep'
-        } else {
+        }
+        else {
             'probing'
         }
 
@@ -380,7 +403,8 @@ function Get-ThunderboltNetworkStatus {
         if ($role -eq 'P2PNetwork' -and $ipv4.Count -gt 0 -and (@($ipv4 | Where-Object { $_ -like '169.254.*' })).Count -gt 0) {
             if ($peerCandidates.Count -eq 0) {
                 $recommendations.Add('The USB4 peer link is using APIPA but no peer was discovered. Confirm the remote Windows host exposes a live USB4 P2P adapter and that cable authorization succeeded.')
-            } else {
+            }
+            else {
                 $recommendations.Add('The USB4 peer link is in APIPA mode. For predictable SMB and WinRM targeting, consider assigning a dedicated /30 instead of relying on 169.254/16.')
             }
             if ($ipv4Interface -and [int]$ipv4Interface.InterfaceMetric -ge 15) {
@@ -403,7 +427,8 @@ function Get-ThunderboltNetworkStatus {
         $propIfIndex = $adapter.PSObject.Properties['InterfaceIndex']
         $resolvedIfIndex = if ($propIfIndex -and $null -ne $propIfIndex.Value -and [int]$propIfIndex.Value -gt 0) {
             [int]$propIfIndex.Value
-        } else {
+        }
+        else {
             [int]$adapter.Index
         }
 
@@ -411,7 +436,8 @@ function Get-ThunderboltNetworkStatus {
         $propAncestry = $adapter.PSObject.Properties['PnpAncestry']
         if ($propAncestry -and $propAncestry.Value) {
             $pnpAncestry = @($propAncestry.Value | ForEach-Object { [string]$_ })
-        } elseif (-not [string]::IsNullOrWhiteSpace([string]$adapter.PNPDeviceID)) {
+        }
+        elseif (-not [string]::IsNullOrWhiteSpace([string]$adapter.PNPDeviceID)) {
             $curId = [string]$adapter.PNPDeviceID
             $depth = 0
             while ($curId -and $depth -lt 10) {
@@ -424,7 +450,8 @@ function Get-ThunderboltNetworkStatus {
                             $parentVal = [string]$propObj.Data
                         }
                     }
-                } catch {
+                }
+                catch {
                     $parentVal = $null
                 }
                 $curId = $parentVal
@@ -439,11 +466,13 @@ function Get-ThunderboltNetworkStatus {
             $uNode = $node.ToUpperInvariant()
             if ($uNode -like 'USB4\ROOT_DEVICE_ROUTER*') {
                 if (-not $rootRouterId) { $rootRouterId = $node }
-            } elseif ($uNode -like 'USB4\VID_*') {
+            }
+            elseif ($uNode -like 'USB4\VID_*') {
                 if (-not $intermediateDockRouters.Contains($node)) {
                     $intermediateDockRouters.Add($node)
                 }
-            } elseif ($uNode -like 'PCI\VEN_*USB4*') {
+            }
+            elseif ($uNode -like 'PCI\VEN_*USB4*') {
                 if (-not $pciHostRouterId) { $pciHostRouterId = $node }
             }
         }
@@ -458,69 +487,75 @@ function Get-ThunderboltNetworkStatus {
                         }
                     }
                 }
-            } catch { }
+            }
+            catch { }
         }
 
         $topologyPathClass = if ($pnpAncestry.Count -lt 2 -or [string]::IsNullOrWhiteSpace($rootRouterId)) {
             'unknown'
-        } elseif ($rootRouterId.ToUpperInvariant().Contains('PID_E333') -and $intermediateDockRouters.Count -eq 0) {
+        }
+        elseif ($rootRouterId.ToUpperInvariant().Contains('PID_E333') -and $intermediateDockRouters.Count -eq 0) {
             'host_port_control'
-        } elseif ($intermediateDockRouters.Count -ge 2) {
+        }
+        elseif ($intermediateDockRouters.Count -ge 2) {
             'required_two_hub'
-        } elseif ($intermediateDockRouters.Count -eq 1 -or $rootRouterId.ToUpperInvariant().Contains('PID_5781')) {
+        }
+        elseif ($intermediateDockRouters.Count -eq 1 -or $rootRouterId.ToUpperInvariant().Contains('PID_5781')) {
             'single_hub_chain'
-        } else {
+        }
+        else {
             'host_port_control'
         }
 
         $rawSpeedBps = if ($null -ne $adapter.Speed -and [uint64]$adapter.Speed -gt 0) {
             [uint64]$adapter.Speed
-        } else {
+        }
+        else {
             [uint64]20000000000
         }
 
         [PSCustomObject]@{
-            InterfaceAlias                   = $adapter.NetConnectionID
-            InterfaceIndex                   = $resolvedIfIndex
-            Name                             = $adapter.Name
-            Description                      = $adapter.Description
-            Role                             = $role
-            NetEnabled                       = [bool]$adapter.NetEnabled
-            NetConnectionStatus              = $adapter.NetConnectionStatus
-            LinkSpeedGbps                    = Convert-LinkSpeedToGbps -Speed $adapter.Speed
-            WindowsReportedLinkSpeedBps      = $rawSpeedBps
-            LinkSpeedIsNominalDriverDisplay  = $true
-            LinkSpeedIsHardwareMaximum       = $false
-            MacAddress                       = $adapter.MACAddress
-            PnpDeviceId                      = $adapter.PNPDeviceID
-            PnpAncestry                      = @($pnpAncestry)
-            RootRouterId                     = $rootRouterId
-            PciHostRouterId                  = $pciHostRouterId
-            IntermediateDockRouters          = @($intermediateDockRouters)
-            TopologyPathClass                = $topologyPathClass
-            DriverVersion                    = if ($driver) { $driver.DriverVersion } else { $null }
-            DriverProvider                   = if ($driver) { $driver.DriverProviderName } else { $null }
-            IPv4Addresses                    = @($ipv4)
-            IPv6Addresses                    = @($ipv6)
-            IPv4Metric                       = if ($ipv4Interface) { $ipv4Interface.InterfaceMetric } else { $null }
-            IPv6Metric                       = if ($ipv6Interface) { $ipv6Interface.InterfaceMetric } else { $null }
-            IPv4Mtu                          = if ($ipv4Interface) { $ipv4Interface.NlMtu } else { $null }
-            IPv6Mtu                          = if ($ipv6Interface) { $ipv6Interface.NlMtu } else { $null }
-            AutomaticMetric                  = if ($ipv4Interface) { [bool]$ipv4Interface.AutomaticMetric } else { $null }
-            SelectiveSuspend                 = $selectiveSuspend
-            WakeOnMagicPacket                = $wakeOnMagicPacket
-            WakeOnPattern                    = $wakeOnPattern
-            ArpOffload                       = $arpOffload
-            NSOffload                        = $nsOffload
-            AlwaysOnTransitCapable           = [bool]$alwaysOnTransitCapable
-            TransitClaimProhibitionReasons   = @($transitProhibitions)
-            LifecycleState                   = $lifecycleState
-            EvidenceObservedAtUtc            = $observedAtUtc.ToString('o')
-            EvidenceTtlSeconds               = $EvidenceTtlSeconds
-            EvidenceExpiresAtUtc             = $expiresAtUtc.ToString('o')
-            EvidenceExpired                  = $false
-            NeighborCandidates               = @($peerCandidates)
-            RecommendedActions               = @($recommendations)
+            InterfaceAlias                  = $adapter.NetConnectionID
+            InterfaceIndex                  = $resolvedIfIndex
+            Name                            = $adapter.Name
+            Description                     = $adapter.Description
+            Role                            = $role
+            NetEnabled                      = [bool]$adapter.NetEnabled
+            NetConnectionStatus             = $adapter.NetConnectionStatus
+            LinkSpeedGbps                   = Convert-LinkSpeedToGbps -Speed $adapter.Speed
+            WindowsReportedLinkSpeedBps     = $rawSpeedBps
+            LinkSpeedIsNominalDriverDisplay = $true
+            LinkSpeedIsHardwareMaximum      = $false
+            MacAddress                      = $adapter.MACAddress
+            PnpDeviceId                     = $adapter.PNPDeviceID
+            PnpAncestry                     = @($pnpAncestry)
+            RootRouterId                    = $rootRouterId
+            PciHostRouterId                 = $pciHostRouterId
+            IntermediateDockRouters         = @($intermediateDockRouters)
+            TopologyPathClass               = $topologyPathClass
+            DriverVersion                   = if ($driver) { $driver.DriverVersion } else { $null }
+            DriverProvider                  = if ($driver) { $driver.DriverProviderName } else { $null }
+            IPv4Addresses                   = @($ipv4)
+            IPv6Addresses                   = @($ipv6)
+            IPv4Metric                      = if ($ipv4Interface) { $ipv4Interface.InterfaceMetric } else { $null }
+            IPv6Metric                      = if ($ipv6Interface) { $ipv6Interface.InterfaceMetric } else { $null }
+            IPv4Mtu                         = if ($ipv4Interface) { $ipv4Interface.NlMtu } else { $null }
+            IPv6Mtu                         = if ($ipv6Interface) { $ipv6Interface.NlMtu } else { $null }
+            AutomaticMetric                 = if ($ipv4Interface) { [bool]$ipv4Interface.AutomaticMetric } else { $null }
+            SelectiveSuspend                = $selectiveSuspend
+            WakeOnMagicPacket               = $wakeOnMagicPacket
+            WakeOnPattern                   = $wakeOnPattern
+            ArpOffload                      = $arpOffload
+            NSOffload                       = $nsOffload
+            AlwaysOnTransitCapable          = [bool]$alwaysOnTransitCapable
+            TransitClaimProhibitionReasons  = @($transitProhibitions)
+            LifecycleState                  = $lifecycleState
+            EvidenceObservedAtUtc           = $observedAtUtc.ToString('o')
+            EvidenceTtlSeconds              = $EvidenceTtlSeconds
+            EvidenceExpiresAtUtc            = $expiresAtUtc.ToString('o')
+            EvidenceExpired                 = $false
+            NeighborCandidates              = @($peerCandidates)
+            RecommendedActions              = @($recommendations)
         }
     }
 

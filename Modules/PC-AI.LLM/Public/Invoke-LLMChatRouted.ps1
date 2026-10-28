@@ -188,6 +188,9 @@ $toolSummary
     $responseJson = $null
     if ($Mode -eq 'diagnose') {
         try {
+            if ([string]::IsNullOrWhiteSpace($finalResponse.message.content)) {
+                throw 'Diagnose response was empty or whitespace.'
+            }
             $responseJson = ConvertFrom-LLMJson -Content $finalResponse.message.content -Strict
             $jsonValid = $true
         } catch {

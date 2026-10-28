@@ -33,7 +33,7 @@ use clap::Parser;
 use image::{codecs::png::PngEncoder, ImageEncoder};
 use mimalloc::MiMalloc;
 use serde::{Deserialize, Serialize};
-use tokio::sync::RwLock;
+use tokio::sync::{OwnedSemaphorePermit, RwLock, Semaphore};
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
@@ -93,9 +93,28 @@ struct AppState {
     pipeline: Option<GenerationPipeline>,
     /// Configuration used to load (or to attempt loading) the pipeline.
     config: PipelineConfig,
+    /// One active inference job bounds per-request model/cache allocations.
+    inference_admission: Arc<Semaphore>,
 }
 
 type SharedState = Arc<RwLock<AppState>>;
+
+async fn acquire_inference(state: &SharedState) -> Result<OwnedSemaphorePermit, (StatusCode, String)> {
+    let admission = state.read().await.inference_admission.clone();
+    admission.acquire_owned().await.map_err(|_| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            "inference admission closed".to_string(),
+        )
+    })
+}
+
+fn generate_request_image(
+    request: &GenerateRequest,
+    generate: impl FnOnce(&str, Option<f64>, Option<f64>) -> Result<image::RgbImage>,
+) -> Result<image::RgbImage> {
+    generate(&request.prompt, request.cfg_scale, request.temperature)
+}
 
 // ---------------------------------------------------------------------------
 // Request / Response types
@@ -136,6 +155,8 @@ struct HealthResponse {
     model: String,
     /// Whether the generation pipeline has been successfully loaded.
     model_loaded: bool,
+    /// Whether both trained native vision and understanding aligner are loaded.
+    native_understanding_available: bool,
 }
 
 /// Request body for `POST /v1/images/understand`.
@@ -199,6 +220,10 @@ async fn health(State(state): State<SharedState>) -> impl IntoResponse {
         status: if loaded { "ready" } else { "not_ready" },
         model: guard.config.model.clone(),
         model_loaded: loaded,
+        native_understanding_available: guard
+            .pipeline
+            .as_ref()
+            .is_some_and(|pipeline| pipeline.vision_tower().is_some()),
     })
 }
 
@@ -221,37 +246,39 @@ async fn generate_image(
         ..base_config
     };
 
-    // Check that the model is loaded before taking a write lock.
+    // Validate parameters and model availability before inference admission.
     {
         let guard = state.read().await;
+        // Verify the effective config values look reasonable (non-negative).
+        if !effective_config.guidance_scale.is_finite() || effective_config.guidance_scale < 0.0 {
+            return Err((StatusCode::BAD_REQUEST, "cfg_scale must be non-negative".to_string()));
+        }
+        if !effective_config.temperature.is_finite() || effective_config.temperature <= 0.0 {
+            return Err((StatusCode::BAD_REQUEST, "temperature must be positive".to_string()));
+        }
         if guard.pipeline.is_none() {
             return Err((StatusCode::SERVICE_UNAVAILABLE, "model not loaded".to_string()));
         }
-        // Verify the effective config values look reasonable (non-negative).
-        if effective_config.guidance_scale < 0.0 {
-            return Err((StatusCode::BAD_REQUEST, "cfg_scale must be non-negative".to_string()));
-        }
-        if effective_config.temperature <= 0.0 {
-            return Err((StatusCode::BAD_REQUEST, "temperature must be positive".to_string()));
-        }
     }
+
+    let inference_permit = acquire_inference(&state).await?;
 
     // Run generation.  Janus-Pro inference is CPU/GPU-bound, so we offload to
     // a blocking thread pool to avoid stalling the Tokio runtime.
     let image = {
-        // Clone the prompt into the closure.
-        let prompt = req.prompt.clone();
-
-        // We need to move the pipeline out of the RwLock-protected state to
-        // call `generate`, but the pipeline must live in shared state for
-        // concurrent health checks.  We call `generate` while holding a read
-        // guard so other readers remain unblocked; writers (there are none
-        // at runtime) would simply wait for the generation to finish.
+        // A read guard preserves responsive health checks while the separate
+        // admission permit serializes generation and understanding.
         let guard = state.read().await;
         let pipeline = guard.pipeline.as_ref().expect("pipeline presence checked above");
 
-        tokio::task::block_in_place(|| pipeline.generate(&prompt)).map_err(|e| generation_error_response(&e))?
+        tokio::task::block_in_place(|| {
+            generate_request_image(&req, |prompt, cfg_scale, temperature| {
+                pipeline.generate_with_overrides(prompt, cfg_scale, temperature)
+            })
+        })
+        .map_err(|e| generation_error_response(&e))?
     };
+    drop(inference_permit);
 
     // Encode the ImageBuffer to PNG bytes.
     let width = image.width();
@@ -285,7 +312,7 @@ async fn understand_image(
     Json(req): Json<UnderstandRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     // Validate inputs before acquiring any lock.
-    if req.temperature <= 0.0 {
+    if !req.temperature.is_finite() || req.temperature <= 0.0 || req.temperature > f64::from(f32::MAX) {
         return Err((StatusCode::BAD_REQUEST, "temperature must be positive".to_string()));
     }
     if req.max_tokens == 0 {
@@ -297,10 +324,6 @@ async fn understand_image(
         .decode(&req.image_base64)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("base64 decode failed: {e}")))?;
 
-    // Decode bytes → DynamicImage.
-    let dynamic_image = image::load_from_memory(&image_bytes)
-        .map_err(|e| (StatusCode::BAD_REQUEST, format!("image decode failed: {e}")))?;
-
     // Check pipeline is loaded.
     {
         let guard = state.read().await;
@@ -308,6 +331,13 @@ async fn understand_image(
             return Err((StatusCode::SERVICE_UNAVAILABLE, "model not loaded".to_string()));
         }
     }
+
+    let inference_permit = acquire_inference(&state).await?;
+
+    // Decode only after admission so queued requests cannot each allocate a
+    // decompressed image alongside the active model/cache allocations.
+    let dynamic_image = image::load_from_memory(&image_bytes)
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("image decode failed: {e}")))?;
 
     // Run understanding.  Borrow model/tokenizer/device/dtype from the pipeline
     // while holding a read lock — other readers remain unblocked.
@@ -331,6 +361,7 @@ async fn understand_image(
         })
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
     };
+    drop(inference_permit);
 
     Ok(Json(UnderstandResponse { text }))
 }
@@ -417,7 +448,11 @@ async fn main() -> Result<()> {
     };
 
     // Initialise shared application state.
-    let state: SharedState = Arc::new(RwLock::new(AppState { pipeline, config }));
+    let state: SharedState = Arc::new(RwLock::new(AppState {
+        pipeline,
+        config,
+        inference_admission: Arc::new(Semaphore::new(1)),
+    }));
 
     // Build the Axum router.
     let app = Router::new()
@@ -445,6 +480,116 @@ async fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn unloaded_state() -> SharedState {
+        Arc::new(RwLock::new(AppState {
+            pipeline: None,
+            config: PipelineConfig::default(),
+            inference_admission: Arc::new(Semaphore::new(1)),
+        }))
+    }
+
+    #[test]
+    fn test_generate_boundary_forwards_request_overrides() {
+        for (cfg_scale, temperature) in [(Some(7.5), Some(0.9)), (None, None)] {
+            let request = GenerateRequest {
+                prompt: "a dog".to_string(),
+                cfg_scale,
+                temperature,
+            };
+            let image = generate_request_image(&request, |prompt, actual_cfg, actual_temperature| {
+                assert_eq!(prompt, "a dog");
+                assert_eq!(actual_cfg, cfg_scale);
+                assert_eq!(actual_temperature, temperature);
+                Ok(image::RgbImage::new(1, 1))
+            })
+            .unwrap();
+            assert_eq!(image.dimensions(), (1, 1));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_shared_inference_admission_preserves_health_and_releases() {
+        use std::future::Future;
+        use std::task::{Context, Poll, Waker};
+        let state = unloaded_state();
+        let generation = acquire_inference(&state).await.unwrap();
+        let mut understanding = std::pin::pin!(acquire_inference(&state));
+        assert!(matches!(
+            understanding.as_mut().poll(&mut Context::from_waker(Waker::noop())),
+            Poll::Pending
+        ));
+        let response = tokio::time::timeout(std::time::Duration::from_secs(1), health(State(state.clone())))
+            .await
+            .expect("health must remain responsive during inference and queued admission")
+            .into_response();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), 4096).await.unwrap();
+        let health: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(health["native_understanding_available"], false);
+        drop(generation);
+        let understanding = understanding.await.unwrap();
+        assert_eq!(state.read().await.inference_admission.available_permits(), 0);
+        drop(understanding);
+        assert_eq!(state.read().await.inference_admission.available_permits(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_inference_admission_released_on_generation_error() {
+        async fn failing_inference(state: &SharedState) -> Result<(), (StatusCode, String)> {
+            let _permit = acquire_inference(state).await?;
+            let request = GenerateRequest {
+                prompt: "a dog".to_string(),
+                cfg_scale: None,
+                temperature: None,
+            };
+            generate_request_image(&request, |_, _, _| Err(anyhow::anyhow!("injected inference failure")))
+                .map_err(|error| generation_error_response(&error))?;
+            Ok(())
+        }
+        let state = unloaded_state();
+        let (status, message) = failing_inference(&state).await.unwrap_err();
+        assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(message.contains("injected inference failure"));
+        assert!(state
+            .read()
+            .await
+            .inference_admission
+            .clone()
+            .try_acquire_owned()
+            .is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_invalid_requests_fail_before_inference_admission() {
+        let state = unloaded_state();
+        let _active_inference = acquire_inference(&state).await.unwrap();
+        let request = GenerateRequest {
+            prompt: "a dog".to_string(),
+            cfg_scale: Some(-1.0),
+            temperature: None,
+        };
+        let generation = tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            generate_image(State(state.clone()), Json(request)),
+        )
+        .await
+        .expect("invalid generation must not wait for admission");
+        assert!(matches!(generation, Err((StatusCode::BAD_REQUEST, _))));
+        let request = UnderstandRequest {
+            image_base64: String::new(),
+            prompt: "describe".to_string(),
+            max_tokens: 0,
+            temperature: 0.7,
+        };
+        let understanding = tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            understand_image(State(state.clone()), Json(request)),
+        )
+        .await
+        .expect("invalid understanding must not wait for admission");
+        assert!(matches!(understanding, Err((StatusCode::BAD_REQUEST, _))));
+    }
 
     #[tokio::test]
     async fn test_generation_error_response_preserves_complete_chain() {
@@ -504,10 +649,12 @@ mod tests {
             status: "ready",
             model: "deepseek-ai/Janus-Pro-7B".to_string(),
             model_loaded: true,
+            native_understanding_available: false,
         };
         let json = serde_json::to_string(&resp).expect("serialise failed");
         assert!(json.contains("\"status\":\"ready\""));
         assert!(json.contains("\"model_loaded\":true"));
+        assert!(json.contains("\"native_understanding_available\":false"));
     }
 
     /// `GenerateRequest` must deserialise with all optional fields absent.

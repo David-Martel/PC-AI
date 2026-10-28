@@ -26,5 +26,5 @@ function Measure-Groundedness {
     $ungrounded = $total - $grounded
     $penalty = [math]::Min(0.3, $ungrounded / 100)
 
-    return [math]::Round([math]::Max(0, $groundednessScore - $penalty), 4)
+    return [math]::Round([math]::Max(0.0, $groundednessScore - $penalty), 4)
 }

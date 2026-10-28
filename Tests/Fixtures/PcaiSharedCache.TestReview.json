@@ -1,0 +1,327 @@
+{
+  "SchemaVersion": 1,
+  "Purpose": "Source-bound independent shared-cache correctness review",
+  "ReviewedUtc": "2026-10-10T23:21:50.5222806Z",
+  "SourceFiles": [
+    {
+      "Path": "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1",
+      "RawSHA256": "948C90DB86FB18A2D97D77EF26A2817D35A5D572F2DE35925EE89949A07023DE"
+    },
+    {
+      "Path": "Tests/Unit/PcaiSharedCache.Tests.ps1",
+      "RawSHA256": "B0BB9F96366B8F880EC2705C14C7CB25C5FD0F3E0D194D6924CB3F32B321B3F9"
+    }
+  ],
+  "IndependentReviewSHA256": "301D198B26E4DAB7DA623FF1AE6C50344CFDFB95D4D41CB6B8B3136E7A16ED87",
+  "Actual": "R2: 11 PASS, 1 Redis SKIP, 0 FAIL, 0 NotRun; ordinary Pester, no native custody claim",
+  "DetectingBaseline": "R1: 1 PASS, 7 FAIL for eight newly expanded controls",
+  "SourceBinding": "R2 executed test hash BB45BD0D31652B0F0A53FA63C969BAF4F20799B7028FB84E830A8E1FC8CEFAFC; current four legacy rationale comments added outside unchanged assertion bodies",
+  "Performance": "NOT_BENCHMARKED",
+  "CoverageCredit": "NOT_MEASURED",
+  "LiveRedis": "NOT_QUALIFIED; transport mocked in deletion-boundary control",
+  "Evidence": [
+    {
+      "Bytes": 3230,
+      "Path": "D:/pcai-relocation/pcai-shared-cache-correctness-r1/manifest.json",
+      "SHA256": "8EC51F4030556EF49EC4F33E4F4300AD2E69E713288C806BC1293558DECC8395"
+    },
+    {
+      "Bytes": 1647,
+      "Path": "D:/pcai-relocation/pcai-shared-cache-correctness-r1/baseline-result.json",
+      "SHA256": "DB0462B14A9F3168C87F112BB69533A6A00F8306181DD39FC196AEFDBEF17343"
+    },
+    {
+      "Bytes": 7495,
+      "Path": "D:/pcai-relocation/pcai-shared-cache-correctness-r1/baseline.xml",
+      "SHA256": "485CA5A68649BD3761D04C1ABA872AC8A8258BDD98B35FBE550BF69DC5FFDBB4"
+    },
+    {
+      "Bytes": 410,
+      "Path": "D:/pcai-relocation/pcai-shared-cache-correctness-r1/candidate-result.json",
+      "SHA256": "103A36EC43BAACBA164CFD1252367B50AF627651D61F8DA9CF44E74BBD10D5A3"
+    },
+    {
+      "Bytes": 112,
+      "Path": "D:/pcai-relocation/pcai-shared-cache-correctness-r1/module-adapter-result.json",
+      "SHA256": "C171A1FDB52BDDEFE5684462348C873EC4F65813A8263B287EDC603B913E1F87"
+    },
+    {
+      "Bytes": 374,
+      "Path": "D:/pcai-relocation/pcai-shared-cache-correctness-r2/result.json",
+      "SHA256": "CB741ADACC889E4EA072EAD548820D9B851ACDB54FF50007D0DA090E7752B32B"
+    },
+    {
+      "Bytes": 5708,
+      "Path": "D:/pcai-relocation/pcai-shared-cache-correctness-r2/pester.xml",
+      "SHA256": "B306D9D6402D9A0FFEA67C07589DA6559E68E4A71FBF4696062A59E04D255776"
+    },
+    {
+      "Bytes": 1524,
+      "Path": "D:/pcai-relocation/pcai-shared-cache-correctness-r2/pester.log",
+      "SHA256": "8B0FE36F1C14FDAB76A4D53D0B84C2E5D6F180F1E3089A56B09D0AC6E88D6BC4"
+    },
+    {
+      "Bytes": 1370,
+      "Path": "D:/pcai-relocation/pcai-shared-cache-correctness-r2/run-tests.ps1",
+      "SHA256": "9C5EA92A01FC22C35B63FBD7DBDE9E33A617C108518BE4E4B4C94A79E6D1DD62"
+    },
+    {
+      "Bytes": 13404,
+      "Path": "D:/pcai-relocation/pcai-shared-cache-correctness-r2/tests-before-redis-skip.ps1",
+      "SHA256": "9936517248D6D1192693521429C87D9936EF9433A357D34FCA4CFBDDFA399330"
+    }
+  ],
+  "RemainingGaps": [
+    "Live Redis hydration and server interpretation of escaped glob data were skipped or mocked; not accepted from inert controls.",
+    "Backslash/case/newline namespaces and arbitrary Redis binary keys are not exhaustively qualified by the current detector.",
+    "Existing Invoke-PcaiProcessCapture waits before draining streams, has unbounded synchronous ReadToEnd and no settled timeout/disposal custody proof. It is unchanged and not runtime-qualified here.",
+    "General cloning of arbitrary objects, getters, cycles, empty/single arrays and case-distinct dictionary keys is not accepted from the two concrete dictionary cases.",
+    "Directory stamps are metadata snapshots, not recursive content hashes; already-cached DirectoryInfo freshness and hidden/inaccessible paths are not broadly qualified.",
+    "No native cache capture, concurrent provider race, performance gain, full CI, coverage gain or unchanged 85 percent floor acceptance."
+  ],
+  "Rows": [
+    {
+      "Selector": "stamps a real directory object without a Length property",
+      "ExpandedNames": [
+        "stamps a real directory object without a Length property"
+      ],
+      "BodyRawUTF8SHA256": "B8039C5B6B82BA38A3F850EA4C787E3086F10939AFE5CC971B7A1CDD42B26672",
+      "Reviewer": "codex-continuity-ledger",
+      "ReviewerType": "Independent agent, not production or test author; Root independently checked current assertion-body equivalence",
+      "ReviewedCommit": "da3d9afbad5d506a2b8f5676e8ebb87099045d6b",
+      "UncommittedSourceSnapshot": true,
+      "Disposition": "keep",
+      "ReviewedScope": "GO_SOURCE_AND_ACTUAL_PESTER",
+      "Rationale": [
+        "# Protects: DirectoryInfo dependencies remain usable under StrictMode.",
+        "# Detects: Accessing the nonexistent directory Length property.",
+        "# Needs: A real ordinary directory and the complete cache helper.",
+        "# Breadcrumb: Get-PcaiDependencyStamp FileSystemInfo branch."
+      ],
+      "ExistingSelector": false,
+      "PriorR1BodySHA256": "B8039C5B6B82BA38A3F850EA4C787E3086F10939AFE5CC971B7A1CDD42B26672",
+      "MissingRedisPrerequisite": "Explicit SKIP; does not establish live-provider acceptance"
+    },
+    {
+      "Selector": "stamps a real directory path consistently with its object",
+      "ExpandedNames": [
+        "stamps a real directory path consistently with its object"
+      ],
+      "BodyRawUTF8SHA256": "DA21F4BAF419BDE66A4F2C6B46057126E9692F46C3D51BB6A15F66372E17921E",
+      "Reviewer": "codex-continuity-ledger",
+      "ReviewerType": "Independent agent, not production or test author; Root independently checked current assertion-body equivalence",
+      "ReviewedCommit": "da3d9afbad5d506a2b8f5676e8ebb87099045d6b",
+      "UncommittedSourceSnapshot": true,
+      "Disposition": "keep",
+      "ReviewedScope": "GO_SOURCE_AND_ACTUAL_PESTER",
+      "Rationale": [
+        "# Protects: Directory paths have the same dependency identity as objects.",
+        "# Detects: The independent resolved-path branch reading directory Length.",
+        "# Needs: A real directory supplied by both path and DirectoryInfo.",
+        "# Breadcrumb: Get-PcaiDependencyStamp string branch."
+      ],
+      "ExistingSelector": false,
+      "PriorR1BodySHA256": "DA21F4BAF419BDE66A4F2C6B46057126E9692F46C3D51BB6A15F66372E17921E",
+      "MissingRedisPrerequisite": "Explicit SKIP; does not establish live-provider acceptance"
+    },
+    {
+      "Selector": "changes a directory dependency stamp when its timestamp changes",
+      "ExpandedNames": [
+        "changes a directory dependency stamp when its timestamp changes"
+      ],
+      "BodyRawUTF8SHA256": "D904BBF91EE6E3EEF2E4F663661EBD6B1562BD809ABDF42F147BA5171F50B853",
+      "Reviewer": "codex-continuity-ledger",
+      "ReviewerType": "Independent agent, not production or test author; Root independently checked current assertion-body equivalence",
+      "ReviewedCommit": "da3d9afbad5d506a2b8f5676e8ebb87099045d6b",
+      "UncommittedSourceSnapshot": true,
+      "Disposition": "keep",
+      "ReviewedScope": "GO_SOURCE_AND_ACTUAL_PESTER",
+      "Rationale": [
+        "# Protects: Directory metadata changes invalidate cached consumers.",
+        "# Detects: Replacing the directory stamp with a constant or ignored path.",
+        "# Needs: Explicit real directory timestamps without sleeps or external IO.",
+        "# Breadcrumb: Get-PcaiDependencyStamp LastWriteTimeUtc."
+      ],
+      "ExistingSelector": false,
+      "PriorR1BodySHA256": "D904BBF91EE6E3EEF2E4F663661EBD6B1562BD809ABDF42F147BA5171F50B853",
+      "MissingRedisPrerequisite": "Explicit SKIP; does not establish live-provider acceptance"
+    },
+    {
+      "Selector": "retains file length sensitivity and object-path parity",
+      "ExpandedNames": [
+        "retains file length sensitivity and object-path parity"
+      ],
+      "BodyRawUTF8SHA256": "9D358CBC266D14C9E42D9D38F2E7A75C06052CE0C5033E4C48EA54AD5A223B7B",
+      "Reviewer": "codex-continuity-ledger",
+      "ReviewerType": "Independent agent, not production or test author; Root independently checked current assertion-body equivalence",
+      "ReviewedCommit": "da3d9afbad5d506a2b8f5676e8ebb87099045d6b",
+      "UncommittedSourceSnapshot": true,
+      "Disposition": "keep",
+      "ReviewedScope": "GO_SOURCE_AND_ACTUAL_PESTER",
+      "Rationale": [
+        "# Protects: File length remains part of the existing dependency stamp.",
+        "# Detects: A directory fix accidentally discarding Length for all files.",
+        "# Needs: Real file bytes with an explicitly fixed timestamp.",
+        "# Breadcrumb: Get-PcaiDependencyStamp FileInfo handling."
+      ],
+      "ExistingSelector": false,
+      "PriorR1BodySHA256": "9D358CBC266D14C9E42D9D38F2E7A75C06052CE0C5033E4C48EA54AD5A223B7B",
+      "MissingRedisPrerequisite": "Explicit SKIP; does not establish live-provider acceptance"
+    },
+    {
+      "Selector": "round-trips and isolates a <Kind> with a literal Keys entry",
+      "ExpandedNames": [
+        "round-trips and isolates a hashtable with a literal Keys entry",
+        "round-trips and isolates a ordered dictionary with a literal Keys entry"
+      ],
+      "BodyRawUTF8SHA256": "7FDC7A5B7DDF5F1A232ACFF7FD128869F96543651C04D07B8B3BABE514EAE7A8",
+      "Reviewer": "codex-continuity-ledger",
+      "ReviewerType": "Independent agent, not production or test author; Root independently checked current assertion-body equivalence",
+      "ReviewedCommit": "da3d9afbad5d506a2b8f5676e8ebb87099045d6b",
+      "UncommittedSourceSnapshot": true,
+      "Disposition": "keep",
+      "ReviewedScope": "GO_SOURCE_AND_ACTUAL_PESTER",
+      "Rationale": [
+        "# Protects: Literal Keys entries and all nested siblings survive caching.",
+        "# Detects: PowerShell dictionary adapters shadowing the real key collection.",
+        "# Needs: Hashtable and OrderedDictionary values with mutable nested data.",
+        "# Breadcrumb: Copy-PcaiCacheValue IDictionary recursion."
+      ],
+      "ExistingSelector": false,
+      "PriorR1BodySHA256": "7FDC7A5B7DDF5F1A232ACFF7FD128869F96543651C04D07B8B3BABE514EAE7A8",
+      "MissingRedisPrerequisite": "Explicit SKIP; does not establish live-provider acceptance"
+    },
+    {
+      "Selector": "clears only literal local namespace prefixes containing wildcards",
+      "ExpandedNames": [
+        "clears only literal local namespace prefixes containing wildcards"
+      ],
+      "BodyRawUTF8SHA256": "4728D8603ED41393C9F5C2E2A9DED0062163AAAEBE6EECD3BA2396B920007D87",
+      "Reviewer": "codex-continuity-ledger",
+      "ReviewerType": "Independent agent, not production or test author; Root independently checked current assertion-body equivalence",
+      "ReviewedCommit": "da3d9afbad5d506a2b8f5676e8ebb87099045d6b",
+      "UncommittedSourceSnapshot": true,
+      "Disposition": "keep",
+      "ReviewedScope": "GO_SOURCE_AND_ACTUAL_PESTER",
+      "Rationale": [
+        "# Protects: Clearing a namespace treats wildcard characters as literal data.",
+        "# Detects: Wildcard matching that deletes siblings or fails to clear itself.",
+        "# Needs: Real local entries for star, question mark, brackets and siblings.",
+        "# Breadcrumb: Clear-PcaiSharedCache namespace prefix comparison."
+      ],
+      "ExistingSelector": false,
+      "PriorR1BodySHA256": "4728D8603ED41393C9F5C2E2A9DED0062163AAAEBE6EECD3BA2396B920007D87",
+      "MissingRedisPrerequisite": "Explicit SKIP; does not establish live-provider acceptance"
+    },
+    {
+      "Selector": "escapes Redis glob data and deletes only exact literal prefix matches",
+      "ExpandedNames": [
+        "escapes Redis glob data and deletes only exact literal prefix matches"
+      ],
+      "BodyRawUTF8SHA256": "9681890C500521A4F9180FD6FD9CC21DDDD269387D0F20BF472B8655CDD50FE3",
+      "Reviewer": "codex-continuity-ledger",
+      "ReviewerType": "Independent agent, not production or test author; Root independently checked current assertion-body equivalence",
+      "ReviewedCommit": "da3d9afbad5d506a2b8f5676e8ebb87099045d6b",
+      "UncommittedSourceSnapshot": true,
+      "Disposition": "keep",
+      "ReviewedScope": "GO_SOURCE_AND_ACTUAL_PESTER",
+      "Rationale": [
+        "# Protects: Redis namespace deletion cannot include unrelated scanned keys.",
+        "# Detects: Unescaped Redis glob prefixes or unfiltered scan results.",
+        "# Needs: Only Redis transport/status collaborators mocked, no real server.",
+        "# Breadcrumb: Clear-PcaiExternalCache pattern and deletion boundary."
+      ],
+      "ExistingSelector": false,
+      "PriorR1BodySHA256": "9681890C500521A4F9180FD6FD9CC21DDDD269387D0F20BF472B8655CDD50FE3",
+      "MissingRedisPrerequisite": "Explicit SKIP; does not establish live-provider acceptance"
+    },
+    {
+      "Selector": "round-trips in-memory cache values and honors dependency stamps",
+      "ExpandedNames": [
+        "round-trips in-memory cache values and honors dependency stamps"
+      ],
+      "BodyRawUTF8SHA256": "DE8890BB75BE002E14BECF6A8F9B90492337F732FA62972E19A7E52D103D7283",
+      "Reviewer": "codex-continuity-ledger",
+      "ReviewerType": "Independent agent, not production or test author; Root independently checked current assertion-body equivalence",
+      "ReviewedCommit": "da3d9afbad5d506a2b8f5676e8ebb87099045d6b",
+      "UncommittedSourceSnapshot": true,
+      "Disposition": "keep",
+      "ReviewedScope": "GO_SOURCE_AND_ACTUAL_PESTER",
+      "Rationale": [
+        "# Protects: Cached consumer values retain their shape and dependency identity.",
+        "# Detects: Lost nested paths or a hit accepted under a different stamp.",
+        "# Needs: In-memory cache only; no external provider.",
+        "# Breadcrumb: Set-PcaiSharedCacheEntry and Get-PcaiSharedCacheEntry."
+      ],
+      "ExistingSelector": true,
+      "PriorR1BodySHA256": "DE8890BB75BE002E14BECF6A8F9B90492337F732FA62972E19A7E52D103D7283",
+      "MissingRedisPrerequisite": "Explicit SKIP; does not establish live-provider acceptance"
+    },
+    {
+      "Selector": "expires stale local entries when TTL is exceeded",
+      "ExpandedNames": [
+        "expires stale local entries when TTL is exceeded"
+      ],
+      "BodyRawUTF8SHA256": "1D93A1FDA853604B64088DBFFB650A40B46CC59973BF7171C6CCECDD5A66AEBF",
+      "Reviewer": "codex-continuity-ledger",
+      "ReviewerType": "Independent agent, not production or test author; Root independently checked current assertion-body equivalence",
+      "ReviewedCommit": "da3d9afbad5d506a2b8f5676e8ebb87099045d6b",
+      "UncommittedSourceSnapshot": true,
+      "Disposition": "keep",
+      "ReviewedScope": "GO_SOURCE_AND_ACTUAL_PESTER",
+      "Rationale": [
+        "# Protects: Expired local values cannot be served to consumers.",
+        "# Detects: TTL checks accepting an explicitly aged entry.",
+        "# Needs: In-memory entry with a controlled creation time; no sleep.",
+        "# Breadcrumb: Get-PcaiSharedCacheEntry expiration handling."
+      ],
+      "ExistingSelector": true,
+      "PriorR1BodySHA256": "1D93A1FDA853604B64088DBFFB650A40B46CC59973BF7171C6CCECDD5A66AEBF",
+      "MissingRedisPrerequisite": "Explicit SKIP; does not establish live-provider acceptance"
+    },
+    {
+      "Selector": "reports memory mode when no external provider is configured",
+      "ExpandedNames": [
+        "reports memory mode when no external provider is configured"
+      ],
+      "BodyRawUTF8SHA256": "BC15DF3CFBB9B97C8C60778B0216F180AD9D14F7E5819DDB961422F26B0D174E",
+      "Reviewer": "codex-continuity-ledger",
+      "ReviewerType": "Independent agent, not production or test author; Root independently checked current assertion-body equivalence",
+      "ReviewedCommit": "da3d9afbad5d506a2b8f5676e8ebb87099045d6b",
+      "UncommittedSourceSnapshot": true,
+      "Disposition": "keep",
+      "ReviewedScope": "GO_SOURCE_AND_ACTUAL_PESTER",
+      "Rationale": [
+        "# Protects: Cache consumers can operate without Redis configuration.",
+        "# Detects: Incorrect external-provider enabled or available status.",
+        "# Needs: Cleared process-local provider environment, restored by the fixture.",
+        "# Breadcrumb: Get-PcaiExternalCacheStatus."
+      ],
+      "ExistingSelector": true,
+      "PriorR1BodySHA256": "BC15DF3CFBB9B97C8C60778B0216F180AD9D14F7E5819DDB961422F26B0D174E",
+      "MissingRedisPrerequisite": "Explicit SKIP; does not establish live-provider acceptance"
+    },
+    {
+      "Selector": "hydrates a local cache miss from Redis when the provider is enabled",
+      "ExpandedNames": [
+        "hydrates a local cache miss from Redis when the provider is enabled"
+      ],
+      "BodyRawUTF8SHA256": "9F580515F89232CE4D131B8D9CB70A7AE4BADAD8D093C82CF131E7A236A1BC67",
+      "Reviewer": "codex-continuity-ledger",
+      "ReviewerType": "Independent agent, not production or test author; Root independently checked current assertion-body equivalence",
+      "ReviewedCommit": "da3d9afbad5d506a2b8f5676e8ebb87099045d6b",
+      "UncommittedSourceSnapshot": true,
+      "Disposition": "keep",
+      "ReviewedScope": "SKIP_NO_LIVE_REDIS_ACCEPTANCE",
+      "Rationale": [
+        "# Protects: Redis hydration preserves value and dependency identity.",
+        "# Detects: Missing external reads or stale dependency acceptance.",
+        "# Needs: Available Redis on the fixture port; absent or disabled probes SKIP.",
+        "# Breadcrumb: Get-PcaiSharedCacheEntry external hydration."
+      ],
+      "ExistingSelector": true,
+      "PriorR1BodySHA256": "5CD1E0A09DD9B38A7EB0F37ACB9C886982CB8978A2FB4909EAB301D73489569A",
+      "MissingRedisPrerequisite": "Explicit SKIP; does not establish live-provider acceptance"
+    }
+  ]
+}

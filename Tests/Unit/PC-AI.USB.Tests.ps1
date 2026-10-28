@@ -7,6 +7,7 @@
 #>
 
 BeforeAll {
+    Import-Module (Join-Path $PSScriptRoot '../../Modules/PC-AI.Common/PC-AI.Common.psm1') -Global -Force
     # Import module under test
     $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.USB\PC-AI.USB.psd1'
     Import-Module $ModulePath -Force -ErrorAction Stop
@@ -176,9 +177,15 @@ Describe "Mount-UsbToWSL" -Tag 'Unit', 'USB', 'Slow', 'Portable' {
         }
 
         It "Should return error when usbipd not installed" {
-            $result = Mount-UsbToWSL -BusId "2-1" -ErrorAction SilentlyContinue
+            $errors = @()
+            $result = Mount-UsbToWSL -BusId "2-1" -ErrorAction SilentlyContinue -ErrorVariable errors
             $result.Success | Should -Be $false
             $result.Message | Should -Match "usbipd-win is not installed"
+            @($errors).Count | Should -Be 1
+        }
+
+        It 'preserves the native caller error contract for missing attach dependency with Stop' {
+            { Mount-UsbToWSL -BusId '2-1' -ErrorAction Stop } | Should -Throw '*usbipd-win is not installed*'
         }
     }
 }
@@ -215,9 +222,15 @@ Describe "Dismount-UsbFromWSL" -Tag 'Unit', 'USB', 'Slow', 'Portable' {
         }
 
         It "Should return error when usbipd not installed" {
-            $result = Dismount-UsbFromWSL -BusId "2-1" -ErrorAction SilentlyContinue
+            $errors = @()
+            $result = Dismount-UsbFromWSL -BusId "2-1" -ErrorAction SilentlyContinue -ErrorVariable errors
             $result.Detached | Should -Be $false
             $result.Message | Should -Match "usbipd-win is not installed"
+            @($errors).Count | Should -Be 1
+        }
+
+        It 'preserves the native caller error contract for missing detach dependency with Stop' {
+            { Dismount-UsbFromWSL -BusId '2-1' -ErrorAction Stop } | Should -Throw '*usbipd-win is not installed*'
         }
     }
 }
@@ -308,9 +321,15 @@ Describe "Invoke-UsbBind" -Tag 'Unit', 'USB', 'Slow', 'RequiresAdmin', 'Portable
         }
 
         It "Should return error requiring Administrator privileges" {
-            $result = Invoke-UsbBind -BusId "2-1" -ErrorAction SilentlyContinue
+            $errors = @()
+            $result = Invoke-UsbBind -BusId "2-1" -ErrorAction SilentlyContinue -ErrorVariable errors
             $result.Success | Should -Be $false
             $result.Message | Should -Match "Administrator privileges required"
+            @($errors).Count | Should -Be 1
+        }
+
+        It 'preserves the native caller error contract for nonadministrator bind with Stop' {
+            { Invoke-UsbBind -BusId '2-1' -ErrorAction Stop } | Should -Throw '*Administrator privileges required*'
         }
     }
 
@@ -320,9 +339,15 @@ Describe "Invoke-UsbBind" -Tag 'Unit', 'USB', 'Slow', 'RequiresAdmin', 'Portable
         }
 
         It "Should return error when usbipd not installed" {
-            $result = Invoke-UsbBind -BusId "2-1" -ErrorAction SilentlyContinue
+            $errors = @()
+            $result = Invoke-UsbBind -BusId "2-1" -ErrorAction SilentlyContinue -ErrorVariable errors
             $result.Success | Should -Be $false
             $result.Message | Should -Match "usbipd-win is not installed"
+            @($errors).Count | Should -Be 1
+        }
+
+        It 'preserves the native caller error contract for missing bind dependency with Stop' {
+            { Invoke-UsbBind -BusId '2-1' -ErrorAction Stop } | Should -Throw '*usbipd-win is not installed*'
         }
     }
 }

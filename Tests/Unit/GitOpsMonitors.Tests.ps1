@@ -20,6 +20,7 @@ function global:Invoke-VigilBoundedProcess {
         elseif ($Arguments[0] -eq 'run') { 'runs' }
         elseif ($Arguments[1] -match 'actions/workflows') { 'workflows' }
         elseif ($Arguments[1] -match 'billing') { 'billing' }
+        elseif ($Arguments[1] -match '^users/') { 'billing-owner' }
         elseif ($Arguments[1] -match 'dependabot') { 'dependabot' }
         elseif ($Arguments[1] -match 'code-scanning') { 'code-scanning' }
         elseif ($Arguments[1] -match '/reviews') { 'reviews' }
@@ -31,7 +32,7 @@ function global:Invoke-VigilBoundedProcess {
         candidate_config_preserved = ($env:AGENT_BUS_SERVER_CANDIDATES -match 'fixture.example')
     } | ConvertTo-Json -Depth 5 -Compress) + [Environment]::NewLine))
     if ($operation -eq 'runs' -and $global:fixtureScenario.ContainsKey('hold_seconds')) { Start-Sleep -Seconds $global:fixtureScenario.hold_seconds }
-    $defaults = @{ repository = '{"nameWithOwner":"fixture/repo"}'; runs = '[]'; workflows = '{"workflows":[]}'; billing = '{"total_minutes_used":0,"included_minutes":100}'; dependabot = '[[]]'; 'code-scanning' = '[]'; pulls = '[]'; reviews = '[]'; send = '{"ok":true}' }
+    $defaults = @{ repository = '{"nameWithOwner":"fixture/repo"}'; runs = '[]'; workflows = '{"workflows":[]}'; 'billing-owner' = '{"login":"fixture","type":"User"}'; billing = '{"usageItems":[]}'; dependabot = '[[]]'; 'code-scanning' = '[]'; pulls = '[]'; reviews = '[]'; send = '{"ok":true}' }
     $selected = if ($global:fixtureScenario.ContainsKey($operation)) { $global:fixtureScenario[$operation] } elseif ($operation -ne 'send' -and $global:fixtureScenario.ContainsKey('all_gh')) { $global:fixtureScenario.all_gh } else { @{ ExitCode = 0; Stdout = $defaults[$operation]; Stderr = '' } }
     if ($selected.Throw) { throw 'fixture-secret-DO-NOT-LOG C:/private/credential-file' }
     [pscustomobject]@{ ExitCode = $selected.ExitCode; Stdout = $selected.Stdout; Stderr = $selected.Stderr }
@@ -99,10 +100,111 @@ exit $LASTEXITCODE
     $script:findings = @{ runs = @{ ExitCode = 0; Stdout = '[{"databaseId":42,"status":"completed","conclusion":"failure","workflowName":"fixture-ci"}]'; Stderr = '' }; dependabot = @{ ExitCode = 0; Stdout = '[[{"security_advisory":{"severity":"high","summary":"fixture advisory"},"html_url":"https://fixture.example/advisory"}]]'; Stderr = '' } }
 }
 Describe 'Actual GitOps scripts with external requests stubbed' {
+    # Protects: user-owned repositories use the supported usage API.
+    # Detects: retired endpoint and obsolete allowance schema poisoning workflow health.
+    # Needs: the complete monitor with bounded API collaborator responses.
+    # Breadcrumb: GitHub billing endpoint retirement, 2025-09-26.
+    It 'uses current-month user billing usage and leaves quota unknown' -Tag BillingMigration {
+        $r = Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1)
+        $w = ($r.Reports | Where-Object Name -Like 'workflow-health-*').Value
+        $now = [datetime]::UtcNow
+        $r.ExitCode | Should -Be 0; $w.inspection_status | Should -Be Available
+        $w.workflow_inspection_status | Should -Be Available; $w.billing.quota_status | Should -Be Unknown
+        ($r.Calls | Where-Object operation -EQ billing).arguments[1] | Should -Be ("users/fixture/settings/billing/usage?year=$($now.Year)&month=$($now.Month)")
+        @($r.Calls | Where-Object operation -EQ billing-owner).Count | Should -Be 1
+        ($w.billing | ConvertTo-Json) | Should -Not -Match 'included|used|quantity|Amount'
+    }
+    # Protects: billing is queried for the repository's organization rather than the token user.
+    # Detects: organization ownership incorrectly routed to the user endpoint.
+    # Needs: a real monitor invocation with an Organization owner response.
+    # Breadcrumb: GET /organizations/{org}/settings/billing/usage.
+    It 'routes organization ownership and validates an Actions usage item' -Tag BillingMigration {
+        $date = [datetime]::UtcNow.ToString('yyyy-MM-dd')
+        $usage = @{ usageItems = @(@{ date = $date; product = 'Actions'; sku = 'Actions Linux'; quantity = 1000000; unitType = 'minutes'; pricePerUnit = 0.008; grossAmount = 8000; discountAmount = 0; netAmount = 8000 }) } | ConvertTo-Json -Depth 5 -Compress
+        $r = Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1 -Scenario @{ 'billing-owner' = @{ExitCode=0;Stdout='{"login":"fixture","type":"Organization"}';Stderr=''}; billing = @{ExitCode=0;Stdout=$usage;Stderr=''} })
+        $w = ($r.Reports | Where-Object Name -Like 'workflow-health-*').Value
+        $r.ExitCode | Should -Be 0; $w.problem_count | Should -Be 0; $w.billing.quota_status | Should -Be Unknown
+        ($r.Calls | Where-Object operation -EQ billing).arguments[1] | Should -Match '^organizations/fixture/settings/billing/usage\?year=\d{4}&month=\d{1,2}$'
+        ($r.Stdout + ($w | ConvertTo-Json -Depth 8)) | Should -Not -Match '8000|1000000'
+    }
+    # Protects: successful HTTP responses cannot substitute malformed billing metadata.
+    # Detects: missing, null or non-array usageItems and obsolete minute counters.
+    # Needs: complete monitor execution for each literal response.
+    # Breadcrumb: enhanced billing usageItems array contract.
+    It 'refuses missing null and object usage arrays without hiding available workflows' -Tag BillingMigration {
+        foreach ($json in @('{}','{"usageItems":null}','{"usageItems":{}}','{"total_minutes_used":0,"included_minutes":100}')) {
+            $r = Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1 -Scenario @{billing=@{ExitCode=0;Stdout=$json;Stderr=''}})
+            $w = ($r.Reports | Where-Object Name -Like 'workflow-health-*').Value
+            $r.ExitCode | Should -Be 2; $w.workflow_inspection_status | Should -Be Available
+            ($w.inspections | Where-Object operation -EQ billing).reason | Should -Be 'Billing usage metadata is incomplete or invalid.'
+        }
+    }
+    # Protects: advertised usage values retain their scalar numeric and date contracts.
+    # Detects: array enums, string numbers, missing amounts and out-of-period dates.
+    # Needs: inert current-month usage items returned to the actual monitor.
+    # Breadcrumb: billing usage response schema and explicit UTC month filter.
+    It 'refuses malformed typed usage items and records no private values' -Tag BillingMigration {
+        $valid = @{ date=[datetime]::UtcNow.ToString('yyyy-MM-dd');product='Actions';sku='Actions Linux';quantity=1;unitType='minutes';pricePerUnit=0.008;grossAmount=0.008;discountAmount=0;netAmount=0.008 }
+        foreach($change in @(@{product=@('Actions')},@{quantity='1'},@{netAmount=$null},@{date='2001-01-01'},@{date='bad'},@{unitType=@('minutes')})) {
+            $item=$valid.Clone(); foreach($key in $change.Keys){$item[$key]=$change[$key]}
+            $json=@{usageItems=@($item)} | ConvertTo-Json -Depth 6 -Compress
+            $r=Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1 -Scenario @{billing=@{ExitCode=0;Stdout=$json;Stderr=''}})
+            $w=($r.Reports | Where-Object Name -Like 'workflow-health-*').Value
+            $r.ExitCode | Should -Be 2; ($w.inspections | Where-Object operation -EQ billing).status | Should -Be Unavailable
+            $w.workflow_inspection_status | Should -Be Available
+        }
+    }
+    # Protects: an optional returned timePeriod must agree with the requested month.
+    # Detects: stale or incorrectly typed report period despite valid empty usageItems.
+    # Needs: real monitor invocations with valid and invalid period objects.
+    # Breadcrumb: current UTC year/month request validation.
+    It 'accepts matching timePeriod and refuses stale or malformed period metadata' -Tag BillingMigration {
+        $now=[datetime]::UtcNow
+        foreach($period in @(@{year=$now.Year;month=$now.Month},@{year=2001;month=1},@{year="$($now.Year)";month=$now.Month},@{year=$now.Year})) {
+            $json=@{usageItems=@();timePeriod=$period} | ConvertTo-Json -Depth 5 -Compress
+            $r=Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1 -Scenario @{billing=@{ExitCode=0;Stdout=$json;Stderr=''}})
+            $expected=if($period.year -is [int] -and $period.year -eq $now.Year -and $period.month -eq $now.Month){0}else{2}
+            $r.ExitCode | Should -Be $expected
+        }
+    }
+    # Protects: unknown account ownership cannot direct a billing request.
+    # Detects: mismatched login, unsupported account type and array type coercion.
+    # Needs: bounded owner discovery stubs and actual monitor control flow.
+    # Breadcrumb: users owner type determines users versus organizations route.
+    It 'refuses malformed billing ownership before calling usage' -Tag BillingMigration {
+        foreach($json in @('{}','{"login":"other","type":"User"}','{"login":"fixture","type":"Bot"}','{"login":"fixture","type":["User"]}')) {
+            $r=Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1 -Scenario @{'billing-owner'=@{ExitCode=0;Stdout=$json;Stderr=''}})
+            $w=($r.Reports | Where-Object Name -Like 'workflow-health-*').Value
+            $r.ExitCode | Should -Be 2; @($r.Calls | Where-Object operation -EQ billing).Count | Should -Be 0
+            ($w.inspections | Where-Object operation -EQ billing-owner).status | Should -Be Unavailable
+        }
+    }
+    # Protects: billing permission failures remain visible and sanitized.
+    # Detects: valid-looking stdout from exit403 being accepted or leaking stderr.
+    # Needs: complete monitor plus nonzero API collaborator result.
+    # Breadcrumb: user Plan/read and organization Administration/read permission gates.
+    It 'retains billing access failures while preserving workflow metadata availability' -Tag BillingMigration {
+        $r=Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1 -Scenario @{billing=@{ExitCode=403;Stdout='{"usageItems":[]}';Stderr='fixture-secret-DO-NOT-LOG'}})
+        $w=($r.Reports | Where-Object Name -Like 'workflow-health-*').Value
+        $r.ExitCode | Should -Be 2; $w.workflow_inspection_status | Should -Be Available
+        ($w.inspections | Where-Object operation -EQ billing).exit_code | Should -Be 403
+        $w.billing.quota_status | Should -Be Unknown
+        ($r.Stdout+$r.Stderr+($w | ConvertTo-Json -Depth 8)) | Should -Not -Match 'fixture-secret'
+    }
+    # Protects: workflow failure detection survives the supported billing migration.
+    # Detects: a large usage quantity becoming guessed exhaustion or losing run failures.
+    # Needs: actual workflow failure metadata with current billing schema.
+    # Breadcrumb: usage quantities provide no included Actions allowance.
+    It 'retains workflow findings with valid usage and unknown allowance' -Tag BillingMigration {
+        $r=Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1 -Scenario $script:findings)
+        $w=($r.Reports | Where-Object Name -Like 'workflow-health-*').Value
+        $r.ExitCode | Should -Be 1; $w.problem_count | Should -Be 1
+        $w.problems[0] | Should -Match 'failure: fixture-ci'; $w.billing.quota_status | Should -Be Unknown
+    }
     It 'accepts inspected empty arrays without phantom Dependabot findings' {
         $r = Complete-Fixture (Start-Fixture); $c = Get-Combined $r
         $r.ExitCode | Should -Be 0; $c.inspection_status | Should -Be Available; $c.upstream_items | Should -Be 0; $c.workflow_problems | Should -Be 0
-        $c.publication.status | Should -Be NotAttempted; $r.Calls.Count | Should -Be 6
+        $c.publication.status | Should -Be NotAttempted; $r.Calls.Count | Should -Be 7
     }
     It 'does not classify missing authentication with empty stdout as healthy' {
         $r = Complete-Fixture (Start-Fixture -Scenario @{ all_gh = @{ ExitCode = 4; Stdout = ''; Stderr = 'fixture-secret-DO-NOT-LOG C:/private/credential-file' } }); $c = Get-Combined $r
@@ -147,8 +249,42 @@ Describe 'Actual GitOps scripts with external requests stubbed' {
         $keyPath = if ($IsWindows) { $r.Directory.ToLowerInvariant() } else { $r.Directory }
         try { $key = [BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes($keyPath))).Replace('-', '') } finally { $hasher.Dispose() }
         $sender = 'gitops-monitor-{0}-{1}' -f [Environment]::MachineName.ToLowerInvariant(), $key.Substring(0, 12)
-        ($send.arguments -join '|') | Should -Be ('send|--from-agent|' + $sender + '|--to-agent|all|--topic|status|--body|GitOps monitor [fixture/repo]: inspection=Available, workflows=1, upstream=1. See the checkout GitOps report.|--tag|repo:repo|--encoding|compact')
+        ($send.arguments -join '|') | Should -Be ('send|--from-agent|' + $sender + '|--to-agent|all|--topic|status|--body|GitOps monitor [fixture/repo]: inspection=Available, workflow_metadata=Available, workflow_problems=1, billing=Available, upstream_metadata=Available, upstream_items=1. See the checkout GitOps report.|--tag|repo:repo|--encoding|compact')
         $send.candidate_config_preserved | Should -BeTrue
+    }
+    It 'publishes available workflow findings when billing inspection fails' {
+        $scenario = $script:findings.Clone()
+        $scenario.billing = @{ ExitCode = 1; Stdout = ''; Stderr = 'HTTP 403 fixture-secret-DO-NOT-LOG C:/private/credential-file' }
+        $r = Complete-Fixture (Start-Fixture -Scenario $scenario); $c = Get-Combined $r
+        $r.ExitCode | Should -Be 2
+        $c.inspection_status | Should -Be Unavailable
+        $c.detail.workflow.problems[0] | Should -Be 'failure: fixture-ci (run 42)'
+        $c.detail.workflow.billing.quota_status | Should -Be Unknown
+        $c.publication.status | Should -Be Published
+        $send = $r.Calls | Where-Object operation -EQ send
+        $message = $send.arguments[([array]::IndexOf($send.arguments, '--body') + 1)]
+        $message | Should -BeExactly 'GitOps monitor [fixture/repo]: inspection=Unavailable, workflow_metadata=Available, workflow_problems=1, billing=Unavailable, upstream_metadata=Available, upstream_items=1. See the checkout GitOps report.'
+        ($message + ($c | ConvertTo-Json -Depth 12)) | Should -Not -Match 'fixture-secret|C:/private'
+    }
+    It 'distinguishes unavailable workflow metadata from billing-only failure' {
+        $r = Complete-Fixture (Start-Fixture -Scenario @{ runs = @{ ExitCode = 1; Stdout = ''; Stderr = 'HTTP 503 fixture-secret-DO-NOT-LOG' } }); $c = Get-Combined $r
+        $r.ExitCode | Should -Be 2
+        $c.inspection_status | Should -Be Unavailable
+        $c.publication.status | Should -Be Published
+        $send = $r.Calls | Where-Object operation -EQ send
+        $message = $send.arguments[([array]::IndexOf($send.arguments, '--body') + 1)]
+        $message | Should -BeExactly 'GitOps monitor [fixture/repo]: inspection=Unavailable, workflow_metadata=Unavailable, workflow_problems=0, billing=Available, upstream_metadata=Available, upstream_items=0. See the checkout GitOps report.'
+        ($message + ($c | ConvertTo-Json -Depth 12)) | Should -Not -Match 'fixture-secret'
+    }
+    It 'retains unknown upstream state instead of presenting zero inspected findings' {
+        $r = Complete-Fixture (Start-Fixture -Scenario @{ 'code-scanning' = @{ ExitCode = 1; Stdout = ''; Stderr = 'HTTP 404 Not Found fixture-secret-DO-NOT-LOG' } }); $c = Get-Combined $r
+        $r.ExitCode | Should -Be 2
+        $c.inspection_status | Should -Be Unavailable
+        ($c.detail.upstream.inspections | Where-Object operation -EQ code-scanning).status | Should -Be Unavailable
+        $send = $r.Calls | Where-Object operation -EQ send
+        $message = $send.arguments[([array]::IndexOf($send.arguments, '--body') + 1)]
+        $message | Should -BeExactly 'GitOps monitor [fixture/repo]: inspection=Unavailable, workflow_metadata=Available, workflow_problems=0, billing=Available, upstream_metadata=Unavailable, upstream_items=0. See the checkout GitOps report.'
+        ($message + ($c | ConvertTo-Json -Depth 12)) | Should -Not -Match 'fixture-secret'
     }
     It 'retains sanitized delivery failures for missing auth401503 and timeout' {
         foreach ($code in @(4, 401, 503, -1)) {
@@ -187,14 +323,14 @@ Describe 'Actual GitOps scripts with external requests stubbed' {
         $owner = Start-Fixture -Scenario @{hold_seconds = 3 }; Wait-Owner $owner
         $duplicate = Complete-Fixture (Start-Fixture -Root $owner.Root -Calls $owner.CallsPath)
         $duplicate.ExitCode | Should -Be 0; $duplicate.Stdout | Should -Match 'existing worker owns this checkout'
-        $r = Complete-Fixture $owner; $r.ExitCode | Should -Be 0; $r.Calls.Count | Should -Be 6
+        $r = Complete-Fixture $owner; $r.ExitCode | Should -Be 0; $r.Calls.Count | Should -Be 7
         @($r.Calls.pid | Select-Object -Unique).Count | Should -Be 1
     }
     It 'keeps independently scoped worktrees concurrent without suppressing their requests' {
         $scenario = $script:findings.Clone(); $scenario.hold_seconds = 3
         $owner = Start-Fixture -Scenario $scenario; Wait-Owner $owner
         $other = Complete-Fixture (Start-Fixture -Scenario $script:findings); $r = Complete-Fixture $owner
-        $r.ExitCode | Should -Be 1; $other.ExitCode | Should -Be 1; $r.Calls.Count | Should -Be 7; $other.Calls.Count | Should -Be 7
+        $r.ExitCode | Should -Be 1; $other.ExitCode | Should -Be 1; $r.Calls.Count | Should -Be 8; $other.Calls.Count | Should -Be 8
         ($r.Calls | Where-Object operation -EQ send).arguments[2] | Should -Not -Be ($other.Calls | Where-Object operation -EQ send).arguments[2]
     }
     It 'releases the lease after failures and atomically replaces readable reports' {

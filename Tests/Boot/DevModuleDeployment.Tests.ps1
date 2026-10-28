@@ -26,6 +26,10 @@ Describe 'Scoped module publication with recovery' {
     }
     AfterEach { $env:PSModulePath = $script:oldProcessPath }
 
+    # Protects: exact installed/source bytes and stable custody paths.
+    # Detects: wrong module selection or loss of rN backup/receipt.
+    # Needs: owned Alpha/Beta installations; no publisher mock.
+    # Breadcrumb: integration migration preserves the real refusal/state contract.
     It 'copies only the selected module, keeps source immutable, and retains the old payload' {
         $source = New-TestDevModule $modules Alpha
         New-TestDevModule $modules Beta | Out-Null
@@ -38,7 +42,40 @@ Describe 'Scoped module publication with recovery' {
         [IO.File]::ReadAllText((Join-Path $install 'Beta\payload.txt')) | Should -Be 'untouched'
         [IO.File]::ReadAllText((Join-Path $source 'payload.txt')) | Should -Be 'new'
         [IO.File]::ReadAllText((Join-Path $result.BackupPath 'payload.txt')) | Should -Be 'old'
-        $result.BackupPath | Should -BeLike "$install\.pcai-module-backups\*\Alpha"
+        $result.BackupPath | Should -BeExactly (Join-Path $install '.pcai-module-install/Alpha/r1/previous')
+        $result.Receipt | Should -BeExactly (Join-Path $install '.pcai-module-install/Alpha/r1/receipt.json')
+        (Get-Content -LiteralPath $result.Receipt -Raw | ConvertFrom-Json).State | Should -BeExactly 'Installed'
+    }
+
+    It 'rejects an explicit alternate CargoTools manifest before any publication' {
+        $source = New-TestDevModule (Join-Path $caseRoot 'external') CargoTools
+        $old = New-TestDevModule $install CargoTools 'original'
+        $alternate = Join-Path $source 'ReviewedCargo.psd1'
+        [IO.File]::WriteAllText($alternate, "@{ RootModule='CargoTools.psm1'; ModuleVersion='2.0.0' }")
+        $originalHash = (Get-FileHash -LiteralPath (Join-Path $source 'CargoTools.psd1')).Hash
+        $alternateHash = (Get-FileHash -LiteralPath $alternate).Hash
+        { & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames CargoTools -CargoToolsSourcePath $alternate -UpdatePSModulePath:$false -DryRun } |
+            Should -Throw '*manifest must be named CargoTools.psd1*'
+        [IO.File]::ReadAllText((Join-Path $old 'payload.txt')) | Should -BeExactly 'original'
+        (Get-FileHash -LiteralPath (Join-Path $source 'CargoTools.psd1')).Hash | Should -BeExactly $originalHash
+        (Get-FileHash -LiteralPath $alternate).Hash | Should -BeExactly $alternateHash
+        Test-Path -LiteralPath (Join-Path $install '.pcai-module-install') | Should -BeFalse
+    }
+
+    It 'publishes the exact canonical CargoTools manifest version for <Selection>' -ForEach @(
+        @{Selection='File'}, @{Selection='Directory'}
+    ) {
+        $source = New-TestDevModule (Join-Path $caseRoot 'external') CargoTools
+        $manifest = Join-Path $source 'CargoTools.psd1'
+        [IO.File]::WriteAllText($manifest, "@{ RootModule='CargoTools.psm1'; ModuleVersion='2.0.0'; FileList=@('CargoTools.psm1','payload.txt') }")
+        $hash = (Get-FileHash -LiteralPath $manifest).Hash
+        $selected = if ($Selection -eq 'File') { $manifest } else { $source }
+        $result = & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames CargoTools -CargoToolsSourcePath $selected -UpdatePSModulePath:$false -Mode Copy
+        $result.Status | Should -BeExactly 'Installed'
+        $published = Join-Path $result.InstalledPath 'CargoTools.psd1'
+        (Get-FileHash -LiteralPath $published).Hash | Should -BeExactly $hash
+        (Import-PowerShellDataFile -LiteralPath $published).ModuleVersion | Should -BeExactly '2.0.0'
+        (Get-FileHash -LiteralPath $manifest).Hash | Should -BeExactly $hash
     }
 
     It 'deep merges installed CargoTools host overrides with new defaults and preserves other Config files' {
@@ -62,6 +99,10 @@ Describe 'Scoped module publication with recovery' {
         ([IO.File]::ReadAllText((Join-Path $source 'Config\machines.json')) | ConvertFrom-Json).NUC.BuildJobs | Should -Be 4
     }
 
+    # Protects: both active installations when a later stage is invalid.
+    # Detects: publication before complete validation or loss of either retained stage.
+    # Needs: a real malformed Beta script and stable receipt paths.
+    # Breadcrumb: integration migration preserves the real refusal/state contract.
     It 'stages every selected module before replacing any active module' {
         New-TestDevModule $modules Alpha | Out-Null
         $broken = New-TestDevModule $modules Beta
@@ -71,11 +112,24 @@ Describe 'Scoped module publication with recovery' {
         { & $installer -RepoRoot $repo -InstallRoot $install -UpdatePSModulePath:$false } | Should -Throw '*Script syntax failed*'
         [IO.File]::ReadAllText((Join-Path $install 'Alpha\payload.txt')) | Should -Be 'old-alpha'
         [IO.File]::ReadAllText((Join-Path $install 'Beta\payload.txt')) | Should -Be 'old-beta'
-        @(Get-ChildItem $install -Directory -Filter '.pcai-stage-*').Count | Should -Be 1
-        [IO.Directory]::Exists((Join-Path $install '.pcai-module-backups')) | Should -BeFalse
+        foreach ($moduleName in @('Alpha', 'Beta')) {
+            $revision = Join-Path $install ".pcai-module-install/$moduleName/r1"
+            [IO.Directory]::Exists((Join-Path $revision 'staged')) | Should -BeTrue
+            [IO.Directory]::Exists((Join-Path $revision 'previous')) | Should -BeFalse
+            (Get-Content -LiteralPath (Join-Path $revision 'receipt.json') -Raw | ConvertFrom-Json).State |
+                Should -BeExactly 'RolledBack'
+        }
+        [IO.File]::ReadAllText((Join-Path $install '.pcai-module-install/Alpha/r1/staged/payload.txt')) |
+            Should -BeExactly 'new'
+        [IO.File]::ReadAllText((Join-Path $install '.pcai-module-install/Beta/r1/staged/Beta.psm1')) |
+            Should -BeExactly 'function Broken {'
     }
 
-    It 'rolls back an already published module if another target cannot be published' {
+    # Protects: pre-existing foreign files and installations before staging begins.
+    # Detects: file collision overwritten or renamed and an unexpected transaction created.
+    # Needs: real Alpha installation and foreign Beta file; no mocked publisher.
+    # Breadcrumb: a preflight collision is separate from the later rename-failure control.
+    It 'refuses a pre-existing target file without creating a transaction' {
         New-TestDevModule $modules Alpha | Out-Null
         New-TestDevModule $modules Beta | Out-Null
         New-TestDevModule $install Alpha 'original' | Out-Null
@@ -83,17 +137,71 @@ Describe 'Scoped module publication with recovery' {
         { & $installer -RepoRoot $repo -InstallRoot $install -UpdatePSModulePath:$false } | Should -Throw '*Installed target is a file*'
         [IO.File]::ReadAllText((Join-Path $install 'Alpha\payload.txt')) | Should -Be 'original'
         [IO.File]::ReadAllText((Join-Path $install 'Beta')) | Should -Be 'unrelated file'
-        $stage = Get-ChildItem $install -Directory -Filter '.pcai-stage-*'
-        [IO.File]::ReadAllText((Join-Path $stage.FullName 'Alpha.failed\payload.txt')) | Should -Be 'new'
+        [IO.Directory]::Exists((Join-Path $install '.pcai-module-install')) | Should -BeFalse
         $env:PSModulePath | Should -Be $oldProcessPath
     }
 
+    # Protects: both prior installations survive a failure after Alpha is genuinely published.
+    # Detects: partial publication, lost rollback bytes, missing retained stages or false late failure.
+    # Needs: real owned files and renames; only the Beta stage-to-active rename throws.
+    # Breadcrumb: Alpha must contain its new payload at the exact injected Beta failure boundary.
+    It 'restores both modules after a genuine later publication failure' {
+        $alphaSource = New-TestDevModule $modules Alpha
+        $betaSource = New-TestDevModule $modules Beta
+        $alphaOld = New-TestDevModule $install Alpha 'old-alpha'
+        $betaOld = New-TestDevModule $install Beta 'old-beta'
+        $alphaBefore = (Get-FileHash -LiteralPath (Join-Path $alphaOld 'payload.txt')).Hash
+        $betaBefore = (Get-FileHash -LiteralPath (Join-Path $betaOld 'payload.txt')).Hash
+        $latePublicationState = [pscustomobject]@{
+            BetaStage = Join-Path $install '.pcai-module-install/Beta/r1/staged'
+            BetaActive = Join-Path $install 'Beta'
+            Install = $install
+            AlphaAtFailure = $null
+            LateFailureCalls = 0
+        }
+        $latePublicationMock = {
+            param($LiteralPath, $Destination)
+            if ([string]::Equals($LiteralPath, $latePublicationState.BetaStage, [StringComparison]::OrdinalIgnoreCase) -and
+                [string]::Equals($Destination, $latePublicationState.BetaActive, [StringComparison]::OrdinalIgnoreCase)) {
+                $latePublicationState.AlphaAtFailure = [IO.File]::ReadAllText((Join-Path $latePublicationState.Install 'Alpha/payload.txt'))
+                $latePublicationState.LateFailureCalls++
+                throw 'Injected late Beta publication failure'
+            }
+            [IO.Directory]::Move($LiteralPath, $Destination)
+        }.GetNewClosure()
+        Mock Move-Item -MockWith $latePublicationMock
+        { & $installer -RepoRoot $repo -InstallRoot $install -UpdatePSModulePath:$false } |
+            Should -Throw '*Injected late Beta publication failure*'
+        $latePublicationState.LateFailureCalls | Should -Be 1
+        $latePublicationState.AlphaAtFailure | Should -BeExactly 'new'
+        (Get-FileHash -LiteralPath (Join-Path $alphaOld 'payload.txt')).Hash | Should -BeExactly $alphaBefore
+        (Get-FileHash -LiteralPath (Join-Path $betaOld 'payload.txt')).Hash | Should -BeExactly $betaBefore
+        foreach ($moduleName in @('Alpha', 'Beta')) {
+            $revision = Join-Path $install ".pcai-module-install/$moduleName/r1"
+            $receipt = Get-Content -LiteralPath (Join-Path $revision 'receipt.json') -Raw | ConvertFrom-Json
+            $receipt.State | Should -BeExactly 'RolledBack'
+            [IO.File]::ReadAllText((Join-Path $revision 'staged/payload.txt')) | Should -BeExactly 'new'
+            [IO.Directory]::Exists((Join-Path $revision 'previous')) | Should -BeFalse
+        }
+        [IO.File]::ReadAllText((Join-Path $alphaSource 'payload.txt')) | Should -BeExactly 'new'
+        [IO.File]::ReadAllText((Join-Path $betaSource 'payload.txt')) | Should -BeExactly 'new'
+        $env:PSModulePath | Should -BeExactly $oldProcessPath
+    }
+
+    # Protects: original installed Config and payload on parse refusal.
+    # Detects: missing original JSON parser error or mutated old bytes.
+    # Needs: real malformed JSON; no parser mock.
+    # Breadcrumb: integration migration preserves the real refusal/state contract.
     It 'does not publish malformed installed Config' {
         New-TestDevModule $modules Alpha | Out-Null
         $old = New-TestDevModule $install Alpha 'original'
         [IO.Directory]::CreateDirectory((Join-Path $old 'Config')) | Out-Null
         [IO.File]::WriteAllText((Join-Path $old 'Config\machines.json'), 'invalid JSON')
-        { & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames Alpha -UpdatePSModulePath:$false } | Should -Throw '*Deployment failed*'
+        $failure = $null
+        try { & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames Alpha -UpdatePSModulePath:$false }
+        catch { $failure = $_ }
+        $failure | Should -BeOfType ([Management.Automation.ErrorRecord])
+        $failure.FullyQualifiedErrorId | Should -Match 'ConvertFromJson'
         [IO.File]::ReadAllText((Join-Path $old 'payload.txt')) | Should -Be 'original'
         [IO.File]::ReadAllText((Join-Path $old 'Config\machines.json')) | Should -Be 'invalid JSON'
     }
@@ -105,13 +213,17 @@ Describe 'Scoped module publication with recovery' {
         [IO.Directory]::Exists((Join-Path $install 'Alpha')) | Should -BeFalse
     }
 
+    # Protects: all five literal reserved Windows path variants.
+    # Detects: a lost refusal or any active installation write.
+    # Needs: owned path probes and maintained no-follow/path guards.
+    # Breadcrumb: integration migration preserves the real refusal/state contract.
     It 'rejects unsafe deployment paths before creating any files' -ForEach @(
         @{ Leaf = 'NUL.txt' }, @{ Leaf = 'AUX. ' }, @{ Leaf = '$null' },
         @{ Leaf = 'COM1.log' }, @{ Leaf = 'LPT9' }
     ) {
         New-TestDevModule $modules Alpha | Out-Null
         $badRoot = Join-Path $caseRoot $Leaf
-        { & $installer -RepoRoot $repo -InstallRoot $badRoot -ModuleNames Alpha } | Should -Throw '*Reserved path component*'
+        { & $installer -RepoRoot $repo -InstallRoot $badRoot -ModuleNames Alpha } | Should -Throw '*Unsafe Windows path*'
         [IO.Directory]::Exists($install) | Should -BeFalse
     }
 
@@ -220,24 +332,32 @@ Describe 'Scoped module publication with recovery' {
         [IO.File]::ReadAllText((Join-Path $old 'payload.txt')) | Should -Be 'old'
     }
 
+    # Protects: foreign bytes behind a destination ancestor junction.
+    # Detects: implicit ancestor traversal or unexpected external publication.
+    # Needs: owned junction fixture; real path guard.
+    # Breadcrumb: integration migration preserves the real refusal/state contract.
     It 'rejects a destination reached through a junction without touching its external files' {
         New-TestDevModule $modules Alpha | Out-Null
         $outside = Join-Path $caseRoot 'outside'
         [IO.Directory]::CreateDirectory($outside) | Out-Null
         [IO.File]::WriteAllText((Join-Path $outside 'keep.txt'), 'outside data')
         New-Item -ItemType Junction -Path $install -Target $outside | Out-Null
-        { & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames Alpha } | Should -Throw '*Destination ancestor is a reparse point*'
+        { & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames Alpha } | Should -Throw '*Reparse point in installation path*'
         [IO.File]::ReadAllText((Join-Path $outside 'keep.txt')) | Should -Be 'outside data'
         [IO.Directory]::Exists((Join-Path $outside 'Alpha')) | Should -BeFalse
     }
 
+    # Protects: original installation when selected source contains a child junction.
+    # Detects: inventory traversal into linked payload or changed old bytes.
+    # Needs: owned source junction and actual inventory guard.
+    # Breadcrumb: integration migration preserves the real refusal/state contract.
     It 'rejects source payload links before replacing the installed module' {
         $source = New-TestDevModule $modules Alpha
         $old = New-TestDevModule $install Alpha 'original'
         $outside = Join-Path $caseRoot 'outside'
         [IO.Directory]::CreateDirectory($outside) | Out-Null
         New-Item -ItemType Junction -Path (Join-Path $source 'linked') -Target $outside | Out-Null
-        { & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames Alpha -UpdatePSModulePath:$false } | Should -Throw '*Source reparse points are unsupported*'
+        { & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames Alpha -UpdatePSModulePath:$false } | Should -Throw '*Linked payload requires custody review*'
         [IO.File]::ReadAllText((Join-Path $old 'payload.txt')) | Should -Be 'original'
     }
 
@@ -270,11 +390,19 @@ Describe 'Scoped module publication with recovery' {
         $result.Status | Should -Be 'Installed'
     }
 
+    # Protects: old installation and restricted data-file import boundary.
+    # Detects: executable data accepted or original import error lost.
+    # Needs: literal Get-Process text in owned PSD1; never execute its contents.
+    # Breadcrumb: integration migration preserves the real refusal/state contract.
     It 'validates child data files without executing them' {
         $source = New-TestDevModule $modules Alpha
         $old = New-TestDevModule $install Alpha 'original'
         [IO.File]::WriteAllText((Join-Path $source 'settings.psd1'), '@{ Invalid = Get-Process }')
-        { & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames Alpha -UpdatePSModulePath:$false } | Should -Throw '*Deployment failed*'
+        $failure = $null
+        try { & $installer -RepoRoot $repo -InstallRoot $install -ModuleNames Alpha -UpdatePSModulePath:$false }
+        catch { $failure = $_ }
+        $failure | Should -BeOfType ([Management.Automation.ErrorRecord])
+        $failure.InvocationInfo.Line | Should -Match 'Import-PowerShellDataFile'
         [IO.File]::ReadAllText((Join-Path $old 'payload.txt')) | Should -Be 'original'
     }
 

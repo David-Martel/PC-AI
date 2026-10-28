@@ -226,7 +226,7 @@ function Test-PathExists {
     $expandedPath = [Environment]::ExpandEnvironmentVariables($Path)
 
     # Test existence
-    return Test-Path -Path $expandedPath -ErrorAction SilentlyContinue
+    return Test-Path -LiteralPath $expandedPath -ErrorAction SilentlyContinue
 }
 
 function Get-TempPaths {

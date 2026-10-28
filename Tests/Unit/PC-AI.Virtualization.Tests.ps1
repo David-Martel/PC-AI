@@ -6,6 +6,13 @@
     Tests WSL status, Hyper-V detection, Docker diagnostics, and virtualization optimization
 #>
 
+BeforeDiscovery {
+    $script:IsAdmin = $false
+    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        $script:IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    }
+}
+
 if (-not (Get-Variable -Name IsAdmin -Scope Script -ErrorAction SilentlyContinue)) {
     $script:IsAdmin = $false
 }
@@ -14,6 +21,11 @@ BeforeAll {
     # Import module under test
     $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Virtualization\PC-AI.Virtualization.psd1'
     Import-Module $ModulePath -Force -ErrorAction Stop
+    # Optional Hyper-V commands must remain mockable without loading a live provider.
+    & (Get-Module PC-AI.Virtualization) {
+        function script:Get-VMSwitch { [CmdletBinding()] param([string]$Name) throw 'Live Hyper-V switch reads are forbidden in virtualization unit tests.' }
+        function script:New-VMSwitch { [CmdletBinding()] param([string]$Name, [string]$SwitchType) throw 'Live Hyper-V switch creation is forbidden in virtualization unit tests.' }
+    }
 
     # Import mock data
     $MockDataPath = Join-Path $PSScriptRoot '..\Fixtures\MockData.psm1'
@@ -306,6 +318,11 @@ Describe "Set-WSLDefenderExclusions" -Tag 'Unit', 'Virtualization', 'Slow', 'Req
 
 Describe "Repair-WSLNetworking" -Tag 'Unit', 'Virtualization', 'Slow', 'RequiresAdmin', 'Portable' {
     BeforeAll {
+        & (Get-Module PC-AI.Virtualization) {
+            function script:netsh { throw 'Live network reset is forbidden in virtualization unit tests.' }
+            function script:ipconfig { throw 'Live DNS flush is forbidden in virtualization unit tests.' }
+            function script:wsl { throw 'Live WSL execution is forbidden in virtualization unit tests.' }
+        }
         Mock Get-VMSwitch {
             [PSCustomObject]@{
                 Name = "WSL"

@@ -3,10 +3,11 @@
 Registers a Process Lasso governor watchdog scheduled task.
 
 .DESCRIPTION
-Creates or updates a delayed logon scheduled task that runs
+Creates or updates delayed logon and recurring scheduled triggers that run
 Ensure-ProcessLassoGovernor.ps1. The watchdog checks whether
 ProcessGovernor.exe is running, starts it when missing, and writes loud
 Application event-log entries for remediation/failure cases.
+Use named parameters for registration; the standalone --help token is supported.
 
 .PARAMETER TaskName
 Scheduled task name.
@@ -15,7 +16,16 @@ Scheduled task name.
 Path to Ensure-ProcessLassoGovernor.ps1.
 
 .PARAMETER StartupDelaySeconds
-Delay after logon before the watchdog runs.
+Delay on the logon trigger and initial offset for the independent periodic
+schedule. Periodic checks can run earlier than this delay after future logons;
+this is not a minimum grace period for every session.
+
+.PARAMETER RepetitionIntervalMinutes
+Interval between watchdog checks while the interactive user is logged on.
+The default is five minutes; repetition has no end duration.
+
+.PARAMETER ReportPath
+Optional watchdog JSON report path. Empty uses the portable repo Reports path.
 
 .PARAMETER RunNow
 Start the task immediately after registration.
@@ -33,11 +43,14 @@ long CLI form --DryRun is also accepted.
 .PARAMETER Help
 Print script help and exit. The aliases -h and --help are also accepted.
 #>
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding = $false)]
 param(
     [string]$TaskName = 'PC-AI Process Lasso Governor Watchdog',
     [string]$ScriptPath = (Join-Path $PSScriptRoot 'Ensure-ProcessLassoGovernor.ps1'),
     [int]$StartupDelaySeconds = 180,
+    [ValidateRange(1, 1440)]
+    [int]$RepetitionIntervalMinutes = 5,
+    [string]$ReportPath = '',
     [int]$ExecutionTimeLimitMinutes = 5,
     [int]$RestartCount = 3,
     [int]$RestartIntervalMinutes = 1,
@@ -106,7 +119,9 @@ if (-not (Test-Path -LiteralPath $pwsh)) {
     $pwsh = 'pwsh.exe'
 }
 
-$reportPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Reports\processlasso-governor-watchdog.json'
+if ([string]::IsNullOrWhiteSpace($ReportPath)) {
+    $ReportPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'Reports\processlasso-governor-watchdog.json'
+}
 $arguments = @(
     '-NoLogo',
     '-NoProfile',
@@ -116,8 +131,11 @@ $arguments = @(
     '-ReportPath', "`"$reportPath`""
 ) -join ' '
 
-$trigger = New-ScheduledTaskTrigger -AtLogOn
-$trigger.Delay = ConvertTo-Iso8601Duration -Duration (New-TimeSpan -Seconds $StartupDelaySeconds)
+$logonTrigger = New-ScheduledTaskTrigger -AtLogOn
+$logonTrigger.Delay = ConvertTo-Iso8601Duration -Duration (New-TimeSpan -Seconds $StartupDelaySeconds)
+$periodicStart = (Get-Date).AddSeconds($StartupDelaySeconds)
+$periodicTrigger = New-ScheduledTaskTrigger -Once -At $periodicStart -RepetitionInterval (New-TimeSpan -Minutes $RepetitionIntervalMinutes)
+$triggers = @($logonTrigger, $periodicTrigger)
 $action = New-ScheduledTaskAction -Execute $pwsh -Argument $arguments -WorkingDirectory (Split-Path -Parent $ScriptPath)
 $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Highest
 $settings = New-ScheduledTaskSettingsSet `
@@ -132,6 +150,7 @@ $settings = New-ScheduledTaskSettingsSet `
 if ($DryRun) {
     Write-Step "would register scheduled task: $TaskName"
     Write-Host "     trigger: at logon, delayed $StartupDelaySeconds seconds"
+    Write-Host "     trigger: every $RepetitionIntervalMinutes minutes starting $($periodicStart.ToString('o')), indefinitely"
     Write-Host "     action: $pwsh $arguments"
     Write-Host "     disabled after registration: $Disable"
     return
@@ -140,10 +159,10 @@ if ($DryRun) {
 Register-ScheduledTask `
     -TaskName $TaskName `
     -Action $action `
-    -Trigger $trigger `
+    -Trigger $triggers `
     -Principal $principal `
     -Settings $settings `
-    -Description 'Ensures ProcessGovernor.exe is running after logon and logs remediation events.' `
+    -Description 'Ensures ProcessGovernor.exe is running after logon and every five minutes by default; logs remediation events.' `
     -Force | Out-Null
 
 if ($Disable) {

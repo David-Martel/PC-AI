@@ -4,13 +4,63 @@ function Write-Success {
 }
 
 function Write-Warning {
-    param([string]$Message)
-    Write-Host "WARNING: $Message" -ForegroundColor Yellow
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline)]
+        [Alias('Msg')]
+        [AllowEmptyString()]
+        [string]$Message
+    )
+    process {
+        $nativeParameters = @{} + $PSBoundParameters
+        # The outer advanced function already captures these streams for callers.
+        [void]$nativeParameters.Remove('ErrorVariable')
+        [void]$nativeParameters.Remove('WarningVariable')
+        Microsoft.PowerShell.Utility\Write-Warning @nativeParameters
+    }
 }
 
 function Write-Error {
-    param([string]$Message)
-    Write-Host "ERROR: $Message" -ForegroundColor Red
+    [CmdletBinding(DefaultParameterSetName = 'NoException')]
+    param(
+        [Parameter(ParameterSetName = 'WithException', Mandatory, Position = 0)]
+        [System.Exception]$Exception,
+
+        [Parameter(ParameterSetName = 'NoException', Mandatory, Position = 0, ValueFromPipeline)]
+        [Parameter(ParameterSetName = 'WithException')]
+        [Alias('Msg')]
+        [AllowNull()]
+        [AllowEmptyString()]
+        [string]$Message,
+
+        [Parameter(ParameterSetName = 'ErrorRecord', Mandatory, Position = 0)]
+        [System.Management.Automation.ErrorRecord]$ErrorRecord,
+
+        [Parameter(ParameterSetName = 'NoException')]
+        [Parameter(ParameterSetName = 'WithException')]
+        [System.Management.Automation.ErrorCategory]$Category,
+
+        [Parameter(ParameterSetName = 'NoException')]
+        [Parameter(ParameterSetName = 'WithException')]
+        [string]$ErrorId,
+
+        [Parameter(ParameterSetName = 'NoException')]
+        [Parameter(ParameterSetName = 'WithException')]
+        [object]$TargetObject,
+
+        [string]$RecommendedAction,
+        [Alias('Activity')][string]$CategoryActivity,
+        [Alias('Reason')][string]$CategoryReason,
+        [Alias('TargetName')][string]$CategoryTargetName,
+        [Alias('TargetType')][string]$CategoryTargetType
+    )
+    process {
+        # Preserve the native diagnostic streams and common-parameter behavior.
+        $nativeParameters = @{} + $PSBoundParameters
+        [void]$nativeParameters.Remove('ErrorVariable')
+        [void]$nativeParameters.Remove('WarningVariable')
+        Microsoft.PowerShell.Utility\Write-Error @nativeParameters
+    }
 }
 
 function Write-Info {
@@ -127,9 +177,11 @@ function Get-PcaiAccelerationProbe {
     $repoRoot = $null
 
     if ($moduleRoot) {
-        $candidateRepoRoot = Resolve-PcaiRepoRoot -StartPath $moduleRoot
-        # The shared resolver also recognizes unrelated AGENTS/.git roots.
-        # A native probe must bind to a PC_AI checkout before using its bin directory.
+        # Native files belong to the selected manifest's checkout. Runtime
+        # configuration overrides can deliberately select a different machine root.
+        $candidateRepoRoot = [Pcai.Common.RuntimeConfigBridge]::FindRepoRoot($moduleRoot)
+        # The ancestry bridge also recognizes unrelated AGENTS/.git roots.
+        # Require a PC_AI checkout before using its bin directory.
         if ($candidateRepoRoot -and (Test-Path -LiteralPath (Join-Path $candidateRepoRoot 'PC-AI.ps1') -PathType Leaf)) {
             $repoRoot = $candidateRepoRoot
         }

@@ -200,13 +200,11 @@ function Optimize-PathCompression {
                 [object[]]$Substitutions
             )
             foreach ($sub in $Substitutions) {
-                if ($Entry -like "$($sub.Literal)*" -or $Entry -like "$($sub.Literal)\*") {
-                    return $sub.Token + $Entry.Substring($sub.Literal.Length)
-                }
-                # Also handle trailing-slash literal
-                $withSlash = $sub.Literal + '\'
-                if ($Entry -like "$withSlash*") {
-                    return $sub.Token + '\' + $Entry.Substring($withSlash.Length)
+                $prefix = ([string]$sub.Literal).TrimEnd('\', '/')
+                if ($prefix.Length -eq 0) { continue }
+                if ($Entry.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -and
+                    ($Entry.Length -eq $prefix.Length -or $Entry[$prefix.Length] -in @('\', '/'))) {
+                    return $sub.Token + $Entry.Substring($prefix.Length)
                 }
             }
             return $Entry
@@ -275,9 +273,6 @@ function Optimize-PathCompression {
             }
             $result.OriginalLength = $current.Length
             $result.OriginalRegKind = (Get-Item $regPaths[$scope]).GetValueKind('Path').ToString()
-
-            # Backup
-            $result.BackupPath = Backup-EnvironmentVariable -Name 'PATH' -Target $scope -BackupPath $BackupPath
 
             # Parse
             $entries = $current -split ';' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { Normalize-Path $_ }
@@ -403,6 +398,8 @@ function Optimize-PathCompression {
             $targetDesc = "$scope PATH ($($result.OriginalLength)→$($result.FinalLength) chars)"
             if ($PSCmdlet.ShouldProcess($targetDesc, "Write optimized PATH")) {
                 try {
+                    # File backups are mutations too; create one only for an admitted PATH write.
+                    $result.BackupPath = Backup-EnvironmentVariable -Name 'PATH' -Target $scope -BackupPath $BackupPath
                     $desiredKind = if ($ConvertToRegExpandSz) { 'ExpandString' } else { $result.OriginalRegKind }
 
                     # Direct registry write preserves the kind

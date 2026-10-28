@@ -1,0 +1,26 @@
+{
+  "State": "SOURCE_GO_FOR_SEPARATELY_ADMITTED_MAINTAINED_CACHE_DEFAULTS_ONLY",
+  "Reviewer": "/root/integration_final_review",
+  "ReviewerType": "Independent source successor readback and actual portable result review; no source authoring or runtime execution by this reviewer",
+  "SourceRegisterSHA256": "CFCC809D4FB08F6349AECB9F157A7D86BD6D707AE12DF2A982D0BF7D11ED5A3D",
+  "ModuleQaSourceRegisterSHA256": "ADB77E37FB08100238EF2A077C6DA074F8416E4DA2305D1650BCA23CD315F690",
+  "CaptureSourceRegisterSHA256": "6F729F604423281F8A40C3108B77F8873960DC80A37B8BACECBECAEB36084859",
+  "CacheSourceSHA256": "E480CE7180F9ADAFF395B54438CE982E9D49E0701948D4C795CC093C1C40B9C7",
+  "PortableControllerSHA256": "B967B8127902F1B57A77C6FFE08C161060FB8D386352ADE413035902D2EA0D73",
+  "HistoricalPeerSHA256": "1C76B84B6DEF402A39542C7FB0FBD2859250B4F51174256B471430F4647266F5",
+  "PortableFixtureSHA256": "73F7306B83DFE2FAA4D040323E15B44D3E45147C01068878F10B3ADF12CC3665",
+  "PortableChildFixtureSHA256": "5858F1E538A7F253C2B903C2D1BB40009F68F94F716E594ACC6711A194750AF0",
+  "Scope": "Unchanged reviewed portable production controller/public dispatch and exact successor register bindings; fixture-only Linux descendant identity successor. Separately admitted maintained Windows capture qualification may execute. This is not whole integration or runtime acceptance.",
+  "PhysicalReadback": "All three registers, their 9/13/23 bound file records, historical peer, both current portable fixture leaves and separately scoped native/Linux leaves matched physical raw hashes and lengths. Detailed independent readback: successor-bindings.json; 57 checks. Historical source-review.json and external predecessor source-peer.json remain separate lineage.",
+  "PriorControlLineage": "Production portable helper and Common source retain the prior independent review binding. Existing maintained Windows capture/controller and cache cases are inherited reviewed source; no claim of newly authored or freshly executed dedicated Windows qualification.",
+  "FixtureReview": "Linux cleanup compares exact boot ID and raw /proc stat field22 after the final closing parenthesis; absent process returns without kill, mismatched identity refuses cleanup. Independent-observer probe demonstrated a 6243-tick .NET converted start-time difference while raw kernel identity matched. No numeric tolerance was introduced.",
+  "PortableActualResultsReviewed": {
+    "Windows": "windows-fixture-r2.log reaches final PASS with exact-owned portable controls; public non-Windows dispatch explicitly skipped on Windows.",
+    "Linux": "linux-validation/r3/portable-capture.log reaches nine PASS groups plus final PASS, including real public non-Windows cancellation dispatch and four-slot admission; source report binds unchanged fixture and production bytes through final r5 stage.",
+    "Containment": "Public descendants remain explicitly UNVERIFIED. Root and pipe closure is separate from escaped descendant containment."
+  },
+  "MaintainedWindowsQualification": "NOT_ADMITTED: root capacity preflight found approximately 95 percent commit use; no dedicated qualification tests ran. Source GO does not waive capacity, complete pinned Pester5.7.1, fresh NoProfile parent, exact source/peer admission, owned output, original closure, or independent actual-result review.",
+  "RequiredActual": "Run the maintained dedicated qualification only after independent runtime/capacity admission; retain original errors, XML and exact resource-closure evidence and obtain distinct actual-result review. Current-source ordinary CI remains a separate gate.",
+  "Limits": "No whole-merge/native-core ABI approval; no coverage or performance gain, production model/GPU, live Redis, escaped-descendant, crash/rare-disposal, caller-loss, deployment, fleet or clinical acceptance.",
+  "OutsideRegisterCycle": true
+}

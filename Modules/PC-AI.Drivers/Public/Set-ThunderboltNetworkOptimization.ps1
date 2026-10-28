@@ -93,7 +93,7 @@ function Set-ThunderboltNetworkOptimization {
         }
     }
 
-    if ($IPv4Address) {
+    if ($PSBoundParameters.ContainsKey('IPv4Address') -or $IPv4Address) {
         $parsedAddress = $null
         if (-not [System.Net.IPAddress]::TryParse($IPv4Address, [ref]$parsedAddress) -or
             $parsedAddress.AddressFamily -ne [System.Net.Sockets.AddressFamily]::InterNetwork) {

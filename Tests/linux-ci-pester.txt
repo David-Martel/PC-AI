@@ -1,3 +1,6 @@
+# Syntax-only staged source must never execute; see Unit/powershell-syntax-review.md.
+PowerShellSyntaxHook.Tests.ps1
+
 # Pester files that run in the Linux self-hosted CI (.github/workflows/linux-ci.yml, job pester-lint).
 #
 # Why a list and not "every file tagged Portable": run on Linux 2026-10-20, 26 of the 57 files under Tests/Unit pass

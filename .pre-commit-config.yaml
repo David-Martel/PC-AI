@@ -11,7 +11,7 @@ repos:
 
       - id: powershell-syntax
         name: PowerShell Syntax Check
-        entry: pwsh -NoProfile -Command "$files = @(); foreach ($arg in $args) { if ($arg -match '\\.(ps1|psm1|psd1)$') { $files += $arg } }; if ($files) { $errors = @(); $files | ForEach-Object { $parseErrors = $null; $null = [System.Management.Automation.Language.Parser]::ParseFile($_, [ref]$null, [ref]$parseErrors); if ($parseErrors) { $errors += \"${_}: $($parseErrors -join ', ')\" } }; if ($errors) { $errors | ForEach-Object { Write-Error $_ }; exit 1 } }"
+        entry: pwsh -NoProfile -File Tools/Test-PowerShellSyntax.ps1
         language: system
         types: [text]
         files: \.(ps1|psm1|psd1)$
@@ -25,7 +25,8 @@ repos:
 
       - id: check-module-manifests
         name: Validate Module Manifests
-        entry: pwsh -NoProfile -Command "Get-ChildItem -Path Modules -Recurse -Filter *.psd1 | ForEach-Object { try { Test-ModuleManifest $_.FullName -ErrorAction Stop; Write-Host \"✓ $($_.Name) valid\" } catch { Write-Error \"✗ $($_.Name): $_\"; exit 1 } }"
+        entry: >-
+          pwsh -NoProfile -Command "Get-ChildItem -Path Modules -Recurse -Filter *.psd1 | ForEach-Object { try { Test-ModuleManifest $_.FullName -ErrorAction Stop; Write-Host \"✓ $($_.Name) valid\" } catch { Write-Error \"✗ $($_.Name): $_\"; exit 1 } }"
         language: system
         pass_filenames: false
 

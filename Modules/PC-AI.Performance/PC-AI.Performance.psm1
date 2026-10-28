@@ -28,6 +28,9 @@
       Get-PcaiMemoryStat     - Return system-wide memory statistics (total, used,
                                available, commit charge) via native query.
                                Mapped by FunctionGemma router as pcai_get_memory_stats.
+      Get-PcaiMemoryPressure - Report the existing memory-pressure analysis.
+      Get-PcaiProcessCategories - Group existing process metrics by workload.
+      Get-PcaiOptimizationPlan - Return existing performance recommendations.
       Test-PcaiNative        - Probe PcaiNative.dll availability and verify that
                                PerformanceModule is loadable; returns a status object.
 
@@ -73,5 +76,8 @@ Export-ModuleMember -Function @(
     'Get-PcaiDiskUsage',
     'Get-PcaiTopProcess',
     'Get-PcaiMemoryStat',
+    'Get-PcaiMemoryPressure',
+    'Get-PcaiProcessCategories',
+    'Get-PcaiOptimizationPlan',
     'Test-PcaiNative'
 )

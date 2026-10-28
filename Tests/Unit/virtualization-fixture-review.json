@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "Set-WSLDefenderExclusions.resolves the owned Defender mock without importing providers or remoting",
+      "test_path": "Tests/Unit/PC-AI.Virtualization.Tests.ps1",
+      "test_sha256": "d4ab43b04a077bc1667d8d4572d349fd75d0a9e01b11479585d662d7bef42ba7",
+      "selector_sha256": "aa0b0773f697fbf4c35472b7548d098344a490fea68831c2e06af66e7ed23cdf",
+      "source_sha256": {
+        "Modules/PC-AI.Virtualization/Public/Set-WSLDefenderExclusions.ps1": "8abd819db82eed619ffeba6ead4cd81ba77e85610ab4101bc94eac5e3e26f0a0"
+      },
+      "rationale": "Protects isolation of the real virtualization unit fixture and downstream native provider paths. Detects Pester Mock Add-MpPreference autoloading a live Defender module or starting remoting. Needs Pester5, actual selected module and an owned fail-closed module-local stub; no Defender state changes. Breadcrumb: fixture BeforeAll Add-MpPreference and unchanged PcaiFdSearchContracts custom-drive-cwd.",
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:46:02.6634946Z",
+      "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": null,
+      "disposition": "keep",
+      "scope": "Root independent read exact fixture delta, module-local fail-closed guard, provider/session selector and retained Defender cases. Independent fresh complete virtualization+fd pair50 passed,0 failed/skipped/not-run. No fd producer changes, assertion removal, global provider setup or full WindowsCI85 acceptance.",
+      "receipt": "virtualization-fixture-review.md"
+    }
+  ],
+  "independent_windows_receipt": {
+    "Failed": 0,
+    "Path": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/virtualization-root-peer.json",
+    "NotRun": 0,
+    "Skipped": 0,
+    "Passed": 50,
+    "SHA256": "412AB640D7FAF9BF28FEB027F7EFC9637F6FB9496965DD41612DBEB94FF6670F"
+  },
+  "accepted_source_windows_receipt": {
+    "Path": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/publication-virtualization.json",
+    "Source": "Accepted runtime-discovery fix plus canonical plural public-name proposal; primary fixture exact d4 hash.",
+    "Passed": 38,
+    "NotRun": 0,
+    "Skipped": 0,
+    "Failed": 0
+  },
+  "accepted_source_independent_receipt": {
+    "VirtualizationCases": 38,
+    "CombinedApiCases": 6,
+    "SHA256": "5C394CE06B88EA61AA6B1A666725CEC62CA25C82BDF3ED7F297CA18BE3E5638C",
+    "Passed": 44,
+    "NotRun": 0,
+    "Skipped": 0,
+    "Scope": "Root independently read the exact d4 fixture and main-relative guards plus canonical plural source and new API assertions, then ran the actual primary sources; prior pair50 receipt is integration-draft history.",
+    "Failed": 0,
+    "Path": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/public-api-root-peer.json"
+  }
+}

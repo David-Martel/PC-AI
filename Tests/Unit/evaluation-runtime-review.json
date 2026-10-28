@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "constructs and consumes a real suite after first import",
+      "test_path": "Tests/Unit/EvaluationSuiteType.Tests.ps1",
+      "test_sha256": "7ee06dbd11f8dc811aacdd768132d7588364e65ac27e5361f44a5efc388c8907",
+      "selector_sha256": "196a264c29f361e431b8b8e42bd065c263f3f559ad48ada56a88f47faa02483a",
+      "source_sha256": {
+        "Modules/PC-AI.Evaluation/Public/New-EvaluationSuite.ps1": "36ce4165031d78ffe2435b0cd4a34d2b2edf66298f74b2c2185b0470ca7b93c9",
+        "Modules/PC-AI.Evaluation/Private/Invoke-SingleTestCase.ps1": "5397b289e01cb19dc471adf7a8736023372c7880c4699fc90911ef98c1ffc37d"
+      },
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:17:44.1538331Z",
+      "reviewed_commit": null,
+      "base_commit": "8f3743c4a2a1879206c4db8424d1c9d8b128d48e",
+      "disposition": "keep",
+      "scope": "Read exact four-line production diff and complete fixture. Independently executed actual five cases: five passed, zero failed/skipped/notrun and zero failed blocks/containers. Type group exercises fresh actual manifest/class/dataset/result flow plus forced reload. URI group executes exact module implementation with only transport/discovery doubles, rejects nonabsolute/nonHTTP URIs, and checks ordered endpoint calls plus successful real EvaluationResult fields. No assertion weakened, no service/model/GPU/inference quality admission follows.",
+      "receipt": "evaluation-runtime-review.md",
+      "raw_evidence": {
+        "sha256": "28239058a7fe88fcb9bc33c7417ce1537c4e635d85793b265a4d437654cdb826",
+        "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/evaluation-runtime-verification/independent-windows-result.json"
+      }
+    },
+    {
+      "selector": "constructs and consumes a real suite after forced reload",
+      "test_path": "Tests/Unit/EvaluationSuiteType.Tests.ps1",
+      "test_sha256": "7ee06dbd11f8dc811aacdd768132d7588364e65ac27e5361f44a5efc388c8907",
+      "selector_sha256": "196a264c29f361e431b8b8e42bd065c263f3f559ad48ada56a88f47faa02483a",
+      "source_sha256": {
+        "Modules/PC-AI.Evaluation/Public/New-EvaluationSuite.ps1": "36ce4165031d78ffe2435b0cd4a34d2b2edf66298f74b2c2185b0470ca7b93c9",
+        "Modules/PC-AI.Evaluation/Private/Invoke-SingleTestCase.ps1": "5397b289e01cb19dc471adf7a8736023372c7880c4699fc90911ef98c1ffc37d"
+      },
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:17:44.1538331Z",
+      "reviewed_commit": null,
+      "base_commit": "8f3743c4a2a1879206c4db8424d1c9d8b128d48e",
+      "disposition": "keep",
+      "scope": "Read exact four-line production diff and complete fixture. Independently executed actual five cases: five passed, zero failed/skipped/notrun and zero failed blocks/containers. Type group exercises fresh actual manifest/class/dataset/result flow plus forced reload. URI group executes exact module implementation with only transport/discovery doubles, rejects nonabsolute/nonHTTP URIs, and checks ordered endpoint calls plus successful real EvaluationResult fields. No assertion weakened, no service/model/GPU/inference quality admission follows.",
+      "receipt": "evaluation-runtime-review.md",
+      "raw_evidence": {
+        "sha256": "28239058a7fe88fcb9bc33c7417ce1537c4e635d85793b265a4d437654cdb826",
+        "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/evaluation-runtime-verification/independent-windows-result.json"
+      }
+    },
+    {
+      "selector": "uses the configured base URL for completion",
+      "test_path": "Tests/Unit/EvaluationSuiteType.Tests.ps1",
+      "test_sha256": "7ee06dbd11f8dc811aacdd768132d7588364e65ac27e5361f44a5efc388c8907",
+      "selector_sha256": "1cabf09e32c44662956c9e5a976fbbe3253bb87a869631ad9807048d52001fdb",
+      "source_sha256": {
+        "Modules/PC-AI.Evaluation/Public/New-EvaluationSuite.ps1": "36ce4165031d78ffe2435b0cd4a34d2b2edf66298f74b2c2185b0470ca7b93c9",
+        "Modules/PC-AI.Evaluation/Private/Invoke-SingleTestCase.ps1": "5397b289e01cb19dc471adf7a8736023372c7880c4699fc90911ef98c1ffc37d"
+      },
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:17:44.288002Z",
+      "reviewed_commit": null,
+      "base_commit": "8f3743c4a2a1879206c4db8424d1c9d8b128d48e",
+      "disposition": "keep",
+      "scope": "Read exact four-line production diff and complete fixture. Independently executed actual five cases: five passed, zero failed/skipped/notrun and zero failed blocks/containers. Type group exercises fresh actual manifest/class/dataset/result flow plus forced reload. URI group executes exact module implementation with only transport/discovery doubles, rejects nonabsolute/nonHTTP URIs, and checks ordered endpoint calls plus successful real EvaluationResult fields. No assertion weakened, no service/model/GPU/inference quality admission follows.",
+      "receipt": "evaluation-runtime-review.md",
+      "raw_evidence": {
+        "sha256": "28239058a7fe88fcb9bc33c7417ce1537c4e635d85793b265a4d437654cdb826",
+        "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/evaluation-runtime-verification/independent-windows-result.json"
+      }
+    },
+    {
+      "selector": "uses the configured base URL for chat fallback",
+      "test_path": "Tests/Unit/EvaluationSuiteType.Tests.ps1",
+      "test_sha256": "7ee06dbd11f8dc811aacdd768132d7588364e65ac27e5361f44a5efc388c8907",
+      "selector_sha256": "1cabf09e32c44662956c9e5a976fbbe3253bb87a869631ad9807048d52001fdb",
+      "source_sha256": {
+        "Modules/PC-AI.Evaluation/Public/New-EvaluationSuite.ps1": "36ce4165031d78ffe2435b0cd4a34d2b2edf66298f74b2c2185b0470ca7b93c9",
+        "Modules/PC-AI.Evaluation/Private/Invoke-SingleTestCase.ps1": "5397b289e01cb19dc471adf7a8736023372c7880c4699fc90911ef98c1ffc37d"
+      },
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:17:44.288002Z",
+      "reviewed_commit": null,
+      "base_commit": "8f3743c4a2a1879206c4db8424d1c9d8b128d48e",
+      "disposition": "keep",
+      "scope": "Read exact four-line production diff and complete fixture. Independently executed actual five cases: five passed, zero failed/skipped/notrun and zero failed blocks/containers. Type group exercises fresh actual manifest/class/dataset/result flow plus forced reload. URI group executes exact module implementation with only transport/discovery doubles, rejects nonabsolute/nonHTTP URIs, and checks ordered endpoint calls plus successful real EvaluationResult fields. No assertion weakened, no service/model/GPU/inference quality admission follows.",
+      "receipt": "evaluation-runtime-review.md",
+      "raw_evidence": {
+        "sha256": "28239058a7fe88fcb9bc33c7417ce1537c4e635d85793b265a4d437654cdb826",
+        "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/evaluation-runtime-verification/independent-windows-result.json"
+      }
+    },
+    {
+      "selector": "uses the configured base URL for Ollama fallback",
+      "test_path": "Tests/Unit/EvaluationSuiteType.Tests.ps1",
+      "test_sha256": "7ee06dbd11f8dc811aacdd768132d7588364e65ac27e5361f44a5efc388c8907",
+      "selector_sha256": "1cabf09e32c44662956c9e5a976fbbe3253bb87a869631ad9807048d52001fdb",
+      "source_sha256": {
+        "Modules/PC-AI.Evaluation/Public/New-EvaluationSuite.ps1": "36ce4165031d78ffe2435b0cd4a34d2b2edf66298f74b2c2185b0470ca7b93c9",
+        "Modules/PC-AI.Evaluation/Private/Invoke-SingleTestCase.ps1": "5397b289e01cb19dc471adf7a8736023372c7880c4699fc90911ef98c1ffc37d"
+      },
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:17:44.288002Z",
+      "reviewed_commit": null,
+      "base_commit": "8f3743c4a2a1879206c4db8424d1c9d8b128d48e",
+      "disposition": "keep",
+      "scope": "Read exact four-line production diff and complete fixture. Independently executed actual five cases: five passed, zero failed/skipped/notrun and zero failed blocks/containers. Type group exercises fresh actual manifest/class/dataset/result flow plus forced reload. URI group executes exact module implementation with only transport/discovery doubles, rejects nonabsolute/nonHTTP URIs, and checks ordered endpoint calls plus successful real EvaluationResult fields. No assertion weakened, no service/model/GPU/inference quality admission follows.",
+      "receipt": "evaluation-runtime-review.md",
+      "raw_evidence": {
+        "sha256": "28239058a7fe88fcb9bc33c7417ce1537c4e635d85793b265a4d437654cdb826",
+        "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/evaluation-runtime-verification/independent-windows-result.json"
+      }
+    }
+  ]
+}

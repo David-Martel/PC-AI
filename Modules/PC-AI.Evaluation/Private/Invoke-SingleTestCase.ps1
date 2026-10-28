@@ -44,7 +44,7 @@ function Invoke-SingleTestCase {
                     temperature = $Temperature
                 } | ConvertTo-Json
 
-                $response = Invoke-RestMethod -Uri "$script:EvaluationConfig.HttpBaseUrl/v1/completions" `
+                $response = Invoke-RestMethod -Uri "$($script:EvaluationConfig.HttpBaseUrl)/v1/completions" `
                     -Method Post -Body $body -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec
                 $text = $response.choices[0].text
                 if (-not $text -and $response.choices[0].message) {
@@ -63,7 +63,7 @@ function Invoke-SingleTestCase {
                         temperature = $Temperature
                     } | ConvertTo-Json -Depth 6
 
-                    $chatResponse = Invoke-RestMethod -Uri "$script:EvaluationConfig.HttpBaseUrl/v1/chat/completions" `
+                    $chatResponse = Invoke-RestMethod -Uri "$($script:EvaluationConfig.HttpBaseUrl)/v1/chat/completions" `
                         -Method Post -Body $chatBody -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec
                     $text = $chatResponse.choices[0].message.content
                 }
@@ -117,7 +117,7 @@ function Invoke-SingleTestCase {
                         options = $options
                     } | ConvertTo-Json
 
-                    $response = Invoke-RestMethod -Uri "$script:EvaluationConfig.OllamaBaseUrl/api/generate" `
+                    $response = Invoke-RestMethod -Uri "$($script:EvaluationConfig.OllamaBaseUrl)/api/generate" `
                         -Method Post -Body $body -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec
                     $result.Response = $response.response
                     $result.Model = $selectedModel

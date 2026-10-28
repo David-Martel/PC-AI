@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "republishes report-bearing modules with exact evidence and recoverable old payloads",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "54b4f493dff7b5185caa39d48d1e7ba186e276ec5d8d0d31028b51f396873d18",
+      "selector_sha256": "5b95f3a2e6bcdc777263a863a61b1143bd1879dd78fce2045f0f0d0b26d7d091",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "9c66b7818dce43e9191e942d4e333a7d5061d054dc13c2987f62f087b455999d"
+      },
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:38:17.5985113Z",
+      "reviewed_commit": null,
+      "base_commit": "809ce8c83397a4fbc74554707b9a26f5809b13e9",
+      "disposition": "keep",
+      "scope": "Read exact delta, recursion/strict object boundary/staging-publication-rollback call chain and all five new selector groups/eight expanded cases. Reports classification depends only on first relative directory component, never prefix or nested occurrence. Entry reparse rejection precedes recursion/copy, all other JSON still requires object roots and deep merge. Exact path+raw-byte tree identities on repeats/backups/source, late-target collision and failed-stage evidence, four outside-boundary rejection cases, no-write DryRun and external junction target preservation provide meaningful producer controls.",
+      "receipt": "module-report-custody-review.md",
+      "raw_evidence": {
+        "sha256": "63DBE6D087C3FABCA19CE58CD2A8C5D724FAAFFC553252D5225D68D12DEA013E",
+        "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/module-staging/peer-review.json"
+      }
+    },
+    {
+      "selector": "restores report-bearing modules after a later target fails publication",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "54b4f493dff7b5185caa39d48d1e7ba186e276ec5d8d0d31028b51f396873d18",
+      "selector_sha256": "18ade7932b70a595260f67364666e6fd62c80b18ea3994f57217647c3300ee1b",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "9c66b7818dce43e9191e942d4e333a7d5061d054dc13c2987f62f087b455999d"
+      },
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:38:17.5985113Z",
+      "reviewed_commit": null,
+      "base_commit": "809ce8c83397a4fbc74554707b9a26f5809b13e9",
+      "disposition": "keep",
+      "scope": "Read exact delta, recursion/strict object boundary/staging-publication-rollback call chain and all five new selector groups/eight expanded cases. Reports classification depends only on first relative directory component, never prefix or nested occurrence. Entry reparse rejection precedes recursion/copy, all other JSON still requires object roots and deep merge. Exact path+raw-byte tree identities on repeats/backups/source, late-target collision and failed-stage evidence, four outside-boundary rejection cases, no-write DryRun and external junction target preservation provide meaningful producer controls.",
+      "receipt": "module-report-custody-review.md",
+      "raw_evidence": {
+        "sha256": "63DBE6D087C3FABCA19CE58CD2A8C5D724FAAFFC553252D5225D68D12DEA013E",
+        "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/module-staging/peer-review.json"
+      }
+    },
+    {
+      "selector": "retains strict settings validation for <RelativePath> with <Content>",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "54b4f493dff7b5185caa39d48d1e7ba186e276ec5d8d0d31028b51f396873d18",
+      "selector_sha256": "3f5b81916f9da1f418752848e739c1894c697cb8f22b6f9267bb846ff8fc52b9",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "9c66b7818dce43e9191e942d4e333a7d5061d054dc13c2987f62f087b455999d"
+      },
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:38:17.5985113Z",
+      "reviewed_commit": null,
+      "base_commit": "809ce8c83397a4fbc74554707b9a26f5809b13e9",
+      "disposition": "keep",
+      "scope": "Read exact delta, recursion/strict object boundary/staging-publication-rollback call chain and all five new selector groups/eight expanded cases. Reports classification depends only on first relative directory component, never prefix or nested occurrence. Entry reparse rejection precedes recursion/copy, all other JSON still requires object roots and deep merge. Exact path+raw-byte tree identities on repeats/backups/source, late-target collision and failed-stage evidence, four outside-boundary rejection cases, no-write DryRun and external junction target preservation provide meaningful producer controls.",
+      "receipt": "module-report-custody-review.md",
+      "raw_evidence": {
+        "sha256": "63DBE6D087C3FABCA19CE58CD2A8C5D724FAAFFC553252D5225D68D12DEA013E",
+        "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/module-staging/peer-review.json"
+      }
+    },
+    {
+      "selector": "performs no filesystem writes for a report-bearing dry run",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "54b4f493dff7b5185caa39d48d1e7ba186e276ec5d8d0d31028b51f396873d18",
+      "selector_sha256": "e0b71b919137615e2ad1918f5ee3799fec696444faf27f3877aae4b096c4ffc4",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "9c66b7818dce43e9191e942d4e333a7d5061d054dc13c2987f62f087b455999d"
+      },
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:38:17.5985113Z",
+      "reviewed_commit": null,
+      "base_commit": "809ce8c83397a4fbc74554707b9a26f5809b13e9",
+      "disposition": "keep",
+      "scope": "Read exact delta, recursion/strict object boundary/staging-publication-rollback call chain and all five new selector groups/eight expanded cases. Reports classification depends only on first relative directory component, never prefix or nested occurrence. Entry reparse rejection precedes recursion/copy, all other JSON still requires object roots and deep merge. Exact path+raw-byte tree identities on repeats/backups/source, late-target collision and failed-stage evidence, four outside-boundary rejection cases, no-write DryRun and external junction target preservation provide meaningful producer controls.",
+      "receipt": "module-report-custody-review.md",
+      "raw_evidence": {
+        "sha256": "63DBE6D087C3FABCA19CE58CD2A8C5D724FAAFFC553252D5225D68D12DEA013E",
+        "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/module-staging/peer-review.json"
+      }
+    },
+    {
+      "selector": "rejects a captured-report junction without changing its outside target",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "54b4f493dff7b5185caa39d48d1e7ba186e276ec5d8d0d31028b51f396873d18",
+      "selector_sha256": "df75fb37c7ceb6fd8812eced439d732d3f561a321ba7443b0904fd9a09de3c7d",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "9c66b7818dce43e9191e942d4e333a7d5061d054dc13c2987f62f087b455999d"
+      },
+      "reviewer": "codex-windows-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:38:17.5985113Z",
+      "reviewed_commit": null,
+      "base_commit": "809ce8c83397a4fbc74554707b9a26f5809b13e9",
+      "disposition": "keep",
+      "scope": "Read exact delta, recursion/strict object boundary/staging-publication-rollback call chain and all five new selector groups/eight expanded cases. Reports classification depends only on first relative directory component, never prefix or nested occurrence. Entry reparse rejection precedes recursion/copy, all other JSON still requires object roots and deep merge. Exact path+raw-byte tree identities on repeats/backups/source, late-target collision and failed-stage evidence, four outside-boundary rejection cases, no-write DryRun and external junction target preservation provide meaningful producer controls.",
+      "receipt": "module-report-custody-review.md",
+      "raw_evidence": {
+        "sha256": "63DBE6D087C3FABCA19CE58CD2A8C5D724FAAFFC553252D5225D68D12DEA013E",
+        "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/module-staging/peer-review.json"
+      }
+    }
+  ]
+}

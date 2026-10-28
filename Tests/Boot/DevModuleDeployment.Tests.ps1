@@ -297,3 +297,128 @@ Describe 'Scoped module publication with recovery' {
         [IO.File]::ReadAllText((Join-Path $old 'payload.txt')) | Should -Be 'original'
     }
 }
+
+Describe 'Captured module report custody' -Tag 'Unit', 'Windows' {
+    BeforeEach {
+        $script:reportRoot = Join-Path $TestDrive ([Guid]::NewGuid().ToString('N'))
+        $script:reportRepo = Join-Path $reportRoot 'repo'
+        $script:reportModules = Join-Path $reportRepo 'Modules'
+        $script:reportInstall = Join-Path $reportRoot 'installed'
+        $script:reportSource = New-TestDevModule $reportModules Alpha
+        $script:reportOld = New-TestDevModule $reportInstall Alpha 'old'
+        foreach ($root in @($reportSource, $reportOld)) {
+            [void][IO.Directory]::CreateDirectory((Join-Path $root 'Config/Reports/history'))
+        }
+        [IO.File]::WriteAllText((Join-Path $reportSource 'Config/settings.json'), '{"Machine":{"BuildJobs":4,"NewDefault":true}}')
+        [IO.File]::WriteAllText((Join-Path $reportOld 'Config/settings.json'), '{"Machine":{"BuildJobs":2},"InstalledOnly":true}')
+        [IO.File]::WriteAllText((Join-Path $reportSource 'Config/Reports/history/availability.json'), '["source-default"]')
+        [IO.File]::WriteAllBytes((Join-Path $reportOld 'Config/Reports/history/availability.json'), [Text.Encoding]::UTF8.GetBytes("[`r`n  `"installed-evidence`"`n]"))
+        [IO.File]::WriteAllText((Join-Path $reportOld 'Config/Reports/history/summary.json'), '{ "preserve" :  "spacing" }')
+        [IO.File]::WriteAllText((Join-Path $reportOld 'Config/Reports/history/report.md'), "captured-report`r`n")
+        function Get-ReportTreeIdentity([string]$Root) {
+            @(Get-ChildItem -LiteralPath $Root -Recurse -File | Sort-Object FullName | ForEach-Object {
+                    [ordered]@{ Path = [IO.Path]::GetRelativePath($Root, $_.FullName); SHA256 = (Get-FileHash -LiteralPath $_.FullName).Hash }
+                }) | ConvertTo-Json -Compress
+        }
+    }
+
+    # Protects: Repeated publication retains captured array/object JSON and non-JSON bytes plus installed settings.
+    # Detects: Historical report arrays reject an otherwise valid second umbrella upgrade, or reports are normalized.
+    # Needs: Windows, PowerShell 7, Pester 5 and TestDrive; inert fixture modules, no live installation or imports.
+    # Breadcrumb: Tools/Install-PcaiDevModules.ps1 Copy-InstalledModuleConfig and staged publication.
+    It 'republishes report-bearing modules with exact evidence and recoverable old payloads' {
+        $reportIdentity = Get-ReportTreeIdentity (Join-Path $reportOld 'Config/Reports')
+        $sourceIdentity = Get-ReportTreeIdentity $reportSource
+        $beforeFirst = Get-ReportTreeIdentity $reportOld
+        $first = & $installer -RepoRoot $reportRepo -InstallRoot $reportInstall -ModuleNames Alpha -UpdatePSModulePath:$false
+        (Get-ReportTreeIdentity $first.BackupPath) | Should -BeExactly $beforeFirst
+        (Get-ReportTreeIdentity (Join-Path $reportOld 'Config/Reports')) | Should -BeExactly $reportIdentity
+        $settings = Get-Content (Join-Path $reportOld 'Config/settings.json') -Raw | ConvertFrom-Json
+        $settings.Machine.BuildJobs | Should -Be 2
+        $settings.Machine.NewDefault | Should -BeTrue
+        $settings.InstalledOnly | Should -BeTrue
+        $beforeSecond = Get-ReportTreeIdentity $reportOld
+        $second = & $installer -RepoRoot $reportRepo -InstallRoot $reportInstall -ModuleNames Alpha -UpdatePSModulePath:$false
+        (Get-ReportTreeIdentity $second.BackupPath) | Should -BeExactly $beforeSecond
+        (Get-ReportTreeIdentity (Join-Path $reportOld 'Config/Reports')) | Should -BeExactly $reportIdentity
+        (Get-ReportTreeIdentity $reportSource) | Should -BeExactly $sourceIdentity
+    }
+
+    # Protects: A late publication failure restores the complete report-bearing original and unrelated target file.
+    # Detects: Config report parsing prevents the intended late failure, or rollback loses already moved evidence.
+    # Needs: Windows, PowerShell 7, Pester 5 and TestDrive; deterministic second-target file collision only.
+    # Breadcrumb: Tools/Install-PcaiDevModules.ps1 publication loop and reverse-order recovery.
+    It 'restores report-bearing modules after a later target fails publication' {
+        New-TestDevModule $reportModules Beta | Out-Null
+        $blocker = Join-Path $reportInstall 'Beta'
+        [IO.File]::WriteAllText($blocker, 'unrelated-blocker')
+        $before = Get-ReportTreeIdentity $reportOld
+        { & $installer -RepoRoot $reportRepo -InstallRoot $reportInstall -ModuleNames Alpha, Beta -UpdatePSModulePath:$false } |
+            Should -Throw '*Installed target is a file*Existing module directories were restored*'
+        (Get-ReportTreeIdentity $reportOld) | Should -BeExactly $before
+        [IO.File]::ReadAllText($blocker) | Should -BeExactly 'unrelated-blocker'
+        $failed = @(Get-ChildItem $reportInstall -Directory -Filter '.pcai-stage-*' | ForEach-Object {
+                $path = Join-Path $_.FullName 'Alpha.failed'
+                if (Test-Path $path) { $path }
+            })
+        $failed.Count | Should -Be 1
+        (Get-ReportTreeIdentity (Join-Path $failed[0] 'Config/Reports')) |
+            Should -BeExactly (Get-ReportTreeIdentity (Join-Path $reportOld 'Config/Reports'))
+    }
+
+    # Protects: Only the first exact Reports directory segment receives captured-evidence treatment (four cases).
+    # Detects: Prefix/nested matches bypass object-root settings validation, or malformed settings become acceptable.
+    # Needs: Windows, PowerShell 7, Pester 5 and TestDrive; malformed/array settings never reach publication.
+    # Breadcrumb: Tools/Install-PcaiDevModules.ps1 Copy-InstalledModuleConfig JSON object boundary.
+    It 'retains strict settings validation for <RelativePath> with <Content>' -TestCases @(
+        @{ RelativePath = 'Reports2/history.json'; Content = '[]'; Error = '*object root*' }
+        @{ RelativePath = 'nested/Reports/history.json'; Content = '[]'; Error = '*object root*' }
+        @{ RelativePath = 'settings.json'; Content = '[]'; Error = '*object root*' }
+        @{ RelativePath = 'settings.json'; Content = 'invalid JSON'; Error = '*Conversion from JSON failed*' }
+    ) {
+        param($RelativePath, $Content, $Error)
+        # Keep the captured report prerequisite valid even on the old installer,
+        # so a boundary-case failure must name the actual settings defect.
+        foreach ($root in @($reportSource, $reportOld)) {
+            [IO.File]::WriteAllText((Join-Path $root 'Config/Reports/history/availability.json'), '{}')
+        }
+        $path = Join-Path (Join-Path $reportOld 'Config') $RelativePath
+        [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($path))
+        [IO.File]::WriteAllText($path, $Content)
+        $before = Get-ReportTreeIdentity $reportOld
+        { & $installer -RepoRoot $reportRepo -InstallRoot $reportInstall -ModuleNames Alpha -UpdatePSModulePath:$false } | Should -Throw $Error
+        (Get-ReportTreeIdentity $reportOld) | Should -BeExactly $before
+        [IO.Directory]::Exists((Join-Path $reportInstall '.pcai-module-backups')) | Should -BeFalse
+    }
+
+    # Protects: A report-bearing dry run creates no stages/backups and changes no existing content or write time.
+    # Detects: Discovery starts copying evidence, rewriting settings or creating publication directories in DryRun.
+    # Needs: Windows, PowerShell 7, Pester 5 and TestDrive; filesystem state comparison, no live destinations.
+    # Breadcrumb: Tools/Install-PcaiDevModules.ps1 DryRun return before transaction creation.
+    It 'performs no filesystem writes for a report-bearing dry run' {
+        $before = Get-ReportTreeIdentity $reportRoot
+        $times = @(Get-ChildItem $reportRoot -Recurse -Force | Sort-Object FullName | ForEach-Object { "$($_.FullName)|$($_.LastWriteTimeUtc.Ticks)" })
+        $plan = & $installer -RepoRoot $reportRepo -InstallRoot $reportInstall -ModuleNames Alpha -UpdatePSModulePath:$false -DryRun
+        $plan.Status | Should -Be 'DryRun'
+        (Get-ReportTreeIdentity $reportRoot) | Should -BeExactly $before
+        @(Get-ChildItem $reportRoot -Recurse -Force | Sort-Object FullName | ForEach-Object { "$($_.FullName)|$($_.LastWriteTimeUtc.Ticks)" }) | Should -Be $times
+    }
+
+    # Protects: Reports cannot redirect capture copying through an installed junction.
+    # Detects: Evidence classification skips existing reparse guards and follows an external directory.
+    # Needs: Windows junction support, PowerShell 7, Pester 5 and TestDrive; only synthetic directories.
+    # Breadcrumb: Tools/Install-PcaiDevModules.ps1 Copy-InstalledModuleConfig reparse guards.
+    It 'rejects a captured-report junction without changing its outside target' {
+        foreach ($root in @($reportSource, $reportOld)) {
+            [IO.File]::WriteAllText((Join-Path $root 'Config/Reports/history/availability.json'), '{}')
+        }
+        $outside = Join-Path $reportRoot 'outside'
+        [void][IO.Directory]::CreateDirectory($outside)
+        [IO.File]::WriteAllText((Join-Path $outside 'marker.txt'), 'outside-unchanged')
+        New-Item -ItemType Junction -Path (Join-Path $reportOld 'Config/Reports/junction') -Target $outside | Out-Null
+        $before = Get-ReportTreeIdentity $outside
+        { & $installer -RepoRoot $reportRepo -InstallRoot $reportInstall -ModuleNames Alpha -UpdatePSModulePath:$false } | Should -Throw '*reparse*'
+        (Get-ReportTreeIdentity $outside) | Should -BeExactly $before
+        [IO.File]::ReadAllText((Join-Path $reportOld 'payload.txt')) | Should -BeExactly 'old'
+    }
+}

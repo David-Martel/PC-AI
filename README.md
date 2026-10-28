@@ -20,6 +20,7 @@ For bounded Ubuntu/Windows cache and managed-build validation, see
 [portable bootstrap](docs/portable-bootstrap.md). Native backend and hardware
 qualification remain separate from managed compilation.
 
+Empty module discovery is covered by the [command-map binding controls](Tests/Unit/command-map-empty-review.md).
 Captured report bytes follow the [evidence custody rules](docs/captured-evidence-custody.md).
 
 ## Key Features

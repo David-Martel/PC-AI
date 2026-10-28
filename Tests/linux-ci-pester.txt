@@ -34,6 +34,7 @@ PC-AI.LLM.ReAct.Tests.ps1
 PC-AI.LLM.Tests.ps1
 PC-AI.Robustness.Tests.ps1
 PC-AI.Router.Tests.ps1
+PcaiCommandMapEmptyModules.Tests.ps1
 ProviderHealthCache.Tests.ps1
 Resolve-PcaiPath.Tests.ps1
 RustGuidelines.Compliance.Tests.ps1

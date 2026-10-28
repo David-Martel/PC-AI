@@ -6,9 +6,9 @@ uses the filename argument boundary. The [maintained tests](PowerShellSyntaxHook
 read that configured entry, refuse command evaluation, and launch the actual
 helper in bounded child PowerShell processes with inert TestDrive source.
 
-The [review register](powershell-syntax-review.json) binds eight selector groups
-(twelve cases) to normalized selector, whole-test, helper and configuration hashes.
-Independent review retains all eight groups at the registered selector and source hashes. Windows and Linux controls pass twelve cases, zero failed or skipped. Final committed Git blobs were independently executed on ASUS Linux x86_64 with PowerShell 7.6.9 and Pester 5.7.1; the register records the source commit and receipt hash. These controls do not establish fleet installation, aggregate repository coverage or native/runtime acceptance.
+The [review register](powershell-syntax-review.json) binds ten selector groups
+(fourteen cases) to normalized selector, whole-test, helper and configuration hashes.
+Independent review retains all ten groups at the registered selector and source hashes. Windows passes fourteen cases with zero failures or skips. Linux passes thirteen cases with zero failures and one explicit Windows Hidden-attribute prerequisite skip. The corrected helper also parses actual tracked Tests/.pester.ps1 on Linux. Final Git blobs at source commit c8d06853ebe3c576d10b5feea659e1a27b61d93a were independently executed on ASUS with PowerShell 7.6.9 and Pester 5.7.1. The dot-file and Windows-attribute controls each detect the missing Force option on their applicable platform. The register preserves prior receipts and binds this renewed review. No fleet installation, aggregate repository coverage or native/runtime acceptance follows.
 
 The red controls use the same maintained tests: an always-success replacement
 fails eight cases; the original command-evaluating hook configuration fails

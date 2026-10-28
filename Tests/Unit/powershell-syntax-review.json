@@ -12,13 +12,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
       },
       "rationale": "    # Protects: A syntax check must not execute valid staged scripts.\n    # Detects: The old -Command filename-appending boundary writes a marker instead of only parsing.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive; no modules, network or hardware.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1; .pre-commit-config.yaml powershell-syntax.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:34:35Z",
       "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Hidden-source correction adds Force and explicit dot-file/Windows-attribute controls; all current source hashes require renewed independent review.",
+      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "disposition": "keep",
+      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -32,13 +32,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
       },
       "rationale": "    # Protects: Tracked dot-prefixed source remains eligible for syntax validation.\n    # Detects: Get-Item without Force treats existing hidden Unix source as absent.\n    # Needs: PowerShell 7, Pester 5 and TestDrive; the dot-file form runs on every platform.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 literal source discovery.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:34:35Z",
       "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Hidden-source correction adds Force and explicit dot-file/Windows-attribute controls; all current source hashes require renewed independent review."
+      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "disposition": "keep",
+      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened."
     },
     {
       "selector": "PowerShell staged-source syntax safety.accepts Windows hidden staged source without executing its statements",
@@ -51,13 +51,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
       },
       "rationale": "    # Protects: Windows hidden source receives the same syntax-only treatment as visible source.\n    # Detects: Get-Item without Force rejects a staged file with the Hidden attribute.\n    # Needs: Windows file attributes, PowerShell 7 and Pester 5; explicitly skipped on other platforms.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 literal source discovery.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:34:35Z",
       "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Hidden-source correction adds Force and explicit dot-file/Windows-attribute controls; all current source hashes require renewed independent review."
+      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "disposition": "keep",
+      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened."
     },
     {
       "selector": "PowerShell staged-source syntax safety.rejects invalid script syntax without executing its leading write-marker statement",
@@ -69,13 +69,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
       },
       "rationale": "    # Protects: Malformed source is refused before any staged statements can execute.\n    # Detects: Success-only guards or execution-based checks miss/refuse source for the wrong reason.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:34:35Z",
       "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Hidden-source correction adds Force and explicit dot-file/Windows-attribute controls; all current source hashes require renewed independent review.",
+      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "disposition": "keep",
+      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -88,13 +88,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
       },
       "rationale": "    # Protects: Removed or misspelled staged paths cannot silently pass the guard.\n    # Detects: Ignoring absent files permits an unchecked source set.\n    # Needs: PowerShell 7, Pester 5 and a nonexistent path under TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:34:35Z",
       "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Hidden-source correction adds Force and explicit dot-file/Windows-attribute controls; all current source hashes require renewed independent review.",
+      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "disposition": "keep",
+      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -107,13 +107,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
       },
       "rationale": "    # Protects: These explicit ps1/psm1/psd1 cases remain usable through literal path binding.\n    # Detects: Splitting whitespace, treating brackets as wildcards, or dropping supported extensions.\n    # Needs: PowerShell 7, Pester 5 and TestDrive paths containing spaces and brackets.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1; .pre-commit-config.yaml extension selector.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:34:35Z",
       "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Hidden-source correction adds Force and explicit dot-file/Windows-attribute controls; all current source hashes require renewed independent review.",
+      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "disposition": "keep",
+      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -126,13 +126,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
       },
       "rationale": "    # Protects: Explicit module/data cases receive the same refusal as malformed scripts.\n    # Detects: An extension filter that skips psm1/psd1 or an always-success replacement.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:34:35Z",
       "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Hidden-source correction adds Force and explicit dot-file/Windows-attribute controls; all current source hashes require renewed independent review.",
+      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "disposition": "keep",
+      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -145,13 +145,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
       },
       "rationale": "    # Protects: One invalid staged file fails the batch even when a later file is valid.\n    # Detects: Last-file exit-code overwrite, filename dropping, or early success.\n    # Needs: PowerShell 7, Pester 5 and two disposable source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 foreach/aggregate failure boundary.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:34:35Z",
       "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Hidden-source correction adds Force and explicit dot-file/Windows-attribute controls; all current source hashes require renewed independent review.",
+      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "disposition": "keep",
+      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -164,13 +164,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
       },
       "rationale": "    # Protects: Both declared help entrypoints work without source access or child evaluation.\n    # Detects: Parameter binding consumes help as a missing file or requires interactive input.\n    # Needs: PowerShell 7 and Pester 5; no source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 help contract.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:34:35Z",
       "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Hidden-source correction adds Force and explicit dot-file/Windows-attribute controls; all current source hashes require renewed independent review.",
+      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "disposition": "keep",
+      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -183,13 +183,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
       },
       "rationale": "    # Protects: An empty invocation cannot masquerade as checked source.\n    # Detects: A missing filename handoff reports success while checking nothing.\n    # Needs: PowerShell 7 and Pester 5; no source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 empty-input refusal.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:34:35Z",
       "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Hidden-source correction adds Force and explicit dot-file/Windows-attribute controls; all current source hashes require renewed independent review.",
+      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "disposition": "keep",
+      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
       "receipt": "powershell-syntax-review.md"
     }
   ],
@@ -204,5 +204,25 @@
     "skipped": 0,
     "not_run": 0,
     "raw_sha256": "1f48e28f9f2e62595744fc2d493846017599c826c01bd902aa6762c67bab16c9"
+  },
+  "linux_receipt": {
+    "host": "asuspro13",
+    "platform": "linux-x64",
+    "PowerShell": "7.6.9",
+    "Pester": "5.7.1",
+    "source_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+    "baseline": {
+      "skipped": 1,
+      "passed": 12,
+      "failed": 1
+    },
+    "candidate": {
+      "skipped": 1,
+      "passed": 13,
+      "failed": 0
+    },
+    "skip_reason": "Windows Hidden-attribute prerequisite",
+    "actual_tracked_hidden_source_exit": 0,
+    "raw_sha256": "5705015cdeb7bb9842f53d1a7b77c79b12faf154ccdbf500b8bde0d479c03eb3"
   }
 }

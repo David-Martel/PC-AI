@@ -18,7 +18,7 @@
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T21:52:36.5555359Z",
       "base_commit": "8f3743c4a2a1879206c4db8424d1c9d8b128d48e",
-      "reviewed_commit": null,
+      "reviewed_commit": "6a09d88cc28207eda85090da130f2a21d6b63de8",
       "disposition": "keep",
       "scope": "Independent final-source review and fresh-process replay of all three actual workflow-block controls. Source-hash binding precedes commit. No executed GitHub dispatch interpolation, real inference/evaluation success, installation, model quality, full-suite coverage or runtime class visibility qualification.",
       "receipt": "evaluation-smoke-review.md"
@@ -39,7 +39,7 @@
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T21:52:36.5593368Z",
       "base_commit": "8f3743c4a2a1879206c4db8424d1c9d8b128d48e",
-      "reviewed_commit": null,
+      "reviewed_commit": "6a09d88cc28207eda85090da130f2a21d6b63de8",
       "disposition": "keep",
       "scope": "Independent final-source review and fresh-process replay of all three actual workflow-block controls. Source-hash binding precedes commit. No executed GitHub dispatch interpolation, real inference/evaluation success, installation, model quality, full-suite coverage or runtime class visibility qualification.",
       "receipt": "evaluation-smoke-review.md"
@@ -60,7 +60,7 @@
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T21:52:36.5594157Z",
       "base_commit": "8f3743c4a2a1879206c4db8424d1c9d8b128d48e",
-      "reviewed_commit": null,
+      "reviewed_commit": "6a09d88cc28207eda85090da130f2a21d6b63de8",
       "disposition": "keep",
       "scope": "Independent final-source review and fresh-process replay of all three actual workflow-block controls. Source-hash binding precedes commit. No executed GitHub dispatch interpolation, real inference/evaluation success, installation, model quality, full-suite coverage or runtime class visibility qualification.",
       "receipt": "evaluation-smoke-review.md"

@@ -27,6 +27,7 @@ Invoke-JulesOrchestrator.Tests.ps1
 Invoke-JulesSession.Tests.ps1
 Invoke-LLMChatRouted.Tests.ps1
 Invoke-RustBuild.Tests.ps1
+EvaluationSmokeWorkflow.Tests.ps1
 LLM-ErrorHandling.Tests.ps1
 LLM-Fallback.Tests.ps1
 LLM-Logging.Tests.ps1

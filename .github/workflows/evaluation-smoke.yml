@@ -60,7 +60,7 @@ jobs:
               print("mock server ready")
               server.serve_forever()
           "@ | Set-Content -Path $serverPath -Encoding UTF8
-          $proc = Start-Process -FilePath python -ArgumentList $serverPath -PassThru
+          $proc = Start-Process -FilePath python -ArgumentList $serverPath -WindowStyle Hidden -PassThru
           Start-Sleep -Seconds 2
           if ($proc.HasExited) {
             throw "Mock server failed to start."
@@ -69,10 +69,14 @@ jobs:
 
       - name: Run Evaluation Smoke
         shell: pwsh
+        env:
+          PCAI_SMOKE_BASE_URL: ${{ inputs.base_url }}
+          PCAI_SMOKE_DATASET: ${{ inputs.dataset }}
+          PCAI_SMOKE_MAX_CASES: ${{ inputs.max_test_cases }}
         run: |
-          $baseUrl = "${{ inputs.base_url }}"
-          $dataset = "${{ inputs.dataset }}"
-          $max = [int]"${{ inputs.max_test_cases }}"
+          $baseUrl = $env:PCAI_SMOKE_BASE_URL
+          $dataset = $env:PCAI_SMOKE_DATASET
+          $max = [int]$env:PCAI_SMOKE_MAX_CASES
           pwsh .\Tests\Evaluation\Invoke-InferenceEvaluation.ps1 `
             -Backend http `
             -BaseUrl $baseUrl `
@@ -88,8 +92,8 @@ jobs:
         run: |
           $pidFile = Join-Path $env:RUNNER_TEMP "pcai_eval_server.pid"
           if (Test-Path $pidFile) {
-            $pid = Get-Content $pidFile | Select-Object -First 1
-            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+            $mockServerPid = Get-Content $pidFile | Select-Object -First 1
+            Stop-Process -Id $mockServerPid -Force -ErrorAction SilentlyContinue
           }
 
       - name: Upload Evaluation Artifacts

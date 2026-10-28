@@ -38,12 +38,14 @@ BeforeAll {
     }
 
     function Invoke-SyntaxChecker {
-        param([string[]]$SourcePath)
+        param([string[]]$SourcePath, [string]$ModulePath, [string]$ImportMarker)
         $start = [Diagnostics.ProcessStartInfo]::new()
         $start.FileName = $script:SyntaxPwsh
         $start.UseShellExecute = $false
         $start.RedirectStandardOutput = $true
         $start.RedirectStandardError = $true
+        if ($ModulePath) { $start.Environment['PSModulePath'] = $ModulePath }
+        if ($ImportMarker) { $start.Environment['PCAI_SYNTAX_POISON_MARKER'] = $ImportMarker }
         foreach ($argument in $script:SyntaxEntryArguments + @($script:SyntaxChecker) + $SourcePath) {
             [void]$start.ArgumentList.Add($argument)
         }
@@ -71,6 +73,57 @@ BeforeAll {
 }
 
 Describe 'PowerShell staged-source syntax safety' -Tag 'Unit', 'Portable', 'PreCommitSafety' {
+    # Protects: Syntax checks and diagnostics never import unrelated modules from the caller's search path.
+    # Detects: Unqualified utility commands autoload an advertised Write-Error, Write-Output or Get-Item producer.
+    # Needs: PowerShell 7, Pester 5 and owned TestDrive module/source files; no installed module changes.
+    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 help, empty-input, parse-error and file-error command boundaries.
+    It 'ignores a module advertising intrinsic commands for <Case>' -TestCases @(
+        @{ Case = 'help' }
+        @{ Case = 'empty input' }
+        @{ Case = 'invalid syntax' }
+        @{ Case = 'missing file' }
+    ) {
+        param($Case)
+        $moduleRoot = Join-Path $script:SyntaxFixtureRoot ('poison-' + $Case.Replace(' ', '-'))
+        $moduleDirectory = Join-Path $moduleRoot 'PoisonSyntax'
+        [void][IO.Directory]::CreateDirectory($moduleDirectory)
+        [IO.File]::WriteAllText((Join-Path $moduleDirectory 'PoisonSyntax.psd1'), @'
+@{ RootModule = 'PoisonSyntax.psm1'; ModuleVersion = '1.0.0'; FunctionsToExport = @('Write-Error', 'Write-Output', 'Get-Item'); CmdletsToExport = @(); AliasesToExport = @() }
+'@)
+        [IO.File]::WriteAllText((Join-Path $moduleDirectory 'PoisonSyntax.psm1'), @'
+[IO.File]::WriteAllText($env:PCAI_SYNTAX_POISON_MARKER, 'unexpected module import')
+function Write-Error { throw 'Poison diagnostic autoimported' }
+function Write-Output { throw 'Poison output autoimported' }
+function Get-Item { throw 'Poison file discovery autoimported' }
+Export-ModuleMember -Function Write-Error, Write-Output, Get-Item
+'@)
+        $marker = Join-Path $moduleRoot 'module-imported.marker'
+        $missing = Join-Path $moduleRoot 'missing-source.ps1'
+        $invalid = New-SyntaxFixture ('poison-invalid-' + $Case.Replace(' ', '-') + '.ps1') 'function Broken {'
+        $paths = switch ($Case) {
+            'help' { @('--help') }
+            'empty input' { @() }
+            'invalid syntax' { @($invalid) }
+            'missing file' { @($missing) }
+        }
+        $modulePath = $moduleRoot + [IO.Path]::PathSeparator + (Join-Path $PSHOME 'Modules')
+        $result = Invoke-SyntaxChecker -SourcePath @($paths) -ModulePath $modulePath -ImportMarker $marker
+        Test-Path -LiteralPath $marker | Should -BeFalse
+        if ($Case -eq 'help') {
+            $result.ExitCode | Should -Be 0
+            $result.StdOut | Should -Match '^Usage:'
+        }
+        else {
+            $result.ExitCode | Should -Not -Be 0
+            $expected = switch ($Case) {
+                'empty input' { 'Supply at least one PowerShell source file' }
+                'invalid syntax' { 'Missing closing' }
+                'missing file' { 'missing-source\.ps1' }
+            }
+            $result.StdErr | Should -Match $expected
+        }
+    }
+
     # Protects: A syntax check must not execute valid staged scripts.
     # Detects: The old -Command filename-appending boundary writes a marker instead of only parsing.
     # Needs: PowerShell 7, Pester 5 and disposable TestDrive; no modules, network or hardware.

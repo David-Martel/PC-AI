@@ -5,192 +5,417 @@
     {
       "selector": "PowerShell staged-source syntax safety.accepts valid staged source without executing its write-marker statements",
       "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
-      "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+      "test_sha256": "847314c8b2d93a306f3ef2eae7a1deb97e9397da3b45137febcf53b1abceb776",
       "selector_sha256": "2314a7fd94c874d03c1fc6a252ebe9e44bde75782bb662de590808467bedef92",
       "source_sha256": {
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
-        "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: A syntax check must not execute valid staged scripts.\n    # Detects: The old -Command filename-appending boundary writes a marker instead of only parsing.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive; no modules, network or hardware.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1; .pre-commit-config.yaml powershell-syntax.",
-      "reviewer": "codex-linux-fleet",
+      "reviewer": "codex-root",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T20:34:35Z",
-      "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
+      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
       "disposition": "keep",
-      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
-      "receipt": "powershell-syntax-review.md"
+      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "receipt": "powershell-syntax-review.md",
+      "previous_review": {
+        "selector": "PowerShell staged-source syntax safety.accepts valid staged source without executing its write-marker statements",
+        "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
+        "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+        "selector_sha256": "2314a7fd94c874d03c1fc6a252ebe9e44bde75782bb662de590808467bedef92",
+        "source_sha256": {
+          ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
+          "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        },
+        "rationale": "    # Protects: A syntax check must not execute valid staged scripts.\n    # Detects: The old -Command filename-appending boundary writes a marker instead of only parsing.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive; no modules, network or hardware.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1; .pre-commit-config.yaml powershell-syntax.",
+        "reviewer": "codex-linux-fleet",
+        "reviewer_type": "independent-agent",
+        "reviewed_utc": "2026-10-28T20:34:35Z",
+        "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
+        "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+        "disposition": "keep",
+        "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
+        "receipt": "powershell-syntax-review.md"
+      }
     },
     {
       "selector": "PowerShell staged-source syntax safety.accepts dot-prefixed staged source without executing its statements",
       "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
       "receipt": "powershell-syntax-review.md",
-      "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+      "test_sha256": "847314c8b2d93a306f3ef2eae7a1deb97e9397da3b45137febcf53b1abceb776",
       "selector_sha256": "936735a871a38f0d97ebd268ae2154a6db3fc76488393cde095261df8273be01",
       "source_sha256": {
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
-        "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Tracked dot-prefixed source remains eligible for syntax validation.\n    # Detects: Get-Item without Force treats existing hidden Unix source as absent.\n    # Needs: PowerShell 7, Pester 5 and TestDrive; the dot-file form runs on every platform.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 literal source discovery.",
-      "reviewer": "codex-linux-fleet",
+      "reviewer": "codex-root",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T20:34:35Z",
-      "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
+      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
       "disposition": "keep",
-      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened."
+      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "previous_review": {
+        "selector": "PowerShell staged-source syntax safety.accepts dot-prefixed staged source without executing its statements",
+        "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
+        "receipt": "powershell-syntax-review.md",
+        "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+        "selector_sha256": "936735a871a38f0d97ebd268ae2154a6db3fc76488393cde095261df8273be01",
+        "source_sha256": {
+          ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
+          "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        },
+        "rationale": "    # Protects: Tracked dot-prefixed source remains eligible for syntax validation.\n    # Detects: Get-Item without Force treats existing hidden Unix source as absent.\n    # Needs: PowerShell 7, Pester 5 and TestDrive; the dot-file form runs on every platform.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 literal source discovery.",
+        "reviewer": "codex-linux-fleet",
+        "reviewer_type": "independent-agent",
+        "reviewed_utc": "2026-10-28T20:34:35Z",
+        "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
+        "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+        "disposition": "keep",
+        "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened."
+      }
     },
     {
       "selector": "PowerShell staged-source syntax safety.accepts Windows hidden staged source without executing its statements",
       "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
       "receipt": "powershell-syntax-review.md",
-      "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+      "test_sha256": "847314c8b2d93a306f3ef2eae7a1deb97e9397da3b45137febcf53b1abceb776",
       "selector_sha256": "e7b96b3f0a0233d202f856295017a8e0ed9253a25d755578278c7c03a85e7ac4",
       "source_sha256": {
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
-        "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Windows hidden source receives the same syntax-only treatment as visible source.\n    # Detects: Get-Item without Force rejects a staged file with the Hidden attribute.\n    # Needs: Windows file attributes, PowerShell 7 and Pester 5; explicitly skipped on other platforms.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 literal source discovery.",
-      "reviewer": "codex-linux-fleet",
+      "reviewer": "codex-root",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T20:34:35Z",
-      "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
+      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
       "disposition": "keep",
-      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened."
+      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "previous_review": {
+        "selector": "PowerShell staged-source syntax safety.accepts Windows hidden staged source without executing its statements",
+        "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
+        "receipt": "powershell-syntax-review.md",
+        "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+        "selector_sha256": "e7b96b3f0a0233d202f856295017a8e0ed9253a25d755578278c7c03a85e7ac4",
+        "source_sha256": {
+          ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
+          "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        },
+        "rationale": "    # Protects: Windows hidden source receives the same syntax-only treatment as visible source.\n    # Detects: Get-Item without Force rejects a staged file with the Hidden attribute.\n    # Needs: Windows file attributes, PowerShell 7 and Pester 5; explicitly skipped on other platforms.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 literal source discovery.",
+        "reviewer": "codex-linux-fleet",
+        "reviewer_type": "independent-agent",
+        "reviewed_utc": "2026-10-28T20:34:35Z",
+        "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
+        "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+        "disposition": "keep",
+        "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened."
+      }
     },
     {
       "selector": "PowerShell staged-source syntax safety.rejects invalid script syntax without executing its leading write-marker statement",
       "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
-      "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+      "test_sha256": "847314c8b2d93a306f3ef2eae7a1deb97e9397da3b45137febcf53b1abceb776",
       "selector_sha256": "2fd6ccd3dd8aedd64ab8b5a81306a3bf7f6dfa80ad0099086622336064a61fac",
       "source_sha256": {
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
-        "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Malformed source is refused before any staged statements can execute.\n    # Detects: Success-only guards or execution-based checks miss/refuse source for the wrong reason.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": "codex-linux-fleet",
+      "reviewer": "codex-root",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T20:34:35Z",
-      "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
+      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
       "disposition": "keep",
-      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
-      "receipt": "powershell-syntax-review.md"
+      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "receipt": "powershell-syntax-review.md",
+      "previous_review": {
+        "selector": "PowerShell staged-source syntax safety.rejects invalid script syntax without executing its leading write-marker statement",
+        "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
+        "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+        "selector_sha256": "2fd6ccd3dd8aedd64ab8b5a81306a3bf7f6dfa80ad0099086622336064a61fac",
+        "source_sha256": {
+          ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
+          "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        },
+        "rationale": "    # Protects: Malformed source is refused before any staged statements can execute.\n    # Detects: Success-only guards or execution-based checks miss/refuse source for the wrong reason.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
+        "reviewer": "codex-linux-fleet",
+        "reviewer_type": "independent-agent",
+        "reviewed_utc": "2026-10-28T20:34:35Z",
+        "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
+        "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+        "disposition": "keep",
+        "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
+        "receipt": "powershell-syntax-review.md"
+      }
     },
     {
       "selector": "PowerShell staged-source syntax safety.rejects a missing source file and names the refused path",
       "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
-      "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+      "test_sha256": "847314c8b2d93a306f3ef2eae7a1deb97e9397da3b45137febcf53b1abceb776",
       "selector_sha256": "072499490cc06d46c0803e437bf92f9d91fdfb7414d8915a6bf7b0137715822b",
       "source_sha256": {
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
-        "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Removed or misspelled staged paths cannot silently pass the guard.\n    # Detects: Ignoring absent files permits an unchecked source set.\n    # Needs: PowerShell 7, Pester 5 and a nonexistent path under TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": "codex-linux-fleet",
+      "reviewer": "codex-root",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T20:34:35Z",
-      "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
+      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
       "disposition": "keep",
-      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
-      "receipt": "powershell-syntax-review.md"
+      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "receipt": "powershell-syntax-review.md",
+      "previous_review": {
+        "selector": "PowerShell staged-source syntax safety.rejects a missing source file and names the refused path",
+        "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
+        "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+        "selector_sha256": "072499490cc06d46c0803e437bf92f9d91fdfb7414d8915a6bf7b0137715822b",
+        "source_sha256": {
+          ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
+          "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        },
+        "rationale": "    # Protects: Removed or misspelled staged paths cannot silently pass the guard.\n    # Detects: Ignoring absent files permits an unchecked source set.\n    # Needs: PowerShell 7, Pester 5 and a nonexistent path under TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
+        "reviewer": "codex-linux-fleet",
+        "reviewer_type": "independent-agent",
+        "reviewed_utc": "2026-10-28T20:34:35Z",
+        "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
+        "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+        "disposition": "keep",
+        "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
+        "receipt": "powershell-syntax-review.md"
+      }
     },
     {
       "selector": "PowerShell staged-source syntax safety.accepts valid <Extension> source at a literal space and bracket path",
       "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
-      "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+      "test_sha256": "847314c8b2d93a306f3ef2eae7a1deb97e9397da3b45137febcf53b1abceb776",
       "selector_sha256": "1be9fdd762ebbd1f6fc2dbd98077fa4f49c2a00283c2b2b0bc5157d0f130af12",
       "source_sha256": {
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
-        "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: These explicit ps1/psm1/psd1 cases remain usable through literal path binding.\n    # Detects: Splitting whitespace, treating brackets as wildcards, or dropping supported extensions.\n    # Needs: PowerShell 7, Pester 5 and TestDrive paths containing spaces and brackets.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1; .pre-commit-config.yaml extension selector.",
-      "reviewer": "codex-linux-fleet",
+      "reviewer": "codex-root",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T20:34:35Z",
-      "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
+      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
       "disposition": "keep",
-      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
-      "receipt": "powershell-syntax-review.md"
+      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "receipt": "powershell-syntax-review.md",
+      "previous_review": {
+        "selector": "PowerShell staged-source syntax safety.accepts valid <Extension> source at a literal space and bracket path",
+        "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
+        "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+        "selector_sha256": "1be9fdd762ebbd1f6fc2dbd98077fa4f49c2a00283c2b2b0bc5157d0f130af12",
+        "source_sha256": {
+          ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
+          "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        },
+        "rationale": "    # Protects: These explicit ps1/psm1/psd1 cases remain usable through literal path binding.\n    # Detects: Splitting whitespace, treating brackets as wildcards, or dropping supported extensions.\n    # Needs: PowerShell 7, Pester 5 and TestDrive paths containing spaces and brackets.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1; .pre-commit-config.yaml extension selector.",
+        "reviewer": "codex-linux-fleet",
+        "reviewer_type": "independent-agent",
+        "reviewed_utc": "2026-10-28T20:34:35Z",
+        "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
+        "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+        "disposition": "keep",
+        "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
+        "receipt": "powershell-syntax-review.md"
+      }
     },
     {
       "selector": "PowerShell staged-source syntax safety.rejects malformed <Extension> source",
       "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
-      "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+      "test_sha256": "847314c8b2d93a306f3ef2eae7a1deb97e9397da3b45137febcf53b1abceb776",
       "selector_sha256": "ce952e5f234540006c66f2e883120d1d6e508be9024e9016f709fb5dfc5639de",
       "source_sha256": {
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
-        "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Explicit module/data cases receive the same refusal as malformed scripts.\n    # Detects: An extension filter that skips psm1/psd1 or an always-success replacement.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": "codex-linux-fleet",
+      "reviewer": "codex-root",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T20:34:35Z",
-      "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
+      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
       "disposition": "keep",
-      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
-      "receipt": "powershell-syntax-review.md"
+      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "receipt": "powershell-syntax-review.md",
+      "previous_review": {
+        "selector": "PowerShell staged-source syntax safety.rejects malformed <Extension> source",
+        "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
+        "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+        "selector_sha256": "ce952e5f234540006c66f2e883120d1d6e508be9024e9016f709fb5dfc5639de",
+        "source_sha256": {
+          ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
+          "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        },
+        "rationale": "    # Protects: Explicit module/data cases receive the same refusal as malformed scripts.\n    # Detects: An extension filter that skips psm1/psd1 or an always-success replacement.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
+        "reviewer": "codex-linux-fleet",
+        "reviewer_type": "independent-agent",
+        "reviewed_utc": "2026-10-28T20:34:35Z",
+        "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
+        "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+        "disposition": "keep",
+        "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
+        "receipt": "powershell-syntax-review.md"
+      }
     },
     {
       "selector": "PowerShell staged-source syntax safety.refuses a mixed batch rather than accepting the last valid file",
       "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
-      "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+      "test_sha256": "847314c8b2d93a306f3ef2eae7a1deb97e9397da3b45137febcf53b1abceb776",
       "selector_sha256": "84e3c279b373ec40e0cb68e294bc6672dbf81f0c53365decabf5dab432cdb0ee",
       "source_sha256": {
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
-        "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: One invalid staged file fails the batch even when a later file is valid.\n    # Detects: Last-file exit-code overwrite, filename dropping, or early success.\n    # Needs: PowerShell 7, Pester 5 and two disposable source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 foreach/aggregate failure boundary.",
-      "reviewer": "codex-linux-fleet",
+      "reviewer": "codex-root",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T20:34:35Z",
-      "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
+      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
       "disposition": "keep",
-      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
-      "receipt": "powershell-syntax-review.md"
+      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "receipt": "powershell-syntax-review.md",
+      "previous_review": {
+        "selector": "PowerShell staged-source syntax safety.refuses a mixed batch rather than accepting the last valid file",
+        "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
+        "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+        "selector_sha256": "84e3c279b373ec40e0cb68e294bc6672dbf81f0c53365decabf5dab432cdb0ee",
+        "source_sha256": {
+          ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
+          "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        },
+        "rationale": "    # Protects: One invalid staged file fails the batch even when a later file is valid.\n    # Detects: Last-file exit-code overwrite, filename dropping, or early success.\n    # Needs: PowerShell 7, Pester 5 and two disposable source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 foreach/aggregate failure boundary.",
+        "reviewer": "codex-linux-fleet",
+        "reviewer_type": "independent-agent",
+        "reviewed_utc": "2026-10-28T20:34:35Z",
+        "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
+        "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+        "disposition": "keep",
+        "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
+        "receipt": "powershell-syntax-review.md"
+      }
     },
     {
       "selector": "PowerShell staged-source syntax safety.shows usage for <Option> without requiring source files",
       "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
-      "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+      "test_sha256": "847314c8b2d93a306f3ef2eae7a1deb97e9397da3b45137febcf53b1abceb776",
       "selector_sha256": "162c544f1cb9a408093a36c5e0479599fe4e730e959f9d0f72c87d43637e0ad2",
       "source_sha256": {
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
-        "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Both declared help entrypoints work without source access or child evaluation.\n    # Detects: Parameter binding consumes help as a missing file or requires interactive input.\n    # Needs: PowerShell 7 and Pester 5; no source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 help contract.",
-      "reviewer": "codex-linux-fleet",
+      "reviewer": "codex-root",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T20:34:35Z",
-      "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
+      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
       "disposition": "keep",
-      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
-      "receipt": "powershell-syntax-review.md"
+      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "receipt": "powershell-syntax-review.md",
+      "previous_review": {
+        "selector": "PowerShell staged-source syntax safety.shows usage for <Option> without requiring source files",
+        "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
+        "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+        "selector_sha256": "162c544f1cb9a408093a36c5e0479599fe4e730e959f9d0f72c87d43637e0ad2",
+        "source_sha256": {
+          ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
+          "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        },
+        "rationale": "    # Protects: Both declared help entrypoints work without source access or child evaluation.\n    # Detects: Parameter binding consumes help as a missing file or requires interactive input.\n    # Needs: PowerShell 7 and Pester 5; no source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 help contract.",
+        "reviewer": "codex-linux-fleet",
+        "reviewer_type": "independent-agent",
+        "reviewed_utc": "2026-10-28T20:34:35Z",
+        "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
+        "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+        "disposition": "keep",
+        "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
+        "receipt": "powershell-syntax-review.md"
+      }
     },
     {
       "selector": "PowerShell staged-source syntax safety.rejects an invocation with no source files",
       "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
-      "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+      "test_sha256": "847314c8b2d93a306f3ef2eae7a1deb97e9397da3b45137febcf53b1abceb776",
       "selector_sha256": "6622feb2bec12fc4b946da5ec95ce587edc112cfabba3c58279b561a3939c962",
       "source_sha256": {
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
-        "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: An empty invocation cannot masquerade as checked source.\n    # Detects: A missing filename handoff reports success while checking nothing.\n    # Needs: PowerShell 7 and Pester 5; no source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 empty-input refusal.",
-      "reviewer": "codex-linux-fleet",
+      "reviewer": "codex-root",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T20:34:35Z",
-      "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
-      "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
+      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
       "disposition": "keep",
-      "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
-      "receipt": "powershell-syntax-review.md"
+      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "receipt": "powershell-syntax-review.md",
+      "previous_review": {
+        "selector": "PowerShell staged-source syntax safety.rejects an invocation with no source files",
+        "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
+        "test_sha256": "ebf88c705ff74ee6c781c4793f79b3fda078acb9e8283ed03f52186998ccb812",
+        "selector_sha256": "6622feb2bec12fc4b946da5ec95ce587edc112cfabba3c58279b561a3939c962",
+        "source_sha256": {
+          ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
+          "Tools/Test-PowerShellSyntax.ps1": "357603d4354ec6bda3e623a75c5955326e00113c664dce68acd319c38d40ff0c"
+        },
+        "rationale": "    # Protects: An empty invocation cannot masquerade as checked source.\n    # Detects: A missing filename handoff reports success while checking nothing.\n    # Needs: PowerShell 7 and Pester 5; no source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 empty-input refusal.",
+        "reviewer": "codex-linux-fleet",
+        "reviewer_type": "independent-agent",
+        "reviewed_utc": "2026-10-28T20:34:35Z",
+        "base_commit": "60178445287b44afde6e9309be95d34da1e5339c",
+        "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
+        "disposition": "keep",
+        "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
+        "receipt": "powershell-syntax-review.md"
+      }
+    },
+    {
+      "selector": "PowerShell staged-source syntax safety.ignores a module advertising intrinsic commands for <Case>",
+      "cases": [
+        "help",
+        "empty input",
+        "invalid syntax",
+        "missing file"
+      ],
+      "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
+      "test_sha256": "847314c8b2d93a306f3ef2eae7a1deb97e9397da3b45137febcf53b1abceb776",
+      "selector_sha256": "16c9fb42bf124580adfc0d7694b7063dde82a0859febbfae8a31566dfb7cc02e",
+      "source_sha256": {
+        ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798",
+        "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
+      },
+      "rationale": "Protects: Syntax checks and diagnostics never import unrelated modules from the caller search path.\nDetects: Unqualified commands autoload advertised Write-Error, Write-Output or Get-Item producers.\nNeeds: PowerShell7, Pester5 and owned TestDrive module/source files; no installed module changes.\nBreadcrumb: Tools/Test-PowerShellSyntax.ps1 intrinsic file/output/error command boundaries.",
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
+      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "disposition": "keep",
+      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "receipt": "powershell-syntax-review.md",
+      "raw_evidence": [
+        {
+          "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/syntax-autoload/red.log",
+          "sha256": "412a8ace0e5dce964bd3ec6924cc2786612b1d9acfc4d27cc41736fc991cee5c"
+        },
+        {
+          "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/syntax-autoload/green.log",
+          "sha256": "9fab6a34fbcc95979600d9a430f42385d0489b24622d8b74139dedeb4ec8b329"
+        }
+      ]
     }
   ],
   "prior_linux_receipt": {
@@ -224,5 +449,14 @@
     "skip_reason": "Windows Hidden-attribute prerequisite",
     "actual_tracked_hidden_source_exit": 0,
     "raw_sha256": "5705015cdeb7bb9842f53d1a7b77c79b12faf154ccdbf500b8bde0d479c03eb3"
+  },
+  "current_windows_receipt": {
+    "source_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+    "passed": 18,
+    "sha256": "53d782d3cdb932f907080a23da6e7572c09b251bf33a5b26c89544b98d0cc14e",
+    "failed": 0,
+    "reviewer": "codex-root",
+    "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/syntax-autoload/independent-root.json",
+    "skipped": 0
   }
 }

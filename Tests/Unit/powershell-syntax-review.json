@@ -12,13 +12,13 @@
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798"
       },
       "rationale": "    # Protects: A syntax check must not execute valid staged scripts.\n    # Detects: The old -Command filename-appending boundary writes a marker instead of only parsing.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive; no modules, network or hardware.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1; .pre-commit-config.yaml powershell-syntax.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:12:05Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Pending independent review of source relevance, detecting controls and permitted breaking behavior. Parameterized cases belong to the explicit group defined by this selector.",
+      "reviewed_commit": "303cc257603d116d2a5d63177007124dbe92204a",
+      "disposition": "keep",
+      "scope": "Independent source/token/selector review; final exact Git blobs execute 12/12 on Linux, zero skips. Maintained invalid/missing/batch/source-execution controls detect unsafe alternatives. No installed-consumer or full-suite qualification.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -31,13 +31,13 @@
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798"
       },
       "rationale": "    # Protects: Malformed source is refused before any staged statements can execute.\n    # Detects: Success-only guards or execution-based checks miss/refuse source for the wrong reason.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:12:05Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Pending independent review of source relevance, detecting controls and permitted breaking behavior. Parameterized cases belong to the explicit group defined by this selector.",
+      "reviewed_commit": "303cc257603d116d2a5d63177007124dbe92204a",
+      "disposition": "keep",
+      "scope": "Independent source/token/selector review; final exact Git blobs execute 12/12 on Linux, zero skips. Maintained invalid/missing/batch/source-execution controls detect unsafe alternatives. No installed-consumer or full-suite qualification.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -50,13 +50,13 @@
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798"
       },
       "rationale": "    # Protects: Removed or misspelled staged paths cannot silently pass the guard.\n    # Detects: Ignoring absent files permits an unchecked source set.\n    # Needs: PowerShell 7, Pester 5 and a nonexistent path under TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:12:05Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Pending independent review of source relevance, detecting controls and permitted breaking behavior. Parameterized cases belong to the explicit group defined by this selector.",
+      "reviewed_commit": "303cc257603d116d2a5d63177007124dbe92204a",
+      "disposition": "keep",
+      "scope": "Independent source/token/selector review; final exact Git blobs execute 12/12 on Linux, zero skips. Maintained invalid/missing/batch/source-execution controls detect unsafe alternatives. No installed-consumer or full-suite qualification.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -69,13 +69,13 @@
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798"
       },
       "rationale": "    # Protects: These explicit ps1/psm1/psd1 cases remain usable through literal path binding.\n    # Detects: Splitting whitespace, treating brackets as wildcards, or dropping supported extensions.\n    # Needs: PowerShell 7, Pester 5 and TestDrive paths containing spaces and brackets.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1; .pre-commit-config.yaml extension selector.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:12:05Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Pending independent review of source relevance, detecting controls and permitted breaking behavior. Parameterized cases belong to the explicit group defined by this selector.",
+      "reviewed_commit": "303cc257603d116d2a5d63177007124dbe92204a",
+      "disposition": "keep",
+      "scope": "Independent source/token/selector review; final exact Git blobs execute 12/12 on Linux, zero skips. Maintained invalid/missing/batch/source-execution controls detect unsafe alternatives. No installed-consumer or full-suite qualification.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -88,13 +88,13 @@
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798"
       },
       "rationale": "    # Protects: Explicit module/data cases receive the same refusal as malformed scripts.\n    # Detects: An extension filter that skips psm1/psd1 or an always-success replacement.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:12:05Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Pending independent review of source relevance, detecting controls and permitted breaking behavior. Parameterized cases belong to the explicit group defined by this selector.",
+      "reviewed_commit": "303cc257603d116d2a5d63177007124dbe92204a",
+      "disposition": "keep",
+      "scope": "Independent source/token/selector review; final exact Git blobs execute 12/12 on Linux, zero skips. Maintained invalid/missing/batch/source-execution controls detect unsafe alternatives. No installed-consumer or full-suite qualification.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -107,13 +107,13 @@
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798"
       },
       "rationale": "    # Protects: One invalid staged file fails the batch even when a later file is valid.\n    # Detects: Last-file exit-code overwrite, filename dropping, or early success.\n    # Needs: PowerShell 7, Pester 5 and two disposable source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 foreach/aggregate failure boundary.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:12:05Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Pending independent review of source relevance, detecting controls and permitted breaking behavior. Parameterized cases belong to the explicit group defined by this selector.",
+      "reviewed_commit": "303cc257603d116d2a5d63177007124dbe92204a",
+      "disposition": "keep",
+      "scope": "Independent source/token/selector review; final exact Git blobs execute 12/12 on Linux, zero skips. Maintained invalid/missing/batch/source-execution controls detect unsafe alternatives. No installed-consumer or full-suite qualification.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -126,13 +126,13 @@
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798"
       },
       "rationale": "    # Protects: Both declared help entrypoints work without source access or child evaluation.\n    # Detects: Parameter binding consumes help as a missing file or requires interactive input.\n    # Needs: PowerShell 7 and Pester 5; no source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 help contract.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:12:05Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Pending independent review of source relevance, detecting controls and permitted breaking behavior. Parameterized cases belong to the explicit group defined by this selector.",
+      "reviewed_commit": "303cc257603d116d2a5d63177007124dbe92204a",
+      "disposition": "keep",
+      "scope": "Independent source/token/selector review; final exact Git blobs execute 12/12 on Linux, zero skips. Maintained invalid/missing/batch/source-execution controls detect unsafe alternatives. No installed-consumer or full-suite qualification.",
       "receipt": "powershell-syntax-review.md"
     },
     {
@@ -145,14 +145,26 @@
         ".pre-commit-config.yaml": "4c2057f6668a5ae392d9ed77e2e101a86d1a1ee544dcf6acdd3ef37b1408f798"
       },
       "rationale": "    # Protects: An empty invocation cannot masquerade as checked source.\n    # Detects: A missing filename handoff reports success while checking nothing.\n    # Needs: PowerShell 7 and Pester 5; no source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 empty-input refusal.",
-      "reviewer": null,
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "reviewer": "codex-linux-fleet",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T20:12:05Z",
       "base_commit": "06b33e541760ab75402d24235a2ba645a10bb7b3",
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "scope": "Pending independent review of source relevance, detecting controls and permitted breaking behavior. Parameterized cases belong to the explicit group defined by this selector.",
+      "reviewed_commit": "303cc257603d116d2a5d63177007124dbe92204a",
+      "disposition": "keep",
+      "scope": "Independent source/token/selector review; final exact Git blobs execute 12/12 on Linux, zero skips. Maintained invalid/missing/batch/source-execution controls detect unsafe alternatives. No installed-consumer or full-suite qualification.",
       "receipt": "powershell-syntax-review.md"
     }
-  ]
+  ],
+  "linux_receipt": {
+    "host": "asuspro13",
+    "platform": "linux-x64",
+    "PowerShell": "7.6.9",
+    "Pester": "5.7.1",
+    "source_commit": "303cc257603d116d2a5d63177007124dbe92204a",
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0,
+    "not_run": 0,
+    "raw_sha256": "1f48e28f9f2e62595744fc2d493846017599c826c01bd902aa6762c67bab16c9"
+  }
 }

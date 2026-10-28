@@ -8,11 +8,7 @@ helper in bounded child PowerShell processes with inert TestDrive source.
 
 The [review register](powershell-syntax-review.json) binds eight selector groups
 (twelve cases) to normalized selector, whole-test, helper and configuration hashes.
-Disposition is UNREVIEWED until an independent reviewer records relevance,
-coverage and breaking-behavior assessment at these source bytes. Windows
-qualification is twelve passed, zero failed or skipped. Linux execution and
-independent review are pending; this record does not claim fleet installation,
-repository coverage or native/runtime acceptance.
+Independent review retains all eight groups at the registered selector and source hashes. Windows and Linux controls pass twelve cases, zero failed or skipped. Final committed Git blobs were independently executed on ASUS Linux x86_64 with PowerShell 7.6.9 and Pester 5.7.1; the register records the source commit and receipt hash. These controls do not establish fleet installation, aggregate repository coverage or native/runtime acceptance.
 
 The red controls use the same maintained tests: an always-success replacement
 fails eight cases; the original command-evaluating hook configuration fails

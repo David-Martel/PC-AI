@@ -6,6 +6,8 @@ Publish selected development modules with staged validation and recoverable back
 .DESCRIPTION
 Auto uses Copy. Existing module directories are renamed into a unique backup
 directory; they are never deleted. Existing Config values override source defaults.
+The Config/Reports subtree retains captured bytes; other JSON configuration
+requires object roots and merges installed values with new defaults.
 All selected payloads are staged and validated without importing modules before
 publication. Root and referenced nested manifests receive file-reference checks;
 other data manifests are parsed and preserved, with stale FileList diagnostics.
@@ -139,30 +141,35 @@ function Merge-ModuleConfigObject {
 }
 
 function Copy-InstalledModuleConfig {
-    <# .SYNOPSIS Merge installed Config objects and preserve other installed Config files. #>
-    param([string]$Installed, [string]$Staged)
+    <# .SYNOPSIS Merge settings and preserve captured Config/Reports evidence bytes. #>
+    param([string]$Installed, [string]$Staged, [string]$RelativePath = '')
     if (-not [IO.Directory]::Exists($Installed)) { return }
     if (([IO.File]::GetAttributes($Installed) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
         throw "Installed Config cannot be a reparse point: '$Installed'."
     }
     [IO.Directory]::CreateDirectory($Staged) | Microsoft.PowerShell.Core\Out-Null
+    $capturedEvidence = ($RelativePath -split '[\\/]')[0] -eq 'Reports'
     foreach ($entry in Microsoft.PowerShell.Management\Get-ChildItem -LiteralPath $Installed -Force) {
         if (($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "Installed Config contains a reparse point: '$($entry.FullName)'." }
         $target = [IO.Path]::Combine($Staged, $entry.Name)
         if ($entry.PSIsContainer) {
-            Copy-InstalledModuleConfig -Installed $entry.FullName -Staged $target
-        } elseif ($entry.Extension -eq '.json') {
+            $childRelativePath = if ($RelativePath) { [IO.Path]::Combine($RelativePath, $entry.Name) } else { $entry.Name }
+            Copy-InstalledModuleConfig -Installed $entry.FullName -Staged $target -RelativePath $childRelativePath
+        }
+        elseif ($entry.Extension -eq '.json' -and -not $capturedEvidence) {
             $previous = Microsoft.PowerShell.Utility\ConvertFrom-Json -InputObject ([IO.File]::ReadAllText($entry.FullName)) -AsHashtable
             $defaults = if ([IO.File]::Exists($target)) {
                 Microsoft.PowerShell.Utility\ConvertFrom-Json -InputObject ([IO.File]::ReadAllText($target)) -AsHashtable
-            } else { @{} }
+            }
+            else { @{} }
             if ($previous -isnot [Collections.IDictionary] -or $defaults -isnot [Collections.IDictionary]) {
                 throw "Config JSON must have an object root: '$($entry.FullName)'."
             }
             $merged = Merge-ModuleConfigObject -Defaults $defaults -Installed $previous
             $json = Microsoft.PowerShell.Utility\ConvertTo-Json -InputObject $merged -Depth 50 -WarningAction Stop
             [IO.File]::WriteAllText($target, $json, [Text.UTF8Encoding]::new($false))
-        } else { [IO.File]::Copy($entry.FullName, $target, $true) }
+        }
+        else { [IO.File]::Copy($entry.FullName, $target, $true) }
     }
 }
 

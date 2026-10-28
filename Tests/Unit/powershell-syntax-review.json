@@ -12,13 +12,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: A syntax check must not execute valid staged scripts.\n    # Detects: The old -Command filename-appending boundary writes a marker instead of only parsing.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive; no modules, network or hardware.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1; .pre-commit-config.yaml powershell-syntax.",
-      "reviewer": "codex-root",
+      "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "reviewed_utc": "2026-10-28T23:16:39.5189865Z",
       "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
-      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "7c1edb12dc9c758b8af8a4f63e293c37dce053ec",
       "disposition": "keep",
-      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "scope": "Genuine independent linux-fleet renewal: authored none of these tests. Read current source/test and all eleven groups, verified original ten bodies LF-identical to prior reviewed versions and actually reran eighteen Windows cases with zero failures/skips/not-run. Current Linux case execution not claimed here. Historical bindings retained; root separately reviewed the new four-case poison group.",
       "receipt": "powershell-syntax-review.md",
       "previous_review": {
         "selector": "PowerShell staged-source syntax safety.accepts valid staged source without executing its write-marker statements",
@@ -38,6 +38,14 @@
         "disposition": "keep",
         "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
         "receipt": "powershell-syntax-review.md"
+      },
+      "superseded_review": {
+        "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+        "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+        "reviewer": "codex-root",
+        "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+        "reviewer_type": "independent-agent",
+        "status": "Superseded for original selectors because root authored their original bodies; source/test evidence preserved in commit7c1."
       }
     },
     {
@@ -51,13 +59,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Tracked dot-prefixed source remains eligible for syntax validation.\n    # Detects: Get-Item without Force treats existing hidden Unix source as absent.\n    # Needs: PowerShell 7, Pester 5 and TestDrive; the dot-file form runs on every platform.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 literal source discovery.",
-      "reviewer": "codex-root",
+      "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "reviewed_utc": "2026-10-28T23:16:39.5189865Z",
       "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
-      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "7c1edb12dc9c758b8af8a4f63e293c37dce053ec",
       "disposition": "keep",
-      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "scope": "Genuine independent linux-fleet renewal: authored none of these tests. Read current source/test and all eleven groups, verified original ten bodies LF-identical to prior reviewed versions and actually reran eighteen Windows cases with zero failures/skips/not-run. Current Linux case execution not claimed here. Historical bindings retained; root separately reviewed the new four-case poison group.",
       "previous_review": {
         "selector": "PowerShell staged-source syntax safety.accepts dot-prefixed staged source without executing its statements",
         "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
@@ -76,6 +84,14 @@
         "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
         "disposition": "keep",
         "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened."
+      },
+      "superseded_review": {
+        "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+        "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+        "reviewer": "codex-root",
+        "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+        "reviewer_type": "independent-agent",
+        "status": "Superseded for original selectors because root authored their original bodies; source/test evidence preserved in commit7c1."
       }
     },
     {
@@ -89,13 +105,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Windows hidden source receives the same syntax-only treatment as visible source.\n    # Detects: Get-Item without Force rejects a staged file with the Hidden attribute.\n    # Needs: Windows file attributes, PowerShell 7 and Pester 5; explicitly skipped on other platforms.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 literal source discovery.",
-      "reviewer": "codex-root",
+      "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "reviewed_utc": "2026-10-28T23:16:39.5189865Z",
       "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
-      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "7c1edb12dc9c758b8af8a4f63e293c37dce053ec",
       "disposition": "keep",
-      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "scope": "Genuine independent linux-fleet renewal: authored none of these tests. Read current source/test and all eleven groups, verified original ten bodies LF-identical to prior reviewed versions and actually reran eighteen Windows cases with zero failures/skips/not-run. Current Linux case execution not claimed here. Historical bindings retained; root separately reviewed the new four-case poison group.",
       "previous_review": {
         "selector": "PowerShell staged-source syntax safety.accepts Windows hidden staged source without executing its statements",
         "test_path": "Tests/Unit/PowerShellSyntaxHook.Tests.ps1",
@@ -114,6 +130,14 @@
         "reviewed_commit": "c8d06853ebe3c576d10b5feea659e1a27b61d93a",
         "disposition": "keep",
         "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened."
+      },
+      "superseded_review": {
+        "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+        "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+        "reviewer": "codex-root",
+        "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+        "reviewer_type": "independent-agent",
+        "status": "Superseded for original selectors because root authored their original bodies; source/test evidence preserved in commit7c1."
       }
     },
     {
@@ -126,13 +150,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Malformed source is refused before any staged statements can execute.\n    # Detects: Success-only guards or execution-based checks miss/refuse source for the wrong reason.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": "codex-root",
+      "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "reviewed_utc": "2026-10-28T23:16:39.5189865Z",
       "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
-      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "7c1edb12dc9c758b8af8a4f63e293c37dce053ec",
       "disposition": "keep",
-      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "scope": "Genuine independent linux-fleet renewal: authored none of these tests. Read current source/test and all eleven groups, verified original ten bodies LF-identical to prior reviewed versions and actually reran eighteen Windows cases with zero failures/skips/not-run. Current Linux case execution not claimed here. Historical bindings retained; root separately reviewed the new four-case poison group.",
       "receipt": "powershell-syntax-review.md",
       "previous_review": {
         "selector": "PowerShell staged-source syntax safety.rejects invalid script syntax without executing its leading write-marker statement",
@@ -152,6 +176,14 @@
         "disposition": "keep",
         "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
         "receipt": "powershell-syntax-review.md"
+      },
+      "superseded_review": {
+        "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+        "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+        "reviewer": "codex-root",
+        "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+        "reviewer_type": "independent-agent",
+        "status": "Superseded for original selectors because root authored their original bodies; source/test evidence preserved in commit7c1."
       }
     },
     {
@@ -164,13 +196,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Removed or misspelled staged paths cannot silently pass the guard.\n    # Detects: Ignoring absent files permits an unchecked source set.\n    # Needs: PowerShell 7, Pester 5 and a nonexistent path under TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": "codex-root",
+      "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "reviewed_utc": "2026-10-28T23:16:39.5189865Z",
       "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
-      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "7c1edb12dc9c758b8af8a4f63e293c37dce053ec",
       "disposition": "keep",
-      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "scope": "Genuine independent linux-fleet renewal: authored none of these tests. Read current source/test and all eleven groups, verified original ten bodies LF-identical to prior reviewed versions and actually reran eighteen Windows cases with zero failures/skips/not-run. Current Linux case execution not claimed here. Historical bindings retained; root separately reviewed the new four-case poison group.",
       "receipt": "powershell-syntax-review.md",
       "previous_review": {
         "selector": "PowerShell staged-source syntax safety.rejects a missing source file and names the refused path",
@@ -190,6 +222,14 @@
         "disposition": "keep",
         "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
         "receipt": "powershell-syntax-review.md"
+      },
+      "superseded_review": {
+        "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+        "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+        "reviewer": "codex-root",
+        "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+        "reviewer_type": "independent-agent",
+        "status": "Superseded for original selectors because root authored their original bodies; source/test evidence preserved in commit7c1."
       }
     },
     {
@@ -202,13 +242,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: These explicit ps1/psm1/psd1 cases remain usable through literal path binding.\n    # Detects: Splitting whitespace, treating brackets as wildcards, or dropping supported extensions.\n    # Needs: PowerShell 7, Pester 5 and TestDrive paths containing spaces and brackets.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1; .pre-commit-config.yaml extension selector.",
-      "reviewer": "codex-root",
+      "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "reviewed_utc": "2026-10-28T23:16:39.5189865Z",
       "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
-      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "7c1edb12dc9c758b8af8a4f63e293c37dce053ec",
       "disposition": "keep",
-      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "scope": "Genuine independent linux-fleet renewal: authored none of these tests. Read current source/test and all eleven groups, verified original ten bodies LF-identical to prior reviewed versions and actually reran eighteen Windows cases with zero failures/skips/not-run. Current Linux case execution not claimed here. Historical bindings retained; root separately reviewed the new four-case poison group.",
       "receipt": "powershell-syntax-review.md",
       "previous_review": {
         "selector": "PowerShell staged-source syntax safety.accepts valid <Extension> source at a literal space and bracket path",
@@ -228,6 +268,14 @@
         "disposition": "keep",
         "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
         "receipt": "powershell-syntax-review.md"
+      },
+      "superseded_review": {
+        "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+        "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+        "reviewer": "codex-root",
+        "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+        "reviewer_type": "independent-agent",
+        "status": "Superseded for original selectors because root authored their original bodies; source/test evidence preserved in commit7c1."
       }
     },
     {
@@ -240,13 +288,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Explicit module/data cases receive the same refusal as malformed scripts.\n    # Detects: An extension filter that skips psm1/psd1 or an always-success replacement.\n    # Needs: PowerShell 7, Pester 5 and disposable TestDrive.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1.",
-      "reviewer": "codex-root",
+      "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "reviewed_utc": "2026-10-28T23:16:39.5189865Z",
       "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
-      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "7c1edb12dc9c758b8af8a4f63e293c37dce053ec",
       "disposition": "keep",
-      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "scope": "Genuine independent linux-fleet renewal: authored none of these tests. Read current source/test and all eleven groups, verified original ten bodies LF-identical to prior reviewed versions and actually reran eighteen Windows cases with zero failures/skips/not-run. Current Linux case execution not claimed here. Historical bindings retained; root separately reviewed the new four-case poison group.",
       "receipt": "powershell-syntax-review.md",
       "previous_review": {
         "selector": "PowerShell staged-source syntax safety.rejects malformed <Extension> source",
@@ -266,6 +314,14 @@
         "disposition": "keep",
         "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
         "receipt": "powershell-syntax-review.md"
+      },
+      "superseded_review": {
+        "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+        "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+        "reviewer": "codex-root",
+        "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+        "reviewer_type": "independent-agent",
+        "status": "Superseded for original selectors because root authored their original bodies; source/test evidence preserved in commit7c1."
       }
     },
     {
@@ -278,13 +334,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: One invalid staged file fails the batch even when a later file is valid.\n    # Detects: Last-file exit-code overwrite, filename dropping, or early success.\n    # Needs: PowerShell 7, Pester 5 and two disposable source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 foreach/aggregate failure boundary.",
-      "reviewer": "codex-root",
+      "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "reviewed_utc": "2026-10-28T23:16:39.5189865Z",
       "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
-      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "7c1edb12dc9c758b8af8a4f63e293c37dce053ec",
       "disposition": "keep",
-      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "scope": "Genuine independent linux-fleet renewal: authored none of these tests. Read current source/test and all eleven groups, verified original ten bodies LF-identical to prior reviewed versions and actually reran eighteen Windows cases with zero failures/skips/not-run. Current Linux case execution not claimed here. Historical bindings retained; root separately reviewed the new four-case poison group.",
       "receipt": "powershell-syntax-review.md",
       "previous_review": {
         "selector": "PowerShell staged-source syntax safety.refuses a mixed batch rather than accepting the last valid file",
@@ -304,6 +360,14 @@
         "disposition": "keep",
         "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
         "receipt": "powershell-syntax-review.md"
+      },
+      "superseded_review": {
+        "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+        "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+        "reviewer": "codex-root",
+        "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+        "reviewer_type": "independent-agent",
+        "status": "Superseded for original selectors because root authored their original bodies; source/test evidence preserved in commit7c1."
       }
     },
     {
@@ -316,13 +380,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: Both declared help entrypoints work without source access or child evaluation.\n    # Detects: Parameter binding consumes help as a missing file or requires interactive input.\n    # Needs: PowerShell 7 and Pester 5; no source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 help contract.",
-      "reviewer": "codex-root",
+      "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "reviewed_utc": "2026-10-28T23:16:39.5189865Z",
       "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
-      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "7c1edb12dc9c758b8af8a4f63e293c37dce053ec",
       "disposition": "keep",
-      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "scope": "Genuine independent linux-fleet renewal: authored none of these tests. Read current source/test and all eleven groups, verified original ten bodies LF-identical to prior reviewed versions and actually reran eighteen Windows cases with zero failures/skips/not-run. Current Linux case execution not claimed here. Historical bindings retained; root separately reviewed the new four-case poison group.",
       "receipt": "powershell-syntax-review.md",
       "previous_review": {
         "selector": "PowerShell staged-source syntax safety.shows usage for <Option> without requiring source files",
@@ -342,6 +406,14 @@
         "disposition": "keep",
         "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
         "receipt": "powershell-syntax-review.md"
+      },
+      "superseded_review": {
+        "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+        "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+        "reviewer": "codex-root",
+        "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+        "reviewer_type": "independent-agent",
+        "status": "Superseded for original selectors because root authored their original bodies; source/test evidence preserved in commit7c1."
       }
     },
     {
@@ -354,13 +426,13 @@
         "Tools/Test-PowerShellSyntax.ps1": "f447313ca8f1a3720c72f24a7d4c20a217d240a334606e61dce268c940ca4901"
       },
       "rationale": "    # Protects: An empty invocation cannot masquerade as checked source.\n    # Detects: A missing filename handoff reports success while checking nothing.\n    # Needs: PowerShell 7 and Pester 5; no source fixtures.\n    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 empty-input refusal.",
-      "reviewer": "codex-root",
+      "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent",
-      "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+      "reviewed_utc": "2026-10-28T23:16:39.5189865Z",
       "base_commit": "d7dba0c5ee6d05c1b777e07d49b0b4bae9aaba80",
-      "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+      "reviewed_commit": "7c1edb12dc9c758b8af8a4f63e293c37dce053ec",
       "disposition": "keep",
-      "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+      "scope": "Genuine independent linux-fleet renewal: authored none of these tests. Read current source/test and all eleven groups, verified original ten bodies LF-identical to prior reviewed versions and actually reran eighteen Windows cases with zero failures/skips/not-run. Current Linux case execution not claimed here. Historical bindings retained; root separately reviewed the new four-case poison group.",
       "receipt": "powershell-syntax-review.md",
       "previous_review": {
         "selector": "PowerShell staged-source syntax safety.rejects an invocation with no source files",
@@ -380,6 +452,14 @@
         "disposition": "keep",
         "scope": "Independent review of all ten groups and exact source Git blobs. Windows 14 pass/0 fail; Linux 13 pass/0 fail/1 explicit Windows Hidden prerequisite skip. New controls detect missing Force on both platforms; no prior assertion weakened.",
         "receipt": "powershell-syntax-review.md"
+      },
+      "superseded_review": {
+        "reviewed_utc": "2026-10-28T22:20:49.6040069Z",
+        "scope": "Independent root read all eleven selector groups at exact helper/test hashes and reran eighteen Windows cases: eighteen passed, zero failed/skipped. Four owned poison-module cases detect unqualified intrinsic commands; original fourteen assertions remain intact. Current Linux execution of the four added cases is not claimed. Whole WindowsCI and 85 percent coverage remain separate.",
+        "reviewer": "codex-root",
+        "reviewed_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
+        "reviewer_type": "independent-agent",
+        "status": "Superseded for original selectors because root authored their original bodies; source/test evidence preserved in commit7c1."
       }
     },
     {
@@ -458,5 +538,17 @@
     "reviewer": "codex-root",
     "local_only_path": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/syntax-autoload/independent-root.json",
     "skipped": 0
+  },
+  "independent_renewal": {
+    "Skipped": 0,
+    "Reviewer": "codex-linux-fleet",
+    "Passed": 18,
+    "NotRun": 0,
+    "Failed": 0,
+    "OriginalGroups": 10,
+    "NewPoisonGroupReviewer": "codex-root",
+    "Path": "C:/codedev/evidence/pcai-fleet-integration/r2/module-staging/syntax-peer/independent-review.json",
+    "SHA256": "f07b1b0d92de40ebb10bf3d76260c805d67f813b678297b3f61b2807746e4304",
+    "ReviewedCommit": "7c1edb12dc9c758b8af8a4f63e293c37dce053ec"
   }
 }

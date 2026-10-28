@@ -26,3 +26,11 @@ Invoke-Pester -Path Tests/Unit/PowerShellSyntaxHook.Tests.ps1 -Tag Portable
 The [Linux CI allowlist](../linux-ci-pester.txt) includes this suite; its execution
 must be confirmed in isolation and with the existing cohort before final review.
 The [CI guide](../../CI-CD-GUIDE.md#pre-commit-hooks) describes the hook boundary.
+
+## Intrinsic-command autoload boundary follow-up
+
+Integrating accepted main into the draft exposed a separate boundary: the canonical runner prepends repository Modules to PSModulePath. A fresh syntax child could then autoload the aggregate while trying to report a parser error through unqualified Write-Error. Five existing syntax controls failed because an unrelated Evaluation producer was imported instead of reporting the original syntax/path diagnostic.
+
+The helper now qualifies its intrinsic file-discovery and output/error commands. Four new controls create an owned module advertising Get-Item, Write-Output and Write-Error; module import writes a marker and throws. All four controls fail against the predecessor helper because the marker appears. With the fix, the same four controls and the existing fourteen syntax cases pass, including original error diagnostics. The combined syntax/empty-manifest run passes 23 tests with no failures or skips on PowerShell7.6.7/Pester5.7.1.
+
+The selector register retains previous reviews as historical bindings. Independent root review accepts all eleven current groups at commit 039d7e8a08160ee81b77ac4ef3618f6568b26b8c and independently reran all eighteen Windows syntax cases with no failures or skips. The four new cases have no current Linux execution receipt. These controls neither change the WindowsCI cohort nor add full-run coverage credit. The original stage-source execution/hidden-file refusal assertions remain intact. No module search paths or installed modules are changed outside the owned children.

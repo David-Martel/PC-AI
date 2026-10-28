@@ -23,20 +23,22 @@ param(
 
 Set-StrictMode -Version Latest
 
+# The caller may prepend repository or third-party modules to PSModulePath.
+# Resolve intrinsic commands explicitly so syntax checks cannot autoload them.
 if ($Help -or '--help' -in $Path) {
-    Write-Output 'Usage: pwsh -NoProfile -File Tools/Test-PowerShellSyntax.ps1 <file.ps1> [file.psm1 ...]'
+    Microsoft.PowerShell.Utility\Write-Output 'Usage: pwsh -NoProfile -File Tools/Test-PowerShellSyntax.ps1 <file.ps1> [file.psm1 ...]'
     exit 0
 }
 
 if ($Path.Count -eq 0) {
-    Write-Error 'Supply at least one PowerShell source file, or use --help.' -ErrorAction Continue
+    Microsoft.PowerShell.Utility\Write-Error 'Supply at least one PowerShell source file, or use --help.' -ErrorAction Continue
     exit 1
 }
 
 $hasErrors = $false
 foreach ($filePath in $Path) {
     try {
-        $file = Get-Item -LiteralPath $filePath -Force -ErrorAction Stop
+        $file = Microsoft.PowerShell.Management\Get-Item -LiteralPath $filePath -Force -ErrorAction Stop
         if ($file.PSProvider.Name -ne 'FileSystem' -or $file.PSIsContainer) {
             throw "Not a source file: $filePath"
         }
@@ -46,14 +48,14 @@ foreach ($filePath in $Path) {
         )
         foreach ($parseError in $parseErrors) {
             $hasErrors = $true
-            Write-Error ('{0}:{1}:{2}: {3}' -f $file.FullName,
+            Microsoft.PowerShell.Utility\Write-Error ('{0}:{1}:{2}: {3}' -f $file.FullName,
                 $parseError.Extent.StartLineNumber, $parseError.Extent.StartColumnNumber,
                 $parseError.Message) -ErrorAction Continue
         }
     }
     catch {
         $hasErrors = $true
-        Write-Error -ErrorRecord $_ -ErrorAction Continue
+        Microsoft.PowerShell.Utility\Write-Error -ErrorRecord $_ -ErrorAction Continue
     }
 }
 

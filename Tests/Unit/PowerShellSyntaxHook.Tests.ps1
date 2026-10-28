@@ -85,6 +85,41 @@ Describe 'PowerShell staged-source syntax safety' -Tag 'Unit', 'Portable', 'PreC
         $result.ExitCode | Should -Be 0
     }
 
+    # Protects: Tracked dot-prefixed source remains eligible for syntax validation.
+    # Detects: Get-Item without Force treats existing hidden Unix source as absent.
+    # Needs: PowerShell 7, Pester 5 and TestDrive; the dot-file form runs on every platform.
+    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 literal source discovery.
+    It 'accepts dot-prefixed staged source without executing its statements' {
+        $marker = Join-Path $script:SyntaxFixtureRoot 'dot-source-executed.marker'
+        $fixture = New-SyntaxFixture '.staged-source.ps1' @'
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'dot-source-executed.marker'), 'unexpected execution')
+'@
+        $result = Invoke-SyntaxChecker @($fixture)
+        Test-Path -LiteralPath $marker | Should -BeFalse
+        $result.ExitCode | Should -Be 0
+    }
+
+    # Protects: Windows hidden source receives the same syntax-only treatment as visible source.
+    # Detects: Get-Item without Force rejects a staged file with the Hidden attribute.
+    # Needs: Windows file attributes, PowerShell 7 and Pester 5; explicitly skipped on other platforms.
+    # Breadcrumb: Tools/Test-PowerShellSyntax.ps1 literal source discovery.
+    It 'accepts Windows hidden staged source without executing its statements' -Skip:(-not $IsWindows) {
+        $marker = Join-Path $script:SyntaxFixtureRoot 'hidden-source-executed.marker'
+        $fixture = New-SyntaxFixture 'hidden-source.ps1' @'
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'hidden-source-executed.marker'), 'unexpected execution')
+'@
+        $attributes = [IO.File]::GetAttributes($fixture)
+        try {
+            [IO.File]::SetAttributes($fixture, ($attributes -bor [IO.FileAttributes]::Hidden))
+            $result = Invoke-SyntaxChecker @($fixture)
+            Test-Path -LiteralPath $marker | Should -BeFalse
+            $result.ExitCode | Should -Be 0
+        }
+        finally {
+            [IO.File]::SetAttributes($fixture, $attributes)
+        }
+    }
+
     # Protects: Malformed source is refused before any staged statements can execute.
     # Detects: Success-only guards or execution-based checks miss/refuse source for the wrong reason.
     # Needs: PowerShell 7, Pester 5 and disposable TestDrive.

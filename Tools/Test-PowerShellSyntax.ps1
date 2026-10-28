@@ -36,7 +36,7 @@ if ($Path.Count -eq 0) {
 $hasErrors = $false
 foreach ($filePath in $Path) {
     try {
-        $file = Get-Item -LiteralPath $filePath -ErrorAction Stop
+        $file = Get-Item -LiteralPath $filePath -Force -ErrorAction Stop
         if ($file.PSProvider.Name -ne 'FileSystem' -or $file.PSIsContainer) {
             throw "Not a source file: $filePath"
         }

@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "Runtime optional discovery remains inside the selected source.loads its real sibling cache without importing an advertised foreign helper",
+      "selector_sha256": "c742d7649da0aca2308aab589057dc2e9d86f3ea7d7fc449cefa25e5154eb9c3",
+      "test_path": "Tests/Unit/PcaiRuntimeDiscoveryIsolation.Tests.ps1",
+      "test_sha256": "b5fa661c32f8f03816781ee683a04e30dfd8b3fafbe0fe28e892b7e19a71103e",
+      "source_sha256": {
+        "Modules/PC-AI.Common/Public/Get-PcaiRuntimeConfig.ps1": "7fecefbb881e3de71f3fe394341c8f2db19afaabf91700cabda5c64b7a919108",
+        "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psm1": "f601dc9500303126f187bdac08d853b5be0efdfe8d7e5f217bc4a12a9c981bdf",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psd1": "ca19eafa97c80a268279afac5e437f4670e0045c145a76413d88dfb77f7a8b81"
+      },
+      "rationale": "Protects the actual adjacent-cache fallback and runtime JSON configuration. Detects named loaded-only lookup importing an advertised foreign helper before local fallback. Needs the actual runtime/cache source, owned poison module and fresh PowerShell process with only owned+PSHOME modules. Breadcrumb: runtime helper bootstrap and Get-PcaiRuntimeConfig cache guards.",
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T23:24:16.7912610Z",
+      "reviewed_commit": null,
+      "base_commit": "f5ffebe432beee56e5c4d2b7b32429076218db4a",
+      "disposition": "keep",
+      "scope": "Independent root read all nine changed guards, unchanged C# and complete child/poison/removal/reuse/component fixture. Fresh Windows six passed, zero failed/skipped/not-run. Four groups/six cases authored by windows-fleet; root is a nonauthor. Qualified unnamed enumeration and exact name matching preserve adjacent fallback and loaded-helper reuse. No model, startup-performance or broad WindowsCI85 acceptance.",
+      "receipt": "runtime-discovery-review.md"
+    },
+    {
+      "selector": "Runtime optional discovery remains inside the selected source.reuses defined cache and dependency helpers instead of sourcing its sibling",
+      "selector_sha256": "7f4af79c0aac32aadfbed15e7932d7e42399de46d9efae2983f851e49dacf27a",
+      "test_path": "Tests/Unit/PcaiRuntimeDiscoveryIsolation.Tests.ps1",
+      "test_sha256": "b5fa661c32f8f03816781ee683a04e30dfd8b3fafbe0fe28e892b7e19a71103e",
+      "source_sha256": {
+        "Modules/PC-AI.Common/Public/Get-PcaiRuntimeConfig.ps1": "7fecefbb881e3de71f3fe394341c8f2db19afaabf91700cabda5c64b7a919108",
+        "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psm1": "f601dc9500303126f187bdac08d853b5be0efdfe8d7e5f217bc4a12a9c981bdf",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psd1": "ca19eafa97c80a268279afac5e437f4670e0045c145a76413d88dfb77f7a8b81"
+      },
+      "rationale": "Protects existing helper reuse. Detects unnecessary sibling source execution and lost cache reads/writes or dependency stamping. Needs three actual owned loaded functions, call logs and a sibling that marks and throws if touched. Breadcrumb: Resolve-PcaiRepoRoot/Get-PcaiRuntimeConfig optional helper calls.",
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T23:24:16.7941202Z",
+      "reviewed_commit": null,
+      "base_commit": "f5ffebe432beee56e5c4d2b7b32429076218db4a",
+      "disposition": "keep",
+      "scope": "Independent root read all nine changed guards, unchanged C# and complete child/poison/removal/reuse/component fixture. Fresh Windows six passed, zero failed/skipped/not-run. Four groups/six cases authored by windows-fleet; root is a nonauthor. Qualified unnamed enumeration and exact name matching preserve adjacent fallback and loaded-helper reuse. No model, startup-performance or broad WindowsCI85 acceptance.",
+      "receipt": "runtime-discovery-review.md"
+    },
+    {
+      "selector": "Runtime optional discovery remains inside the selected source.keeps a valid runtime when loaded <Target> disappears",
+      "selector_sha256": "37eb92f71a1f0bdc9a960edb94904a0c13277e6b7ad5471e73e60796b2409126",
+      "test_path": "Tests/Unit/PcaiRuntimeDiscoveryIsolation.Tests.ps1",
+      "test_sha256": "b5fa661c32f8f03816781ee683a04e30dfd8b3fafbe0fe28e892b7e19a71103e",
+      "source_sha256": {
+        "Modules/PC-AI.Common/Public/Get-PcaiRuntimeConfig.ps1": "7fecefbb881e3de71f3fe394341c8f2db19afaabf91700cabda5c64b7a919108",
+        "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psm1": "f601dc9500303126f187bdac08d853b5be0efdfe8d7e5f217bc4a12a9c981bdf",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psd1": "ca19eafa97c80a268279afac5e437f4670e0045c145a76413d88dfb77f7a8b81"
+      },
+      "rationale": "Protects runtime fallback when GetCache, SetCache or dependency stamp disappears after bootstrap. Detects importing advertised replacements during later lookup guards or requiring missing optional functions. Needs real function removal verified through Function provider, poison import marker and actual configured runtime output. Breadcrumb: nine optional lookup statements in the runtime helper; three explicit targets.",
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T23:24:16.7941343Z",
+      "reviewed_commit": null,
+      "base_commit": "f5ffebe432beee56e5c4d2b7b32429076218db4a",
+      "disposition": "keep",
+      "scope": "Independent root read all nine changed guards, unchanged C# and complete child/poison/removal/reuse/component fixture. Fresh Windows six passed, zero failed/skipped/not-run. Four groups/six cases authored by windows-fleet; root is a nonauthor. Qualified unnamed enumeration and exact name matching preserve adjacent fallback and loaded-helper reuse. No model, startup-performance or broad WindowsCI85 acceptance.",
+      "receipt": "runtime-discovery-review.md"
+    },
+    {
+      "selector": "Runtime optional discovery remains inside the selected source.imports only the exact selected virtualization component in a fresh consumer",
+      "selector_sha256": "2bfb12b31ef8bc436ef4cfebc927808d6c5839ed72c944fe1ad894166f6947ca",
+      "test_path": "Tests/Unit/PcaiRuntimeDiscoveryIsolation.Tests.ps1",
+      "test_sha256": "b5fa661c32f8f03816781ee683a04e30dfd8b3fafbe0fe28e892b7e19a71103e",
+      "source_sha256": {
+        "Modules/PC-AI.Common/Public/Get-PcaiRuntimeConfig.ps1": "7fecefbb881e3de71f3fe394341c8f2db19afaabf91700cabda5c64b7a919108",
+        "Modules/PC-AI.Common/Public/Get-PcaiSharedCache.ps1": "9e9713899f064541a95c48ac363954b06fb9cb2cf4f8a32528fe3fc6439eb3b7",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psm1": "f601dc9500303126f187bdac08d853b5be0efdfe8d7e5f217bc4a12a9c981bdf",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psd1": "ca19eafa97c80a268279afac5e437f4670e0045c145a76413d88dfb77f7a8b81"
+      },
+      "rationale": "Protects exact component identity and its real private runtime-helper behavior. Detects optional lookup importing a second same-named component through an advertised foreign module. Needs the actual virtualization manifest/scriptmodule, actual helper/cache source and an owned foreign component. Breadcrumb: virtualization shared-runtime import and module-scoped Get-PcaiRuntimeConfig.",
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T23:24:16.7941393Z",
+      "reviewed_commit": null,
+      "base_commit": "f5ffebe432beee56e5c4d2b7b32429076218db4a",
+      "disposition": "keep",
+      "scope": "Independent root read all nine changed guards, unchanged C# and complete child/poison/removal/reuse/component fixture. Fresh Windows six passed, zero failed/skipped/not-run. Four groups/six cases authored by windows-fleet; root is a nonauthor. Qualified unnamed enumeration and exact name matching preserve adjacent fallback and loaded-helper reuse. No model, startup-performance or broad WindowsCI85 acceptance.",
+      "receipt": "runtime-discovery-review.md"
+    }
+  ],
+  "baseline_receipt": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/runtime-discovery-baseline-final.json",
+  "baseline_source": "f5ffebe432beee56e5c4d2b7b32429076218db4a",
+  "baseline": {
+    "NotRun": 0,
+    "Passed": 1,
+    "Failed": 5,
+    "Skipped": 0
+  },
+  "candidate_receipt": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/runtime-discovery-peer-ready.json",
+  "scope": "Current source/test hashes independently admitted by root for these four selector groups/six cases.",
+  "independent_windows_receipt": {
+    "Passed": 6,
+    "SHA256": "83CB6BD84CCB982E46B8527825B603A2F5EDD9E47FD3EEA6DDF3B15F0C162523",
+    "DurationSeconds": 9.81,
+    "Failed": 0,
+    "Path": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/runtime-discovery-root-peer.json",
+    "NotRun": 0,
+    "Skipped": 0
+  }
+}

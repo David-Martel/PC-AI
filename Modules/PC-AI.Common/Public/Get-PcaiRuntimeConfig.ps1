@@ -1,7 +1,9 @@
 #Requires -PSEdition Core
 
 $sharedCacheHelper = Join-Path $PSScriptRoot 'Get-PcaiSharedCache.ps1'
-if ((-not (Get-Command Get-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue)) -and (Test-Path $sharedCacheHelper)) {
+# Supplying a command name can autoload a provider despite ListImported.
+# Enumerate loaded commands first, then match the optional helper locally.
+if ((-not (Microsoft.PowerShell.Core\Get-Command -ListImported | Microsoft.PowerShell.Core\Where-Object Name -EQ Get-PcaiSharedCacheEntry)) -and (Test-Path $sharedCacheHelper)) {
     . $sharedCacheHelper
 }
 
@@ -194,7 +196,7 @@ function Resolve-PcaiRepoRoot {
     }
 
     $cacheKey = $resolvedSearchRoot
-    if (Get-Command Get-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
+    if (Microsoft.PowerShell.Core\Get-Command -ListImported | Microsoft.PowerShell.Core\Where-Object Name -EQ Get-PcaiSharedCacheEntry) {
         $cachedRoot = Get-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -TtlSeconds 300
         if ($cachedRoot) {
             return [string]$cachedRoot
@@ -203,7 +205,7 @@ function Resolve-PcaiRepoRoot {
 
     $resolvedRoot = [Pcai.Common.RuntimeConfigBridge]::FindRepoRoot($resolvedSearchRoot)
     if (-not [string]::IsNullOrWhiteSpace($resolvedRoot)) {
-        if (Get-Command Set-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
+        if (Microsoft.PowerShell.Core\Get-Command -ListImported | Microsoft.PowerShell.Core\Where-Object Name -EQ Set-PcaiSharedCacheEntry) {
             Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedRoot -TtlSeconds 300 | Out-Null
         }
         return $resolvedRoot
@@ -221,7 +223,7 @@ function Resolve-PcaiRepoRoot {
 
         $resolvedCandidate = [Pcai.Common.RuntimeConfigBridge]::FindRepoRoot($candidate)
         if (-not [string]::IsNullOrWhiteSpace($resolvedCandidate)) {
-            if (Get-Command Set-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
+            if (Microsoft.PowerShell.Core\Get-Command -ListImported | Microsoft.PowerShell.Core\Where-Object Name -EQ Set-PcaiSharedCacheEntry) {
                 Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedCandidate -TtlSeconds 300 | Out-Null
             }
             return $resolvedCandidate
@@ -230,12 +232,12 @@ function Resolve-PcaiRepoRoot {
 
     try {
         $fallbackRoot = (Resolve-Path -Path $resolvedSearchRoot -ErrorAction Stop).Path
-        if (Get-Command Set-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
+        if (Microsoft.PowerShell.Core\Get-Command -ListImported | Microsoft.PowerShell.Core\Where-Object Name -EQ Set-PcaiSharedCacheEntry) {
             Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $fallbackRoot -TtlSeconds 300 | Out-Null
         }
         return $fallbackRoot
     } catch {
-        if (Get-Command Set-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
+        if (Microsoft.PowerShell.Core\Get-Command -ListImported | Microsoft.PowerShell.Core\Where-Object Name -EQ Set-PcaiSharedCacheEntry) {
             Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "repo-root::$cacheKey" -Value $resolvedSearchRoot -TtlSeconds 300 | Out-Null
         }
         return $resolvedSearchRoot
@@ -270,12 +272,12 @@ function Get-PcaiRuntimeConfig {
     }
 
     $runtimeCacheKey = '{0}|{1}|{2}' -f $resolvedRoot, $resolvedConfigPath, $resolvedToolsPath
-    $runtimeConfigStamp = if (Get-Command Get-PcaiDependencyStamp -ListImported -ErrorAction SilentlyContinue) {
+    $runtimeConfigStamp = if (Microsoft.PowerShell.Core\Get-Command -ListImported | Microsoft.PowerShell.Core\Where-Object Name -EQ Get-PcaiDependencyStamp) {
         Get-PcaiDependencyStamp -InputObject @($resolvedConfigPath)
     } else {
         $null
     }
-    if (Get-Command Get-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
+    if (Microsoft.PowerShell.Core\Get-Command -ListImported | Microsoft.PowerShell.Core\Where-Object Name -EQ Get-PcaiSharedCacheEntry) {
         $cachedRuntime = Get-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "runtime-config::$runtimeCacheKey" -DependencyStamp $runtimeConfigStamp
         if ($cachedRuntime) {
             return [PSCustomObject]$cachedRuntime
@@ -430,7 +432,7 @@ function Get-PcaiRuntimeConfig {
         )
     }
 
-    if (Get-Command Set-PcaiSharedCacheEntry -ListImported -ErrorAction SilentlyContinue) {
+    if (Microsoft.PowerShell.Core\Get-Command -ListImported | Microsoft.PowerShell.Core\Where-Object Name -EQ Set-PcaiSharedCacheEntry) {
         Set-PcaiSharedCacheEntry -Namespace 'pcai-common' -Key "runtime-config::$runtimeCacheKey" -Value $runtime -DependencyStamp $runtimeConfigStamp -TtlSeconds 300 | Out-Null
     }
 

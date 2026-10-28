@@ -45,7 +45,7 @@ jobs:
           # - path: Deploy
           #   features: ""
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable

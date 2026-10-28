@@ -32,7 +32,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       # Protects the fixed read-only SSH service command; detects shell syntax
       # errors before deployment. Needs POSIX sh; source is root-owned on Linux.

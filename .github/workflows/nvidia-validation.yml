@@ -45,7 +45,7 @@ jobs:
     name: PC-AI.Gpu Pester Tests
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Pester 5
         shell: pwsh
@@ -119,7 +119,7 @@ jobs:
     name: Rust NVML Compile + Clippy
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Rust (stable + clippy)
         uses: dtolnay/rust-toolchain@stable
@@ -191,7 +191,7 @@ jobs:
     name: Registry JSON Validation
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # All steps use `shell: pwsh` (PowerShell 7) — the ?? null-coalescing
       # operator used below is not available in Windows PowerShell 5.1.

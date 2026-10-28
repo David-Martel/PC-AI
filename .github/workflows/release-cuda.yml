@@ -282,7 +282,7 @@ jobs:
           Get-ChildItem $stagingDir
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.artifact.outputs.ARTIFACT_NAME }}
           path: ${{ steps.artifact.outputs.ARTIFACT_PATH }}

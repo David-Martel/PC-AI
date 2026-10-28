@@ -16,6 +16,8 @@
 
 # Configuration files
 *.json text eol=crlf
+# Git stores normalized LF blobs; eol=crlf affects working copies only.
+# Keep workflow version bumps normalized with git add --renormalize -- .github/workflows.
 *.yml text eol=crlf
 *.yaml text eol=crlf
 *.xml text eol=crlf

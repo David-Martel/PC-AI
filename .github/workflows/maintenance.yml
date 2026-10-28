@@ -85,7 +85,7 @@ jobs:
 
       - name: Upload Security Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: security-report
           path: security-report.json
@@ -256,7 +256,7 @@ jobs:
 
       - name: Upload NVIDIA Status Snapshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nvidia-status-${{ github.run_number }}
           path: Reports/nvidia-status-snapshot.json
@@ -382,7 +382,7 @@ jobs:
           exit $LASTEXITCODE
 
       - name: Upload Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: maintenance-docs-${{ github.run_number }}
           path: |
@@ -437,7 +437,7 @@ jobs:
           "@ | Out-File $env:GITHUB_STEP_SUMMARY -Encoding utf8
 
       - name: Upload Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: health-report-${{ github.run_number }}
           path: health-report.json

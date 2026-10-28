@@ -218,7 +218,7 @@ jobs:
       - name: Upload LCOV Artifact
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rust-lcov-${{ github.sha }}
           path: Native/pcai_core/pcai_inference/lcov.info
@@ -289,7 +289,7 @@ jobs:
       # Keep the raw report available even while the remote upload is optional.
       - name: Upload JaCoCo Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: powershell-jacoco-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: Tests/TestResults/coverage.xml
@@ -401,7 +401,7 @@ jobs:
               exit 1
           }
       - name: Upload DLL
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pcai-inference-dll-${{ github.sha }}
           path: bin/pcai_inference.dll

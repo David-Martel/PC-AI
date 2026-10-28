@@ -48,3 +48,10 @@ Reports/milly-fleet-20261002/** -text -eol
 
 # Preserve workload review evidence and the exact launch-source archive.
 Reports/process-lasso-review/** -text -eol
+
+# Preserve mixed-line-ending capture blobs; see docs/captured-evidence-custody.md.
+Reports/input-stack-investigation-20260606/H3_intel_serialio_controllers.txt -text -eol
+Reports/input-stack-investigation-20260606/H4_processlasso.txt -text -eol
+Reports/input-stack-investigation-20260606/H5_io_cpu_load.txt -text -eol
+Reports/input-stack-investigation-20260606/H7_vendor_services.txt -text -eol
+Reports/onedrive-triage-20260509/27-stepC.txt -text -eol

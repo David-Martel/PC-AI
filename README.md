@@ -20,6 +20,8 @@ For bounded Ubuntu/Windows cache and managed-build validation, see
 [portable bootstrap](docs/portable-bootstrap.md). Native backend and hardware
 qualification remain separate from managed compilation.
 
+Captured report bytes follow the [evidence custody rules](docs/captured-evidence-custody.md).
+
 ## Key Features
 
 Windows fleet discovery and media qualification are documented in

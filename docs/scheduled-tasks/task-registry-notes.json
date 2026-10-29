@@ -66,7 +66,7 @@
   {
     "path": "\\",
     "name": "AutoMount_VHDX_shared-dev",
-    "purpose": "At boot mounts and validates D:\\vm\\shared-dev.vhdx, expects volume WSL-Shared-Dev on W: NTFS via the maintained wrapper Mount-PersistentVHDX.ps1.",
+    "purpose": "At boot mounts and validates T:\\vm\\shared-dev.vhdx, expects volume WSL-Shared-Dev on W: NTFS via the maintained wrapper Mount-PersistentVHDX.ps1.",
     "owner": "PC_AI",
     "script": "C:\\codedev\\PC_AI\\Tools\\Mount-PersistentVHDX.ps1",
     "expectedRuntimeHint": "bounded one-shot at boot (task limit PT10M, 60 s startup delay + 15 s VHD wait)",

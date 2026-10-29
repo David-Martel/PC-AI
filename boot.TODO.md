@@ -1539,3 +1539,15 @@ absence, down links, failure and intake states. Physical reconnect, sleep/resume
 authenticated edge qualification and route reconciliation remain hardware gates;
 an observer returning Configured does not claim NetworkReady.
 
+
+## shared-dev VHDX moved off D: — October 29, 2026
+
+- [x] Moved `shared-dev.vhdx` (W:, `WSL-Shared-Dev`, 306 GB dynamic) from the
+  removable Thunderbolt D: to `T:\vm\shared-dev.vhdx`, so no boot task depends on D:.
+  Sequence: dismount, robocopy, SHA-256 of both copies (equal), attach the T:
+  copy, verify W: label and letter, repoint `AutoMount_VHDX_shared-dev`, run the
+  task (result 0), then delete the D: copy. Registration, boot-health and
+  diagnostic inventories plus the task registry now name the T: path.
+- [x] Repointed the `PC-AI Process Lasso Governor Watchdog` task's `-ReportPath`
+  from `D:\pcai-relocation\responsiveness\` to the repo default
+  `Reports\processlasso-governor-watchdog.json` (task result 0).

@@ -222,7 +222,7 @@ jobs:
         with:
           name: rust-lcov-${{ github.sha }}
           path: Native/pcai_core/pcai_inference/lcov.info
-          retention-days: 30
+          retention-days: 1
 
   powershell-test:
     name: PowerShell Tests
@@ -287,13 +287,15 @@ jobs:
           $config.Output.Verbosity = 'Detailed'
           Invoke-Pester -Configuration $config
       # Keep the raw report available even while the remote upload is optional.
+      # Blocking on purpose: if-no-files-found: error is this job's check that coverage was written,
+      # and continue-on-error would turn a missing coverage.xml into a pass (gemini review, 2026-10-29).
       - name: Upload JaCoCo Artifact
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: powershell-jacoco-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: Tests/TestResults/coverage.xml
-          retention-days: 14
+          retention-days: 1
           if-no-files-found: error
       - name: Prepare Verified Codecov CLI
         id: prepare-codecov
@@ -400,6 +402,8 @@ jobs:
               $paths | ForEach-Object { Write-Host "::error::  $_" }
               exit 1
           }
+      # Blocking on purpose: a later job or a release consumes this artifact, so a failed upload
+      # must fail here, not publish or test an incomplete set (gemini review, 2026-10-29).
       - name: Upload DLL
         uses: actions/upload-artifact@v7
         with:
@@ -411,7 +415,7 @@ jobs:
           if-no-files-found: error
           # Only the next job in this run reads the DLL; the default 90 days
           # exhausted the account artifact quota (about 590 MB, 327 copies).
-          retention-days: 2
+          retention-days: 1
 
   integration-tests:
     name: Integration Tests

@@ -29,10 +29,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "tests::<candle_version>::lazy_valid_tensor_round_trip",
@@ -61,10 +61,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "tests::<candle_version>::selected_valid_tensor_round_trip",
@@ -93,10 +93,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "tests::<candle_version>::selected_rejects_dual_header_filename_mismatch",
@@ -125,10 +125,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "tests::<candle_version>::lazy_reopened_readers_reject_later_header_mismatch",
@@ -157,10 +157,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "tests::<candle_version>::pickle_valid_non_tensor_entries_are_ignored",
@@ -189,10 +189,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "tests::<candle_version>::pickle_valid_tensor_round_trip",
@@ -221,10 +221,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "tests::<candle_version>::pickle_real_metadata_rejects_header_mismatch",
@@ -253,10 +253,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "tests::<candle_version>::pickle_reopened_storage_rejects_later_header_mismatch",
@@ -285,10 +285,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "tests::<candle_version>::eager_rejects_dual_header_filename_mismatch",
@@ -317,10 +317,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "tests::<candle_version>::lazy_rejects_dual_header_filename_mismatch",
@@ -349,10 +349,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "tests::<candle_version>::pickle_rejects_dual_header_filename_mismatch",
@@ -381,10 +381,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "CandleVendorCustody.test_actual_packet_is_complete",
@@ -399,10 +399,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "CandleVendorCustody.test_changed_upstream_bytes_are_refused",
@@ -417,10 +417,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "CandleVendorCustody.test_missing_upstream_file_is_refused",
@@ -435,10 +435,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "CandleVendorCustody.test_unrecorded_library_lock_is_refused",
@@ -453,10 +453,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "CandleVendorCustody.test_replaced_crate_identity_is_refused",
@@ -471,10 +471,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "CandleVendorCustody.test_new_unreviewed_edit_scope_is_refused",
@@ -489,10 +489,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "CandleVendorCustody.test_nonlocal_receipt_path_is_refused",
@@ -507,10 +507,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     },
     {
       "selector": "CandleVendorCustody.test_changed_patch_receipt_is_refused",
@@ -525,10 +525,10 @@
       "reviewer": "codex-linux-fleet",
       "reviewer_type": "independent-agent-nonauthor",
       "reviewed_utc": "2026-10-29T00:48:39.964547+00:00",
-      "reviewed_commit": null,
+      "reviewed_commit": "ae0c378fc062ccd4585e9509b85a55b844cc52e1",
       "base_commit": "693044d672a66b6903277f2a98d04d3c33ddb32c",
       "disposition": "keep",
-      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. Review was of frozen uncommitted bytes; commit binding will be added only after a genuine source commit exists."
+      "scope": "Independent nonauthor semantic review at the exact selector/test/source hashes. Actual ASUS CPU execution: 36 Rust archive cases and 8 Python custody cases passed, zero skips; all 331 packet inputs unchanged. No GPU/model-quality/performance or installed-native qualification. The reviewed frozen bytes were committed verbatim at ae0c378fc062ccd4585e9509b85a55b844cc52e1; each Git blob was verified against the independent review hash before this binding."
     }
   ],
   "execution_evidence": {
@@ -541,6 +541,12 @@
     "sha256": "171a80c511d0c15f6621b37ec77bc732a02be651262485cb2e4530780d1b2896",
     "additional_review": "C:\\codedev\\evidence\\pcai-fleet-integration\\r2\\tooling\\independent-candle-review.json",
     "additional_review_sha256": "96dbb42c1fddb798e961d7715b25c67853035290d57b7a6c4e99bccf09ed5cd6",
-    "source_state": "Hash-bound frozen working-tree source; reviewed_commit intentionally remains null before the real source commit."
+    "source_state": "Reviewed source bytes verified against genuine signed source commit ae0c378fc062ccd4585e9509b85a55b844cc52e1.",
+    "commit_binding_verified_utc": "2026-10-29T01:29:35.053109+00:00"
+  },
+  "lint_boundary_review": {
+    "receipt": "C:\\codedev\\evidence\\pcai-fleet-integration\\r2\\tooling\\independent-ruff-config-review.json",
+    "sha256": "51271d506c4af52f52aaa5d952e4a4dfbb0f906a3458a103ef7e993911cf465d",
+    "scope": "Independent review of E/F parity and exact three upstream E402/E501 exceptions; five detecting negative controls."
   }
 }

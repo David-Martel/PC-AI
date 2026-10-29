@@ -281,9 +281,10 @@ jobs:
           Write-Host "Created artifact: $artifactName.zip"
           Get-ChildItem $stagingDir
 
+      # Blocking on purpose: a later job or a release consumes this artifact, so a failed upload
+      # must fail here, not publish or test an incomplete set (gemini review, 2026-10-29).
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
-        continue-on-error: true
         with:
           name: ${{ steps.artifact.outputs.ARTIFACT_NAME }}
           path: ${{ steps.artifact.outputs.ARTIFACT_PATH }}

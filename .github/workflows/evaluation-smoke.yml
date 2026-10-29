@@ -99,7 +99,9 @@ jobs:
       - name: Upload Evaluation Artifacts
         if: always()
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
+          retention-days: 1
           name: evaluation-smoke
           path: .pcai/evaluation/runs/**
           if-no-files-found: warn

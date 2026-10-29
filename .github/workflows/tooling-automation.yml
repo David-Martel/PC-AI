@@ -71,7 +71,9 @@ jobs:
       - name: Upload Tooling Artifacts
         if: always()
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
+          retention-days: 1
           name: tooling-artifacts
           path: |
             Reports/**

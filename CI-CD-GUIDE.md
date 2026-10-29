@@ -259,6 +259,11 @@ directly instead of `Tests/Invoke-PortableTests.ps1`, whose Rust sections set `R
 last step prints `sccache --show-stats`. Details and measurements:
 `vigil-utils/docs/rust-build-acceleration.md`, "Runner job environment".
 
+**Artifacts.** `pester-lint` uploads `pester-linux.xml` only when the job fails, with `continue-on-error` and a
+1-day retention. Nothing reads it, a passing result is already in the log, and a GitHub artifact quota must not turn a
+green gate red. The fleet artifact store is not an option here, because this public workflow carries no secrets
+(see "Trust boundary").
+
 **Switch.** Every job is skipped until the repository variable `PCAI_LINUX_RUNNER_ENABLED` is `true`. Set it after
 the runner is registered: `gh variable set PCAI_LINUX_RUNNER_ENABLED --body true -R David-Martel/PC-AI`. Without the
 switch each pull request would queue jobs for a label that no runner carries.

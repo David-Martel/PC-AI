@@ -30,11 +30,17 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    # Linux runs on the vigil1 runner (hosted Actions minutes are budget-blocked), except for fork
+    # pull requests and a disabled runner, which keep ubuntu-latest so fork code never reaches
+    # self-hosted hardware (the same gate as linux-ci.yml). Windows stays hosted for now.
+    runs-on: ${{ matrix.os == 'windows-latest' && 'windows-latest' || (vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON('["self-hosted","Linux","X64","vigil1","pc-ai-local"]') || 'ubuntu-latest' }}
     # Bounds a cold CPU-only build/test job; timeout is failure, never a pass.
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
+        # The self-hosted runner keeps its image toolchain (with clippy and rustfmt), as linux-ci.yml
+        # does: installing `stable` there replaces the default toolchain for every later job on it.
+        if: runner.environment != 'self-hosted'
       - name: Test locked default runtime and documentation examples
         run: cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime

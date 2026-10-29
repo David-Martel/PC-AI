@@ -57,3 +57,13 @@ Reports/input-stack-investigation-20260606/H4_processlasso.txt -text -eol
 Reports/input-stack-investigation-20260606/H5_io_cpu_load.txt -text -eol
 Reports/input-stack-investigation-20260606/H7_vendor_services.txt -text -eol
 Reports/onedrive-triage-20260509/27-stepC.txt -text -eol
+
+# Published crate checksums and review patches bind exact upstream/source bytes.
+vendor/candle-core-*/** -text -eol
+vendor/patches/** -text -eol
+Tests/Portable/candle-zip-security/fixtures/*.pt binary
+# Preserve published Markdown hard-break spaces and unified-diff context bytes.
+vendor/candle-core-*/src/tensor.rs whitespace=-blank-at-eol
+vendor/candle-core-*/src/tensor_cat.rs whitespace=-blank-at-eol
+vendor/candle-core-*/src/quantized/gguf_file.rs whitespace=-blank-at-eol
+vendor/patches/** whitespace=-blank-at-eol,-blank-at-eof

@@ -139,14 +139,18 @@ jobs:
           "errors=$($findings.Count)"
           if ($findings.Count -gt 0) { exit 1 }
 
-      - name: Upload Pester results
-        if: always()
+      # Failure-only and best-effort: nothing reads this artifact, a passing run's result is already in the log, and a
+      # GitHub artifact quota must never turn a green gate red (owner direction 2026-10-29: artifacts live locally).
+      # This public, secretless workflow cannot reach the fleet artifact store, so GitHub keeps only the failure copy.
+      - name: Upload Pester results (failure only)
+        if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: pester-linux
           path: ${{ runner.temp }}/pester-linux.xml
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 1
 
   # ---------------------------------------------------------------------------
   # Native/pcai_core on Linux with the server and ffi features, the set Tests/Invoke-PortableTests.ps1 uses. cargo is

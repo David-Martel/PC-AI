@@ -12,6 +12,10 @@ on:
       - 'Deploy/Cargo.lock'
       - 'Deploy/**/Cargo.toml'
       - 'Tests/Portable/**'
+      - 'vendor/candle-core-*/**'
+      - 'vendor/candle-core-provenance.json'
+      - 'vendor/patches/**'
+      - 'Tools/verify_candle_vendor.py'
       - 'Tools/Test-PcaiModuleManifests.ps1'
       - 'lefthook.yml'
       - 'Tests/Invoke-BenchmarkGate.ps1'
@@ -30,6 +34,10 @@ on:
       - 'Deploy/Cargo.lock'
       - 'Deploy/**/Cargo.toml'
       - 'Tests/Portable/**'
+      - 'vendor/candle-core-*/**'
+      - 'vendor/candle-core-provenance.json'
+      - 'vendor/patches/**'
+      - 'Tools/verify_candle_vendor.py'
       - 'Tools/Test-PcaiModuleManifests.ps1'
       - 'lefthook.yml'
       - 'Tests/Invoke-BenchmarkGate.ps1'
@@ -81,6 +89,18 @@ jobs:
           uv run --no-project python -m unittest discover -s Tests/Portable -p test_benchmark_admission.py -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: dtolnay/rust-toolchain@stable
+      # Protects all three locked Candle versions and exact published-source custody.
+      # Detects conflicting local/central archive headers through actual CPU readers.
+      # Needs no CUDA/model/native DLL; see the contract's hash-bound review register.
+      - name: Verify and exercise strict Candle archive readers
+        shell: pwsh
+        run: |
+          uv run --no-project python Tools/verify_candle_vendor.py
+          if ($LASTEXITCODE -ne 0) { throw 'Candle source custody failed' }
+          uv run --no-project python -m unittest discover -s Tests/Portable -p test_candle_vendor.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'Candle custody controls failed' }
+          cargo test --locked --manifest-path Tests/Portable/candle-zip-security/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { throw 'Candle archive contracts failed' }
       - name: Build real core and verify Unicode token parity
         shell: pwsh
         run: |

@@ -36,6 +36,10 @@ exclude = ["vendor"]
 # Without this, nvcc fails with "MSVC/cl.exe with traditional preprocessor is used."
 candle-kernels = { path = "vendor/candle-kernels-0.9.2" }
 candle-flash-attn = { path = "vendor/candle-flash-attn-0.9.2" }
+# Match the native workspace security backport; preserve existing CUDA patches.
+# The 0.10 version is only used by Native/pcai_core.
+candle-core-09 = { package = "candle-core", path = "../vendor/candle-core-0.9.2" }
+candle-core-11 = { package = "candle-core", path = "../vendor/candle-core-0.11.0" }
 
 # NOTE: not one of the three members currently uses `workspace = true` for any
 # dependency -- every crate declares its own versions -- so this table is inert.

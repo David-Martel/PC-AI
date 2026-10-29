@@ -276,6 +276,14 @@ High-value media work right now:
 
 ## Testing expectations
 
+The locked Candle versions use audited ZIP 9 backports under `vendor/`.
+When changing archive readers, Cargo constraints or these patches, run
+`uv run --no-project python Tools/verify_candle_vendor.py`, the portable
+`test_candle_vendor.py` custody controls and the 36 CPU archive contracts at
+`Tests/Portable/candle-zip-security/Cargo.toml`; see
+[vendor provenance and scope](vendor/README.md). Both application workspace
+locks must remain covered. These tests do not qualify installed native binaries.
+
 At minimum, choose the narrowest relevant validation path:
 
 - Pester for PowerShell module behavior

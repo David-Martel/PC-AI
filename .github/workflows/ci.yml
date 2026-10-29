@@ -409,6 +409,9 @@ jobs:
           # empty upload turns a missing DLL into a confusing failure one job
           # later instead of here.
           if-no-files-found: error
+          # Only the next job in this run reads the DLL; the default 90 days
+          # exhausted the account artifact quota (about 590 MB, 327 copies).
+          retention-days: 2
 
   integration-tests:
     name: Integration Tests

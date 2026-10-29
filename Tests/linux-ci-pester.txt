@@ -39,6 +39,7 @@ PC-AI.LLM.Tests.ps1
 PC-AI.Robustness.Tests.ps1
 PC-AI.Router.Tests.ps1
 PcaiCommandMapEmptyModules.Tests.ps1
+PcaiDeclaredPublicApi.Tests.ps1
 PcaiRuntimeDiscoveryIsolation.Tests.ps1
 ProviderHealthCache.Tests.ps1
 Resolve-PcaiPath.Tests.ps1

@@ -37,6 +37,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
+        # The self-hosted runner keeps its image toolchain (with clippy and rustfmt), as linux-ci.yml
+        # does: installing `stable` there replaces the default toolchain for every later job on it.
+        if: runner.environment != 'self-hosted'
       # Protects the fixed read-only SSH service command; detects shell syntax
       # errors before deployment. Needs POSIX sh; source is root-owned on Linux.
       - name: Fixed observer export syntax

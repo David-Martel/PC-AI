@@ -94,6 +94,9 @@ jobs:
           uv run --no-project python -m unittest discover -s Tests/Portable -p test_benchmark_admission.py -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: dtolnay/rust-toolchain@stable
+        # The self-hosted runner keeps its image toolchain (with clippy and rustfmt), as linux-ci.yml
+        # does: installing `stable` there replaces the default toolchain for every later job on it.
+        if: runner.environment != 'self-hosted'
       # Protects all three locked Candle versions and exact published-source custody.
       # Detects conflicting local/central archive headers through actual CPU readers.
       # Needs no CUDA/model/native DLL; see the contract's hash-bound review register.

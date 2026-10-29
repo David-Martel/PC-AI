@@ -43,6 +43,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
+        # The self-hosted runner keeps its image toolchain (with clippy and rustfmt), as linux-ci.yml
+        # does: installing `stable` there replaces the default toolchain for every later job on it.
+        if: runner.environment != 'self-hosted'
       - name: Check default FFI and optional CPU upscale
         run: cargo check --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale
       - name: Run real tensor and missing-model contracts

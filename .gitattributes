@@ -16,10 +16,13 @@
 
 # Configuration files
 *.json text eol=crlf
-# Git stores normalized LF blobs; eol=crlf affects working copies only.
-# Keep workflow version bumps normalized with git add --renormalize -- .github/workflows.
-*.yml text eol=crlf
-*.yaml text eol=crlf
+# YAML and everything under .github/ stay LF in working copies too. With eol=crlf,
+# Dependabot's checkout held CRLF files and its github-actions commits stored them
+# as CRLF blobs (#226, #239, #240, #243, #244, #238), which #253 had to renormalize.
+# LF working copies remove that conversion; YAML tooling on Windows reads LF fine.
+*.yml text eol=lf
+*.yaml text eol=lf
+.github/** text eol=lf
 *.xml text eol=crlf
 *.config text eol=crlf
 

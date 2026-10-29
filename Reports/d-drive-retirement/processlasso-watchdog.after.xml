@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.3" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>Ensures ProcessGovernor.exe is running after logon and logs remediation events.</Description>
+    <URI>\PC-AI Process Lasso Governor Watchdog</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="Author">
+      <UserId>S-1-5-21-357761096-1057752491-2136275046-1001</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <ExecutionTimeLimit>PT5M</ExecutionTimeLimit>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <RestartOnFailure>
+      <Count>3</Count>
+      <Interval>PT1M</Interval>
+    </RestartOnFailure>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <IdleSettings>
+      <Duration>PT10M</Duration>
+      <WaitTimeout>PT1H</WaitTimeout>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <LogonTrigger>
+      <Delay>PT3M</Delay>
+    </LogonTrigger>
+    <TimeTrigger>
+      <StartBoundary>2026-10-09T14:19:59-04:00</StartBoundary>
+      <Repetition>
+        <Interval>PT15M</Interval>
+      </Repetition>
+    </TimeTrigger>
+  </Triggers>
+  <Actions Context="Author">
+    <Exec>
+      <Command>C:\Users\david\.local\share\pc-ai\deployed\bin\dtm-task-run.exe</Command>
+      <Arguments>--name "PC-AI Process Lasso Governor Watchdog" --timeout 290 -- "C:\Program Files\PowerShell\7\pwsh.exe" -NonInteractive -NoLogo -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "C:\codedev\PC_AI\Tools\Ensure-ProcessLassoGovernor.ps1" -ReportPath "C:\codedev\PC_AI\Reports\processlasso-governor-watchdog.json"</Arguments>
+      <WorkingDirectory>C:\codedev\PC_AI\Tools</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>

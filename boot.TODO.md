@@ -1551,3 +1551,8 @@ an observer returning Configured does not claim NetworkReady.
 - [x] Repointed the `PC-AI Process Lasso Governor Watchdog` task's `-ReportPath`
   from `D:\pcai-relocation\responsiveness\` to the repo default
   `Reports\processlasso-governor-watchdog.json` (task result 0).
+- Evidence: [move log](Reports/d-drive-retirement/move-shared-dev.txt) (hashes, task result),
+  [AutoMount task after](Reports/d-drive-retirement/automount-shared-dev.after.xml) (the before
+  state is the D: command recorded in `docs/scheduled-tasks/task-registry.json` at `origin/main`),
+  [watchdog before](Reports/d-drive-retirement/processlasso-watchdog.before.xml) and
+  [after](Reports/d-drive-retirement/processlasso-watchdog.after.xml).

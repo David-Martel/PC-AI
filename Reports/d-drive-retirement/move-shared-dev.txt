@@ -1,0 +1,27 @@
+2026-10-29T11:10:06 dismount D: copy
+2026-10-29T11:10:08 robocopy
+
+	                   1	D:\vm\
+	    New File  		 305.8 g	shared-dev.vhdx
+
+------------------------------------------------------------------------------
+
+               Total    Copied   Skipped  Mismatch    FAILED    Extras
+    Dirs :         1         0         1         0         0         0
+   Files :         1         1         0         0         0         0
+   Bytes : 305.847 g 305.847 g         0         0         0         0
+   Times :   0:11:09   0:11:09                       0:00:00   0:00:00
+
+
+   Speed :           490,342,387 Bytes/sec.
+   Speed :            28,057.617 MegaBytes/min.
+   Ended : Thursday, October 29, 2026 11:21:19 AM
+
+2026-10-29T11:21:19 hash both copies (parallel)
+2026-10-29T12:19:37 sha256 src=4A2FE5A686BF85423982831084CDF1B07C18037998A712D025923F881EE5989C dst=4A2FE5A686BF85423982831084CDF1B07C18037998A712D025923F881EE5989C
+2026-10-29T12:19:37 mount T: copy
+2026-10-29T12:19:46 W: mounted from T: label=WSL-Shared-Dev freeGB=249
+2026-10-29T12:19:46 repoint task
+2026-10-29T12:20:39 task run result=0 at 10/29/2026 12:19:50
+2026-10-29T12:20:39 deleted D: copy
+2026-10-29T12:20:39 D free GB 7,434; T free GB 1,577

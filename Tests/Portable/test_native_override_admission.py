@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from typing import ClassVar, cast
 from xml.sax.saxutils import escape
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -14,13 +15,15 @@ OVERRIDES = ("PCAI_CORE_LIB_PATH", "PCAI_TEST_CORE_DLL", "PCAI_NATIVE_DIR")
 
 
 class NativeOverrideTests(unittest.TestCase):
+    partial: ClassVar[Path]
+
     @classmethod
     def setUpClass(cls):
         cls.temp = tempfile.TemporaryDirectory(prefix="pcai-native-override-")
         cls.addClassCleanup(cls.temp.cleanup)
         cls.root = Path(cls.temp.name)
         bridge = cls.root / "bridge"
-        shutil.copytree(
+        _ = shutil.copytree(
             ROOT / "Native/PcaiNative",
             bridge,
             ignore=shutil.ignore_patterns("bin", "obj", "*.dll", "*.pdb"),
@@ -81,12 +84,15 @@ class Probe {
             text=True,
             timeout=20,
         )
-        required_exports = json.loads(inventory.stdout)
-        if not required_exports or not all(
-            isinstance(name, str) and name.startswith("pcai_")
-            for name in required_exports
+        decoded = cast(object, json.loads(inventory.stdout))
+        if not isinstance(decoded, list):
+            raise AssertionError("Production export inventory must be a JSON list")
+        entries = cast(list[object], decoded)
+        if not entries or not all(
+            isinstance(name, str) and name.startswith("pcai_") for name in entries
         ):
             raise AssertionError("Production export inventory is missing or invalid")
+        required_exports = cast(list[str], entries)
         cls.valid = cls.root / "valid"
         cls.valid.mkdir()
         # Distinct sentinels prove selection. Uncalled placeholders satisfy only
@@ -122,10 +128,10 @@ class Probe {
         cls.partial = cls.root / "partial"
         cls.partial.mkdir()
         partial_source = cls.root / "partial.rs"
-        partial_source.write_text(
+        _ = partial_source.write_text(
             '#[no_mangle] pub extern "C" fn fixture_answer() -> i32 { 99 }'
         )
-        subprocess.run(
+        _ = subprocess.run(
             [
                 "rustc",
                 "--crate-type",

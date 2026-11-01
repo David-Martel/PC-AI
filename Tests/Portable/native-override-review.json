@@ -167,7 +167,7 @@
     {
       "selector": "NativeOverrideTests.test_invalid_override_blocks_competing_loadable_fallback",
       "test_path": "Tests/Portable/test_native_override_admission.py",
-      "test_sha256": "c26819ee3c6d1885ae6687411ce29b3c65e4582bf32e5e469efc8e09c0e8bf9a",
+      "test_sha256": "0a3e5a2c0ff78901ba69fdd59024837255f3df50f569e4d2e1eeb153bdda679d",
       "selector_sha256": "94ac6bbca86673964ebd497815b52a3083f6f43dc007c5f344ae778c0b91d0e5",
       "selector_source_span": "Python AST function source segment, excluding surrounding comments",
       "source_path": "Native/PcaiNative/NativeResolver.cs",
@@ -198,7 +198,7 @@
     {
       "selector": "NativeOverrideTests.test_valid_override_and_default_load_real_native_artifacts",
       "test_path": "Tests/Portable/test_native_override_admission.py",
-      "test_sha256": "c26819ee3c6d1885ae6687411ce29b3c65e4582bf32e5e469efc8e09c0e8bf9a",
+      "test_sha256": "0a3e5a2c0ff78901ba69fdd59024837255f3df50f569e4d2e1eeb153bdda679d",
       "selector_sha256": "eed73092ce1849de49798ade2e71a38174990aef04cfd5f3289944a14fdc4ce8",
       "selector_source_span": "Python AST function source segment, excluding surrounding comments",
       "source_path": "Native/PcaiNative/NativeResolver.cs",
@@ -229,7 +229,7 @@
     {
       "selector": "NativeOverrideTests.test_partial_override_refuses_export_before_native_sentinel",
       "test_path": "Tests/Portable/test_native_override_admission.py",
-      "test_sha256": "c26819ee3c6d1885ae6687411ce29b3c65e4582bf32e5e469efc8e09c0e8bf9a",
+      "test_sha256": "0a3e5a2c0ff78901ba69fdd59024837255f3df50f569e4d2e1eeb153bdda679d",
       "selector_sha256": "7f4b5552d65c166c3962202c77db8f0ae1cb48977b4ec658e6a8822b923f3df8",
       "selector_source_span": "Python AST function source segment, excluding surrounding comments",
       "source_path": "Native/PcaiNative/NativeResolver.cs",
@@ -260,7 +260,7 @@
     {
       "selector": "NativeOverrideTests.test_real_core_pinvoke_when_artifact_supplied",
       "test_path": "Tests/Portable/test_native_override_admission.py",
-      "test_sha256": "c26819ee3c6d1885ae6687411ce29b3c65e4582bf32e5e469efc8e09c0e8bf9a",
+      "test_sha256": "0a3e5a2c0ff78901ba69fdd59024837255f3df50f569e4d2e1eeb153bdda679d",
       "selector_sha256": "25dce97bf062711951d73cbe0882d61f63a3575c7031a0e9ec4eb819ac72998b",
       "selector_source_span": "Python AST function source segment, excluding surrounding comments",
       "source_path": "Native/PcaiNative/NativeResolver.cs",

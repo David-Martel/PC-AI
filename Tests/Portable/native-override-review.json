@@ -299,6 +299,138 @@
       "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
       "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
       "execution_disposition": "SKIP: explicit real production core not supplied locally; keep is a source-review disposition, not an executed qualification"
+    },
+    {
+      "selector": "NativeOverrideTests.test_invalid_override_blocks_competing_loadable_fallback",
+      "test_path": "Tests/Portable/test_native_override_admission.py",
+      "test_sha256": "9228ba390c0de7505713c875e639516be73086ee6dad00a42d778d4789d7a388",
+      "selector_sha256": "94ac6bbca86673964ebd497815b52a3083f6f43dc007c5f344ae778c0b91d0e5",
+      "selector_source_span": "Python AST function source segment, excluding surrounding comments",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/PcaiNative.csproj",
+          "sha256": "4c926000f4ba13259681cb028a1562a798099c7b5fcff6a87909696e52b0b923"
+        }
+      ],
+      "base_commit": "5729154843606641c6a5ae13c2fcf55026575a50",
+      "disposition": "unreviewed",
+      "reviewer": "",
+      "reviewer_type": "unreviewed",
+      "reviewed_utc": null,
+      "protects": "Explicit override precedence over competing full-symbol default",
+      "detects": "Fallback after missing/unloadable authoritative override",
+      "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
+      "validation": "PASS under ordinary local temp root and owned actual Windows8.3 alias, retaining all prior default/explicit/refusal cases",
+      "scope": "Owned temporary-root canonicalization; existing complete-path and provenance assertions unchanged. Windows local true8.3 alias replay; actual hosted Windows result pending. No native/deployment/ABI/HIL qualification.",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "receipt": "native-resolver-admission-review.md",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope",
+      "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d"
+    },
+    {
+      "selector": "NativeOverrideTests.test_valid_override_and_default_load_real_native_artifacts",
+      "test_path": "Tests/Portable/test_native_override_admission.py",
+      "test_sha256": "9228ba390c0de7505713c875e639516be73086ee6dad00a42d778d4789d7a388",
+      "selector_sha256": "eed73092ce1849de49798ade2e71a38174990aef04cfd5f3289944a14fdc4ce8",
+      "selector_source_span": "Python AST function source segment, excluding surrounding comments",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/PcaiNative.csproj",
+          "sha256": "4c926000f4ba13259681cb028a1562a798099c7b5fcff6a87909696e52b0b923"
+        }
+      ],
+      "base_commit": "5729154843606641c6a5ae13c2fcf55026575a50",
+      "disposition": "unreviewed",
+      "reviewer": "",
+      "reviewer_type": "unreviewed",
+      "reviewed_utc": null,
+      "protects": "Usable native loading and explicit selection",
+      "detects": "Unconditional rejection or wrong default/override sentinel",
+      "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
+      "validation": "PASS under ordinary local temp root and owned actual Windows8.3 alias, retaining all prior default/explicit/refusal cases",
+      "scope": "Owned temporary-root canonicalization; existing complete-path and provenance assertions unchanged. Windows local true8.3 alias replay; actual hosted Windows result pending. No native/deployment/ABI/HIL qualification.",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "receipt": "native-resolver-admission-review.md",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope",
+      "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d"
+    },
+    {
+      "selector": "NativeOverrideTests.test_partial_override_refuses_export_before_native_sentinel",
+      "test_path": "Tests/Portable/test_native_override_admission.py",
+      "test_sha256": "9228ba390c0de7505713c875e639516be73086ee6dad00a42d778d4789d7a388",
+      "selector_sha256": "7f4b5552d65c166c3962202c77db8f0ae1cb48977b4ec658e6a8822b923f3df8",
+      "selector_source_span": "Python AST function source segment, excluding surrounding comments",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/PcaiNative.csproj",
+          "sha256": "4c926000f4ba13259681cb028a1562a798099c7b5fcff6a87909696e52b0b923"
+        }
+      ],
+      "base_commit": "5729154843606641c6a5ae13c2fcf55026575a50",
+      "disposition": "unreviewed",
+      "reviewer": "",
+      "reviewer_type": "unreviewed",
+      "reviewed_utc": null,
+      "protects": "Full symbol admission even when requested export exists",
+      "detects": "Calling partial sentinel99 or falling back to default7",
+      "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
+      "validation": "Original accepted test reproduces three full-path failures with owned8.3 alias; canonical-root candidate passes all three unchanged assertions",
+      "scope": "Owned temporary-root canonicalization; existing complete-path and provenance assertions unchanged. Windows local true8.3 alias replay; actual hosted Windows result pending. No native/deployment/ABI/HIL qualification.",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "receipt": "native-resolver-admission-review.md",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope",
+      "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d"
+    },
+    {
+      "selector": "NativeOverrideTests.test_real_core_pinvoke_when_artifact_supplied",
+      "test_path": "Tests/Portable/test_native_override_admission.py",
+      "test_sha256": "9228ba390c0de7505713c875e639516be73086ee6dad00a42d778d4789d7a388",
+      "selector_sha256": "25dce97bf062711951d73cbe0882d61f63a3575c7031a0e9ec4eb819ac72998b",
+      "selector_source_span": "Python AST function source segment, excluding surrounding comments",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/PcaiNative.csproj",
+          "sha256": "4c926000f4ba13259681cb028a1562a798099c7b5fcff6a87909696e52b0b923"
+        }
+      ],
+      "base_commit": "5729154843606641c6a5ae13c2fcf55026575a50",
+      "disposition": "unreviewed",
+      "reviewer": "",
+      "reviewer_type": "unreviewed",
+      "reviewed_utc": null,
+      "protects": "Actual production-core basic P/Invoke magic",
+      "detects": "Wrong artifact/magic or failed production binding",
+      "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
+      "validation": "Explicit local SKIP: production core absent; this selector remains required with CI host-built artifact",
+      "scope": "Owned temporary-root canonicalization; existing complete-path and provenance assertions unchanged. Windows local true8.3 alias replay; actual hosted Windows result pending. No native/deployment/ABI/HIL qualification.",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "receipt": "native-resolver-admission-review.md",
+      "execution_disposition": "SKIP: real production core not supplied locally",
+      "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d"
     }
   ]
 }

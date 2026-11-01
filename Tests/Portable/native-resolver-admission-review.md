@@ -93,9 +93,10 @@ real-core skips remain skips after the source-review keep disposition.
 
 The first hosted Windows admission run rejected the partial native libraries
 correctly, but three full-path assertions compared a RUNNER~1 temporary-root
-alias with the resolver's expanded runneradmin path. The original failing
-job124961131951 remains retained as evidence; required CI success and the merge
-did not qualify that optional job.
+alias with the resolver's expanded runneradmin path. The
+[original failing Windows job](https://github.com/David-Martel/PC-AI/actions/runs/41344436179/job/124961131951)
+remains retained as evidence; required CI success and the merge did not qualify
+that optional job.
 
 The fixture now resolves its owned TemporaryDirectory root before constructing
 any child paths. The strict complete selected-path assertion remains unchanged.

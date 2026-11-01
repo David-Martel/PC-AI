@@ -33,6 +33,10 @@ These focused selections are diagnostics, not full acceptance.
 The [acceptance refresh fixture record](../Tests/Unit/integration-refresh-review.md)
 explains the endpoint and publication doubles needed when combining the draft
 runner with accepted source. Its targeted results do not satisfy WindowsCI.
+The [workflow](../.github/workflows/ci.yml) separately requires coverage XML,
+source bindings and result summary files before its blocking multi-path upload;
+the [actual-step controls](../Tests/Unit/PowerShellCoverageArtifacts.Tests.ps1)
+reject a missing XML even when both JSON sidecars exist.
 
 | Entrypoint | Purpose |
 |---|---|

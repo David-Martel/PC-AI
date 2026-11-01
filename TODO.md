@@ -30,10 +30,12 @@ pose-worker, Windows/Linux and signal-provenance acceptance boundaries.
   against the closed PR is no longer the active integration path.
 - [ ] Qualify successor draft PR233 at a coherent head reconciled with accepted
   main. The renewed `fix/fleet-acceptance-refresh` candidate retains the complete
-  WindowsCI cohort and unchanged 85% all-Modules gate. The older 66.0126%
-  receipt is historical and does not qualify the refreshed head; focused green
-  runs do not satisfy complete acceptance. Target actual missed commands,
-  preserve real failures, and retain role-specific deployment admission. See
+  WindowsCI cohort and unchanged 85% all-Modules gate. Full source `6bf800f`
+  executes 4,140 pass / 0 fail / 40 skip / 0 unrun, with unchanged source hashes.
+  Its source-bound coverage is 16,008/24,318 commands (65.8277818899581%):
+  another 4,663 unique hits are needed for 85%. The older 66.0126% receipt
+  remains historical. Preserve the real gate failure and role-specific
+  deployment admission; green test counts do not satisfy coverage. See
   [the current fixture and execution record](Tests/Unit/integration-refresh-review.md)
   and [testing architecture and owners](docs/test-architecture.md).
 - [ ] Integrate Candle dependency upgrades together with media/CUDA coverage,

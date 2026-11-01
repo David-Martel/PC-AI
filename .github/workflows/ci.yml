@@ -306,6 +306,19 @@ jobs:
           ./Tests/.pester.ps1 -Profile WindowsCI -CI -OutputDirectory Tests/TestResults
       # Keep the raw report available independently of provider upload success.
       # Blocking: if-no-files-found must fail rather than admit missing coverage.
+      - name: Require complete PowerShell coverage artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          $required = @(
+            'Tests/TestResults/coverage.xml'
+            'Tests/TestResults/source-bound-coverage.json'
+            'Tests/TestResults/pester-run-summary.json'
+          )
+          $missing = @($required | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
+          if ($missing.Count) {
+            throw ('Required PowerShell coverage artifacts are missing: ' + ($missing -join ', '))
+          }
       - name: Upload JaCoCo Artifact
         if: always()
         uses: actions/upload-artifact@v7

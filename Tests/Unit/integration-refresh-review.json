@@ -13,11 +13,13 @@
         "Modules/PC-AI.Evaluation/Private/Invoke-SingleTestCase.ps1": "9ba84613cef96dddaeed690b047ff6ddeef7d3d250a7da43a98a7fb014c154e1"
       },
       "rationale": "Protects complete completion/chat/Ollama endpoint construction while retaining current timeout introspection. Detects relative hashtable URLs or incompatible owned discovery/transport doubles. Needs PowerShell7, Pester5 and fresh real-module children with synthetic transports. Breadcrumb: Invoke-SingleTestCase and Evaluation endpoint construction.",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "receipt": "integration-refresh-review.md"
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_commit": "6bf800ffb552811c2682b67d7f2a9306e5a244af",
+      "disposition": "keep",
+      "receipt": "integration-refresh-review.md",
+      "reviewed_utc": "2026-11-01T19:34:48.2496950Z",
+      "scope": "Parent root did not author these refreshed fixture changes. Independently verified all three source/test/AST bindings, reviewed refusal and rollback semantics, and ran detecting recovery/endpoint mutations. Endpoint scope requires the canonical module tree and actual inbox Utility cmdlet metadata. Full WindowsCI/85-percent acceptance remains separate."
     },
     {
       "selector": "restores report-bearing modules after a later target fails publication",
@@ -28,11 +30,13 @@
         "Tools/Install-PcaiDevModules.ps1": "c8385c7755a47548462255725ad3286fe99c0d2a3490e0568fd67ed1e1c9be50"
       },
       "rationale": "Protects old report-bearing bytes and unrelated collision data after real publication. Detects incomplete rollback, false late-fault setup, missing staged report custody or secondary recovery failures. Needs Windows, Pester5 and owned TestDrive with only Move-Item boundary injection. Breadcrumb: installer publication/reverse recovery loops.",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "receipt": "integration-refresh-review.md"
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_commit": "6bf800ffb552811c2682b67d7f2a9306e5a244af",
+      "disposition": "keep",
+      "receipt": "integration-refresh-review.md",
+      "reviewed_utc": "2026-11-01T19:34:48.2574229Z",
+      "scope": "Parent root did not author these refreshed fixture changes. Independently verified all three source/test/AST bindings, reviewed refusal and rollback semantics, and ran detecting recovery/endpoint mutations. Endpoint scope requires the canonical module tree and actual inbox Utility cmdlet metadata. Full WindowsCI/85-percent acceptance remains separate."
     },
     {
       "selector": "rejects a captured-report junction without changing its outside target",
@@ -43,11 +47,27 @@
         "Tools/Install-PcaiDevModules.ps1": "c8385c7755a47548462255725ad3286fe99c0d2a3490e0568fd67ed1e1c9be50"
       },
       "rationale": "Protects outside junction target and installed original bytes. Detects following a report link or missing the fail-closed payload refusal. Needs Windows junction support, Pester5 and owned TestDrive. Breadcrumb: installer Get-ModuleInventory and path guards.",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "receipt": "integration-refresh-review.md"
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_commit": "6bf800ffb552811c2682b67d7f2a9306e5a244af",
+      "disposition": "keep",
+      "receipt": "integration-refresh-review.md",
+      "reviewed_utc": "2026-11-01T19:34:48.2575718Z",
+      "scope": "Parent root did not author these refreshed fixture changes. Independently verified all three source/test/AST bindings, reviewed refusal and rollback semantics, and ran detecting recovery/endpoint mutations. Endpoint scope requires the canonical module tree and actual inbox Utility cmdlet metadata. Full WindowsCI/85-percent acceptance remains separate."
+    }
+  ],
+  "independent_controls": [
+    {
+      "Path": "C:/codedev/evidence/pcai-fleet-integration/r3/integration/independent-review-hash-checks.json",
+      "SHA256": "677164092FC956A5A89F9D1E04696F2516C761435D3B1079EB22CF4A14E262BB"
+    },
+    {
+      "Path": "C:/codedev/evidence/pcai-fleet-integration/r3/independent-controls/recovery-mutation-receipt.json",
+      "SHA256": "C5A4CB230B19163FD31CBE94A04D819C8127EA95343DA23FC571F6CE36AF6BE4"
+    },
+    {
+      "Path": "C:/codedev/evidence/pcai-fleet-integration/r3/independent-endpoints/endpoint-mutation-receipt.json",
+      "SHA256": "8D4B75E2ADB40E493971736CED851667E50FAAFBF5C4B236CABC43A51545F9CB"
     }
   ]
 }

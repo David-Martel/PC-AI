@@ -24,7 +24,8 @@
       "shared-cache-hit",
       "external-cache-status",
       "command-map",
-      "network-discovery"
+      "network-discovery",
+      "process-snapshot"
     ],
     "default": [
       "acceleration-import",
@@ -40,7 +41,17 @@
       "shared-cache-hit",
       "external-cache-status",
       "command-map",
-      "network-discovery"
+      "network-discovery",
+      "process-snapshot",
+      "perf-worker-hash-list"
+    ],
+    "system-integration": [
+      "process-snapshot",
+      "perf-worker-hash-list",
+      "chat-tui-startup",
+      "service-host-provider-show",
+      "network-discovery",
+      "thunderbolt-status"
     ]
   },
   "cases": [
@@ -147,6 +158,38 @@
       "path": ".",
       "iterations": 2,
       "warmup": 1
+    },
+    {
+      "id": "process-snapshot",
+      "name": "Process Snapshot",
+      "category": "System",
+      "path": ".",
+      "iterations": 3,
+      "warmup": 1
+    },
+    {
+      "id": "perf-worker-hash-list",
+      "name": "Persistent Worker Hash List",
+      "category": "System",
+      "path": ".",
+      "iterations": 5,
+      "warmup": 1
+    },
+    {
+      "id": "chat-tui-startup",
+      "name": "Chat TUI Startup",
+      "category": "Startup",
+      "path": ".",
+      "iterations": 3,
+      "warmup": 0
+    },
+    {
+      "id": "service-host-provider-show",
+      "name": "Service Host Provider Show",
+      "category": "Startup",
+      "path": ".",
+      "iterations": 3,
+      "warmup": 0
     }
   ]
 }

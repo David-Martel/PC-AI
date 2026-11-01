@@ -29,8 +29,18 @@ if ($psReadLineOptOut -eq '1' -or [Console]::IsInputRedirected) {
 
 # pc_accel shim: keep the cloud profile path tiny and load the real profile locally.
 
-$localProfileRoot = Microsoft.PowerShell.Management\Join-Path $HOME '.config\powershell'
-$localModulesRoot = Microsoft.PowerShell.Management\Join-Path $HOME 'Documents\PowerShell\Modules'
+$localProfileRoot = if ($env:POWERSHELL_PROFILE_ROOT) {
+    $env:POWERSHELL_PROFILE_ROOT
+} else {
+    Microsoft.PowerShell.Management\Join-Path $HOME '.config\powershell'
+}
+$localModulesRoot = if ($env:POWERSHELL_MODULES_PATH) {
+    $env:POWERSHELL_MODULES_PATH
+} elseif ($env:LOCALAPPDATA) {
+    Microsoft.PowerShell.Management\Join-Path $env:LOCALAPPDATA 'PowerShell\Modules'
+} else {
+    Microsoft.PowerShell.Management\Join-Path $HOME '.local/share/powershell/Modules'
+}
 $localProfile = Microsoft.PowerShell.Management\Join-Path $localProfileRoot 'Microsoft.PowerShell_profile.ps1'
 
 $env:POWERSHELL_PROFILE_ROOT = $localProfileRoot
@@ -47,10 +57,13 @@ if (-not $env:PS_SKIP_PSMODULEPATH_OPTIMIZE) {
 }
 
 if (Microsoft.PowerShell.Management\Test-Path -LiteralPath $localProfile) {
+    if ([string]::Equals([IO.Path]::GetFullPath($localProfile),
+            [IO.Path]::GetFullPath($PSCommandPath), [StringComparison]::OrdinalIgnoreCase)) {
+        Microsoft.PowerShell.Utility\Write-Warning 'Canonical PowerShell profile resolves to this shim; correct POWERSHELL_PROFILE_ROOT.'
+        return
+    }
     . $localProfile
     return
 }
 
-# Qualify built-ins: wildcard-export module manifests can otherwise cause
-# command discovery to import unrelated modules during early profile startup.
 Microsoft.PowerShell.Utility\Write-Warning "Canonical local PowerShell profile not found: $localProfile"

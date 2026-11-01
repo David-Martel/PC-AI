@@ -51,13 +51,15 @@ $runId = [guid]::NewGuid().ToString('N')
 $outputRoot = Join-Path $repoRoot 'Reports/benchmark-admission'
 $runner = Join-Path $repoRoot 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
 if (-not (Test-Path -LiteralPath $runner -PathType Leaf)) { throw 'Benchmark runner missing' }
+$runnerHash = (Get-FileHash -LiteralPath $runner -Algorithm SHA256).Hash
+if (-not $SaveBaseline -and (-not $baseline.ContainsKey('runner_sha256') -or $baseline.runner_sha256 -cne $runnerHash)) { throw 'Baseline benchmark harness differs or is unbound; explicitly review and regenerate with -SaveBaseline' }
 & pwsh -NoLogo -NoProfile -File $runner -Suite $Suite -OutputRoot $outputRoot -RunId $runId | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "Benchmark runner failed with exit $LASTEXITCODE" }
 $reportPath = Join-Path (Join-Path $outputRoot $runId) 'tooling-benchmark-report.json'
 if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) { throw 'This run produced no report' }
 $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
 $configHash = (Get-FileHash -LiteralPath (Join-Path $repoRoot 'Config/pcai-tooling-benchmarks.json') -Algorithm SHA256).Hash
-if ($report.ConfigSha256 -cne $configHash -or $report.RunnerSha256 -cne (Get-FileHash -LiteralPath $runner -Algorithm SHA256).Hash) { throw 'Report input fingerprint mismatch' }
+if ($report.ConfigSha256 -cne $configHash -or $report.RunnerSha256 -cne $runnerHash -or $runnerHash -cne (Get-FileHash -LiteralPath $runner -Algorithm SHA256).Hash) { throw 'Report input fingerprint mismatch' }
 if ($report.SchemaVersion -ne 2 -or $report.RunId -cne $runId -or $report.GitHead -cne $head -or $report.Suite -cne $Suite) { throw 'Report source/run/suite identity mismatch' }
 if ($report.MeasurementsComplete -isnot [bool] -or -not $report.MeasurementsComplete) { throw 'Incomplete measurement report' }
 if ($report.Machine -cne [Environment]::MachineName -or $report.Architecture -cne [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString() -or $report.HostOS -cne [Runtime.InteropServices.RuntimeInformation]::OSDescription) { throw 'Report host identity mismatch' }
@@ -69,12 +71,15 @@ $hostIdentity = @{ machine=$report.Machine; os=$report.HostOS; architecture=$rep
 if ($SaveBaseline) {
     $parent = Split-Path $absBaseline -Parent
     if (-not (Test-Path -LiteralPath $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
-    @{ schema_version=2; git_hash=$head; run_id=$runId; suite=$Suite; config_sha256=$configHash; host_identity=$hostIdentity; cases=$current } |
+    @{ schema_version=2; git_hash=$head; run_id=$runId; suite=$Suite; config_sha256=$configHash; runner_sha256=$report.RunnerSha256; host_identity=$hostIdentity; cases=$current } |
         ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $absBaseline -Encoding utf8
     Write-Output "Baseline saved from verified run $runId"
     exit 0
 }
 if ($baseline.suite -cne $Suite -or $baseline.config_sha256 -cne $configHash) { throw 'Baseline suite or configuration differs' }
+# The same case names/configuration can describe a different measurement body.
+# Never compare a changed harness or an older baseline that did not bind it.
+if (-not $baseline.ContainsKey('runner_sha256') -or $baseline.runner_sha256 -cne $report.RunnerSha256) { throw 'Baseline benchmark harness differs or is unbound; explicitly review and regenerate with -SaveBaseline' }
 foreach ($key in @('machine','os','architecture')) {
     if ($baseline.host_identity[$key] -cne $hostIdentity[$key]) { throw "Baseline host differs: $key" }
 }

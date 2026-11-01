@@ -363,10 +363,29 @@ mod measurement_tests {
     #[test]
     fn cpu_usage_requires_a_real_sampling_interval() {
         let mut sampler = CpuSampler::new();
+        assert!(!sampler.valid_delta);
+        let initial_refresh = sampler.refreshed_at;
+        let call_started = Instant::now();
         let first = sampler.sample();
-        assert_eq!(first.sample_status, "WarmingUp");
-        assert!(first.avg_load.is_none());
-        assert!(first.cpu_usage.iter().all(Option::is_none));
+        let call_finished = Instant::now();
+
+        // A scheduler pause may allow a real interval before the first sample.
+        // Check the refresh witness, rather than assuming that call is immediate.
+        if sampler.refreshed_at == initial_refresh {
+            assert!(call_started.duration_since(initial_refresh) < sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+            assert!(!sampler.valid_delta);
+            assert_eq!(first.sample_status, "WarmingUp");
+            assert!(first.avg_load.is_none());
+            assert!(first.cpu_usage.iter().all(Option::is_none));
+        } else {
+            assert!(sampler.refreshed_at >= call_started);
+            assert!(sampler.refreshed_at <= call_finished);
+            assert!(sampler.refreshed_at.duration_since(initial_refresh) >= sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+            assert!(sampler.valid_delta);
+            assert_eq!(first.sample_status, "Sampled");
+            assert!(first.avg_load.is_some_and(|value| (0.0..=100.0).contains(&value)));
+            assert!(first.cpu_usage.iter().all(Option::is_some));
+        }
         std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
         let second = sampler.sample();
         assert_eq!(second.sample_status, "Sampled");

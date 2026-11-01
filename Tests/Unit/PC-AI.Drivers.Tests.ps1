@@ -9,6 +9,7 @@
 #>
 
 BeforeAll {
+    Import-Module (Join-Path $PSScriptRoot '../../Modules/PC-AI.Common/PC-AI.Common.psm1') -Global -Force
     $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Drivers\PC-AI.Drivers.psd1'
     # Evict any copy already loaded by an earlier suite before importing.
     # `Import-Module -Force` re-imports, but it does NOT remove a copy that
@@ -148,8 +149,14 @@ Describe "Get-DriverRegistry" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
 
     Context "Error handling" {
         It "Should return null for missing file" {
-            $result = Get-DriverRegistry -RegistryPath 'C:\nonexistent\path.json' -ErrorAction SilentlyContinue
+            $errors = @()
+            $result = Get-DriverRegistry -RegistryPath 'C:\nonexistent\path.json' -ErrorAction SilentlyContinue -ErrorVariable errors
             $result | Should -BeNullOrEmpty
+            @($errors).Count | Should -Be 1
+        }
+
+        It 'preserves the native caller error contract for a missing registry with Stop' {
+            { Get-DriverRegistry -RegistryPath 'C:\nonexistent\path.json' -ErrorAction Stop } | Should -Throw '*Driver registry not found*'
         }
     }
 }
@@ -540,6 +547,16 @@ Describe 'Driver download WhatIf and existing-byte integrity contracts' -Tag 'Un
         $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly -Confirm:$false -ErrorAction SilentlyContinue
         $result.Action | Should -BeExactly 'Failed'
         $result.Success | Should -BeFalse
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -BeExactly 'eHl6'
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    It 'preserves the native caller error contract for Stop while retaining mismatched existing bytes' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'installer.exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x78, 0x79, 0x7A))
+        { & (Get-Module PC-AI.Drivers) { param($Path, $Hash) Invoke-TrustedDownload -Url 'https://drivers.example.invalid/driver.exe' -OutFile $Path -TrustedHosts 'drivers.example.invalid' -ExpectedSha256 $Hash -ErrorAction Stop } $path $script:DownloadContractHash } | Should -Throw '*SHA256 mismatch for existing download*'
         [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -BeExactly 'eHl6'
         Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
         Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It

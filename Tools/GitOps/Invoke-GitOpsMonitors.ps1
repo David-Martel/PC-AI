@@ -70,27 +70,47 @@ function Get-GitOpsResponse {
     $response = Invoke-GitOpsProcess -FilePath 'gh' -Arguments $Arguments -WorkingDirectory $WorkingDirectory -TimeoutSeconds $TimeoutSeconds
     $status = 'Available'
     $reason = $null
+    $reasonCode = $null
+    $httpStatus = $null
     $value = $null
+    # Preserve only one unambiguous bounded HTTP code, never provider text.
+    $stderr = if ($response.Stderr -is [string]) { $response.Stderr } else { '' }
+    $httpMatches = [regex]::Matches($stderr, '(?i)\bHTTP\s+([1-5][0-9]{2})(?![0-9])')
+    if ($httpMatches.Count -eq 1) { $httpStatus = [int]$httpMatches[0].Groups[1].Value }
+    $requestFailure = $response.ExitCode -eq -1
+    foreach ($field in @('ErrorKind', 'InspectionError')) {
+        $property = $response.PSObject.Properties[$field]
+        if ($null -ne $property -and $null -ne $property.Value -and
+            -not [string]::IsNullOrWhiteSpace([string]$property.Value)) { $requestFailure = $true }
+    }
     if ($response.ExitCode -ne 0) {
         $status = 'Unavailable'
         $reason = "GitHub inspection failed (exit $($response.ExitCode))."
-        if ($Operation -eq 'code-scanning' -and $response.Stderr -match 'HTTP 404' -and $response.Stderr -match 'Code scanning is not enabled') {
+        $reasonCode = 'RequestFailure'
+        if (-not $requestFailure -and $Operation -eq 'code-scanning' -and $stderr -match 'HTTP 404' -and $stderr -match 'Code scanning is not enabled') {
             $status = 'Unsupported'
             $reason = 'Code scanning is not enabled.'
+            $reasonCode = 'FeatureDisabled'
+        }
+        elseif (-not $requestFailure -and $Operation -eq 'code-scanning' -and $httpStatus -eq 404 -and
+            $stderr -match '(?im)^\s*gh:\s*no analysis found(?: for this repository)?\s*\(HTTP 404\)\s*$') {
+            $reason = 'No code scanning analysis was found; inspection remains unavailable.'
+            $reasonCode = 'NoAnalysisFound'
         }
     }
     else {
         try {
             $value = ConvertFrom-Json -InputObject $response.Stdout -NoEnumerate -ErrorAction Stop
-            if ($null -eq $value -or ($Shape -eq 'Array' -and $value -isnot [array]) -or ($Shape -eq 'Object' -and $value -isnot [pscustomobject])) { throw 'Unexpected response shape.' }
+            if ($null -eq $value -or ($Shape -eq 'Array' -and $value -isnot [array]) -or ($Shape -eq 'Object' -and $value -isnot [System.Management.Automation.PSCustomObject])) { throw 'Unexpected response shape.' }
         }
         catch {
             $status = 'Unavailable'
             $reason = 'GitHub inspection returned missing or invalid JSON.'
+            $reasonCode = 'InvalidResponse'
             $value = $null
         }
     }
-    [pscustomobject]@{ operation = $Operation; status = $status; exit_code = $response.ExitCode; reason = $reason; value = $value }
+    [pscustomobject]@{ operation = $Operation; status = $status; exit_code = $response.ExitCode; reason = $reason; reason_code = $reasonCode; http_status = $httpStatus; value = $value }
 }
 
 function Write-GitOpsReport {
@@ -151,7 +171,7 @@ try {
                 $application = Get-Command agent-bus -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
                 if ($application) { $client = $application.Source }
             }
-            $message = "GitOps monitor [$Repo]: inspection=$($combined.inspection_status), workflows=$($wh.problem_count), upstream=$($ur.total). See the checkout GitOps report."
+            $message = "GitOps monitor [$Repo]: inspection=$($combined.inspection_status), workflow_metadata=$($wh.workflow_inspection_status), workflow_problems=$($wh.problem_count), billing=$($wh.billing.status), upstream_metadata=$($ur.inspection_status), upstream_items=$($ur.total). See the checkout GitOps report."
             $sender = 'gitops-monitor-{0}-{1}' -f [Environment]::MachineName.ToLowerInvariant(), $leaseKey.Substring(0, 12)
             $publication = Invoke-GitOpsProcess -FilePath $client -Arguments @('send', '--from-agent', $sender, '--to-agent', 'all', '--topic', 'status', '--body', $message, '--tag', "repo:$($Repo.Split('/')[1])", '--encoding', 'compact') -WorkingDirectory $RepoRoot -TimeoutSeconds $RequestTimeoutSeconds
             $combined.publication = @{ status = if ($publication.ExitCode -eq 0) { 'Published' } else { 'Failed' }; exit_code = $publication.ExitCode; reason = if ($publication.ExitCode -eq 0) { $null } else { 'Configured agent-bus client failed; inspect its credential/routing configuration.' } }

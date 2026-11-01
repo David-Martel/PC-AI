@@ -31,7 +31,7 @@ function Invoke-TrustedDownload {
             }
         }
         if (-not $hostMatch) {
-            Write-Error "Host '$($uri.Host)' is not in the trusted hosts list."
+            Microsoft.PowerShell.Utility\Write-Error "Host '$($uri.Host)' is not in the trusted hosts list."
             return $null
         }
     }
@@ -43,11 +43,11 @@ function Invoke-TrustedDownload {
                 $hash = (Get-FileHash -LiteralPath $OutFile -Algorithm SHA256 -ErrorAction Stop).Hash
             }
             catch {
-                Write-Error "Could not verify existing download '$OutFile'; existing bytes preserved: $_"
+                Microsoft.PowerShell.Utility\Write-Error "Could not verify existing download '$OutFile'; existing bytes preserved: $_"
                 return $null
             }
             if ($hash -ne $ExpectedSha256.ToUpperInvariant()) {
-                Write-Error "SHA256 mismatch for existing download '$OutFile'. Expected: $ExpectedSha256  Got: $hash. Existing bytes preserved; use -ForceDownload to explicitly replace them."
+                Microsoft.PowerShell.Utility\Write-Error "SHA256 mismatch for existing download '$OutFile'. Expected: $ExpectedSha256  Got: $hash. Existing bytes preserved; use -ForceDownload to explicitly replace them."
                 return $null
             }
             Write-Verbose "SHA256 verified for existing download: $hash"
@@ -63,7 +63,7 @@ function Invoke-TrustedDownload {
         if ($ExpectedSha256) {
             $hash = (Get-FileHash -LiteralPath $OutFile -Algorithm SHA256).Hash
             if ($hash -ne $ExpectedSha256.ToUpper()) {
-                Write-Error "SHA256 mismatch for '$OutFile'. Expected: $ExpectedSha256  Got: $hash"
+                Microsoft.PowerShell.Utility\Write-Error "SHA256 mismatch for '$OutFile'. Expected: $ExpectedSha256  Got: $hash"
                 Remove-Item -LiteralPath $OutFile -Force -ErrorAction SilentlyContinue
                 return $null
             }
@@ -73,7 +73,7 @@ function Invoke-TrustedDownload {
         return $OutFile
     }
     catch {
-        Write-Error "Download failed for '$Url': $_"
+        Microsoft.PowerShell.Utility\Write-Error "Download failed for '$Url': $_"
         if (Test-Path -LiteralPath $OutFile) {
             Remove-Item -LiteralPath $OutFile -Force -ErrorAction SilentlyContinue
         }

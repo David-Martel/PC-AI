@@ -7,12 +7,14 @@ on:
       - '**.rs'
       - '**/Cargo.toml'
       - '**/Cargo.lock'
+      - '.github/workflows/rust-guidelines.yml'
   push:
     branches: [main]
     paths:
       - '**.rs'
       - '**/Cargo.toml'
       - '**/Cargo.lock'
+      - '.github/workflows/rust-guidelines.yml'
 
 concurrency:
   group: rust-guidelines-${{ github.ref }}
@@ -74,6 +76,12 @@ jobs:
       - name: Unit Tests
         working-directory: ${{ matrix.workspace.path }}
         run: cargo test ${{ matrix.workspace.features }} --lib
+
+      # --lib excludes this binary's configuration and request-wire contracts.
+      - name: Native Ollama Configuration Contracts
+        if: matrix.workspace.path == 'Native/pcai_core'
+        working-directory: ${{ matrix.workspace.path }}
+        run: cargo test --locked -p pcai-ollama-rs --bin pcai-ollama-rs
 
       # cargo-audit was rebuilt from source on every single run. The Cache Cargo
       # step above does not cover ~/.cargo/bin, and its key is the Cargo.lock

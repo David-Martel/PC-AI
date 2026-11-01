@@ -27,7 +27,7 @@ function Get-EvaluationDataset {
             if (Test-Path $Name) {
                 return Import-EvaluationDataset -Path $Name
             } else {
-                Write-Error "Dataset not found: $Name"
+                Microsoft.PowerShell.Utility\Write-Error "Dataset not found: $Name"
                 return $null
             }
         }

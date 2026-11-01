@@ -89,9 +89,16 @@ function Test-NetPathHealth {
 
     function Invoke-Iperf {
         param([string]$Target, [switch]$Reverse)
+        # Keep native failures as structured measurements even when the caller prefers terminating native errors.
+        $PSNativeCommandUseErrorActionPreference = $false
         $iperfArgs = @('-c', $Target, '-p', $Port, '-P', $Streams, '-t', $Seconds, '-f', 'm')
         if ($Reverse) { $iperfArgs += '-R' }
         $raw = & iperf3 @iperfArgs 2>&1 | Out-String
+        $nativeExit = $LASTEXITCODE
+        if ($nativeExit -ne 0) {
+            $diagnostic = ($raw -split "`n" | Where-Object { $_ -match '\S' } | Select-Object -First 2) -join ' / '
+            return [pscustomobject]@{ Mbits = $null; Error = "iperf3 exit ${nativeExit}: $diagnostic" }
+        }
         $line = ($raw -split "`n" | Where-Object { $_ -match '\[SUM\].*receiver' } | Select-Object -Last 1)
         if (-not $line) {
             # With -P 1 iperf3 prints no [SUM]; fall back to the per-stream receiver line.

@@ -106,3 +106,40 @@ cohort passes three selectors and explicitly skips its absent real-core input.
 This changes test path identity only; installed binaries and native resolution
 behavior are unchanged. Hosted Windows qualification requires the follow-up's
 actual admission result rather than the earlier merge or local result.
+
+## Draft233 accepted-main convergence
+
+The draft integrates accepted main `816038d4eeafcdeefb42bca37a8834fec3ce7491`
+with prior draft source `093bf5526768220168a1fd8f43100f7230259636`. Its resolver
+retains the loaded path, provenance and owned-handle tuple. Both load sites run
+the accepted required-export verifier before publishing that tuple; the accepted
+exception-safe rejection cleanup remains unchanged. The paired-bundle and
+loaded-identity contracts are retained.
+
+The current draft's selected managed resolver, P/Invoke and bounded-process
+cohort passes 40 cases with zero failures or skips. It includes the eight
+partial/full-symbol admission cases. An independent fresh execution of those
+eight cases also passes without skips. The actual Python override fixture
+passes three selectors and explicitly skips its absent production-core input;
+the lifetime fixture passes its partial/unload selector and skips its absent
+real-core positive. These Python executions are the integrating lane's results,
+not an independent rerun. Fresh built-bridge loaded-identity/paired-initializer
+and default-loader reuse controls also pass against owned inert C fixtures.
+Overlapping cohorts are not summed.
+
+The registers append `draft233-accepted-main816-refresh` rows bound to resolver
+hash `c9fbdedb91b93388ce34b7538c6a2e55b8b6b9436853453c3fcbda1d455ed8e9`
+and the current draft peer hashes. Existing main rows bound to `5ec60dcb` and
+their original reviewed commits retain their historical bytes and scope.
+Raw controls and source/custody receipts remain in the operator's stable
+`r3/integration/accepted-native-refresh` evidence directory. Builds used the
+.NET11 preview SDK targeting .NET8 on Windows x64; outputs remain in that owned
+evidence directory and disposable fixture roots.
+
+PowerShell module blobs, the canonical Pester engine, WindowsCI profile and
+workflow cohort are unchanged by this merge. The earlier full `6bf800f` receipt
+remains immutable: 4,140 passed, zero failed, 40 skipped, with source-bound
+coverage 65.8277818899581 percent below the unchanged 85 percent target. It was
+not relabeled as a full run of the later native-source head. No installed
+native binary, model/GPU, complete production ABI, deployment, performance or
+exceptional operating-system unload qualification follows from these controls.

@@ -166,14 +166,14 @@ Describe "PC-AI.Evaluation Module" {
         }
 
         It "Should give lower coherence to repeated text" {
-            # Note: Simple heuristic may not detect all repetition patterns
             $text = "Error detected. Error detected. Error detected. Error detected. Error detected."
 
             $coherence = Measure-Coherence -Response $text
 
-            # Allow for simple heuristic limitations - coherence should be valid
-            $coherence | Should -BeGreaterThanOrEqual 0
-            $coherence | Should -BeLessThanOrEqual 1.0
+            $coherence | Should -BeGreaterOrEqual 0
+            $coherence | Should -BeLessOrEqual 1.0
+            $control = Measure-Coherence -Response 'The system diagnostic shows all hardware is functioning properly. No errors were detected. All services are running normally.'
+            $coherence | Should -BeLessThan $control
         }
     }
 
@@ -313,46 +313,46 @@ Describe "PC-AI.Evaluation Module" {
     }
 }
 
-Describe "Integration Tests" -Tag "Integration" {
-    Context "Backend Availability Check" {
-        BeforeAll {
-            $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-        }
-
-        It "Should detect if native DLL is available" {
-            # This is informational - may pass or fail depending on build state
-            $dllPath = Join-Path $projectRoot "bin\Release\pcai_inference.dll"
-            $altPath = if ($env:CARGO_TARGET_DIR) {
-                Join-Path $env:CARGO_TARGET_DIR "release\pcai_inference.dll"
-            } else { $null }
-            $localBinPath = Join-Path $env:USERPROFILE ".local\bin\pcai_inference.dll"
-
-            $available = (Test-Path $dllPath) -or
-                ($altPath -and (Test-Path $altPath)) -or
-                (Test-Path $localBinPath)
-
-            if ($available) {
-                Write-Host "  Native DLL available for integration testing" -ForegroundColor Green
-            } else {
-                Write-Host "  Native DLL not built - skipping native tests" -ForegroundColor Yellow
-            }
-        }
+Describe 'Evaluation result aggregation' -Tag 'Unit', 'Portable' {
+    It 'returns an empty summary and no fabricated metrics when no cases completed' {
+        $suite = New-EvaluationSuite -Name 'empty-results' -Metrics @('latency', 'throughput')
+        $summary = Get-EvaluationResults -Suite $suite -Format summary
+        $summary.TotalTests | Should -Be 0
+        $summary.PassRate | Should -Be 0
+        $summary.AverageScore | Should -Be 0
+        (Get-EvaluationResults -Suite $suite -Format metrics).Count | Should -Be 0
     }
 
-    Context "Evaluation Suite Execution" -Skip:(-not (Test-Path "T:\RustCache\cargo-target\release\pcai_inference.dll")) {
-        BeforeAll {
-            Import-Module (Join-Path $projectRoot "Modules\PcaiInference.psm1") -Force -ErrorAction SilentlyContinue
+    It 'aggregates mixed outcomes, retains zero metric values and returns only failed cases' {
+        $suite = New-EvaluationSuite -Name 'mixed-results' -Metrics @('latency')
+        $resultType = $suite.Results.GetType().GetGenericArguments()[0]
+        foreach ($case in @(
+            @{ Id='successful'; Status='pass'; Value=100.0 },
+            @{ Id='failed'; Status='fail'; Value=0.0 },
+            @{ Id='errored'; Status='error'; Value=200.0 }
+        )) {
+            $result = [Activator]::CreateInstance($resultType)
+            $result.TestCaseId = $case.Id
+            $result.Status = $case.Status
+            $result.Response = 'x' * 120
+            $result.Duration = [TimeSpan]::FromMilliseconds($case.Value)
+            $result.Metrics = @{ latency=$case.Value }
+            $suite.Results.Add($result)
         }
-
-        It "Should run evaluation suite against mock data" {
-            $suite = New-EvaluationSuite -Name "IntegrationTest" -Metrics @('latency', 'similarity')
-
-            # Add minimal test case
-            $tc = New-EvaluationTestCase -Id "int-001" -Prompt "Hello" -ExpectedOutput "Hello"
-            $suite.AddTestCase($tc)
-
-            # This would need actual backend to run fully
-            $suite.TestCases.Count | Should -Be 1
-        }
+        $summary = Get-EvaluationResults -Suite $suite -Format summary
+        $summary.TotalTests | Should -Be 3
+        $summary.Passed | Should -Be 1
+        $summary.Failed | Should -Be 1
+        $summary.Errors | Should -Be 1
+        $summary.PassRate | Should -Be 33.33
+        $summary.AverageLatency | Should -Be 100
+        $metrics = Get-EvaluationResults -Suite $suite -Format metrics
+        $metrics.latency.Mean | Should -Be 100
+        $metrics.latency.Min | Should -Be 0
+        $metrics.latency.Max | Should -Be 200
+        $failures = @(Get-EvaluationResults -Suite $suite -Format failures)
+        $failures.Count | Should -Be 2
+        $failures.TestId | Should -Not -Contain 'successful'
+        @(Get-EvaluationResults -Suite $suite -Format detailed).Response | Should -Be @((('x' * 100) + '...'), (('x' * 100) + '...'), (('x' * 100) + '...'))
     }
 }

@@ -752,7 +752,7 @@ mod tests {
     #[test]
     fn test_resolve_device_cuda_invalid_ordinal() {
         let cfg = PipelineConfig {
-            device: "cuda:auto".to_string(),
+            device: "cuda:not-an-index".to_string(),
             ..PipelineConfig::default()
         };
         assert!(cfg.resolve_device().is_err());

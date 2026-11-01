@@ -64,6 +64,7 @@ function Get-FileHashParallel {
     begin {
         $allFiles = [System.Collections.Generic.List[string]]::new()
         $totalBytes = [int64]0
+        $results = @()
     }
 
     process {
@@ -210,24 +211,30 @@ function Get-FileHashWithPcaiPerf {
         [string]$Algorithm
     )
 
+    Assert-PcaiPerfNoPendingCustody
     try {
-        if (Get-Command Invoke-PcaiPerfWorkerRequest -ErrorAction SilentlyContinue) {
-            $result = Invoke-PcaiPerfWorkerRequest -ToolPath $ToolPath -Command 'hash-list' -Payload @{
-                algorithm = $Algorithm
-                paths     = $FilePaths
-            }
-            if ($result) {
-                return @($result)
+        if ($env:PCAI_DISABLE_PERF_WORKER -ne '1' -and (Get-Command Invoke-PcaiPerfWorkerRequest -ErrorAction SilentlyContinue)) {
+            try {
+                # An empty successful result is not permission to launch again.
+                return @(Invoke-PcaiPerfWorkerRequest -ToolPath $ToolPath -Command 'hash-list' -Payload @{
+                    algorithm = $Algorithm
+                    paths     = $FilePaths
+                })
+            } catch [NotSupportedException] {
+                $transportFailure = $_
+                if (Test-PcaiPerfFatalTransportException -Exception $_.Exception) { throw }
+                try { Assert-PcaiPerfNoPendingCustody }
+                catch { $PSCmdlet.ThrowTerminatingError($transportFailure) }
+                Write-Verbose 'Legacy pcai-perf worker: using bounded direct CLI.'
             }
         }
 
-        $json = & $ToolPath 'hash-list' '--algorithm' $Algorithm @FilePaths 2>$null
-        if (-not $json) {
-            return @()
-        }
-
-        return @($json | ConvertFrom-Json)
+        return @(Invoke-PcaiPerfCliCommand -ToolPath $ToolPath -Arguments (@('hash-list', '--algorithm', $Algorithm) + $FilePaths))
     } catch {
+        $transportFailure = $_
+        if (Test-PcaiPerfFatalTransportException -Exception $_.Exception) { throw }
+        try { Assert-PcaiPerfNoPendingCustody }
+        catch { $PSCmdlet.ThrowTerminatingError($transportFailure) }
         Write-Verbose "pcai-perf hash-list failed: $_"
         return @()
     }

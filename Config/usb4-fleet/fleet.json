@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/David-Martel/PC-AI",
+  "purpose": "Desired peer policies, platform payloads and deployment inventory; observations are dated evidence, not runtime readiness.",
+  "payloads": {
+    "windows-peer": {
+      "platform": "windows",
+      "kind": "deployable",
+      "supportedArchitectures": [
+        "x86_64",
+        "aarch64"
+      ],
+      "paths": [
+        "Config/usb4-fleet/fleet.json",
+        "Config/usb4-fleet/fleet.schema.json",
+        "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1",
+        "Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1",
+        "Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1",
+        "docs/usb4/peer-networking.md",
+        "docs/usb4/fleet-deployment.md",
+        "Tools/SystemScripts/Networking/usb4_fleet_release.py",
+        "Modules/PC-AI.Drivers/Public/Get-ThunderboltNetworkStatus.ps1"
+      ],
+      "qualification": "PowerShell source payload is architecture-neutral; live qualification exists only for the named x86_64 Windows hosts. ARM64 runtime and drivers require separate acceptance."
+    },
+    "linux-native": {
+      "platform": "linux",
+      "kind": "templates-only",
+      "supportedArchitectures": [
+        "x86_64",
+        "aarch64"
+      ],
+      "paths": [
+        "Config/usb4-fleet/fleet.json",
+        "Config/usb4-fleet/fleet.schema.json",
+        "Deploy/usb4/80-pcai-usb4-enrollment.rules",
+        "Deploy/usb4/pcai-usb4-observer.service",
+        "Deploy/usb4/pcai-usb4-observer.timer",
+        "Deploy/usb4/pcai-usb4-nm.service",
+        "Deploy/usb4/pcai-usb4-nm.timer",
+        "Deploy/usb4/pcai-usb4-networkd.service",
+        "Deploy/usb4/pcai-usb4-networkd.timer",
+        "Deploy/usb4/pcai-usb4-qualify.service",
+        "Deploy/usb4/pcai-usb4-qualify.timer",
+        "docs/usb4/enrolled-observer.md",
+        "docs/usb4-multiedge-reconciliation.md",
+        "docs/usb4/fleet-deployment.md",
+        "Tools/SystemScripts/Networking/usb4_fleet_release.py"
+      ],
+      "qualification": "Templates only. Build pcai-usb4-agent from the locked PC-AI workspace for the actual Linux target; require binary-to-source provenance, enrolled policy and host acceptance before installation."
+    },
+    "macos-inventory": {
+      "platform": "macos",
+      "kind": "templates-only",
+      "supportedArchitectures": [
+        "x86_64",
+        "aarch64"
+      ],
+      "paths": [
+        "Config/usb4-fleet/fleet.json",
+        "docs/usb4/fleet-deployment.md",
+        "Tools/SystemScripts/Networking/usb4_fleet_release.py"
+      ],
+      "qualification": "Inventory/design only. No macOS executor or live macOS deployment is claimed."
+    }
+  },
+  "hosts": [
+    {
+      "id": "dtm-p1gen7",
+      "platform": "windows",
+      "architecture": "x86_64",
+      "backend": "windows-peer",
+      "policyPath": "Config/usb4-fleet/hosts/dtm-p1gen7.json",
+      "profileRevision": 1,
+      "role": "Provider",
+      "observed": {
+        "date": "2026-10-26",
+        "installRoot": "C:\\ProgramData\\pcai-usb4\\peer-network",
+        "revision": "r6",
+        "controllerSha256": "FA225B2E69FF26A397AA9EC7273B09EC8CC20413E0DE93671DF65EE4BE8E91AD",
+        "state": "Live IPv4 sharing qualified; IPv6 peer transport present; no routed IPv6 internet"
+      }
+    },
+    {
+      "id": "dtm-p1gen9",
+      "platform": "windows",
+      "architecture": "x86_64",
+      "backend": "windows-peer",
+      "policyPath": "Config/usb4-fleet/hosts/dtm-p1gen9.json",
+      "profileRevision": 1,
+      "role": "Consumer",
+      "managementSshAlias": "dtm-p1gen9-ts",
+      "observed": {
+        "date": "2026-10-26",
+        "installRoot": "C:\\ProgramData\\pcai-usb4\\peer-network",
+        "revision": "r4",
+        "controllerSha256": "FA225B2E69FF26A397AA9EC7273B09EC8CC20413E0DE93671DF65EE4BE8E91AD",
+        "state": "Fresh unbound TLS/HTTPS selected USB4 IPv4; Wi-Fi retained; no IPv6 default"
+      }
+    },
+    {
+      "id": "asuspro13",
+      "platform": "linux",
+      "architecture": "x86_64",
+      "backend": "linux-native",
+      "managementSshAlias": "asuspro13",
+      "observed": {
+        "date": "2026-10-26",
+        "state": "No enrolled PC-AI native agent deployment found; no Thunderbolt XDomain peer",
+        "sourcePath": "/home/damartel/dev/repos/vigil-spark",
+        "sourceCommit": "6065f4a6cdea3876a29f387db1f0c1e56b93bb92",
+        "internetPath": "VIGIL fabric 10.60.2.2 metric100 ahead of physical LAN metric200; not VIGIL-independent"
+      },
+      "holds": [
+        "Preserve active fabric/NFS and other agents' routing custody",
+        "No generic Linux internet-sharing executor is qualified",
+        "Require direct physical-uplink qualification before changing policy"
+      ]
+    },
+    {
+      "id": "millylaptop1",
+      "platform": "linux",
+      "architecture": "x86_64",
+      "backend": "linux-native",
+      "managementSshAlias": "millylaptop1",
+      "policyPath": "Config/usb4-fleet/hosts/millylaptop1.json",
+      "profileRevision": 2,
+      "observed": {
+        "date": "2026-10-26",
+        "binaryPath": "/usr/local/libexec/pcai-usb4-agent",
+        "binarySha256": "fde7b53cf5bc1ce4f992da857ee714393751e2461e86d92c6b2c5461130b0399",
+        "policyPath": "/etc/pcai-usb4/policy.json",
+        "policySha256": "9d9c33bb9683e6b5e92cd1b5469a566cd582a9a6f87cc27015cdd3ebe9a261aa",
+        "policyEpoch": 2,
+        "state": "Native services installed, carrier0 and observed controller UUID not enrolled",
+        "binarySourceCommit": null
+      },
+      "holds": [
+        "Active hard NFS recovery and processes in D state; no network/mount resets",
+        "thunderbolt0 is protected in the deployed policy",
+        "Do not auto-enroll the observed replacement controller or claim binary-to-commit provenance"
+      ]
+    },
+    {
+      "id": "spark-0060",
+      "platform": "linux",
+      "architecture": "aarch64",
+      "backend": "linux-native",
+      "managementSshAlias": "spark-0060",
+      "observed": {
+        "date": "2026-10-26",
+        "sourcePath": "/opt/vigil-spark",
+        "sourceCommit": "14a44daa4bd45e815d2cc9acf2eae74717240663",
+        "state": "r8127 USB Ethernet carrier1/MTU9000; local IPv6 fabric works; no verified Thunderbolt XDomain or IPv6 default"
+      },
+      "holds": [
+        "Preserve active NFS and runner/HIL custody",
+        "ARM64 native USB4 agent artifact and enrollment are not deployed or qualified"
+      ]
+    },
+    {
+      "id": "spark-3066",
+      "platform": "linux",
+      "architecture": "aarch64",
+      "backend": "linux-native",
+      "managementSshAlias": "spark-3066",
+      "observed": {
+        "date": "2026-10-26",
+        "sourcePath": "/opt/vigil-spark",
+        "sourceCommit": "14a44daa4bd45e815d2cc9acf2eae74717240663",
+        "state": "r8127 USB Ethernet carrier1/MTU9000; local IPv6 fabric works; no verified Thunderbolt XDomain or IPv6 default"
+      },
+      "holds": [
+        "Preserve active NFS and runner/HIL custody",
+        "ARM64 native USB4 agent artifact and enrollment are not deployed or qualified"
+      ]
+    },
+    {
+      "id": "minisforum-ms01",
+      "platform": "linux",
+      "architecture": "x86_64",
+      "backend": "linux-native",
+      "observed": {
+        "date": "2026-10-26",
+        "state": "Existing LAN and tailnet management paths timed out; current deployment unverified"
+      },
+      "holds": [
+        "Do not infer inactive custody from failed SSH",
+        "Require reachable authenticated management and fresh namespace/controller inventory"
+      ]
+    }
+  ],
+  "capabilities": {
+    "windowsX86_64": "Qualified only on the named Gen7/Gen9 topology",
+    "windowsArm64": "Source payload can be packaged; PowerShell, driver and runtime acceptance not performed",
+    "linuxX86_64": "Existing native agent and maintained systemd/NM/networkd paths; per-host enrollment and provenance still required",
+    "linuxArm64": "Templates/source contract only; no native agent deployment qualified on the Sparks",
+    "macosX86_64AndArm64": "Inventory/design only; executor not implemented or qualified",
+    "x86": "No current 32-bit USB4 target or artifact is qualified",
+    "ipv6": "Link-local/ULA peer transport is separate from routed IPv6 internet. Do not advertise an IPv6 internet default without an eligible upstream, allocated prefix, forwarding/firewall policy and actual end-to-end proof."
+  },
+  "maintenance": {
+    "codeHome": "PC-AI is executor authority; fleet atlas and agent-bus are optional observers, not runtime prerequisites",
+    "secrets": "Private keys, bearer tokens and raw credentials never belong in this registry or release ZIP",
+    "portChanges": "Rediscover enrolled physical identity at runtime; ifIndex and alias are observations. Changed adapter GUID/MAC or controller UUID requires reviewed custody migration, not state deletion or broad trust.",
+    "release": "Build from committed registry/payload bytes with usb4_fleet_release.py; ship exact hashes and retain installed revisions/preimages. Templates-only is not an executable Linux/macOS release.",
+    "scope": "No default route, DNS, NFS, VLAN, VPN or hardware reset follows merely from inventory or packaging."
+  }
+}

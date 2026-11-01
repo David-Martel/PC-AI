@@ -1,8 +1,7 @@
 #Requires -PSEdition Core
 
 $sharedCacheHelper = Join-Path $PSScriptRoot 'Get-PcaiSharedCache.ps1'
-# Supplying a command name can autoload a provider despite ListImported.
-# Enumerate loaded commands first, then match the optional helper locally.
+# Match loaded optional helpers without named lookup that can autoload providers.
 if ((-not (Microsoft.PowerShell.Core\Get-Command -ListImported | Microsoft.PowerShell.Core\Where-Object Name -EQ Get-PcaiSharedCacheEntry)) -and (Test-Path $sharedCacheHelper)) {
     . $sharedCacheHelper
 }
@@ -167,6 +166,27 @@ function Resolve-PcaiRepoRoot {
     param(
         [string]$StartPath
     )
+
+    # Copied modules have no checkout ancestry. Validate an explicit machine
+    # root before cache lookup so stale discovery cannot hide a bad override.
+    if ($env:PCAI_ROOT) {
+        try {
+            if ([string]::IsNullOrWhiteSpace($env:PCAI_ROOT)) { throw 'Root cannot be whitespace.' }
+            $rootItem = Get-Item -LiteralPath $env:PCAI_ROOT -Force -ErrorAction Stop
+            if ($rootItem.PSProvider.Name -ne 'FileSystem' -or -not $rootItem.PSIsContainer) {
+                throw 'Root must be an existing filesystem directory.'
+            }
+            $explicitRoot = [IO.Path]::GetFullPath($rootItem.FullName)
+            foreach ($marker in @('PC-AI.ps1', 'Config/llm-config.json')) {
+                if (-not (Test-Path -LiteralPath (Join-Path $explicitRoot $marker) -PathType Leaf)) {
+                    throw 'Root must contain the PC-AI entrypoint and configuration.'
+                }
+            }
+            return $explicitRoot
+        } catch {
+            throw "Explicit PCAI_ROOT does not select a valid PC-AI configuration root: $($_.Exception.Message)"
+        }
+    }
 
     $searchRoot = if ($StartPath) { $StartPath } elseif ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).ProviderPath }
     if (Test-Path $searchRoot -PathType Leaf) {

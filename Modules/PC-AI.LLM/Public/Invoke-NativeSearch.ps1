@@ -354,14 +354,14 @@ function Invoke-PowerShellFileSearch {
         [int64]$MaxResults
     )
 
-    $files = Get-ChildItem -Path $Path -Recurse -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -like $Pattern }
+    $files = @(Get-ChildItem -Path $Path -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -like $Pattern })
 
     if ($MaxResults -gt 0) {
-        $files = $files | Select-Object -First $MaxResults
+        $files = @($files | Select-Object -First $MaxResults)
     }
 
-    $totalSize = ($files | Measure-Object -Property Length -Sum).Sum
+    $totalSize = if ($files.Count -eq 0) { 0 } else { ($files | Measure-Object -Property Length -Sum).Sum }
 
     [PSCustomObject]@{
         Status       = 'Success'
@@ -392,13 +392,13 @@ function Invoke-PowerShellContentSearch {
 
     $fileFilter = if ($FilePattern) { $FilePattern } else { '*' }
 
-    $files = Get-ChildItem -Path $Path -Recurse -File -Filter $fileFilter -ErrorAction SilentlyContinue
+    $files = @(Get-ChildItem -Path $Path -Recurse -File -Filter $fileFilter -ErrorAction SilentlyContinue)
 
-    $matches = @()
+    $contentMatches = @()
     $filesMatched = @{}
 
     foreach ($file in $files) {
-        if ($MaxResults -gt 0 -and $matches.Count -ge $MaxResults) { break }
+        if ($MaxResults -gt 0 -and $contentMatches.Count -ge $MaxResults) { break }
 
         try {
             $content = Get-Content -Path $file.FullName -ErrorAction Stop
@@ -407,14 +407,14 @@ function Invoke-PowerShellContentSearch {
                 $lineNum++
                 if ($line -match $Pattern) {
                     $filesMatched[$file.FullName] = $true
-                    $matches += [PSCustomObject]@{
+                    $contentMatches += [PSCustomObject]@{
                         Path       = $file.FullName
                         LineNumber = $lineNum
                         Line       = $line
                         Before     = @()
                         After      = @()
                     }
-                    if ($MaxResults -gt 0 -and $matches.Count -ge $MaxResults) { break }
+                    if ($MaxResults -gt 0 -and $contentMatches.Count -ge $MaxResults) { break }
                 }
             }
         }
@@ -427,8 +427,8 @@ function Invoke-PowerShellContentSearch {
         FilePattern  = $filePattern
         FilesScanned = $files.Count
         FilesMatched = $filesMatched.Count
-        TotalMatches = $matches.Count
-        Matches      = $matches
-        Summary      = "PowerShell fallback: Found $($matches.Count) matches in $($filesMatched.Count) files"
+        TotalMatches = $contentMatches.Count
+        Matches      = $contentMatches
+        Summary      = "PowerShell fallback: Found $($contentMatches.Count) matches in $($filesMatched.Count) files"
     }
 }

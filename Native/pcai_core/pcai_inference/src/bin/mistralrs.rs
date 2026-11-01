@@ -1,7 +1,12 @@
 //! pcai-mistralrs HTTP server
 //! Specialized binary for the mistral.rs backend.
 
-use pcai_inference_lib::{backends::BackendType, config::InferenceConfig, http::run_server, version};
+use pcai_inference_lib::{
+    backends::{mistralrs::MistralRsBackend, InferenceBackend},
+    config::{BackendConfig, InferenceConfig},
+    http::run_server,
+    version,
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 fn extract_config_path(args: &[String]) -> Option<String> {
@@ -25,6 +30,18 @@ fn default_config_path() -> Option<String> {
         return Some(path.to_string_lossy().to_string());
     }
     None
+}
+
+fn create_backend(config: &BackendConfig) -> anyhow::Result<Box<dyn InferenceBackend>> {
+    match config {
+        BackendConfig::MistralRs { device } => {
+            Ok(Box::new(MistralRsBackend::with_device_selection(device.as_deref())?))
+        }
+        #[cfg(feature = "llamacpp")]
+        BackendConfig::LlamaCpp { .. } => Err(anyhow::anyhow!(
+            "Invalid backend type in configuration. pcai-mistralrs requires mistral_rs configuration."
+        )),
+    }
 }
 
 #[tokio::main]
@@ -59,19 +76,7 @@ async fn main() -> anyhow::Result<()> {
     let config = InferenceConfig::from_file(config_path)?;
 
     // Create backend
-    let backend_type = match &config.backend {
-        #[cfg(feature = "mistralrs-backend")]
-        pcai_inference_lib::config::BackendConfig::MistralRs { .. } => BackendType::MistralRs,
-
-        #[cfg(feature = "llamacpp")]
-        pcai_inference_lib::config::BackendConfig::LlamaCpp { .. } => {
-            return Err(anyhow::anyhow!(
-                "Invalid backend type in configuration. pcai-mistralrs requires mistral_rs configuration."
-            ));
-        }
-    };
-
-    let mut backend = backend_type.create()?;
+    let mut backend = create_backend(&config.backend)?;
 
     // Load model
     tracing::info!("Loading model from {:?}", config.model.path);
@@ -91,4 +96,32 @@ async fn main() -> anyhow::Result<()> {
     run_server(server_config, router_config, backend).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Protects config propagation; detects discarded selectors before loading any model.
+    // Needs no GPU/model. Breadcrumb: bin/mistralrs.rs create_backend.
+    #[test]
+    fn invalid_config_device_fails_before_model_loading() {
+        let config = BackendConfig::MistralRs {
+            device: Some("cuda:not-an-index".into()),
+        };
+        let result = create_backend(&config);
+        assert!(matches!(result, Err(error) if error.to_string().contains("Invalid Mistral device selector")));
+    }
+
+    // Protects CPU-only startup; detects rejection of valid CPU configuration.
+    // Needs no GPU/model. Breadcrumb: bin/mistralrs.rs create_backend.
+    #[test]
+    fn cpu_config_creates_unloaded_backend() {
+        let config = BackendConfig::MistralRs {
+            device: Some("cpu".into()),
+        };
+        let backend = create_backend(&config).expect("CPU config must construct without a model");
+        assert!(!backend.is_loaded());
+        assert_eq!(backend.backend_name(), "mistral.rs");
+    }
 }

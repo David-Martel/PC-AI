@@ -2,6 +2,14 @@
 
 Comprehensive Pester 5.x testing framework for PC_AI diagnostics and optimization system.
 
+## Canonical runner and measured coverage
+
+Use [the testing architecture guide](../docs/test-architecture.md) for the single
+execution engine, preserved cohort meanings, targeted `-Path`/`-FullName`, pure
+`-Plan`, source-bound missed-command reports and benchmark baseline compatibility.
+`TestProfiles.psd1` owns the fixed WindowsCI cohort; its 85% all-Modules gate is
+unchanged. Filename counts are inventory, not coverage. Older measurements below
+retain their source/date boundaries and do not qualify a newer checkout.
 ## Overview
 
 This testing framework provides unit and integration tests with 85% coverage target for all PC_AI modules.
@@ -26,6 +34,92 @@ Tests/
     ├── ReportGeneration.Tests.ps1
     └── ModuleLoading.Tests.ps1
 ```
+
+## Current public cache, enumeration and routing controls
+
+`Unit/PcaiSharedCache.Tests.ps1`, `Unit/PcaiFileEnumerationPublic.Tests.ps1`
+and `Unit/LLMProviderRoutingContracts.Tests.ps1` run through normally imported
+modules. Their combined current-source run passed50 cases with one explicit
+Redis skip. File enumeration uses owned tiny real trees; routing validates the
+canonical request builder while HTTP, health, native Ollama and router
+boundaries are mocked. These controls do not qualify live transport or native
+inference. All three are included in normal unit discovery.
+
+The narrow six-file coverage observation is665/2,146 commands (30.99% locally).
+The repository-wide85% CI requirement is unchanged; narrow instrumentation
+must not be treated as that gate or credited by adding its numerator to another
+run. Results and independent limits are recorded in
+[the fleet review](../Reports/fleet-integration-review.md).
+
+## Network adapter classification
+
+`Unit/NetworkAdapterClassification.Tests.ps1` runs 21 controls against the actual
+diagnostics producer using inert physical and virtual adapter collaborators.
+Default, explicit true and explicit false selection must preserve physical
+classification and collect virtual IP configuration only when requested. The
+fixture exports only the producer to prevent cross-file mock metadata leakage.
+Together with `Unit/PcaiNetworkContracts.Tests.ps1` and
+`Unit/PC-AI.Network.Tests.ps1`, the current narrow run passes 130 controls with
+zero failures and one skip. This is unit evidence, not live networking or full
+coverage acceptance; see [the review](../Reports/network-adapter-classification-review.md).
+
+## Dedicated Windows process capture qualification
+
+`ProcessCapture/Invoke-ProcessCaptureQualification.ps1` runs the complete
+maintained eighteen-control capture cohort followed by full-module QA in fresh
+PowerShell children. This dedicated suite is separate from default Unit/All CI
+and its results do not add full-CI coverage credit. The earlier Carbon actual
+review accepted eighteen capture passes, eleven cache passes and the original
+Redis-dependent skip against the predecessor sources. Current cache controls
+expand to twenty-two cases: twenty-one passed locally and the live Redis case
+was explicitly skipped. Current Carbon maintained qualification also passed
+all eighteen capture controls and21 full-module cases with that one Redis skip;
+independent review accepts their source ancestry and original closure. Fresh
+per-machine validation, fleet installation and other users remain separate gates.
+
+Default, `-h`, `--help`, `-DryRun` and `-Apply -DryRun` perform no IO. An actual run
+requires Windows x64 PowerShell7.6, no ambient Pester/Common/native capture type,
+a complete source-pinned Pester5.7.1 package, fresh owned output and sufficient
+capacity. Admission requires at least8GiB available, commit below80%, at least
+10GiB commit headroom and output-disk free space, with no competing heavy build.
+
+Use the reviewed admission values below only after fresh per-machine checks;
+replace both angle-bracket placeholders with actual admitted absolute paths.
+Do not execute this template verbatim or substitute an arbitrary Pester package.
+The EvidenceDirectory leaf must equal OutputId: for this template it must end in
+cache-qualification-r1. Change the directory leaf and OutputId together.
+
+```powershell
+pwsh -NoLogo -NoProfile -NonInteractive -File Tests/ProcessCapture/Invoke-ProcessCaptureQualification.ps1 `
+  -Apply `
+  -SourceRegisterSHA256 CFCC809D4FB08F6349AECB9F157A7D86BD6D707AE12DF2A982D0BF7D11ED5A3D `
+  -SourcePeerPath Tests/ProcessCapture/portable-source-review.json `
+  -SourcePeerSHA256 CCD826624D7E8EAF58A484EF0D1C0F782711D2F5207B3434B65D70BF3CA18B4F `
+  -PesterManifestPath <admitted-complete-Pester-5.7.1-manifest> `
+  -EvidenceDirectory <absent-owned-evidence-directory> `
+  -OutputId cache-qualification-r1
+```
+
+The independently authored successor `portable-source-review.json` is shipped
+alongside the unchanged historical `source-review.json`. The successor binds the
+current portable source and source registers; earlier runtime receipts qualify
+only their pinned predecessors. The source-peer receipt grants source approval
+for a separately admitted run, not runtime acceptance.
+It stays outside the source register to avoid a circular hash dependency. The
+twenty-two bound leaves, source register and receipt preserve raw bytes with
+exact-path Git attributes. Explicit renormalization is required after changing attributes
+for already-tracked blobs. Do not rewrite pinned hashes around checkout changes.
+Retain the original owner process and failed-operation ledgers until clean
+closeout; a serialized successful result cannot prove its own writer closure.
+
+Ordinary shared-cache unit tests force the memory provider before import and
+restore the original process environment afterwards. Use the test container's
+`EnableRedisIntegration` parameter only for an explicitly admitted local Redis
+instance; that case uses its own GUID key prefix and bounded connection probe.
+No ordinary test clears ambient Redis keys. Array shape and supported mutable
+values are preserved; setter expiry bounds later reads. Records without expiry
+metadata retain legacy age behavior. Invalid external reads return a miss
+without deleting a value that another writer may have replaced.
 
 ## Quick Start
 
@@ -113,6 +207,14 @@ Fast, isolated tests with mocked dependencies:
 - **PC-AI.Performance.Tests.ps1** - Disk space, process monitoring, resource tracking
 - **PC-AI.Cleanup.Tests.ps1** - PATH cleanup, duplicate detection, temp file removal
 - **PC-AI.LLM.Tests.ps1** - Ollama integration, LLM chat, PC diagnosis
+- **EvaluationPublicContracts.Tests.ps1** - Public persistence and numerical
+  admission through real orchestration with inert HTTP; a fresh-process regression
+  checks producer identity with the compatibility aggregate discoverable.
+- **PcaiVirtualizationImportIdentity.Tests.ps1** - Fresh-process standalone import
+  and preloaded Common cache reuse without virtualization or device operations.
+- **Invoke-JulesSession.Tests.ps1** - Owned script and credential fixtures with
+  provider/CLI/HTTP tripwires and restoration of inherited environment and commands.
+  These tests must not consult live credentials or repository environment files.
 
 ### Integration Tests
 

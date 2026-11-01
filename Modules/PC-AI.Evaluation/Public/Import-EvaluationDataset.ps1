@@ -2,7 +2,14 @@ function Import-EvaluationDataset {
     [CmdletBinding()]
     param([string]$Path)
 
-    $data = Get-Content $Path | ConvertFrom-Json
+    $data = @(Get-Content -LiteralPath $Path -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop)
+    # Validate the whole dataset before emitting any usable test cases.
+    foreach ($record in $data) {
+        if ($record.id -isnot [string] -or [string]::IsNullOrWhiteSpace($record.id) -or
+            $record.prompt -isnot [string] -or [string]::IsNullOrWhiteSpace($record.prompt)) {
+            throw 'Every evaluation dataset record requires a nonempty string id and prompt.'
+        }
+    }
     return $data | ForEach-Object {
         # Convert PSCustomObject context to hashtable
         $contextHash = @{}

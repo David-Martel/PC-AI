@@ -14,14 +14,12 @@ function New-PcaiEvaluationRunContext {
         New-Item -ItemType Directory -Path $root -Force | Out-Null
     }
 
-    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-    $safeLabel = if ($RunLabel) { ($RunLabel -replace '[^a-zA-Z0-9_.-]', '-') } else { $null }
-    $runId = if ($safeLabel) { "$timestamp-$safeLabel" } else { $timestamp }
+    $safeLabel = if ($RunLabel) { ($RunLabel -replace '[^a-zA-Z0-9_.-]', '-') } else { 'evaluation' }
+    $runId = "$safeLabel-$([guid]::NewGuid().ToString('N'))"
     $runDir = Join-Path $root $runId
 
-    if (-not (Test-Path $runDir)) {
-        New-Item -ItemType Directory -Path $runDir -Force | Out-Null
-    }
+    # Reserve a new directory; a collision must never reuse another run's files.
+    New-Item -ItemType Directory -Path $runDir -ErrorAction Stop | Out-Null
 
     return [pscustomobject]@{
         RunId = $runId

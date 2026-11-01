@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "hostName": "DTM-P1GEN7",
+  "mode": "Provider",
+  "adapterMac": "C0-94-EB-14-4D-CA",
+  "peerMac": "08-93-C1-7B-39-51",
+  "peerLinkLocal": "fe80::a93:c1ff:fe7b:3951",
+  "localIPv4": "172.31.252.133",
+  "peerIPv4": "172.31.252.134",
+  "prefixLength": 30,
+  "localUla": "fd00:7462:7032::7",
+  "peerUla": "fd00:7462:7032::9",
+  "sharing": {
+    "providerAddress": "172.16.252.1",
+    "consumerAddress": "172.16.252.2",
+    "prefixLength": 30,
+    "preferSharedInternet": true,
+    "routeMetric": 10,
+    "probeAddress": "1.1.1.1",
+    "probePort": 443,
+    "allowWirelessFallback": false,
+    "backend": "ExistingWinNat",
+    "natName": "WSL",
+    "natPrefix": "172.16.0.0/16",
+    "dnsServers": [
+      "1.1.1.1"
+    ]
+  }
+}

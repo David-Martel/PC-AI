@@ -44,12 +44,12 @@ $report = & $module[0] {
     $script:EndpointCalls = [Collections.Generic.List[string]]::new()
     function script:Get-Command {
         [CmdletBinding()]
-        param([string]$Name)
+        param([string]$Name, [Management.Automation.CommandTypes]$CommandType)
         if ($Name -eq 'Send-OllamaRequest') { return $null }
         Microsoft.PowerShell.Core\Get-Command @PSBoundParameters
     }
     function script:Invoke-RestMethod {
-        param([uri]$Uri, [string]$Method, [string]$Body, [string]$ContentType, [int]$TimeoutSec)
+        param([uri]$Uri, [string]$Method, [string]$Body, [string]$ContentType, [int]$TimeoutSec, [int]$OperationTimeoutSeconds)
         $script:EndpointCalls.Add($Uri.OriginalString)
         if (-not $Uri.IsAbsoluteUri -or $Uri.Scheme -notin @('http', 'https')) {
             throw 'The request did not reach the transport as an absolute HTTP URI.'

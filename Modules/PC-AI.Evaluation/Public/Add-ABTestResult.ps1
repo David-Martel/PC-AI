@@ -26,7 +26,7 @@ function Add-ABTestResult {
     )
 
     if (-not $script:ABTests.ContainsKey($TestName)) {
-        Write-Error "A/B test not found: $TestName"
+        Microsoft.PowerShell.Utility\Write-Error "A/B test not found: $TestName"
         return
     }
 

@@ -5,7 +5,7 @@ $ErrorActionPreference='Stop'
 $tokens=$null; $errors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile((Resolve-Path $SourcePath).Path,[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'Runner parse failure'}
-foreach($name in @('Get-ReferenceTokenEstimate','Assert-TokenEstimateParity','Test-BenchmarkCaseEquivalence','Get-ConfigValue','Add-BenchmarkMeasurement','Get-ToolingCaseBenchmarks')) {
+foreach($name in @('Get-ReferenceTokenEstimate','Assert-TokenEstimateParity','Test-BenchmarkCaseEquivalence','Test-PcaiBenchmarkNativeReady','Get-PcaiBenchmarkLoadedIdentity','Invoke-ValidatedBackendBenchmark','Get-ConfigValue','Add-BenchmarkMeasurement','Get-ToolingCaseBenchmarks')) {
     $function=$ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name},$true)
     if(-not $function){throw "Missing production function $name"}
     . ([scriptblock]::Create($function.Extent.Text))
@@ -77,27 +77,55 @@ Write-Output "PASS: $($fixtures.Count) reference cases, mismatch refusal and pro
 
 # Selector actual-case-preflight protects the wiring before timing and a callable
 # scalar baseline closure; detects helper-only tests passing with callsite removed.
-# Needs a fake module and timer, no hardware. Breadcrumb: Get-ToolingCaseBenchmarks.
+# Needs inert binding files and the outer timer boundary, no hardware. The real
+# identity, preflight, phase validation and closure implementations remain active.
+# Breadcrumb: Get-ToolingCaseBenchmarks and Invoke-ValidatedBackendBenchmark.
 $script:CommonModule=$null; $script:CliModule=$null
 $script:TimingCalls=0
 function Invoke-BackendBenchmark {
     param($CaseId,$Backend,$Command,$Iterations,$Warmup)
     $script:TimingCalls++
-    $commandOutput=@(& $Command 2>&1)
-    if(@($commandOutput | Where-Object { $_ -is [Management.Automation.ErrorRecord] }).Count -gt 0){
-        throw 'Timed command produced an error record'
+    foreach($index in 0..($Warmup+$Iterations-1)){
+        $commandOutput=@(& $Command 2>&1)
+        if(@($commandOutput | Where-Object { $_ -is [Management.Automation.ErrorRecord] }).Count -gt 0){
+            throw 'Timed command produced an error record'
+        }
     }
-    return [pscustomobject]@{Backend=$Backend;MeanMs=1;Iterations=$Iterations}
+    # Synthetic outer timing input only. Useful samples/guards use the actual
+    # maintained producer; this fixture establishes no performance result.
+    return [pscustomobject]@{Backend=$Backend;Tool='synthetic-outer-clock-boundary';MeanMs=1;MedianMs=1;StdDevMs=0;MinMs=1;MaxMs=1;Iterations=$Iterations
+        WorkingSetDeltaMeanBytes=$null;WorkingSetDeltaMaxBytes=$null;PrivateMemoryDeltaMeanBytes=$null;PrivateMemoryDeltaMaxBytes=$null
+        ManagedMemoryDeltaMeanBytes=$null;ManagedMemoryDeltaMaxBytes=$null;ManagedAllocatedMeanBytes=$null;ManagedAllocatedMaxBytes=$null}
 }
 $case=[pscustomobject]@{Id='token-estimate'}
-$defaults=[pscustomobject]@{}
+$defaults=[pscustomobject]@{iterations=1;warmup=0}
 $capabilities=[pscustomobject]@{}
-$script:AccelerationModule=New-Module { function Get-PcaiTokenEstimate { return [uint64]3 } }
+$coreIdentity=$null;$bridgeIdentity=$null
+try {
+# Atomically create only two owned inert files. Teardown never recursively
+# walks a computed temporary root or removes another contributor's files.
+$coreIdentity=[IO.Path]::GetTempFileName()
+$bridgeIdentity=[IO.Path]::GetTempFileName()
+[IO.File]::WriteAllText($coreIdentity,'inert core binding bytes')
+[IO.File]::WriteAllText($bridgeIdentity,'inert bridge binding bytes')
+function New-TokenParityModule {
+    param([uint64]$Tokens)
+    New-Module -ArgumentList $coreIdentity,$bridgeIdentity,$Tokens {
+        param($Core,$Bridge,$Tokens)
+        $script:Core=$Core;$script:Bridge=$Bridge;$script:Tokens=$Tokens
+        function Test-PcaiNativeAvailable { $true }
+        function Get-PcaiNativeStatus { [pscustomobject]@{CoreAvailable=$true} }
+        function Get-PcaiNativeLoadedCorePath { $script:Core }
+        function Get-PcaiNativeLoadedBridgePath { $script:Bridge }
+        function Get-PcaiTokenEstimate { return $script:Tokens }
+    }
+}
+$script:AccelerationModule=New-TokenParityModule -Tokens 3
 $rejected=$false
 try { Get-ToolingCaseBenchmarks -Case $case -Defaults $defaults -RepoRoot $PSScriptRoot -Capabilities $capabilities -TokenSample $emoji | Out-Null }
-catch { if($_ -notmatch 'Token output mismatch'){throw}; $rejected=$true }
+catch { if($_ -notmatch 'Token native useful output mismatch'){throw}; $rejected=$true }
 if(-not $rejected -or $script:TimingCalls -ne 0){throw 'Mismatched work reached timer'}
-$script:AccelerationModule=New-Module { function Get-PcaiTokenEstimate { return [uint64]2 } }
+$script:AccelerationModule=New-TokenParityModule -Tokens 2
 $result=Get-ToolingCaseBenchmarks -Case $case -Defaults $defaults -RepoRoot $PSScriptRoot -Capabilities $capabilities -TokenSample $emoji
 if($script:TimingCalls -ne 2 -or -not $result.EquivalenceVerified){throw 'Equal work did not reach both timers'}
 Write-Output 'PASS: actual token case refuses mismatches before timing and executes equal-work baseline'
@@ -132,4 +160,9 @@ if(-not $NestedChild){
     & (Get-Process -Id $PID).Path -NoLogo -NoProfile -EncodedCommand $encoded
     if($LASTEXITCODE -ne 0){throw 'Nested token parity invocation failed'}
     Write-Output 'PASS: nested script invocation preserves baseline closure scope'
+}
+} finally {
+    foreach($identity in @($coreIdentity,$bridgeIdentity)) {
+        if($identity){[IO.File]::Delete($identity)}
+    }
 }

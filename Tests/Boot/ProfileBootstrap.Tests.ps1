@@ -31,7 +31,17 @@ Describe 'Public profile bootstrap command resolution' -Tag 'Unit', 'Boot', 'Por
     }
 
     It 'preserves guarded delegation and missing-profile diagnostics' {
-        $script:SourceText | Should -Match '(?s)if \(Microsoft\.PowerShell\.Management\\Test-Path -LiteralPath \$localProfile\) \{\s*\. \$localProfile\s*return\s*\}'
+        $delegations = @($script:ProfileAst.FindAll({ param($node)
+            $node -is [System.Management.Automation.Language.CommandAst] -and
+            $node.InvocationOperator -eq [System.Management.Automation.Language.TokenKind]::Dot
+        }, $true))
+        $delegations.Count | Should -Be 1
+        $delegations[0].Extent.Text | Should -BeExactly '. $localProfile'
+        $guardedBlock = $delegations[0].Parent.Parent
+        $guardedBlock.Parent | Should -BeOfType ([System.Management.Automation.Language.IfStatementAst])
+        $guardedBlock.Parent.Clauses[0].Item1.Extent.Text | Should -BeExactly 'Microsoft.PowerShell.Management\Test-Path -LiteralPath $localProfile'
+        [object]::ReferenceEquals($guardedBlock, $guardedBlock.Parent.Clauses[0].Item2) | Should -BeTrue
+        $guardedBlock.Statements[-1] | Should -BeOfType ([System.Management.Automation.Language.ReturnStatementAst])
         $script:SourceText | Should -Match 'Canonical local PowerShell profile not found: \$localProfile'
         $script:SourceText | Should -Not -Match '(?i)Import-Module|SetEnvironmentVariable|BW_SESSION|Invoke-Expression'
     }

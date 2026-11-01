@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "base_commit": "6bf800ffb552811c2682b67d7f2a9306e5a244af",
+  "reviews": [
+    {
+      "selector": "accepts the actual step when all three required artifacts exist",
+      "test_path": "Tests/Unit/PowerShellCoverageArtifacts.Tests.ps1",
+      "test_sha256": "017b6741a70896fc1f8f7cb7df53cf6643649636e079dc65079404721a0f4226",
+      "selector_sha256": "2c9ca5d6e5f29252c415ac19de2fb771449f5cef5cc34e0d76b5e61f494b2282",
+      "source_sha256": {
+        ".github/workflows/ci.yml": "f2d404d01aac24686ad337597c3e40f3fc0914c7755d0dba817db11a5b3ab918"
+      },
+      "rationale": "Protects complete XML/source-binding/result-summary artifact admission. Detects any-match uploads masking a missing member or a directory substituting for XML. Needs Pester5, actual embedded PowerShell and owned TestDrive; no network or provider mocks. Breadcrumb: ci.yml Require complete PowerShell coverage artifacts.",
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_commit": "11d1fe7baa4d418fb468c8d731a8e09877c40e37",
+      "disposition": "keep",
+      "receipt": "integration-refresh-review.md",
+      "reviewed_utc": "2026-11-01T19:38:22.6303942Z",
+      "scope": "Independent architect review confirmed the required-XML masking defect is closed at32c879d and reviewed the five actual-step controls. Parent root, not the fixture author, reviewed the matches-to-stepMatches-only change at11d1fe7 and independently verified all current source/test/AST hashes. This is workflow artifact admission, not full WindowsCI85-percent or runtime deployment acceptance."
+    },
+    {
+      "selector": "rejects missing <Leaf> even when the other two artifacts exist",
+      "test_path": "Tests/Unit/PowerShellCoverageArtifacts.Tests.ps1",
+      "test_sha256": "017b6741a70896fc1f8f7cb7df53cf6643649636e079dc65079404721a0f4226",
+      "selector_sha256": "a8437e0529b728b7e5f88457f3fcc2b143e58c6934b5966f0fe06b016232db48",
+      "source_sha256": {
+        ".github/workflows/ci.yml": "f2d404d01aac24686ad337597c3e40f3fc0914c7755d0dba817db11a5b3ab918"
+      },
+      "rationale": "Protects complete XML/source-binding/result-summary artifact admission. Detects any-match uploads masking a missing member or a directory substituting for XML. Needs Pester5, actual embedded PowerShell and owned TestDrive; no network or provider mocks. Breadcrumb: ci.yml Require complete PowerShell coverage artifacts.",
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_commit": "11d1fe7baa4d418fb468c8d731a8e09877c40e37",
+      "disposition": "keep",
+      "receipt": "integration-refresh-review.md",
+      "reviewed_utc": "2026-11-01T19:38:22.6360472Z",
+      "scope": "Independent architect review confirmed the required-XML masking defect is closed at32c879d and reviewed the five actual-step controls. Parent root, not the fixture author, reviewed the matches-to-stepMatches-only change at11d1fe7 and independently verified all current source/test/AST hashes. This is workflow artifact admission, not full WindowsCI85-percent or runtime deployment acceptance."
+    },
+    {
+      "selector": "rejects a directory at the required coverage XML path",
+      "test_path": "Tests/Unit/PowerShellCoverageArtifacts.Tests.ps1",
+      "test_sha256": "017b6741a70896fc1f8f7cb7df53cf6643649636e079dc65079404721a0f4226",
+      "selector_sha256": "831efc507ece154ab5f44a496e44cfebef26e59ea2f229f4a3153b41120bd394",
+      "source_sha256": {
+        ".github/workflows/ci.yml": "f2d404d01aac24686ad337597c3e40f3fc0914c7755d0dba817db11a5b3ab918"
+      },
+      "rationale": "Protects complete XML/source-binding/result-summary artifact admission. Detects any-match uploads masking a missing member or a directory substituting for XML. Needs Pester5, actual embedded PowerShell and owned TestDrive; no network or provider mocks. Breadcrumb: ci.yml Require complete PowerShell coverage artifacts.",
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_commit": "11d1fe7baa4d418fb468c8d731a8e09877c40e37",
+      "disposition": "keep",
+      "receipt": "integration-refresh-review.md",
+      "reviewed_utc": "2026-11-01T19:38:22.6361735Z",
+      "scope": "Independent architect review confirmed the required-XML masking defect is closed at32c879d and reviewed the five actual-step controls. Parent root, not the fixture author, reviewed the matches-to-stepMatches-only change at11d1fe7 and independently verified all current source/test/AST hashes. This is workflow artifact admission, not full WindowsCI85-percent or runtime deployment acceptance."
+    }
+  ],
+  "independent_hash_receipt": {
+    "Path": "C:/codedev/evidence/pcai-fleet-integration/r3/integration/artifact-independent-hash-checks.json",
+    "SHA256": "2DD09EEA2C3BCFB3E4D5334473CF57C5BF697FBCDA9930277D23E94932CB97CB"
+  }
+}

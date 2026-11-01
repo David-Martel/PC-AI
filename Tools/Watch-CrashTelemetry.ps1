@@ -120,6 +120,73 @@ function Get-CrashUnsignedCounterValue {
     return [ulong]$property.Value
 }
 
+function Add-CrashCaptureFailure {
+    param(
+        [hashtable]$State,
+        [string]$Phase,
+        [System.Management.Automation.ErrorRecord]$Record
+    )
+    # Retain the actual first record; cleanup must not replace it.
+    if ($null -eq $State.FirstErrorRecord) {
+        $State.FirstErrorRecord = $Record
+        $State.FirstErrorPhase = $Phase
+        return
+    }
+    if ([object]::ReferenceEquals($State.FirstErrorRecord, $Record)) { return }
+    foreach ($secondary in $State.SecondaryErrors) {
+        if ([object]::ReferenceEquals($secondary.Record, $Record)) { return }
+    }
+    if ($State.SecondaryErrors.Count -ge 8) {
+        $State.SecondaryErrorsTruncated = $true
+        return
+    }
+    $State.SecondaryErrors.Add([pscustomobject]@{ Phase = $Phase; Record = $Record })
+}
+
+function Complete-CrashCapture {
+    param(
+        [hashtable]$State,
+        [AllowNull()][object]$Mutex,
+        [bool]$OwnsMutex,
+        [bool]$CaptureStarted,
+        [string]$SessionId,
+        [long]$Sequence,
+        [string]$StopReason
+    )
+    if ($CaptureStarted -and $OwnsMutex) {
+        $State.Cleanup.StopMarkerAttempted = $true
+        try {
+            $now = [datetimeoffset]::UtcNow
+            $State.Cleanup.StopMarkerWritten = Write-CrashRecord $State ([ordered]@{
+                schemaVersion = $schemaVersion; recordType = 'stop'; sessionId = $SessionId
+                utc = $now.ToString('o'); local = $now.ToLocalTime().ToString('o')
+                reason = $StopReason; samplesAttempted = $Sequence
+            }) -Lifecycle
+        }
+        catch { Add-CrashCaptureFailure $State 'StopMarker' $_ }
+    }
+    if ($null -ne $State.Writer) {
+        $State.Cleanup.WriterDisposeAttempted = $true
+        try { $State.Writer.Dispose(); $State.Cleanup.WriterDisposeReturned = $true }
+        catch { Add-CrashCaptureFailure $State 'WriterDispose' $_ }
+    }
+    if ($null -ne $State.Stream) {
+        $State.Cleanup.StreamDisposeAttempted = $true
+        try { $State.Stream.Dispose(); $State.Cleanup.StreamDisposeReturned = $true }
+        catch { Add-CrashCaptureFailure $State 'StreamDispose' $_ }
+    }
+    if ($OwnsMutex) {
+        $State.Cleanup.MutexReleaseAttempted = $true
+        try { $Mutex.ReleaseMutex(); $State.Cleanup.MutexReleaseReturned = $true }
+        catch { Add-CrashCaptureFailure $State 'MutexRelease' $_ }
+    }
+    if ($null -ne $Mutex) {
+        $State.Cleanup.MutexDisposeAttempted = $true
+        try { $Mutex.Dispose(); $State.Cleanup.MutexDisposeReturned = $true }
+        catch { Add-CrashCaptureFailure $State 'MutexDispose' $_ }
+    }
+}
+
 function Get-CrashSample {
     param([string]$SessionId, [long]$Sequence)
     $sampleUtc = [datetimeoffset]::UtcNow
@@ -249,10 +316,10 @@ function Get-CrashSample {
                 source = 'Win32_PerfFormattedData_Counters_ThermalZoneInformation'
                 name = [string]$zone.Name; kind = 'ACPI thermal zone, not CPU core'
                 rawHighPrecisionTemperatureTenthsKelvin = $raw
-                rawTemperatureKelvin = [long]$zone.Temperature
+                rawTemperatureKelvin = ConvertTo-CrashCounterValue $zone.Temperature
                 celsius = [math]::Round($raw / 10.0 - 273.15, 2)
-                percentPassiveLimitRaw = [long]$zone.PercentPassiveLimit
-                throttleReasonsRaw = [long]$zone.ThrottleReasons
+                percentPassiveLimitRaw = ConvertTo-CrashCounterValue $zone.PercentPassiveLimit
+                throttleReasonsRaw = ConvertTo-CrashCounterValue $zone.ThrottleReasons
             })
         }
         $sample.performanceThermalZones = $validPerfZones.ToArray()
@@ -346,6 +413,16 @@ $ownsMutex = $false
 $state = @{
     Day = ''; Segment = 1; DailyBytes = [long]0; Writer = $null; Stream = $null
     Encoding = [System.Text.UTF8Encoding]::new($false); LastFile = $null
+    FirstErrorRecord = $null; FirstErrorPhase = $null
+    SecondaryErrors = [System.Collections.Generic.List[object]]::new()
+    SecondaryErrorsTruncated = $false
+    Cleanup = [ordered]@{
+        StopMarkerAttempted = $false; StopMarkerWritten = $false
+        WriterDisposeAttempted = $false; WriterDisposeReturned = $false
+        StreamDisposeAttempted = $false; StreamDisposeReturned = $false
+        MutexReleaseAttempted = $false; MutexReleaseReturned = $false
+        MutexDisposeAttempted = $false; MutexDisposeReturned = $false
+    }
 }
 $sessionId = [guid]::NewGuid().ToString()
 $sequence = [long]0
@@ -362,59 +439,58 @@ try {
     try { $ownsMutex = $mutex.WaitOne(0) }
     catch [System.Threading.AbandonedMutexException] { $ownsMutex = $true }
     if (-not $ownsMutex) {
-        [pscustomobject]@{ Status = 'AlreadyRunning'; OutputDirectory = $capturePath }
-        return
+        $stopReason = 'AlreadyRunning'
     }
-    [System.IO.Directory]::CreateDirectory($capturePath) | Microsoft.PowerShell.Core\Out-Null
-    $now = [datetimeoffset]::UtcNow
-    $captureStarted = Write-CrashRecord $state ([ordered]@{
-        schemaVersion = $schemaVersion; recordType = 'start'; sessionId = $sessionId
-        utc = $now.ToString('o'); local = $now.ToLocalTime().ToString('o')
-        machine = [environment]::MachineName; processId = $PID
-        powerShellVersion = $PSVersionTable.PSVersion.ToString()
-        durationMinutes = $DurationMinutes; intervalSeconds = $IntervalSeconds
-        maxDailyBytes = $MaxDailyBytes; segmentBytes = $SegmentBytes; maxSegmentsPerDay = 2
-    }) -Lifecycle
-    if (-not $captureStarted) {
-        $stopReason = 'DailyStorageLimit'
-        [pscustomobject]@{ Status = $stopReason; OutputDirectory = $capturePath; SamplesAttempted = 0 }
-        return
-    }
-    $timer = [System.Diagnostics.Stopwatch]::StartNew()
-    while ($timer.Elapsed.TotalMinutes -lt $DurationMinutes) {
-        $sequence++
-        $sample = Get-CrashSample $sessionId $sequence
-        if (-not (Write-CrashRecord $state $sample)) { $stopReason = 'DailyStorageLimit'; break }
-        if ($Once) { $stopReason = 'OnceCompleted'; break }
-        $remaining = [math]::Max(0, [math]::Min($IntervalSeconds * 1000,
-            ($DurationMinutes * 60000 - $timer.Elapsed.TotalMilliseconds)))
-        if ($remaining -gt 0) { Microsoft.PowerShell.Utility\Start-Sleep -Milliseconds ([int]$remaining) }
-    }
-    if ($stopReason -eq 'Interrupted') { $stopReason = 'DurationCompleted' }
-}
-catch { $stopReason = 'CollectorError'; throw }
-finally {
-    try {
-        if ($captureStarted -and $ownsMutex) {
-            $now = [datetimeoffset]::UtcNow
-            $stopWritten = Write-CrashRecord $state ([ordered]@{
-                schemaVersion = $schemaVersion; recordType = 'stop'; sessionId = $sessionId
-                utc = $now.ToString('o'); local = $now.ToLocalTime().ToString('o')
-                reason = $stopReason; samplesAttempted = $sequence
-            }) -Lifecycle
-            if (-not $stopWritten) {
-                Microsoft.PowerShell.Utility\Write-Warning 'Storage limit reached; no space remains for a stop marker.'
+    else {
+        [System.IO.Directory]::CreateDirectory($capturePath) | Microsoft.PowerShell.Core\Out-Null
+        $now = [datetimeoffset]::UtcNow
+        $captureStarted = Write-CrashRecord $state ([ordered]@{
+            schemaVersion = $schemaVersion; recordType = 'start'; sessionId = $sessionId
+            utc = $now.ToString('o'); local = $now.ToLocalTime().ToString('o')
+            machine = [environment]::MachineName; processId = $PID
+            powerShellVersion = $PSVersionTable.PSVersion.ToString()
+            durationMinutes = $DurationMinutes; intervalSeconds = $IntervalSeconds
+            maxDailyBytes = $MaxDailyBytes; segmentBytes = $SegmentBytes; maxSegmentsPerDay = 2
+        }) -Lifecycle
+        if (-not $captureStarted) { $stopReason = 'DailyStorageLimit' }
+        else {
+            $timer = [System.Diagnostics.Stopwatch]::StartNew()
+            while ($timer.Elapsed.TotalMinutes -lt $DurationMinutes) {
+                $sequence++
+                $sample = Get-CrashSample $sessionId $sequence
+                if (-not (Write-CrashRecord $state $sample)) { $stopReason = 'DailyStorageLimit'; break }
+                if ($Once) { $stopReason = 'OnceCompleted'; break }
+                $remaining = [math]::Max(0, [math]::Min($IntervalSeconds * 1000,
+                    ($DurationMinutes * 60000 - $timer.Elapsed.TotalMilliseconds)))
+                if ($remaining -gt 0) { Microsoft.PowerShell.Utility\Start-Sleep -Milliseconds ([int]$remaining) }
             }
+            if ($stopReason -eq 'Interrupted') { $stopReason = 'DurationCompleted' }
         }
     }
-    finally {
-        if ($null -ne $state.Writer) { $state.Writer.Dispose() }
-        if ($null -ne $state.Stream) { $state.Stream.Dispose() }
-        if ($ownsMutex) { $mutex.ReleaseMutex() }
-        if ($null -ne $mutex) { $mutex.Dispose() }
+}
+catch {
+    $stopReason = 'CollectorError'
+    Add-CrashCaptureFailure $state 'Capture' $_
+}
+finally {
+    Complete-CrashCapture $state $mutex $ownsMutex $captureStarted $sessionId $sequence $stopReason
+}
+if ($null -ne $state.FirstErrorRecord) {
+    # Publish primitive custody evidence without serializing retained error graphs.
+    [pscustomobject]@{
+        Status = 'CollectorError'; SessionId = $sessionId; SamplesAttempted = $sequence
+        FirstErrorPhase = $state.FirstErrorPhase
+        SecondaryErrorCount = $state.SecondaryErrors.Count
+        SecondaryErrorsTruncated = $state.SecondaryErrorsTruncated
+        Cleanup = [pscustomobject]$state.Cleanup
     }
+    $PSCmdlet.ThrowTerminatingError($state.FirstErrorRecord)
+}
+if ($state.Cleanup.StopMarkerAttempted -and -not $state.Cleanup.StopMarkerWritten) {
+    Microsoft.PowerShell.Utility\Write-Warning 'Storage limit reached; no space remains for a stop marker.'
 }
 [pscustomobject]@{
     Status = $stopReason; SessionId = $sessionId; SamplesAttempted = $sequence
     OutputDirectory = $capturePath; LastFile = $state.LastFile
+    Cleanup = [pscustomobject]$state.Cleanup
 }

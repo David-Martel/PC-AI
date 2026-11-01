@@ -548,7 +548,7 @@ impl CausalSelfAttention {
         // The causal mask is only needed for prefill (seq_len > 1). For
         // single-token decode the mask is a no-op and can be skipped.
         #[cfg(feature = "flash-attn")]
-        if self.use_flash_attn {
+        if self.use_flash_attn && q.device().is_cuda() {
             // flash-attn requires BF16 or F16; cast if we are in F32/F64.
             let in_dtype = q.dtype();
             let fa_dtype = match in_dtype {
@@ -658,7 +658,7 @@ impl CausalSelfAttention {
         let total_len = k_full.dim(2)?;
 
         #[cfg(feature = "flash-attn")]
-        if self.use_flash_attn {
+        if self.use_flash_attn && q.device().is_cuda() {
             let in_dtype = q.dtype();
             let fa_dtype = match in_dtype {
                 DType::BF16 | DType::F16 => in_dtype,
@@ -1151,6 +1151,28 @@ mod tests {
         let hidden = llama.forward_hidden(&embed, 0, &mut cache).unwrap();
 
         assert_eq!(hidden.dims(), &[1, 64], "expected [B, hidden_size]");
+    }
+
+    /// GPU-enabled builds must preserve the CPU fallback in both cache paths.
+    #[test]
+    fn test_cpu_forward_with_flash_requested() {
+        let vm = VarMap::new();
+        let vb = VarBuilder::from_varmap(&vm, DType::F32, &Device::Cpu);
+        let mut cfg = tiny_config();
+        cfg.use_flash_attn = true;
+        let llama = JanusLlama::load(vb, &cfg).expect("CPU model construction");
+        let embed = Tensor::zeros((1_usize, 3_usize, cfg.hidden_size), DType::F32, &Device::Cpu).unwrap();
+        let mut dynamic = KvCache::new(true, DType::F32, &cfg, &Device::Cpu).unwrap();
+        let hidden = llama
+            .forward_hidden(&embed, 0, &mut dynamic)
+            .expect("CPU dynamic cache fallback");
+        let mut prealloc = PreAllocKvCache::new(DType::F32, &cfg, 1, 32, &Device::Cpu).unwrap();
+        let preallocated = llama
+            .forward_hidden_prealloc(&embed, 0, &mut prealloc)
+            .expect("CPU preallocated cache fallback");
+        assert_eq!(hidden.dims(), &[1, cfg.hidden_size]);
+        assert_eq!(preallocated.dims(), hidden.dims());
+        assert_eq!(preallocated.to_vec2::<f32>().unwrap(), hidden.to_vec2::<f32>().unwrap());
     }
 
     /// forward_input_embed must return [B, vocab_size].

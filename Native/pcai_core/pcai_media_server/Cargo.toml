@@ -16,7 +16,7 @@ cuda = ["pcai-media/cuda"]
 cudnn = ["pcai-media/cudnn"]
 flash-attn = ["pcai-media/flash-attn"]
 nvml = ["pcai-media/nvml"]
-# Full GPU optimization: CUDA + cuDNN fused attention + NVML device selection
+# Optional CUDA/cuDNN kernels and NVML selection; measure on the target workload.
 cuda-optimized = ["cuda", "cudnn", "nvml"]
 
 [dependencies]

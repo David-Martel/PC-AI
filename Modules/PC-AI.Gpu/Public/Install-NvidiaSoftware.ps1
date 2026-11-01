@@ -186,24 +186,6 @@ function Install-NvidiaSoftware {
             return $result
         }
 
-        # Validate URL trust + reachability
-        Write-Verbose "Install-NvidiaSoftware: Validating download URL '$downloadUrl'..."
-        $urlCheck = Test-NvidiaDownloadUrl -Url $downloadUrl
-
-        if (-not $urlCheck.IsTrusted) {
-            $msg = "Download URL for '$ComponentId' is not from a trusted NVIDIA host: $downloadUrl"
-            $result.Message = $msg
-            Write-Error $msg
-            return $result
-        }
-
-        if (-not $urlCheck.IsValid) {
-            $msg = "Download URL for '$ComponentId' is not reachable (HTTP $($urlCheck.StatusCode)): $downloadUrl"
-            $result.Message = $msg
-            Write-Error $msg
-            return $result
-        }
-
         # Derive filename from URL or component id
         $uriObj    = [System.Uri]::new($downloadUrl)
         $urlFile   = [System.IO.Path]::GetFileName($uriObj.LocalPath)
@@ -212,14 +194,32 @@ function Install-NvidiaSoftware {
         }
 
         $stagingDir = Join-Path $env:TEMP 'nvidia-installers'
-        if (-not (Test-Path -LiteralPath $stagingDir)) {
-            New-Item -Path $stagingDir -ItemType Directory -Force | Out-Null
-            Write-Verbose "Install-NvidiaSoftware: Created staging directory: $stagingDir"
-        }
-
         $localPath = Join-Path $stagingDir $urlFile
 
         if ($PSCmdlet.ShouldProcess($downloadUrl, "Download NVIDIA installer to '$localPath'")) {
+            # Reachability and staging follow the actual download decision.
+            Write-Verbose "Install-NvidiaSoftware: Validating download URL '$downloadUrl'..."
+            $urlCheck = Test-NvidiaDownloadUrl -Url $downloadUrl
+
+            if (-not $urlCheck.IsTrusted) {
+                $msg = "Download URL for '$ComponentId' is not from a trusted NVIDIA host: $downloadUrl"
+                $result.Message = $msg
+                Write-Error $msg
+                return $result
+            }
+
+            if (-not $urlCheck.IsValid) {
+                $msg = "Download URL for '$ComponentId' is not reachable (HTTP $($urlCheck.StatusCode)): $downloadUrl"
+                $result.Message = $msg
+                Write-Error $msg
+                return $result
+            }
+
+            if (-not (Test-Path -LiteralPath $stagingDir)) {
+                New-Item -Path $stagingDir -ItemType Directory -Force | Out-Null
+                Write-Verbose "Install-NvidiaSoftware: Created staging directory: $stagingDir"
+            }
+
             Write-Verbose "Install-NvidiaSoftware: Downloading '$downloadUrl' -> '$localPath'..."
 
             # Validate that the URL is from a trusted NVIDIA host before downloading
@@ -311,8 +311,11 @@ function Install-NvidiaSoftware {
             Write-Verbose "Install-NvidiaSoftware: Download complete: $localPath"
         }
         else {
-            Write-Verbose "WhatIf: Would download '$downloadUrl' to '$localPath'."
-            $localPath = $downloadUrl   # Placeholder for WhatIf output
+            $result.Message = 'Download declined; download and installation were not performed.'
+            $stopwatch.Stop()
+            $result.Duration = $stopwatch.Elapsed
+            Write-Verbose $result.Message
+            return $result
         }
 
         $InstallerPath        = $localPath
@@ -358,7 +361,11 @@ function Install-NvidiaSoftware {
         }
     }
     else {
-        Write-Verbose "WhatIf: Would call Backup-NvidiaEnvironment."
+        $result.Message = 'Backup declined; installation was not performed.'
+        $stopwatch.Stop()
+        $result.Duration = $stopwatch.Elapsed
+        Write-Verbose $result.Message
+        return $result
     }
 
     # -------------------------------------------------------------------------

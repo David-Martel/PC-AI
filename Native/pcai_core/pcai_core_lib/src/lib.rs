@@ -323,21 +323,24 @@ pub extern "C" fn pcai_get_disk_health_json() -> *mut c_char {
     rust_str_to_c("[]")
 }
 
-/// FFI export.
+/// Sample Windows hardware events; NULL means unavailable, failed, or incomplete.
+/// A successful empty query returns an owned JSON `[]` string.
 #[no_mangle]
 pub extern "C" fn pcai_sample_hardware_events_json(days: u32, max_events: u32) -> *mut c_char {
-    let _ = days;
-    let _ = max_events;
     #[cfg(windows)]
     {
-        let events = telemetry::event_log::sample_hardware_events(days, max_events);
-        match serde_json::to_string(&events) {
-            Ok(json) => rust_str_to_c(&json),
-            Err(_) => std::ptr::null_mut(),
-        }
+        // Convert panic to NULL where unwinding is enabled; release panic=abort
+        // still aborts. Ordinary native API/render/bound failures return NULL.
+        std::panic::catch_unwind(|| {
+            telemetry::event_log::events_to_ffi(telemetry::event_log::sample_hardware_events(days, max_events))
+        })
+        .unwrap_or(std::ptr::null_mut())
     }
     #[cfg(not(windows))]
-    rust_str_to_c("[]")
+    {
+        let _ = (days, max_events);
+        std::ptr::null_mut()
+    }
 }
 
 /// FFI export.

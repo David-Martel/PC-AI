@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "epoch": 2,
+  "node_id": "f5202cb2-97bd-5ac9-8c83-bf6292cd6058",
+  "node_name": "millylaptop1",
+  "ula_prefix": "fd00:7462:7032::/48",
+  "backend": "networkmanager",
+  "local_controller_uuids": [
+    "bab38780-0019-a9b4-ffff-ffffffffffff"
+  ],
+  "namespaces": [],
+  "ssh_user": "cog",
+  "peers": [
+    {
+      "node_id": "3c24e329-e5a0-5665-9c14-79de968fad56",
+      "node_name": "minisforum-ms01",
+      "controller_uuids": [
+        "97e88780-b110-d37f-ffff-ffffffffffff",
+        "3d418780-d0e1-c1c7-ffff-ffffffffffff"
+      ],
+      "ssh_alias": "minisforum-usb4",
+      "mtu": 62000
+    }
+  ],
+  "protected_interfaces": [
+    "thunderbolt0"
+  ],
+  "adopt_profile_uuids": [
+    "6b6842a9-0dbf-4e1b-a5a3-43b920b2b4f3"
+  ]
+}

@@ -53,13 +53,13 @@ function Mount-UsbToWSL {
     # Check prerequisites
     if (-not (Test-UsbIpdInstalled)) {
         $result.Message = "usbipd-win is not installed. Install from: https://github.com/dorssel/usbipd-win"
-        Write-Error $result.Message
+        Microsoft.PowerShell.Utility\Write-Error $result.Message
         return $result
     }
 
     if (-not (Test-IsAdministrator)) {
         $result.Message = "Administrator privileges required for USB attach operation"
-        Write-Error $result.Message
+        Microsoft.PowerShell.Utility\Write-Error $result.Message
         return $result
     }
 
@@ -90,12 +90,12 @@ function Mount-UsbToWSL {
             }
             else {
                 $result.Message = "Failed to attach device: $output"
-                Write-Error $result.Message
+                Microsoft.PowerShell.Utility\Write-Error $result.Message
             }
         }
         catch {
             $result.Message = "Attach operation failed: $_"
-            Write-Error $result.Message
+            Microsoft.PowerShell.Utility\Write-Error $result.Message
         }
     }
 

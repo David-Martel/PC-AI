@@ -1,8 +1,252 @@
 #Requires -Version 7.0
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
 
+param([string]$CollectorPath)
+
 BeforeAll {
-    $script:Collector = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'Tools\Watch-CrashTelemetry.ps1'
+    $script:Collector = if ($CollectorPath) { $CollectorPath } else { Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'Tools\Watch-CrashTelemetry.ps1' }
+    # Explicit collector selection serves only the nullable-only comparison; those cases use no extracted custody helpers.
+    if ($CollectorPath) { return }
+
+    # Load complete maintained functions without executing capture or private startup.
+    $tokens = $null
+    $parseErrors = $null
+    $collectorAst = [System.Management.Automation.Language.Parser]::ParseFile($script:Collector, [ref]$tokens, [ref]$parseErrors)
+    if ($parseErrors.Count) { throw 'Collector fixture source did not parse' }
+    $needed = @('ConvertTo-CrashCounterValue', 'Get-CrashUnsignedCounterValue',
+        'Add-CrashCaptureFailure', 'Complete-CrashCapture', 'Write-CrashRecord')
+    $functions = @($collectorAst.EndBlock.Statements | Where-Object {
+        $_ -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $_.Name -in $needed
+    })
+    if ($functions.Count -ne $needed.Count) { throw 'Complete custody fixture functions were not found' }
+    foreach ($function in $functions) { . ([scriptblock]::Create($function.Extent.Text)) }
+
+    function New-CrashCustodyFixture {
+        param([string[]]$Failures = @())
+        $trace = [System.Collections.Generic.List[string]]::new()
+        $writer = [pscustomobject]@{ Trace=$trace; FailWrite=($Failures -contains 'StopMarker'); FailDispose=($Failures -contains 'WriterDispose') }
+        $writer | Add-Member ScriptMethod WriteLine {
+            param($Line)
+            $this.Trace.Add('WriteLine')
+            if ($this.FailWrite) { throw [IO.IOException]::new('Owned stop-write fixture failure') }
+        }
+        $writer | Add-Member ScriptMethod Dispose {
+            $this.Trace.Add('WriterDispose')
+            if ($this.FailDispose) { throw [IO.IOException]::new('Owned writer-dispose fixture failure') }
+        }
+        $stream = [pscustomobject]@{ Trace=$trace; FailDispose=($Failures -contains 'StreamDispose') }
+        $stream | Add-Member ScriptMethod Flush { param($Durable); $this.Trace.Add('Flush') }
+        $stream | Add-Member ScriptMethod Dispose {
+            $this.Trace.Add('StreamDispose')
+            if ($this.FailDispose) { throw [IO.IOException]::new('Owned stream-dispose fixture failure') }
+        }
+        $mutex = [pscustomobject]@{ Trace=$trace; FailRelease=($Failures -contains 'MutexRelease'); FailDispose=($Failures -contains 'MutexDispose') }
+        $mutex | Add-Member ScriptMethod ReleaseMutex {
+            $this.Trace.Add('MutexRelease')
+            if ($this.FailRelease) { throw [InvalidOperationException]::new('Owned mutex-release fixture failure') }
+        }
+        $mutex | Add-Member ScriptMethod Dispose {
+            $this.Trace.Add('MutexDispose')
+            if ($this.FailDispose) { throw [IO.IOException]::new('Owned mutex-dispose fixture failure') }
+        }
+        $state = @{
+            Day=[datetime]::UtcNow.ToString('yyyy-MM-dd'); Segment=1; DailyBytes=[long]0
+            Writer=$writer; Stream=$stream; Encoding=[Text.UTF8Encoding]::new($false); LastFile=$null
+            FirstErrorRecord=$null; FirstErrorPhase=$null
+            SecondaryErrors=[System.Collections.Generic.List[object]]::new(); SecondaryErrorsTruncated=$false
+            Cleanup=[ordered]@{
+                StopMarkerAttempted=$false; StopMarkerWritten=$false
+                WriterDisposeAttempted=$false; WriterDisposeReturned=$false
+                StreamDisposeAttempted=$false; StreamDisposeReturned=$false
+                MutexReleaseAttempted=$false; MutexReleaseReturned=$false
+                MutexDisposeAttempted=$false; MutexDisposeReturned=$false
+            }
+        }
+        [pscustomobject]@{ State=$state; Mutex=$mutex; Trace=$trace }
+    }
+}
+
+Describe 'Crash telemetry retained failure custody' -Tag 'Boot', 'Unit', 'Portable' {
+    BeforeEach {
+        $script:capturePath = $TestDrive
+        $script:schemaVersion = 2
+        $script:MaxDailyBytes = 67108864
+        $script:SegmentBytes = 33554432
+    }
+
+    It 'attempts every remaining cleanup after <Phase> fails and retains the original primary' -ForEach @(
+        @{ Phase='StopMarker' }, @{ Phase='WriterDispose' }, @{ Phase='StreamDispose' },
+        @{ Phase='MutexRelease' }, @{ Phase='MutexDispose' }
+    ) {
+        param($Phase)
+        $fixture = New-CrashCustodyFixture -Failures @($Phase)
+        $primary = [Management.Automation.ErrorRecord]::new([IO.IOException]::new('Owned first capture failure'),
+            'OwnedPrimary', [Management.Automation.ErrorCategory]::WriteError, $null)
+        Add-CrashCaptureFailure $fixture.State 'Capture' $primary
+        Complete-CrashCapture $fixture.State $fixture.Mutex $true $true 'owned-session' 1 'CollectorError'
+        [object]::ReferenceEquals($fixture.State.FirstErrorRecord, $primary) | Should -BeTrue
+        $fixture.State.FirstErrorPhase | Should -BeExactly 'Capture'
+        $fixture.State.SecondaryErrors.Count | Should -Be 1
+        $fixture.State.SecondaryErrors[0].Phase | Should -BeExactly $Phase
+        foreach ($step in @('WriterDispose','StreamDispose','MutexRelease','MutexDispose')) {
+            @($fixture.Trace | Where-Object { $_ -eq $step }).Count | Should -Be 1
+            $fixture.State.Cleanup[($step+'Attempted')] | Should -BeTrue
+            $fixture.State.Cleanup[($step+'Returned')] | Should -Be ($Phase -ne $step)
+        }
+        $fixture.State.Cleanup.StopMarkerAttempted | Should -BeTrue
+        $fixture.State.Cleanup.StopMarkerWritten | Should -Be ($Phase -ne 'StopMarker')
+        $fixture.State.SecondaryErrorsTruncated | Should -BeFalse
+    }
+
+    It 'retains the first cleanup failure and exposes all later failures without claiming closure' {
+        $phases = @('StopMarker','WriterDispose','StreamDispose','MutexRelease','MutexDispose')
+        $fixture = New-CrashCustodyFixture -Failures $phases
+        Complete-CrashCapture $fixture.State $fixture.Mutex $true $true 'owned-session' 1 'OnceCompleted'
+        $first = $fixture.State.FirstErrorRecord
+        $fixture.State.FirstErrorPhase | Should -BeExactly 'StopMarker'
+        $fixture.State.SecondaryErrors.Count | Should -Be 4
+        (($fixture.State.SecondaryErrors | ForEach-Object Phase) -join '|') | Should -BeExactly 'WriterDispose|StreamDispose|MutexRelease|MutexDispose'
+        Add-CrashCaptureFailure $fixture.State 'RepeatOriginal' $first
+        [object]::ReferenceEquals($fixture.State.FirstErrorRecord, $first) | Should -BeTrue
+        $fixture.State.SecondaryErrors.Count | Should -Be 4
+        foreach ($phase in $phases) {
+            $fixture.State.Cleanup[($phase+'Attempted')] | Should -BeTrue
+            $flag = if ($phase -eq 'StopMarker') { 'StopMarkerWritten' } else { $phase+'Returned' }
+            $fixture.State.Cleanup[$flag] | Should -BeFalse
+        }
+    }
+
+    It 'bounds secondary records and deduplicates the exact original objects' {
+        $fixture = New-CrashCustodyFixture
+        $first = [Management.Automation.ErrorRecord]::new([IO.IOException]::new('Owned first'),
+            'OwnedFirst', [Management.Automation.ErrorCategory]::WriteError, $null)
+        Add-CrashCaptureFailure $fixture.State 'Capture' $first
+        $second = [Management.Automation.ErrorRecord]::new([IO.IOException]::new('Owned second'),
+            'OwnedSecond', [Management.Automation.ErrorCategory]::WriteError, $null)
+        Add-CrashCaptureFailure $fixture.State 'Second' $second
+        Add-CrashCaptureFailure $fixture.State 'SecondAgain' $second
+        $fixture.State.SecondaryErrors.Count | Should -Be 1
+        [object]::ReferenceEquals($fixture.State.SecondaryErrors[0].Record,$second) | Should -BeTrue
+        foreach ($number in 1..16) {
+            $record = [Management.Automation.ErrorRecord]::new([IO.IOException]::new("Owned secondary $number"),
+                "OwnedSecondary$number", [Management.Automation.ErrorCategory]::WriteError, $null)
+            Add-CrashCaptureFailure $fixture.State 'Extra' $record
+        }
+        [object]::ReferenceEquals($fixture.State.FirstErrorRecord,$first) | Should -BeTrue
+        $fixture.State.SecondaryErrors.Count | Should -Be 8
+        $fixture.State.SecondaryErrorsTruncated | Should -BeTrue
+    }
+
+    It 'reports successful cleanup returns and skips operations for unowned absent resources' {
+        $fixture = New-CrashCustodyFixture
+        Complete-CrashCapture $fixture.State $fixture.Mutex $true $true 'owned-session' 1 'OnceCompleted'
+        $fixture.State.FirstErrorRecord | Should -BeNullOrEmpty
+        $fixture.State.Cleanup.StopMarkerWritten | Should -BeTrue
+        foreach ($step in @('WriterDispose','StreamDispose','MutexRelease','MutexDispose')) {
+            $fixture.State.Cleanup[($step+'Returned')] | Should -BeTrue
+        }
+        $empty = New-CrashCustodyFixture
+        $empty.State.Writer=$null; $empty.State.Stream=$null
+        Complete-CrashCapture $empty.State $null $false $false 'owned-empty' 0 'AlreadyRunning'
+        $empty.Trace.Count | Should -Be 0
+        foreach ($value in $empty.State.Cleanup.Values) { $value | Should -BeFalse }
+    }
+
+    It 'preserves the full unsigned range and distinguishes missing from real zero' {
+        Get-CrashUnsignedCounterValue ([pscustomobject]@{Counter=$null}) 'Counter' | Should -BeNullOrEmpty
+        Get-CrashUnsignedCounterValue ([pscustomobject]@{Counter=0}) 'Counter' | Should -BeExactly ([ulong]0)
+        Get-CrashUnsignedCounterValue ([pscustomobject]@{Counter=[ulong]::MaxValue}) 'Counter' | Should -BeExactly ([ulong]::MaxValue)
+        ConvertTo-CrashCounterValue $null | Should -BeNullOrEmpty
+        ConvertTo-CrashCounterValue 0 | Should -BeExactly ([long]0)
+    }
+}
+
+Describe 'Crash telemetry nullable optional-provider records' -Tag 'Boot', 'Unit' -Skip:(-not $IsWindows) {
+    It 'runs the complete collector and reports owned mutex cleanup before rethrowing a real write failure' {
+        Mock -CommandName Get-CimInstance -MockWith { throw 'The owned start-write failure must precede CIM sampling' }
+        $captureFolder = Join-Path $TestDrive 'owned-write-failure'
+        [IO.Directory]::CreateDirectory($captureFolder) | Out-Null
+        # A directory at the intended log leaf causes the real FileStream open
+        # to fail before any writer exists, without changing real disk capacity.
+        $day = [datetime]::UtcNow.ToString('yyyy-MM-dd')
+        [IO.Directory]::CreateDirectory((Join-Path $captureFolder "crash-$day-01.jsonl")) | Out-Null
+        $observations = [System.Collections.Generic.List[object]]::new()
+        $failure = $null
+        try { & $script:Collector -OutputDirectory $captureFolder -Once | ForEach-Object { $observations.Add($_) } }
+        catch { $failure = $_ }
+        $failure | Should -Not -BeNullOrEmpty
+        $observations.Count | Should -Be 1
+        $custody = $observations[0]
+        $custody.Status | Should -BeExactly 'CollectorError'
+        $custody.FirstErrorPhase | Should -BeExactly 'Capture'
+        $custody.SecondaryErrorCount | Should -Be 0
+        $custody.Cleanup.WriterDisposeAttempted | Should -BeFalse
+        $custody.Cleanup.StreamDisposeAttempted | Should -BeFalse
+        $custody.Cleanup.MutexReleaseReturned | Should -BeTrue
+        $custody.Cleanup.MutexDisposeReturned | Should -BeTrue
+        $exceptionTypes = [System.Collections.Generic.List[string]]::new()
+        $exception = $failure.Exception
+        while ($null -ne $exception) { $exceptionTypes.Add($exception.GetType().FullName); $exception=$exception.InnerException }
+        $exceptionTypes | Should -Contain 'System.UnauthorizedAccessException'
+        @(Get-ChildItem -LiteralPath $captureFolder -File).Count | Should -Be 0
+        Should -Invoke Get-CimInstance -Times 0 -Exactly
+    }
+
+    It 'preserves optional-provider missing values for <Case>' -ForEach @(
+        @{ Case='MissingEnergy'; Energy=$null; Time=1000; Power=12500; ExpectedStatus='MeasuredChannelAverage'; ExpectedWatts=12.5 },
+        @{ Case='MissingTime'; Energy=50; Time=$null; Power=12500; ExpectedStatus='UnknownMeterInterval'; ExpectedWatts=$null },
+        @{ Case='MissingPower'; Energy=50; Time=1000; Power=$null; ExpectedStatus='UnknownPowerCounter'; ExpectedWatts=$null },
+        @{ Case='AllMissing'; Energy=$null; Time=$null; Power=$null; ExpectedStatus='UnknownPowerCounter'; ExpectedWatts=$null },
+        @{ Case='ObservedZero'; Energy=0; Time=1000; Power=0; ExpectedStatus='ZeroOrUnsupported'; ExpectedWatts=$null },
+        @{ Case='FullUnsigned'; Energy=[ulong]::MaxValue; Time=1000; Power=12500; ExpectedStatus='MeasuredChannelAverage'; ExpectedWatts=12.5 }
+    ) {
+        param($Case,$Energy,$Time,$Power,$ExpectedStatus,$ExpectedWatts)
+        $optionalMeter = [pscustomobject]@{ Name='RAPL_Package0_PKG'; Energy=$Energy; Time=$Time; Power=$Power }
+        $optionalProviderMock = {
+            param($ClassName)
+            switch ($ClassName) {
+                'Win32_PerfFormattedData_PowerMeterCounter_EnergyMeter' { return $optionalMeter }
+                'Win32_PerfFormattedData_Counters_ThermalZoneInformation' {
+                    return @(
+                        [pscustomobject]@{ Name='MissingSecondary'; HighPrecisionTemperature=3272; Temperature=$null; PercentPassiveLimit=$null; ThrottleReasons=$null },
+                        [pscustomobject]@{ Name='ObservedZeroSecondary'; HighPrecisionTemperature=3272; Temperature=0; PercentPassiveLimit=0; ThrottleReasons=0 }
+                    )
+                }
+                default { throw 'Owned nonparticipating provider unavailable' }
+            }
+        }.GetNewClosure()
+        Mock -CommandName Get-CimInstance -MockWith $optionalProviderMock
+        $captureFolder = Join-Path $TestDrive ('nullable-optional-'+$Case)
+        $result = & $script:Collector -OutputDirectory $captureFolder -Once
+        $result.Status | Should -BeExactly 'OnceCompleted'
+        $records = @(Get-Content -LiteralPath $result.LastFile | ConvertFrom-Json)
+        $records.Count | Should -Be 3
+        $records[0].recordType | Should -BeExactly 'start'
+        $records[-1].recordType | Should -BeExactly 'stop'
+        $sample = $records[1]
+        $sample.energyMeter.channels.Count | Should -Be 1
+        $channel = $sample.energyMeter.channels[0]
+        $channel.readingStatus | Should -BeExactly $ExpectedStatus
+        foreach ($pair in @(@{Name='Energy';Value=$Energy},@{Name='Time';Value=$Time},@{Name='Power';Value=$Power})) {
+            if ($null -eq $pair.Value) { $channel.counters.($pair.Name) | Should -BeNullOrEmpty }
+            else { [ulong]$channel.counters.($pair.Name) | Should -BeExactly ([ulong]$pair.Value) }
+        }
+        if ($null -eq $ExpectedWatts) { $channel.watts | Should -BeNullOrEmpty }
+        else { $channel.watts | Should -Be $ExpectedWatts }
+        $sample.performanceThermalZones.Count | Should -Be 2
+        $missing = $sample.performanceThermalZones | Where-Object name -eq 'MissingSecondary'
+        $missing.celsius | Should -Be 54.05
+        $observed = $sample.performanceThermalZones | Where-Object name -eq 'ObservedZeroSecondary'
+        foreach ($name in @('rawTemperatureKelvin','percentPassiveLimitRaw','throttleReasonsRaw')) {
+            $missing.$name | Should -BeNullOrEmpty
+            $observed.$name | Should -BeExactly 0
+        }
+        @($sample.errors | Where-Object source -in @('Win32_PerfFormattedData_PowerMeterCounter_EnergyMeter',
+            'Win32_PerfFormattedData_Counters_ThermalZoneInformation')).Count | Should -Be 0
+        foreach ($flag in @('WriterDisposeReturned','StreamDisposeReturned','MutexReleaseReturned','MutexDisposeReturned')) {
+            $result.Cleanup.$flag | Should -BeTrue
+        }
+    }
 }
 
 Describe 'Crash telemetry safety' -Tag 'Boot', 'Unit' {
@@ -87,7 +331,10 @@ Describe 'Crash telemetry capture' -Tag 'Boot', 'Integration' -Skip:(-not $IsWin
         $sample.uptimeSeconds | Should -BeGreaterThan 0
         $sample.osMemory.totalPhysicalBytes | Should -BeGreaterThan 0
         $sample.osMemory.availablePhysicalBytes | Should -BeLessOrEqual $sample.osMemory.totalPhysicalBytes
-        $sample.memoryCounters.commitLimitBytes | Should -BeGreaterThan 0
+        $memoryProviderErrors = @($sample.errors | Where-Object source -eq 'Win32_PerfFormattedData_PerfOS_Memory')
+        $sample.memoryCounters.commitLimitBytes | Should -BeGreaterThan 0 -Because (
+            'the real memory provider must supply a commit limit; its recorded errors: ' +
+            (ConvertTo-Json -InputObject $memoryProviderErrors -Depth 4 -Compress))
         $sample.memoryCounters.committedBytes | Should -BeGreaterThan 0
         $sample.cpu.totalProcessorTimePercent | Should -BeGreaterOrEqual 0
         $sample.topProcesses.Count | Should -BeGreaterThan 0

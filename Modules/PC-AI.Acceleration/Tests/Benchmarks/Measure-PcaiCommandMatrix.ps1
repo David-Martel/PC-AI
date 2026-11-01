@@ -1,11 +1,25 @@
 #Requires -Version 7.0
+<#
+.SYNOPSIS
+    Compares selected command paths with explicit PowerShell fallbacks.
+.DESCRIPTION
+    Candidate contains measured selected-backend timings, including observation
+    collection. ActualBackend summarizes returned Tool metadata; Observations
+    contains each invocation's counts and CPU units. Missing metadata is unreported.
+    Native and Speedup remain null because this legacy matrix does not establish
+    useful-output parity. CPU sorting can compare different units, and disk paths
+    can return different selections. Use Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1
+    from the repository for maintained, case-specific qualification.
+.EXAMPLE
+    ./Measure-PcaiCommandMatrix.ps1 -Iterations 1 -Warmup 0 -SkipProcesses -SkipDisk
+#>
 [CmdletBinding()]
 param(
     [Parameter()]
-    [int]$Iterations = 3,
+    [ValidateRange(1,1000)][int]$Iterations = 3,
 
     [Parameter()]
-    [int]$Warmup = 1,
+    [ValidateRange(0,1000)][int]$Warmup = 1,
 
     [Parameter()]
     [switch]$SkipProcesses,
@@ -18,8 +32,39 @@ param(
 )
 
 $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-Import-Module (Join-Path $moduleRoot 'PC-AI.Acceleration.psd1') -Force
-$module = Get-Module PC-AI.Acceleration
+$module = Import-Module (Join-Path $moduleRoot 'PC-AI.Acceleration.psd1') -Force -PassThru
+
+function Measure-PcaiObservedCandidate {
+    param([string]$Name,[scriptblock]$Command)
+    $observations=[Collections.Generic.List[object]]::new()
+    $observedCommand={
+        $rows=@(& $Command)
+        $backends=@(foreach($row in $rows){
+            if($row.PSObject.Properties['Tool'] -and $row.Tool){[string]$row.Tool}else{'unreported'}
+        })
+        $units=@(foreach($row in $rows){if($row.PSObject.Properties['CPUUnit']){[string]$row.CPUUnit}})
+        $observations.Add([pscustomobject]@{RowCount=$rows.Count;Backends=@($backends|Sort-Object -Unique);CPUUnits=@($units|Sort-Object -Unique)})
+    }.GetNewClosure()
+    $measurement=& $module {
+        param($command,$name,$iterations,$warmup)
+        Measure-CommandPerformance -Command $command -Name $name -Iterations $iterations -Warmup $warmup
+    } $observedCommand "$Name selected backend" $Iterations $Warmup
+    [pscustomobject]@{Measurement=$measurement;Invocations=@($observations.ToArray())}
+}
+
+function Complete-PcaiMatrixResult {
+    param([pscustomobject]$Result,[string]$Reason)
+    $observed=$Result.Candidate
+    $Result.Candidate=$observed.Measurement
+    $Result|Add-Member -NotePropertyName Native -NotePropertyValue $null
+    $Result|Add-Member -NotePropertyName Speedup -NotePropertyValue $null
+    $Result|Add-Member -NotePropertyName ActualBackend -NotePropertyValue @($observed.Invocations.Backends|Sort-Object -Unique)
+    $Result|Add-Member -NotePropertyName Observations -NotePropertyValue $observed.Invocations
+    $Result|Add-Member -NotePropertyName Qualification -NotePropertyValue ([pscustomobject]@{
+        NativeTimingQualified=$false;UsefulOutputParity='not-established';Reason=$Reason
+        SourceSha256=(Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash;ModulePath=$module.Path
+    })
+}
 
 $benchmarkRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pcai-command-matrix-" + [guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $benchmarkRoot -Force
@@ -54,19 +99,19 @@ try {
     $results = [ordered]@{}
 
     $results.FindFiles = [pscustomobject]@{
-        Native = Measure-CommandPerformance -Name 'Find-FilesFast Native' -Iterations $Iterations -Warmup $Warmup -Command {
-            Find-FilesFast -Path $srcRoot -Extension ps1 -PreferNative | Out-Null
+        Candidate = Measure-PcaiObservedCandidate -Name 'Find-FilesFast' -Command {
+            Find-FilesFast -Path $srcRoot -Extension ps1 -PreferNative
         }
         Fallback = Measure-CommandPerformance -Name 'Find-FilesFast GetChildItem' -Iterations $Iterations -Warmup $Warmup -Command {
             & $module { param($path) Find-WithGetChildItem -Path $path -Extension @('ps1') } $srcRoot | Out-Null
         }
     }
-    $results.FindFiles | Add-Member -NotePropertyName Speedup -NotePropertyValue ([Math]::Round($results.FindFiles.Fallback.Mean / $results.FindFiles.Native.Mean, 2))
+    Complete-PcaiMatrixResult $results.FindFiles 'File results do not expose their backend; PreferNative may fall back.'
 
     if (-not $SkipSearch) {
         $results.SearchContent = [pscustomobject]@{
-            Native = Measure-CommandPerformance -Name 'Search-ContentFast Native' -Iterations $Iterations -Warmup $Warmup -Command {
-                Search-ContentFast -Path $srcRoot -LiteralPattern 'TODO item' -FilePattern '*.ps1' | Out-Null
+            Candidate = Measure-PcaiObservedCandidate -Name 'Search-ContentFast' -Command {
+                Search-ContentFast -Path $srcRoot -LiteralPattern 'TODO item' -FilePattern '*.ps1'
             }
             Fallback = Measure-CommandPerformance -Name 'Search-ContentFast Select-String' -Iterations $Iterations -Warmup $Warmup -Command {
                 & $module {
@@ -75,11 +120,11 @@ try {
                 } $srcRoot | Out-Null
             }
         }
-        $results.SearchContent | Add-Member -NotePropertyName Speedup -NotePropertyValue ([Math]::Round($results.SearchContent.Fallback.Mean / $results.SearchContent.Native.Mean, 2))
+        Complete-PcaiMatrixResult $results.SearchContent 'Returned backend identity is observed; match-by-match parity is not established.'
 
         $results.SearchLogs = [pscustomobject]@{
-            Native = Measure-CommandPerformance -Name 'Search-LogsFast Native' -Iterations $Iterations -Warmup $Warmup -Command {
-                Search-LogsFast -Path $logRoot -Pattern 'ERROR|WARN' -Include '*.log' | Out-Null
+            Candidate = Measure-PcaiObservedCandidate -Name 'Search-LogsFast' -Command {
+                Search-LogsFast -Path $logRoot -Pattern 'ERROR|WARN' -Include '*.log'
             }
             Fallback = Measure-CommandPerformance -Name 'Search-LogsFast Select-String' -Iterations $Iterations -Warmup $Warmup -Command {
                 & $module {
@@ -88,31 +133,31 @@ try {
                 } $logRoot | Out-Null
             }
         }
-        $results.SearchLogs | Add-Member -NotePropertyName Speedup -NotePropertyValue ([Math]::Round($results.SearchLogs.Fallback.Mean / $results.SearchLogs.Native.Mean, 2))
+        Complete-PcaiMatrixResult $results.SearchLogs 'Returned backend identity is observed; match-by-match parity is not established.'
     }
 
     if (-not $SkipProcesses) {
         $results.Processes = [pscustomobject]@{
-            Native = Measure-CommandPerformance -Name 'Get-ProcessesFast Native' -Iterations $Iterations -Warmup $Warmup -Command {
-                Get-ProcessesFast -Top 20 -SortBy cpu | Out-Null
+            Candidate = Measure-PcaiObservedCandidate -Name 'Get-ProcessesFast' -Command {
+                Get-ProcessesFast -Top 20 -SortBy cpu
             }
             Fallback = Measure-CommandPerformance -Name 'Get-ProcessesFast PowerShell' -Iterations $Iterations -Warmup $Warmup -Command {
                 & $module { Get-ProcessesParallel -Top 20 -SortBy cpu } | Out-Null
             }
         }
-        $results.Processes | Add-Member -NotePropertyName Speedup -NotePropertyValue ([Math]::Round($results.Processes.Fallback.Mean / $results.Processes.Native.Mean, 2))
+        Complete-PcaiMatrixResult $results.Processes 'Live process sets vary; native percent and fallback lifetime seconds have different CPU-sort semantics.'
     }
 
     if (-not $SkipDisk) {
         $results.Disk = [pscustomobject]@{
-            Native = Measure-CommandPerformance -Name 'Get-DiskUsageFast Native' -Iterations $Iterations -Warmup $Warmup -Command {
-                Get-DiskUsageFast -Path $benchmarkRoot -Top 20 -Depth 2 | Out-Null
+            Candidate = Measure-PcaiObservedCandidate -Name 'Get-DiskUsageFast' -Command {
+                Get-DiskUsageFast -Path $benchmarkRoot -Top 20 -Depth 2
             }
             Fallback = Measure-CommandPerformance -Name 'Get-DiskUsageFast PowerShell' -Iterations $Iterations -Warmup $Warmup -Command {
                 & $module { param($path) Get-DiskUsageParallel -Path $path -Depth 2 -ThrottleLimit ([Environment]::ProcessorCount) } $benchmarkRoot | Out-Null
             }
         }
-        $results.Disk | Add-Member -NotePropertyName Speedup -NotePropertyValue ([Math]::Round($results.Disk.Fallback.Mean / $results.Disk.Native.Mean, 2))
+        Complete-PcaiMatrixResult $results.Disk 'Selected top rows and fallback depth traversal are not qualified as equivalent output.'
     }
 
     [pscustomobject]$results

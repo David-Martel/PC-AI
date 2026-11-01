@@ -168,6 +168,65 @@ Describe 'Guarded private profile startup repair' -Skip:(-not $IsWindows) {
         @(Get-ChildItem -LiteralPath $script:FixtureRoot -File).Count | Should -Be 1
     }
 
+    It 'guards the executable module optimizer while preserving a documentation decoy' {
+        $anchor = 'Optimize-PSModulePath -AllowNetworkPaths:$script:AllowNetworkModulePath'
+        $decoy = @('$documentation = @''', $anchor, "'@") -join "`n"
+        $body = $script:OriginalFixture.Replace($anchor, $anchor.Replace(' -Allow', '  -Allow')) + "`n" + $decoy + "`n"
+        [IO.File]::WriteAllText($script:FixtureProfile, $body, [Text.UTF8Encoding]::new($false))
+        $hash = (Get-FileHash -LiteralPath $script:FixtureProfile).Hash
+        $plan = & $script:RepairTool @script:Parameters -DryRun
+        $plan.State | Should -BeExactly 'Planned'
+        (Get-FileHash -LiteralPath $script:FixtureProfile).Hash | Should -BeExactly $hash
+        Test-Path -LiteralPath $script:FixtureBackup | Should -BeFalse
+        $result = & $script:RepairTool @script:Parameters -Apply -ExpectedSha256 $hash -Confirm:$false
+        $result.State | Should -BeExactly 'Applied'
+        $patched = [IO.File]::ReadAllText($script:FixtureProfile)
+        $patched.Contains($decoy) | Should -BeTrue
+        $tokens = $null; $errors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseInput($patched, [ref]$tokens, [ref]$errors)
+        $errors.Count | Should -Be 0
+        $commands = @($ast.FindAll({ param($node) $node -is [Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'Optimize-PSModulePath' }, $true))
+        $commands.Count | Should -Be 1
+        $statement = $commands[0]
+        while ($statement.Parent -ne $ast.EndBlock) { $statement = $statement.Parent }
+        $saved = Get-Item -LiteralPath Env:PS_SKIP_PSMODULEPATH_OPTIMIZE -ErrorAction SilentlyContinue
+        try {
+            foreach ($flag in @('1', '0')) {
+                $env:PS_SKIP_PSMODULEPATH_OPTIMIZE = $flag
+                $calls = New-Module -ReturnResult -ArgumentList $statement.Extent.Text -ScriptBlock {
+                    param($Statement)
+                    $script:Calls = 0
+                    $script:AllowNetworkModulePath = $false
+                    function Optimize-PSModulePath {
+                        param($AllowNetworkPaths)
+                        if ($AllowNetworkPaths -ne $false) { throw 'Unexpected optimizer argument.' }
+                        $script:Calls++
+                    }
+                    & ([scriptblock]::Create($Statement))
+                    $script:Calls
+                }
+                $calls | Should -Be $(if ($flag -eq '1') { 0 } else { 1 })
+            }
+        } finally {
+            if ($null -eq $saved) { Remove-Item -LiteralPath Env:PS_SKIP_PSMODULEPATH_OPTIMIZE -ErrorAction SilentlyContinue }
+            else { $env:PS_SKIP_PSMODULEPATH_OPTIMIZE = $saved.Value }
+        }
+        $again = & $script:RepairTool @script:Parameters -Apply -ExpectedSha256 $result.AfterSha256 -Confirm:$false
+        $again.State | Should -BeExactly 'AlreadyApplied'
+    }
+
+    It 'refuses unsupported executable optimizer syntax <Suffix> before writes' -ForEach @(
+        @{Suffix=' | Out-Null'}, @{Suffix=' > $null'}, @{Suffix=' &'}, @{Suffix=' && Write-Output fixture'}
+    ) {
+        $anchor = 'Optimize-PSModulePath -AllowNetworkPaths:$script:AllowNetworkModulePath'
+        $body = $script:OriginalFixture.Replace($anchor, $anchor + $Suffix)
+        [IO.File]::WriteAllText($script:FixtureProfile, $body, [Text.UTF8Encoding]::new($false))
+        $hash = (Get-FileHash -LiteralPath $script:FixtureProfile).Hash
+        { & $script:RepairTool @script:Parameters -DryRun } | Should -Throw '*profile anchor: ModulePathSkip*'
+        (Get-FileHash -LiteralPath $script:FixtureProfile).Hash | Should -BeExactly $hash
+        Test-Path -LiteralPath $script:FixtureBackup | Should -BeFalse
+    }
+
     It 'accepts --help without reading a missing profile' {
         & $script:RepairTool -ProfilePath (Join-Path $TestDrive 'absent') --help | Should -Match '^Usage:'
     }

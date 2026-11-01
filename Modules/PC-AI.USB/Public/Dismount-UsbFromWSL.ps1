@@ -45,13 +45,13 @@ function Dismount-UsbFromWSL {
 
     if (-not (Test-UsbIpdInstalled)) {
         $result.Message = "usbipd-win is not installed"
-        Write-Error $result.Message
+        Microsoft.PowerShell.Utility\Write-Error $result.Message
         return $result
     }
 
     if (-not (Test-IsAdministrator)) {
         $result.Message = "Administrator privileges required for USB detach operation"
-        Write-Error $result.Message
+        Microsoft.PowerShell.Utility\Write-Error $result.Message
         return $result
     }
 
@@ -83,12 +83,12 @@ function Dismount-UsbFromWSL {
             }
             else {
                 $result.Message = "Failed to detach device: $output"
-                Write-Error $result.Message
+                Microsoft.PowerShell.Utility\Write-Error $result.Message
             }
         }
         catch {
             $result.Message = "Detach operation failed: $_"
-            Write-Error $result.Message
+            Microsoft.PowerShell.Utility\Write-Error $result.Message
         }
     }
 

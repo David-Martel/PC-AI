@@ -74,7 +74,7 @@ function Get-DriverRegistry {
         Write-Verbose "Loading driver registry from: $RegistryPath"
 
         if (-not (Test-Path -LiteralPath $RegistryPath)) {
-            Write-Error "Driver registry not found at path: $RegistryPath"
+            Microsoft.PowerShell.Utility\Write-Error "Driver registry not found at path: $RegistryPath"
             return $null
         }
 
@@ -82,7 +82,7 @@ function Get-DriverRegistry {
         $registry = $raw | ConvertFrom-Json
 
         if (-not $registry.devices) {
-            Write-Error "Registry file is missing the 'devices' array: $RegistryPath"
+            Microsoft.PowerShell.Utility\Write-Error "Registry file is missing the 'devices' array: $RegistryPath"
             return $null
         }
 
@@ -112,7 +112,7 @@ function Get-DriverRegistry {
 
     }
     catch {
-        Write-Error "Get-DriverRegistry failed: $($_.Exception.Message)"
+        Microsoft.PowerShell.Utility\Write-Error "Get-DriverRegistry failed: $($_.Exception.Message)"
         return $null
     }
 }

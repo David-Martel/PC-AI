@@ -439,6 +439,174 @@
       "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d",
       "reviewed_commit": "3e9104fe69229e514689f13593c4c4cea030e278",
       "review_scope": "Independent root review of one-line constructor canonicalization and unchanged selected-path/refusal/sentinel assertions; local real Windows8.3 alias red3/green0 and ordinary three-pass/one-real-core-skip. Exact hosted head5a2f7b7e80d2ef4823924fd0c8125dd4ae8e7144 executed all four Python selectors with no skips on Windows and Linux. No Python provenance-label assertion, full ABI, deployed-runtime or HIL qualification; subsequent metadata head still requires its own actual CI result."
+    },
+    {
+      "selector": "NativeOverrideTests.test_invalid_override_blocks_competing_loadable_fallback",
+      "test_path": "Tests/Portable/test_native_override_admission.py",
+      "test_sha256": "9228ba390c0de7505713c875e639516be73086ee6dad00a42d778d4789d7a388",
+      "selector_sha256": "94ac6bbca86673964ebd497815b52a3083f6f43dc007c5f344ae778c0b91d0e5",
+      "selector_source_span": "Python AST function source segment, excluding surrounding comments",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "c9fbdedb91b93388ce34b7538c6a2e55b8b6b9436853453c3fcbda1d455ed8e9",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "c887f7f5ac2486437129b078c3559a11bbc710d6ec8ff1ccc60a26120cc8ee97"
+        },
+        {
+          "path": "Native/PcaiNative/PcaiNative.csproj",
+          "sha256": "4c926000f4ba13259681cb028a1562a798099c7b5fcff6a87909696e52b0b923"
+        }
+      ],
+      "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.201963+00:00",
+      "protects": "Explicit override precedence over competing full-symbol default",
+      "detects": "Fallback after missing/unloadable authoritative override",
+      "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
+      "validation": "Current actual draft Python fixture:3 selectors passed,1 explicit real-core skip; missing/unloadable six subcases, partial three subcases and default/valid sentinels retain their assertions. No real-core admission claim.",
+      "scope": "Current draft variant retains path/provenance/handle identity and paired-bundle contracts; accepted export admission precedes both resolver publications. Historical main review rows are unchanged.",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "receipt": "native-resolver-admission-review.md",
+      "execution_disposition": "PASS: current draft Windows synthetic source/admission control",
+      "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Parent source-review KEEP for current draft resolver/fixture hashes and canonical temporary-root assertions; Python execution by integrating lane only:3PASS,1 explicit production-core SKIP. No independent Python execution or real-core, complete ABI, installed binary, deployment, Linux/macOS, HIL, GPU/model, performance or exceptional OS unload qualification.",
+      "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
+    },
+    {
+      "selector": "NativeOverrideTests.test_valid_override_and_default_load_real_native_artifacts",
+      "test_path": "Tests/Portable/test_native_override_admission.py",
+      "test_sha256": "9228ba390c0de7505713c875e639516be73086ee6dad00a42d778d4789d7a388",
+      "selector_sha256": "eed73092ce1849de49798ade2e71a38174990aef04cfd5f3289944a14fdc4ce8",
+      "selector_source_span": "Python AST function source segment, excluding surrounding comments",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "c9fbdedb91b93388ce34b7538c6a2e55b8b6b9436853453c3fcbda1d455ed8e9",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "c887f7f5ac2486437129b078c3559a11bbc710d6ec8ff1ccc60a26120cc8ee97"
+        },
+        {
+          "path": "Native/PcaiNative/PcaiNative.csproj",
+          "sha256": "4c926000f4ba13259681cb028a1562a798099c7b5fcff6a87909696e52b0b923"
+        }
+      ],
+      "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.205497+00:00",
+      "protects": "Usable native loading and explicit selection",
+      "detects": "Unconditional rejection or wrong default/override sentinel",
+      "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
+      "validation": "Current actual draft Python fixture:3 selectors passed,1 explicit real-core skip; missing/unloadable six subcases, partial three subcases and default/valid sentinels retain their assertions. No real-core admission claim.",
+      "scope": "Current draft variant retains path/provenance/handle identity and paired-bundle contracts; accepted export admission precedes both resolver publications. Historical main review rows are unchanged.",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "receipt": "native-resolver-admission-review.md",
+      "execution_disposition": "PASS: current draft Windows synthetic source/admission control",
+      "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Parent source-review KEEP for current draft resolver/fixture hashes and canonical temporary-root assertions; Python execution by integrating lane only:3PASS,1 explicit production-core SKIP. No independent Python execution or real-core, complete ABI, installed binary, deployment, Linux/macOS, HIL, GPU/model, performance or exceptional OS unload qualification.",
+      "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
+    },
+    {
+      "selector": "NativeOverrideTests.test_partial_override_refuses_export_before_native_sentinel",
+      "test_path": "Tests/Portable/test_native_override_admission.py",
+      "test_sha256": "9228ba390c0de7505713c875e639516be73086ee6dad00a42d778d4789d7a388",
+      "selector_sha256": "7f4b5552d65c166c3962202c77db8f0ae1cb48977b4ec658e6a8822b923f3df8",
+      "selector_source_span": "Python AST function source segment, excluding surrounding comments",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "c9fbdedb91b93388ce34b7538c6a2e55b8b6b9436853453c3fcbda1d455ed8e9",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "c887f7f5ac2486437129b078c3559a11bbc710d6ec8ff1ccc60a26120cc8ee97"
+        },
+        {
+          "path": "Native/PcaiNative/PcaiNative.csproj",
+          "sha256": "4c926000f4ba13259681cb028a1562a798099c7b5fcff6a87909696e52b0b923"
+        }
+      ],
+      "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.208122+00:00",
+      "protects": "Full symbol admission even when requested export exists",
+      "detects": "Calling partial sentinel99 or falling back to default7",
+      "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
+      "validation": "Current actual draft Python fixture:3 selectors passed,1 explicit real-core skip; missing/unloadable six subcases, partial three subcases and default/valid sentinels retain their assertions. No real-core admission claim.",
+      "scope": "Current draft variant retains path/provenance/handle identity and paired-bundle contracts; accepted export admission precedes both resolver publications. Historical main review rows are unchanged.",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "receipt": "native-resolver-admission-review.md",
+      "execution_disposition": "PASS: current draft Windows synthetic source/admission control",
+      "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Parent source-review KEEP for current draft resolver/fixture hashes and canonical temporary-root assertions; Python execution by integrating lane only:3PASS,1 explicit production-core SKIP. No independent Python execution or real-core, complete ABI, installed binary, deployment, Linux/macOS, HIL, GPU/model, performance or exceptional OS unload qualification.",
+      "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
+    },
+    {
+      "selector": "NativeOverrideTests.test_real_core_pinvoke_when_artifact_supplied",
+      "test_path": "Tests/Portable/test_native_override_admission.py",
+      "test_sha256": "9228ba390c0de7505713c875e639516be73086ee6dad00a42d778d4789d7a388",
+      "selector_sha256": "25dce97bf062711951d73cbe0882d61f63a3575c7031a0e9ec4eb819ac72998b",
+      "selector_source_span": "Python AST function source segment, excluding surrounding comments",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "c9fbdedb91b93388ce34b7538c6a2e55b8b6b9436853453c3fcbda1d455ed8e9",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "c887f7f5ac2486437129b078c3559a11bbc710d6ec8ff1ccc60a26120cc8ee97"
+        },
+        {
+          "path": "Native/PcaiNative/PcaiNative.csproj",
+          "sha256": "4c926000f4ba13259681cb028a1562a798099c7b5fcff6a87909696e52b0b923"
+        }
+      ],
+      "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.210313+00:00",
+      "protects": "Actual production-core basic P/Invoke magic",
+      "detects": "Wrong artifact/magic or failed production binding",
+      "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
+      "validation": "Current actual draft Python fixture:3 selectors passed,1 explicit real-core skip; missing/unloadable six subcases, partial three subcases and default/valid sentinels retain their assertions. No real-core admission claim.",
+      "scope": "Current draft variant retains path/provenance/handle identity and paired-bundle contracts; accepted export admission precedes both resolver publications. Historical main review rows are unchanged.",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "receipt": "native-resolver-admission-review.md",
+      "execution_disposition": "SKIP: production core not supplied locally",
+      "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Parent source-review KEEP for current draft resolver/fixture hashes and canonical temporary-root assertions; Python execution by integrating lane only:3PASS,1 explicit production-core SKIP. No independent Python execution or real-core, complete ABI, installed binary, deployment, Linux/macOS, HIL, GPU/model, performance or exceptional OS unload qualification.",
+      "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
     }
   ]
 }

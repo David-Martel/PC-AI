@@ -143,11 +143,12 @@ function Send-OllamaRequest {
         $response = $null
         $lastError = $null
 
-        while (-not $success -and $attempt -lt $MaxRetries) {
+        $maximumAttempts = $MaxRetries + 1
+        while (-not $success -and $attempt -lt $maximumAttempts) {
             $attempt++
 
             try {
-                Write-Verbose "Attempt $attempt of $MaxRetries - Sending request to model '$Model'"
+                Write-Verbose "Attempt $attempt of $maximumAttempts - Sending request to model '$Model'"
 
                 $params = @{
                     Prompt = $Prompt
@@ -196,10 +197,15 @@ function Send-OllamaRequest {
                 Write-Verbose "Request completed successfully"
             }
             catch {
+                $cancellationCause = $_.Exception
+                while ($cancellationCause -and $cancellationCause -isnot [OperationCanceledException]) {
+                    $cancellationCause = $cancellationCause.InnerException
+                }
+                if ($cancellationCause) { throw }
                 $lastError = $_
                 Write-Warning "Request attempt $attempt failed: $($_.Exception.Message)"
 
-                if ($attempt -lt $MaxRetries) {
+                if ($attempt -lt $maximumAttempts) {
                     Write-Verbose "Retrying in $RetryDelaySeconds seconds..."
                     Start-Sleep -Seconds $RetryDelaySeconds
                 }
@@ -207,22 +213,53 @@ function Send-OllamaRequest {
         }
 
         if (-not $success) {
-            throw "Failed to complete pcai-inference request after $MaxRetries attempts. Last error: $lastError"
+            throw "Failed to complete pcai-inference request after $attempt attempts. Last error: $lastError"
         }
 
         $endTime = Get-Date
         $duration = ($endTime - $startTime).TotalSeconds
+
+        # Provider metadata is optional; required message/model remain required.
+        $metadata = @{}
+        foreach ($name in @('raw', 'ToolCalls', 'ExecutedTools')) {
+            $metadata[$name] = $null
+            if ($response -is [System.Collections.IDictionary]) {
+                # Match string keys ordinally without assuming a public Contains
+                # overload; index the actual key and reject case ambiguity.
+                $keys = @($response.PSBase.Keys | Where-Object { $_ -is [string] -and [string]::Equals($_, $name, [StringComparison]::OrdinalIgnoreCase) })
+                if ($keys.Count -gt 1) { throw "Ambiguous optional generation metadata key '$name'." }
+                if ($keys.Count -eq 1) { $metadata[$name] = $response[$keys[0]] }
+            } else {
+                $property = $response.PSObject.Properties[$name]
+                if ($null -ne $property) { $metadata[$name] = $property.Value }
+            }
+        }
+        $usage = $null
+        $raw = $metadata['raw']
+        if ($null -ne $raw) {
+            if ($raw -is [System.Collections.IDictionary]) {
+                $keys = @($raw.PSBase.Keys | Where-Object { $_ -is [string] -and [string]::Equals($_, 'timing', [StringComparison]::OrdinalIgnoreCase) })
+                if ($keys.Count -gt 1) { throw "Ambiguous optional generation metadata key 'timing'." }
+                if ($keys.Count -eq 1) { $usage = $raw[$keys[0]] }
+            } elseif ($raw.PSObject.Properties['timing']) {
+                $usage = $raw.timing
+            }
+        }
+        $toolCalls = @()
+        $executedTools = @()
+        if ($null -ne $metadata['ToolCalls']) { $toolCalls = $metadata['ToolCalls'] }
+        if ($null -ne $metadata['ExecutedTools']) { $executedTools = $metadata['ExecutedTools'] }
 
         # Format response
         $result = [PSCustomObject]@{
             Response = $response.message.content
             Model = $response.model
             CreatedAt = $startTime
-            Usage = $response.raw.timing
+            Usage = $usage
             RequestDurationSeconds = [math]::Round($duration, 2)
             Timestamp = $startTime
-            ToolCalls = $response.ToolCalls
-            ExecutedTools = $response.ExecutedTools
+            ToolCalls = $toolCalls
+            ExecutedTools = $executedTools
         }
 
         return $result

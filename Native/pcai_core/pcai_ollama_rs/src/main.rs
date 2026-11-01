@@ -58,7 +58,7 @@ struct RouterConfig {
     tools_path: String,
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 struct OllamaConfig {
     #[serde(default)]
     model: String,
@@ -76,7 +76,7 @@ struct OllamaConfig {
     num_thread: u32,
     #[serde(default, rename = "num_predict")]
     num_predict: i32,
-    #[serde(default, rename = "keep_alive_seconds")]
+    #[serde(default = "default_keep_alive_seconds", rename = "keep_alive_seconds")]
     keep_alive_seconds: i64,
     #[serde(default, rename = "adaptive_ctx_enabled")]
     adaptive_ctx_enabled: bool,
@@ -108,6 +108,42 @@ struct OllamaConfig {
     strict_model_selection: bool,
     #[serde(default, rename = "toolInvokerPath")]
     tool_invoker_path: String,
+}
+
+/// Default model residency when configuration omits a duration.
+fn default_keep_alive_seconds() -> i64 {
+    1800
+}
+
+impl Default for OllamaConfig {
+    fn default() -> Self {
+        Self {
+            model: Default::default(),
+            base_url: Default::default(),
+            timeout_ms: Default::default(),
+            temperature: Default::default(),
+            num_ctx: Default::default(),
+            num_gpu: Default::default(),
+            num_thread: Default::default(),
+            num_predict: Default::default(),
+            keep_alive_seconds: default_keep_alive_seconds(),
+            adaptive_ctx_enabled: Default::default(),
+            adaptive_ctx_min: Default::default(),
+            adaptive_ctx_max: Default::default(),
+            adaptive_ctx_chars_per_token: Default::default(),
+            adaptive_ctx_base_headroom: Default::default(),
+            adaptive_ctx_step_tokens: Default::default(),
+            top_p: Default::default(),
+            top_k: Default::default(),
+            repeat_last_n: Default::default(),
+            repeat_penalty: Default::default(),
+            tfs_z: Default::default(),
+            seed: Default::default(),
+            auto_pull_missing_models: Default::default(),
+            strict_model_selection: Default::default(),
+            tool_invoker_path: Default::default(),
+        }
+    }
 }
 
 impl OllamaConfig {
@@ -144,9 +180,6 @@ impl OllamaConfig {
         if self.num_predict == 0 {
             // Allow substantial output by default. -1 = unlimited (until EOS).
             self.num_predict = 16384;
-        }
-        if self.keep_alive_seconds == 0 {
-            self.keep_alive_seconds = 1800;
         }
         if self.adaptive_ctx_min == 0 {
             self.adaptive_ctx_min = 8192;
@@ -879,4 +912,9 @@ mod tests {
         assert!(host.starts_with("http://"), "unexpected fallback host: {host}");
         assert!(port > 0);
     }
+}
+
+#[cfg(test)]
+mod keep_alive_contract_tests {
+    include!("keep_alive_contract_tests.rs");
 }

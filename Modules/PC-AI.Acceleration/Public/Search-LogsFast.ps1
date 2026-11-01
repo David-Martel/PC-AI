@@ -234,6 +234,7 @@ function Search-WithRipgrep {
 
     if ($CountOnly) {
         $args += '-c'
+        $args += '--no-filename'
     }
 
     # JSON output for structured results
@@ -241,11 +242,15 @@ function Search-WithRipgrep {
         $args += '--json'
     }
 
+    $args += '--'
     $args += $Pattern
     $args += $Path
 
     try {
-        $output = & $RgPath @args 2>&1
+        $PSNativeCommandUseErrorActionPreference = $false
+        $output = @(& $RgPath @args 2>$null)
+        $searchExitCode = $LASTEXITCODE
+        if ($searchExitCode -notin 0, 1) { throw "ripgrep log search failed with exit code $searchExitCode." }
 
         if ($CountOnly) {
             return [PSCustomObject]@{
@@ -279,7 +284,7 @@ function Search-WithRipgrep {
     }
     catch {
         Write-Warning "ripgrep search failed: $_"
-        return @()
+        throw
     }
 }
 
@@ -323,11 +328,14 @@ function Search-WithSelectString {
             $matches = Select-String @selectParams -Path $file.FullName -ErrorAction SilentlyContinue
 
             if ($CountOnly) {
-                $totalCount += ($matches | Measure-Object).Count
+                $fileCount = @($matches).Count
+                if ($MaxCount -gt 0) { $fileCount = [Math]::Min($fileCount, $MaxCount) }
+                $totalCount += $fileCount
             }
             else {
+                $fileCount = 0
                 foreach ($match in $matches) {
-                    if ($MaxCount -gt 0 -and $results.Count -ge $MaxCount) {
+                    if ($MaxCount -gt 0 -and $fileCount -ge $MaxCount) {
                         break
                     }
 
@@ -337,6 +345,7 @@ function Search-WithSelectString {
                         Line       = $match.Line
                         Tool       = 'Select-String'
                     }
+                    $fileCount++
                 }
             }
         }
@@ -344,9 +353,6 @@ function Search-WithSelectString {
             # Skip inaccessible files
         }
 
-        if ($MaxCount -gt 0 -and $results.Count -ge $MaxCount) {
-            break
-        }
     }
 
     if ($CountOnly) {

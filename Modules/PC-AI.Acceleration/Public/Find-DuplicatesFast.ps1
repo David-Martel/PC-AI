@@ -131,12 +131,13 @@ function Invoke-PowerShellDuplicateScan {
     else {
         Write-Verbose "Using Get-ChildItem for file enumeration"
         $params = @{
-            Path        = $Path
+            LiteralPath = $Path
             File        = $true
             Recurse     = $Recurse
             ErrorAction = 'SilentlyContinue'
         }
         if ($Include) { $params.Include = $Include }
+        if ($Exclude) { $params.Exclude = $Exclude }
         $files = Get-ChildItem @params
     }
 
@@ -209,7 +210,7 @@ function Invoke-PowerShellDuplicateScan {
             WastedMB    = [Math]::Round($wastedSpace / 1MB, 2)
             Files       = $files.Path
             Original    = $files[0].Path
-            Duplicates  = $files[1..($files.Count - 1)].Path
+            Duplicates  = @($files | Select-Object -Skip 1 | ForEach-Object Path)
         }
     }
 
@@ -218,7 +219,7 @@ function Invoke-PowerShellDuplicateScan {
     Write-Host "=== Duplicate Analysis Complete ===" -ForegroundColor Green
     Write-Host "  Total files scanned: $totalFiles"
     Write-Host "  Duplicate groups found: $(($results | Measure-Object).Count)"
-    Write-Host "  Total duplicate files: $(($results | Measure-Object -Property Count -Sum).Sum - ($results | Measure-Object).Count)"
+    Write-Host "  Total duplicate files: $(if ($results.Count -eq 0) { 0 } else { ($results | Measure-Object -Property Count -Sum).Sum - $results.Count })"
     Write-Host "  Wasted space: $([Math]::Round($totalWasted / 1MB, 2)) MB ($([Math]::Round($totalWasted / 1GB, 2)) GB)"
     Write-Host "  Duration: $([Math]::Round($duration, 2)) seconds"
     Write-Host ""
@@ -252,7 +253,7 @@ function ConvertFrom-PcaiDuplicateResult {
             WastedMB    = [Math]::Round(([double]$group.WastedBytes / 1MB), 2)
             Files       = $files
             Original    = $files[0]
-            Duplicates  = if ($files.Count -gt 1) { @($files | Select-Object -Skip 1) } else { @() }
+            Duplicates  = @($files | Select-Object -Skip 1)
             Provider    = 'PcaiNative'
             DurationMs  = [int64]$NativeResult.ElapsedMs
         }) | Out-Null
@@ -301,16 +302,28 @@ function Find-WithFdForDuplicates {
 
     try {
         $output = & $FdPath @args 2>&1
+        $fdExitCode = $global:LASTEXITCODE
+        if ($fdExitCode -ne 0) {
+            throw "fd enumeration exited with code $fdExitCode"
+        }
         $results = @()
         foreach ($line in $output) {
-            if ($line -and (Test-Path $line -ErrorAction SilentlyContinue)) {
-                $results += Get-Item $line -ErrorAction SilentlyContinue
+            if ($line -and (Test-Path -LiteralPath $line -ErrorAction SilentlyContinue)) {
+                $results += Get-Item -LiteralPath $line -ErrorAction SilentlyContinue
             }
         }
         return $results
     }
     catch {
         Write-Warning "fd enumeration failed, falling back to Get-ChildItem"
-        return Get-ChildItem -Path $Path -File -Recurse -ErrorAction SilentlyContinue
+        $fallbackParams = @{
+            LiteralPath = $Path
+            File        = $true
+            Recurse     = $Recurse
+            ErrorAction = 'SilentlyContinue'
+        }
+        if ($Include) { $fallbackParams.Include = $Include }
+        if ($Exclude) { $fallbackParams.Exclude = $Exclude }
+        return Get-ChildItem @fallbackParams
     }
 }

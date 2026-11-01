@@ -26,9 +26,13 @@ identities, not timestamp folders. Existing historical reports remain unchanged.
 requested number of successful iterations and checks each of its three explicit
 child PowerShell exits. Partial/all failures are not timings. It suppresses
 cross-backend speedup ratios. Token estimates now undergo an untimed exact-output
-check against a Unicode-scalar reference before either backend is timed. Search
-and directory cases still have no equivalence proof; missing or nonboolean proof
-remains false and an empty report never implies equivalence. Timing rows still use declared backend labels; they do not
+check against a Unicode-scalar reference before either backend is timed. Uncapped
+directory traversal checks aggregate counts and file bytes, not entry identities.
+Capped traversal requires the bounded reference's entry count, so zero or partial
+work cannot become a fast sample for a nonempty corpus. Its selected identities,
+category counts and bytes remain unverified because traversal order can differ.
+Search still has no equivalence proof; missing or nonboolean proof remains false
+and an empty report never implies equivalence. Timing rows still use declared backend labels; they do not
 attest the actual loaded native implementation. Native fallback/provenance and
 untimed correctness parity remain required before an acceleration claim.
 

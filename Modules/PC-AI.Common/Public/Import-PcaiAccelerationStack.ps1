@@ -15,7 +15,8 @@ function Import-PcaiAccelerationStack {
             return (Resolve-Path -LiteralPath $ExplicitRepoRoot).Path
         }
 
-        if (Get-Command Resolve-PcaiRepoRoot -ErrorAction SilentlyContinue) {
+        # An exact-match wildcard avoids literal-name autoload even with -ListImported.
+        if (Get-Command -Name 'Resolve-PcaiRepoRoo[t]' -ListImported -ErrorAction SilentlyContinue) {
             foreach ($candidateStart in @($PWD.Path, $PSScriptRoot, (Get-Location).Path)) {
                 if ([string]::IsNullOrWhiteSpace($candidateStart)) { continue }
                 try {
@@ -142,16 +143,17 @@ function Import-PcaiAccelerationStack {
         $moduleStatus[$moduleName] = $status
     }
 
+    # Final-character classes match only the requested names without importing providers.
     $result = [pscustomobject]@{
         TimestampUtc = [datetime]::UtcNow.ToString('o')
         RepoRoot = $resolvedRepoRoot
         Modules = [pscustomobject]$moduleStatus
-        CommandLookupAvailable = [bool](Get-Command Find-CommandCached -ErrorAction SilentlyContinue)
-        NativeCommandLookupAvailable = [bool](Get-Command Find-CommandNative -ErrorAction SilentlyContinue)
-        DispatchAvailable = [bool](Get-Command Invoke-ProfileDispatch -ErrorAction SilentlyContinue)
-        FileSearchAvailable = [bool](Get-Command Find-FilesFast -ErrorAction SilentlyContinue)
-        ContentSearchAvailable = [bool](Get-Command Search-ContentFast -ErrorAction SilentlyContinue)
-        NativeBridgeAvailable = [bool](Get-Command Test-PcaiNativeBridge -ErrorAction SilentlyContinue)
+        CommandLookupAvailable = [bool](Get-Command -Name 'Find-CommandCache[d]' -ListImported -ErrorAction SilentlyContinue)
+        NativeCommandLookupAvailable = [bool](Get-Command -Name 'Find-CommandNativ[e]' -ListImported -ErrorAction SilentlyContinue)
+        DispatchAvailable = [bool](Get-Command -Name 'Invoke-ProfileDispatc[h]' -ListImported -ErrorAction SilentlyContinue)
+        FileSearchAvailable = [bool](Get-Command -Name 'Find-FilesFas[t]' -ListImported -ErrorAction SilentlyContinue)
+        ContentSearchAvailable = [bool](Get-Command -Name 'Search-ContentFas[t]' -ListImported -ErrorAction SilentlyContinue)
+        NativeBridgeAvailable = [bool](Get-Command -Name 'Test-PcaiNativeBridg[e]' -ListImported -ErrorAction SilentlyContinue)
     }
 
     if ($RequireAll) {

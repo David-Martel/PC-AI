@@ -4,7 +4,7 @@ function Get-PcaiOptimizationPlan {
         Generates prioritized memory/performance optimization recommendations.
     .DESCRIPTION
         Analyzes current system state and generates actionable optimization
-        recommendations with estimated memory savings. Uses native Rust FFI
+        manual-only snapshot observations without measured savings. Uses native Rust FFI
         when available, falls back to PowerShell analysis.
     .OUTPUTS
         Array of recommendation objects sorted by priority.
@@ -20,24 +20,44 @@ function Get-PcaiOptimizationPlan {
         [switch]$AsJson
     )
 
+    function Test-RecommendationNumber($Value) {
+        if ($null -eq $Value -or $Value -is [bool] -or $Value -is [string] -or $Value -isnot [ValueType]) { return $false }
+        try { $number=[double]$Value } catch { return $false }
+        return -not [double]::IsNaN($number) -and -not [double]::IsInfinity($number) -and $number -ge 0
+    }
     Import-Module PC-AI.Common -ErrorAction SilentlyContinue
     $nativeAvailable = $false
     try { $nativeAvailable = Initialize-PcaiNative } catch {}
 
     if ($nativeAvailable) {
-        $json = [PcaiNative.OptimizerModule]::GetOptimizationRecommendationsJson()
-        if ($json) {
-            if ($AsJson) { return $json }
-            return $json | ConvertFrom-Json
-        }
+        try {
+            $json=[PcaiNative.OptimizerModule]::GetOptimizationRecommendationsJson()
+            if ([string]::IsNullOrWhiteSpace($json) -or -not $json.TrimStart().StartsWith('{')) { throw 'Native recommendation object required.' }
+            $raw=$json|ConvertFrom-Json -ErrorAction Stop
+            if ($raw.status -cne 'Success' -or -not (Test-RecommendationNumber $raw.recommendation_count) -or $raw.recommendations -isnot [array]) { throw 'Native recommendation status/schema invalid.' }
+            if ($raw.recommendation_count -ne $raw.recommendations.Count) { throw 'Native recommendation cardinality mismatch.' }
+            $rows=@(foreach ($item in $raw.recommendations) {
+                if ($item -isnot [pscustomobject] -or -not (Test-RecommendationNumber $item.priority) -or $item.priority -ne [math]::Truncate($item.priority)) { throw 'Native recommendation priority invalid.' }
+                foreach($field in @('category','description','action')) {
+                    if ($item.$field -isnot [string] -or [string]::IsNullOrWhiteSpace($item.$field)) { throw 'Native recommendation text invalid.' }
+                }
+                if ($item.safe_to_auto -isnot [bool] -or -not (Test-RecommendationNumber $item.estimated_savings_mb)) { throw 'Native recommendation metric invalid.' }
+                [pscustomobject]@{Priority=$item.priority;Category=$item.category;Description="Native snapshot flagged '$($item.category)'. Review measurements before manual action; no causal diagnosis or savings has been established.";EstimatedSavingsMB=$null;Action=$item.action;SafeToAuto=$false;Source='PcaiNative.OptimizerModule';MeasurementStatus='NativeSnapshotObservationOnly'}
+            })
+            $rows=@($rows|Sort-Object Priority,Category)
+            if ($AsJson) { return ConvertTo-Json -InputObject @($rows) -Depth 5 }
+            return $rows
+        } catch { Write-Verbose 'Native recommendation acquisition or schema unavailable; using fallback.' }
     }
-
     # Fallback: PowerShell-based recommendations
     Write-Verbose 'Native DLL unavailable, using PowerShell fallback'
     $recommendations = @()
 
-    $os = Get-CimInstance Win32_OperatingSystem
-    $cs = Get-CimInstance Win32_ComputerSystem
+    $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+    $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop
+    if (-not (Test-RecommendationNumber $os.FreePhysicalMemory) -or -not (Test-RecommendationNumber $cs.TotalPhysicalMemory) -or $cs.TotalPhysicalMemory -le 0 -or [double]$os.FreePhysicalMemory*1024 -gt $cs.TotalPhysicalMemory) {
+        throw [IO.InvalidDataException]::new('Physical-memory metadata is invalid.')
+    }
     $availMB = [math]::Round($os.FreePhysicalMemory / 1KB, 0)
 
     # 1. Handle leak detection
@@ -47,8 +67,8 @@ function Get-PcaiOptimizationPlan {
         $recommendations += [PSCustomObject]@{
             Priority          = 1
             Category          = 'handle_leak'
-            Description       = "$($leaker.ProcessName) (PID $($leaker.Id)) has $($leaker.HandleCount) handles and $([math]::Round($leaker.PrivateMemorySize64/1GB,1)) GB private memory. Likely a handle/memory leak."
-            EstimatedSavingsMB = [math]::Round($leaker.PrivateMemorySize64 / 1MB * 0.5, 0)
+            Description       = "$($leaker.ProcessName) (PID $($leaker.Id)) has $($leaker.HandleCount) handles and $([math]::Round($leaker.PrivateMemorySize64/1GB,1)) GB private memory. This is a single high-handle snapshot; collect interval evidence before drawing a causal conclusion."
+            EstimatedSavingsMB = $null
             Action            = "restart_process:$($leaker.ProcessName)"
             SafeToAuto        = $false
         }
@@ -56,14 +76,17 @@ function Get-PcaiOptimizationPlan {
 
     # 2. Pool nonpaged analysis
     try {
-        $poolNP = (Get-Counter '\Memory\Pool Nonpaged Bytes' -ErrorAction Stop).CounterSamples[0].CookedValue
+        $sample=Get-Counter '\Memory\Pool Nonpaged Bytes' -ErrorAction Stop
+        if (@($sample.CounterSamples).Count -ne 1 -or -not (Test-RecommendationNumber $sample.CounterSamples[0].CookedValue)) { throw 'Pool counter invalid.' }
+        if (-not (Test-RecommendationNumber $sample.CounterSamples[0].Status) -or $sample.CounterSamples[0].Status -notin @(0,1)) { throw 'Pool counter sample status invalid.' }
+        $poolNP=$sample.CounterSamples[0].CookedValue
         $poolNP_GB = [math]::Round($poolNP / 1GB, 1)
         if ($poolNP_GB -gt 4) {
             $recommendations += [PSCustomObject]@{
                 Priority          = 1
                 Category          = 'pool_nonpaged'
-                Description       = "Pool nonpaged memory is $poolNP_GB GB (normal: 1-2 GB). Usually caused by driver leaks (NVIDIA, network, storage) or processes with excessive handles."
-                EstimatedSavingsMB = [math]::Round(($poolNP_GB - 2) * 1024, 0)
+                Description       = "Observed nonpaged pool: $poolNP_GB GB. This snapshot does not identify a leak or driver cause; review interval measurements."
+                EstimatedSavingsMB = $null
                 Action            = 'investigate_pool_nonpaged'
                 SafeToAuto        = $false
             }
@@ -87,10 +110,10 @@ function Get-PcaiOptimizationPlan {
         $recommendations += [PSCustomObject]@{
             Priority          = 2
             Category          = 'orphan_cleanup'
-            Description       = "$($orphanCmds.Count) orphaned cmd/conhost processes detected (parent PID gone). Total: ~$orphanMB MB."
-            EstimatedSavingsMB = $orphanMB
+            Description       = "$($orphanCmds.Count) cmd/conhost processes have absent parent PIDs in this snapshot, using ~$orphanMB MB working set. Ownership and disposability are unverified; review manually."
+            EstimatedSavingsMB = $null
             Action            = 'kill_orphan_terminals'
-            SafeToAuto        = $true
+            SafeToAuto        = $false
         }
     }
 
@@ -107,8 +130,8 @@ function Get-PcaiOptimizationPlan {
             $recommendations += [PSCustomObject]@{
                 Priority          = 3
                 Category          = 'browser_tabs'
-                Description       = "$($browser.Key) has $($browser.Value.Count) processes using ~$totalMB MB. Consider closing unused tabs or using tab suspender."
-                EstimatedSavingsMB = [math]::Round($totalMB * 0.4, 0)
+                Description       = "$($browser.Key) has $($browser.Value.Count) processes using ~$totalMB MB. Process count does not establish tab count or waste; review workload needs manually."
+                EstimatedSavingsMB = $null
                 Action            = "reduce_browser_tabs:$($browser.Key)"
                 SafeToAuto        = $false
             }
@@ -120,13 +143,11 @@ function Get-PcaiOptimizationPlan {
     if ($wslProc) {
         $wslPrivateMB = [math]::Round($wslProc.PrivateMemorySize64 / 1MB, 0)
         if ($wslPrivateMB -gt 4096) {
-            $wslConfigPath = Join-Path $env:USERPROFILE '.wslconfig'
-            $hasConfig = Test-Path $wslConfigPath
             $recommendations += [PSCustomObject]@{
                 Priority          = 3
                 Category          = 'wsl_memory'
-                Description       = "WSL2 VM using $wslPrivateMB MB private memory. $(if($hasConfig){'Check .wslconfig memory limit.'}else{'Consider creating .wslconfig with memory limit.'})"
-                EstimatedSavingsMB = [math]::Round($wslPrivateMB * 0.3, 0)
+                Description       = "Observed WSL2 VM private memory: $wslPrivateMB MB. Review workload requirements manually before considering configuration changes."
+                EstimatedSavingsMB = $null
                 Action            = 'tune_wsl_config'
                 SafeToAuto        = $false
             }
@@ -135,13 +156,16 @@ function Get-PcaiOptimizationPlan {
 
     # 6. Paging rate
     try {
-        $pagesSec = (Get-Counter '\Memory\Pages/sec' -ErrorAction Stop).CounterSamples[0].CookedValue
+        $sample=Get-Counter '\Memory\Pages/sec' -ErrorAction Stop
+        if (@($sample.CounterSamples).Count -ne 1 -or -not (Test-RecommendationNumber $sample.CounterSamples[0].CookedValue)) { throw 'Paging counter invalid.' }
+        if (-not (Test-RecommendationNumber $sample.CounterSamples[0].Status) -or $sample.CounterSamples[0].Status -notin @(0,1)) { throw 'Paging counter sample status invalid.' }
+        $pagesSec=$sample.CounterSamples[0].CookedValue
         if ($pagesSec -gt 1000) {
             $recommendations += [PSCustomObject]@{
                 Priority          = 1
                 Category          = 'excessive_paging'
-                Description       = "System is paging at $([math]::Round($pagesSec,0)) pages/sec (healthy: <100). Available memory: $availMB MB. System is thrashing."
-                EstimatedSavingsMB = 0
+                Description       = "Observed paging: $([math]::Round($pagesSec,0)) pages/sec. Available memory: $availMB MB. A single sample does not establish thrashing; review interval evidence."
+                EstimatedSavingsMB = $null
                 Action            = 'reduce_memory_footprint'
                 SafeToAuto        = $false
             }
@@ -157,16 +181,20 @@ function Get-PcaiOptimizationPlan {
             Priority          = 2
             Category          = 'large_process'
             Description       = "$($_.ProcessName) (PID $($_.Id)) using $([math]::Round($_.PrivateMemorySize64/1GB,1)) GB private memory."
-            EstimatedSavingsMB = [math]::Round($_.PrivateMemorySize64 / 1MB * 0.2, 0)
+            EstimatedSavingsMB = $null
             Action            = "investigate_process:$($_.ProcessName):$($_.Id)"
             SafeToAuto        = $false
         }
     }
 
-    $sorted = $recommendations | Sort-Object Priority, @{Expression={$_.EstimatedSavingsMB}; Descending=$true}
+    foreach ($item in $recommendations) {
+        $item | Add-Member -NotePropertyName Source -NotePropertyValue 'PowerShell-Fallback'
+        $item | Add-Member -NotePropertyName MeasurementStatus -NotePropertyValue 'SnapshotObservationOnly'
+    }
+    $sorted = @($recommendations | Sort-Object Priority,Category)
 
     if ($AsJson) {
-        return $sorted | ConvertTo-Json -Depth 3
+        return ConvertTo-Json -InputObject @($sorted) -Depth 5
     }
     return $sorted
 }

@@ -10,7 +10,7 @@
 //!
 //! ## Thread Safety
 //!
-//! - Global state is protected by Mutex
+//! - Model state and short request bookkeeping use separate mutexes
 //! - Runtime is created once and reused
 //! - Errors are stored in thread-local storage
 //!
@@ -33,11 +33,10 @@
 //! ```
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_void};
 use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use tokio::runtime::Runtime;
 
@@ -45,6 +44,40 @@ use tokio::runtime::Runtime;
 use crate::backends::BackendType;
 use crate::backends::{GenerateRequest, InferenceBackend};
 use crate::Error;
+
+mod requests;
+use requests::{AdmissionError, RequestState, Requests};
+
+static REQUESTS: OnceLock<Arc<Requests<RequestStatus>>> = OnceLock::new();
+#[cfg(test)]
+thread_local! { static TEST_REQUESTS: RefCell<Option<Arc<Requests<RequestStatus>>>> = const { RefCell::new(None) }; }
+fn request_registry() -> Arc<Requests<RequestStatus>> {
+    #[cfg(test)]
+    if let Some(requests) = TEST_REQUESTS.with(|slot| slot.borrow().clone()) {
+        return requests;
+    }
+    Arc::clone(REQUESTS.get_or_init(|| Arc::new(Requests::new())))
+}
+impl RequestState for RequestStatus {
+    fn pending() -> Self {
+        Self::Pending
+    }
+    fn running() -> Self {
+        Self::Running
+    }
+    fn cancelled() -> Self {
+        Self::Cancelled
+    }
+    fn failed(message: String) -> Self {
+        Self::Failed(message)
+    }
+    fn is_pending(&self) -> bool {
+        matches!(self, Self::Pending)
+    }
+    fn is_running(&self) -> bool {
+        matches!(self, Self::Running)
+    }
+}
 
 // ============================================================================
 // Error Codes
@@ -135,7 +168,6 @@ pub struct PcaiAsyncResult {
 struct GlobalState {
     runtime: Runtime,
     backend: Option<Box<dyn InferenceBackend>>,
-    requests: HashMap<i64, RequestStatus>,
 }
 
 /// Global state instance (initialized once)
@@ -153,11 +185,7 @@ thread_local! {
 fn init_global_state() -> &'static Mutex<GlobalState> {
     GLOBAL_STATE.get_or_init(|| {
         let runtime = Runtime::new().expect("Failed to create Tokio runtime");
-        Mutex::new(GlobalState {
-            runtime,
-            backend: None,
-            requests: HashMap::new(),
-        })
+        Mutex::new(GlobalState { runtime, backend: None })
     })
 }
 
@@ -262,6 +290,8 @@ fn estimate_prompt_tokens(text: &str) -> u32 {
 #[no_mangle]
 pub unsafe extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
     clear_last_error();
+    let registry = request_registry();
+    let _lifecycle = registry.lifecycle();
 
     // Parse backend name
     let backend_str = match unsafe { c_str_from_ptr(backend_name) } {
@@ -302,6 +332,7 @@ pub unsafe extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
     // Initialize global state and create backend
     #[cfg(any(feature = "llamacpp", feature = "mistralrs-backend"))]
     {
+        registry.invalidate();
         let state = init_global_state();
         let mut guard = match state.lock() {
             Ok(g) => g,
@@ -321,6 +352,7 @@ pub unsafe extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
         };
 
         guard.backend = Some(backend);
+        registry.publish(true, false);
         tracing::info!("Initialized backend: {}", backend_str);
 
         PcaiErrorCode::Success as i32
@@ -349,6 +381,8 @@ pub unsafe extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: i32) -> i32 {
     clear_last_error();
+    let registry = request_registry();
+    let _lifecycle = registry.lifecycle();
 
     // Parse model path
     let path_str = match unsafe { c_str_from_ptr(model_path) } {
@@ -359,6 +393,8 @@ pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: 
         }
     };
 
+    // Invalidate tickets before waiting for generation to release the model lock.
+    registry.invalidate();
     // Get global state
     let state = init_global_state();
     let mut guard = match state.lock() {
@@ -395,6 +431,7 @@ pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: 
 
     // Check backend exists
     if guard.backend.is_none() {
+        registry.publish(false, false);
         set_last_error_with_code(
             "Backend not initialized. Call pcai_init first.",
             PcaiErrorCode::NotInitialized,
@@ -408,6 +445,7 @@ pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: 
 
     if let Some(backend) = backend {
         let result = runtime.block_on(async { backend.load_model(&path_str).await });
+        registry.publish(true, backend.is_loaded());
 
         match result {
             Ok(_) => {
@@ -720,9 +758,16 @@ pub unsafe extern "C" fn pcai_free_string(s: *mut c_char) {
 ///
 /// # Safety
 /// * After calling this, all other functions will fail until pcai_init is called again
+///
+/// Closes async admission and logically cancels outstanding requests before joining
+/// every owned worker. Non-interruptible model work may delay shutdown; this does
+/// not preempt a running model kernel. Terminal results remain available to poll.
 #[no_mangle]
 pub extern "C" fn pcai_shutdown() {
     clear_last_error();
+    let registry = request_registry();
+    let _lifecycle = registry.lifecycle();
+    registry.close_and_join();
 
     let state = init_global_state();
     let mut guard = match state.lock() {
@@ -912,129 +957,68 @@ pub unsafe extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: 
         return -1;
     }
 
-    // Validate backend is ready before allocating an ID
-    {
-        let state = init_global_state();
-        let guard = match state.lock() {
-            Ok(g) => g,
-            Err(e) => {
-                set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
-                return -1;
-            }
-        };
-
-        if guard.backend.is_none() {
+    let registry = request_registry();
+    let ticket = match registry.ready_ticket() {
+        Ok(ticket) => ticket,
+        Err(AdmissionError::NotInitialized) => {
             set_last_error_with_code(
                 "Backend not initialized. Call pcai_init first.",
                 PcaiErrorCode::NotInitialized,
             );
             return -1;
         }
-
-        let backend = guard.backend.as_ref().expect("backend is_none was checked above");
-        if !backend.is_loaded() {
+        Err(AdmissionError::ModelNotLoaded) => {
             set_last_error_with_code(
                 "Model not loaded. Call pcai_load_model first.",
                 PcaiErrorCode::ModelNotLoaded,
             );
             return -1;
         }
-    }
+        Err(AdmissionError::Closed) => {
+            // Shutdown closes internal admission but preserves the public FFI
+            // contract: generation requires initialization, not backend failure.
+            set_last_error_with_code(
+                "Async admission closed; initialize before submitting",
+                PcaiErrorCode::NotInitialized,
+            );
+            return -1;
+        }
+    };
 
-    // Allocate a unique request ID and register it as Pending
     let id = NEXT_REQUEST_ID.fetch_add(1, AtomicOrdering::SeqCst);
-    {
-        let state = init_global_state();
-        if let Ok(mut g) = state.lock() {
-            g.requests.insert(id, RequestStatus::Pending);
-        }
-    }
-
-    // Spawn a plain OS thread so we can call `runtime.block_on` without risk
-    // of nesting a blocking call inside the Tokio thread pool.
-    std::thread::spawn(move || {
-        // Transition: Pending -> Running (unless already cancelled)
-        {
-            let state = init_global_state();
-            if let Ok(mut g) = state.lock() {
-                match g.requests.get(&id) {
-                    Some(RequestStatus::Cancelled) => return,
-                    _ => {
-                        g.requests.insert(id, RequestStatus::Running);
-                    }
-                }
-            }
-        }
-
-        // Estimate prompt tokens before sending to backend (outside the lock
-        // block so the value is available when storing the terminal status).
+    let worker_registry = Arc::clone(&registry);
+    if let Err(error) = registry.spawn(id, ticket, move || {
         let prompt_tokens_est = estimate_prompt_tokens(&prompt_str);
-
-        // Build the request and run inference while holding the lock so that
-        // the borrow checker can split `runtime` and `backend` simultaneously.
-        let result = {
-            let state = init_global_state();
-            let mut guard = match state.lock() {
-                Ok(g) => g,
-                Err(e) => {
-                    if let Ok(mut g2) = init_global_state().lock() {
-                        g2.requests
-                            .insert(id, RequestStatus::Failed(format!("Lock failed: {}", e)));
-                    }
-                    return;
-                }
-            };
-
-            // Check for cancellation again before starting expensive work
-            if matches!(guard.requests.get(&id), Some(RequestStatus::Cancelled)) {
-                return;
+        let result = (|| -> std::result::Result<_, String> {
+            let mut guard = requests::model_lock(init_global_state())?;
+            if !worker_registry.is_running(id) {
+                return Err("Request cancelled".to_string());
             }
-
-            let req = GenerateRequest {
+            let request = GenerateRequest {
                 prompt: prompt_str,
-                max_tokens: if max_tokens > 0 {
-                    Some(max_tokens as usize)
-                } else {
-                    None
-                },
-                temperature: if temperature > 0.0 { Some(temperature) } else { None },
+                max_tokens: (max_tokens > 0).then_some(max_tokens as usize),
+                temperature: (temperature > 0.0).then_some(temperature),
                 top_p: None,
                 stop: vec![],
             };
-
-            // Split borrow: `runtime` and `backend` are separate fields.
-            let GlobalState { runtime, backend, .. } = &mut *guard;
-            match backend.as_ref() {
-                Some(b) => runtime.block_on(b.generate(req)),
-                None => Err(crate::Error::InvalidInput("Backend not initialized".to_string())),
-            }
-        };
-
-        // Store the terminal status
-        if let Ok(mut g) = init_global_state().lock() {
-            // Respect a late cancellation
-            if matches!(g.requests.get(&id), Some(RequestStatus::Cancelled)) {
-                return;
-            }
-            match result {
-                Ok(response) => {
-                    g.requests.insert(
-                        id,
-                        RequestStatus::Complete {
-                            text: response.text,
-                            tokens_generated: response.tokens_generated as u32,
-                            prompt_tokens_estimated: prompt_tokens_est,
-                        },
-                    );
-                }
-                Err(e) => {
-                    let error_msg = format!("{}", e);
-                    let enriched = enrich_with_gpu_state(&error_msg);
-                    g.requests.insert(id, RequestStatus::Failed(enriched));
-                }
-            }
+            let GlobalState { runtime, backend } = &mut *guard;
+            let backend = backend.as_ref().ok_or_else(|| "Backend not initialized".to_string())?;
+            runtime
+                .block_on(backend.generate(request))
+                .map_err(|error| enrich_with_gpu_state(&error.to_string()))
+        })();
+        match result {
+            Ok(response) => RequestStatus::Complete {
+                text: response.text,
+                tokens_generated: response.tokens_generated as u32,
+                prompt_tokens_estimated: prompt_tokens_est,
+            },
+            Err(error) => RequestStatus::Failed(error),
         }
-    });
+    }) {
+        set_last_error_with_code(error, PcaiErrorCode::BackendError);
+        return -1;
+    }
 
     id
 }
@@ -1061,20 +1045,10 @@ pub unsafe extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: 
 ///   `status` is 2 or 3.
 #[no_mangle]
 pub extern "C" fn pcai_poll_result(request_id: i64) -> PcaiAsyncResult {
-    let state = init_global_state();
-    let mut guard = match state.lock() {
-        Ok(g) => g,
-        Err(_) => {
-            return PcaiAsyncResult {
-                status: -1,
-                text: std::ptr::null_mut(),
-                tokens_generated: 0,
-                prompt_tokens_estimated: 0,
-            };
-        }
-    };
+    let registry = request_registry();
+    let mut guard = registry.entries();
 
-    match guard.requests.get(&request_id) {
+    match guard.get(&request_id) {
         Some(RequestStatus::Pending) => PcaiAsyncResult {
             status: 0,
             text: std::ptr::null_mut(),
@@ -1092,7 +1066,7 @@ pub extern "C" fn pcai_poll_result(request_id: i64) -> PcaiAsyncResult {
                 text,
                 tokens_generated,
                 prompt_tokens_estimated,
-            }) = guard.requests.remove(&request_id)
+            }) = guard.remove(&request_id)
             {
                 let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
                 PcaiAsyncResult {
@@ -1111,7 +1085,7 @@ pub extern "C" fn pcai_poll_result(request_id: i64) -> PcaiAsyncResult {
             }
         }
         Some(RequestStatus::Failed(_)) => {
-            if let Some(RequestStatus::Failed(text)) = guard.requests.remove(&request_id) {
+            if let Some(RequestStatus::Failed(text)) = guard.remove(&request_id) {
                 let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
                 PcaiAsyncResult {
                     status: 3,
@@ -1129,7 +1103,7 @@ pub extern "C" fn pcai_poll_result(request_id: i64) -> PcaiAsyncResult {
             }
         }
         Some(RequestStatus::Cancelled) => {
-            guard.requests.remove(&request_id);
+            guard.remove(&request_id);
             PcaiAsyncResult {
                 status: 4,
                 text: std::ptr::null_mut(),
@@ -1161,13 +1135,10 @@ pub extern "C" fn pcai_poll_result(request_id: i64) -> PcaiAsyncResult {
 /// * -1 if the request ID was not found or the request had already finished
 #[no_mangle]
 pub extern "C" fn pcai_cancel(request_id: i64) -> i32 {
-    let state = init_global_state();
-    let mut guard = match state.lock() {
-        Ok(g) => g,
-        Err(_) => return -1,
-    };
+    let registry = request_registry();
+    let mut guard = registry.entries();
 
-    match guard.requests.get_mut(&request_id) {
+    match guard.get_mut(&request_id) {
         Some(status @ RequestStatus::Pending) | Some(status @ RequestStatus::Running) => {
             *status = RequestStatus::Cancelled;
             0
@@ -1183,6 +1154,26 @@ pub extern "C" fn pcai_cancel(request_id: i64) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct AdmissionFixture(Arc<Requests<RequestStatus>>);
+
+    impl AdmissionFixture {
+        fn new() -> Self {
+            let registry = Arc::new(Requests::new());
+            TEST_REQUESTS.with(|slot| {
+                assert!(slot.borrow().is_none());
+                *slot.borrow_mut() = Some(Arc::clone(&registry));
+            });
+            Self(registry)
+        }
+    }
+
+    impl Drop for AdmissionFixture {
+        fn drop(&mut self) {
+            self.0.close_and_join();
+            TEST_REQUESTS.with(|slot| *slot.borrow_mut() = None);
+        }
+    }
 
     #[test]
     fn test_error_code_enum() {
@@ -1309,13 +1300,38 @@ mod tests {
 
     #[test]
     fn test_async_generate_before_init() {
-        // Reset state
-        pcai_shutdown();
+        // A fresh registry has never initialized; shutdown is a distinct closed state.
+        let _fixture = AdmissionFixture::new();
 
         let prompt = CString::new("hello").expect("test: CString::new must not fail for a simple ASCII prompt");
         let id = unsafe { pcai_generate_async(prompt.as_ptr(), 10, 0.7) };
         assert_eq!(id, -1, "Should fail when no backend is initialised");
         assert_eq!(pcai_last_error_code(), PcaiErrorCode::NotInitialized as i32);
+        let error = pcai_last_error();
+        assert!(!error.is_null());
+        // SAFETY: the non-null CString is library-owned thread-local storage. No
+        // error-buffer call occurs while reading it; callers must not free it.
+        assert!(unsafe { CStr::from_ptr(error) }
+            .to_string_lossy()
+            .contains("not initialized"));
+    }
+
+    #[test]
+    fn test_async_generate_after_shutdown_preserves_not_initialized_error() {
+        let fixture = AdmissionFixture::new();
+        pcai_shutdown();
+        assert_eq!(fixture.0.ready_ticket(), Err(AdmissionError::Closed));
+
+        let prompt = CString::new("hello").expect("test: CString::new must accept an ASCII prompt");
+        assert_eq!(unsafe { pcai_generate_async(prompt.as_ptr(), 10, 0.7) }, -1);
+        assert_eq!(pcai_last_error_code(), PcaiErrorCode::NotInitialized as i32);
+        let error = pcai_last_error();
+        assert!(!error.is_null());
+        // SAFETY: the non-null CString is library-owned thread-local storage. No
+        // error-buffer call occurs while reading it; callers must not free it.
+        assert!(unsafe { CStr::from_ptr(error) }
+            .to_string_lossy()
+            .contains("Async admission closed"));
     }
 
     #[test]
@@ -1669,3 +1685,6 @@ mod tests {
         // Reaching here without a crash under the test allocator is the assertion.
     }
 }
+
+#[cfg(test)]
+mod lifecycle_tests;

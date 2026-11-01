@@ -44,13 +44,13 @@ function Invoke-UsbBind {
 
     if (-not (Test-UsbIpdInstalled)) {
         $result.Message = "usbipd-win is not installed"
-        Write-Error $result.Message
+        Microsoft.PowerShell.Utility\Write-Error $result.Message
         return $result
     }
 
     if (-not (Test-IsAdministrator)) {
         $result.Message = "Administrator privileges required for USB bind operation"
-        Write-Error $result.Message
+        Microsoft.PowerShell.Utility\Write-Error $result.Message
         return $result
     }
 
@@ -78,12 +78,12 @@ function Invoke-UsbBind {
                     Write-Warning "Incompatible USB filter detected. Try with -Force parameter."
                 }
 
-                Write-Error $result.Message
+                Microsoft.PowerShell.Utility\Write-Error $result.Message
             }
         }
         catch {
             $result.Message = "Bind operation failed: $_"
-            Write-Error $result.Message
+            Microsoft.PowerShell.Utility\Write-Error $result.Message
         }
     }
 

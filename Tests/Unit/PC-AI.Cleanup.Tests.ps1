@@ -8,7 +8,17 @@
 
 BeforeAll {
     $script:OriginalDisableNative = $env:PCAI_DISABLE_NATIVE
+    $script:OriginalCleanupCacheProvider = $env:PCAI_CACHE_PROVIDER
+    $script:OriginalCleanupLocalAppData = $env:LOCALAPPDATA
     $env:PCAI_DISABLE_NATIVE = '1'
+    $env:PCAI_CACHE_PROVIDER = 'memory'
+    # Module import creates its log directory. Keep that write in owned fixture
+    # storage rather than depending on or creating anything in the user profile.
+    $env:LOCALAPPDATA = Join-Path $TestDrive 'cleanup-localappdata'
+    [void][IO.Directory]::CreateDirectory($env:LOCALAPPDATA)
+
+    # Reproduce the shared-module error proxy present during full-suite execution.
+    Import-Module (Join-Path $PSScriptRoot '../../Modules/PC-AI.Common/PC-AI.Common.psm1') -Global -Force
 
     # Import module under test
     $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Cleanup\PC-AI.Cleanup.psd1'
@@ -24,6 +34,7 @@ BeforeAll {
         param($Bytes)
         return "$Bytes Bytes"
     } -ModuleName PC-AI.Cleanup
+    Mock Remove-Item { throw 'Unexpected cleanup filesystem mutation outside an admitted fixture mock.' } -ModuleName PC-AI.Cleanup
 }
 
 Describe "Get-PathDuplicates" -Tag 'Unit', 'Cleanup', 'Fast', 'Portable' {
@@ -135,38 +146,59 @@ Describe "Repair-MachinePath" -Tag 'Unit', 'Cleanup', 'Slow', 'RequiresAdmin', '
         }
 
         It "Should require Administrator privileges for Machine PATH" {
-            $result = Repair-MachinePath -Target Machine -ErrorAction SilentlyContinue
+            $errors = @()
+            $result = Repair-MachinePath -Target Machine -ErrorAction SilentlyContinue -ErrorVariable errors
             $result.Success | Should -Be $false
             $result.Warnings | Should -Not -BeNullOrEmpty
+            @($errors).Count | Should -Be 1
+            Should -Invoke Backup-EnvironmentVariable -Times 0 -Exactly -ModuleName PC-AI.Cleanup -Scope It
+        }
+
+        It 'preserves the native caller error contract for Stop without modifying Machine PATH' {
+            { Repair-MachinePath -Target Machine -ErrorAction Stop } | Should -Throw '*Administrator privileges required*'
+            Should -Invoke Backup-EnvironmentVariable -Times 0 -Exactly -ModuleName PC-AI.Cleanup -Scope It
         }
     }
 }
 
 Describe "Find-DuplicateFiles" -Tag 'Unit', 'Cleanup', 'Slow', 'Portable' {
+    BeforeAll {
+        # The real public Path validator requires an actual container. A fixed
+        # C:\Temp happened to exist on some hosts and failed before enumeration
+        # on others. Do not mock that validator or depend on a machine folder.
+        $script:DuplicateRoot = Join-Path $TestDrive 'duplicate-scan'
+        [void][IO.Directory]::CreateDirectory($script:DuplicateRoot)
+        $script:MissingDuplicateRoot = Join-Path $TestDrive 'absent-duplicate-scan'
+        Mock Get-ChildItem { throw 'Unadmitted duplicate enumeration.' } -ModuleName PC-AI.Cleanup
+        Mock Get-FileHashSafe { throw 'Unadmitted duplicate hashing.' } -ModuleName PC-AI.Cleanup
+    }
+    AfterEach {
+        Should -Invoke Remove-Item -ModuleName PC-AI.Cleanup -Times 0 -Exactly -Scope It
+    }
     Context "When scanning for duplicate files" {
         BeforeAll {
             Mock Get-ChildItem {
                 @(
                     [PSCustomObject]@{
-                        FullName = "C:\Temp\file1.txt"
+                        FullName = Join-Path $script:DuplicateRoot 'file1.txt'
                         Name = "file1.txt"
-                        DirectoryName = "C:\Temp"
+                        DirectoryName = $script:DuplicateRoot
                         Length = 1024
                         LastWriteTime = (Get-Date).AddDays(-1)
                         CreationTime = (Get-Date).AddDays(-2)
                     }
                     [PSCustomObject]@{
-                        FullName = "C:\Temp\file2.txt"
+                        FullName = Join-Path $script:DuplicateRoot 'file2.txt'
                         Name = "file2.txt"
-                        DirectoryName = "C:\Temp"
+                        DirectoryName = $script:DuplicateRoot
                         Length = 1024
                         LastWriteTime = (Get-Date).AddDays(-1)
                         CreationTime = (Get-Date).AddDays(-2)
                     }
                     [PSCustomObject]@{
-                        FullName = "C:\Temp\file3.txt"
+                        FullName = Join-Path $script:DuplicateRoot 'file3.txt'
                         Name = "file3.txt"
-                        DirectoryName = "C:\Temp"
+                        DirectoryName = $script:DuplicateRoot
                         Length = 2048
                         LastWriteTime = (Get-Date).AddDays(-1)
                         CreationTime = (Get-Date).AddDays(-2)
@@ -186,19 +218,19 @@ Describe "Find-DuplicateFiles" -Tag 'Unit', 'Cleanup', 'Slow', 'Portable' {
         }
 
         It "Should detect duplicate files by hash" {
-            $result = Find-DuplicateFiles -Path "C:\Temp"
+            $result = Find-DuplicateFiles -Path $script:DuplicateRoot
             $result.DuplicateGroups | Where-Object { $_.Hash -eq "ABC123" } | Should -Not -BeNullOrEmpty
         }
 
         It "Should group files by size first" {
-            Find-DuplicateFiles -Path "C:\Temp"
+            Find-DuplicateFiles -Path $script:DuplicateRoot
 
             # Should only hash files with matching sizes (file1.txt and file2.txt both 1024 bytes)
             Should -Invoke Get-FileHashSafe -ModuleName PC-AI.Cleanup -Times 2
         }
 
         It "Should return result object with DuplicateGroups" {
-            $result = Find-DuplicateFiles -Path "C:\Temp"
+            $result = Find-DuplicateFiles -Path $script:DuplicateRoot
             $result.PSObject.Properties.Name | Should -Contain 'DuplicateGroups'
             $result.DuplicateGroups[0].Files[0].PSObject.Properties.Name | Should -Contain 'FullName'
         }
@@ -209,17 +241,17 @@ Describe "Find-DuplicateFiles" -Tag 'Unit', 'Cleanup', 'Slow', 'Portable' {
             Mock Get-ChildItem {
                 @(
                     [PSCustomObject]@{
-                        FullName = "C:\Temp\file1.txt"
+                        FullName = Join-Path $script:DuplicateRoot 'file1.txt'
                         Name = "file1.txt"
-                        DirectoryName = "C:\Temp"
+                        DirectoryName = $script:DuplicateRoot
                         Length = 1024
                         LastWriteTime = (Get-Date).AddDays(-1)
                         CreationTime = (Get-Date).AddDays(-2)
                     }
                     [PSCustomObject]@{
-                        FullName = "C:\Temp\file2.txt"
+                        FullName = Join-Path $script:DuplicateRoot 'file2.txt'
                         Name = "file2.txt"
-                        DirectoryName = "C:\Temp"
+                        DirectoryName = $script:DuplicateRoot
                         Length = 2048
                         LastWriteTime = (Get-Date).AddDays(-1)
                         CreationTime = (Get-Date).AddDays(-2)
@@ -234,7 +266,7 @@ Describe "Find-DuplicateFiles" -Tag 'Unit', 'Cleanup', 'Slow', 'Portable' {
         }
 
         It "Should return result with empty DuplicateGroups" {
-            $result = Find-DuplicateFiles -Path "C:\Temp"
+            $result = Find-DuplicateFiles -Path $script:DuplicateRoot
             $result.DuplicateGroups | Should -BeNullOrEmpty
         }
     }
@@ -245,7 +277,9 @@ Describe "Find-DuplicateFiles" -Tag 'Unit', 'Cleanup', 'Slow', 'Portable' {
         }
 
         It "Should handle invalid path" {
-            { Find-DuplicateFiles -Path "C:\NonExistent" -ErrorAction Stop } | Should -Throw
+            { Find-DuplicateFiles -Path $script:MissingDuplicateRoot -ErrorAction Stop } | Should -Throw
+            Should -Invoke Get-ChildItem -ModuleName PC-AI.Cleanup -Times 0 -Exactly -Scope It
+            Should -Invoke Get-FileHashSafe -ModuleName PC-AI.Cleanup -Times 0 -Exactly -Scope It
         }
     }
 
@@ -256,9 +290,9 @@ Describe "Find-DuplicateFiles" -Tag 'Unit', 'Cleanup', 'Slow', 'Portable' {
                 if ($Include -contains "*.txt") {
                     @(
                         [PSCustomObject]@{
-                            FullName = "C:\Temp\file1.txt"
+                            FullName = Join-Path $script:DuplicateRoot 'file1.txt'
                             Name = "file1.txt"
-                            DirectoryName = "C:\Temp"
+                            DirectoryName = $script:DuplicateRoot
                             Length = 1024
                             LastWriteTime = (Get-Date).AddDays(-1)
                             CreationTime = (Get-Date).AddDays(-2)
@@ -269,7 +303,7 @@ Describe "Find-DuplicateFiles" -Tag 'Unit', 'Cleanup', 'Slow', 'Portable' {
         }
 
         It "Should filter by extension using Include parameter" {
-            Find-DuplicateFiles -Path "C:\Temp" -Include "*.txt"
+            Find-DuplicateFiles -Path $script:DuplicateRoot -Include "*.txt"
 
             Should -Invoke Get-ChildItem -ModuleName PC-AI.Cleanup -ParameterFilter {
                 $Include -contains "*.txt"
@@ -389,6 +423,8 @@ AfterAll {
     } else {
         $env:PCAI_DISABLE_NATIVE = $script:OriginalDisableNative
     }
+    $env:PCAI_CACHE_PROVIDER = $script:OriginalCleanupCacheProvider
+    $env:LOCALAPPDATA = $script:OriginalCleanupLocalAppData
     Remove-Module PC-AI.Cleanup -Force -ErrorAction SilentlyContinue
     Remove-Module MockData -Force -ErrorAction SilentlyContinue
 }

@@ -40,24 +40,50 @@ function Get-DeviceErrors {
         $nativeAvailable = $false
 
         # Attempt to use Native Core if available
-        $json = Get-HardwarePnpDevicesNative -Class $Class
-        if ($json) {
-            $nativeDevices = $json | ConvertFrom-Json
+        try {
+          $json = Get-HardwarePnpDevicesNative -Class $Class
+          if ($json) {
+            # Preserve the top-level shape: null and a single object cannot
+            # establish that the native backend queried an empty inventory.
+            if (-not ([string]$json).TrimStart().StartsWith('[')) {
+                throw 'Native PnP response must be a JSON array.'
+            }
+            if ($PSVersionTable.PSVersion.Major -ge 7) {
+                $nativeDevices = ConvertFrom-Json -InputObject $json -NoEnumerate -ErrorAction Stop
+            } else {
+                # Windows PowerShell preserves the JSON array by default.
+                $nativeDevices = $json | ConvertFrom-Json -ErrorAction Stop
+            }
+            if ($nativeDevices -isnot [array]) {
+                throw 'Native PnP response must preserve its JSON array.'
+            }
             foreach ($dev in $nativeDevices) {
-                if ($IncludeOK -or $dev.problem_code -ne 0) {
+                $code = [uint32]0
+                if ($null -eq $dev -or $null -eq $dev.PSObject.Properties['config_error_code'] -or
+                    -not [uint32]::TryParse([string]$dev.config_error_code, [ref]$code)) {
+                    throw 'Native PnP response has no valid config_error_code.'
+                }
+                if ($Class -and $dev.pnp_class -ne $Class -and $dev.name -notlike "*$Class*") { continue }
+                if ($IncludeOK -or $code -ne 0) {
                     $results += [PSCustomObject]@{
                         Name             = $dev.name
-                        PNPClass         = $dev.class_name
+                        PNPClass         = $dev.pnp_class
                         Manufacturer     = $dev.manufacturer
-                        ErrorCode        = $dev.problem_code
-                        ErrorDescription = $dev.problem_description
-                        Severity         = $dev.severity
+                        ErrorCode        = $code
+                        ErrorDescription = if ($dev.error_summary) { $dev.error_summary } else { Format-DeviceErrorCode -ErrorCode $code }
+                        Severity         = Get-SeverityFromErrorCode -ErrorCode $code
                         Status           = $dev.status
                         DeviceID         = $dev.device_id
                     }
                 }
             }
             $nativeAvailable = $true
+          }
+        } catch {
+            # Reject the whole native result, including any rows already accumulated.
+            # Missing fields must never become hundreds of false hardware errors.
+            $results = @()
+            Write-Verbose "Native PnP response unavailable or incompatible: $($_.Exception.Message)"
         }
 
         if (-not $nativeAvailable) {

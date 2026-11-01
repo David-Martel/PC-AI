@@ -220,6 +220,8 @@ public static class PcaiCore
     {
         get
         {
+            // A valid new override must not relabel a previous Lazy/PInvoke binding.
+            if (!NativeResolver.IsCurrentSelectionCompatibleWithLoadedLibrary(NativeCore.CoreLib)) return false;
             if (!NativeResolver.TryResolveLibraryPath(NativeCore.CoreLib, out var resolvedPath, out var provenance, typeof(NativeCore).Assembly))
             {
                 if (provenance is not null && provenance.StartsWith("env:", StringComparison.Ordinal))
@@ -232,7 +234,7 @@ public static class PcaiCore
                 return false;
             }
 
-            return _isAvailable.Value;
+            return _isAvailable.Value && NativeResolver.IsCurrentSelectionCompatibleWithLoadedLibrary(NativeCore.CoreLib);
         }
     }
 

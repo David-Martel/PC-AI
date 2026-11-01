@@ -7,9 +7,9 @@
 
 .DESCRIPTION
     Tests the DLL-loading bootstrap function responsible for loading PcaiNative.dll
-    and making [PcaiNative.MediaModule] available.  All file-system and assembly-load
-    operations are isolated via Pester mocks executed inside InModuleScope, so no
-    actual DLLs are required.
+    and making [PcaiNative.MediaModule] available. Failure paths use Pester mocks;
+    the successful load uses separate assembly producer and loader processes,
+    so no prebuilt native DLLs are required.
 
     Scenarios covered:
     - Returns $false when PcaiNative.dll is not present on disk
@@ -63,12 +63,15 @@ Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Portable' {
 
     # Reset module state between every test
     BeforeEach {
+        $script:SavedNativeBundleRoot = $env:PCAI_NATIVE_BUNDLE_ROOT
+        $env:PCAI_NATIVE_BUNDLE_ROOT = $null
         InModuleScope PcaiMedia {
             $script:Initialized  = $false
             $script:ModelLoaded  = $false
             $script:CurrentModel = $null
         }
     }
+    AfterEach { $env:PCAI_NATIVE_BUNDLE_ROOT = $script:SavedNativeBundleRoot }
 
     # -----------------------------------------------------------------------
     # DLL absent
@@ -77,15 +80,17 @@ Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Portable' {
 
         It 'Returns $false' {
             InModuleScope PcaiMedia {
-                Mock Test-Path  { return $false }       -ParameterFilter { $Path -match 'PcaiNative\.dll' }
+                Mock Test-Path  { return $false }       -ParameterFilter { $LiteralPath -match 'PcaiNative\.dll' }
                 Mock Get-PcaiProjectRoot { return 'C:\FakeRoot' }
+                Mock Write-Warning {}
                 Initialize-PcaiMediaFFI | Should -BeFalse
+                Should -Invoke Write-Warning -Times 0
             }
         }
 
         It 'Does not set script:Initialized to true' {
             InModuleScope PcaiMedia {
-                Mock Test-Path  { return $false }       -ParameterFilter { $Path -match 'PcaiNative\.dll' }
+                Mock Test-Path  { return $false }       -ParameterFilter { $LiteralPath -match 'PcaiNative\.dll' }
                 Mock Get-PcaiProjectRoot { return 'C:\FakeRoot' }
                 $null = Initialize-PcaiMediaFFI
                 $script:Initialized | Should -BeFalse
@@ -98,13 +103,23 @@ Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Portable' {
     # -----------------------------------------------------------------------
     Context 'When the DLL exists but Assembly.LoadFrom throws' {
 
+        BeforeEach {
+            $script:InvalidBridgeRoot = Join-Path $TestDrive 'invalid-bridge'
+            $bin = Join-Path $script:InvalidBridgeRoot 'bin'
+            [void](New-Item -ItemType Directory -Path $bin -Force)
+            Set-Content -LiteralPath (Join-Path $bin 'PcaiNative.dll') -Value 'invalid managed assembly'
+            InModuleScope PcaiMedia -Parameters @{ Root = $script:InvalidBridgeRoot } {
+                param($Root)
+                $script:InvalidBridgeRoot = $Root
+                Mock Get-PcaiProjectRoot { $script:InvalidBridgeRoot }
+                Mock Get-PcaiMediaLoadedBridgePath { $null }
+            }
+        }
+
         It 'Returns $false' {
             InModuleScope PcaiMedia {
-                Mock Test-Path  { return $true }        -ParameterFilter { $Path -match 'PcaiNative\.dll' }
-                Mock Get-PcaiProjectRoot { return 'C:\FakeRoot' }
                 Mock Write-Warning {}
-                # Test-Path returns $true but the actual Load attempt will fail because
-                # 'C:\FakeRoot\bin\PcaiNative.dll' does not exist on disk — LoadFrom will throw.
+                # Resolve the real fixture file; the actual assembly loader rejects its invalid bytes.
                 $result = Initialize-PcaiMediaFFI
                 $result | Should -BeFalse
             }
@@ -112,18 +127,14 @@ Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Portable' {
 
         It 'Emits a Write-Warning message that mentions the load failure' {
             InModuleScope PcaiMedia {
-                Mock Test-Path  { return $true }        -ParameterFilter { $Path -match 'PcaiNative\.dll' }
-                Mock Get-PcaiProjectRoot { return 'C:\FakeRoot' }
                 Mock Write-Warning {}
                 $null = Initialize-PcaiMediaFFI
-                Should -Invoke Write-Warning -Times 1 -ParameterFilter { $Message -match 'Failed to load' }
+                Should -Invoke Write-Warning -Times 1 -ParameterFilter { $Message -match 'Failed to select native media bridge.*(Bad IL|BadImage|format|assembly)' }
             }
         }
 
         It 'Does not set script:Initialized to true after a failed load' {
             InModuleScope PcaiMedia {
-                Mock Test-Path  { return $true }        -ParameterFilter { $Path -match 'PcaiNative\.dll' }
-                Mock Get-PcaiProjectRoot { return 'C:\FakeRoot' }
                 Mock Write-Warning {}
                 $null = Initialize-PcaiMediaFFI
                 $script:Initialized | Should -BeFalse
@@ -141,19 +152,63 @@ Describe 'Initialize-PcaiMediaFFI' -Tag 'Unit', 'Media', 'FFI', 'Portable' {
             $tempDir  = Join-Path $env:TEMP "PcaiFfiTest_$(New-Guid)"
             $binDir   = Join-Path $tempDir 'bin'
             New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+            '# fixture checkout marker' | Set-Content -LiteralPath (Join-Path $tempDir 'PC-AI.ps1')
             $dllPath  = Join-Path $binDir 'PcaiNative.dll'
 
-            Add-Type -TypeDefinition @'
-namespace PcaiFfiTestDummy { public class DummyClass { } }
-'@ -OutputAssembly $dllPath -OutputType Library
-
             try {
-                InModuleScope PcaiMedia -Parameters @{ TempRoot = $tempDir } {
-                    param($TempRoot)
-                    Mock Get-PcaiProjectRoot { return $TempRoot }
-                    $result = Initialize-PcaiMediaFFI
-                    $result | Should -BeTrue
-                }
+                # Keep compilation outside the Pester process and its mocks/type cache.
+                $producer = Join-Path $tempDir 'build-bridge.ps1'
+                @'
+param($DllPath)
+$ErrorActionPreference = 'Stop'
+Add-Type -TypeDefinition 'namespace PcaiFfiTestDummy { public class DummyClass { } }' -OutputAssembly $DllPath -OutputType Library
+if (-not (Test-Path -LiteralPath $DllPath -PathType Leaf)) { throw 'Assembly producer did not create the fixture DLL.' }
+if ((Get-Item -LiteralPath $DllPath).Length -le 0) { throw 'Assembly producer created an empty fixture DLL.' }
+Write-Output 'fixture-bridge-produced'
+'@ | Set-Content -LiteralPath $producer
+                $shell = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
+                $produced = & $shell -NoLogo -NoProfile -File $producer $dllPath 2>&1
+                if ($LASTEXITCODE -ne 0) { $produced | ForEach-Object { Write-Host $_ } }
+                $LASTEXITCODE | Should -Be 0
+                $produced | Should -Contain 'fixture-bridge-produced'
+                Test-Path -LiteralPath $dllPath -PathType Leaf | Should -BeTrue
+                (Get-Item -LiteralPath $dllPath).Length | Should -BeGreaterThan 0
+                $probe = Join-Path $tempDir 'load-bridge.ps1'
+                @'
+param($ModulePath, $Root, $DllPath)
+$ErrorActionPreference = 'Stop'
+$WarningPreference = 'Continue'
+$env:PCAI_NATIVE_BUNDLE_ROOT = $null
+$env:PCAI_ROOT = $null
+if (-not (Test-Path -LiteralPath $DllPath -PathType Leaf)) { throw 'Fixture DLL is absent before managed loading.' }
+if ((Get-Item -LiteralPath $DllPath).Length -le 0) { throw 'Fixture DLL is empty before managed loading.' }
+Import-Module $ModulePath -Force
+Write-Host ('loader-module: ' + (Get-Module PcaiMedia).Path)
+Write-Host ('loader-module-sha256: ' + (Get-FileHash -LiteralPath (Get-Module PcaiMedia).Path).Hash)
+$success = & (Get-Module PcaiMedia) {
+    param($SelectedRoot, $SelectedDll)
+    $script:ModulePath = Join-Path $SelectedRoot 'Modules'
+    if ((Get-PcaiProjectRoot) -ne $SelectedRoot) { throw 'Fixture project root was not selected.' }
+    $resolvedDll = Join-Path (Join-Path (Get-PcaiProjectRoot) 'bin') 'PcaiNative.dll'
+    if ($resolvedDll -ne $SelectedDll) { throw "Initializer selected another DLL: $resolvedDll" }
+    if (-not (Test-Path -LiteralPath $resolvedDll -PathType Leaf)) { throw 'Selected fixture DLL disappeared inside module scope.' }
+    foreach ($name in @('Get-PcaiProjectRoot', 'Initialize-PcaiMediaFFI', 'Import-PcaiMediaManagedBridge')) {
+        $command = Get-Command $name -ErrorAction Stop
+        Write-Host ("loader-command: $name module=$($command.ModuleName) source=$($command.ScriptBlock.File)")
+    }
+    Write-Host ("loader-dll: $resolvedDll bytes=$((Get-Item -LiteralPath $resolvedDll).Length)")
+    Initialize-PcaiMediaFFI
+} $Root $DllPath
+if (-not $success) { throw 'Fresh-process managed loading failed.' }
+$expectedDll = [IO.Path]::GetFullPath($DllPath)
+$assembly = [AppDomain]::CurrentDomain.GetAssemblies() | Where-Object Location -eq $expectedDll | Select-Object -First 1
+if (-not $assembly) { throw 'The initializer did not load the selected fixture assembly.' }
+Write-Output 'fresh-bridge-loaded'
+'@ | Set-Content -LiteralPath $probe
+                $result = & $shell -NoLogo -NoProfile -File $probe $script:ModulePath $tempDir $dllPath 2>&1
+                if ($LASTEXITCODE -ne 0) { $result | ForEach-Object { Write-Host $_ } }
+                $LASTEXITCODE | Should -Be 0
+                $result | Should -Contain 'fresh-bridge-loaded'
             } finally {
                 Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
             }

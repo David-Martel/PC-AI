@@ -37,6 +37,17 @@ Reviewed 2026-10-05; evidence and experiment gates are in
       at a time. Preserve active jobs; promote only with call-quality, throughput
       and memory/refault evidence. No optimization gain is established yet.
 
+## Machine-secret diagnostic boundary
+
+See [the source and fixture review](Reports/machine-native-diagnostics-review.md).
+
+- [x] Preserve native error-action and error-variable behavior with Common loaded;
+      qualify seven diagnostic emissions without changing registered Common bytes.
+- [x] Retain detecting old-producer failure, six selected controls and 87 maintained
+      synthetic backup controls, with zero provider/cache/environment publication.
+- [ ] Recheck the unreproduced NUC child timeout and unchanged full Windows coverage
+      gate before canonical fleet publication; no installed-secret mutation claimed.
+
 ## Bitwarden and connectivity closeout (2026-10-05)
 
 See [the qualified maintenance report](Reports/bitwarden-connectivity-20261005.md).
@@ -56,6 +67,30 @@ See [the qualified maintenance report](Reports/bitwarden-connectivity-20261005.m
       controls. No speculative unmount, broad process kill or speedup claim.
 - [ ] Harden IronRDP certificate verification and imported clipboard/authentication
       policy before direct-VPN credential use; validate an actual current artifact.
+
+## Fleet consumer and owned-process reconciliation
+
+Current evidence: [fleet integration review](Reports/fleet-integration-review.md).
+Owner: Codex integration lane, coordinated with the Work and Carbon runtime owners.
+
+- [x] Preserve exact owned process-handle custody when termination or closure cannot
+      be confirmed; retain original failures, provide explicit GUID retry/WhatIf,
+      and block replacement. All 46 focused Windows fixtures pass without skips,
+      including failed native close, blocked input and normal-parent descendants.
+- [x] Preserve Windows PowerShell 5.1 native-device JSON validation and verify
+      seventeen adversarial cases plus eleven actual Windows PowerShell shapes.
+- [ ] Finish same-file native-bundle path canonicalization for Windows short names
+      and same-bridge StrictMode reuse; verify current-head hosted CI before merge.
+- [ ] Finish the exact rebuilt native Core/CLI/C# pair, CPU sampling qualification,
+      parity benchmarks and complete per-host module/bundle deployment.
+- [ ] Admit the reviewed credential adapter source only after failed-cleanup
+      custody tests and provenance checks; preserve credential/config material
+      outside Git. Work's actual unlock/session reuse is a separate passed gate.
+- [ ] Qualify/install the new git-guard hygiene release before running its report,
+      dry drain and guarded apply. Installed v0.2.9 lacks those commands; protect
+      the live owner's successor work and verify retained refs/ignored WIP first.
+- [ ] Refresh the final registered-worktree and GitHub inventory after all reviewed
+      PR disposition, source equivalence and runtime-owner handoffs.
 
 
 ## Input and task oversight closeout (2026-10-04)
@@ -182,6 +217,24 @@ Evidence: `Reports/watchdog-window-20260912.md`.
       defaults or scheduled-task format. No real vault export is part of these tests.
 
 Evidence: `Reports/credential-archive-20260912.md`.
+
+## Credential backend integration (2026-10-09)
+
+- [x] Preserve predecessor source and synthetic detecting failures before
+      qualifying protected bootstrap/cache storage and file/process custody.
+- [x] Maintain reviewed backend code and its two-file source manifest under
+      `Tools/SystemScripts/Machine`; keep credentials and private config outside Git.
+- [x] Add self-contained synthetic Windows custody tests with environment
+      restoration and recovery witnesses outside the source tree.
+- [ ] Finish canonical-source qualification and current-head CI before installation.
+- [ ] Reconcile each host's installed manifest, preserving unrelated files,
+      private configuration and active consumers before any backend deployment.
+- [ ] Validate live provider/credential reconciliation through an existing
+      authorized session; synthetic receipts do not establish authentication.
+- [ ] Qualify SACL/audit recovery separately; the current retained metadata
+      contract covers owner/group/DACL only.
+
+Evidence: `Reports/agent-bus-pcai-findings.md` and `Reports/fleet-integration-review.md`.
 
 Purpose: harden boot/logon automation that mounts virtual disks, starts sync
 providers, and initializes workstation services. The current implementation
@@ -1495,6 +1548,166 @@ Evidence and rollback: [boot storage review](Reports/boot-storage-review-2026091
 Current private receipt hashes and remaining boundaries are recorded in
 `Reports/milly-fleet-20261002/repo-closeout.json` under `followUpEasyWins`.
 Historical results above retain their original scope and date.
+
+## Paging and build-cache pressure follow-up — October 9, 2026
+
+- [x] Reconcile the live PC_AI bus findings, corrections and capture limits in
+  `Reports/agent-bus-pcai-findings.md`; preserve the installed disk-tool stall as
+  a historical runtime failure rather than a current-candidate benchmark.
+- [x] Stop the obsolete root-owned native cache warm normally and confirm its
+  exact process chain has exited; preserve the shared cache server and all
+  foreign work. This establishes custody, not a paging-performance improvement.
+- [x] Complete verified relocation of the released 1.694 GiB build cache to the
+  separate healthy D: NVMe, retain every source/destination SHA and select the
+  new target directly for future builds. Root owns this operation. Live Models,
+  cloud roots and foreign build targets require their own consumer admission.
+- [ ] Qualify current native process/CLI/bridge source together on an available
+  host and rerun matched output/cancellation measurements without extending
+  deadlines. Owner: root/profile/fleet.
+- [ ] Refresh interval paging, disk activity and consumer throughput before
+  persistent pagefile, cloud-client, WSL or service migration changes. The
+  September pagefile sample above is historical; it does not establish present
+  headroom. Clarius's later operational proposals remain unapplied by this lane.
+- [ ] Re-evaluate W: by its verified machine-specific identity before any use;
+  the current inventory found it absent. F: is a file-backed VHD, so it is not
+  equivalent to an independent physical scratch disk. No mount change was made.
+
+## LLM progress cleanup follow-up
+
+- [x] Preserve the original progress-helper inert result (2 PASS / 4 FAIL) and
+  the independently audited private successor (8 PASS / 0 FAIL). Prepare the
+  exact one-function canonical repair and eight maintained contracts without
+  changing the other 22 helper functions or launching real jobs/HTTP payloads.
+- [x] Execute and independently review the canonical successor eight-case
+  suite:8 PASS/0 FAIL, actual canonical file/entire-function AST binding and
+  source/runtime stability; parent closure/disposal and no pending custody.
+  Preserve the first canonical7 PASS/1 FAIL binding-detector error and correct
+  only its extent comparison. Owner: root/integration. Exact results and
+  selector rationales: [LLM custody review](Reports/llm-progress-custody-review.md).
+- [ ] Qualify real owned-job stop/removal, retained-reference recovery,
+  cancellation/deadline and new-request admission before treating cleanup
+  attempts as closure. SSE and native timeout parity remain separate OPEN
+  gates. Owner: root/runtime. No performance or coverage credit is established.
+- [x] Integrate dtm-codex hook PR38, verify merged-main CI38030326030 and
+  same-source Carbon99, then preserve/bare-fsck the owned branch before retiring
+  its branch/worktree. Main/origin0/0; all489 foreign untracked paths preserved.
+- [ ] Continue interval responsiveness capture after the short60-second P1
+  sample (CPUmedian50%, RAMavailable13GiB, commit77%, pageinput2338/s;
+  aggregate disk0.106ms/queue0, observer0.9%). No pagefile/process causality or
+  improvement is established. Owner: root/profile.
+- [ ] Clear PC_AI's unchanged85% coverage gate with meaningful behaviors and
+  valid accounting. Current413-head CI has2586 passes/0 failures/39 skips,
+  coverage63.697%, GuidelinesPASS; merge remains HOLD. Fresh hosted results
+  are required after the LLM successor commit. Owner: root/CI.
+
+## Current storage and search contract follow-up
+
+- [x] Verify Milly's completed migration after reconnection: both external SSDs
+  negotiate10Gb/s/UAS, the original study path is accessible as its owning user,
+  Btrfs device errors remain zero and internal availability is580.69GiB at
+  October10 08:43UTC. See `Reports/milly-storage-and-expansion-review.md`.
+  Cold boot, Windows native mount/DACL, backup/restore and physical M.2 vacancy
+  remain separate open gates; current free space is not a migration-only delta.
+- [x] Reproduce swallowed fd failures (3PASS/5FAIL), independently qualify the
+  exact candidate (8PASS/0FAIL), and apply only `Find-WithFd`: failed native
+  exits and original invocation exceptions propagate before cache admission.
+  The maintained eight-contract suite and pinned CI fd provisioning are added.
+- [x] Validate the maintained canonical fd suite (8PASS/0FAIL) and separate
+  Windows PowerShell5.1 compatibility discovery (8SKIP/0FAIL). Analyzer has
+  zero findings. Legacy skips qualify discovery only; see
+  Reports/fd-search-contract-review.md for actual receipts and first failure.
+- [ ] Validate fresh current-head CI after the fd repair commit.
+  Keep the unchanged85% coverage gate and preserve every original failed receipt.
+  Owner: root/integration. No startup/search performance improvement is claimed.
+
+## Process and hash transport follow-up
+
+- [x] Reproduce swallowed terminal worker failures and qualify the shared disk,
+  process and hash exception boundary. Initial27 controls:1PASS/26FAIL; repaired
+  controls pass. Final three suites:112PASS/0FAIL/4SKIP/0NotRun (three native-bundle
+  controls and one unavailable filesystem short-alias control);
+  source hashes unchanged. Strict-mode small-file hashing also has genuine
+  failing-first known-digest evidence. See Reports/process-hash-transport-review.md.
+- [ ] Verify hosted CI on the published process/hash repair head without
+  lowering the85% coverage floor. Owner: root/integration.
+- [ ] Qualify native hash response path/cardinality/digest bijection, literal
+  leading-dash inputs and field/schema parity; preserve original outputs and
+  actual native pairing requirements. Owner: root/acceleration.
+- [ ] Qualify other-user deployment, shared MCP reuse and real lifecycle faults;
+  wrapper fixture success is not fleet or responsiveness acceptance.
+
+## Current integration validation
+
+- [ ] Clear the unchanged 85% coverage gate on the published integration head.
+  Predecessor `71ed3e9c5b981d58b57e526d2e8c1485c1e26c69`, CI38168895722:
+  2,870 passes,21 failures,40 skips; genuine source-bound coverage13,978/21,817
+  (64.069304%). The reviewed endpoint/declaration correction passes143 focused
+  controls. Published `24ae406549bec829be5eb060a4cd9525a0fc0fe7`,
+  CI38173326731: 2,897 passes, zero failures, 40 skips; source-bound coverage
+  14,623/21,817 (67.025714%). The coverage gate failed; the other applicable
+  .NET, lint, security, Rust and CPU deployment jobs passed. Earlier results
+  are historical. Do not lower the threshold or count skipped execution.
+  Owner: root/integration.
+- [ ] Integrate the outstanding media edit only after fixing the independent
+  terminal/missing-ID and public asynchronous contract findings. R5 build/healthy
+  and R7 candidate-poison execution passed within their narrow scope; earlier
+  failures remain preserved. Owner: root/native.
+- [ ] Diagnose the remaining genuine one-second localhost timeout. The optional
+  resolver discovery repair passes a fresh IPv4 call with zero errors, while
+  localhost still times out before the IPv4 listener accepts.
+  Address controls must not prewarm the original client or relax its timeout.
+  Owner: root/runtime.
+- [ ] Complete genuine configured-consumer and reversible transaction checks
+  before replacing a wrapper. Six read-only and nine writable controls passed;
+  shared-server reuse, other-user deployment and measured speedup remain open.
+  Owner: root/acceleration.
+
+## Reviewed deployment adoption and current fleet limits
+
+Validation cutoff: October 11, 2026, 21:45 UTC. Owner: root/integration.
+
+- [x] Adopt the independently reviewed module installer and deployment controls.
+  Exact R4 candidates passed 54 controls, zero failures/skips/not-run cases,
+  in an isolated D: fixture. All 13 maintained directory payloads passed the
+  candidate validator. Absolute path admission precedes normalization; every
+  selected payload is validated and staged before publication; late publication
+  failure restores prior payloads and environment. The genuine rollback test
+  observes Alpha's new payload before injecting Beta's failure. No live user
+  module installation was performed. Evidence:
+  `D:/pcai-relocation/pr183-installer-fixture-r4/` and
+  `.pcai/integration/installer-adoption-peer-r1/review.md`.
+- [ ] Reconcile PR183 at `629196af36f9cc1f1867d60ea4701e754465ec55`.
+  Its two current-head workflows succeeded, but the independently evaluated
+  merge with 24ae406 still has eight conflicts. Only the reviewed installer
+  and deployment tests are adopted here. Profile/runtime, native, telemetry,
+  workflow and other source changes remain separately qualified work.
+- [ ] Finish the native configured-consumer pilot. Reversible transaction and
+  custody controls passed 34 cases plus actual nonempty SACL preservation.
+  Local commitment remains about 89%, above the pilot's unchanged 85% limit;
+  no live MCP configuration or native-host registration was changed.
+- [ ] Finish matched media terminal-state builds and detection. R1 preparation
+  refused before actor launch because its historical cause-type guard expected
+  ErrorRecord where the retained R8 cause is PropertyNotFoundException.
+  Preserve both actual failures; R2 corrects admission without reconstructing
+  them. No terminal-state build or detector has executed yet. Public polling,
+  cancellation and detached-worker lifecycle findings remain open.
+- [ ] Qualify PR183 telemetry and public CLR compatibility. Same seven detectors
+  produced seven baseline behavioral failures and seven candidate passes;
+  the corrected private collector also passed 16 focused controls. These are
+  private fixture results, not adoption or real CIM measurement acceptance.
+  Five public metric accessor types changed while declared version stayed
+  0.1.0; compiled-consumer compatibility execution remains pending.
+- [x] Verify Milly's reconnected storage using a bounded read. The serial-matched
+  WDC SSD read 128 MiB in 0.293392 seconds with GNU dd, approximately457 MB/s.
+  Internal available space remains about580 GiB. uutils dd0.10.0 failed the
+  direct-read command with Invalid input; upstream buffer-alignment findings
+  corroborate a tooling explanation. No global tool replacement occurred.
+  See `Reports/milly-storage-and-expansion-review.md` for evidence and limits.
+- [ ] Obtain the active owner's disposition for the live Python process on P1.
+  A nonblocking stack inspection identifies the vigil-audio gesture audiogram
+  and MediaPipe pose path. The process and its active Claude ancestor were
+  preserved. Its resource use alone does not authorize termination or establish
+  a disk-write defect. Storage throughput is not UI responsiveness acceptance.
 2026-10-04 DTM-SUPER-NUC follow-up:
 - [x] Qualify built-ins in the public profile shim to prevent accidental PC-AI
   auto-import during missing-private-profile diagnostics; add bootstrap tests.

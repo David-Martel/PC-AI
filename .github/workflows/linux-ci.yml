@@ -76,6 +76,7 @@ jobs:
           ./Tests/Portable/Test-ModuleManifestHook.ps1
           ./Tools/Test-PcaiModuleManifests.ps1
           ./Tests/Portable/Test-BenchmarkRunner.ps1
+          ./Tests/Portable/Test-PortableProcessCapture.ps1
 
       - name: Install .NET SDK for managed admission fixtures
         uses: actions/setup-dotnet@v6

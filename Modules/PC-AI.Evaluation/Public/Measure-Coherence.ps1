@@ -39,5 +39,5 @@ function Measure-Coherence {
         }
     }
 
-    return [math]::Round([math]::Max(0, $score), 4)
+    return [math]::Round([math]::Max(0.0, $score), 4)
 }

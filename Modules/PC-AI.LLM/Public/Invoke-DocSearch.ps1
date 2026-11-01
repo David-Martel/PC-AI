@@ -48,6 +48,7 @@ function Invoke-DocSearch {
 		Source    = $Source
 		Url       = $searchUrl
 		Status    = 'Success'
+		RetrievalPerformed = $false
 		Timestamp = Get-Date
 		Results   = @()
 	}
@@ -62,7 +63,8 @@ function Invoke-DocSearch {
 	foreach ($key in $kb.Keys) {
 		if ($Query -like "*$key*") {
 			$results.Results += @{
-				Title   = "Official $Source Documentation Fragment"
+				Title   = "Offline knowledge fragment ($Source)"
+				Provenance = 'OfflineKnowledge'
 				Snippet = $kb[$key]
 				Source  = $Source
 			}

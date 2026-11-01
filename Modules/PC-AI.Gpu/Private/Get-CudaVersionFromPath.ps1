@@ -53,16 +53,18 @@ function Get-CudaVersionFromPath {
             # Structure varies across CUDA releases:
             #   { "cuda": { "version": "12.8.0" } }
             #   { "cuda_cudart": { "version": "12.8.0" } }
-            if ($jsonData.cuda -and $jsonData.cuda.version) {
+            if ($jsonData.PSObject.Properties['cuda'] -and $jsonData.cuda -and
+                $jsonData.cuda.PSObject.Properties['version'] -and $jsonData.cuda.version) {
                 $cudaVer = $jsonData.cuda.version
             }
-            elseif ($jsonData.cuda_cudart -and $jsonData.cuda_cudart.version) {
+            elseif ($jsonData.PSObject.Properties['cuda_cudart'] -and $jsonData.cuda_cudart -and
+                $jsonData.cuda_cudart.PSObject.Properties['version'] -and $jsonData.cuda_cudart.version) {
                 $cudaVer = $jsonData.cuda_cudart.version
             }
             else {
                 # Iterate properties and find the first one with a "version" field
                 foreach ($prop in $jsonData.PSObject.Properties) {
-                    if ($prop.Value -and $prop.Value.version) {
+                    if ($prop.Value -and $prop.Value.PSObject.Properties['version'] -and $prop.Value.version) {
                         $cudaVer = $prop.Value.version
                         break
                     }

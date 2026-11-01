@@ -172,7 +172,7 @@ fn matches_any(name: &str, patterns: &[&str]) -> bool {
 /// may be orphaned (cmd or conhost).
 #[inline]
 fn is_orphan_candidate(name_lower: &str) -> bool {
-    name_lower == "cmd" || name_lower == "conhost"
+    matches!(name_lower, "cmd" | "conhost" | "cmd.exe" | "conhost.exe")
 }
 
 // ── Windows-specific metrics (pool memory, paging, handles) ──────────────────
@@ -456,6 +456,29 @@ pub fn get_process_categories() -> (u64, HashMap<String, CategoryStats>) {
     (start.elapsed().as_millis() as u64, categories)
 }
 
+/// Construct manual advice from an absent-parent terminal snapshot.
+fn orphan_terminal_recommendation(orphan_terminal_count: u32) -> Option<OptimizationRecommendation> {
+    if orphan_terminal_count <= 10 {
+        return None;
+    }
+    Some(OptimizationRecommendation {
+        priority: 2,
+        category: "orphan_cleanup".to_string(),
+        description: format!(
+            "{} cmd.exe/conhost.exe processes have absent parent PIDs in this snapshot. \
+             Ownership and disposability are unverified; manual review is required. \
+             Savings are unmeasured; zero is a compatibility placeholder.",
+            orphan_terminal_count
+        ),
+        // UNMEASURED: the existing unsigned field cannot express an unknown value.
+        // Zero is a compatibility placeholder, not evidence of an estimated gain.
+        estimated_savings_mb: 0,
+        // Preserve the legacy identifier; it does not authorize termination.
+        action: "kill_orphan_terminals".to_string(),
+        safe_to_auto: false,
+    })
+}
+
 /// Generate a prioritised list of `OptimizationRecommendation` items from a
 /// `MemoryPressureReport` combined with live category data.
 pub fn get_optimization_recommendations() -> (u64, Vec<OptimizationRecommendation>) {
@@ -518,20 +541,8 @@ pub fn get_optimization_recommendations() -> (u64, Vec<OptimizationRecommendatio
     }
 
     // --- Priority 2: orphaned terminals ---
-    if report.orphan_terminal_count > 10 {
-        recs.push(OptimizationRecommendation {
-            priority: 2,
-            category: "orphan_cleanup".to_string(),
-            description: format!(
-                "{} orphaned cmd.exe/conhost.exe processes detected (parent PID \
-                 no longer alive). These accumulate handle table entries. \
-                 Terminate them to recover handle table space.",
-                report.orphan_terminal_count
-            ),
-            estimated_savings_mb: (report.orphan_terminal_count as u64) * 4,
-            action: "kill_orphan_terminals".to_string(),
-            safe_to_auto: true,
-        });
+    if let Some(recommendation) = orphan_terminal_recommendation(report.orphan_terminal_count) {
+        recs.push(recommendation);
     }
 
     // --- Priority 3: browser tab proliferation ---
@@ -648,6 +659,85 @@ pub fn memory_pressure_to_json(report: &MemoryPressureReport) -> MemoryPressureJ
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Protects: the existing greater-than-ten admission boundary.
+    // Detects: advice appearing for zero or exactly ten absent-parent terminals.
+    // Needs: only the actual pure recommendation helper, without OS collection.
+    // Breadcrumb: orphan_terminal_recommendation and producer orphan threshold.
+    #[test]
+    fn test_orphan_advice_preserves_threshold() {
+        for count in [0, 10] {
+            assert!(orphan_terminal_recommendation(count).is_none());
+        }
+    }
+
+    // Protects: terminal ownership and truthful serialized advice for consumers.
+    // Detects: auto-safe termination advice or guessed savings from a snapshot.
+    // Needs: the actual pure helper and existing serde_json serializer only.
+    // Breadcrumb: orphan_terminal_recommendation; legacy orphan_cleanup/action.
+    #[test]
+    fn test_orphan_advice_is_manual_and_unmeasured() {
+        let recommendation = orphan_terminal_recommendation(11).expect("above threshold");
+        assert_eq!(recommendation.priority, 2);
+        assert_eq!(recommendation.category, "orphan_cleanup");
+        assert_eq!(recommendation.action, "kill_orphan_terminals");
+        assert!(!recommendation.safe_to_auto);
+        assert_eq!(recommendation.estimated_savings_mb, 0);
+        assert!(recommendation.description.contains("11 cmd.exe/conhost.exe"));
+        assert!(recommendation
+            .description
+            .contains("absent parent PIDs in this snapshot"));
+        assert!(recommendation
+            .description
+            .contains("Ownership and disposability are unverified"));
+        assert!(recommendation.description.contains("manual review is required"));
+        assert!(recommendation.description.contains("Savings are unmeasured"));
+        assert!(recommendation.description.contains("compatibility placeholder"));
+        assert!(!recommendation.description.contains("Terminate"));
+        let json = serde_json::to_value(&recommendation).expect("serialize actual recommendation");
+        assert_eq!(json["safe_to_auto"], serde_json::Value::Bool(false));
+        assert_eq!(json["estimated_savings_mb"].as_u64(), Some(0));
+        assert_eq!(json["action"].as_str(), Some("kill_orphan_terminals"));
+    }
+
+    // Protects: bounded count handling without inventing a per-terminal gain.
+    // Detects: guessed arithmetic savings restored for the largest input count.
+    // Needs: one u32::MAX fixture through the actual pure helper and serializer.
+    // Breadcrumb: former orphan count multiplied by four; unsigned ABI retained.
+    #[test]
+    fn test_orphan_advice_large_count_has_no_estimated_gain() {
+        let recommendation = orphan_terminal_recommendation(u32::MAX).expect("above threshold");
+        assert!(recommendation.description.contains(&u32::MAX.to_string()));
+        assert!(!recommendation.safe_to_auto);
+        assert_eq!(recommendation.estimated_savings_mb, 0);
+        let json = serde_json::to_value(&recommendation).expect("serialize actual recommendation");
+        assert_eq!(json["safe_to_auto"], serde_json::Value::Bool(false));
+        assert_eq!(json["estimated_savings_mb"].as_u64(), Some(0));
+    }
+
+    // Protects: exact Windows executable basenames and legacy suffix-free terminal names.
+    // Detects: dropping cmd.exe/conhost.exe or broad suffix/substr matching of unrelated names.
+    // Needs: the actual pure is_orphan_candidate function and ten finite literal names only.
+    // Breadcrumb: sysinfo Windows PROCESSENTRY32W.szExeFile; caller lowercases without stripping .exe.
+    #[test]
+    fn test_orphan_candidate_accepts_exact_windows_names_only() {
+        for name in ["cmd", "conhost", "cmd.exe", "conhost.exe"] {
+            assert!(is_orphan_candidate(name), "expected exact terminal candidate: {name}");
+        }
+        for name in [
+            "pwsh.exe",
+            "powershell.exe",
+            "chrome.exe",
+            "cmd.com",
+            "mycmd.exe",
+            "conhost-helper.exe",
+        ] {
+            assert!(
+                !is_orphan_candidate(name),
+                "unrelated process became a candidate: {name}"
+            );
+        }
+    }
 
     #[test]
     fn test_pressure_level_thresholds() {

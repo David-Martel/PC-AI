@@ -390,6 +390,7 @@ namespace PcaiNative
             {
                 if (NativeLibrary.TryLoad(resolvedPath, out var handle))
                 {
+                    VerifyLoadedCoreExports(logical, resolvedPath, provenance ?? "resolved", handle);
                     ResolvedPaths[logical] = (resolvedPath, provenance ?? "resolved", handle);
                     return handle;
                 }
@@ -405,11 +406,41 @@ namespace PcaiNative
 
             if (NativeLibrary.TryLoad(logical, assembly, searchPath, out var defaultHandle))
             {
+                VerifyLoadedCoreExports(logical, logical, "default-loader", defaultHandle);
                 ResolvedPaths[logical] = (logical, "default-loader", defaultHandle);
                 return defaultHandle;
             }
 
             return IntPtr.Zero;
+        }
+
+        // Admission precedes publishing a resolver handle because public CPU/status
+        // diagnostics can call native functions without the IsAvailable gate.
+        private static void VerifyLoadedCoreExports(string logical, string path, string provenance, IntPtr handle)
+        {
+            if (!string.Equals(logical, "pcai_core_lib", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            try
+            {
+                if (PcaiCore.VerifyRequiredExports(handle, out var missingExports))
+                    return;
+                throw new EntryPointNotFoundException(
+                    $"Native library '{path}' ({provenance}) is missing required export '{missingExports[0]}'.");
+            }
+            catch (Exception admissionError)
+            {
+                // A rejected TryLoad owns one reference, including when verification
+                // itself throws. Never publish that handle as a successful binding.
+                try { NativeLibrary.Free(handle); }
+                catch (Exception releaseError)
+                {
+                    throw new AggregateException(
+                        $"Rejected native library '{path}' failed admission and its owned load could not be released.",
+                        admissionError, releaseError);
+                }
+                throw;
+            }
         }
 
         private static IEnumerable<string> LoadConfigSearchPaths(Assembly assembly, string sectionName)

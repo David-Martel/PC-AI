@@ -573,3 +573,10 @@ When adding new functionality:
 ## License
 
 This testing framework is part of the PC_AI project and follows the same license terms.
+
+## Native resolver admission
+
+The [retained partial/full-symbol resolver controls](Portable/native-resolver-admission-review.md)
+run in the existing native managed test project. They detect native calls or cached
+handles from a core that failed required-export admission. Synthetic symbol
+fixtures do not qualify the production Rust core or a deployed native bundle.

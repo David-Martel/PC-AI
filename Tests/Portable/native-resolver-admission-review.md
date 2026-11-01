@@ -1,0 +1,145 @@
+# Resolver admission before public native diagnostics
+
+The [resolver](../../Native/PcaiNative/NativeResolver.cs) checks the existing
+[required export inventory](../../Native/PcaiNative/PcaiCore.cs) before publishing
+any selected core handle. A rejected handle is released, including when the
+verification itself throws. A cleanup failure retains both admission and release
+exceptions. Other native modules retain their existing resolution behavior.
+
+The [eight xUnit cases](../../Native/PcaiNative.Tests/NativeResolverPartialCoreAdmissionTests.cs)
+run through the existing managed test project and bounded child-process helper:
+
+```powershell
+dotnet test Native/PcaiNative.Tests/PcaiNative.Tests.csproj -c Release --filter FullyQualifiedName~NativeResolverPartialCoreAdmissionTests
+```
+
+Each case compiles an owned synthetic partial or full-symbol native library and
+starts a fresh profile-free, non-interactive PowerShell child. Cleanup resolves
+the full fixture path under its captured temporary root and refuses a linked
+fixture root before recursive removal. Test and cleanup failures retain both
+exceptions. The four call paths are public
+CpuCount, GetDiagnostics, GetStatusDescription and the exact production resolver
+callback. Partial fixtures must return the existing managed CPU/status fallbacks,
+publish no resolver record and report the exact missing-export exception when the
+callback is called directly. Windows also verifies the rejected module is unloaded
+before the child exits. Full-symbol fixtures retain native sentinel results,
+availability and the successful binding. The fixture derives its symbol inventory
+from the production list rather than maintaining another required-export list.
+
+Source-bound Windows evidence used accepted main
+`e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2` and integration
+`6bf800ffb552811c2682b67d7f2a9306e5a244af`. For each unchanged source, the actual
+retained xUnit regression executes eight cases: four partial cases fail and four
+full-symbol positive cases pass. With the resolver repair each executes eight
+passes, zero failures and zero skips. The preceding exception-safe-r2 packet has separate fresh .NET8 console controls
+for the byte-identical resolver repair, reproducing the same four paths and
+Windows loader observations. Those console results remain predecessor evidence;
+the current test-source revision is qualified by the fresh xUnit runs. These
+overlapping cohorts are not added as unique tests.
+
+Before repair a rejected partial core returns CPU sentinel 424242 through
+GetDiagnostics while reporting IsAvailable=false. After repair this host returns
+the managed CPU count 16, records no native binding and unloads the partial module.
+The direct resolver reports the selected path, provenance and missing
+pcai_free_string export. Raw TRX, logs, exact source snapshots and SHA256 bindings
+are identified in the PR alongside the current source-bound run. Source changes
+require a fresh run and independent review. Review hashes convert CRLF to LF and
+retain any UTF-8 BOM; raw capture hashes remain separate.
+
+The [existing review register](native-library-lifetime-review.json) appends one
+independently reviewed disposition per new case, with exact test/resolver bytes and peer source
+hashes. Earlier lifetime reviews remain historical. The existing native override
+admission workflow discovers this test source automatically; no workflow is added.
+
+Synthetic full-symbol fixtures qualify inventory, magic/string-copy round-trip,
+and the called CPU/status behavior only. Uncalled symbols are inert placeholders,
+not production C ABI implementations. These runs do not qualify a production Rust
+core, GPU/model execution, deployment, performance, exceptional OS unload failures,
+or Linux/macOS execution. Existing real-core CI controls retain those distinct
+boundaries. The exception-preserving cleanup branch is source-reviewed, not an
+injected operating-system failure test.
+
+## Retained override controls
+
+The existing [Python override fixture](test_native_override_admission.py) now
+builds the actual production bridge and references it from its probe. The probe
+registers the production resolver for its own P/Invoke assembly. It obtains the
+complete symbol inventory from PcaiCore.RequiredExports before creating its
+owned sentinel libraries, preserving the previous default 7 and explicit 42
+selection checks. Its uncalled symbol placeholders establish admission inventory
+only. The fixture clears unrelated bundle selection and confines discovery to
+its owned root.
+
+All six missing/unloadable override subcases, the default plus three valid
+overrides, and three new loadable-partial refusal subcases pass on Windows.
+Replaying the updated fixture against the unchanged accepted resolver executes
+sentinel 99 in all three partial subcases and fails those assertions. The actual
+production-core selector remains an explicit local skip when its artifact is
+absent. Existing temporary-admission lifetime controls pass the partial/unload
+case and explicitly skip their unavailable real-core positive. The existing
+native admission CI still supplies and requires its host-built real core.
+
+The [override review register](native-override-review.json) appends new
+source-bound dispositions without changing earlier reviews. Current local
+managed execution passes 33 selected resolver, P/Invoke and bounded-process
+cases with zero skips. These cohorts overlap with the focused cases above and
+are not an additive coverage total. No installed native binary was replaced.
+
+The current review rows bind the exact source commit and selector hashes. Local
+execution used the .NET11 preview SDK targeting .NET8 on Windows x64; explicit
+real-core skips remain skips after the source-review keep disposition.
+
+## Canonical Windows fixture paths
+
+The first hosted Windows admission run rejected the partial native libraries
+correctly, but three full-path assertions compared a RUNNER~1 temporary-root
+alias with the resolver's expanded runneradmin path. The
+[original failing Windows job](https://github.com/David-Martel/PC-AI/actions/runs/41344436179/job/124961131951)
+remains retained as evidence; required CI success and the merge did not qualify
+that optional job.
+
+The fixture now resolves its owned TemporaryDirectory root before constructing
+any child paths. The strict complete selected-path assertion remains unchanged.
+An owned Windows short-path replay reproduces all three original assertion
+failures and then passes with the canonical root. The four-selector local
+cohort passes three selectors and explicitly skips its absent real-core input.
+This changes test path identity only; installed binaries and native resolution
+behavior are unchanged. Hosted Windows qualification requires the follow-up's
+actual admission result rather than the earlier merge or local result.
+
+## Draft233 accepted-main convergence
+
+The draft integrates accepted main `816038d4eeafcdeefb42bca37a8834fec3ce7491`
+with prior draft source `093bf5526768220168a1fd8f43100f7230259636`. Its resolver
+retains the loaded path, provenance and owned-handle tuple. Both load sites run
+the accepted required-export verifier before publishing that tuple; the accepted
+exception-safe rejection cleanup remains unchanged. The paired-bundle and
+loaded-identity contracts are retained.
+
+The current draft's selected managed resolver, P/Invoke and bounded-process
+cohort passes 40 cases with zero failures or skips. It includes the eight
+partial/full-symbol admission cases. An independent fresh execution of those
+eight cases also passes without skips. The actual Python override fixture
+passes three selectors and explicitly skips its absent production-core input;
+the lifetime fixture passes its partial/unload selector and skips its absent
+real-core positive. These Python executions are the integrating lane's results,
+not an independent rerun. Fresh built-bridge loaded-identity/paired-initializer
+and default-loader reuse controls also pass against owned inert C fixtures.
+Overlapping cohorts are not summed.
+
+The registers append `draft233-accepted-main816-refresh` rows bound to resolver
+hash `c9fbdedb91b93388ce34b7538c6a2e55b8b6b9436853453c3fcbda1d455ed8e9`
+and the current draft peer hashes. Existing main rows bound to `5ec60dcb` and
+their original reviewed commits retain their historical bytes and scope.
+Raw controls and source/custody receipts remain in the operator's stable
+`r3/integration/accepted-native-refresh` evidence directory. Builds used the
+.NET11 preview SDK targeting .NET8 on Windows x64; outputs remain in that owned
+evidence directory and disposable fixture roots.
+
+PowerShell module blobs, the canonical Pester engine, WindowsCI profile and
+workflow cohort are unchanged by this merge. The earlier full `6bf800f` receipt
+remains immutable: 4,140 passed, zero failed, 40 skipped, with source-bound
+coverage 65.8277818899581 percent below the unchanged 85 percent target. It was
+not relabeled as a full run of the later native-source head. No installed
+native binary, model/GPU, complete production ABI, deployment, performance or
+exceptional operating-system unload qualification follows from these controls.

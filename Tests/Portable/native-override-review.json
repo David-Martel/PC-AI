@@ -327,13 +327,13 @@
       "detects": "Fallback after missing/unloadable authoritative override",
       "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
       "validation": "PASS under ordinary local temp root and owned actual Windows8.3 alias, retaining all prior default/explicit/refusal cases",
-      "scope": "Owned temporary-root canonicalization; existing complete-path and provenance assertions unchanged. Windows local true8.3 alias replay; actual hosted Windows result pending. No native/deployment/ABI/HIL qualification.",
+      "scope": "Canonical temporary-root/path selection assertions, partial-core refusal and local alias replay; no provenance-label assertion or complete ABI/deployment qualification.",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
       "receipt": "native-resolver-admission-review.md",
       "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope",
       "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d",
       "reviewed_commit": "3e9104fe69229e514689f13593c4c4cea030e278",
-      "review_scope": "Independent actual one-line constructor canonicalization review; unchanged strict full-path/provenance assertions; local real Windows8.3 alias red3/green0 and normal three-pass/one-real-core-skip. Ruff passes, typing zero errors/28 advisory warnings. Hosted Windows qualification requires its actual new-head job; no production-native/deployment/ABI/HIL claim."
+      "review_scope": "Independent root review of one-line constructor canonicalization and unchanged selected-path/refusal/sentinel assertions; local real Windows8.3 alias red3/green0 and ordinary three-pass/one-real-core-skip. Exact hosted head5a2f7b7e80d2ef4823924fd0c8125dd4ae8e7144 executed all four Python selectors with no skips on Windows and Linux. No Python provenance-label assertion, full ABI, deployed-runtime or HIL qualification; subsequent metadata head still requires its own actual CI result."
     },
     {
       "selector": "NativeOverrideTests.test_valid_override_and_default_load_real_native_artifacts",
@@ -362,13 +362,13 @@
       "detects": "Unconditional rejection or wrong default/override sentinel",
       "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
       "validation": "PASS under ordinary local temp root and owned actual Windows8.3 alias, retaining all prior default/explicit/refusal cases",
-      "scope": "Owned temporary-root canonicalization; existing complete-path and provenance assertions unchanged. Windows local true8.3 alias replay; actual hosted Windows result pending. No native/deployment/ABI/HIL qualification.",
+      "scope": "Canonical temporary-root/path selection assertions, partial-core refusal and local alias replay; no provenance-label assertion or complete ABI/deployment qualification.",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
       "receipt": "native-resolver-admission-review.md",
       "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope",
       "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d",
       "reviewed_commit": "3e9104fe69229e514689f13593c4c4cea030e278",
-      "review_scope": "Independent actual one-line constructor canonicalization review; unchanged strict full-path/provenance assertions; local real Windows8.3 alias red3/green0 and normal three-pass/one-real-core-skip. Ruff passes, typing zero errors/28 advisory warnings. Hosted Windows qualification requires its actual new-head job; no production-native/deployment/ABI/HIL claim."
+      "review_scope": "Independent root review of one-line constructor canonicalization and unchanged selected-path/refusal/sentinel assertions; local real Windows8.3 alias red3/green0 and ordinary three-pass/one-real-core-skip. Exact hosted head5a2f7b7e80d2ef4823924fd0c8125dd4ae8e7144 executed all four Python selectors with no skips on Windows and Linux. No Python provenance-label assertion, full ABI, deployed-runtime or HIL qualification; subsequent metadata head still requires its own actual CI result."
     },
     {
       "selector": "NativeOverrideTests.test_partial_override_refuses_export_before_native_sentinel",
@@ -397,13 +397,13 @@
       "detects": "Calling partial sentinel99 or falling back to default7",
       "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
       "validation": "Original accepted test reproduces three full-path failures with owned8.3 alias; canonical-root candidate passes all three unchanged assertions",
-      "scope": "Owned temporary-root canonicalization; existing complete-path and provenance assertions unchanged. Windows local true8.3 alias replay; actual hosted Windows result pending. No native/deployment/ABI/HIL qualification.",
+      "scope": "Canonical temporary-root/path selection assertions, partial-core refusal and local alias replay; no provenance-label assertion or complete ABI/deployment qualification.",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
       "receipt": "native-resolver-admission-review.md",
       "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope",
       "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d",
       "reviewed_commit": "3e9104fe69229e514689f13593c4c4cea030e278",
-      "review_scope": "Independent actual one-line constructor canonicalization review; unchanged strict full-path/provenance assertions; local real Windows8.3 alias red3/green0 and normal three-pass/one-real-core-skip. Ruff passes, typing zero errors/28 advisory warnings. Hosted Windows qualification requires its actual new-head job; no production-native/deployment/ABI/HIL claim."
+      "review_scope": "Independent root review of one-line constructor canonicalization and unchanged selected-path/refusal/sentinel assertions; local real Windows8.3 alias red3/green0 and ordinary three-pass/one-real-core-skip. Exact hosted head5a2f7b7e80d2ef4823924fd0c8125dd4ae8e7144 executed all four Python selectors with no skips on Windows and Linux. No Python provenance-label assertion, full ABI, deployed-runtime or HIL qualification; subsequent metadata head still requires its own actual CI result."
     },
     {
       "selector": "NativeOverrideTests.test_real_core_pinvoke_when_artifact_supplied",
@@ -432,13 +432,13 @@
       "detects": "Wrong artifact/magic or failed production binding",
       "needs": "dotnet8/rustc, actual production bridge sources and owned subprocess fixtures; real-core selector additionally requires explicit host artifact",
       "validation": "Explicit local SKIP: production core absent; this selector remains required with CI host-built artifact",
-      "scope": "Owned temporary-root canonicalization; existing complete-path and provenance assertions unchanged. Windows local true8.3 alias replay; actual hosted Windows result pending. No native/deployment/ABI/HIL qualification.",
+      "scope": "Canonical temporary-root/path selection assertions, partial-core refusal and local alias replay; no provenance-label assertion or complete ABI/deployment qualification.",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
       "receipt": "native-resolver-admission-review.md",
       "execution_disposition": "SKIP: real production core not supplied locally",
       "test_setup_sha256": "10c8fa3d665cb28ae04ca14cf4bf48d87524a216cae8a42406942dd1cc8eb61d",
       "reviewed_commit": "3e9104fe69229e514689f13593c4c4cea030e278",
-      "review_scope": "Independent actual one-line constructor canonicalization review; unchanged strict full-path/provenance assertions; local real Windows8.3 alias red3/green0 and normal three-pass/one-real-core-skip. Ruff passes, typing zero errors/28 advisory warnings. Hosted Windows qualification requires its actual new-head job; no production-native/deployment/ABI/HIL claim."
+      "review_scope": "Independent root review of one-line constructor canonicalization and unchanged selected-path/refusal/sentinel assertions; local real Windows8.3 alias red3/green0 and ordinary three-pass/one-real-core-skip. Exact hosted head5a2f7b7e80d2ef4823924fd0c8125dd4ae8e7144 executed all four Python selectors with no skips on Windows and Linux. No Python provenance-label assertion, full ABI, deployed-runtime or HIL qualification; subsequent metadata head still requires its own actual CI result."
     }
   ]
 }

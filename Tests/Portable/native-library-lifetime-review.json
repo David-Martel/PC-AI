@@ -51,10 +51,10 @@
         }
       ],
       "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
-      "disposition": "unreviewed",
-      "reviewer": "",
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -63,7 +63,10 @@
       "receipt": "native-resolver-admission-review.md",
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
-      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only"
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=diagnostics, fullSymbols=false)",
@@ -86,10 +89,10 @@
         }
       ],
       "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
-      "disposition": "unreviewed",
-      "reviewer": "",
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -98,7 +101,10 @@
       "receipt": "native-resolver-admission-review.md",
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
-      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only"
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=status, fullSymbols=false)",
@@ -121,10 +127,10 @@
         }
       ],
       "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
-      "disposition": "unreviewed",
-      "reviewer": "",
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -133,7 +139,10 @@
       "receipt": "native-resolver-admission-review.md",
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
-      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only"
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=resolver, fullSymbols=false)",
@@ -156,10 +165,10 @@
         }
       ],
       "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
-      "disposition": "unreviewed",
-      "reviewer": "",
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -168,7 +177,10 @@
       "receipt": "native-resolver-admission-review.md",
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
-      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only"
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=cpu, fullSymbols=true)",
@@ -191,10 +203,10 @@
         }
       ],
       "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
-      "disposition": "unreviewed",
-      "reviewer": "",
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -203,7 +215,10 @@
       "receipt": "native-resolver-admission-review.md",
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
-      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only"
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=diagnostics, fullSymbols=true)",
@@ -226,10 +241,10 @@
         }
       ],
       "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
-      "disposition": "unreviewed",
-      "reviewer": "",
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -238,7 +253,10 @@
       "receipt": "native-resolver-admission-review.md",
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
-      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only"
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=status, fullSymbols=true)",
@@ -261,10 +279,10 @@
         }
       ],
       "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
-      "disposition": "unreviewed",
-      "reviewer": "",
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -273,7 +291,10 @@
       "receipt": "native-resolver-admission-review.md",
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
-      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only"
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=resolver, fullSymbols=true)",
@@ -296,10 +317,10 @@
         }
       ],
       "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
-      "disposition": "unreviewed",
-      "reviewer": "",
-      "reviewer_type": "unreviewed",
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -308,7 +329,10 @@
       "receipt": "native-resolver-admission-review.md",
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
-      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only"
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
     }
   ]
 }

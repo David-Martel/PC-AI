@@ -47,7 +47,7 @@ require a fresh run and independent review. Review hashes convert CRLF to LF and
 retain any UTF-8 BOM; raw capture hashes remain separate.
 
 The [existing review register](native-library-lifetime-review.json) appends one
-unreviewed disposition per new case, with exact test/resolver bytes and peer source
+independently reviewed disposition per new case, with exact test/resolver bytes and peer source
 hashes. Earlier lifetime reviews remain historical. The existing native override
 admission workflow discovers this test source automatically; no workflow is added.
 
@@ -84,3 +84,7 @@ source-bound dispositions without changing earlier reviews. Current local
 managed execution passes 33 selected resolver, P/Invoke and bounded-process
 cases with zero skips. These cohorts overlap with the focused cases above and
 are not an additive coverage total. No installed native binary was replaced.
+
+The current review rows bind the exact source commit and selector hashes. Local
+execution used the .NET11 preview SDK targeting .NET8 on Windows x64; explicit
+real-core skips remain skips after the source-review keep disposition.

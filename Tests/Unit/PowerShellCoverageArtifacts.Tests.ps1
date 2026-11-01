@@ -3,9 +3,9 @@
 BeforeAll {
     $workflow = Join-Path $PSScriptRoot '../../.github/workflows/ci.yml'
     $lines = [IO.File]::ReadAllLines($workflow)
-    $matches = @(0..($lines.Count - 1) | Where-Object { $lines[$_] -eq '      - name: Require complete PowerShell coverage artifacts' })
-    if ($matches.Count -ne 1) { throw 'Expected exactly one complete coverage artifact guard step.' }
-    $start = $matches[0] + 1
+    $stepMatches = @(0..($lines.Count - 1) | Where-Object { $lines[$_] -eq '      - name: Require complete PowerShell coverage artifacts' })
+    if ($stepMatches.Count -ne 1) { throw 'Expected exactly one complete coverage artifact guard step.' }
+    $start = $stepMatches[0] + 1
     $end = $start
     while ($end -lt $lines.Count -and $lines[$end] -notmatch '^      - ') { $end++ }
     $step = @($lines[$start..($end - 1)])

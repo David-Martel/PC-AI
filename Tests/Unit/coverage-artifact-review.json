@@ -6,7 +6,7 @@
     {
       "selector": "accepts the actual step when all three required artifacts exist",
       "test_path": "Tests/Unit/PowerShellCoverageArtifacts.Tests.ps1",
-      "test_sha256": "0322f5f588efd86d2ee57fb612609e55adfce8497f0e6d7a0ab8adcef3d90b14",
+      "test_sha256": "017b6741a70896fc1f8f7cb7df53cf6643649636e079dc65079404721a0f4226",
       "selector_sha256": "2c9ca5d6e5f29252c415ac19de2fb771449f5cef5cc34e0d76b5e61f494b2282",
       "source_sha256": {
         ".github/workflows/ci.yml": "f2d404d01aac24686ad337597c3e40f3fc0914c7755d0dba817db11a5b3ab918"
@@ -21,7 +21,7 @@
     {
       "selector": "rejects missing <Leaf> even when the other two artifacts exist",
       "test_path": "Tests/Unit/PowerShellCoverageArtifacts.Tests.ps1",
-      "test_sha256": "0322f5f588efd86d2ee57fb612609e55adfce8497f0e6d7a0ab8adcef3d90b14",
+      "test_sha256": "017b6741a70896fc1f8f7cb7df53cf6643649636e079dc65079404721a0f4226",
       "selector_sha256": "a8437e0529b728b7e5f88457f3fcc2b143e58c6934b5966f0fe06b016232db48",
       "source_sha256": {
         ".github/workflows/ci.yml": "f2d404d01aac24686ad337597c3e40f3fc0914c7755d0dba817db11a5b3ab918"
@@ -36,7 +36,7 @@
     {
       "selector": "rejects a directory at the required coverage XML path",
       "test_path": "Tests/Unit/PowerShellCoverageArtifacts.Tests.ps1",
-      "test_sha256": "0322f5f588efd86d2ee57fb612609e55adfce8497f0e6d7a0ab8adcef3d90b14",
+      "test_sha256": "017b6741a70896fc1f8f7cb7df53cf6643649636e079dc65079404721a0f4226",
       "selector_sha256": "831efc507ece154ab5f44a496e44cfebef26e59ea2f229f4a3153b41120bd394",
       "source_sha256": {
         ".github/workflows/ci.yml": "f2d404d01aac24686ad337597c3e40f3fc0914c7755d0dba817db11a5b3ab918"

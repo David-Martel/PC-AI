@@ -12,11 +12,13 @@
         ".github/workflows/ci.yml": "f2d404d01aac24686ad337597c3e40f3fc0914c7755d0dba817db11a5b3ab918"
       },
       "rationale": "Protects complete XML/source-binding/result-summary artifact admission. Detects any-match uploads masking a missing member or a directory substituting for XML. Needs Pester5, actual embedded PowerShell and owned TestDrive; no network or provider mocks. Breadcrumb: ci.yml Require complete PowerShell coverage artifacts.",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "receipt": "integration-refresh-review.md"
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_commit": "11d1fe7baa4d418fb468c8d731a8e09877c40e37",
+      "disposition": "keep",
+      "receipt": "integration-refresh-review.md",
+      "reviewed_utc": "2026-11-01T19:38:22.6303942Z",
+      "scope": "Independent architect review confirmed the required-XML masking defect is closed at32c879d and reviewed the five actual-step controls. Parent root, not the fixture author, reviewed the matches-to-stepMatches-only change at11d1fe7 and independently verified all current source/test/AST hashes. This is workflow artifact admission, not full WindowsCI85-percent or runtime deployment acceptance."
     },
     {
       "selector": "rejects missing <Leaf> even when the other two artifacts exist",
@@ -27,11 +29,13 @@
         ".github/workflows/ci.yml": "f2d404d01aac24686ad337597c3e40f3fc0914c7755d0dba817db11a5b3ab918"
       },
       "rationale": "Protects complete XML/source-binding/result-summary artifact admission. Detects any-match uploads masking a missing member or a directory substituting for XML. Needs Pester5, actual embedded PowerShell and owned TestDrive; no network or provider mocks. Breadcrumb: ci.yml Require complete PowerShell coverage artifacts.",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "receipt": "integration-refresh-review.md"
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_commit": "11d1fe7baa4d418fb468c8d731a8e09877c40e37",
+      "disposition": "keep",
+      "receipt": "integration-refresh-review.md",
+      "reviewed_utc": "2026-11-01T19:38:22.6360472Z",
+      "scope": "Independent architect review confirmed the required-XML masking defect is closed at32c879d and reviewed the five actual-step controls. Parent root, not the fixture author, reviewed the matches-to-stepMatches-only change at11d1fe7 and independently verified all current source/test/AST hashes. This is workflow artifact admission, not full WindowsCI85-percent or runtime deployment acceptance."
     },
     {
       "selector": "rejects a directory at the required coverage XML path",
@@ -42,11 +46,17 @@
         ".github/workflows/ci.yml": "f2d404d01aac24686ad337597c3e40f3fc0914c7755d0dba817db11a5b3ab918"
       },
       "rationale": "Protects complete XML/source-binding/result-summary artifact admission. Detects any-match uploads masking a missing member or a directory substituting for XML. Needs Pester5, actual embedded PowerShell and owned TestDrive; no network or provider mocks. Breadcrumb: ci.yml Require complete PowerShell coverage artifacts.",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_commit": null,
-      "disposition": "unreviewed",
-      "receipt": "integration-refresh-review.md"
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_commit": "11d1fe7baa4d418fb468c8d731a8e09877c40e37",
+      "disposition": "keep",
+      "receipt": "integration-refresh-review.md",
+      "reviewed_utc": "2026-11-01T19:38:22.6361735Z",
+      "scope": "Independent architect review confirmed the required-XML masking defect is closed at32c879d and reviewed the five actual-step controls. Parent root, not the fixture author, reviewed the matches-to-stepMatches-only change at11d1fe7 and independently verified all current source/test/AST hashes. This is workflow artifact admission, not full WindowsCI85-percent or runtime deployment acceptance."
     }
-  ]
+  ],
+  "independent_hash_receipt": {
+    "Path": "C:/codedev/evidence/pcai-fleet-integration/r3/integration/artifact-independent-hash-checks.json",
+    "SHA256": "2DD09EEA2C3BCFB3E4D5334473CF57C5BF697FBCDA9930277D23E94932CB97CB"
+  }
 }

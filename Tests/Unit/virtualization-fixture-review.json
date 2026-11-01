@@ -28,5 +28,24 @@
     "Skipped": 0,
     "Passed": 50,
     "SHA256": "412AB640D7FAF9BF28FEB027F7EFC9637F6FB9496965DD41612DBEB94FF6670F"
+  },
+  "accepted_source_windows_receipt": {
+    "Path": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/publication-virtualization.json",
+    "Source": "Accepted runtime-discovery fix plus canonical plural public-name proposal; primary fixture exact d4 hash.",
+    "Passed": 38,
+    "NotRun": 0,
+    "Skipped": 0,
+    "Failed": 0
+  },
+  "accepted_source_independent_receipt": {
+    "VirtualizationCases": 38,
+    "CombinedApiCases": 6,
+    "SHA256": "5C394CE06B88EA61AA6B1A666725CEC62CA25C82BDF3ED7F297CA18BE3E5638C",
+    "Passed": 44,
+    "NotRun": 0,
+    "Skipped": 0,
+    "Scope": "Root independently read the exact d4 fixture and main-relative guards plus canonical plural source and new API assertions, then ran the actual primary sources; prior pair50 receipt is integration-draft history.",
+    "Failed": 0,
+    "Path": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/public-api-root-peer.json"
   }
 }

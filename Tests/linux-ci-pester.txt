@@ -1,3 +1,6 @@
+# Fresh real evaluation consumers and endpoint contracts; see Unit/evaluation-runtime-review.md.
+EvaluationSuiteType.Tests.ps1
+
 # Syntax-only staged source must never execute; see Unit/powershell-syntax-review.md.
 PowerShellSyntaxHook.Tests.ps1
 
@@ -24,6 +27,7 @@ Invoke-JulesOrchestrator.Tests.ps1
 Invoke-JulesSession.Tests.ps1
 Invoke-LLMChatRouted.Tests.ps1
 Invoke-RustBuild.Tests.ps1
+EvaluationSmokeWorkflow.Tests.ps1
 LLM-ErrorHandling.Tests.ps1
 LLM-Fallback.Tests.ps1
 LLM-Logging.Tests.ps1
@@ -35,6 +39,8 @@ PC-AI.LLM.Tests.ps1
 PC-AI.Robustness.Tests.ps1
 PC-AI.Router.Tests.ps1
 PcaiCommandMapEmptyModules.Tests.ps1
+PcaiDeclaredPublicApi.Tests.ps1
+PcaiRuntimeDiscoveryIsolation.Tests.ps1
 ProviderHealthCache.Tests.ps1
 Resolve-PcaiPath.Tests.ps1
 RustGuidelines.Compliance.Tests.ps1

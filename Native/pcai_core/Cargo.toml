@@ -141,6 +141,11 @@ unused_result_ok = "allow"                 # 1 site
 
 [patch.crates-io]
 #candle-kernels = { path = "vendor/candle-kernels-0.9.2" }
+# Exact published Candle sources with a reviewed ZIP9/header-consistency backport.
+# Keep all locked versions covered; see ../../vendor/README.md.
+candle-core-09 = { package = "candle-core", path = "../../vendor/candle-core-0.9.2" }
+candle-core-10 = { package = "candle-core", path = "../../vendor/candle-core-0.10.2" }
+candle-core-11 = { package = "candle-core", path = "../../vendor/candle-core-0.11.0" }
 
 [patch."https://github.com/rustformers/llama-rs.git"]
 ggml-sys = { path = "third_party/ggml-sys" }

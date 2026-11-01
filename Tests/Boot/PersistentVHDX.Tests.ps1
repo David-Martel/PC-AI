@@ -361,12 +361,12 @@ Describe 'Register-PersistentVHDXTasks planner' -Tag 'Unit', 'Boot', 'VHD' {
 
     It 'registers the verified shared-dev backing path without changing other disk paths' {
         $plans = @(New-PersistentVHDXTaskPlan -ScriptPath $script:MountScript -LogRoot 'C:\Logs\VHDMount' -PowerShellExe 'pwsh.exe')
-        ($plans | Where-Object TaskName -eq 'AutoMount_VHDX_shared-dev').Argument | Should -Match ([regex]::Escape('-VhdPath "D:\vm\shared-dev.vhdx"'))
+        ($plans | Where-Object TaskName -eq 'AutoMount_VHDX_shared-dev').Argument | Should -Match ([regex]::Escape('-VhdPath "T:\vm\shared-dev.vhdx"'))
         ($plans | Where-Object TaskName -eq 'AutoMount_VHDX_cloud-cache-disk').Argument | Should -Match ([regex]::Escape('-VhdPath "T:\vm\cloud-cache-disk.vhdx"'))
         ($plans | Where-Object TaskName -eq 'AutoMount_VHDX_share-ext4').Argument | Should -Match ([regex]::Escape('-VhdPath "T:\vm\share-ext4.vhdx"'))
         $previewRoot = Join-Path $TestDrive 'diagnostic-preview-no-writes'
         $preview = & (Join-Path $script:RepoRoot 'Tools\Collect-BootDiagnostics.ps1') -DryRun -OutputRoot $previewRoot
-        ($preview.ExpectedVhds | Where-Object Name -eq 'shared-dev').Path | Should -Be 'D:\vm\shared-dev.vhdx'
+        ($preview.ExpectedVhds | Where-Object Name -eq 'shared-dev').Path | Should -Be 'T:\vm\shared-dev.vhdx'
         Test-Path -LiteralPath $previewRoot | Should -BeFalse
     }
 

@@ -229,11 +229,11 @@
       "name": "AutoMount_VHDX_shared-dev",
       "category": "own",
       "state": "Ready",
-      "purpose": "At boot mounts and validates D:\\vm\\shared-dev.vhdx, expects volume WSL-Shared-Dev on W: NTFS via the maintained wrapper Mount-PersistentVHDX.ps1.",
+      "purpose": "At boot mounts and validates T:\\vm\\shared-dev.vhdx, expects volume WSL-Shared-Dev on W: NTFS via the maintained wrapper Mount-PersistentVHDX.ps1.",
       "confidence": "read",
       "owner": "PC_AI",
       "script": "C:\\codedev\\PC_AI\\Tools\\Mount-PersistentVHDX.ps1",
-      "command": "C:\\Program Files\\PowerShell\\7\\pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"C:\\codedev\\PC_AI\\Tools\\Mount-PersistentVHDX.ps1\" -VhdPath \"D:\\vm\\shared-dev.vhdx\" -TaskName \"AutoMount_VHDX_shared-dev\" -ExpectedState Volume -StartupDelaySeconds 60 -WaitForVhdSeconds 15 -LogRoot \"C:\\codedev\\PC_AI\\Tools\\..\\Logs\\VHDMount\" -ExpectedVolumeLabel \"WSL-Shared-Dev\" -ExpectedDriveLetter W -ExpectedFileSystem NTFS",
+      "command": "C:\\Program Files\\PowerShell\\7\\pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"C:\\codedev\\PC_AI\\Tools\\Mount-PersistentVHDX.ps1\" -VhdPath \"T:\\vm\\shared-dev.vhdx\" -TaskName \"AutoMount_VHDX_shared-dev\" -ExpectedState Volume -StartupDelaySeconds 60 -WaitForVhdSeconds 15 -LogRoot \"C:\\codedev\\PC_AI\\Tools\\..\\Logs\\VHDMount\" -ExpectedVolumeLabel \"WSL-Shared-Dev\" -ExpectedDriveLetter W -ExpectedFileSystem NTFS",
       "triggers": [
         {
           "type": "Boot",

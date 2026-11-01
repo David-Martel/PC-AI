@@ -30,6 +30,10 @@ same ordered 19-path WindowsCI cohort. That profile refuses narrowing filters.
 `-Path` selects literal test files inside Tests; `-FullName` narrows their cases.
 These focused selections are diagnostics, not full acceptance.
 
+The [acceptance refresh fixture record](../Tests/Unit/integration-refresh-review.md)
+explains the endpoint and publication doubles needed when combining the draft
+runner with accepted source. Its targeted results do not satisfy WindowsCI.
+
 | Entrypoint | Purpose |
 |---|---|
 | `Tests/.pester.ps1` | Canonical execution, planning, result validation, source-bound coverage |

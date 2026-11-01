@@ -324,6 +324,13 @@ different historical All meanings. Use `Tests/coverage-report.ps1` with an actua
 source-bound snapshot to rank missed commands; filename counts are inventory.
 Benchmark baselines must bind the exact measurement harness; review and
 explicitly regenerate incompatible baselines instead of comparing changed clocks.
+The locked Candle versions use audited ZIP 9 backports under `vendor/`.
+When changing archive readers, Cargo constraints or these patches, run
+`uv run --no-project python Tools/verify_candle_vendor.py`, the portable
+`test_candle_vendor.py` custody controls and the 36 CPU archive contracts at
+`Tests/Portable/candle-zip-security/Cargo.toml`; see
+[vendor provenance and scope](vendor/README.md). Both application workspace
+locks must remain covered. These tests do not qualify installed native binaries.
 
 At minimum, choose the narrowest relevant validation path:
 

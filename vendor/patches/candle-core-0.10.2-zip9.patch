@@ -1,0 +1,129 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -241,7 +241,7 @@
+ features = ["derive"]
+ 
+ [dependencies.zip]
+-version = "7.2.0"
++version = "9.1.3"
+ default-features = false
+ 
+ [dev-dependencies.anyhow]
+--- a/src/npy.rs
++++ b/src/npy.rs
+@@ -286,10 +286,13 @@
+         let mut zip = zip::ZipArchive::new(zip_reader)?;
+         let mut result = vec![];
+         for i in 0..zip.len() {
+-            let mut reader = zip.by_index(i)?;
++            let mut reader = zip.by_index_with_options(
++                i,
++                zip::ZipReadOptions::new().enforce_header_consistency(true),
++            )?;
+             let name = {
+-                let name = reader.name();
+-                name.strip_suffix(NPY_SUFFIX).unwrap_or(name).to_owned()
++                let name = reader.name()?;
++                name.strip_suffix(NPY_SUFFIX).unwrap_or(&name).to_owned()
+             };
+             let header = read_header(&mut reader)?;
+             let header = Header::parse(&header)?;
+@@ -308,7 +311,10 @@
+         let mut zip = zip::ZipArchive::new(zip_reader)?;
+         let mut result = vec![];
+         for name in names.iter() {
+-            let mut reader = match zip.by_name(&format!("{name}{NPY_SUFFIX}")) {
++            let mut reader = match zip.by_name_with_options(
++                &format!("{name}{NPY_SUFFIX}"),
++                zip::ZipReadOptions::new().enforce_header_consistency(true),
++            ) {
+                 Ok(reader) => reader,
+                 Err(_) => Err(Error::Npy(format!(
+                     "no array for {name} in {:?}",
+@@ -383,10 +389,13 @@
+         let mut zip = zip::ZipArchive::new(zip_reader)?;
+         let mut index_per_name = HashMap::new();
+         for i in 0..zip.len() {
+-            let file = zip.by_index(i)?;
++            let file = zip.by_index_with_options(
++                i,
++                zip::ZipReadOptions::new().enforce_header_consistency(true),
++            )?;
+             let name = {
+-                let name = file.name();
+-                name.strip_suffix(NPY_SUFFIX).unwrap_or(name).to_owned()
++                let name = file.name()?;
++                name.strip_suffix(NPY_SUFFIX).unwrap_or(&name).to_owned()
+             };
+             index_per_name.insert(name, i);
+         }
+@@ -409,7 +418,10 @@
+         };
+         let zip_reader = BufReader::new(File::open(&self.path)?);
+         let mut zip = zip::ZipArchive::new(zip_reader)?;
+-        let mut reader = zip.by_index(index)?;
++        let mut reader = zip.by_index_with_options(
++            index,
++            zip::ZipReadOptions::new().enforce_header_consistency(true),
++        )?;
+         let header = read_header(&mut reader)?;
+         let header = Header::parse(&header)?;
+         Ok((header.shape(), header.descr))
+@@ -423,7 +435,10 @@
+         // We hope that the file has not changed since first reading it.
+         let zip_reader = BufReader::new(File::open(&self.path)?);
+         let mut zip = zip::ZipArchive::new(zip_reader)?;
+-        let mut reader = zip.by_index(index)?;
++        let mut reader = zip.by_index_with_options(
++            index,
++            zip::ZipReadOptions::new().enforce_header_consistency(true),
++        )?;
+         let header = read_header(&mut reader)?;
+         let header = Header::parse(&header)?;
+         if header.fortran_order {
+--- a/src/pickle.rs
++++ b/src/pickle.rs
+@@ -675,10 +675,15 @@
+     let file = std::fs::File::open(file)?;
+     let zip_reader = std::io::BufReader::new(file);
+     let mut zip = zip::ZipArchive::new(zip_reader)?;
+-    let zip_file_names = zip
+-        .file_names()
+-        .map(|f| f.to_string())
+-        .collect::<Vec<String>>();
++    // Validate both headers before trusting names or silently skipping entries.
++    let mut zip_file_names = Vec::with_capacity(zip.len());
++    for index in 0..zip.len() {
++        let entry = zip.by_index_with_options(
++            index,
++            zip::ZipReadOptions::new().enforce_header_consistency(true),
++        )?;
++        zip_file_names.push(entry.name()?.into_owned());
++    }
+ 
+     let mut tensor_infos = vec![];
+     for file_name in zip_file_names.iter() {
+@@ -686,7 +691,10 @@
+             continue;
+         }
+         let dir_name = std::path::PathBuf::from(file_name.strip_suffix(".pkl").context("no .pkl")?);
+-        let reader = zip.by_name(file_name)?;
++        let reader = zip.by_name_with_options(
++            file_name,
++            zip::ZipReadOptions::new().enforce_header_consistency(true),
++        )?;
+         let mut reader = std::io::BufReader::new(reader);
+         let mut stack = Stack::empty();
+         stack.read_loop(&mut reader)?;
+@@ -771,7 +779,10 @@
+         // We hope that the file has not changed since first reading it.
+         let zip_reader = std::io::BufReader::new(std::fs::File::open(&self.path)?);
+         let mut zip = zip::ZipArchive::new(zip_reader)?;
+-        let mut reader = zip.by_name(&tensor_info.path)?;
++        let mut reader = zip.by_name_with_options(
++            &tensor_info.path,
++            zip::ZipReadOptions::new().enforce_header_consistency(true),
++        )?;
+         let is_fortran_contiguous = tensor_info.layout.is_fortran_contiguous();
+         let rank = tensor_info.layout.shape().rank();
+ 

@@ -91,7 +91,7 @@ function Get-PersistentVHDXTaskConfig {
             TaskName = 'AutoMount_VHDX_shared-dev'
             # September 12 read-only inspection matched the historical W: disk
             # identifier and volume GUID on D:. No replacement exists on T:.
-            VhdPath = 'D:\vm\shared-dev.vhdx'
+            VhdPath = 'T:\vm\shared-dev.vhdx'
             ExpectedVolumeLabel = 'WSL-Shared-Dev'
             ExpectedDriveLetter = 'W'
             ExpectedFileSystem = 'NTFS'

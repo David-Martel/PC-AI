@@ -10,12 +10,12 @@
       "source_sha256": {
         "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
       },
-      "rationale": "Protects nested receipt creation under held native parents and exact durable append. Detects a wrong GUID leaf or incomplete receipt content. Needs Windows native directory handles and an owned nested TestDrive. Breadcrumb: ReceiptDirectoryCustody constructor/OpenWriter and ReceiptWriter.Append.",
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
       "reviewer": "codex-windows-fleet",
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5653611Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -28,12 +28,12 @@
       "source_sha256": {
         "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
       },
-      "rationale": "Protects held receipt ancestry from replacement before leaf open. Detects missing deny-delete sharing by attempting an actual directory rename and preserving rival content. Needs owned receipt/rival directories and Windows handles. Breadcrumb: ReceiptDirectoryCustody guards and OpenWriter.",
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
       "reviewer": "codex-windows-fleet",
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5709781Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -46,12 +46,12 @@
       "source_sha256": {
         "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
       },
-      "rationale": "Protects receipt leaf identity through verified source deletion. Detects premature handle release or write/delete sharing by actual rival rename/write attempts before and after source deletion. Needs owned source and receipt files. Breadcrumb: PcaiArchiveSource receiptWriter lifetime and DeleteVerified.",
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
       "reviewer": "codex-windows-fleet",
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5732189Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -64,12 +64,12 @@
       "source_sha256": {
         "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
       },
-      "rationale": "Protects a rival target from a symlink installed after ancestor admission. Detects following a newly redirected receipt leaf or writing its target. Needs Windows symbolic-link creation in owned TestDrive. Breadcrumb: ReceiptWriter OpenReparse/RejectReparse and GUID binding.",
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
       "reviewer": "codex-windows-fleet",
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5755378Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -82,12 +82,12 @@
       "source_sha256": {
         "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
       },
-      "rationale": "Protects source deletion admission and rival content against redirected receipt ancestry. Detects junction traversal before append or durable authorization after rejected ancestry. Needs owned Windows junction and rival receipt. Breadcrumb: ReceiptDirectoryCustody RejectReparse and PcaiArchiveSource.PersistVerifiedReceipt.",
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
       "reviewer": "codex-windows-fleet",
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5777986Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -100,12 +100,12 @@
       "source_sha256": {
         "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
       },
-      "rationale": "Protects rival bytes from append through a hardlinked receipt alias. Detects accepting a multiply linked receipt as private. Needs owned NTFS hardlink fixture and native receipt admission. Breadcrumb: ReceiptWriter standard.Links admission.",
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
       "reviewer": "codex-windows-fleet",
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5802794Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"
@@ -118,12 +118,12 @@
       "source_sha256": {
         "Tools/SystemScripts/Storage/PcaiArchiveSource.cs": "a9a8cba1a4fe763a007825e511ddb626881611a3f3415cc5bc1215b68504edd5"
       },
-      "rationale": "Protects source from deletion when strict receipt encoding fails before flush. Detects setting durable authorization before successful append. Needs owned source, receipt and an invalid surrogate input. Breadcrumb: ReceiptWriter.Append and PcaiArchiveSource.PersistVerifiedReceipt/DeleteVerified.",
+      "rationale": "Protects identity-bound receipt append and deletion custody. Detects redirected ancestry, leaf replacement/writers, rival content corruption or deletion without a durable receipt. Needs Windows native handles, symlink/junction-capable owned TestDrive and Pester5. Breadcrumb: ReceiptDirectoryCustody/OpenWriter/ReceiptWriter and the named owned filesystem fixture.",
       "reviewer": "codex-windows-fleet",
       "reviewer_type": "independent-agent",
       "reviewed_utc": "2026-10-28T22:27:38.5825492Z",
       "base_commit": "039d7e8a08160ee81b77ac4ef3618f6568b26b8c",
-      "reviewed_commit": null,
+      "reviewed_commit": "94627d5be70d1729546a5f17a1bf833c56d29332",
       "disposition": "keep",
       "scope": "Read these seven actual selector bodies and production acquisition/writer lifecycle. Narrow source exception allows write sharing only on first volume-root handle; descendant write/delete exclusion, no-follow reparse validation and GUID path continuity remain. Full63 executed independently; semantic review of other56 expanded cases not claimed.",
       "receipt": "archive-source-custody-review.md"

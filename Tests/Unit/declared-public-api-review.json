@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "Declared component public API is actually exported.exports every declared <Component> function from the selected source",
+      "selector_sha256": "36893859d4b6e2923095be94c7ce85dc0aed247a96c1e22bbac2fd31a123381d",
+      "test_path": "Tests/Unit/PcaiDeclaredPublicApi.Tests.ps1",
+      "test_sha256": "f0986d1402a66e91f68b64a1e24fdecf63864e0c141aeb02284d46334209b3ea",
+      "source_sha256": {
+        "Modules/PC-AI.Performance/PC-AI.Performance.psm1": "d83ff928e4df8ace5cca76909909beffd0d3aee5ddb4b69cf55bb364f1528623",
+        "Modules/PC-AI.Performance/PC-AI.Performance.psd1": "e28edefeede65c3ffe1716704c578d18cd0588894c262f4c34e6689f4fdae6f0",
+        "Modules/PC-AI.Virtualization/Public/Set-WSLDefenderExclusions.ps1": "8abd819db82eed619ffeba6ead4cd81ba77e85610ab4101bc94eac5e3e26f0a0",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psm1": "f601dc9500303126f187bdac08d853b5be0efdfe8d7e5f217bc4a12a9c981bdf",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psd1": "ca19eafa97c80a268279afac5e437f4670e0045c145a76413d88dfb77f7a8b81"
+      },
+      "rationale": "Protects every manifest-declared function in the actual Performance and Virtualization components. Detects stale export arrays, absent definitions and source from a different component copy. Needs real manifest/scriptmodule imports in fresh profile-free consumers, PSHOME-only module discovery and FunctionInfo metadata; no privileged or metric functions are called. Breadcrumb: FunctionsToExport versus ExportedFunctions, ModuleCount/path and every function source-file prefix.",
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T23:54:42.2265293Z",
+      "reviewed_commit": null,
+      "base_commit": "96c4ddd358982a2b86c4ca9f1ac6f5dc60909049",
+      "disposition": "keep",
+      "scope": "Independent root nonauthor read the source/manifest delta, unchanged function bodies, both selector groups and all six metadata cases. Its fresh combined primary run executed API6 plus complete Virtualization38:44 passed, zero failed/skipped/not-run. Four canonical guards prevent declaration removal from hiding drift; function metadata/provenance checks do not invoke privileged or metric functions. Fixture boundaries remain fail-closed and original ShouldProcess assertions remain intact. Source/API correctness only; no performance, model or broad WindowsCI85 acceptance.",
+      "receipt": "declared-public-api-review.md"
+    },
+    {
+      "selector": "Declared component public API is actually exported.retains canonical <Name> as a source-bound public entrypoint",
+      "selector_sha256": "6a6a55115733fbbd6de36605436f512adbd3222dfd656060e64bef3fd29aee2d",
+      "test_path": "Tests/Unit/PcaiDeclaredPublicApi.Tests.ps1",
+      "test_sha256": "f0986d1402a66e91f68b64a1e24fdecf63864e0c141aeb02284d46334209b3ea",
+      "source_sha256": {
+        "Modules/PC-AI.Performance/PC-AI.Performance.psm1": "d83ff928e4df8ace5cca76909909beffd0d3aee5ddb4b69cf55bb364f1528623",
+        "Modules/PC-AI.Performance/PC-AI.Performance.psd1": "e28edefeede65c3ffe1716704c578d18cd0588894c262f4c34e6689f4fdae6f0",
+        "Modules/PC-AI.Virtualization/Public/Set-WSLDefenderExclusions.ps1": "8abd819db82eed619ffeba6ead4cd81ba77e85610ab4101bc94eac5e3e26f0a0",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psm1": "f601dc9500303126f187bdac08d853b5be0efdfe8d7e5f217bc4a12a9c981bdf",
+        "Modules/PC-AI.Virtualization/PC-AI.Virtualization.psd1": "ca19eafa97c80a268279afac5e437f4670e0045c145a76413d88dfb77f7a8b81"
+      },
+      "rationale": "Protects the three existing declared performance entrypoints and plural Defender entrypoint against accidental removal or renaming. Detects export omission, singular/plural drift or deleting a manifest declaration to hide the defect. Needs the four canonical names, actual component manifests and FunctionInfo source-file provenance. Breadcrumb: three Performance Public files and Set-WSLDefenderExclusions.ps1; metadata access never executes those functions.",
+      "reviewer": "codex-root",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-10-28T23:54:42.2293735Z",
+      "reviewed_commit": null,
+      "base_commit": "96c4ddd358982a2b86c4ca9f1ac6f5dc60909049",
+      "disposition": "keep",
+      "scope": "Independent root nonauthor read the source/manifest delta, unchanged function bodies, both selector groups and all six metadata cases. Its fresh combined primary run executed API6 plus complete Virtualization38:44 passed, zero failed/skipped/not-run. Four canonical guards prevent declaration removal from hiding drift; function metadata/provenance checks do not invoke privileged or metric functions. Fixture boundaries remain fail-closed and original ShouldProcess assertions remain intact. Source/API correctness only; no performance, model or broad WindowsCI85 acceptance.",
+      "receipt": "declared-public-api-review.md"
+    }
+  ],
+  "baseline_receipt": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/public-api-red.json",
+  "candidate_receipt": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/public-api-green.json",
+  "complete_virtualization_receipt": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/publication-virtualization.json",
+  "candidate_full_export_receipt": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/public-api-full-export.json",
+  "candidate_package_provenance": {
+    "IsDirty": true,
+    "GitBranch": "fix/declared-public-api-alignment",
+    "GitHash": "96c4ddd358982a2b86c4ca9f1ac6f5dc60909049",
+    "Scope": "Generated author candidate, not accepted deployment payload."
+  },
+  "independent_windows_receipt": {
+    "NotRun": 0,
+    "ApiCases": 6,
+    "Passed": 44,
+    "SHA256": "5C394CE06B88EA61AA6B1A666725CEC62CA25C82BDF3ED7F297CA18BE3E5638C",
+    "Skipped": 0,
+    "VirtualizationCases": 38,
+    "Failed": 0,
+    "DurationSeconds": 15.03,
+    "Path": "C:/codedev/evidence/pcai-fleet-integration/r2/integration/public-api-root-peer.json"
+  }
+}

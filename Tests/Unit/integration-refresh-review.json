@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "base_commit": "90d47fda195bc5ad27604f23cf4896ff9db1067c",
+  "accepted_main_at_merge": "13320f7b0cccca4a316d1d9fafcc1edad1b14a53",
+  "reviews": [
+    {
+      "selector": "uses the configured base URL for <Endpoint>",
+      "test_path": "Tests/Unit/EvaluationSuiteType.Tests.ps1",
+      "test_sha256": "80687d5c4cd2a1aed6f92ff85074d37c5c8a7585740b47ca62f599b5f92db4ad",
+      "selector_sha256": "1cabf09e32c44662956c9e5a976fbbe3253bb87a869631ad9807048d52001fdb",
+      "source_sha256": {
+        "Modules/PC-AI.Evaluation/Private/Invoke-SingleTestCase.ps1": "9ba84613cef96dddaeed690b047ff6ddeef7d3d250a7da43a98a7fb014c154e1"
+      },
+      "rationale": "Protects complete completion/chat/Ollama endpoint construction while retaining current timeout introspection. Detects relative hashtable URLs or incompatible owned discovery/transport doubles. Needs PowerShell7, Pester5 and fresh real-module children with synthetic transports. Breadcrumb: Invoke-SingleTestCase and Evaluation endpoint construction.",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_commit": null,
+      "disposition": "unreviewed",
+      "receipt": "integration-refresh-review.md"
+    },
+    {
+      "selector": "restores report-bearing modules after a later target fails publication",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "14d253d649ca14e5c8b002de609bbae42a02cbb0ab3fe14f04c1f69a64250239",
+      "selector_sha256": "a311a4b19ec92932d4c0e845cf44ca6624419715f9d87f53da4ac78f75170367",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "c8385c7755a47548462255725ad3286fe99c0d2a3490e0568fd67ed1e1c9be50"
+      },
+      "rationale": "Protects old report-bearing bytes and unrelated collision data after real publication. Detects incomplete rollback, false late-fault setup, missing staged report custody or secondary recovery failures. Needs Windows, Pester5 and owned TestDrive with only Move-Item boundary injection. Breadcrumb: installer publication/reverse recovery loops.",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_commit": null,
+      "disposition": "unreviewed",
+      "receipt": "integration-refresh-review.md"
+    },
+    {
+      "selector": "rejects a captured-report junction without changing its outside target",
+      "test_path": "Tests/Boot/DevModuleDeployment.Tests.ps1",
+      "test_sha256": "14d253d649ca14e5c8b002de609bbae42a02cbb0ab3fe14f04c1f69a64250239",
+      "selector_sha256": "b2bf1dd2a8fada5805c7e7ef1d6b2c2c47f8db03714e621783df5a20f2b130a2",
+      "source_sha256": {
+        "Tools/Install-PcaiDevModules.ps1": "c8385c7755a47548462255725ad3286fe99c0d2a3490e0568fd67ed1e1c9be50"
+      },
+      "rationale": "Protects outside junction target and installed original bytes. Detects following a report link or missing the fail-closed payload refusal. Needs Windows junction support, Pester5 and owned TestDrive. Breadcrumb: installer Get-ModuleInventory and path guards.",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_commit": null,
+      "disposition": "unreviewed",
+      "receipt": "integration-refresh-review.md"
+    }
+  ]
+}

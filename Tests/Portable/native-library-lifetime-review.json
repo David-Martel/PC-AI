@@ -29,6 +29,310 @@
       "scope": "Independent current production bridge 2 PASS, zero skips on Ubuntu/private .NET8; original HEAD unload negative FAIL loadedAfter=true. Actual Unicode fixture reviewed. Windows CI pending; defaultHandle branch not directly exercised; no performance claim.",
       "receipt": "native-library-lifetime-review.md",
       "reviewed_utc": "2026-10-17"
+    },
+    {
+      "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=cpu, fullSymbols=false)",
+      "test_path": "Native/PcaiNative.Tests/NativeResolverPartialCoreAdmissionTests.cs",
+      "test_sha256": "3291e9c63bb36aabae5ee8cba6bfbe7362729ab88c9aca8a4ccb5953d4df652c",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/NativeCore.cs",
+          "sha256": "f1552c68ade5a9f6b7906af3303435f96c88a9bbbfa282266d6f089d464853b7"
+        },
+        {
+          "path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+          "sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3"
+        }
+      ],
+      "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
+      "protects": "Required-export admission before public native diagnostics and resolver publication",
+      "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
+      "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
+      "validation": "Private exact-main/integration RED: four partial failures/four positives; repaired: eight passes/no skips each. Current primary focused managed cohort:33 passed/no skips.",
+      "scope": "Synthetic symbol/admission fixture; no production ABI, real core, deployment, Linux/macOS or performance qualification",
+      "receipt": "native-resolver-admission-review.md",
+      "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
+      "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
+    },
+    {
+      "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=diagnostics, fullSymbols=false)",
+      "test_path": "Native/PcaiNative.Tests/NativeResolverPartialCoreAdmissionTests.cs",
+      "test_sha256": "3291e9c63bb36aabae5ee8cba6bfbe7362729ab88c9aca8a4ccb5953d4df652c",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/NativeCore.cs",
+          "sha256": "f1552c68ade5a9f6b7906af3303435f96c88a9bbbfa282266d6f089d464853b7"
+        },
+        {
+          "path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+          "sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3"
+        }
+      ],
+      "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
+      "protects": "Required-export admission before public native diagnostics and resolver publication",
+      "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
+      "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
+      "validation": "Private exact-main/integration RED: four partial failures/four positives; repaired: eight passes/no skips each. Current primary focused managed cohort:33 passed/no skips.",
+      "scope": "Synthetic symbol/admission fixture; no production ABI, real core, deployment, Linux/macOS or performance qualification",
+      "receipt": "native-resolver-admission-review.md",
+      "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
+      "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
+    },
+    {
+      "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=status, fullSymbols=false)",
+      "test_path": "Native/PcaiNative.Tests/NativeResolverPartialCoreAdmissionTests.cs",
+      "test_sha256": "3291e9c63bb36aabae5ee8cba6bfbe7362729ab88c9aca8a4ccb5953d4df652c",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/NativeCore.cs",
+          "sha256": "f1552c68ade5a9f6b7906af3303435f96c88a9bbbfa282266d6f089d464853b7"
+        },
+        {
+          "path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+          "sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3"
+        }
+      ],
+      "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
+      "protects": "Required-export admission before public native diagnostics and resolver publication",
+      "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
+      "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
+      "validation": "Private exact-main/integration RED: four partial failures/four positives; repaired: eight passes/no skips each. Current primary focused managed cohort:33 passed/no skips.",
+      "scope": "Synthetic symbol/admission fixture; no production ABI, real core, deployment, Linux/macOS or performance qualification",
+      "receipt": "native-resolver-admission-review.md",
+      "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
+      "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
+    },
+    {
+      "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=resolver, fullSymbols=false)",
+      "test_path": "Native/PcaiNative.Tests/NativeResolverPartialCoreAdmissionTests.cs",
+      "test_sha256": "3291e9c63bb36aabae5ee8cba6bfbe7362729ab88c9aca8a4ccb5953d4df652c",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/NativeCore.cs",
+          "sha256": "f1552c68ade5a9f6b7906af3303435f96c88a9bbbfa282266d6f089d464853b7"
+        },
+        {
+          "path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+          "sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3"
+        }
+      ],
+      "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
+      "protects": "Required-export admission before public native diagnostics and resolver publication",
+      "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
+      "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
+      "validation": "Private exact-main/integration RED: four partial failures/four positives; repaired: eight passes/no skips each. Current primary focused managed cohort:33 passed/no skips.",
+      "scope": "Synthetic symbol/admission fixture; no production ABI, real core, deployment, Linux/macOS or performance qualification",
+      "receipt": "native-resolver-admission-review.md",
+      "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
+      "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
+    },
+    {
+      "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=cpu, fullSymbols=true)",
+      "test_path": "Native/PcaiNative.Tests/NativeResolverPartialCoreAdmissionTests.cs",
+      "test_sha256": "3291e9c63bb36aabae5ee8cba6bfbe7362729ab88c9aca8a4ccb5953d4df652c",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/NativeCore.cs",
+          "sha256": "f1552c68ade5a9f6b7906af3303435f96c88a9bbbfa282266d6f089d464853b7"
+        },
+        {
+          "path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+          "sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3"
+        }
+      ],
+      "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
+      "protects": "Required-export admission before public native diagnostics and resolver publication",
+      "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
+      "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
+      "validation": "Private exact-main/integration RED: four partial failures/four positives; repaired: eight passes/no skips each. Current primary focused managed cohort:33 passed/no skips.",
+      "scope": "Synthetic symbol/admission fixture; no production ABI, real core, deployment, Linux/macOS or performance qualification",
+      "receipt": "native-resolver-admission-review.md",
+      "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
+      "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
+    },
+    {
+      "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=diagnostics, fullSymbols=true)",
+      "test_path": "Native/PcaiNative.Tests/NativeResolverPartialCoreAdmissionTests.cs",
+      "test_sha256": "3291e9c63bb36aabae5ee8cba6bfbe7362729ab88c9aca8a4ccb5953d4df652c",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/NativeCore.cs",
+          "sha256": "f1552c68ade5a9f6b7906af3303435f96c88a9bbbfa282266d6f089d464853b7"
+        },
+        {
+          "path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+          "sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3"
+        }
+      ],
+      "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
+      "protects": "Required-export admission before public native diagnostics and resolver publication",
+      "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
+      "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
+      "validation": "Private exact-main/integration RED: four partial failures/four positives; repaired: eight passes/no skips each. Current primary focused managed cohort:33 passed/no skips.",
+      "scope": "Synthetic symbol/admission fixture; no production ABI, real core, deployment, Linux/macOS or performance qualification",
+      "receipt": "native-resolver-admission-review.md",
+      "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
+      "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
+    },
+    {
+      "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=status, fullSymbols=true)",
+      "test_path": "Native/PcaiNative.Tests/NativeResolverPartialCoreAdmissionTests.cs",
+      "test_sha256": "3291e9c63bb36aabae5ee8cba6bfbe7362729ab88c9aca8a4ccb5953d4df652c",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/NativeCore.cs",
+          "sha256": "f1552c68ade5a9f6b7906af3303435f96c88a9bbbfa282266d6f089d464853b7"
+        },
+        {
+          "path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+          "sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3"
+        }
+      ],
+      "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
+      "protects": "Required-export admission before public native diagnostics and resolver publication",
+      "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
+      "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
+      "validation": "Private exact-main/integration RED: four partial failures/four positives; repaired: eight passes/no skips each. Current primary focused managed cohort:33 passed/no skips.",
+      "scope": "Synthetic symbol/admission fixture; no production ABI, real core, deployment, Linux/macOS or performance qualification",
+      "receipt": "native-resolver-admission-review.md",
+      "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
+      "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
+    },
+    {
+      "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=resolver, fullSymbols=true)",
+      "test_path": "Native/PcaiNative.Tests/NativeResolverPartialCoreAdmissionTests.cs",
+      "test_sha256": "3291e9c63bb36aabae5ee8cba6bfbe7362729ab88c9aca8a4ccb5953d4df652c",
+      "source_path": "Native/PcaiNative/NativeResolver.cs",
+      "source_sha256": "5ec60dcb95744e40290bdc722bc69c0e7499213cbf469df41eb35c798edef55c",
+      "source_peers": [
+        {
+          "path": "Native/PcaiNative/PcaiCore.cs",
+          "sha256": "2cf38197c70f01ff7ca5c36c6a2ae5ddb768816113e9d6417752d851d7a96774"
+        },
+        {
+          "path": "Native/PcaiNative/NativeCore.cs",
+          "sha256": "f1552c68ade5a9f6b7906af3303435f96c88a9bbbfa282266d6f089d464853b7"
+        },
+        {
+          "path": "Native/PcaiNative.Tests/BoundedTestProcess.cs",
+          "sha256": "2e6b638611e8cd66d5416bed179807e2ee0b18112d9dbcb74ae4b89172a89fd3"
+        }
+      ],
+      "base_commit": "e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2",
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent agent; did not author these tests",
+      "reviewed_utc": "2026-11-01T19:57:31.386500+00:00",
+      "protects": "Required-export admission before public native diagnostics and resolver publication",
+      "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
+      "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
+      "validation": "Private exact-main/integration RED: four partial failures/four positives; repaired: eight passes/no skips each. Current primary focused managed cohort:33 passed/no skips.",
+      "scope": "Synthetic symbol/admission fixture; no production ABI, real core, deployment, Linux/macOS or performance qualification",
+      "receipt": "native-resolver-admission-review.md",
+      "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
+      "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
+      "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
+      "reviewed_commit": "28a78c808707fcca7399de22c8ac074ef0396d23",
+      "review_scope": "Independent source/selector review and retained RED/GREEN evidence on Windows x64; .NET11 preview SDK targeting .NET8. No Linux/macOS, complete ABI, real-core runtime, deployment, GPU/model, HIL or exceptional OS unload qualification.",
+      "execution_disposition": "PASS within the explicitly recorded Windows synthetic source/admission scope"
     }
   ]
 }

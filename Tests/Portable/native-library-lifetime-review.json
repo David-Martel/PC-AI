@@ -355,10 +355,10 @@
         }
       ],
       "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
-      "disposition": "unreviewed",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.147435+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -368,11 +368,16 @@
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
-      "reviewed_commit": null,
-      "review_scope": "Pending independent current-variant review. Windows synthetic source/admission only; no installed native, real-core ABI, Linux/macOS, model/GPU, HIL, performance or exceptional OS unload qualification.",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Independent parent read of actual31line draft resolver merge, current source/test/peer hash verification and fresh execution of all eight unchanged admission selectors:8PASS,0FAIL,0SKIP. Integrating lane40-case cohort and paired-initializer/default-loader controls are separate overlapping evidence. Windows synthetic source/admission only; no real-core, installed binary, full ABI, deployment, Linux/macOS, HIL, GPU/model or exceptional OS unload qualification.",
       "execution_disposition": "PASS: current draft Windows synthetic source/admission control",
       "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
-      "source_variant": "draft233-accepted-main816-refresh"
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=diagnostics, fullSymbols=false)",
@@ -395,10 +400,10 @@
         }
       ],
       "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
-      "disposition": "unreviewed",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.148506+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -408,11 +413,16 @@
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
-      "reviewed_commit": null,
-      "review_scope": "Pending independent current-variant review. Windows synthetic source/admission only; no installed native, real-core ABI, Linux/macOS, model/GPU, HIL, performance or exceptional OS unload qualification.",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Independent parent read of actual31line draft resolver merge, current source/test/peer hash verification and fresh execution of all eight unchanged admission selectors:8PASS,0FAIL,0SKIP. Integrating lane40-case cohort and paired-initializer/default-loader controls are separate overlapping evidence. Windows synthetic source/admission only; no real-core, installed binary, full ABI, deployment, Linux/macOS, HIL, GPU/model or exceptional OS unload qualification.",
       "execution_disposition": "PASS: current draft Windows synthetic source/admission control",
       "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
-      "source_variant": "draft233-accepted-main816-refresh"
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=status, fullSymbols=false)",
@@ -435,10 +445,10 @@
         }
       ],
       "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
-      "disposition": "unreviewed",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.149809+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -448,11 +458,16 @@
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
-      "reviewed_commit": null,
-      "review_scope": "Pending independent current-variant review. Windows synthetic source/admission only; no installed native, real-core ABI, Linux/macOS, model/GPU, HIL, performance or exceptional OS unload qualification.",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Independent parent read of actual31line draft resolver merge, current source/test/peer hash verification and fresh execution of all eight unchanged admission selectors:8PASS,0FAIL,0SKIP. Integrating lane40-case cohort and paired-initializer/default-loader controls are separate overlapping evidence. Windows synthetic source/admission only; no real-core, installed binary, full ABI, deployment, Linux/macOS, HIL, GPU/model or exceptional OS unload qualification.",
       "execution_disposition": "PASS: current draft Windows synthetic source/admission control",
       "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
-      "source_variant": "draft233-accepted-main816-refresh"
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=resolver, fullSymbols=false)",
@@ -475,10 +490,10 @@
         }
       ],
       "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
-      "disposition": "unreviewed",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.150494+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -488,11 +503,16 @@
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
-      "reviewed_commit": null,
-      "review_scope": "Pending independent current-variant review. Windows synthetic source/admission only; no installed native, real-core ABI, Linux/macOS, model/GPU, HIL, performance or exceptional OS unload qualification.",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Independent parent read of actual31line draft resolver merge, current source/test/peer hash verification and fresh execution of all eight unchanged admission selectors:8PASS,0FAIL,0SKIP. Integrating lane40-case cohort and paired-initializer/default-loader controls are separate overlapping evidence. Windows synthetic source/admission only; no real-core, installed binary, full ABI, deployment, Linux/macOS, HIL, GPU/model or exceptional OS unload qualification.",
       "execution_disposition": "PASS: current draft Windows synthetic source/admission control",
       "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
-      "source_variant": "draft233-accepted-main816-refresh"
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=cpu, fullSymbols=true)",
@@ -515,10 +535,10 @@
         }
       ],
       "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
-      "disposition": "unreviewed",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.151208+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -528,11 +548,16 @@
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
-      "reviewed_commit": null,
-      "review_scope": "Pending independent current-variant review. Windows synthetic source/admission only; no installed native, real-core ABI, Linux/macOS, model/GPU, HIL, performance or exceptional OS unload qualification.",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Independent parent read of actual31line draft resolver merge, current source/test/peer hash verification and fresh execution of all eight unchanged admission selectors:8PASS,0FAIL,0SKIP. Integrating lane40-case cohort and paired-initializer/default-loader controls are separate overlapping evidence. Windows synthetic source/admission only; no real-core, installed binary, full ABI, deployment, Linux/macOS, HIL, GPU/model or exceptional OS unload qualification.",
       "execution_disposition": "PASS: current draft Windows synthetic source/admission control",
       "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
-      "source_variant": "draft233-accepted-main816-refresh"
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=diagnostics, fullSymbols=true)",
@@ -555,10 +580,10 @@
         }
       ],
       "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
-      "disposition": "unreviewed",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.152166+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -568,11 +593,16 @@
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
-      "reviewed_commit": null,
-      "review_scope": "Pending independent current-variant review. Windows synthetic source/admission only; no installed native, real-core ABI, Linux/macOS, model/GPU, HIL, performance or exceptional OS unload qualification.",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Independent parent read of actual31line draft resolver merge, current source/test/peer hash verification and fresh execution of all eight unchanged admission selectors:8PASS,0FAIL,0SKIP. Integrating lane40-case cohort and paired-initializer/default-loader controls are separate overlapping evidence. Windows synthetic source/admission only; no real-core, installed binary, full ABI, deployment, Linux/macOS, HIL, GPU/model or exceptional OS unload qualification.",
       "execution_disposition": "PASS: current draft Windows synthetic source/admission control",
       "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
-      "source_variant": "draft233-accepted-main816-refresh"
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=status, fullSymbols=true)",
@@ -595,10 +625,10 @@
         }
       ],
       "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
-      "disposition": "unreviewed",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.153034+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -608,11 +638,16 @@
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
-      "reviewed_commit": null,
-      "review_scope": "Pending independent current-variant review. Windows synthetic source/admission only; no installed native, real-core ABI, Linux/macOS, model/GPU, HIL, performance or exceptional OS unload qualification.",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Independent parent read of actual31line draft resolver merge, current source/test/peer hash verification and fresh execution of all eight unchanged admission selectors:8PASS,0FAIL,0SKIP. Integrating lane40-case cohort and paired-initializer/default-loader controls are separate overlapping evidence. Windows synthetic source/admission only; no real-core, installed binary, full ABI, deployment, Linux/macOS, HIL, GPU/model or exceptional OS unload qualification.",
       "execution_disposition": "PASS: current draft Windows synthetic source/admission control",
       "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
-      "source_variant": "draft233-accepted-main816-refresh"
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
     },
     {
       "selector": "NativeResolverPartialCoreAdmissionTests.PublicDiagnosticsAdmitOnlyCompleteCoreSymbols(mode=resolver, fullSymbols=true)",
@@ -635,10 +670,10 @@
         }
       ],
       "base_commit": "093bf5526768220168a1fd8f43100f7230259636",
-      "disposition": "unreviewed",
-      "reviewer": null,
-      "reviewer_type": null,
-      "reviewed_utc": null,
+      "disposition": "keep",
+      "reviewer": "Codex root",
+      "reviewer_type": "independent integrating reviewer; did not author this draft merge",
+      "reviewed_utc": "2026-11-01T21:10:39.153793+00:00",
       "protects": "Required-export admission before public native diagnostics and resolver publication",
       "detects": "Partial-core execution, retained rejected handles, missing exact failure text or broken full-symbol positive control",
       "needs": "rustc, native linker, pwsh, fresh owned child processes; no real core, model or GPU",
@@ -648,11 +683,16 @@
       "selector_sha256": "9e96319f87d686f177990d5c8e5fda07e948c2ee6f6dac981d5151cb04c02bfd",
       "selector_source_span": "Shared eight-case group: // Group: through immediately before RemoveOwnedFixture",
       "hash_bom_policy": "Retain UTF-8 BOM bytes; convert CRLF to LF only",
-      "reviewed_commit": null,
-      "review_scope": "Pending independent current-variant review. Windows synthetic source/admission only; no installed native, real-core ABI, Linux/macOS, model/GPU, HIL, performance or exceptional OS unload qualification.",
+      "reviewed_commit": "a3c4a7d52e0009b0f0aa27efb98b22a9e3b5debc",
+      "review_scope": "Independent parent read of actual31line draft resolver merge, current source/test/peer hash verification and fresh execution of all eight unchanged admission selectors:8PASS,0FAIL,0SKIP. Integrating lane40-case cohort and paired-initializer/default-loader controls are separate overlapping evidence. Windows synthetic source/admission only; no real-core, installed binary, full ABI, deployment, Linux/macOS, HIL, GPU/model or exceptional OS unload qualification.",
       "execution_disposition": "PASS: current draft Windows synthetic source/admission control",
       "accepted_main": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
-      "source_variant": "draft233-accepted-main816-refresh"
+      "source_variant": "draft233-accepted-main816-refresh",
+      "independent_evidence": {
+        "path": "C:\\codedev\\evidence\\pcai-fleet-integration\\r3\\native-admission\\root-draft-variant\\managed\\admission.trx",
+        "sha256": "828a40579e3ffe5e1fbff1c554de0d5862e6780b68a35596fa7212c45b5e6a17",
+        "scope": "Eight managed admission selectors only; Python and paired-bundle controls were executed by integrating lane."
+      }
     }
   ]
 }

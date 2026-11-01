@@ -4,8 +4,10 @@ This is the active high-level backlog for `PC_AI`. Completed historical work
 should be recorded in the relevant report, context snapshot, or specialized
 ledger instead of left here as active work.
 
-Last reconciled: 2026-10-11, after Windows fleet source integration and Git
-custody cleanup. Earlier CI/tooling evidence remains dated 2026-09-07.
+Acceptance queue reconciled: 2026-11-01. The
+[acceptance refresh record](Tests/Unit/integration-refresh-review.md) follows
+the current draft and validation result. Earlier fleet and CI/tooling entries
+retain their original observation dates.
 
 ## 2026-10-11 Windows fleet and VIGIL closeout
 
@@ -26,12 +28,14 @@ pose-worker, Windows/Linux and signal-provenance acceptance boundaries.
 - [x] Review historical PR182 disposition: GitHub confirms CLOSED without a
   merge. Preserved integration work continues in draft PR233; conflict repair
   against the closed PR is no longer the active integration path.
-- [ ] Qualify PR233's current frozen head with the consolidated WindowsCI
-  profile and unchanged 85% source-bound coverage gate. Prior head `50d1ee7`
-  has 4,011 pass / 1 fail / 40 skip and 65.950882% coverage; the fixture setup
-  failure occurs before the search producer. Target actual missed commands,
-  preserve real failures, and retain role-specific deployment admission.
-  See [testing architecture and owners](docs/test-architecture.md).
+- [ ] Qualify successor draft PR233 at a coherent head reconciled with accepted
+  main. The renewed `fix/fleet-acceptance-refresh` candidate retains the complete
+  WindowsCI cohort and unchanged 85% all-Modules gate. The older 66.0126%
+  receipt is historical and does not qualify the refreshed head; focused green
+  runs do not satisfy complete acceptance. Target actual missed commands,
+  preserve real failures, and retain role-specific deployment admission. See
+  [the current fixture and execution record](Tests/Unit/integration-refresh-review.md)
+  and [testing architecture and owners](docs/test-architecture.md).
 - [ ] Integrate Candle dependency upgrades together with media/CUDA coverage,
   and validate mistral.rs upgrades with that backend enabled. CPU-only green CI
   does not establish optional backend compatibility.

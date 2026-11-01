@@ -5,6 +5,13 @@ without changing the WindowsCI cohort or its 85 percent all-Modules gate.
 Run the complete cohort through [the canonical engine](../.pester.ps1), as
 described in [the test architecture](../../docs/test-architecture.md).
 
+The `fix/fleet-acceptance-refresh` candidate retains integration source
+`90d47fda195bc5ad27604f23cf4896ff9db1067c` and accepted main
+`e7aa85df7e329c7cc0ec73f7bcf9a9d715b0a8c2`. Its focused Windows rerun passed
+244 cases with zero failures, skips or unrun cases in 86.09 seconds. Complete
+WindowsCI and the 85 percent gate remain pending until the scheduled actual
+run finishes; the older 66.0126 percent receipt remains historical.
+
 The [evaluation endpoint fixture](EvaluationSuiteType.Tests.ps1) retains its
 three real-consumer endpoint assertions. Its discovery double now accepts the
 command-type filter used by timeout introspection, and its transport double

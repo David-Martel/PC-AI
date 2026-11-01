@@ -5,7 +5,7 @@ param(
     [int]$Iterations = 5,
 
     [Parameter()]
-    [string]$DiskPath = 'C:\Users\david\Documents\PowerShell',
+    [string]$DiskPath = (Join-Path $env:USERPROFILE 'Documents\PowerShell'),
 
     [Parameter()]
     [string]$PcaiRoot

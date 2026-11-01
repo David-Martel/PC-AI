@@ -85,6 +85,11 @@ struct WorkerResponse {
     error: Option<String>,
 }
 
+#[derive(Default)]
+struct PerfWorkerState {
+    process_sampler: process::ProcessSampler,
+}
+
 fn main() {
     let exit_code = match run() {
         Ok(()) => 0,
@@ -156,6 +161,7 @@ fn run_worker() -> Result<()> {
     let stdout = std::io::stdout();
     let mut reader = stdin.lock();
     let mut writer = std::io::BufWriter::new(stdout.lock());
+    let mut state = PerfWorkerState::default();
     let mut line = String::new();
 
     loop {
@@ -169,7 +175,7 @@ fn run_worker() -> Result<()> {
             continue;
         }
 
-        let response = match handle_worker_request(trimmed) {
+        let response = match handle_worker_request(trimmed, &mut state) {
             Ok(result) => WorkerResponse {
                 ok: true,
                 result: Some(result),
@@ -190,8 +196,9 @@ fn run_worker() -> Result<()> {
     Ok(())
 }
 
-fn handle_worker_request(raw: &str) -> Result<Value> {
-    let request: Value = serde_json::from_str(raw).context("parse worker request json")?;
+fn handle_worker_request(raw: &str, state: &mut PerfWorkerState) -> Result<Value> {
+    let request_text = raw.trim_start_matches('\u{feff}');
+    let request: Value = serde_json::from_str(request_text).context("parse worker request json")?;
     let command = request
         .get("command")
         .and_then(Value::as_str)
@@ -213,7 +220,11 @@ fn handle_worker_request(raw: &str) -> Result<Value> {
         "processes" => {
             let top = request.get("top").and_then(Value::as_u64).unwrap_or(10) as usize;
             let sort_by = request.get("sort_by").and_then(Value::as_str).unwrap_or("memory");
-            Ok(serde_json::to_value(collect_process_rows(top, sort_by))?)
+            Ok(serde_json::to_value(collect_process_rows_with_sampler(
+                &mut state.process_sampler,
+                top,
+                sort_by,
+            ))?)
         }
         "disk" => {
             let path = request
@@ -259,7 +270,16 @@ fn hash_single_file(path: &str, algorithm: &str) -> HashRow {
 }
 
 fn collect_process_rows(top: usize, sort_key: &str) -> Vec<ProcessRow> {
-    let (_, processes) = process::get_top_processes(top, sort_key);
+    let mut sampler = process::ProcessSampler::new();
+    collect_process_rows_with_sampler(&mut sampler, top, sort_key)
+}
+
+fn collect_process_rows_with_sampler(
+    sampler: &mut process::ProcessSampler,
+    top: usize,
+    sort_key: &str,
+) -> Vec<ProcessRow> {
+    let (_, processes) = sampler.get_top_processes(top, sort_key);
     processes
         .into_iter()
         .map(|entry| ProcessRow {

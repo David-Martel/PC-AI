@@ -20,6 +20,7 @@
       "token-estimate",
       "directory-manifest",
       "file-search",
+      "process-snapshot",
       "runtime-config",
       "shared-cache-hit",
       "external-cache-status",
@@ -36,11 +37,21 @@
       "file-search",
       "content-search",
       "full-context",
+      "process-snapshot",
+      "perf-worker-hash-list",
       "runtime-config",
       "shared-cache-hit",
       "external-cache-status",
       "command-map",
       "network-discovery"
+    ],
+    "system-integration": [
+      "process-snapshot",
+      "perf-worker-hash-list",
+      "chat-tui-startup",
+      "service-host-provider-show",
+      "network-discovery",
+      "thunderbolt-status"
     ]
   },
   "cases": [
@@ -131,6 +142,38 @@
       "name": "Command Map Cache",
       "category": "PowerShell",
       "path": "."
+    },
+    {
+      "id": "process-snapshot",
+      "name": "Process Snapshot Transport",
+      "category": "Interop",
+      "path": ".",
+      "iterations": 4,
+      "warmup": 1
+    },
+    {
+      "id": "perf-worker-hash-list",
+      "name": "pcai-perf Worker Hash Transport",
+      "category": "Interop",
+      "path": ".",
+      "iterations": 4,
+      "warmup": 1
+    },
+    {
+      "id": "chat-tui-startup",
+      "name": "PcaiChatTui Startup",
+      "category": "Startup",
+      "path": ".",
+      "iterations": 4,
+      "warmup": 1
+    },
+    {
+      "id": "service-host-provider-show",
+      "name": "PcaiServiceHost Provider Show",
+      "category": "Startup",
+      "path": ".",
+      "iterations": 4,
+      "warmup": 1
     },
     {
       "id": "thunderbolt-status",

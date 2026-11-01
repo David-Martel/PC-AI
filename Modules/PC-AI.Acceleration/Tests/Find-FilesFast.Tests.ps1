@@ -15,7 +15,8 @@ Describe 'Find-FilesFast native manifest fallback' {
             return
         }
 
-        $result = Find-FilesFast -Path 'C:\codedev\PC_AI' -Type directory -MaxDepth 1 -NoIgnore -PreferNative
+        $testRepoRoot = if ($env:PCAI_ROOT) { $env:PCAI_ROOT } else { Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) }
+        $result = Find-FilesFast -Path $testRepoRoot -Type directory -MaxDepth 1 -NoIgnore -PreferNative
 
         $result | Should -Not -BeNullOrEmpty
         $result.Count | Should -BeGreaterThan 0

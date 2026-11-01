@@ -4,9 +4,21 @@
 BeforeAll {
     $script:ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $script:BenchmarkScript = Join-Path $script:ProjectRoot 'Tests\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1'
+    $script:BenchmarkConfig = Join-Path $script:ProjectRoot 'Config\pcai-tooling-benchmarks.json'
 }
 
 Describe "Invoke-PcaiToolingBenchmarks" -Tag 'Unit', 'Benchmarks', 'Acceleration' {
+    It "registers the extended interop benchmark cases in config" {
+        $config = Get-Content -Path $script:BenchmarkConfig -Raw -Encoding UTF8 | ConvertFrom-Json
+        $caseIds = @($config.cases | ForEach-Object id)
+
+        $caseIds | Should -Contain 'process-snapshot'
+        $caseIds | Should -Contain 'perf-worker-hash-list'
+        $caseIds | Should -Contain 'chat-tui-startup'
+        $caseIds | Should -Contain 'service-host-provider-show'
+        @($config.suites.'system-integration') | Should -Contain 'process-snapshot'
+    }
+
     It "uses the repo-imported acceleration module instead of a shadowed session function" {
         function global:Measure-CommandPerformance {
             param()
@@ -103,5 +115,35 @@ Describe "Invoke-PcaiToolingBenchmarks" -Tag 'Unit', 'Benchmarks', 'Acceleration
         $row | Should -Not -BeNullOrEmpty
         $row.Backend | Should -Be 'powershell'
         $row.MeanMs | Should -BeGreaterThan 0
+    }
+
+    It "emits process-snapshot rows for accelerated, native, and powershell paths" {
+        $result = & $script:BenchmarkScript -CaseId 'process-snapshot' -SkipCapabilities -PassThru
+        $report = Get-Content -Path $result.JsonReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $rows = @($report.Results | Where-Object CaseId -eq 'process-snapshot')
+
+        @($rows | Select-Object -ExpandProperty Backend | Sort-Object) | Should -Be @('accelerated', 'native', 'powershell')
+        foreach ($row in $rows) {
+            $row.MeanMs | Should -BeGreaterThan 0
+            $row.ManagedAllocatedMeanBytes | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    It "emits perf-worker-hash-list rows when pcai-perf is available" {
+        $result = & $script:BenchmarkScript -CaseId 'perf-worker-hash-list' -SkipCapabilities -PassThru
+        $report = Get-Content -Path $result.JsonReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $rows = @($report.Results | Where-Object CaseId -eq 'perf-worker-hash-list')
+
+        if ($rows.Count -eq 0) {
+            Set-ItResult -Skipped -Because 'pcai-perf is not available in this environment'
+            return
+        }
+
+        $backends = @($rows | Select-Object -ExpandProperty Backend | Sort-Object)
+        $backends | Should -Contain 'direct-cli'
+        $backends | Should -Contain 'powershell'
+        foreach ($row in $rows) {
+            $row.MeanMs | Should -BeGreaterThan 0
+        }
     }
 }

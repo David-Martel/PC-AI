@@ -2,10 +2,15 @@
 //!
 //! Process enumeration and statistics gathering using sysinfo crate.
 
+use std::time::{Duration, Instant};
+
 use crate::string::{bytes_to_buffer, PcaiByteBuffer};
 use crate::PcaiStatus;
 use serde::Serialize;
-use sysinfo::{Pid, ProcessesToUpdate, System};
+use sysinfo::{
+    MemoryRefreshKind, Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind,
+    MINIMUM_CPU_UPDATE_INTERVAL,
+};
 
 /// FFI-safe process statistics
 #[repr(C)]
@@ -92,6 +97,157 @@ pub struct ProcessListCompactEntry {
     pub cpu_usage: f32,
     pub _cpu_padding: [u8; 4],
     pub memory_bytes: u64,
+}
+
+fn process_refresh_kind(include_cpu: bool, include_exe: bool) -> ProcessRefreshKind {
+    let mut refresh_kind = ProcessRefreshKind::nothing()
+        .with_memory()
+        .without_tasks();
+
+    if include_cpu {
+        refresh_kind = refresh_kind.with_cpu();
+    }
+
+    if include_exe {
+        refresh_kind = refresh_kind.with_exe(UpdateKind::OnlyIfNotSet);
+    }
+
+    refresh_kind
+}
+
+pub struct ProcessSampler {
+    system: System,
+    cpu_ready: bool,
+    last_cpu_refresh: Option<Instant>,
+}
+
+impl Default for ProcessSampler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ProcessSampler {
+    pub fn new() -> Self {
+        Self {
+            system: System::new(),
+            cpu_ready: false,
+            last_cpu_refresh: None,
+        }
+    }
+
+    pub fn get_process_stats(&mut self) -> ProcessStats {
+        let start = Instant::now();
+        self.refresh_snapshot(false);
+        self.build_stats(start)
+    }
+
+    pub fn get_top_processes(&mut self, top_n: usize, sort_by: &str) -> (ProcessStats, Vec<ProcessInfo>) {
+        let start = Instant::now();
+        let sort_key = sort_by.to_ascii_lowercase();
+        let include_cpu = sort_key == "cpu";
+        self.refresh_snapshot(include_cpu);
+
+        let stats = self.build_stats(start);
+
+        let mut processes: Vec<ProcessInfo> = self
+            .system
+            .processes()
+            .iter()
+            .map(|(pid, process)| ProcessInfo {
+                pid: pid.as_u32(),
+                name: process.name().to_string_lossy().to_string(),
+                cpu_usage: process.cpu_usage(),
+                memory_bytes: process.memory(),
+                memory_formatted: format_bytes(process.memory()),
+                status: format!("{:?}", process.status()),
+                exe_path: None,
+            })
+            .collect();
+
+        match sort_key.as_str() {
+            "cpu" => processes.sort_by(|a, b| {
+                b.cpu_usage
+                    .partial_cmp(&a.cpu_usage)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            }),
+            _ => processes.sort_by(|a, b| b.memory_bytes.cmp(&a.memory_bytes)),
+        }
+
+        processes.truncate(top_n);
+
+        if !processes.is_empty() {
+            let top_pids: Vec<Pid> = processes.iter().map(|process| Pid::from_u32(process.pid)).collect();
+            self.system.refresh_processes_specifics(
+                ProcessesToUpdate::Some(&top_pids),
+                false,
+                process_refresh_kind(false, true),
+            );
+
+            for process in &mut processes {
+                process.exe_path = self
+                    .system
+                    .process(Pid::from_u32(process.pid))
+                    .and_then(|entry| entry.exe().map(|path| path.to_string_lossy().to_string()));
+            }
+        }
+
+        (stats, processes)
+    }
+
+    fn build_stats(&self, start: Instant) -> ProcessStats {
+        ProcessStats {
+            status: PcaiStatus::Success,
+            total_processes: self.system.processes().len() as u32,
+            total_threads: self.system.processes().len() as u32,
+            system_cpu_usage: self.system.global_cpu_usage(),
+            system_memory_used_bytes: self.system.used_memory(),
+            system_memory_total_bytes: self.system.total_memory(),
+            elapsed_ms: start.elapsed().as_millis() as u64,
+        }
+    }
+
+    fn refresh_snapshot(&mut self, include_cpu: bool) {
+        let refresh_kind = process_refresh_kind(include_cpu, false);
+        self.system
+            .refresh_memory_specifics(MemoryRefreshKind::nothing().with_ram());
+
+        if include_cpu {
+            self.refresh_cpu_snapshot(refresh_kind);
+        } else {
+            self.system
+                .refresh_processes_specifics(ProcessesToUpdate::All, true, refresh_kind);
+            self.system.refresh_cpu_usage();
+        }
+    }
+
+    fn refresh_cpu_snapshot(&mut self, refresh_kind: ProcessRefreshKind) {
+        if self.cpu_ready {
+            let sleep_for = self
+                .last_cpu_refresh
+                .map(|last_refresh| MINIMUM_CPU_UPDATE_INTERVAL.saturating_sub(last_refresh.elapsed()))
+                .unwrap_or(Duration::ZERO);
+            if !sleep_for.is_zero() {
+                std::thread::sleep(sleep_for);
+            }
+
+            self.system.refresh_cpu_usage();
+            self.system
+                .refresh_processes_specifics(ProcessesToUpdate::All, true, refresh_kind);
+            self.last_cpu_refresh = Some(Instant::now());
+            return;
+        }
+
+        self.system.refresh_cpu_usage();
+        self.system
+            .refresh_processes_specifics(ProcessesToUpdate::All, true, refresh_kind);
+        std::thread::sleep(MINIMUM_CPU_UPDATE_INTERVAL);
+        self.system.refresh_cpu_usage();
+        self.system
+            .refresh_processes_specifics(ProcessesToUpdate::All, true, refresh_kind);
+        self.cpu_ready = true;
+        self.last_cpu_refresh = Some(Instant::now());
+    }
 }
 
 /// Format bytes as human-readable string
@@ -197,78 +353,12 @@ pub fn pack_top_processes_compact(
 
 /// Get system-wide process statistics
 pub fn get_process_stats() -> ProcessStats {
-    let mut sys = System::new_all();
-    sys.refresh_all();
-
-    // Need a second refresh for accurate CPU usage
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    sys.refresh_all();
-
-    let mut total_threads = 0u32;
-    for _process in sys.processes().values() {
-        // Count threads (sysinfo doesn't directly expose thread count on all platforms)
-        // Using 1 as minimum since every process has at least one thread
-        total_threads += 1;
-    }
-
-    ProcessStats {
-        status: PcaiStatus::Success,
-        total_processes: sys.processes().len() as u32,
-        total_threads,
-        system_cpu_usage: sys.global_cpu_usage(),
-        system_memory_used_bytes: sys.used_memory(),
-        system_memory_total_bytes: sys.total_memory(),
-        elapsed_ms: 0,
-    }
+    ProcessSampler::new().get_process_stats()
 }
 
 /// Get top N processes sorted by memory or CPU
 pub fn get_top_processes(top_n: usize, sort_by: &str) -> (ProcessStats, Vec<ProcessInfo>) {
-    let mut sys = System::new_all();
-    sys.refresh_all();
-
-    // Second refresh for accurate CPU readings
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    sys.refresh_all();
-
-    let stats = ProcessStats {
-        status: PcaiStatus::Success,
-        total_processes: sys.processes().len() as u32,
-        total_threads: sys.processes().len() as u32, // Approximation
-        system_cpu_usage: sys.global_cpu_usage(),
-        system_memory_used_bytes: sys.used_memory(),
-        system_memory_total_bytes: sys.total_memory(),
-        elapsed_ms: 0,
-    };
-
-    // Collect process info
-    let mut processes: Vec<ProcessInfo> = sys
-        .processes()
-        .iter()
-        .map(|(pid, process)| ProcessInfo {
-            pid: pid.as_u32(),
-            name: process.name().to_string_lossy().to_string(),
-            cpu_usage: process.cpu_usage(),
-            memory_bytes: process.memory(),
-            memory_formatted: format_bytes(process.memory()),
-            status: format!("{:?}", process.status()),
-            exe_path: process.exe().map(|p| p.to_string_lossy().to_string()),
-        })
-        .collect();
-
-    // Sort by specified criteria
-    match sort_by.to_lowercase().as_str() {
-        "cpu" => processes.sort_by(|a, b| {
-            b.cpu_usage
-                .partial_cmp(&a.cpu_usage)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        }),
-        _ => processes.sort_by(|a, b| b.memory_bytes.cmp(&a.memory_bytes)),
-    }
-
-    processes.truncate(top_n);
-
-    (stats, processes)
+    ProcessSampler::new().get_top_processes(top_n, sort_by)
 }
 
 /// Get process by PID

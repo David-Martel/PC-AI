@@ -21,7 +21,7 @@ class NativeOverrideTests(unittest.TestCase):
     def setUpClass(cls):
         cls.temp = tempfile.TemporaryDirectory(prefix="pcai-native-override-")
         cls.addClassCleanup(cls.temp.cleanup)
-        cls.root = Path(cls.temp.name)
+        cls.root = Path(cls.temp.name).resolve()
         bridge = cls.root / "bridge"
         _ = shutil.copytree(
             ROOT / "Native/PcaiNative",

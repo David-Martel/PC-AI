@@ -88,3 +88,21 @@ are not an additive coverage total. No installed native binary was replaced.
 The current review rows bind the exact source commit and selector hashes. Local
 execution used the .NET11 preview SDK targeting .NET8 on Windows x64; explicit
 real-core skips remain skips after the source-review keep disposition.
+
+## Canonical Windows fixture paths
+
+The first hosted Windows admission run rejected the partial native libraries
+correctly, but three full-path assertions compared a RUNNER~1 temporary-root
+alias with the resolver's expanded runneradmin path. The
+[original failing Windows job](https://github.com/David-Martel/PC-AI/actions/runs/41344436179/job/124961131951)
+remains retained as evidence; required CI success and the merge did not qualify
+that optional job.
+
+The fixture now resolves its owned TemporaryDirectory root before constructing
+any child paths. The strict complete selected-path assertion remains unchanged.
+An owned Windows short-path replay reproduces all three original assertion
+failures and then passes with the canonical root. The four-selector local
+cohort passes three selectors and explicitly skips its absent real-core input.
+This changes test path identity only; installed binaries and native resolution
+behavior are unchanged. Hosted Windows qualification requires the follow-up's
+actual admission result rather than the earlier merge or local result.

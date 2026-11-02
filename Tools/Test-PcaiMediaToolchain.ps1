@@ -28,6 +28,8 @@ Timeout for the first GStreamer registry scan, default 120 seconds.
 Show intended operations without provider queries, subprocesses or writes.
 .PARAMETER Help
 Show help; accepts -h and --help.
+.LINK
+../docs/windows-media-toolchain.md
 .EXAMPLE
 pwsh -NoLogo -NoProfile -File .\Tools\Test-PcaiMediaToolchain.ps1 -DryRun
 .EXAMPLE
@@ -202,7 +204,7 @@ function Get-MediaToolchainReport {
         gpuInventory = Get-MediaGpuInventory
         ffmpeg = [ordered]@{ path = $ffmpeg; status = 'Missing'; probes = @(); compiledHardwareMethods = @(); compiledEncoders = @() }
         ffprobe = [ordered]@{ path = $ffprobe; status = 'Missing'; probe = $null }
-        gstreamer = [ordered]@{ path = $gst; status = 'Missing'; probes = @(); interpretation = 'Element metadata only; no pipeline opened' }
+        gstreamer = [ordered]@{ path = $gst; status = 'Missing'; probes = @(); missingOptionalElements = @(); interpretation = 'Element metadata only; no pipeline opened' }
         intelQsv = [ordered]@{ status = 'NotRequested'; syntheticFrames = 16; width = 320; height = 240; probe = $null }
         nvidiaRuntime = [ordered]@{ status = 'NotAttempted'; reason = 'This tool does not run NVIDIA workloads' }
         captureDeviceListing = [ordered]@{ status = 'NotRequested'; probe = $null }
@@ -233,13 +235,25 @@ function Get-MediaToolchainReport {
     }
     if ($gst) {
         $gstProbes = [System.Collections.Generic.List[object]]::new()
+        $missingElements = [System.Collections.Generic.List[string]]::new()
+        $metadataFailed = $false
         foreach ($element in @('--version', 'qsvh264enc', 'd3d11h264dec', 'nvh264enc', 'wasapi2src')) {
             # First invocation may build a cold or stale plugin registry.
             $probeTimeout = if ($element -eq '--version') { $GStreamerScanTimeoutSeconds } else { $TimeoutSeconds }
-            $gstProbes.Add((Invoke-MediaProcess $gst @($element) $probeTimeout))
+            $probe = Invoke-MediaProcess $gst @($element) $probeTimeout
+            # gst-inspect returns -1 on Windows (255 on POSIX) for an absent
+            # optional element. Require its exact diagnostic, never just the code:
+            # a timeout also uses -1 and native crashes must remain failures.
+            $missingOptional = $element -ne '--version' -and $probe.status -eq 'Failed' -and
+                -not $probe.timedOut -and -not $probe.error -and $probe.exitCode -in @(-1, 255) -and
+                ([string]$probe.stderr).Trim() -eq "No such element or plugin '$element'"
+            if ($missingOptional) { $missingElements.Add($element) }
+            elseif ($probe.status -ne 'Succeeded') { $metadataFailed = $true }
+            $gstProbes.Add($probe)
         }
         $report.gstreamer.probes = $gstProbes.ToArray()
-        $report.gstreamer.status = if ($gstProbes[0].status -eq 'Succeeded') { 'Enumerated' } else { 'Failed' }
+        $report.gstreamer.missingOptionalElements = $missingElements.ToArray()
+        $report.gstreamer.status = if ($metadataFailed) { 'Failed' } else { 'Enumerated' }
     }
     if ($ValidateIntelQsv) {
         if (-not $ffmpeg) { $report.intelQsv.status = 'MissingFfmpeg' }

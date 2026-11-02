@@ -60,7 +60,14 @@ by the inventory script.
 Validation uses `Tests/Boot/MachineCapabilities.Tests.ps1`: realistic present,
 disconnected and unknown GPU fixtures; driver disagreement; unavailable
 providers; privacy exclusions; dry-run and output safety; schemas; and a bounded
-real Windows smoke test. No added native component is required.
+real Windows smoke test. No added native component is required. The
+[CIM query classifier](../Tools/Get-PcaiMachineCapabilities.ps1) reads the
+`NativeErrorCode` enum to distinguish unsupported classes, namespaces and
+operations from unknown failures; the error record retains numeric `StatusCode`.
+The [missing-class regression control](../Tests/Boot/MachineCapabilities.Tests.ps1)
+obtains a real Windows CIM missing-class exception, then exercises reporting
+against the inventory fixtures. An unsupported provider supplies no sensor or
+workload qualification.
 
 `Tools/New-PcaiPowerShellRelease.ps1` generates explicit function, cmdlet and
 alias exports from component manifests and literal script-only export declarations,
@@ -72,5 +79,33 @@ updating only an installed umbrella, use `SourceRoot` pointing to that installed
 module's existing component tree so exports reflect those components; copying a
 new repository umbrella does not upgrade installed components. This helper
 installs nothing; `-DryRun`, `-WhatIf`, `-h` and `--help` are available.
+
+## Unsupported-provider regression review
+
+Reviewed 2026-11-02 against integration base `816038d4` and the exact hashes below.
+Hashes are SHA256 of
+UTF-8 source with CRLF normalized to LF; selector hashes cover each complete
+Pester `It` command. Code under test is the
+[capability script](../Tools/Get-PcaiMachineCapabilities.ps1), hash
+`f90ad15721c074aeb0e10678aaa02493979fd5e5d5fdccc7f5569356b1d95fb1`.
+
+| Selector in [capability tests](../Tests/Boot/MachineCapabilities.Tests.ps1) | Selector SHA256 | Reviewer / type | Disposition |
+| --- | --- | --- | --- |
+| classifies a native invalid-class error as unsupported while retaining its numeric code | `2fca03f53606b872a9aa6d3130c41220c70c2a51b4ca487467e3efd46ec41ae4` | pcai_review / independent agent | keep |
+| distinguishes an explicitly unsupported provider from unknown sensor health | `4bf86c1ec3791da460660c03007866363a884af461a0f266e42caa054cbd98c5` | pcai_review / independent agent | keep |
+
+Independent review confirmed that both controls exercise the shipping classifier,
+retain the numeric error evidence and refuse to infer sensor health. The focused
+diagnostic run passed 47 tests; three Integration tests were not run. Reverting
+to numeric-code/name comparison makes the native-error assertion fail. Updating
+the older fixture models the real exception fields and permits no new hardware
+qualification or configuration mutation.
+
+The new native-error control failed against the previous classifier
+(`Unknown` instead of `Unsupported`). The existing offline control now models
+the real enum and numeric code instead of putting an enum name in numeric
+`StatusCode`; its unsupported-provider and unknown-health assertions remain.
+The actual missing-class production query returned `Unsupported`, numeric
+status `5` and HRESULT `0x80041010`. These controls do not alter CIM providers.
 
 Native deployment admission: [explicit override controls](native-override-admission.md).

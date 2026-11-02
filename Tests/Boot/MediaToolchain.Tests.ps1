@@ -151,6 +151,49 @@ Describe 'Media report semantics' -Skip:(-not $IsWindows) {
         Mock Find-MediaExecutable { $null } -ParameterFilter { $Name -eq 'gst-inspect-1.0.exe' }
         (Get-MediaToolchainReport).status | Should -Be 'CompletedWithIssues'
     }
+    # Protects honest readiness after successful registry enumeration; detects
+    # discarding crashed, timed-out or otherwise failed element metadata probes.
+    # Needs process/provider fixtures only; no GPU or capture workload is started.
+    # Breadcrumb: Tools/Test-PcaiMediaToolchain.ps1 GStreamer probe aggregation.
+    It 'reports <Failure> element metadata as incomplete despite a successful version probe' -ForEach @(
+        @{ Failure = 'crashed'; ProbeStatus = 'Failed'; Code = -1073740940; ErrorText = '' }
+        @{ Failure = 'timed-out'; ProbeStatus = 'TimedOut'; Code = -1; ErrorText = '' }
+        @{ Failure = 'unexpectedly failed'; ProbeStatus = 'Failed'; Code = 1; ErrorText = 'plugin initialization failed' }
+    ) {
+        Mock Find-MediaExecutable { param($Name) "C:\fixture\$Name" }
+        Mock Invoke-MediaProcess { New-ProbeResult -Status $ProbeStatus -ExitCode $Code -Stderr $ErrorText } -ParameterFilter {
+            $FilePath -eq 'C:\fixture\gst-inspect-1.0.exe' -and $Arguments[0] -eq 'qsvh264enc'
+        }
+        $result = Get-MediaToolchainReport
+        $result.gstreamer.probes[0].status | Should -Be 'Succeeded'
+        $result.gstreamer.probes[1].status | Should -Be $ProbeStatus
+        $result.gstreamer.probes[1].exitCode | Should -Be $Code
+        $result.gstreamer.probes[1].stderr | Should -Be $ErrorText
+        $result.gstreamer.status | Should -Be 'Failed'
+        $result.status | Should -Be 'CompletedWithIssues'
+        $result.intelQsv.status | Should -Be 'NotRequested'
+        $result.captureDeviceListing.status | Should -Be 'NotRequested'
+    }
+    # Protects optional-plugin discovery on Windows and POSIX exit conventions;
+    # detects confusing explicit absence with a crash or making it qualification.
+    # Needs metadata fixtures only. Breadcrumb: GStreamer missing-element branch.
+    It 'retains an explicitly missing optional plugin with exit <Code> without claiming runtime validation' -ForEach @(
+        @{ Code = -1 }
+        @{ Code = 255 }
+    ) {
+        Mock Find-MediaExecutable { param($Name) "C:\fixture\$Name" }
+        Mock Invoke-MediaProcess { New-ProbeResult -Status 'Failed' -ExitCode $Code -Stderr "No such element or plugin 'qsvh264enc'" } -ParameterFilter {
+            $FilePath -eq 'C:\fixture\gst-inspect-1.0.exe' -and $Arguments[0] -eq 'qsvh264enc'
+        }
+        $result = Get-MediaToolchainReport
+        $result.gstreamer.status | Should -Be 'Enumerated'
+        @($result.gstreamer.Keys) | Should -Contain 'missingOptionalElements'
+        $result.gstreamer.missingOptionalElements | Should -Contain 'qsvh264enc'
+        $result.gstreamer.probes[1].exitCode | Should -Be $Code
+        $result.status | Should -Be 'Completed'
+        $result.intelQsv.status | Should -Be 'NotRequested'
+        $result.nvidiaRuntime.status | Should -Be 'NotAttempted'
+    }
     # Protects cold registry discovery after installation; detects repeated short
     # timeouts misclassifying usable GStreamer. Needs host/process mocks only.
     # Breadcrumb: Get-MediaToolchainReport first gst-inspect --version probe.

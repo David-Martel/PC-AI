@@ -51,6 +51,14 @@ response alone is not enrollment.
 
 The launch arguments explicitly clear external SSH and disable first-use trust,
 so backend or environment changes cannot bypass the native source/key policy.
+Before reporting a DryRun path eligible, the entrypoint also checks that every
+non-comment line in the managed pin file is a supported plain public-key record
+with valid base64 and SSH string framing. Empty, comments-only and malformed
+files are refused; a nonempty deployment receipt such as literal `1` is not a
+host pin. This structural preflight does not authenticate a peer or replace
+rclone's real known-hosts parser and host-key callback. Hashed host patterns and
+ordinary CA/revocation markers retain their syntax checks; an all-revoked file
+cannot establish a usable pin.
 
 Connect timeout is five seconds, idle timeout 30 seconds, and both retry counts
 are one. These bound an unavailable endpoint without imposing a runtime deadline
@@ -59,7 +67,9 @@ hardware returns while IgnoreNew prevents duplicate mounts. An unavailable path
 returns exit 2 without launching rclone, reading remote data or touching cached
 writes. The [mount gate controls](../../Tests/Portable/Test-ThunderboltMountGate.ps1)
 cover a working path, default-LAN fallback, absent/foreign addresses, down hardware
-and an unrelated Ethernet adapter. They do not certify a successful live mount.
+and an unrelated Ethernet adapter. They also cover malformed and valid host-pin
+content and prove the pin check precedes DryRun and transport startup. They do
+not certify a successful live mount or qualify an unconfigured IPv6 data edge.
 
 The options follow the official [SFTP host-key contract](https://rclone.org/sftp/)
 and [outgoing source-bind semantics](https://rclone.org/docs/#bind-string), checked

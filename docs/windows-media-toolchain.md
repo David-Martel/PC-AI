@@ -69,6 +69,18 @@ evidence before adding sustained media workloads.
 
 ## Cold registry scan controls
 
+The [metadata report](../Tools/Test-PcaiMediaToolchain.ps1) aggregates every
+GStreamer inspection result. A crash, timeout or unexpected nonzero exit makes
+GStreamer `Failed` and the overall report `CompletedWithIssues`, even when the
+version probe succeeds. Explicitly absent optional elements appear in
+`missingOptionalElements`; their original process result and exit code remain in
+`probes`. Absence requires the exact `No such element or plugin '<name>'`
+diagnostic and exit -1 (Windows) or 255 (POSIX). Other failures remain issues.
+`Enumerated` describes completed metadata inspection and does not qualify a GPU,
+capture device or media workload. The [regression controls](../Tests/Boot/MediaToolchain.Tests.ps1)
+cover crashes, timeouts, unexpected failures and optional absence using process
+fixtures, without loading plugins or starting workloads.
+
 The [Pester controls](../Tests/Boot/MediaToolchain.Tests.ps1) reproduce a first
 registry scan that needs more than the ordinary metadata budget. They also keep
 caller-selected deadlines independent, retain an exhausted scan as a failure,
@@ -92,3 +104,30 @@ unchanged, and an exhausted scan remains a failure.
 | allows a cold registry scan while retaining short metadata deadlines | codex-gen9-fleet-resume | keep |
 | keeps custom registry and metadata deadlines independent | codex-gen9-fleet-resume | keep |
 | retains a registry scan timeout as incomplete qualification | codex-gen9-fleet-resume | keep |
+
+## Element metadata regression review
+
+Reviewed 2026-11-02 against integration base `816038d4` and the exact hashes below.
+Hashes are SHA256 of UTF-8 source with CRLF normalized to LF; selector
+hashes cover each complete parameterized Pester `It` command, including its
+literal cases. Code under test is the
+[media toolchain script](../Tools/Test-PcaiMediaToolchain.ps1), hash
+`aac67c7724944a091dd6a0bb4ce8e47c6fc8f8b71aa2678175f5a76e1b4183f8`.
+
+| Selector group in [media tests](../Tests/Boot/MediaToolchain.Tests.ps1) | Selector SHA256 | Reviewer / type | Disposition |
+| --- | --- | --- | --- |
+| reports &lt;Failure&gt; element metadata as incomplete despite a successful version probe: crashed, timed-out, unexpectedly failed | `81bfd19cad58dd95f2c42bfaae9e70ee8df54956d276be2434a97b262fe75687` | pcai_review / independent agent | keep |
+| retains an explicitly missing optional plugin with exit &lt;Code&gt; without claiming runtime validation: -1, 255 | `a91ab09653e520304c2e2bad2324144baa501e9214e2f34c6660bce53d18f23b` | pcai_review / independent agent | keep |
+
+Independent review confirmed that these cases exercise shipping aggregation and
+retain raw probe failures. The focused diagnostic run passed 47 tests; three
+Integration tests were not run. Version-only aggregation fails the three negative
+cases. The positive absence cases permit only an exact diagnostic with the
+documented exit convention; timeout and error flags still refuse that exception.
+No test assertion was weakened and no runtime qualification was added.
+
+All five new media cases failed against the preceding report: three failures
+were incorrectly `Enumerated`, and optional absence had no explicit inventory.
+The corrected report retains every process result. The Windows missing-element
+metadata control independently produced the exact absent-element diagnostic and
+exit `-1`. No crash fixture executes a native plugin, encode or capture workload.

@@ -6,6 +6,17 @@ BeforeAll {
     $script:Tool = Join-Path $script:RepoRoot 'Tools\Get-PcaiMachineCapabilities.ps1'
     $script:ReportSchema = Join-Path $script:RepoRoot 'Config\machine-profiles\machine-capabilities.schema.json'
     $script:ProfileSchema = Join-Path $script:RepoRoot 'Config\machine-profiles\machine-profile.schema.json'
+    if ($IsWindows) {
+        # A real missing-class metadata query supplies the native MI error enum;
+        # constructing CimException from CIM_Error does not reproduce that field.
+        try {
+            CimCmdlets\Get-CimInstance -Namespace root/cimv2 -ClassName PcaiAuditNonexistentClass -OperationTimeoutSec 1 -ErrorAction Stop | Out-Null
+            throw 'The missing-class control unexpectedly succeeded.'
+        }
+        catch [Microsoft.Management.Infrastructure.CimException] {
+            $script:MissingClassException = $_.Exception
+        }
+    }
     function New-CapabilityFixtureProfile {
         param([string]$Path, [int]$Jobs = 4)
         [ordered]@{
@@ -161,6 +172,23 @@ Describe 'Machine capability fixture behavior' -Tag 'Boot', 'Unit' -Skip:(-not $
         Should -Invoke Get-CimInstance -Exactly -Times 12 -ParameterFilter { $OperationTimeoutSec -eq 3 }
     }
 
+    # Protects unsupported-provider reporting; detects comparing numeric StatusCode
+    # with enum names. Needs Windows CIM metadata plus existing inventory fixtures.
+    # Breadcrumb: Tools/Get-PcaiMachineCapabilities.ps1 Invoke-MachineCimQuery catch.
+    It 'classifies a native invalid-class error as unsupported while retaining its numeric code' {
+        $script:MissingClassException.NativeErrorCode.ToString() | Should -Be 'InvalidClass'
+        $script:MissingClassException.StatusCode | Should -Be 5
+        $nativeException = $script:MissingClassException
+        Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'MSAcpi_ThermalZoneTemperature' } {
+            throw $nativeException
+        }
+        $report = & $script:Tool -ProfilePath $script:FixtureProfile
+        $provider = $report.providers | Where-Object source -eq 'MSAcpi_ThermalZoneTemperature'
+        $provider.status | Should -Be 'Unsupported'
+        $provider.error.statusCode | Should -Be '5'
+        $provider.workloadValidation | Should -Be 'Unknown'
+    }
+
     It 'exports schema-valid JSON without unique hardware identifiers' {
         $path = Join-Path $TestDrive 'fixture-report.json'
         $json = & $script:Tool -ProfilePath $script:FixtureProfile -AsJson -OutputPath $path
@@ -250,19 +278,23 @@ Describe 'Machine capability fixture behavior' -Tag 'Boot', 'Unit' -Skip:(-not $
         $report.buildPolicy.applied | Should -BeFalse
     }
 
+    # Protects missing-provider semantics; detects inferring sensor health from
+    # an unsupported class. Needs a typed metadata fixture, not hardware access.
+    # Breadcrumb: Tools/Get-PcaiMachineCapabilities.ps1 provider query handling.
     It 'distinguishes an explicitly unsupported provider from unknown sensor health' {
         Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_PerfFormattedData_PowerMeterCounter_EnergyMeter' } {
             $providerError = [Microsoft.Management.Infrastructure.CimException]::new('Fixture missing provider class')
             # Preserve the typed exception and attach the provider's status for
             # an offline fixture without deleting or disabling a real provider.
-            $providerError | Add-Member -NotePropertyName StatusCode -NotePropertyValue 'InvalidClass' -Force
+            $providerError | Add-Member -NotePropertyName NativeErrorCode -NotePropertyValue ([Microsoft.Management.Infrastructure.NativeErrorCode]::InvalidClass) -Force
+            $providerError | Add-Member -NotePropertyName StatusCode -NotePropertyValue 5 -Force
             throw $providerError
         }
         $report = & $script:Tool -ProfilePath $script:FixtureProfile
         $provider = $report.providers | Where-Object source -eq 'Win32_PerfFormattedData_PowerMeterCounter_EnergyMeter'
         $provider.status | Should -Be 'Unsupported'
         $provider.instanceCount | Should -BeNullOrEmpty
-        $provider.error.statusCode | Should -Be 'InvalidClass'
+        $provider.error.statusCode | Should -Be '5'
         $provider.workloadValidation | Should -Be 'Unknown'
         $report.powerObservation.wholePcInputWatts | Should -BeNullOrEmpty
     }

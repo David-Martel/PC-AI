@@ -2,7 +2,8 @@ name: CI (Linux self-hosted)
 
 # Why this exists: the main `CI` workflow is disabled because every job in it runs on `windows-latest`, and PC-AI has
 # no Windows runner. That left pull requests with only the path-filtered contract workflows. This workflow runs, on the
-# persistent repo-scoped vigil1 runner `vigil1-pc-ai-1` (labels self-hosted, Linux, X64, vigil1, pc-ai-local), every
+# persistent repo-scoped vigil1 runner `vigil1-pc-ai-1` (labels self-hosted, Linux, X64, vigil1, pc-ai-local; the jobs
+# select runners by the role label `pc-ai-local` only, not by host, so they can move to any runner that carries it), every
 # check that is meaningful on Linux: workflow lint, the PowerShell and Python portable contracts, the Pester files that
 # pass on Linux, PSScriptAnalyzer errors, and rustfmt, clippy and nextest for Native/pcai_core.
 #
@@ -50,7 +51,7 @@ jobs:
   # ---------------------------------------------------------------------------
   portable-contracts:
     if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
+    runs-on: [self-hosted, Linux, X64, pc-ai-local]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -93,7 +94,7 @@ jobs:
   # ---------------------------------------------------------------------------
   pester-lint:
     if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
+    runs-on: [self-hosted, Linux, X64, pc-ai-local]
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
@@ -159,7 +160,7 @@ jobs:
   # ---------------------------------------------------------------------------
   rust-linux:
     if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
+    runs-on: [self-hosted, Linux, X64, pc-ai-local]
     timeout-minutes: 45
     defaults:
       run:
@@ -200,7 +201,7 @@ jobs:
   ci-gate:
     if: always() && vars.PCAI_LINUX_RUNNER_ENABLED == 'true'
     needs: [portable-contracts, pester-lint, rust-linux]
-    runs-on: [self-hosted, Linux, X64, vigil1, pc-ai-local]
+    runs-on: [self-hosted, Linux, X64, pc-ai-local]
     timeout-minutes: 5
     steps:
       - name: Require every job to have succeeded

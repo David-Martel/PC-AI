@@ -235,7 +235,9 @@ PC-AI-1.0.0/
 ## Linux self-hosted gate
 
 `.github/workflows/linux-ci.yml` ("CI (Linux self-hosted)") runs on the persistent repo-scoped vigil1 runner
-`vigil1-pc-ai-1` (labels `self-hosted, Linux, X64, vigil1, pc-ai-local`). It exists because the main `CI` workflow is
+`vigil1-pc-ai-1` (labels `self-hosted, Linux, X64, vigil1, pc-ai-local`). Its jobs select runners with
+`runs-on: [self-hosted, Linux, X64, pc-ai-local]`: the role label alone, with no host label, so any runner that carries
+`pc-ai-local` can serve them (vigil1 leaves 2026-11-04; dtm-super-nuc runners are being added). It exists because the main `CI` workflow is
 disabled: every job in it runs on `windows-latest` and PC-AI has no Windows runner, so it cannot run on an available
 runner. `CI` stays disabled until a Windows runner for this repo exists.
 

@@ -1,0 +1,2 @@
+# Retain the dependency-free probe lock for the --locked controls.
+!Cargo.lock

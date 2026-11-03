@@ -1,0 +1,18 @@
+[package]
+name = "pcai-media-worker-lock-probe"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+build = "build.rs"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "pcai-media-worker-lock-probe"
+path = "src/main.rs"
+
+[lints.clippy]
+pedantic = "warn"
+perf = "warn"
+suspicious = "warn"

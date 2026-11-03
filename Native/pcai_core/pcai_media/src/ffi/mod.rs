@@ -18,6 +18,9 @@
 //! - The Tokio runtime is created lazily via `OnceLock` and reused
 //! - Errors are stored in thread-local storage
 //!
+//! [Worker acquisition controls](../../../../../Tests/Portable/media-worker-lock/README.md)
+//! exercise poisoned-lock refusal without a model or device.
+//!
 //! ## Usage from PowerShell
 //!
 //! ```powershell
@@ -791,11 +794,11 @@ pub extern "C" fn pcai_media_generate_image_async(
             let state = get_state();
             let guard = match state.lock() {
                 Ok(g) => g,
-                Err(e) => {
-                    if let Ok(mut g2) = get_state().lock() {
-                        g2.requests
-                            .insert(id, MediaRequestStatus::Failed(format!("Lock failed: {e}")));
-                    }
+                Err(error) => {
+                    let message = format!("Lock failed: {error}");
+                    // PoisonError owns this guard; locking the same mutex again deadlocks.
+                    let mut guard = error.into_inner();
+                    guard.requests.insert(id, MediaRequestStatus::Failed(message));
                     return;
                 }
             };

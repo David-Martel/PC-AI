@@ -69,4 +69,4 @@ rand = "0.10.2"
 memmap2 = "0.9.5"
 reqwest = { version = "0.13", features = ["json"] }
 rust-functiongemma-train = { path = "rust-functiongemma-train" }
-sysinfo = "0.38"
+sysinfo = "0.40"

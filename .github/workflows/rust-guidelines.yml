@@ -53,7 +53,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Cache Cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -92,7 +92,7 @@ jobs:
       # even if the audit itself fails.
       - name: Restore cargo-audit
         id: audit-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/.cargo/bin/cargo-audit.exe
           key: ${{ runner.os }}-cargo-audit-v1
@@ -103,7 +103,7 @@ jobs:
 
       - name: Save cargo-audit
         if: steps.audit-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ~/.cargo/bin/cargo-audit.exe
           key: ${{ runner.os }}-cargo-audit-v1

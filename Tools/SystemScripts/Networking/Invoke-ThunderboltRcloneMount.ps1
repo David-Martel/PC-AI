@@ -62,6 +62,72 @@ function Get-ThunderboltMountTransportArguments {
         '--sftp-ssh', '', '--sftp-pin-host-key=false', '--bind', $SourceAddress,
         '--contimeout', '5s', '--timeout', '30s', '--retries', '1', '--low-level-retries', '1')
 }
+function Test-ThunderboltKnownHostContent {
+    <# .SYNOPSIS
+    Reject malformed managed public host-pin records before reporting readiness.
+    .DESCRIPTION
+    Checks record and plain public-key wire framing, not peer identity or trust.
+    Rclone's parser and authenticated host-key callback remain authoritative.
+    #>
+    [CmdletBinding()]
+    param([AllowNull()][AllowEmptyString()][string]$Content)
+    if ([string]::IsNullOrWhiteSpace($Content)) { return $false }
+    $usableRecords = 0
+    foreach ($rawLine in ($Content -split '\r?\n')) {
+        $line = $rawLine.Trim()
+        if (-not $line -or $line.StartsWith('#')) { continue }
+        $fields = $line -split '\s+'
+        $offset = 0
+        if ($fields[0].StartsWith('@')) {
+            if ($fields[0] -notin @('@cert-authority', '@revoked')) { return $false }
+            $offset = 1
+        }
+        if ($fields.Count -lt ($offset + 3)) { return $false }
+        if (@($fields[$offset] -split ',' | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+            return $false
+        }
+        if ($fields[$offset].StartsWith('|')) {
+            $hashedHost = $fields[$offset] -split '\|'
+            if ($hashedHost.Count -ne 4 -or $hashedHost[1] -ne '1') { return $false }
+            try {
+                if ([Convert]::FromBase64String($hashedHost[2]).Length -ne 20 -or
+                    [Convert]::FromBase64String($hashedHost[3]).Length -ne 20) { return $false }
+            } catch { return $false }
+        }
+        $keyType = $fields[$offset + 1]
+        $expectedParts = switch -Regex ($keyType) {
+            '^ssh-ed25519$' { 2; break }
+            '^ssh-rsa$' { 3; break }
+            '^ssh-dss$' { 5; break }
+            '^ecdsa-sha2-nistp(256|384|521)$' { 3; break }
+            '^sk-ssh-ed25519@openssh.com$' { 3; break }
+            '^sk-ecdsa-sha2-nistp256@openssh.com$' { 4; break }
+            default { return $false }
+        }
+        try { $blob = [Convert]::FromBase64String($fields[$offset + 2]) } catch { return $false }
+        $position = 0
+        $partLengths = [Collections.Generic.List[int]]::new()
+        while ($position -lt $blob.Length) {
+            if (($blob.Length - $position) -lt 4) { return $false }
+            $length = [long]$blob[$position] * 16777216 + [long]$blob[$position + 1] * 65536 +
+                [long]$blob[$position + 2] * 256 + [long]$blob[$position + 3]
+            $position += 4
+            if ($length -le 0 -or $length -gt ($blob.Length - $position)) { return $false }
+            if ($partLengths.Count -eq 0 -and
+                [Text.Encoding]::ASCII.GetString($blob, $position, [int]$length) -cne $keyType) {
+                return $false
+            }
+            $partLengths.Add([int]$length)
+            $position += [int]$length
+        }
+        if ($partLengths.Count -ne $expectedParts) { return $false }
+        if ($keyType -in @('ssh-ed25519', 'sk-ssh-ed25519@openssh.com') -and $partLengths[1] -ne 32) {
+            return $false
+        }
+        if ($offset -eq 0 -or $fields[0] -ne '@revoked') { $usableRecords++ }
+    }
+    return $usableRecords -gt 0
+}
 if ($MyInvocation.InvocationName -eq '.') { return }
 if ($ShowHelp) { Get-Help $PSCommandPath -Detailed; return }
 try {
@@ -83,8 +149,9 @@ try {
         [pscustomobject]@{ State = 'Unavailable'; Reason = 'No owned operational USB4 source/on-link route; mount skipped.' } | ConvertTo-Json
         exit 2
     }
-    if (-not [IO.File]::Exists($KnownHostsPath) -or [IO.File]::ReadAllText($KnownHostsPath).Trim().Length -eq 0) {
-        throw 'Pinned known_hosts file is missing or empty; mount refused.'
+    if (-not [IO.File]::Exists($KnownHostsPath) -or
+        -not (Test-ThunderboltKnownHostContent -Content ([IO.File]::ReadAllText($KnownHostsPath)))) {
+        throw 'Pinned known_hosts file is missing or has malformed/unsupported public-key records; mount refused.'
     }
     if ($DryRun) {
         [pscustomobject]@{ State = 'PathEligible'; PeerAddress = $PeerAddress; SourceAddress = $SourceAddress; Mounted = $false } | ConvertTo-Json

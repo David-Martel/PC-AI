@@ -29,6 +29,8 @@ Display help; aliases -h and --help are supported.
 pwsh -NoLogo -NoProfile -File .\Tools\Get-PcaiMachineCapabilities.ps1 -AsJson
 .EXAMPLE
 pwsh -NoLogo -NoProfile -File .\Tools\Get-PcaiMachineCapabilities.ps1 -DryRun -OutputPath C:\Temp\machine.json
+.LINK
+../docs/windows-fleet-capabilities.md
 #>
 [CmdletBinding()]
 param(
@@ -96,7 +98,9 @@ function Invoke-MachineCimQuery {
     }
     catch {
         $statusCode = Get-MachineValue $_.Exception 'StatusCode'
-        if ([string]$statusCode -in @('InvalidClass', 'InvalidNamespace', 'NotSupported')) { $query.status = 'Unsupported' }
+        # StatusCode is numeric; the MI enum names belong to NativeErrorCode.
+        $nativeErrorCode = Get-MachineValue $_.Exception 'NativeErrorCode'
+        if ([string]$nativeErrorCode -in @('InvalidClass', 'InvalidNamespace', 'NotSupported')) { $query.status = 'Unsupported' }
         $query.error = [ordered]@{
             exceptionType = $_.Exception.GetType().FullName; category = $_.CategoryInfo.Category.ToString()
             statusCode = if ($null -ne $statusCode) { $statusCode.ToString() } else { $null }

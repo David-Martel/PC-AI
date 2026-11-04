@@ -271,6 +271,9 @@ pwsh -NoProfile -Command "Invoke-Pester -Path .\Tests\Boot\PersistentVHDX.Tests.
 The exact test count changes as native and workstation tooling grows. Prefer
 current command output and report artifacts over static README counts.
 
+The [media worker acquisition controls](Tests/Portable/media-worker-lock/README.md)
+exercise the actual FFI lock/error block with bounded, model-free Rust children.
+
 ## Project Structure
 
 ```

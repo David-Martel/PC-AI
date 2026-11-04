@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 bytes with CRLF converted to LF",
+  "reviews": [
+    {
+      "selector": "MediaWorkerLockTests.test_healthy_running_acquisition_preserves_existing_states",
+      "test_path": "Tests/Portable/test_media_worker_lock.py",
+      "test_sha256": "559111fd4fd0b17f6b5d6ec9c7c785473bd1bd027a39bb14ad54f70b496e4a29",
+      "selector_sha256": "37d5c3f996db44dae61edbb753716d49adfdb3fc167e7dfdb156defec47b9f68",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "ccd590784e41f1bf2f812f8baf35ed24f59fb8b25a02c49fc5684edc36e6ba88",
+      "base_commit": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
+      "disposition": "keep",
+      "reviewer": "codex-p1-obsbot-fork-prep",
+      "reviewer_type": "independent-codex",
+      "reviewed_utc": "2026-11-03T02:31:25.111768+00:00",
+      "scope": "Source-bound acquisition subpath with minimal state; no complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "d08c6ab76a2b6c38ef375c150b3826615afb58c2adbe8c983203bf70e051b476"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "a3fb728f54da54f8be57bb1fa5bc9006ea7a04ee75994e0715ad23e020f6ff42"
+        }
+      ],
+      "review_verdict": "approve",
+      "review_receipt_sha256": "fd45c2f980dc95257b1f0f6edf2d84372b6271388f1f42ceb0d2a496774e3fa5",
+      "review_scope": "Actual source acquisition/error block and default discovery; no full model/FFI/public polling recovery, GPU or hardware acceptance",
+      "review_reason": "The poisoned error owns the mutex guard. Consuming it records the original internal failure and returns without relocking or clearing poison. Healthy/cancelled states and unrelated requests remain intact. The source-extracted owned-child controls detect the original deadlock and bound termination; missing boundary/compile/child failures cannot be reported as success.",
+      "validation": "Windows x64 native Rust 1.99.1: original source two healthy passes and one owned poisoned-child 3s timeout; repaired explicit and normal-discovery cohorts each 3 passes, no skips; independent normal discovery 3 passes. CPU-only pcai-media ffi check and strict Clippy passed with pinned compiler. Fresh seven-file Git export also built --locked/--offline and passed 3 controls."
+    },
+    {
+      "selector": "MediaWorkerLockTests.test_healthy_cancelled_acquisition_does_not_rewrite_cancellation",
+      "test_path": "Tests/Portable/test_media_worker_lock.py",
+      "test_sha256": "559111fd4fd0b17f6b5d6ec9c7c785473bd1bd027a39bb14ad54f70b496e4a29",
+      "selector_sha256": "10cf94ffa0c671f66f618513822b99f6c23b803973e572fe6ef65ea4777ca19b",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "ccd590784e41f1bf2f812f8baf35ed24f59fb8b25a02c49fc5684edc36e6ba88",
+      "base_commit": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
+      "disposition": "keep",
+      "reviewer": "codex-p1-obsbot-fork-prep",
+      "reviewer_type": "independent-codex",
+      "reviewed_utc": "2026-11-03T02:31:25.111768+00:00",
+      "scope": "Source-bound acquisition subpath with minimal state; no complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "d08c6ab76a2b6c38ef375c150b3826615afb58c2adbe8c983203bf70e051b476"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "a3fb728f54da54f8be57bb1fa5bc9006ea7a04ee75994e0715ad23e020f6ff42"
+        }
+      ],
+      "review_verdict": "approve",
+      "review_receipt_sha256": "fd45c2f980dc95257b1f0f6edf2d84372b6271388f1f42ceb0d2a496774e3fa5",
+      "review_scope": "Actual source acquisition/error block and default discovery; no full model/FFI/public polling recovery, GPU or hardware acceptance",
+      "review_reason": "The poisoned error owns the mutex guard. Consuming it records the original internal failure and returns without relocking or clearing poison. Healthy/cancelled states and unrelated requests remain intact. The source-extracted owned-child controls detect the original deadlock and bound termination; missing boundary/compile/child failures cannot be reported as success.",
+      "validation": "Windows x64 native Rust 1.99.1: original source two healthy passes and one owned poisoned-child 3s timeout; repaired explicit and normal-discovery cohorts each 3 passes, no skips; independent normal discovery 3 passes. CPU-only pcai-media ffi check and strict Clippy passed with pinned compiler. Fresh seven-file Git export also built --locked/--offline and passed 3 controls."
+    },
+    {
+      "selector": "MediaWorkerLockTests.test_poisoned_acquisition_records_failure_without_relocking",
+      "test_path": "Tests/Portable/test_media_worker_lock.py",
+      "test_sha256": "559111fd4fd0b17f6b5d6ec9c7c785473bd1bd027a39bb14ad54f70b496e4a29",
+      "selector_sha256": "364f524ca52df3b29325442555f465c7084239c793ab098fc6b7f2c43f988820",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "ccd590784e41f1bf2f812f8baf35ed24f59fb8b25a02c49fc5684edc36e6ba88",
+      "base_commit": "816038d4eeafcdeefb42bca37a8834fec3ce7491",
+      "disposition": "keep",
+      "reviewer": "codex-p1-obsbot-fork-prep",
+      "reviewer_type": "independent-codex",
+      "reviewed_utc": "2026-11-03T02:31:25.111768+00:00",
+      "scope": "Source-bound acquisition subpath with minimal state; no complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "d08c6ab76a2b6c38ef375c150b3826615afb58c2adbe8c983203bf70e051b476"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "a3fb728f54da54f8be57bb1fa5bc9006ea7a04ee75994e0715ad23e020f6ff42"
+        }
+      ],
+      "review_verdict": "approve",
+      "review_receipt_sha256": "fd45c2f980dc95257b1f0f6edf2d84372b6271388f1f42ceb0d2a496774e3fa5",
+      "review_scope": "Actual source acquisition/error block and default discovery; no full model/FFI/public polling recovery, GPU or hardware acceptance",
+      "review_reason": "The poisoned error owns the mutex guard. Consuming it records the original internal failure and returns without relocking or clearing poison. Healthy/cancelled states and unrelated requests remain intact. The source-extracted owned-child controls detect the original deadlock and bound termination; missing boundary/compile/child failures cannot be reported as success.",
+      "validation": "Windows x64 native Rust 1.99.1: original source two healthy passes and one owned poisoned-child 3s timeout; repaired explicit and normal-discovery cohorts each 3 passes, no skips; independent normal discovery 3 passes. CPU-only pcai-media ffi check and strict Clippy passed with pinned compiler. Fresh seven-file Git export also built --locked/--offline and passed 3 controls."
+    }
+  ]
+}

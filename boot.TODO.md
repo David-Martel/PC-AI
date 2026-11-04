@@ -1556,3 +1556,22 @@ an observer returning Configured does not claim NetworkReady.
   state is the D: command recorded in `docs/scheduled-tasks/task-registry.json` at `origin/main`),
   [watchdog before](Reports/d-drive-retirement/processlasso-watchdog.before.xml) and
   [after](Reports/d-drive-retirement/processlasso-watchdog.after.xml).
+
+## Gen9 recurring terminal window closeout
+
+Observed 2026-11-04; see the [task launch qualification](Reports/scheduled-task-window-review.md).
+
+- [x] Trace three two-minute console flashes and reproduce one controlled flash
+      from the interactive `Dtm-HomeLab-Runtime` task.
+- [x] Qualify the accepted windowless launcher source and exact six-file cohort;
+      77 native tests, 56 helper tests and real process controls pass.
+- [x] Preserve the task XML and change only its Exec action with definition/hash
+      guards; keep the original child arguments, working directory and task policy.
+- [x] Observe a controlled run and three natural scheduled runs without a new
+      visible terminal; retain successful task status, seven listeners and the
+      existing helper PIDs/start times.
+- [ ] Verify the next real logon under the same limited-user task principal.
+      Owner: workstation operator; retain the original XML and qualified cohort.
+- [ ] Reconcile the machine-specific watchdog's source custody with its home-lab
+      owner before moving it into maintained system scripts. Preserve its private
+      configuration, launcher state and running helpers during that separate change.

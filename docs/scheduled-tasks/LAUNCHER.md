@@ -1,5 +1,10 @@
 # dtm-task-run: a hidden launcher for scheduled tasks that keeps the exit code
 
+The [Gen9 console-window qualification](../../Reports/scheduled-task-window-review.md)
+records the exact framework-dependent cohort and guarded task action used on
+dtm-p1gen9. Its task/window observations are separate from the historical
+NativeAOT measurements below.
+
 `dtm-task-run.exe` starts a scheduled task's real command with no window, captures its output,
 enforces an optional timeout and exits with the child's own exit code. It exists because
 `conhost.exe --headless`, the wrapper used to hide task windows, also hides the result: a task

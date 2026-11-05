@@ -1,7 +1,7 @@
 {
   "SchemaVersion": 1,
   "ReviewKind": "Linux agent operation result and independent evidence sinks",
-  "ReviewedCommit": null,
+  "ReviewedCommit": "3f8df0a237799cbd94f94e660610bd6b1d55a49b",
   "Source": "Native/pcai_core/pcai_tb_cli/src/bin/pcai-usb4-agent.rs",
   "SourceSha256": "9b2fdddf1541645aaafa03ab6bda88c08b98c3dae5a1545f6c6db16e6b589934",
   "HashConvention": "UTF-8 LF. Selector extent starts at fn token and ends at four-space function closing brace, no final LF. Whole source includes final LF.",
@@ -84,5 +84,6 @@
     "LinuxJob": 127321414137,
     "Result": "Both compiled, 5 agent controls passed and the same 2 operational status controls failed. Library controls passed: Windows99/Linux103. Later integration/CLI steps skipped after expected failure; no claims for those steps."
   },
-  "QualificationBoundary": "Exact production aggregation/finalizer seam; does not exercise actual OS network, authentication, installed service, hotplug or ARM64 runtime. No local test/build during HIL."
+  "QualificationBoundary": "Exact production aggregation/finalizer seam; does not exercise actual OS network, authentication, installed service, hotplug or ARM64 runtime. No local test/build during HIL.",
+  "RecordedReviewUtc": "2026-11-05T15:02:09.133813+00:00"
 }

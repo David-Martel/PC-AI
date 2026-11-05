@@ -1,6 +1,6 @@
 {
   "SchemaVersion": 1,
-  "ReviewedCommit": null,
+  "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
   "Disposition": "keep",
   "Reviewer": "root",
   "ReviewerType": "independent agent; did not author collector tests",
@@ -24,10 +24,10 @@
       "Needs": "Actual entrypoint with Collect guard and child-scope API spies",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": null,
+      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
-      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedUtc": "2026-11-05T11:53:33.990904+00:00",
       "MutationEvidence": [
         {
           "mutation": "dryrun-fallthrough",
@@ -37,7 +37,8 @@
         }
       ],
       "SelectorLfSha256": "8341d3459f07253848fd122a86ed4df1815499ebbd2ec565e53b47504eeb4bb1",
-      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained."
+      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained.",
+      "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00"
     },
     {
       "Selector": "Test-PresentIdentityExcludesPhantomsAndAliasDecoys",
@@ -46,10 +47,10 @@
       "Needs": "Exact provider AST and host API fixtures",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": null,
+      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
-      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedUtc": "2026-11-05T11:53:33.990913+00:00",
       "MutationEvidence": [
         {
           "mutation": "phantom-admission",
@@ -59,7 +60,8 @@
         }
       ],
       "SelectorLfSha256": "047985e05910a6ebf6465ed5ef7d57e86800315f7ec96d8a5262da97aec1c70e",
-      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained."
+      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained.",
+      "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00"
     },
     {
       "Selector": "Test-UnknownRootRetainsUnqualifiedInterface",
@@ -68,10 +70,10 @@
       "Needs": "Root-not-present/no-root fixtures",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": null,
+      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
-      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedUtc": "2026-11-05T11:53:33.990917+00:00",
       "MutationEvidence": [
         {
           "mutation": "unproven-root",
@@ -81,7 +83,8 @@
         }
       ],
       "SelectorLfSha256": "8610f1de5de0c9521afc01c8b0b42470cd963e87bd96fd2e551286631d36f886",
-      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained."
+      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained.",
+      "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00"
     },
     {
       "Selector": "Test-ProviderErrorsRefuseEmptySuccess",
@@ -90,10 +93,10 @@
       "Needs": "Specific mocked exceptions and genuine empty adapter response",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": null,
+      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
-      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedUtc": "2026-11-05T11:53:33.990920+00:00",
       "MutationEvidence": [
         {
           "mutation": "provider-swallow",
@@ -103,7 +106,8 @@
         }
       ],
       "SelectorLfSha256": "bad26c833cd9e7ea81a1979e53907e2a5bb0f405f5bbe9db7263844dd4d8e246",
-      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained."
+      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained.",
+      "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00"
     },
     {
       "Selector": "Test-NeighborNotFoundBoundary",
@@ -112,10 +116,10 @@
       "Needs": "Real ErrorRecord category/FQID fixtures",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": null,
+      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
-      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedUtc": "2026-11-05T11:53:33.990923+00:00",
       "MutationEvidence": [
         {
           "mutation": "broad-notfound",
@@ -125,7 +129,8 @@
         }
       ],
       "SelectorLfSha256": "63c7012020ee6a606b45a2a3303fd38fa0cde1346ad09275125c61b72eabb81e",
-      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained."
+      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained.",
+      "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00"
     },
     {
       "Selector": "Test-NeighborsFilterUnusableEntries",
@@ -134,10 +139,10 @@
       "Needs": "Accepted and rejected neighbor rows",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": null,
+      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
-      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedUtc": "2026-11-05T11:53:33.990927+00:00",
       "MutationEvidence": [
         {
           "mutation": "multicast-admission",
@@ -147,7 +152,8 @@
         }
       ],
       "SelectorLfSha256": "6f9c44add37936a7a42ba407f1165a36db4f4cca2647e654bd5a6b59cce8a5c3",
-      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained."
+      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained.",
+      "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00"
     },
     {
       "Selector": "Test-ProviderCardinalityAndAncestryBounds",
@@ -156,10 +162,10 @@
       "Needs": "Bounded fixture arrays and ancestry maps",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": null,
+      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
-      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedUtc": "2026-11-05T11:53:33.990930+00:00",
       "MutationEvidence": [
         {
           "mutation": "unbounded-interfaces",
@@ -169,7 +175,8 @@
         }
       ],
       "SelectorLfSha256": "c0da4fc2dbab676f09ed5daa943d7775e82c94b87b4cb311078526c70fc2b870",
-      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained."
+      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained.",
+      "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00"
     }
   ],
   "Validation": "Native PowerShell 7.6.7 actual script controls:7 passed; exact provider AST imported without rewriting; host APIs mocked, preflight script actual. Actual local/Carbon collection receipts separate.",
@@ -177,6 +184,8 @@
     "Provider controls do not qualify actual hardware hotplug, service route canaries, mutation, native wrapper process bounds, or file-sharing.",
     "Source/test hashes must be revalidated after any subsequent edit; independent selector review covers these frozen bytes only."
   ],
-  "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
-  "CommitBinding": "Bind actual implementation commit before publication."
+  "ReviewedUtc": "2026-11-05T11:53:33.990932+00:00",
+  "CommitBinding": "Frozen implementation and test selector hashes bind to 11388e1eec973a69f6925df3e5a9b7105560ca5d; this review-only successor does not change implementation.",
+  "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00",
+  "CommitBoundUtc": "2026-11-05T11:53:33.990939+00:00"
 }

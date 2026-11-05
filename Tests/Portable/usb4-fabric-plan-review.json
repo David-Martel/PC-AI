@@ -421,7 +421,7 @@
     "Evidence": "Original native assertion failed on asleep; corrected actual native integration passes. Eight inert compiled Rust controls pass and reject wrong type/state cases; no hardware qualification."
   },
   "CiWiringReview": {
-    "ReviewedCommit": null,
+    "ReviewedCommit": "b48ac3704c3e8d9e36dd727c6d4c1ac7f73ac2f6",
     "Workflow": ".github/workflows/usb4-lifecycle.yml",
     "WorkflowSha256": "a53ea595359e51f4f09d3ac258ffbaa3c9d76cec6d33ba4705413f4a7dc2a66a",
     "HashConvention": "UTF-8 LF including final LF",
@@ -437,7 +437,8 @@
     "TrustBoundary": "Existing fork/self-hosted gate, contents:read permissions, matrix, actions and timeout unchanged. Job-local target directory separate from native contracts; subsequent clippy explicitly resets the native directory. No new global default toolchain.",
     "QualificationBoundary": "cargo check is target type-check evidence, not final code generation/link, ARM64 runtime, installed-service, driver or hardware qualification. Build scripts/proc macros may execute on the host.",
     "Reviewer": "codex/usb4_design_builder_review",
-    "StaticValidation": "Actionlint passed; trust gate and historical record preservation independently inspected. Local links inspected; shared link checker pending."
+    "StaticValidation": "Actionlint passed; trust gate and historical record preservation independently inspected. Local links inspected; shared link checker pending.",
+    "RecordedReviewUtc": "2026-11-05T16:10:03.534211+00:00"
   },
   "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00",
   "CommitBoundUtc": "2026-11-05T11:53:33.990269+00:00",

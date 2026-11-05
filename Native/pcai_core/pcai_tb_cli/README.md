@@ -63,6 +63,47 @@ source reviewed. These controls do not qualify physical unplug, reboot or sleep.
 
 ## Deployment limits
 
+The Windows lifecycle power/service provider has a ten-second process deadline
+and a 256 KiB capture limit per output stream. It falls back to Windows PowerShell
+only when `pwsh` cannot be found, rather than retrying a timeout or failed query.
+Service absence is recorded only for the exact missing-service error; provider
+failures yield Unknown service/standby state, no invented power records, and a
+report warning. TBService and ShareTBService are queried separately; neither is a
+license prerequisite for the PC-AI observer. No service is started or stopped.
+
+Required root/dock or two-hub qualification refuses missing or partial ancestry.
+An observed root and PCI host router are required; a configured topology hint
+cannot replace the observed two-hub class. Explicit host-port-control scope
+remains admitted without qualifying a two-hub requirement, and external bridge
+custody remains separate. Rejected admission blocks configuration reapply while
+preserving verified Ready transport and its existing routes. Expected router
+names never fill observed router fields; absent speed data is zero (unknown),
+while explicit reported metadata keeps its existing precedence.
+
+The [provider controls](src/lifecycle.rs) cover real delayed, inherited-pipe,
+nonzero and oversized child processes, malformed responses, fallback policy and
+Windows PowerShell fixtures for missing services versus denied service/PnP/
+adapter/power queries. [Their review register](../../../Tests/Portable/usb4-provider-bounds-review.json)
+records the exact selectors and source. Windows timeout cleanup terminates the
+direct provider; the shared executor does not provide all-descendant Job Object
+containment. The inherited-pipe control uses an owned, two-second self-expiring
+descendant and qualifies bounded return only. Physical hot-plug and sleep remain
+separate hardware acceptance.
+
+Run these process controls under both `cargo test --locked -p pcai-tb` and
+`cargo nextest run --locked -p pcai-tb` when changing their harness.
+[Nextest runs individual tests in separate processes](https://nexte.st/docs/design/why-process-per-test/);
+`--exact` is an ordinary test-selection argument, not a child-fixture marker.
+Explicit per-child environment markers select the finite fixture bodies. The
+control rejects missing, foreign or mismatched markers before it can skip an
+assertion. The output control's 1024-byte threshold excludes ordinary harness
+text while rejecting the 8192-byte fixture payload; production capture limits
+are unchanged by this test-harness threshold.
+On Windows the inherited-pipe control also allows its known two-second fixture
+descendant three seconds to expire after the inner deadline assertion. That
+bounded cleanup fence prevents fixture leakage into the nextest lifecycle; it
+does not extend the production provider deadline or prove process-tree cleanup.
+
 Linux currently reports hard-coded interface metrics; MTU configuration does not set the requested metric. Registration is temporary `ip` configuration, without NetworkManager ownership or reboot persistence. Windows metric changes likewise require review. Do not deploy automatic apply until those contracts, strict CLI argument validation, cancellation/timeouts, identity authentication, route rollback and management-path preservation are implemented and tested.
 
 No throughput, reconnect, DHCP forwarding, bridge-loop protection, or hardware acceptance is established by the unit tests. Discovery hints and SSH/NTLM banners are not authenticated host identity. Benchmark collection is not a link throughput benchmark.

@@ -148,6 +148,19 @@ the retained preimages before restoring anything after an ownership change.
 
 ## Qualification and performance
 
+Run the existing fixture contracts from the repository root:
+
+```powershell
+pwsh -NoLogo -NoProfile -File Tests/Portable/Test-Usb4PeerNetwork.ps1
+pwsh -NoLogo -NoProfile -File Tests/Portable/Test-Usb4PeerNetworkInstall.ps1
+```
+
+The [USB4 workflow](../../.github/workflows/usb4-lifecycle.yml) runs both suites
+on Windows and Linux. Network and scheduler mutations use fixtures; installer
+controls create and clean their own temporary files. Windows-only task-schema
+and file-ownership controls explicitly report unsupported platforms. These
+contracts do not install a runtime or qualify a physical connection.
+
 Run the portable controller and installer controls first, then qualify:
 
 1. Direct IPv4/IPv6 peer connections with the actual source interface recorded.

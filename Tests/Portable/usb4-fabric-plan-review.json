@@ -421,13 +421,64 @@
     "Evidence": "Original native assertion failed on asleep; corrected actual native integration passes. Eight inert compiled Rust controls pass and reject wrong type/state cases; no hardware qualification."
   },
   "CiWiringReview": {
-    "Reviewer": "codex-terminal-backlog",
+    "Reviewer": "codex-terminal-fleet-review",
     "Disposition": "keep",
-    "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
+    "ReviewedCommit": "3a5521ce9bcfddcf437554d54a88cb3f6c7c94d5",
+    "ReviewedUtc": "2026-11-05T13:35:59.082339+00:00",
     "Path": ".github/workflows/usb4-lifecycle.yml",
-    "Sha256": "1002ddf6a314a260eee9366c27161a27189be9917ceb2b1a4c530cadd6ba0cdc",
-    "Evidence": "Independent actionlint pass; exact integration binary path verified. Linux invokes guaranteed python3, Windows python. Generic discovery skips only missing explicit built CLI prerequisite; explicit --exe remains strict."
+    "Sha256": "13f90823954f95439a483eae9b2fa0ad41487ec4fbfbc1801f5908739a7c4088",
+    "HashNormalization": "UTF-8 LF whole workflow",
+    "Protects": "Standalone peer policy, custody, rollback and installer task contracts stay in cross-platform CI when their implementation or tests change",
+    "Detects": "Regressions already asserted by the two maintained fixture suites; path-filter omissions and CI invocation failures",
+    "Needs": "Fresh PowerShell 7 step on existing Windows/Linux matrix; fixture operations and owned temporary files; Windows-only controls explicitly unsupported elsewhere",
+    "Breadcrumb": "Tests/Portable/Test-Usb4PeerNetwork.ps1 and Tests/Portable/Test-Usb4PeerNetworkInstall.ps1",
+    "SourceBindings": [
+      {
+        "Path": "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1",
+        "Sha256": "fa225b2e69ff26a397aa9ec7273b09ec8cc20413e0de93671df65ee4be8e91ad",
+        "HashNormalization": "UTF-8 LF full input"
+      },
+      {
+        "Path": "Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1",
+        "Sha256": "54e8c8792261fdee5a2f99dc75b5b8d6e5da174b11b012c5a947e73c6743797a",
+        "HashNormalization": "UTF-8 LF full input"
+      },
+      {
+        "Path": "Tests/Portable/Test-Usb4PeerNetwork.ps1",
+        "Sha256": "ef08c455e8a84d028839449bc1bdc4aa603da122b954158d19981bef75d2eef6",
+        "HashNormalization": "UTF-8 LF full input"
+      },
+      {
+        "Path": "Tests/Portable/Test-Usb4PeerNetworkInstall.ps1",
+        "Sha256": "aa3c1223b99b3afc4e070e49dbb9709ab23c70e49da5080a3882ebddbd895189",
+        "HashNormalization": "UTF-8 LF full input"
+      },
+      {
+        "Path": "Config/usb4-peer-network.example.json",
+        "Sha256": "c4b1850cdb0dcef00e3eceb86d6b258807c037e291485a640e80aaed09739584",
+        "HashNormalization": "UTF-8 LF full input"
+      },
+      {
+        "Path": "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1",
+        "Sha256": "6662cbc10cad48ef37706a8fe94b411e3d7b7a1956132c419254f30b6fa94eeb",
+        "HashNormalization": "UTF-8 LF full input"
+      }
+    ],
+    "Evidence": "Independent full CI/docs change review and actionlint passed. Trust expression, permissions, matrix and timeout unchanged. Existing WSL controller34groups/110assertions, installer7groups plus2Windows-only unsupported, collector8 all passed; exact-head hosted CI remains required.",
+    "ReviewScope": "CI selection and entrypoint safety. Existing test-script bytes are bound in full; this does not claim a new per-assertion review, real scheduler installation or hardware qualification.",
+    "SequenceQualification": "Exact two-script sequence in one fresh WSL PowerShell using GitHub-style Stop/LASTEXITCODE wrapper passed: controller34groups/110assertions then installer7groups,2Windows-only unsupported; exit0/stderr empty. No observed scope/type/exit-code leakage.",
+    "CommitBoundUtc": "2026-11-05T13:37:16.626884+00:00"
   },
   "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00",
-  "CommitBoundUtc": "2026-11-05T11:53:33.990269+00:00"
+  "CommitBoundUtc": "2026-11-05T11:53:33.990269+00:00",
+  "HistoricalCiWiringReviews": [
+    {
+      "Reviewer": "codex-terminal-backlog",
+      "Disposition": "keep",
+      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
+      "Path": ".github/workflows/usb4-lifecycle.yml",
+      "Sha256": "1002ddf6a314a260eee9366c27161a27189be9917ceb2b1a4c530cadd6ba0cdc",
+      "Evidence": "Independent actionlint pass; exact integration binary path verified. Linux invokes guaranteed python3, Windows python. Generic discovery skips only missing explicit built CLI prerequisite; explicit --exe remains strict."
+    }
+  ]
 }

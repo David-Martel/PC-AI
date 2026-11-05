@@ -97,3 +97,5 @@ freshness, local link-local scope and parallel APIPA segments. The
 provider failures, absent devices and unknown roots. These are software controls;
 physical unplug, sleep, reboot and newly started application sessions require
 their own machine evidence. Nominal Windows link speed is not measured throughput.
+
+The [deployment/interface roadmap](fabric-deployment.md) separates transport, trust, configuration and application capabilities, and records per-edge ownership, upgrade and architecture qualification requirements. It is a proposed design; the planner does not implement those service/UI features.

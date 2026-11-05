@@ -1,0 +1,51 @@
+name: USB4 peer SSH access contracts
+on:
+  pull_request:
+    paths:
+      - 'Tools/SystemScripts/Networking/Set-Usb4PeerSshAccess.ps1'
+      - 'Tests/Portable/Test-Usb4PeerSshAccess.ps1'
+      - 'Tests/Portable/usb4-peer-ssh-access-review.json'
+      - 'docs/usb4/peer-ssh-access.md'
+      - 'docs/usb4/peer-networking.md'
+      - '.github/workflows/usb4-peer-ssh-access.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fixtures:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    # Retain the USB4 lifecycle fork/self-hosted gate. Fork code uses hosted
+    # runners; only the existing enabled trusted Linux runner is eligible.
+    runs-on: ${{ matrix.os == 'windows-latest' && 'windows-latest' || (vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON('["self-hosted","Linux","X64","pc-ai-local"]') || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      # Protects executable syntax before fixture execution. Detects malformed
+      # PowerShell in the helper or tests. Needs pwsh7 only, no OS providers.
+      # Breadcrumb: Networking/Set-Usb4PeerSshAccess.ps1 and its portable test.
+      - name: Parse peer SSH helper and fixtures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in @('Tools/SystemScripts/Networking/Set-Usb4PeerSshAccess.ps1', 'Tests/Portable/Test-Usb4PeerSshAccess.ps1')) {
+            $tokens = $null
+            $parseErrors = $null
+            [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD $path), [ref]$tokens, [ref]$parseErrors)
+            if ($parseErrors) { throw ($parseErrors -join [Environment]::NewLine) }
+          }
+      # Protects offline planning, exact scope and owned-rule lifecycle. Detects
+      # provider leakage, widening, foreign mutation and false success. Needs
+      # pwsh7 and inert providers; Windows also constructs one unregistered COM
+      # rule and checks its full scope. No policy API, services or device traffic.
+      # POSIX reports the Windows constructor group explicitly as NOT_RUN.
+      # Breadcrumb: Tests/Portable/Test-Usb4PeerSshAccess.ps1 selector groups.
+      - name: Exact peer SSH access fixture contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $global:LASTEXITCODE = 0
+          ./Tests/Portable/Test-Usb4PeerSshAccess.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'USB4 peer SSH access fixture contracts failed' }

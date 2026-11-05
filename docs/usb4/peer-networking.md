@@ -231,3 +231,8 @@ Platform references: [Microsoft USB4NET](https://learn.microsoft.com/en-us/windo
 [IPv4 link-local scope](https://www.rfc-editor.org/rfc/rfc3927),
 [Linux Thunderbolt](https://docs.kernel.org/admin-guide/thunderbolt.html), and
 [NetworkManager settings](https://networkmanager.pages.freedesktop.org/NetworkManager/NetworkManager/nm-settings-nmcli.html).
+
+For a Public-profile peer whose existing SSH rule covers only Private networks,
+use the separately reviewed [scoped peer SSH access](peer-ssh-access.md) helper.
+It preserves network categories and constrains access to the declared peer,
+interface, addresses, application and service.

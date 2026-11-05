@@ -254,11 +254,15 @@ This is a bounded Linux subset, not the PowerShell suite: the repository stays W
 scope"). No test was changed to make it pass on Linux. `Tests/linux-ci-pester.txt` lists only files that already pass
 there; 22 other files fail on Linux because they call Windows APIs.
 
-**Build environment on the runner.** `CARGO_INCREMENTAL=0` is set by the runner unit and repeated in the workflow:
-`.cargo/config.toml` enables incremental builds, and an incremental unit is never cached by sccache. The image's cargo
-config supplies `rustc-wrapper = sccache` and a persistent per-runner target directory, so the workflow calls `cargo`
-directly instead of `Tests/Invoke-PortableTests.ps1`, whose Rust sections set `RUSTC_WRAPPER` to an empty string. The
-last step prints `sccache --show-stats`. Details and measurements:
+**Build environment on the runner.** `rust-linux` uses `.github/actions/setup-job-rust` to install stable Rust with
+clippy and rustfmt in job-temporary `CARGO_HOME` and `RUSTUP_HOME` directories. Installer `HOME` and `ZDOTDIR` are
+isolated too. This Cargo home does not inherit the image's Cargo-home configuration, so the job explicitly sets
+`RUSTC_WRAPPER=sccache`. It calls `cargo` directly because the Rust sections of `Tests/Invoke-PortableTests.ps1`
+clear that wrapper. `CARGO_INCREMENTAL=0` is explicit in the workflow because `.cargo/config.toml` enables
+incremental builds, and an incremental unit is never cached by sccache. The final step prints per-run
+`sccache --show-stats`; cross-run cache hits and target-directory persistence require separate evidence.
+NUC PC-AI runners also apply the committed machine profile's build-job cap while retaining any stricter existing
+Cargo limit. Details and measurements:
 `vigil-utils/docs/rust-build-acceleration.md`, "Runner job environment".
 
 **Artifacts.** `pester-lint` uploads `pester-linux.xml` only when the job fails, with `continue-on-error` and a

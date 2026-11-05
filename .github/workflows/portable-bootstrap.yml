@@ -21,6 +21,8 @@ on:
       - 'Tests/Invoke-BenchmarkGate.ps1'
       - 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
       - 'Config/pcai-tooling-benchmarks.json'
+      - 'Config/machine-profiles/dtm-super-nuc.json'
+      - '.github/actions/setup-job-rust/**'
       - '.github/workflows/portable-bootstrap.yml'
   push:
     branches: [main]
@@ -43,6 +45,8 @@ on:
       - 'Tests/Invoke-BenchmarkGate.ps1'
       - 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
       - 'Config/pcai-tooling-benchmarks.json'
+      - 'Config/machine-profiles/dtm-super-nuc.json'
+      - '.github/actions/setup-job-rust/**'
       - '.github/workflows/portable-bootstrap.yml'
 permissions:
   contents: read
@@ -93,9 +97,10 @@ jobs:
           ./Tests/Portable/Test-BenchmarkRunner.ps1
           uv run --no-project python -m unittest discover -s Tests/Portable -p test_benchmark_admission.py -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Set up job-local self-hosted Rust
+        if: runner.environment == 'self-hosted'
+        uses: ./.github/actions/setup-job-rust
       - uses: dtolnay/rust-toolchain@stable
-        # The self-hosted runner keeps its image toolchain (with clippy and rustfmt), as linux-ci.yml
-        # does: installing `stable` there replaces the default toolchain for every later job on it.
         if: runner.environment != 'self-hosted'
       # Protects all three locked Candle versions and exact published-source custody.
       # Detects conflicting local/central archive headers through actual CPU readers.

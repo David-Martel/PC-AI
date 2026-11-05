@@ -1,0 +1,57 @@
+name: Set up job-local Rust
+description: Provision stable Rust without changing a persistent runner's toolchain homes or profiles.
+inputs:
+  components:
+    description: Comma-separated Rust components to install with stable.
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Apply NUC native build budget
+      if: runner.environment == 'self-hosted' && startsWith(runner.name, 'dtm-super-nuc-pool-pc-ai-')
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      run: |
+        $machineProfile = Get-Content ./Config/machine-profiles/dtm-super-nuc.json -Raw | ConvertFrom-Json
+        $buildJobs = $machineProfile.buildPolicy.maxNativeBuildJobs
+        if ($machineProfile.hostName -ne 'dtm-super-nuc' -or
+            ($buildJobs -isnot [int] -and $buildJobs -isnot [long]) -or
+            $buildJobs -lt 1 -or $buildJobs -gt [int]::MaxValue) {
+          throw 'The NUC native build budget must be a positive JSON integer'
+        }
+        if (-not [string]::IsNullOrEmpty($env:CARGO_BUILD_JOBS)) {
+          $existingJobs = 0
+          if ($env:CARGO_BUILD_JOBS -notmatch '^[1-9][0-9]*$' -or
+              -not [int]::TryParse($env:CARGO_BUILD_JOBS, [ref]$existingJobs)) {
+            throw 'The existing Cargo build budget must be a positive integer'
+          }
+          $buildJobs = [Math]::Min($buildJobs, $existingJobs)
+        }
+        "CARGO_BUILD_JOBS=$buildJobs" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+    - name: Prepare job-local self-hosted Rust homes
+      id: rust_homes
+      shell: pwsh
+      run: |
+        foreach ($name in 'RUNNER_TEMP', 'GITHUB_ENV', 'GITHUB_PATH', 'GITHUB_OUTPUT') {
+          $value = [Environment]::GetEnvironmentVariable($name)
+          if ([string]::IsNullOrWhiteSpace($value) -or $value -match "[\r\n]") { throw "$name is required" }
+        }
+        $rustRoot = Join-Path $env:RUNNER_TEMP ('pcai-rust-' + [Guid]::NewGuid().ToString('N'))
+        $cargoHome = Join-Path $rustRoot 'cargo'
+        $rustupHome = Join-Path $rustRoot 'rustup'
+        $profileHome = Join-Path $rustRoot 'home'
+        $cargoBin = Join-Path $cargoHome 'bin'
+        New-Item -ItemType Directory -Path $cargoHome, $rustupHome, $profileHome, $cargoBin -ErrorAction Stop | Out-Null
+        "CARGO_HOME=$cargoHome", "RUSTUP_HOME=$rustupHome" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+        $cargoBin | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+        "home=$profileHome" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+    - name: Install job-local Rust
+      uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+      with:
+        toolchain: stable
+        components: ${{ inputs.components }}
+      env:
+        # The Linux installer may edit profiles; keep HOME and ZDOTDIR job-local too.
+        HOME: ${{ steps.rust_homes.outputs.home }}
+        ZDOTDIR: ${{ steps.rust_homes.outputs.home }}

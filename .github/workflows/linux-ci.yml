@@ -162,6 +162,9 @@ jobs:
     if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: [self-hosted, Linux, X64, pc-ai-local]
     timeout-minutes: 45
+    env:
+      # The job-local CARGO_HOME does not inherit the image's Cargo configuration.
+      RUSTC_WRAPPER: sccache
     defaults:
       run:
         working-directory: Native/pcai_core
@@ -170,6 +173,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+
+      - name: Set up job-local Rust
+        uses: ./.github/actions/setup-job-rust
+        with:
+          components: clippy,rustfmt
 
       - name: Tool versions
         run: |

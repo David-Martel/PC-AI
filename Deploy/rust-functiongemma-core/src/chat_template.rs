@@ -23,7 +23,7 @@ pub fn render_chat_template(
         "tools": tools,
         "add_generation_prompt": add_generation_prompt
     });
-    Ok(tmpl.render(context)?)
+    Ok(tmpl.render(minijinja::value::Serde(context))?)
 }
 
 pub fn render_chat_prompt(

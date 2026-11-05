@@ -73,7 +73,7 @@ pub(crate) fn router_metadata() -> RouterMetadata {
 }
 
 pub(crate) fn collect_system_metrics() -> Option<SystemMetrics> {
-    let mut sys = System::new_all();
+    let mut sys = System::new_all().ok()?;
     sys.refresh_all();
     let pid = sysinfo::get_current_pid().ok()?;
     let process = sys.process(pid)?;
@@ -83,7 +83,8 @@ pub(crate) fn collect_system_metrics() -> Option<SystemMetrics> {
     let total_memory_mb = sys.total_memory() / 1024;
     let free_memory_mb = sys.free_memory() / 1024;
     let cpu_usage = process.cpu_usage();
-    let uptime_sec = System::uptime();
+    // sysinfo 0.40 made uptime fallible; 0 is the existing "unknown" value (see the fallback below).
+    let uptime_sec = System::uptime().unwrap_or(0);
 
     Some(SystemMetrics {
         process_rss_mb,

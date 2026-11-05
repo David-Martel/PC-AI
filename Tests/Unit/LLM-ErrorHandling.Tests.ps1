@@ -253,7 +253,8 @@ Describe "Invoke-WithRetry" -Tag 'Unit', 'LLM', 'ErrorHandling', 'Slow', 'Portab
     Context "When using exponential backoff" {
         It "Should apply backoff delays between retries" {
             $script:attemptCount = 0
-            $start = Get-Date
+            # Measure elapsed delay independently of wall-clock adjustments.
+            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
             {
                 Invoke-WithRetry -ScriptBlock {
@@ -262,9 +263,9 @@ Describe "Invoke-WithRetry" -Tag 'Unit', 'LLM', 'ErrorHandling', 'Slow', 'Portab
                 } -MaxRetries 2 -BackoffSeconds @(1, 2) -ErrorAction Stop
             } | Should -Throw
 
-            $elapsed = (Get-Date) - $start
+            $stopwatch.Stop()
             # Should have waited at least 1 + 2 = 3 seconds
-            $elapsed.TotalSeconds | Should -BeGreaterThan 2.5
+            $stopwatch.Elapsed.TotalSeconds | Should -BeGreaterThan 2.5
         }
     }
 

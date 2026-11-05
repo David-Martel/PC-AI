@@ -170,7 +170,7 @@ function Initialize-NvidiaEnvironment {
     # -------------------------------------------------------------------------
     # Step 1: Backup current environment
     # -------------------------------------------------------------------------
-    if (-not $SkipBackup) {
+    if (-not $SkipBackup -and $PSCmdlet.ShouldProcess('NVIDIA environment', 'Write environment backup')) {
         try {
             $backupFilePath = Backup-NvidiaEnvironment
             Write-Verbose "Environment backup: $backupFilePath"

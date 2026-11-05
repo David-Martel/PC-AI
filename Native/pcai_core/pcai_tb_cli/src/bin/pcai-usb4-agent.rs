@@ -96,6 +96,16 @@ where
         (Ok(()), Err(error)) => return Err(error).context("Cannot publish status"),
         (Ok(()), Ok(())) => {}
     }
+    if is_operational(command) && summary.attempted == 0 {
+        bail!("USB4 {command} needs at least one eligible enrolled edge; see emitted evidence");
+    }
+    if is_operational(command) && summary.failed != 0 {
+        bail!(
+            "{} of {} USB4 {command} operations failed; see emitted evidence",
+            summary.failed,
+            summary.attempted
+        );
+    }
     Ok(())
 }
 

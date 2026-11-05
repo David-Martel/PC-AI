@@ -1,0 +1,89 @@
+{
+  "SchemaVersion": 1,
+  "ReviewKind": "Linux agent operation result and independent evidence sinks",
+  "ReviewedCommit": "3f8df0a237799cbd94f94e660610bd6b1d55a49b",
+  "Source": "Native/pcai_core/pcai_tb_cli/src/bin/pcai-usb4-agent.rs",
+  "SourceSha256": "9b2fdddf1541645aaafa03ab6bda88c08b98c3dae5a1545f6c6db16e6b589934",
+  "HashConvention": "UTF-8 LF. Selector extent starts at fn token and ends at four-space function closing brace, no final LF. Whole source includes final LF.",
+  "Selectors": [
+    {
+      "Selector": "failed_attempts_emit_all_evidence_before_returning_failure",
+      "Source": "Native/pcai_core/pcai_tb_cli/src/bin/pcai-usb4-agent.rs",
+      "Sha256": "1784c72f6f5a2b855095ddb19acdaf8bb3834e5e218f9bfcb593df3c7c4f8da1",
+      "Protects": "Operational errors reach automation after complete mixed/all per-edge evidence.",
+      "Detects": "Mixed/all swallowed Result errors, withheld output/publication, unknown-edge adoption.",
+      "Needs": "Memory-only writer/publisher and typed operation closure; no policy files, privileges, hardware, environment mutation or live network.",
+      "Breadcrumb": "run_enrolled_operation and finish_evidence, invoked by actual main.",
+      "RecordedReview": "Parent inspected final production seam and unchanged seven controls; remote RED compiled and failed the two expected status assertions on Windows/Linux. Remote final-head GREEN and independent review remain required."
+    },
+    {
+      "Selector": "operational_zero_targets_fail_without_adopting_unknown_or_protected_edges",
+      "Source": "Native/pcai_core/pcai_tb_cli/src/bin/pcai-usb4-agent.rs",
+      "Sha256": "39eadded1b5ec920587bdce294252c616d714926fc3fa0e93248e98685caf200",
+      "Protects": "No-target operational requests fail while retaining empty/foreign observations.",
+      "Detects": "Empty/UNKNOWN/PROTECTED targets treated as success or passed to network actions.",
+      "Needs": "Memory-only writer/publisher and typed operation closure; no policy files, privileges, hardware, environment mutation or live network.",
+      "Breadcrumb": "run_enrolled_operation and finish_evidence, invoked by actual main.",
+      "RecordedReview": "Parent inspected final production seam and unchanged seven controls; remote RED compiled and failed the two expected status assertions on Windows/Linux. Remote final-head GREEN and independent review remain required."
+    },
+    {
+      "Selector": "observation_modes_accept_empty_unknown_and_protected_inventory",
+      "Source": "Native/pcai_core/pcai_tb_cli/src/bin/pcai-usb4-agent.rs",
+      "Sha256": "2fba5598f6060bbbf1145144db6c5e8dea8145873cea21ac980229c116ef54a1",
+      "Protects": "Read-only observation remains valid without eligible devices.",
+      "Detects": "Observation invokes an action or refuses valid empty/foreign inventory.",
+      "Needs": "Memory-only writer/publisher and typed operation closure; no policy files, privileges, hardware, environment mutation or live network.",
+      "Breadcrumb": "run_enrolled_operation and finish_evidence, invoked by actual main.",
+      "RecordedReview": "Parent inspected final production seam and unchanged seven controls; remote RED compiled and failed the two expected status assertions on Windows/Linux. Remote final-head GREEN and independent review remain required."
+    },
+    {
+      "Selector": "successful_typed_results_preserve_unverified_activation_evidence",
+      "Source": "Native/pcai_core/pcai_tb_cli/src/bin/pcai-usb4-agent.rs",
+      "Sha256": "4d304d0d0f42243309c01ee39bb85f6e7da9967272e0c84e52fe5b4da11da7bb",
+      "Protects": "Typed success preserves actual per-mode authentication boundary.",
+      "Detects": "JSON substring classification or fabricated ready/authenticated activation status.",
+      "Needs": "Memory-only writer/publisher and typed operation closure; no policy files, privileges, hardware, environment mutation or live network.",
+      "Breadcrumb": "run_enrolled_operation and finish_evidence, invoked by actual main.",
+      "RecordedReview": "Parent inspected final production seam and unchanged seven controls; remote RED compiled and failed the two expected status assertions on Windows/Linux. Remote final-head GREEN and independent review remain required."
+    },
+    {
+      "Selector": "stdout_write_and_flush_failures_still_publish_available_evidence",
+      "Source": "Native/pcai_core/pcai_tb_cli/src/bin/pcai-usb4-agent.rs",
+      "Sha256": "ef3260be21722148bac8426565f22bd791320974148f959b7a2899409f4d8ab0",
+      "Protects": "Output failure fails the process and still attempts independent status publication.",
+      "Detects": "Ignored write/flush failure or skipped publication after stdout loss.",
+      "Needs": "Memory-only writer/publisher and typed operation closure; no policy files, privileges, hardware, environment mutation or live network.",
+      "Breadcrumb": "run_enrolled_operation and finish_evidence, invoked by actual main.",
+      "RecordedReview": "Parent inspected final production seam and unchanged seven controls; remote RED compiled and failed the two expected status assertions on Windows/Linux. Remote final-head GREEN and independent review remain required."
+    },
+    {
+      "Selector": "publication_failure_preserves_complete_stdout_and_returns_failure",
+      "Source": "Native/pcai_core/pcai_tb_cli/src/bin/pcai-usb4-agent.rs",
+      "Sha256": "7bb712d5b2391ae30b40e4e53798d24a68921f7d83e045b7fa6c3c97e6d59daa",
+      "Protects": "Publisher refusal fails process without withholding available stdout evidence.",
+      "Detects": "Swallowed publication error or output ordered after failing publication.",
+      "Needs": "Memory-only writer/publisher and typed operation closure; no policy files, privileges, hardware, environment mutation or live network.",
+      "Breadcrumb": "run_enrolled_operation and finish_evidence, invoked by actual main.",
+      "RecordedReview": "Parent inspected final production seam and unchanged seven controls; remote RED compiled and failed the two expected status assertions on Windows/Linux. Remote final-head GREEN and independent review remain required."
+    },
+    {
+      "Selector": "both_evidence_sink_errors_are_reported_without_success",
+      "Source": "Native/pcai_core/pcai_tb_cli/src/bin/pcai-usb4-agent.rs",
+      "Sha256": "d3859192198e8ccbb4229dcac58925c87a2bef1beee7409739661b569610ead1",
+      "Protects": "Both evidence failure causes remain available.",
+      "Detects": "Dual failure loses a cause or returns success.",
+      "Needs": "Memory-only writer/publisher and typed operation closure; no policy files, privileges, hardware, environment mutation or live network.",
+      "Breadcrumb": "run_enrolled_operation and finish_evidence, invoked by actual main.",
+      "RecordedReview": "Parent inspected final production seam and unchanged seven controls; remote RED compiled and failed the two expected status assertions on Windows/Linux. Remote final-head GREEN and independent review remain required."
+    }
+  ],
+  "RedEvidence": {
+    "Head": "431518babb92d227a04923b3a435d389b95d91f0",
+    "Workflow": 42049487011,
+    "WindowsJob": 127321413625,
+    "LinuxJob": 127321414137,
+    "Result": "Both compiled, 5 agent controls passed and the same 2 operational status controls failed. Library controls passed: Windows99/Linux103. Later integration/CLI steps skipped after expected failure; no claims for those steps."
+  },
+  "QualificationBoundary": "Exact production aggregation/finalizer seam; does not exercise actual OS network, authentication, installed service, hotplug or ARM64 runtime. No local test/build during HIL.",
+  "RecordedReviewUtc": "2026-11-05T15:02:09.133813+00:00"
+}

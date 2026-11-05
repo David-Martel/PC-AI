@@ -173,9 +173,6 @@ function Get-Usb4PeerInstallPlan {
     if ($parseErrors.Count) { throw 'Controller source does not parse.' }
     $policyBytes = [IO.File]::ReadAllBytes($PolicySource)
     $policy = [Text.Encoding]::UTF8.GetString($policyBytes).TrimStart([char]0xFEFF) | ConvertFrom-Json -AsHashtable
-    . $ControllerSource
-    if (-not (Get-Command Assert-Usb4NetworkPolicy -CommandType Function -ErrorAction SilentlyContinue)) { throw 'Controller policy validator is unavailable.' }
-    $null = Assert-Usb4NetworkPolicy -Policy $policy -CurrentHost $CurrentHost
     $digest = [Security.Cryptography.SHA256]::Create()
     try { $policyHash = [BitConverter]::ToString($digest.ComputeHash($policyBytes)).Replace('-', '') } finally { $digest.Dispose() }
     $release = $null; $installerHash = $null
@@ -183,6 +180,9 @@ function Get-Usb4PeerInstallPlan {
         $installerHash = (Get-FileHash -LiteralPath $script:Usb4InstallerSource -Algorithm SHA256).Hash
         $release = Assert-Usb4ReleaseBinding -ManifestPath $ReleaseManifestSource -HostName $CurrentHost -ControllerHash $hash -PolicyHash $policyHash -InstallerHash $installerHash -ControllerSize (Get-Item -LiteralPath $ControllerSource).Length -PolicySize $policyBytes.Length -InstallerSize (Get-Item -LiteralPath $script:Usb4InstallerSource).Length
     }
+    . $ControllerSource
+    if (-not (Get-Command Assert-Usb4NetworkPolicy -CommandType Function -ErrorAction SilentlyContinue)) { throw 'Controller policy validator is unavailable.' }
+    $null = Assert-Usb4NetworkPolicy -Policy $policy -CurrentHost $CurrentHost
     $revisions = @(if (Test-Path -LiteralPath $root) {
             Get-ChildItem -LiteralPath $root -Directory | Where-Object Name -Match '^r[1-9][0-9]*$' | ForEach-Object { [int]$_.Name.Substring(1) }
         })

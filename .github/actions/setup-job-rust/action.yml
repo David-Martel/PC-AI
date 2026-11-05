@@ -47,8 +47,9 @@ runs:
         $cargoBin | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
         "home=$profileHome" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
     - name: Install job-local Rust
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
       with:
+        toolchain: stable
         components: ${{ inputs.components }}
       env:
         # The Linux installer may edit profiles; keep HOME and ZDOTDIR job-local too.

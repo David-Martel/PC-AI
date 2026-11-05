@@ -63,6 +63,9 @@ function Test-WSLConnectivity {
         [switch]$Detailed
     )
 
+    # Preserve native failures as diagnostic results on PowerShell 7 as well as Windows PowerShell.
+    $PSNativeCommandUseErrorActionPreference = $false
+
     $result = [PSCustomObject]@{
         Timestamp           = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
         WSLStatus           = $null
@@ -82,12 +85,15 @@ function Test-WSLConnectivity {
     Write-Host "[*] Checking WSL status..." -ForegroundColor Yellow
     try {
         $wslStatus = wsl --status 2>&1
+        $statusExit = $LASTEXITCODE
+        if ($statusExit -ne 0) { throw "WSL status exited with code $statusExit." }
+        $wslStatus = ($wslStatus -join "`n") -replace "`0", ''
 
         $result.WSLStatus = [PSCustomObject]@{
             Installed = $true
             Version = if ($wslStatus -match 'Default Version:\s*(\d+)') { $Matches[1] } else { 'Unknown' }
-            DefaultDistro = if ($wslStatus -match 'Default Distribution:\s*(.+)$') { $Matches[1].Trim() } else { 'Unknown' }
-            KernelVersion = if ($wslStatus -match 'Kernel version:\s*(.+)$') { $Matches[1].Trim() } else { 'Unknown' }
+            DefaultDistro = if ($wslStatus -match '(?m)^Default Distribution:\s*(.+)$') { $Matches[1].Trim() } else { 'Unknown' }
+            KernelVersion = if ($wslStatus -match '(?m)^Kernel version:\s*(.+)$') { $Matches[1].Trim() } else { 'Unknown' }
         }
 
         Write-Host "  [+] WSL Version: $($result.WSLStatus.Version)" -ForegroundColor Green
@@ -194,7 +200,10 @@ function Test-WSLConnectivity {
 
     # WSL side - check network
     try {
-        $wslIP = wsl -d $testDistro -- ip -4 addr show eth0 2>&1 | Select-String -Pattern 'inet\s+(\d+\.\d+\.\d+\.\d+)'
+        $wslIPOutput = wsl -d $testDistro -- ip -4 addr show eth0 2>&1
+        $ipExit = $LASTEXITCODE
+        if ($ipExit -ne 0) { throw "WSL IP query exited with code $ipExit." }
+        $wslIP = $wslIPOutput | Select-String -Pattern 'inet\s+(\d+\.\d+\.\d+\.\d+)'
         if ($wslIP) {
             $ipMatch = $wslIP.Matches.Groups[1].Value
 
@@ -218,6 +227,11 @@ function Test-WSLConnectivity {
         }
     }
     catch {
+        $result.Issues += [PSCustomObject]@{
+            Category = 'Network'; Severity = 'Critical'
+            Issue = "WSL network query failed: $($_.Exception.Message)"
+            Recommendation = 'Check WSL networking configuration'
+        }
         Write-Host "  [!] Error checking WSL network: $_" -ForegroundColor Yellow
     }
 
@@ -255,7 +269,10 @@ function Test-WSLConnectivity {
         if ($target -ne 'localhost') {
             try {
                 $sw = [System.Diagnostics.Stopwatch]::StartNew()
-                $wslDNS = wsl -d $testDistro -- nslookup $target 2>&1 | Select-String -Pattern 'Address:\s*(\d+\.\d+\.\d+\.\d+)' | Select-Object -Last 1
+                $wslDNSOutput = wsl -d $testDistro -- nslookup $target 2>&1
+                $dnsExit = $LASTEXITCODE
+                if ($dnsExit -ne 0) { throw "WSL DNS query exited with code $dnsExit." }
+                $wslDNS = $wslDNSOutput | Select-String -Pattern 'Address:\s*(\d+\.\d+\.\d+\.\d+)' | Select-Object -Last 1
                 $sw.Stop()
 
                 if ($wslDNS) {
@@ -287,6 +304,15 @@ function Test-WSLConnectivity {
                 }
             }
             catch {
+                $result.DNSTests += [PSCustomObject]@{
+                    Target = $target; Side = 'WSL'; Success = $false
+                    IPAddress = $null; QueryTime = 'N/A'; Error = $_.Exception.Message
+                }
+                $result.Issues += [PSCustomObject]@{
+                    Category = 'DNS'; Severity = 'Critical'
+                    Issue = "WSL cannot resolve: $target"
+                    Recommendation = 'Check /etc/resolv.conf in WSL'
+                }
                 Write-Host "  [!] WSL DNS error for $target`: $_" -ForegroundColor Yellow
             }
         }
@@ -299,6 +325,8 @@ function Test-WSLConnectivity {
         try {
             # Get WSL IP
             $wslIPLine = wsl -d $testDistro -- hostname -I 2>&1
+            $hostnameExit = $LASTEXITCODE
+            if ($hostnameExit -ne 0) { throw "WSL hostname query exited with code $hostnameExit." }
             $wslIP = ($wslIPLine -split '\s+')[0]
 
             if ($wslIP -match '\d+\.\d+\.\d+\.\d+') {
@@ -321,6 +349,15 @@ function Test-WSLConnectivity {
             }
         }
         catch {
+            $result.PortTests += [PSCustomObject]@{
+                Port = $port; Host = $null; Direction = 'Windows->WSL'
+                Success = $false; Message = $_.Exception.Message
+            }
+            $result.Issues += [PSCustomObject]@{
+                Category = 'Network'; Severity = 'Critical'
+                Issue = "WSL port $port query failed: $($_.Exception.Message)"
+                Recommendation = 'Check WSL networking configuration'
+            }
             Write-Host "  [!] Port $port test error: $_" -ForegroundColor Yellow
         }
     }
@@ -332,6 +369,8 @@ function Test-WSLConnectivity {
         try {
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
             $internetTest = wsl -d $testDistro -- curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 https://www.google.com 2>&1
+            $curlExit = $LASTEXITCODE
+            if ($curlExit -ne 0) { throw "WSL internet query exited with code $curlExit." }
             $sw.Stop()
 
             $httpCode = $internetTest.Trim()
@@ -362,6 +401,11 @@ function Test-WSLConnectivity {
                 HTTPCode = 'N/A'
                 ResponseTime = 'N/A'
                 Error = $_.Exception.Message
+            }
+            $result.Issues += [PSCustomObject]@{
+                Category = 'Internet'; Severity = 'Critical'
+                Issue = 'WSL cannot access internet'
+                Recommendation = 'Check DNS and network configuration in WSL'
             }
             Write-Host "  [!] Internet test failed: $_" -ForegroundColor Red
         }

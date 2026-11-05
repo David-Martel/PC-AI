@@ -350,19 +350,51 @@ function Get-EnrichedSystemPrompt {
                 $summaryLines = $null
                 try {
                     $snapshotObj = $snapshot | ConvertFrom-Json -ErrorAction Stop
-                    $metrics = $snapshotObj.Metrics
+                    $metrics = $null
+                    if ($null -ne $snapshotObj -and $snapshotObj.PSObject.Properties['Metrics']) { $metrics = $snapshotObj.Metrics }
                     if ($metrics) {
                         $cpu = if ($metrics.PSObject.Properties['avg_load']) { $metrics.avg_load } elseif ($metrics.PSObject.Properties['cpu_usage_perc']) { $metrics.cpu_usage_perc } else { $null }
                         if ($null -eq $cpu -and $metrics.PSObject.Properties['CpuUsage']) { $cpu = $metrics.CpuUsage }
-                        $memUsed = $metrics.memory_usage_bytes
+                        $memUsed = $null
+                        if ($metrics.PSObject.Properties['memory_usage_bytes']) { $memUsed = $metrics.memory_usage_bytes }
                         if ($null -eq $memUsed -and $metrics.PSObject.Properties['MemoryUsage']) { $memUsed = $metrics.MemoryUsage }
-                        $memTotal = $metrics.total_memory_bytes
+                        $memTotal = $null
+                        if ($metrics.PSObject.Properties['total_memory_bytes']) { $memTotal = $metrics.total_memory_bytes }
                         if ($null -eq $memTotal -and $metrics.PSObject.Properties['TotalMemory']) { $memTotal = $metrics.TotalMemory }
 
                         $cpuLine = if ($null -ne $cpu) { "CPU Usage: $([math]::Round($cpu, 2))%" } else { "CPU Usage: n/a" }
-                        $memLine = if ($null -ne $memUsed -and $null -ne $memTotal -and $memTotal -gt 0) {
-                            $usedGb = [math]::Round($memUsed / 1GB, 2)
-                            $totalGb = [math]::Round($memTotal / 1GB, 2)
+                        # Byte counters must remain typed, finite, integral UInt64 values.
+                        # Validate independently so invalid memory does not hide valid CPU.
+                        $memoryValid = $true
+                        $memoryValues = [object[]]::new(2)
+                        $memoryValues[0] = $memUsed
+                        $memoryValues[1] = $memTotal
+                        foreach ($value in $memoryValues) {
+                            $numeric = $value -is [byte] -or $value -is [sbyte] -or
+                                $value -is [short] -or $value -is [ushort] -or
+                                $value -is [int] -or $value -is [uint] -or
+                                $value -is [long] -or $value -is [ulong] -or
+                                $value -is [float] -or $value -is [double] -or
+                                $value -is [decimal] -or $value -is [System.Numerics.BigInteger]
+                            if (-not $numeric -or [double]::IsNaN([double]$value) -or [double]::IsInfinity([double]$value)) {
+                                $memoryValid = $false
+                                break
+                            }
+                        }
+                        if ($memoryValid) {
+                            try {
+                                $usedBytes = [decimal]$memUsed
+                                $totalBytes = [decimal]$memTotal
+                                $maximumBytes = [decimal][ulong]::MaxValue
+                                $memoryValid = $usedBytes -ge 0 -and $totalBytes -gt 0 -and
+                                    $usedBytes -le $totalBytes -and $totalBytes -le $maximumBytes -and
+                                    [decimal]::Truncate($usedBytes) -eq $usedBytes -and
+                                    [decimal]::Truncate($totalBytes) -eq $totalBytes
+                            } catch { $memoryValid = $false }
+                        }
+                        $memLine = if ($memoryValid) {
+                            $usedGb = [math]::Round([double]($usedBytes / 1GB), 2)
+                            $totalGb = [math]::Round([double]($totalBytes / 1GB), 2)
                             "Memory: $usedGb GB / $totalGb GB"
                         } else {
                             "Memory: n/a"
@@ -771,13 +803,14 @@ function Get-VLLMMetricsSnapshot {
         KVCacheUsagePerc      = 0.0
     }
 
+    $parsedMetrics = 0
     foreach ($line in ($metricsText -split "`n")) {
+        $line = $line.Trim()
         if (-not $line -or $line.StartsWith('#')) { continue }
-        $m = [regex]::Match($line, '^(?<metric>vllm:[^\\s{]+)(?<labels>{[^}]+})?\\s+(?<value>[-+0-9.eE]+)$')
+        $m = [regex]::Match($line, '^(?<metric>vllm:[^\s{]+)(?<labels>{[^}]+})?\s+(?<value>\S+)$')
         if (-not $m.Success) { continue }
 
         $metric = $m.Groups['metric'].Value
-        $value = [double]$m.Groups['value'].Value
         $labels = $m.Groups['labels'].Value
         if ($labels) {
             $labels = $labels.Trim('{', '}')
@@ -786,6 +819,16 @@ function Get-VLLMMetricsSnapshot {
                 continue
             }
         }
+
+        if ($metric -notin @('vllm:prompt_tokens_total', 'vllm:generation_tokens_total', 'vllm:request_success_total',
+                'vllm:num_requests_running', 'vllm:num_requests_waiting', 'vllm:kv_cache_usage_perc')) { continue }
+        $value = 0.0
+        if (-not [double]::TryParse($m.Groups['value'].Value, [Globalization.NumberStyles]::Float,
+                [Globalization.CultureInfo]::InvariantCulture, [ref]$value) -or
+                [double]::IsNaN($value) -or [double]::IsInfinity($value)) {
+            return $null
+        }
+        $parsedMetrics++
 
         switch ($metric) {
             'vllm:prompt_tokens_total' { $values.PromptTokensTotal = $value }
@@ -797,6 +840,10 @@ function Get-VLLMMetricsSnapshot {
         }
     }
 
+    if ($parsedMetrics -eq 0) { return $null }
+    $tokensTotal = [double]$values.PromptTokensTotal + [double]$values.GenerationTokensTotal
+    if ([double]::IsInfinity($tokensTotal) -or [double]::IsInfinity($values.RequestSuccessTotal)) { return $null }
+
     return [PSCustomObject]@{
         CapturedAt            = Get-Date
         ModelName             = $ModelName
@@ -807,7 +854,7 @@ function Get-VLLMMetricsSnapshot {
         NumRequestsRunning    = [double]$values.NumRequestsRunning
         NumRequestsWaiting    = [double]$values.NumRequestsWaiting
         KVCacheUsagePerc      = [double]$values.KVCacheUsagePerc
-        TokensTotal           = [double]$values.PromptTokensTotal + [double]$values.GenerationTokensTotal
+        TokensTotal           = $tokensTotal
     }
 }
 
@@ -1003,15 +1050,9 @@ function Invoke-OllamaGenerate {
         TimeoutSeconds  = $TimeoutSeconds
         EnableTools     = $EnableTools
     }
-    if ($MaxTokens)    { $chatParams['MaxTokens']    = $MaxTokens }
-    if ($NumCtx)       { $chatParams['NumCtx']       = $NumCtx }
-    if ($NumThread)    { $chatParams['NumThread']     = $NumThread }
-    if ($TopP)         { $chatParams['TopP']          = $TopP }
-    if ($TopK)         { $chatParams['TopK']          = $TopK }
-    if ($RepeatLastN)  { $chatParams['RepeatLastN']   = $RepeatLastN }
-    if ($RepeatPenalty){ $chatParams['RepeatPenalty']  = $RepeatPenalty }
-    if ($TfsZ)         { $chatParams['TfsZ']          = $TfsZ }
-    if ($Seed)         { $chatParams['Seed']          = $Seed }
+    foreach ($option in @('MaxTokens', 'NumCtx', 'NumThread', 'TopP', 'TopK', 'RepeatLastN', 'RepeatPenalty', 'TfsZ', 'Seed')) {
+        if ($PSBoundParameters.ContainsKey($option)) { $chatParams[$option] = $PSBoundParameters[$option] }
+    }
     return Invoke-OllamaNativeChat @chatParams
 }
 

@@ -170,7 +170,7 @@ function Repair-MachinePath {
         # Check for non-existent (if requested)
         if ($RemoveNonExistent) {
             $expandedPath = [Environment]::ExpandEnvironmentVariables($trimmedItem)
-            if (-not (Test-Path -Path $expandedPath -ErrorAction SilentlyContinue)) {
+            if (-not (Test-Path -LiteralPath $expandedPath -ErrorAction SilentlyContinue)) {
                 $result.NonExistentRemoved++
                 $result.Changes += [PSCustomObject]@{
                     Action = 'Removed'

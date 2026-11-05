@@ -71,6 +71,6 @@
   },
   "fallbackOrder": [
     "ollama",
-    "invalid"
+    "pcai-inference"
   ]
 }

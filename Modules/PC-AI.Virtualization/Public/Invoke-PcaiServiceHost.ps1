@@ -215,7 +215,7 @@ function Start-RustInferenceServer {
     $rustExe = $null
     foreach ($root in $candidateRoots) {
         foreach ($name in $binaryNames) {
-            $candidate = Join-Path $root $name
+            $candidate = [IO.Path]::Combine($root, $name)
             if (Test-Path $candidate) {
                 $rustExe = $candidate
                 break
@@ -334,7 +334,7 @@ Or backend-specific:
         $GpuLayers = [int]$configuredGpuLayers
     }
 
-    $configPath = Join-Path $runtimeDir ("config-{0}.json" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
+    $configPath = $null
     $backendConfig = if ($selectedBackend -eq 'mistralrs') {
         @{ type = 'mistral_rs' }
     } else {
@@ -369,7 +369,26 @@ Or backend-specific:
         }
     }
 
-    $config | ConvertTo-Json -Depth 6 | Set-Content -Path $configPath -Encoding UTF8
+    $configJson = $config | ConvertTo-Json -Depth 6
+    for ($revision = 1; $revision -le 10000; $revision++) {
+        $candidate = Join-Path $runtimeDir ("config-r{0}.json" -f $revision)
+        try {
+            $stream = [IO.File]::Open($candidate, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+        } catch [IO.IOException], [UnauthorizedAccessException] {
+            if ([IO.File]::Exists($candidate) -or [IO.Directory]::Exists($candidate)) { continue }
+            throw
+        }
+        $writer = $null
+        try {
+            $writer = [IO.StreamWriter]::new($stream, [Text.UTF8Encoding]::new($false))
+            $writer.WriteLine($configJson)
+        } finally {
+            if ($writer) { $writer.Dispose() } else { $stream.Dispose() }
+        }
+        $configPath = $candidate
+        break
+    }
+    if (-not $configPath) { throw 'Unable to allocate an unused inference config revision within 10000 attempts.' }
 
     Write-Verbose "Using config file: $configPath"
     if ($ServerArgs) {

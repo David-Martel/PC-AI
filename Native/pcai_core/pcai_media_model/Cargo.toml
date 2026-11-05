@@ -21,10 +21,9 @@ default = []
 cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
 # Enable cuDNN v9 for conv1d/conv2d ops.
 #
-# In candle-core 0.9.x `cudnn` only accelerates convolutions — NOT attention.
-# Janus-Pro's transformer uses matmul-based SDPA, so this feature does not
-# improve performance for this model.  Kept for forward compatibility with
-# future candle releases that may add cuDNN-fused attention.
+# The `cudnn` feature enables Candle's optional cuDNN backend.  Janus-Pro
+# attention uses its separate matmul/Flash Attention paths; any cuDNN
+# performance benefit must be measured on the selected workload and device.
 cudnn = ["cuda", "candle-core/cudnn"]
 flash-attn = ["dep:candle-flash-attn"]
 

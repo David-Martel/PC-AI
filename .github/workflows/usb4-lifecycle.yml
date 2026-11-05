@@ -19,6 +19,7 @@ on:
       - 'Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1'
       - 'Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1'
+      - 'Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1'
       - 'Config/usb4-peer-network.example.json'
       - 'Tools/SystemScripts/Networking/Export-ThunderboltEnrolledObserver.sh'
       - 'Tests/Portable/Test-ThunderboltBootReadiness.ps1'
@@ -28,6 +29,8 @@ on:
       - 'Tests/Portable/Test-Usb4FabricObservation.ps1'
       - 'Tests/Portable/Test-Usb4PeerNetwork.ps1'
       - 'Tests/Portable/Test-Usb4PeerNetworkInstall.ps1'
+      - 'Tests/Portable/Test-Usb4PeerDeployment.ps1'
+      - 'Tests/Portable/usb4-deployment-doctor-review.json'
       - 'Tests/Portable/test_usb4_fabric_cli.py'
       - '.github/actions/setup-job-rust/action.yml'
       - '.github/workflows/usb4-lifecycle.yml'
@@ -80,6 +83,13 @@ jobs:
         run: |
           ./Tests/Portable/Test-Usb4PeerNetwork.ps1
           ./Tests/Portable/Test-Usb4PeerNetworkInstall.ps1
+      # Protects file-only installed-release inspection, pointer containment and
+      # recovery/freshness truth. Detects unsafe reads and invented readiness.
+      # Needs pwsh and owned temporary fixtures; no live task/network collection.
+      # Source: Networking/Get-Usb4PeerDeployment.ps1.
+      - name: File-only deployment inspection contracts
+        shell: pwsh
+        run: ./Tests/Portable/Test-Usb4PeerDeployment.ps1
       # Protects route/identity/custody decisions on both native backends.
       # Detects stale-edge deletion, foreign ownership mutation and CLI evidence leaks.
       # Needs standard Rust/MSVC host tools; no attached devices or privileged Apply.

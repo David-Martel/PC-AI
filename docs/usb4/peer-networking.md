@@ -158,6 +158,37 @@ hosts. A failed installation attempts task/configuration rollback; retained
 revision or staging artifacts and any rollback errors remain explicit. Inspect
 the retained preimages before restoring anything after an ownership change.
 
+## File-only deployment inspection
+
+Run the read-only inspector against the intended local installation root before
+planning an upgrade or investigating a failed controller run:
+
+```powershell
+pwsh -NoLogo -NoProfile -NonInteractive -File Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1 -InstallRoot C:/ProgramData/pcai-usb4/peer-network
+pwsh -NoLogo -NoProfile -NonInteractive -File Tests/Portable/Test-Usb4PeerDeployment.ps1
+```
+
+The inspector needs PowerShell 7 or newer and reads installed metadata, payload
+hashes, the recorded release manifest, pending recovery state and the historical
+controller report. It neither executes the controller nor queries live adapters,
+routes, tasks or services. Those fields remain `NotCollected`; use the maintained
+[observation collector](../../Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1)
+separately for fresh OS observations. It sends no active peer or Internet probe.
+
+Malformed or remote pointers, unsafe path traversal, reparse points, invalid
+manifest shapes and changed declarations produce explicit unknown/refusal
+results. A future or invalid timestamp has no freshness verdict. A pending
+rollback remains pending. Manifest byte agreement leaves authenticity
+`NotVerified`; historical readiness is not current link qualification.
+
+The [doctor controls](../../Tests/Portable/usb4-deployment-doctor-review.json)
+bind the source and detecting fixtures. Windows and Linux CI exercise temporary
+files and boundary doubles without changing live task or network configuration.
+Linux inspection does not establish a Windows deployment or implement a Linux
+installer. Path checks and later reads are not an atomic no-follow transaction;
+use a trusted installation root, and retain the source/recovery evidence before
+any deployment decision.
+
 ## Qualification and performance
 
 Run the existing fixture contracts from the repository root:

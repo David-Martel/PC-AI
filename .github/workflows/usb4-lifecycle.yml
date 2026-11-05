@@ -100,6 +100,23 @@ jobs:
           $python = if ($IsWindows) { 'python' } else { 'python3' }
           & $python Tests/Portable/test_usb4_fabric_cli.py --exe $binary
           if ($LASTEXITCODE -ne 0) { throw 'USB4 topology CLI contracts failed' }
+      # Protects target-cfg portability for ARM64 on each supported host OS.
+      # This checks production and test targets without linking/running ARM64
+      # binaries. Build scripts still run on the host; native SDK prerequisites
+      # are not waived. The existing x64 runtime contracts remain authoritative.
+      - name: Matching-OS ARM64 type checks
+        shell: pwsh
+        run: |
+          $target = switch ($env:RUNNER_OS) {
+            'Windows' { 'aarch64-pc-windows-msvc' }
+            'Linux' { 'aarch64-unknown-linux-gnu' }
+            default { throw 'Unsupported host for ARM64 contract checks' }
+          }
+          rustup target add $target
+          if ($LASTEXITCODE -ne 0) { throw 'ARM64 standard-library setup failed' }
+          $env:CARGO_TARGET_DIR = Join-Path $env:RUNNER_TEMP 'pcai-usb4-arm64-checks'
+          cargo check --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-tb --all-targets --target $target
+          if ($LASTEXITCODE -ne 0) { throw 'ARM64 target type checks failed' }
       - name: Strict Rust analysis
         shell: pwsh
         run: |

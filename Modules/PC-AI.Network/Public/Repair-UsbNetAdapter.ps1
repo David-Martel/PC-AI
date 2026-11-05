@@ -119,7 +119,13 @@ function Repair-UsbNetAdapter {
             $peer = $TestPeer; $port = $TestPort
             $measure = {
                 # -R makes the SERVER send, which is the receive direction under test.
+                $PSNativeCommandUseErrorActionPreference = $false
                 $raw = & iperf3 -c $peer -p $port -P 4 -t 8 -f m -R 2>&1 | Out-String
+                $nativeExit = $LASTEXITCODE
+                if ($nativeExit -ne 0) {
+                    $diagnostic = ($raw -split "`n" | Where-Object { $_ -match '\S' } | Select-Object -First 2) -join ' / '
+                    throw "iperf3 exit ${nativeExit}: $diagnostic"
+                }
                 $line = ($raw -split "`n" | Where-Object { $_ -match '\[SUM\].*receiver' } | Select-Object -Last 1)
                 if ($line -match '([\d.]+)\s+Mbits/sec') { [double]$Matches[1] } else { $null }
             }.GetNewClosure()
@@ -142,7 +148,15 @@ function Repair-UsbNetAdapter {
     }
 
     if ($measure) {
-        $result.Baseline = & $measure
+        if (-not $PSCmdlet.ShouldProcess($nic.Name, 'Measure receive throughput')) {
+            $result.Message = 'Skipped: -WhatIf or declined at the confirmation prompt.'
+            return [PSCustomObject]$result
+        }
+        try { $result.Baseline = & $measure }
+        catch {
+            $result.Message = "Throughput measurement failed: $($_.Exception.Message)"
+            return [PSCustomObject]$result
+        }
         Write-Verbose ("baseline receive: {0} Mbit/s" -f $result.Baseline)
         if ($null -ne $result.Baseline -and $result.Baseline -ge $MinAcceptableMbits) {
             $result.Recovered = $true; $result.Verified = $true

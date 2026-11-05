@@ -19,6 +19,9 @@
 .PARAMETER DisableCache
   Disable cache helpers (sccache/ccache) for this invocation.
 
+.PARAMETER NativeOptimize
+  Opt into host CPU tuning; qualify artifacts on their destination machine.
+
 .PARAMETER LlmDebug
   Enable CargoTools LLM debug defaults (RUST_BACKTRACE, verbose traces).
 
@@ -49,6 +52,7 @@ param(
     [switch]$UseLld,
     [switch]$NoLld,
     [switch]$DisableCache,
+    [switch]$NativeOptimize,
     [switch]$LlmDebug,
     [switch]$LlmOutput,
     [switch]$RaPreflight,
@@ -62,6 +66,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ($DisableCache) {
+    . (Join-Path $PSScriptRoot 'PcaiNativeBuildFlags.ps1')
+    Disable-PcaiBuildCompilerCaches
+}
 
 $pcaiModuleBootstrap = Join-Path $PSScriptRoot 'PcaiModuleBootstrap.ps1'
 if (Test-Path -LiteralPath $pcaiModuleBootstrap) {
@@ -169,6 +178,12 @@ if ($RaPreflight) {
 
 if ($PreflightBlocking) {
     $env:CARGO_PREFLIGHT_BLOCKING = '1'
+}
+
+if ($NativeOptimize) {
+    . (Join-Path $PSScriptRoot 'PcaiNativeBuildFlags.ps1')
+    $nativeOptimization = Enable-PcaiNativeBuildOptimization
+    Write-Verbose "Explicit CPU target: $($nativeOptimization.CpuTarget); destination qualification required"
 }
 
 $wrapperArgs = @()

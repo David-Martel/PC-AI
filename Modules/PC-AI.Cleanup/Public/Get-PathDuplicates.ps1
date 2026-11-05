@@ -104,7 +104,7 @@ function Get-PathDuplicates {
                 OriginalValue    = $item
                 NormalizedValue  = $normalizedPath
                 ExpandedValue    = $expandedPath
-                Exists           = Test-Path -Path $expandedPath -ErrorAction SilentlyContinue
+                Exists           = Test-Path -LiteralPath $expandedPath -ErrorAction SilentlyContinue
                 HasTrailingSlash = $item.Trim().EndsWith('\') -or $item.Trim().EndsWith('/')
                 IsDuplicate      = $false
                 DuplicateOf      = $null

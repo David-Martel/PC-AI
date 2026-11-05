@@ -1,5 +1,26 @@
 # Boot, Mount, Sync, and UI Responsiveness TODO
 
+## USB4 topology observation and hot-plug planning
+
+See [the topology maintenance review](Reports/usb4-topology-maintenance.md) and
+[operator contract](docs/usb4/fabric-topology.md).
+
+- [x] Separate native USB4NET transport from the optional licensed Share product;
+      preserve the functioning Gen9/Carbon Share session.
+- [x] Add present-device Windows collection and a native, observation-only topology
+      projection with expiry, reciprocal neighbor checks and stable edge identity.
+- [x] Exercise actual two-host observations; retain an unverified Carbon edge and
+      reject an unknown peer. Record overlapping APIPA interfaces as ambiguity.
+- [ ] Obtain exact-head CI and independent merge-autopilot admission; deployed
+      networking helpers and installed native binaries remain separately qualified.
+- [ ] Qualify physical unplug/replug, adapter replacement, sleep/resume and reboot
+      using fresh paired observations. Expired observations cannot authorize reuse.
+- [ ] Implement Windows-to-Windows enrolled application only after authenticated
+      peer enrollment, address ownership, conflict rollback and service access are
+      qualified. Do not infer authentication from neighbor-cache reciprocity.
+- [ ] Qualify Work/QNAP/UniFi forwarding and sharing per enrolled edge. Keep NAS
+      transfers on the owner-cleared Work path; do not bridge management networks.
+
 ## Explicit mount-health and registry selection review (2026-10-19)
 
 See [the bounded source/test receipt](Reports/pcai-tb-registry-health-review.md).

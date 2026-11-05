@@ -284,6 +284,11 @@ When changing archive readers, Cargo constraints or these patches, run
 [vendor provenance and scope](vendor/README.md). Both application workspace
 locks must remain covered. These tests do not qualify installed native binaries.
 
+USB4 topology uses the existing native CLI's read-only `topology-plan` contract;
+see [collection, freshness and promotion boundaries](docs/usb4/fabric-topology.md).
+Keep functioning Thunderbolt Share sessions intact. Neighbor reciprocity is
+observed adjacency, not authentication, service readiness or bridge authority.
+
 At minimum, choose the narrowest relevant validation path:
 
 - Pester for PowerShell module behavior

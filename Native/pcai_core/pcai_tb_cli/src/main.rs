@@ -1,6 +1,7 @@
 use anyhow::Result;
 use pcai_tb::benchmark::run_architecture_benchmarks;
 use pcai_tb::configure::{check_applied_actions, install_framework, register_local_thunderbolt_fabric};
+use pcai_tb::fabric_plan::{build_plan, FabricObservation, FabricPlan};
 use pcai_tb::handshake::discover_thunderbolt_peers;
 use pcai_tb::identity::{load_peer_registry, resolve_peer_identity};
 use pcai_tb::lifecycle::run_usb4_lifecycle_evaluation;
@@ -25,6 +26,7 @@ SUBCOMMANDS:
   discover        Run async multiplexed peer discovery (NTLM Type-2 AV_PAIR + SSH banner + NDP/ARP)
   register        Configure local deterministic LLA/ULA, MTU=62000, and per-port /128 ULA host routes
   lifecycle       Evaluate USB4 lifecycle states (asleep/disconnected/probing/ready), TTL, standby 506/507, and stale route withdrawal
+  topology-plan   Project fresh bilateral USB4 observations into separate segments; never changes networking
   switch          Inspect SFP+ switch custody, USB4 router trees, shared 10.* routes (--apply provisions routes)
   verify-custody  Enforce SFP+ switch, USB4 veth symmetry, and metric hierarchy invariants (exits non-zero on violation)
   observe         Capture non-payload switch/bridge/FDB/VLAN telemetry (--apply writes latest.json)
@@ -37,6 +39,8 @@ COMMON OPTIONS:
   --peer <name>              Peer computer name for commutative pairwise /30 IPv4 or route hint
   --registry <path>          Explicit path to thunderbolt-peers.json
   --output <path>            Output file path for V&V evidence artifact (used by vnv)
+  --input <path>             Explicit observation JSON for topology-plan (maximum 1 MiB)
+  --previous <path>          Previous topology plan for withdrawn-edge data only
   --timeout-ms <ms>          Per-socket handshake timeout in milliseconds (default: 220)
   --iterations <n>           Benchmark iteration count (default: 10)
   --mtu <bytes>              Target USB4 P2P MTU in bytes (default: 62000, range: 1280..=65535)
@@ -79,6 +83,8 @@ pub struct ParsedCliArgs {
     pub peer: Option<String>,
     pub registry: Option<PathBuf>,
     pub output: Option<PathBuf>,
+    pub input: Option<PathBuf>,
+    pub previous: Option<PathBuf>,
     pub timeout_ms: u64,
     pub iterations: usize,
     pub mtu_bytes: u32,
@@ -102,6 +108,8 @@ pub fn parse_cli_args(args: &[String]) -> Result<ParsedCliArgs> {
         peer: None,
         registry: None,
         output: None,
+        input: None,
+        previous: None,
         timeout_ms: 220,
         iterations: 10,
         mtu_bytes: 62000,
@@ -136,6 +144,14 @@ pub fn parse_cli_args(args: &[String]) -> Result<ParsedCliArgs> {
             "--output" | "-o" => {
                 let val = require_arg_value(args, i, flag)?;
                 parsed.output = Some(PathBuf::from(val));
+                i += 1;
+            }
+            "--input" => {
+                parsed.input = Some(PathBuf::from(require_arg_value(args, i, flag)?));
+                i += 1;
+            }
+            "--previous" => {
+                parsed.previous = Some(PathBuf::from(require_arg_value(args, i, flag)?));
                 i += 1;
             }
             "--timeout-ms" | "-t" => {
@@ -198,6 +214,33 @@ pub fn parse_cli_args(args: &[String]) -> Result<ParsedCliArgs> {
     Ok(parsed)
 }
 
+/// Read a bounded explicit observation; never discovers or changes host state.
+fn read_topology_json<T: serde::de::DeserializeOwned>(path: &std::path::Path) -> Result<T> {
+    use std::io::Read;
+    const LIMIT: u64 = 1024 * 1024;
+    if !std::fs::metadata(path)?.is_file() {
+        anyhow::bail!("Topology input must be a regular file");
+    }
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        // Avoid blocking if a regular path is replaced by a FIFO before open.
+        options.custom_flags(libc::O_NONBLOCK);
+    }
+    let file = options.open(path)?;
+    if !file.metadata()?.is_file() {
+        anyhow::bail!("Topology input must be a regular file");
+    }
+    let mut bytes = Vec::new();
+    file.take(LIMIT + 1).read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > LIMIT {
+        anyhow::bail!("Topology input exceeds the 1 MiB limit");
+    }
+    Ok(serde_json::from_slice(&bytes)?)
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let args: Vec<String> = env::args().skip(1).collect();
@@ -216,6 +259,40 @@ async fn main() -> Result<()> {
     }
 
     let parsed = parse_cli_args(&args)?;
+
+    if parsed.subcommand == "topology-plan" {
+        let mut index = 1;
+        while index < args.len() {
+            match args[index].as_str() {
+                "--input" | "--previous" => index += 2,
+                "--compact" => index += 1,
+                _ => anyhow::bail!(
+                    "topology-plan option is unsupported; only --input, --previous and --compact are accepted"
+                ),
+            }
+        }
+        if parsed.apply
+            || parsed.assign_pairwise_ipv4
+            || parsed.computer.is_some()
+            || parsed.peer.is_some()
+            || parsed.registry.is_some()
+            || parsed.output.is_some()
+        {
+            anyhow::bail!("topology-plan accepts explicit observations only; apply, registry, host overrides and output writes are unsupported");
+        }
+        let input = parsed
+            .input
+            .as_deref()
+            .ok_or_else(|| anyhow::anyhow!("topology-plan requires --input"))?;
+        let observation: FabricObservation = read_topology_json(input)?;
+        let previous: Option<FabricPlan> = parsed.previous.as_deref().map(read_topology_json).transpose()?;
+        let plan = build_plan(&observation, chrono::Utc::now(), previous.as_ref())?;
+        emit_json(&plan, parsed.compact)?;
+        return Ok(());
+    }
+    if parsed.input.is_some() || parsed.previous.is_some() {
+        anyhow::bail!("--input and --previous are only supported by topology-plan");
+    }
 
     match parsed.subcommand.as_str() {
         "status" | "identity" | "discover" | "register" | "lifecycle" | "switch" | "verify-custody" | "observe"

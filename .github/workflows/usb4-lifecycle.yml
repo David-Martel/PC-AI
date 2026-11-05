@@ -15,11 +15,14 @@ on:
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltRcloneMount.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltEnrolledPeer.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltStartup.ps1'
+      - 'Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1'
       - 'Tools/SystemScripts/Networking/Export-ThunderboltEnrolledObserver.sh'
       - 'Tests/Portable/Test-ThunderboltBootReadiness.ps1'
       - 'Tests/Portable/Test-ThunderboltMountGate.ps1'
       - 'Tests/Portable/Test-ThunderboltEnrolledPeer.ps1'
       - 'Tests/Portable/Test-ThunderboltStartup.ps1'
+      - 'Tests/Portable/Test-Usb4FabricObservation.ps1'
+      - 'Tests/Portable/test_usb4_fabric_cli.py'
       - '.github/actions/setup-job-rust/action.yml'
       - '.github/workflows/usb4-lifecycle.yml'
   workflow_dispatch:
@@ -61,6 +64,7 @@ jobs:
           ./Tests/Portable/Test-ThunderboltMountGate.ps1
           ./Tests/Portable/Test-ThunderboltEnrolledPeer.ps1
           ./Tests/Portable/Test-ThunderboltStartup.ps1
+          ./Tests/Portable/Test-Usb4FabricObservation.ps1
       # Protects route/identity/custody decisions on both native backends.
       # Detects stale-edge deletion, foreign ownership mutation and CLI evidence leaks.
       # Needs standard Rust/MSVC host tools; no attached devices or privileged Apply.
@@ -70,6 +74,17 @@ jobs:
           $env:CARGO_TARGET_DIR = Join-Path $env:RUNNER_TEMP 'pcai-usb4-contracts'
           cargo test --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-tb
           if ($LASTEXITCODE -ne 0) { throw 'USB4 lifecycle contracts failed' }
+      # Protects the public observation-only command. Detects ignored mutation
+      # options, stale edge reuse and blocking special-file input. Needs Python
+      # and the binary built by the integration suite; no attached USB4 hardware.
+      - name: Read-only topology CLI contracts
+        shell: pwsh
+        run: |
+          $suffix = if ($IsWindows) { '.exe' } else { '' }
+          $binary = Join-Path $env:RUNNER_TEMP "pcai-usb4-contracts/debug/pcai-tb$suffix"
+          $python = if ($IsWindows) { 'python' } else { 'python3' }
+          & $python Tests/Portable/test_usb4_fabric_cli.py --exe $binary
+          if ($LASTEXITCODE -ne 0) { throw 'USB4 topology CLI contracts failed' }
       - name: Strict Rust analysis
         shell: pwsh
         run: |

@@ -1,0 +1,422 @@
+{
+  "SchemaVersion": 1,
+  "ReviewedCommit": null,
+  "CommitBinding": "Bind actual implementation commit before publication.",
+  "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+  "Disposition": "keep",
+  "SourceBindings": [
+    {
+      "Path": "Native/pcai_core/pcai_tb_cli/src/fabric_plan.rs",
+      "Sha256": "698e053bacb321b423579748f93dcbb7e6f8490f706a53b8a1621127c6727729",
+      "HashNormalization": "UTF-8 LF"
+    },
+    {
+      "Path": "Native/pcai_core/pcai_tb_cli/src/main.rs",
+      "Sha256": "37672d487a49efb85d969c7318e93bea5dca8614e9459e6188656ccd32cfebb8",
+      "HashNormalization": "UTF-8 LF"
+    },
+    {
+      "Path": "Tests/Portable/test_usb4_fabric_cli.py",
+      "Sha256": "bc3d7119e7677d550b3d8be22ff76fb1272af903d4859951b42a45962b3ae346",
+      "HashNormalization": "UTF-8 LF"
+    },
+    {
+      "Path": "Native/pcai_core/pcai_tb_cli/tests/registry_cli.rs",
+      "Sha256": "8f4388f0b7bf1b1f7836e51e229756b075d1ce7cdb253f39b6d253b6d4333311",
+      "HashNormalization": "UTF-8 LF"
+    }
+  ],
+  "ModelRows": [
+    {
+      "Selector": "reciprocal_observation_without_reference_app_is_unverified",
+      "SelectorLfSha256": "fc2209478080af19f15de7dc3b4b1d9c36982d41e9f1626b0923f46b4873b552",
+      "Disposition": "keep",
+      "ReviewScope": "Independent source and detecting-receipt review, not execution by this reviewer",
+      "ParentAuthoredStrengthening": false,
+      "SelectorHashNormalization": "UTF-8 LF; indented/final-newline",
+      "Reviewer": "root/fleet_connectivity",
+      "ReviewerType": "Independent agent; did not author model or test selectors, including both parent-strengthened selectors",
+      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedCommit": null,
+      "RuntimeMutationEvidence": []
+    },
+    {
+      "Selector": "same_alias_wrong_device_or_missing_root_cannot_form_segment",
+      "SelectorLfSha256": "292d0477ff00bfc013f144b490870cb4a3e7bd844c3381d6b04b8d1f4fac25dc",
+      "Disposition": "keep",
+      "ReviewScope": "Independent source and detecting-receipt review, not execution by this reviewer",
+      "ParentAuthoredStrengthening": false,
+      "SelectorHashNormalization": "UTF-8 LF; indented/final-newline",
+      "Reviewer": "root/fleet_connectivity",
+      "ReviewerType": "Independent agent; did not author model or test selectors, including both parent-strengthened selectors",
+      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedCommit": null,
+      "RuntimeMutationEvidence": [
+        {
+          "mutation": "device-name-trust",
+          "selector": "same_alias_wrong_device_or_missing_root_cannot_form_segment",
+          "exit": 101,
+          "detected_by_runtime_assertion": true
+        }
+      ]
+    },
+    {
+      "Selector": "expired_future_down_and_missing_withdraw_only_observation_ids",
+      "SelectorLfSha256": "5e590b145ca4d8c87164f894de26c91ffdfeb1fc1fd613cc67648f7ecef91599",
+      "Disposition": "keep",
+      "ReviewScope": "Independent source and detecting-receipt review, not execution by this reviewer",
+      "ParentAuthoredStrengthening": false,
+      "SelectorHashNormalization": "UTF-8 LF; indented/final-newline",
+      "Reviewer": "root/fleet_connectivity",
+      "ReviewerType": "Independent agent; did not author model or test selectors, including both parent-strengthened selectors",
+      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedCommit": null,
+      "RuntimeMutationEvidence": [
+        {
+          "mutation": "ttl-boundary",
+          "selector": "expired_future_down_and_missing_withdraw_only_observation_ids",
+          "exit": 101,
+          "detected_by_runtime_assertion": true
+        },
+        {
+          "mutation": "future-admission",
+          "selector": "expired_future_down_and_missing_withdraw_only_observation_ids",
+          "exit": 101,
+          "detected_by_runtime_assertion": true
+        },
+        {
+          "mutation": "retained-old-edges",
+          "selector": "expired_future_down_and_missing_withdraw_only_observation_ids",
+          "exit": 101,
+          "detected_by_runtime_assertion": true
+        }
+      ]
+    },
+    {
+      "Selector": "rename_and_index_change_preserve_id_but_device_changes_replace_it",
+      "SelectorLfSha256": "19078a605a8e43ca56e58a3a779062f8684b1d1dbd2cc9a292c8ab66115ecba7",
+      "Disposition": "keep",
+      "ReviewScope": "Independent source and detecting-receipt review, not execution by this reviewer",
+      "ParentAuthoredStrengthening": true,
+      "SelectorHashNormalization": "UTF-8 LF; indented/final-newline",
+      "Reviewer": "root/fleet_connectivity",
+      "ReviewerType": "Independent agent; did not author model or test selectors, including both parent-strengthened selectors",
+      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedCommit": null,
+      "RuntimeMutationEvidence": [
+        {
+          "mutation": "alias-identity",
+          "selector": "rename_and_index_change_preserve_id_but_device_changes_replace_it",
+          "exit": 101,
+          "detected_by_runtime_assertion": true
+        }
+      ]
+    },
+    {
+      "Selector": "one_way_wrong_address_and_ambiguous_neighbors_cannot_form_segment",
+      "SelectorLfSha256": "0aff93d65ade32df6d0d81aa9d37603979d93fefe1e56d3c756564d87a3c8047",
+      "Disposition": "keep",
+      "ReviewScope": "Independent source and detecting-receipt review, not execution by this reviewer",
+      "ParentAuthoredStrengthening": false,
+      "SelectorHashNormalization": "UTF-8 LF; indented/final-newline",
+      "Reviewer": "root/fleet_connectivity",
+      "ReviewerType": "Independent agent; did not author model or test selectors, including both parent-strengthened selectors",
+      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedCommit": null,
+      "RuntimeMutationEvidence": [
+        {
+          "mutation": "one-way-admission",
+          "selector": "one_way_wrong_address_and_ambiguous_neighbors_cannot_form_segment",
+          "exit": 101,
+          "detected_by_runtime_assertion": true
+        }
+      ]
+    },
+    {
+      "Selector": "ipv6_link_local_targets_use_each_local_interface_scope",
+      "SelectorLfSha256": "04ad3f0b083d22216877f087374e48ef5527971b4d9015d2cb7234042bfaed15",
+      "Disposition": "keep",
+      "ReviewScope": "Independent source and detecting-receipt review, not execution by this reviewer",
+      "ParentAuthoredStrengthening": false,
+      "SelectorHashNormalization": "UTF-8 LF; indented/final-newline",
+      "Reviewer": "root/fleet_connectivity",
+      "ReviewerType": "Independent agent; did not author model or test selectors, including both parent-strengthened selectors",
+      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedCommit": null,
+      "RuntimeMutationEvidence": [
+        {
+          "mutation": "wrong-local-zone",
+          "selector": "ipv6_link_local_targets_use_each_local_interface_scope",
+          "exit": 101,
+          "detected_by_runtime_assertion": true
+        }
+      ]
+    },
+    {
+      "Selector": "parallel_apipa_segments_warn_without_automatic_bridging",
+      "SelectorLfSha256": "5389ded850dfe5eff1eb77f3c1f51d27944ce3c8bbddee911b854db6a3d6a620",
+      "Disposition": "keep",
+      "ReviewScope": "Independent source and detecting-receipt review, not execution by this reviewer",
+      "ParentAuthoredStrengthening": false,
+      "SelectorHashNormalization": "UTF-8 LF; indented/final-newline",
+      "Reviewer": "root/fleet_connectivity",
+      "ReviewerType": "Independent agent; did not author model or test selectors, including both parent-strengthened selectors",
+      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedCommit": null,
+      "RuntimeMutationEvidence": []
+    },
+    {
+      "Selector": "unpaired_local_apipa_adapter_still_warns_about_overlap",
+      "SelectorLfSha256": "4333533219322fed471a80c4a6f70edd699e97ee8e103c550bca3adc25143b0d",
+      "Disposition": "keep",
+      "ReviewScope": "Independent source and detecting-receipt review, not execution by this reviewer",
+      "ParentAuthoredStrengthening": false,
+      "SelectorHashNormalization": "UTF-8 LF; indented/final-newline",
+      "Reviewer": "root/fleet_connectivity",
+      "ReviewerType": "Independent agent; did not author model or test selectors, including both parent-strengthened selectors",
+      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedCommit": null,
+      "RuntimeMutationEvidence": [
+        {
+          "mutation": "unpaired-apipa",
+          "selector": "unpaired_local_apipa_adapter_still_warns_about_overlap",
+          "exit": 101,
+          "detected_by_runtime_assertion": true
+        }
+      ]
+    },
+    {
+      "Selector": "malformed_duplicate_and_out_of_bound_contracts_are_rejected",
+      "SelectorLfSha256": "19a332bc462075b7601196700861470caec21866a7d5fa7fdfc7879c9692d218",
+      "Disposition": "keep",
+      "ReviewScope": "Independent source and detecting-receipt review, not execution by this reviewer",
+      "ParentAuthoredStrengthening": true,
+      "SelectorHashNormalization": "UTF-8 LF; indented/final-newline",
+      "Reviewer": "root/fleet_connectivity",
+      "ReviewerType": "Independent agent; did not author model or test selectors, including both parent-strengthened selectors",
+      "ReviewedUtc": "2026-11-05T11:40:02.577269+00:00",
+      "ReviewedCommit": null,
+      "RuntimeMutationEvidence": [
+        {
+          "mutation": "duplicate-guid",
+          "selector": "malformed_duplicate_and_out_of_bound_contracts_are_rejected",
+          "exit": 101,
+          "detected_by_runtime_assertion": true
+        },
+        {
+          "mutation": "duplicate-mac",
+          "selector": "malformed_duplicate_and_out_of_bound_contracts_are_rejected",
+          "exit": 101,
+          "detected_by_runtime_assertion": true
+        },
+        {
+          "mutation": "duplicate-index",
+          "selector": "malformed_duplicate_and_out_of_bound_contracts_are_rejected",
+          "exit": 101,
+          "detected_by_runtime_assertion": true
+        }
+      ]
+    }
+  ],
+  "CliReview": {
+    "reviewed_date": "2026-11-05",
+    "reviewer": "root/backlog_refresh",
+    "reviewer_type": "independent agent; did not author main.rs or Python CLI controls",
+    "disposition": "keep",
+    "source": "Native/pcai_core/pcai_tb_cli/src/main.rs",
+    "source_raw_sha256": "37672d487a49efb85d969c7318e93bea5dca8614e9459e6188656ccd32cfebb8",
+    "test": "Tests/Portable/test_usb4_fabric_cli.py",
+    "test_raw_sha256": "bc3d7119e7677d550b3d8be22ff76fb1272af903d4859951b42a45962b3ae346",
+    "artifact": ".temp/usb4-provider-target/debug/pcai-tb.exe",
+    "artifact_sha256": "ae31d26f6571a1b77d30d11d7d515b907d3c946efb3215ea35f7e283c0e4df2a",
+    "source_review": [
+      "topology-plan returns before registry/platform discovery or mutation paths",
+      "only input/previous/compact accepted through an actual option-token walk",
+      "global parser still validates required option values",
+      "pre-stat rejects nonregular file paths before opening",
+      "Unix O_NONBLOCK prevents a FIFO swap from blocking open",
+      "post-open metadata rejects a swapped nonregular handle",
+      "read limited to 1MiB+1 and refuses oversize before serde",
+      "previous plan is read-only data and emits no OS actions"
+    ],
+    "finding_resolved": "Earlier long-only token scan silently admitted -t/-n. Parent corrected it and added long/short detecting cases; exact final test passes.",
+    "native_build": {
+      "selection": "cargo build --locked --offline -p pcai-tb --bin pcai-tb",
+      "target": ".temp/usb4-provider-target",
+      "exit": 0,
+      "duration_seconds": 1.14
+    },
+    "test_results": [
+      {
+        "selector": "test_apply_and_host_overrides_refuse_before_input_access",
+        "state": "PASS",
+        "protects": "observation command cannot acquire configuration/apply authority",
+        "detects": "forwarded apply or unrelated mutable options before input IO",
+        "selector_ast_sha256": "51b7778a9807aefeb0460c89302652e5e9069f92c57403b8bb25609e655d84c8",
+        "selector_ast_unchanged": true,
+        "SelectorLfSha256": "4d8128ba46ba0412624936d79b82c0b75124a6859a8570a81e7cb6af0d121c42",
+        "Disposition": "keep",
+        "ReviewedCommit": null
+      },
+      {
+        "selector": "test_disappeared_interface_withdraws_only_prior_observation_id",
+        "state": "PASS",
+        "protects": "new disconnected observation does not retain prior edge or write routes",
+        "detects": "historical green reuse or previous-file mutation",
+        "selector_ast_sha256": "54fb7923a1cc39a31c1ae6ef98eb645304398c6fce662d4fbc8c277f9067ac8b",
+        "selector_ast_unchanged": true,
+        "SelectorLfSha256": "0bb5528dd7318638c9dd9c4b5619c0da2acf26253f0970f7acf0d8e1e4fc74b9",
+        "Disposition": "keep",
+        "ReviewedCommit": null
+      },
+      {
+        "selector": "test_fifo_input_is_refused_without_waiting_for_a_writer",
+        "state": "PASS on Linux; UNSUPPORTED on Windows",
+        "reason": "Actual existing WSL binary refused a POSIX FIFO without a writer. Windows has no mkfifo.",
+        "protects": "nonblocking special-file rejection",
+        "detects": "waiting for a FIFO writer",
+        "mutation": "NOT_RUN; native FIFO control passed but no mutation detection claimed.",
+        "selector_ast_sha256": "624143ae847f534ca6ca8c290c31d2013bde496f4e9a903f975e7914154c08ca",
+        "selector_ast_unchanged": true,
+        "SelectorLfSha256": "ecc0aceacf31493976bf721f09c2a9a8b1830cacbff0112e56568a3551464caa",
+        "Disposition": "keep",
+        "ReviewedCommit": null,
+        "LinuxSuccessor": "Actual Linux built CLI passes this control; no pre-stat-only mutation detection claimed."
+      },
+      {
+        "selector": "test_missing_malformed_unknown_and_oversized_inputs_are_rejected",
+        "state": "PASS",
+        "protects": "explicit bounded valid observation contract",
+        "detects": "missing input, directory, invalid JSON/schema or oversize admission",
+        "selector_ast_sha256": "fee983ec5993295718832b9f8907600041988582d0b7e1a1f131ea9f5f2d6b0a",
+        "selector_ast_unchanged": true,
+        "SelectorLfSha256": "b52cb13aeaeba77e7351093182560af48fb7af0b76a24963a0e2a5acde6d0940",
+        "Disposition": "keep",
+        "ReviewedCommit": null
+      },
+      {
+        "selector": "test_real_cli_plans_unverified_segment_without_writes",
+        "state": "PASS",
+        "protects": "license-independent public CLI with no write actions",
+        "detects": "missing wiring, false readiness or changed scratch-file bytes",
+        "selector_ast_sha256": "1a185f3d78dd9253e254ed20ec2743897db694ab913f6669558d4017d9611ac1",
+        "selector_ast_unchanged": true,
+        "SelectorLfSha256": "f45408046614ed9ce0922c8dcf8f3f3ca2c4e07a68818ba161c69fa20a6aafad",
+        "Disposition": "keep",
+        "ReviewedCommit": null
+      },
+      {
+        "selector": "test_unused_long_and_short_options_refuse_before_input_access",
+        "state": "PASS",
+        "protects": "unrelated options cannot silently succeed",
+        "detects": "long-only allowlist missing parsed short aliases",
+        "selector_ast_sha256": "3b1b051780a4110747f773f67a8b739b925efa94d4032d2b8bffc5b771d6648b",
+        "selector_ast_unchanged": true,
+        "SelectorLfSha256": "54d62ce52e1479b7d8a388457ee776415573657ad170275c9998b9b226147190",
+        "Disposition": "keep",
+        "ReviewedCommit": null
+      }
+    ],
+    "summary": "Final frozen test: Windows5 pass/1 unsupported; Linux6 pass/0 skip; generic discovery1 prerequisite skip; all exit0.",
+    "limitations": [
+      "No actual USB4 hardware, authentication, route, service, SMB or throughput qualification",
+      "Actual Linux FIFO rejection exercised; no source mutation qualification and no claim that removing only pre-stat would defeat redundant O_NONBLOCK/post-open checks",
+      "Existing caller/assertion selector behavior preserved by whole-module normalized AST comparison",
+      "Previously recorded native_build describes earlier build only; current existing artifact hashes and direct reruns recorded separately"
+    ],
+    "commit_binding": "Uncommitted reviewed bytes; parent must bind actual implementation commit after publication. Hashes are exact raw Windows files.",
+    "superseded_test_raw_sha256": "ebfb465ddea12c43c4f2aae937c72877508d72510baa9cdb972fdfba645c3fac",
+    "final_test_hash_review": {
+      "reason": "Ruff reformatted the file and comments. invoke explicitly declares check=False, preserving subprocess.run default so callers can assert native exit codes. SkipTest prerequisite wording wrapped/shortened; explicit --exe remains mandatory and strict.",
+      "whole_module_ast_unchanged_except_explicit_check_false_and_skip_message": true,
+      "comparison_basis_raw_sha256": "be9e256b4fb04f06de2a2c646391b327dcbea528ac9b3bb0bd4e171bf230de6a",
+      "verification": "All six selector ASTs byte-identical under ast.dump(include_attributes=False) to reviewed be9e source; raw final hash recorded. Existing Windows binary:5 pass/1 unsupported FIFO. Existing qualified WSL binary:6 pass, including real FIFO input without writer. Generic discovery:0 tests/1 prerequisite skip. No builds, source writes or branch operations.",
+      "selector_ast_hashes": {
+        "test_apply_and_host_overrides_refuse_before_input_access": {
+          "ast_sha256": "51b7778a9807aefeb0460c89302652e5e9069f92c57403b8bb25609e655d84c8",
+          "unchanged_from_be9e": true
+        },
+        "test_disappeared_interface_withdraws_only_prior_observation_id": {
+          "ast_sha256": "54fb7923a1cc39a31c1ae6ef98eb645304398c6fce662d4fbc8c277f9067ac8b",
+          "unchanged_from_be9e": true
+        },
+        "test_fifo_input_is_refused_without_waiting_for_a_writer": {
+          "ast_sha256": "624143ae847f534ca6ca8c290c31d2013bde496f4e9a903f975e7914154c08ca",
+          "unchanged_from_be9e": true
+        },
+        "test_missing_malformed_unknown_and_oversized_inputs_are_rejected": {
+          "ast_sha256": "fee983ec5993295718832b9f8907600041988582d0b7e1a1f131ea9f5f2d6b0a",
+          "unchanged_from_be9e": true
+        },
+        "test_real_cli_plans_unverified_segment_without_writes": {
+          "ast_sha256": "1a185f3d78dd9253e254ed20ec2743897db694ab913f6669558d4017d9611ac1",
+          "unchanged_from_be9e": true
+        },
+        "test_unused_long_and_short_options_refuse_before_input_access": {
+          "ast_sha256": "3b1b051780a4110747f773f67a8b739b925efa94d4032d2b8bffc5b771d6648b",
+          "unchanged_from_be9e": true
+        }
+      }
+    },
+    "superseded_test_raw_sha256s": [
+      "ebfb465ddea12c43c4f2aae937c72877508d72510baa9cdb972fdfba645c3fac",
+      "be9e256b4fb04f06de2a2c646391b327dcbea528ac9b3bb0bd4e171bf230de6a"
+    ],
+    "superseded_artifact_sha256": "e2b58e225e16fd0942d4b8ecc94bc3399cca5e45393d6eba50416886364aa37e",
+    "platform_results": {
+      "windows": {
+        "exit": 0,
+        "pass": 5,
+        "unsupported": 1,
+        "artifact_sha256": "ae31d26f6571a1b77d30d11d7d515b907d3c946efb3215ea35f7e283c0e4df2a"
+      },
+      "linux_wsl": {
+        "exit": 0,
+        "pass": 6,
+        "unsupported": 0,
+        "artifact": "/tmp/pcai-usb4-provider-bounds-target/debug/pcai-tb",
+        "artifact_sha256": "1cc64443c2d69c79e93ebc554e1d86cbe7b1449342b35a500fa6a10c035dfad3"
+      },
+      "generic_discovery": {
+        "exit": 0,
+        "run": 0,
+        "prerequisite_skip": 1
+      }
+    }
+  },
+  "Validation": {
+    "Model": "Nine pure native selectors passed; all eleven corrected targeted mutations failed runtime assertions in private Linux harness.",
+    "CliWindows": "Five passed; POSIX FIFO explicitly unsupported.",
+    "CliLinux": "All six actual Linux CLI controls passed.",
+    "ReviewCorrections": "Initial alias mutation survived and prompted both-endpoint coverage. Identical duplicate fields masked uniqueness checks; cases now vary one field at a time. Three initial uniqueness mutants did not compile and receive no detection credit; corrected mutants compile and fail runtime assertions.",
+    "FeaturePackageWindows": "85 library + 13 registry CLI passed, zero failed/ignored. Integration took 143 seconds on baseline unbounded provider; completed naturally, no speedup or timeout claim.",
+    "FeaturePackageLinux": "90 library + 11 registry CLI passed, zero failed/ignored; strict all-target clippy passed. Edited registry selector rerun passes. Count read from actual log; earlier inferred 89 is superseded."
+  },
+  "Limits": [
+    "Neighbor reciprocity is observation, not authentication or readiness.",
+    "No automatic network, bridge, route or sharing configuration.",
+    "No physical hotplug, sleep, reboot or throughput acceptance."
+  ],
+  "ExistingLifecycleSelectorReview": {
+    "Selector": "cli_lifecycle_subcommand_evaluates_usb4_states_and_never_claims_always_on_transit",
+    "SelectorLfSha256": "5a605e5a133dd4bc0c0e919f52cbaf3dafa91608410d17f0ba7719428a20a6ae",
+    "HashNormalization": "UTF-8 LF fn declaration through closing brace, no final newline",
+    "Disposition": "keep",
+    "Reviewer": "codex-terminal-usb4-observer",
+    "ReviewerType": "Independent agent; did not author this assertion correction",
+    "ReviewedCommit": null,
+    "Protects": "Exact lifecycle state consistency with the standby telemetry returned by the same invocation",
+    "Detects": "Missing telemetry boolean, incorrect asleep/disconnected state, and admitted absent fixture interfaces",
+    "Needs": "Built CLI, private registry and optional current host providers; pure lifecycle unit controls cover both standby inputs",
+    "Breadcrumb": "Native/pcai_core/pcai_tb_cli/src/lifecycle.rs::evaluate_link_lifecycle_state",
+    "Evidence": "Original native assertion failed on asleep; corrected actual native integration passes. Eight inert compiled Rust controls pass and reject wrong type/state cases; no hardware qualification."
+  },
+  "CiWiringReview": {
+    "Reviewer": "codex-terminal-backlog",
+    "Disposition": "keep",
+    "ReviewedCommit": null,
+    "Path": ".github/workflows/usb4-lifecycle.yml",
+    "Sha256": "1002ddf6a314a260eee9366c27161a27189be9917ceb2b1a4c530cadd6ba0cdc",
+    "Evidence": "Independent actionlint pass; exact integration binary path verified. Linux invokes guaranteed python3, Windows python. Generic discovery skips only missing explicit built CLI prerequisite; explicit --exe remains strict."
+  }
+}

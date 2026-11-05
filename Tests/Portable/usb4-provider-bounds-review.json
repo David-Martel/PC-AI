@@ -2,7 +2,7 @@
   "schema_version": 1,
   "recorded_utc": "2026-11-05T11:08:28.5489033+00:00",
   "base_commit": "ee2ab4cc1f9f5848e68e43260193438092eea4b5",
-  "reviewed_commit": null,
+  "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
   "scope": "Windows optional lifecycle provider only; no network mutation or deployed binary changes",
   "rows": [
     {
@@ -13,7 +13,7 @@
       "reviewer": "root",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
       "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
       "selector_sha256": "0bcb5b81451d5c209b2611f62027b967facec7bdac2eab562c78fe336d477574",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
@@ -26,7 +26,7 @@
       "reviewer": "root",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
       "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
       "selector_sha256": "2c87a11c783676ed83c2a8d09499b72af2961ad3479b74c5c709029b00adcff1",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
@@ -39,7 +39,7 @@
       "reviewer": "root",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
       "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
       "selector_sha256": "dceb1f28d2ced569e727ed23fdac5c16da782c1ffb8a78b59ccc7cbe26cc2e67",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
@@ -52,7 +52,7 @@
       "reviewer": "root",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
       "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
       "selector_sha256": "883d0032a2a6a6b5ae162984696fa25f18b0a029b1f1b47a847719271dad4e70",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
@@ -65,7 +65,7 @@
       "reviewer": "root",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
       "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
       "selector_sha256": "5040139a0fc26ced8db33e8a08bc85ecea2a60a33be0d6211c5a59966bb2b614",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
@@ -78,7 +78,7 @@
       "reviewer": "root",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
       "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
       "selector_sha256": "ff038dccf19e4d1e205c68d405c8b2dc692e161b5b5e01876866ce63e4e57f84",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
@@ -91,7 +91,7 @@
       "reviewer": "root",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
       "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
       "selector_sha256": "ae72f5c4d7da2d67b29a2f610b03892fc0d873aa1d5f4b61191a677d6bf5cf88",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
@@ -104,7 +104,7 @@
       "reviewer": "root",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
       "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
       "selector_sha256": "84eab2a7d2044d38fc34826d174398ba0d77704059d6879123391aa093889035",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
@@ -116,34 +116,38 @@
       "selector_sha256": "95176ce5604e90137cab8a9af0956b7a9a6271086db5ac626a1d70f76d40d5cb",
       "disposition": "keep",
       "reviewer": "root",
-      "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit"
+      "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d"
     },
     {
       "selector": "windows_power_provider_inherited_pipe_child",
       "selector_sha256": "134aaecb18813f3fe88830070c3159497e02a0a4660ac5ffa2d6560f73b904d7",
       "disposition": "keep",
       "reviewer": "root",
-      "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit"
+      "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d"
     },
     {
       "selector": "windows_power_provider_output_child",
       "selector_sha256": "5c7b433f7e4a105fc2a77602af4c1e44aee38735cddef1adfe3cebffe4ecdcb3",
       "disposition": "keep",
       "reviewer": "root",
-      "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit"
+      "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d"
     },
     {
       "selector": "windows_power_provider_nonzero_child",
       "selector_sha256": "420b3611e1688f5ac67dc90222a31a3edf6a86bf9591adf6b085693a655cb320",
       "disposition": "keep",
       "reviewer": "root",
-      "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit"
+      "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
+      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d"
     }
   ],
   "validation": {
     "baseline": "Original unbounded output() at the same provider boundary: 6 passed, 2 failed; real deadline and output limit controls detect failures. Full local baseline.log retained.",
-    "windows": "Native Rust library97passed,0failed/ignored; strict all-target clippy passed; rebuilt CLI passed in isolated target. Final Windows package library4.30s.",
-    "linux": "Actual Linux library 101 passed; strict all-target clippy and native Linux CLI six controls passed. First platform-oracle failure preserved; corrected Unix group-cleanup expectation is explicit."
+    "windows": "Exact provider-only implementation: 88 library and 13 registry CLI integration tests passed; zero failed or ignored; strict all-target clippy passed.",
+    "linux": "Exact provider-only implementation: 92 library and 11 registry CLI integration tests passed; zero failed or ignored; strict all-target clippy passed. Earlier corrected Unix group-cleanup oracle remains documented."
   },
   "limits": [
     "Shared Windows executor terminates direct provider only; all-descendant Job Object containment is not qualified.",
@@ -156,6 +160,6 @@
   "reviewer_type": "independent agent; did not author lifecycle source or tests",
   "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
   "disposition": "keep",
-  "hash_convention": "UTF-8 LF full source and exact indented Rust function extent; rationale reviewed separately",
-  "commit_binding": "Reviewed frozen working-tree bytes; bind the actual implementation commit before publication."
+  "hash_convention": "UTF-8 LF source; selector starts at fn token and ends at closing brace, without final newline.",
+  "commit_binding": "Implementation and selector hashes bind to the named implementation commit; this review-only successor records exact clean-head qualification."
 }

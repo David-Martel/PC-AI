@@ -21,6 +21,7 @@ on:
       - 'Tests/Invoke-BenchmarkGate.ps1'
       - 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
       - 'Config/pcai-tooling-benchmarks.json'
+      - 'Config/machine-profiles/dtm-super-nuc.json'
       - '.github/workflows/portable-bootstrap.yml'
   push:
     branches: [main]
@@ -43,6 +44,7 @@ on:
       - 'Tests/Invoke-BenchmarkGate.ps1'
       - 'Tests/Benchmarks/Invoke-PcaiToolingBenchmarks.ps1'
       - 'Config/pcai-tooling-benchmarks.json'
+      - 'Config/machine-profiles/dtm-super-nuc.json'
       - '.github/workflows/portable-bootstrap.yml'
 permissions:
   contents: read
@@ -93,9 +95,52 @@ jobs:
           ./Tests/Portable/Test-BenchmarkRunner.ps1
           uv run --no-project python -m unittest discover -s Tests/Portable -p test_benchmark_admission.py -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Apply NUC native build budget
+        if: runner.environment == 'self-hosted' && startsWith(runner.name, 'dtm-super-nuc-pool-pc-ai-')
+        shell: pwsh
+        run: |
+          $machineProfile = Get-Content ./Config/machine-profiles/dtm-super-nuc.json -Raw | ConvertFrom-Json
+          $buildJobs = $machineProfile.buildPolicy.maxNativeBuildJobs
+          if ($machineProfile.hostName -ne 'dtm-super-nuc' -or
+              ($buildJobs -isnot [int] -and $buildJobs -isnot [long]) -or
+              $buildJobs -lt 1 -or $buildJobs -gt [int]::MaxValue) {
+            throw 'The NUC native build budget must be a positive JSON integer'
+          }
+          if (-not [string]::IsNullOrEmpty($env:CARGO_BUILD_JOBS)) {
+            $existingJobs = 0
+            if ($env:CARGO_BUILD_JOBS -notmatch '^[1-9][0-9]*$' -or
+                -not [int]::TryParse($env:CARGO_BUILD_JOBS, [ref]$existingJobs)) {
+              throw 'The existing Cargo build budget must be a positive integer'
+            }
+            $buildJobs = [Math]::Min($buildJobs, $existingJobs)
+          }
+          "CARGO_BUILD_JOBS=$buildJobs" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Prepare job-local self-hosted Rust homes
+        if: runner.environment == 'self-hosted'
+        id: self_hosted_rust
+        shell: pwsh
+        run: |
+          foreach ($name in 'RUNNER_TEMP', 'GITHUB_ENV', 'GITHUB_PATH', 'GITHUB_OUTPUT') {
+            $value = [Environment]::GetEnvironmentVariable($name)
+            if ([string]::IsNullOrWhiteSpace($value) -or $value -match "[\r\n]") { throw "$name is required" }
+          }
+          $rustRoot = Join-Path $env:RUNNER_TEMP ('pcai-rust-' + [Guid]::NewGuid().ToString('N'))
+          $cargoHome = Join-Path $rustRoot 'cargo'
+          $rustupHome = Join-Path $rustRoot 'rustup'
+          $profileHome = Join-Path $rustRoot 'home'
+          $cargoBin = Join-Path $cargoHome 'bin'
+          New-Item -ItemType Directory -Path $cargoHome, $rustupHome, $profileHome, $cargoBin -ErrorAction Stop | Out-Null
+          "CARGO_HOME=$cargoHome", "RUSTUP_HOME=$rustupHome" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $cargoBin | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          "home=$profileHome" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Install job-local self-hosted Rust
+        if: runner.environment == 'self-hosted'
+        uses: dtolnay/rust-toolchain@stable
+        env:
+          # The Linux installer may edit profiles; keep HOME and ZDOTDIR job-local too.
+          HOME: ${{ steps.self_hosted_rust.outputs.home }}
+          ZDOTDIR: ${{ steps.self_hosted_rust.outputs.home }}
       - uses: dtolnay/rust-toolchain@stable
-        # The self-hosted runner keeps its image toolchain (with clippy and rustfmt), as linux-ci.yml
-        # does: installing `stable` there replaces the default toolchain for every later job on it.
         if: runner.environment != 'self-hosted'
       # Protects all three locked Candle versions and exact published-source custody.
       # Detects conflicting local/central archive headers through actual CPU readers.

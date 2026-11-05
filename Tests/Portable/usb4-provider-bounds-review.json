@@ -2,7 +2,7 @@
   "schema_version": 1,
   "recorded_utc": "2026-11-05T11:08:28.5489033+00:00",
   "base_commit": "ee2ab4cc1f9f5848e68e43260193438092eea4b5",
-  "reviewed_commit": null,
+  "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
   "scope": "Windows optional lifecycle provider only; no network mutation or deployed binary changes",
   "rows": [
     {
@@ -13,7 +13,7 @@
       "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "90f409c5baece8da4aad9c966303afbe6abf5a19a96cb7557b060c3fd6a5baa1",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
@@ -26,7 +26,7 @@
       "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "8cb79735d445b85bd734eba7317be034ebd9213db9e95a08eca6e07bf750f384",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
@@ -39,7 +39,7 @@
       "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "5c19a80bbda511a35207a6341104ff9ec28a311902b653ac01d60b208d9458a3",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
@@ -52,7 +52,7 @@
       "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "883d0032a2a6a6b5ae162984696fa25f18b0a029b1f1b47a847719271dad4e70",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
@@ -65,7 +65,7 @@
       "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "5040139a0fc26ced8db33e8a08bc85ecea2a60a33be0d6211c5a59966bb2b614",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
@@ -78,7 +78,7 @@
       "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "ff038dccf19e4d1e205c68d405c8b2dc692e161b5b5e01876866ce63e4e57f84",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
@@ -91,7 +91,7 @@
       "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "ae72f5c4d7da2d67b29a2f610b03892fc0d873aa1d5f4b61191a677d6bf5cf88",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
@@ -104,7 +104,7 @@
       "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "84eab2a7d2044d38fc34826d174398ba0d77704059d6879123391aa093889035",
       "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
@@ -117,7 +117,7 @@
       "disposition": "keep",
       "reviewer": "codex-terminal-audit",
       "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00"
     },
@@ -127,7 +127,7 @@
       "disposition": "keep",
       "reviewer": "codex-terminal-audit",
       "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00"
     },
@@ -137,7 +137,7 @@
       "disposition": "keep",
       "reviewer": "codex-terminal-audit",
       "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00"
     },
@@ -147,7 +147,7 @@
       "disposition": "keep",
       "reviewer": "codex-terminal-audit",
       "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
-      "reviewed_commit": null,
+      "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
       "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "reviewed_utc": "2026-11-05T12:09:29.309205+00:00"
     }
@@ -169,7 +169,7 @@
   "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
   "disposition": "keep",
   "hash_convention": "UTF-8 LF source; selector starts at fn token and ends at closing brace, without final newline.",
-  "commit_binding": "Bind signed successor implementation commit after final Cargo/nextest qualification.",
+  "commit_binding": "Frozen source and selector hashes bind to signed successor implementation 42f1371f4cc24fd93b09829b4c4dd36520474383",
   "test_harness_successor": {
     "previous_implementation": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
     "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
@@ -179,11 +179,12 @@
     "runtime_controls": "11 actual controls: four ordinary exact fixture invocations pass without payload, one marked output emits 8372 captured bytes, six missing/wrong child markers fail with exit101 and the intended assertion.",
     "reviewer": "codex-terminal-audit",
     "reviewer_type": "independent source review; did not author lifecycle code or tests",
-    "reviewed_commit": null,
+    "reviewed_commit": "42f1371f4cc24fd93b09829b4c4dd36520474383",
     "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
     "production_prefix_unchanged": true,
     "failure_history": "Original nextest fixture panic and both one-leaky attempts retained. Null-output isolation did not resolve the leak and was reverted. Final three-second Windows finite-fixture expiry fence yields actual nextest zero leaks without extending the provider deadline or claiming process-tree containment.",
     "second_reviewer": "codex-terminal-fleet-review",
     "second_review_scope": "Independent read-only selector allowlist, assertion skipping and finite-fixture cleanup/documentation review; no source edits or duplicate runtime qualification."
-  }
+  },
+  "commit_bound_utc": "2026-11-05T12:12:35.740516+00:00"
 }

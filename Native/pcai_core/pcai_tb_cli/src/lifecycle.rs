@@ -5,8 +5,6 @@ use crate::identity::{
     local_hostname, resolve_peer_identity, PeerRegistryFile, TopologyLinkSpec, TopologyPathClass, Usb4LifecyclePolicy,
     Usb4LifecycleState,
 };
-#[cfg(target_os = "windows")]
-use crate::platform::hidden_command;
 use crate::platform::{collect_platform_snapshot, PlatformThunderboltSnapshot, ThunderboltAdapterState};
 use anyhow::Result;
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
@@ -1140,10 +1138,18 @@ pub struct LocalServiceAndRoutePreservationTelemetry {
     pub tb_service_status: String,
     pub shared_access_service_status: String,
     pub default_routes_preserved: bool,
+    pub collection_error: Option<String>,
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", test))]
 #[derive(Debug, Deserialize)]
+#[cfg_attr(
+    not(target_os = "windows"),
+    expect(
+        dead_code,
+        reason = "Windows payload fields are parsed by portable provider controls"
+    )
+)]
 #[serde(rename_all = "PascalCase")]
 struct RawWindowsPowerAndStandbyPayload {
     #[serde(default)]
@@ -1161,6 +1167,8 @@ struct RawWindowsPowerAndStandbyPayload {
     #[serde(default)]
     pub tb_service_status: Option<String>,
     #[serde(default)]
+    pub share_tb_service_status: Option<String>,
+    #[serde(default)]
     pub shared_access_status: Option<String>,
     #[serde(default)]
     pub dock_routers: Vec<String>,
@@ -1168,8 +1176,15 @@ struct RawWindowsPowerAndStandbyPayload {
     pub adapters: Vec<RawWindowsAdapterPowerItem>,
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", test))]
 #[derive(Debug, Deserialize)]
+#[cfg_attr(
+    not(target_os = "windows"),
+    expect(
+        dead_code,
+        reason = "Windows adapter fields are parsed by portable provider controls"
+    )
+)]
 #[serde(rename_all = "PascalCase")]
 struct RawWindowsAdapterPowerItem {
     pub interface_alias: String,
@@ -1184,18 +1199,127 @@ struct RawWindowsAdapterPowerItem {
     pub pnp_ancestry: Vec<String>,
 }
 
-pub fn collect_modern_standby_and_power_capabilities(
-    snapshot: &PlatformThunderboltSnapshot,
+#[cfg(any(target_os = "windows", test))]
+const WINDOWS_POWER_PROVIDER_TIMEOUT_MS: u64 = 10_000;
+#[cfg(any(target_os = "windows", test))]
+const WINDOWS_POWER_PROVIDER_OUTPUT_LIMIT: usize = 256 * 1024;
+
+/// Require a successful, complete Windows provider response.
+#[cfg(any(target_os = "windows", test))]
+fn parse_windows_power_provider_result(
+    outcome: (Option<i32>, String, String),
+) -> Result<RawWindowsPowerAndStandbyPayload> {
+    let (code, stdout, stderr) = outcome;
+    anyhow::ensure!(
+        code == Some(0),
+        "Windows power provider failed with exit {code:?}: {stderr}"
+    );
+    let value: serde_json::Value = serde_json::from_str(stdout.trim())?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| anyhow::anyhow!("Windows power provider must return an object"))?;
+    for key in [
+        "PowercfgOutput",
+        "EventLogAvailable",
+        "TbServiceStatus",
+        "SharedAccessStatus",
+        "DockRouters",
+        "Adapters",
+    ] {
+        anyhow::ensure!(
+            object.contains_key(key),
+            "Windows power provider response is missing {key}"
+        );
+    }
+    Ok(serde_json::from_value(value)?)
+}
+
+/// Probe one provider and fall back only when the executable is missing.
+#[cfg(any(target_os = "windows", test))]
+fn collect_windows_power_provider_with(
+    script: &str,
+    mut run: impl FnMut(&Path, &[&str], u64, usize) -> Result<(Option<i32>, String, String)>,
+) -> Result<RawWindowsPowerAndStandbyPayload> {
+    let arguments = ["-NoProfile", "-NonInteractive", "-Command", script];
+    let outcome = run(
+        Path::new("pwsh"),
+        &arguments,
+        WINDOWS_POWER_PROVIDER_TIMEOUT_MS,
+        WINDOWS_POWER_PROVIDER_OUTPUT_LIMIT,
+    );
+    let outcome = match outcome {
+        Err(error)
+            if error
+                .downcast_ref::<std::io::Error>()
+                .is_some_and(|e| e.kind() == std::io::ErrorKind::NotFound) =>
+        {
+            run(
+                Path::new("powershell"),
+                &arguments,
+                WINDOWS_POWER_PROVIDER_TIMEOUT_MS,
+                WINDOWS_POWER_PROVIDER_OUTPUT_LIMIT,
+            )?
+        }
+        other => other?,
+    };
+    parse_windows_power_provider_result(outcome)
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn windows_power_provider_command(
+    program: &Path,
+    args: &[&str],
+    timeout_ms: u64,
+    output_limit: usize,
+) -> Result<(Option<i32>, String, String)> {
+    crate::switch::run_bounded_command_with_deadline(program, args, timeout_ms, output_limit)
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn unknown_windows_service_telemetry(error: Option<String>) -> LocalServiceAndRoutePreservationTelemetry {
+    LocalServiceAndRoutePreservationTelemetry {
+        share_tb_service_running: false,
+        tb_service_status: "Unknown".into(),
+        shared_access_service_status: "Unknown".into(),
+        default_routes_preserved: true,
+        collection_error: error,
+    }
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn unavailable_windows_power_observation(
+    error: Option<String>,
 ) -> (
     ModernStandbyTelemetry,
     Vec<Usb4AdapterPowerCapabilities>,
     LocalServiceAndRoutePreservationTelemetry,
 ) {
-    #[cfg(target_os = "windows")]
-    {
-        let ps_script = r#"
-$ErrorActionPreference = 'SilentlyContinue'
+    (
+        ModernStandbyTelemetry {
+            s0_low_power_idle_state: "Unknown".into(),
+            ..Default::default()
+        },
+        Vec::new(),
+        unknown_windows_service_telemetry(error),
+    )
+}
+
+#[cfg(target_os = "windows")]
+fn windows_power_provider_script() -> &'static str {
+    r#"
+$ErrorActionPreference = 'Stop'
+function Get-ObservedServiceStatus {
+    [CmdletBinding()]
+    param([string]$Name)
+    try { [string](Get-Service -Name $Name -ErrorAction Stop).Status }
+    catch {
+        if ($_.FullyQualifiedErrorId -like 'NoServiceFoundForGivenName,*' -and
+            $_.CategoryInfo.Category -eq [Management.Automation.ErrorCategory]::ObjectNotFound) { return 'NotInstalled' }
+        throw
+    }
+}
 $powercfgOut = (& powercfg.exe /a 2>$null | Out-String)
+if ($LASTEXITCODE -ne 0) { throw "powercfg failed with exit $LASTEXITCODE" }
 $evAvailable = $false
 $ev = @()
 try {
@@ -1208,12 +1332,14 @@ try {
 }
 $e506 = $ev | Where-Object Id -eq 506 | Select-Object -First 1
 $e507 = $ev | Where-Object Id -eq 507 | Select-Object -First 1
-$tbSvc = Get-Service -Name 'TBService','ShareTBService' | Select-Object -First 1
-$saSvc = Get-Service -Name 'SharedAccess' | Select-Object -First 1
+$tbSvc = Get-ObservedServiceStatus 'TBService'
+$shareTbSvc = Get-ObservedServiceStatus 'ShareTBService'
+$saSvc = Get-ObservedServiceStatus 'SharedAccess'
 $dockRouters = @(Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -like 'USB4\VID_*' } | ForEach-Object { [string]$_.InstanceId })
 $pms = @()
 foreach ($n in @(Get-NetAdapter -IncludeHidden | Where-Object { $_.InterfaceDescription -match 'USB4|Thunderbolt|P2P' -or $_.Name -match 'Ethernet 4|Ethernet 5|Thunderbolt|USB4' })) {
     $pm = Get-NetAdapterPowerManagement -Name $n.Name
+    if (-not $pm) { throw 'Power management record unavailable for observed adapter.' }
     $ancestry = @()
     $cur = [string]$n.PnPDeviceID
     $depth = 0
@@ -1245,165 +1371,153 @@ foreach ($n in @(Get-NetAdapter -IncludeHidden | Where-Object { $_.InterfaceDesc
     LastExit507Utc = if ($e507) { $e507.TimeCreated.ToUniversalTime().ToString('o') } else { $null }
     LastExitReason = if ($e507) { ($e507.Message -replace '\s+', ' ').Trim() } else { $null }
     RecentCycleCount = [int](@($ev | Where-Object Id -eq 506).Count)
-    TbServiceStatus = if ($tbSvc) { [string]$tbSvc.Status } else { 'NotInstalled' }
-    SharedAccessStatus = if ($saSvc) { [string]$saSvc.Status } else { 'NotInstalled' }
+    TbServiceStatus = $tbSvc
+    ShareTbServiceStatus = $shareTbSvc
+    SharedAccessStatus = $saSvc
     DockRouters = $dockRouters
     Adapters = $pms
 } | ConvertTo-Json -Depth 5 -Compress
-"#;
-        let output_opt = hidden_command("pwsh")
-            .args(["-NoProfile", "-NonInteractive", "-Command", ps_script])
-            .output()
-            .or_else(|_| {
-                hidden_command("powershell")
-                    .args(["-NoProfile", "-NonInteractive", "-Command", ps_script])
-                    .output()
-            })
-            .ok();
+"#
+}
 
-        if let Some(out) = output_opt {
-            if out.status.success() {
-                let text = String::from_utf8_lossy(&out.stdout);
-                if let Ok(parsed) = serde_json::from_str::<RawWindowsPowerAndStandbyPayload>(text.trim()) {
-                    let t506 = parsed
-                        .last_entry_506_utc
-                        .as_deref()
-                        .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-                        .map(|d| d.with_timezone(&Utc));
-                    let t507 = parsed
-                        .last_exit_507_utc
-                        .as_deref()
-                        .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-                        .map(|d| d.with_timezone(&Utc));
-                    let in_standby = match (t506, t507) {
-                        (Some(entry), Some(exit)) => entry > exit,
-                        (Some(_), None) => true,
-                        _ => false,
-                    };
-                    let has_events = parsed.last_entry_506_utc.is_some()
-                        || parsed.last_exit_507_utc.is_some()
-                        || parsed.s0_low_power_idle_supported;
-                    let (s0_state, s0_supported, s0_connected_opt) = parse_powercfg_s0_capabilities(
-                        parsed.powercfg_output.as_deref(),
-                        parsed.event_log_available,
-                        has_events,
-                    );
-                    let standby = ModernStandbyTelemetry {
-                        s0_low_power_idle_state: s0_state,
-                        s0_low_power_idle_supported: s0_supported,
-                        s0_low_power_idle_connected_supported: s0_connected_opt,
-                        s0_network_connected_supported: s0_connected_opt.unwrap_or(false),
-                        event_log_available: parsed.event_log_available,
-                        last_standby_entry_506_utc: parsed.last_entry_506_utc,
-                        last_standby_entry_reason: parsed.last_entry_reason,
-                        last_standby_exit_507_utc: parsed.last_exit_507_utc,
-                        last_standby_exit_reason: parsed.last_exit_reason,
-                        currently_in_modern_standby: in_standby,
-                        recent_standby_cycle_count: parsed.recent_cycle_count,
-                    };
+pub fn collect_modern_standby_and_power_capabilities(
+    snapshot: &PlatformThunderboltSnapshot,
+) -> (
+    ModernStandbyTelemetry,
+    Vec<Usb4AdapterPowerCapabilities>,
+    LocalServiceAndRoutePreservationTelemetry,
+) {
+    #[cfg(target_os = "windows")]
+    let collection_error;
+    #[cfg(target_os = "windows")]
+    {
+        match collect_windows_power_provider_with(windows_power_provider_script(), windows_power_provider_command) {
+            Ok(parsed) => {
+                let t506 = parsed
+                    .last_entry_506_utc
+                    .as_deref()
+                    .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+                    .map(|d| d.with_timezone(&Utc));
+                let t507 = parsed
+                    .last_exit_507_utc
+                    .as_deref()
+                    .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+                    .map(|d| d.with_timezone(&Utc));
+                let in_standby = match (t506, t507) {
+                    (Some(entry), Some(exit)) => entry > exit,
+                    (Some(_), None) => true,
+                    _ => false,
+                };
+                let has_events = parsed.last_entry_506_utc.is_some()
+                    || parsed.last_exit_507_utc.is_some()
+                    || parsed.s0_low_power_idle_supported;
+                let (s0_state, s0_supported, s0_connected_opt) = parse_powercfg_s0_capabilities(
+                    parsed.powercfg_output.as_deref(),
+                    parsed.event_log_available,
+                    has_events,
+                );
+                let standby = ModernStandbyTelemetry {
+                    s0_low_power_idle_state: s0_state,
+                    s0_low_power_idle_supported: s0_supported,
+                    s0_low_power_idle_connected_supported: s0_connected_opt,
+                    s0_network_connected_supported: s0_connected_opt.unwrap_or(false),
+                    event_log_available: parsed.event_log_available,
+                    last_standby_entry_506_utc: parsed.last_entry_506_utc,
+                    last_standby_entry_reason: parsed.last_entry_reason,
+                    last_standby_exit_507_utc: parsed.last_exit_507_utc,
+                    last_standby_exit_reason: parsed.last_exit_reason,
+                    currently_in_modern_standby: in_standby,
+                    recent_standby_cycle_count: parsed.recent_cycle_count,
+                };
 
-                    let tb_status = parsed.tb_service_status.unwrap_or_else(|| "Unknown".to_string());
-                    let sa_status = parsed.shared_access_status.unwrap_or_else(|| "Unknown".to_string());
-                    let svc_telemetry = LocalServiceAndRoutePreservationTelemetry {
-                        share_tb_service_running: tb_status.eq_ignore_ascii_case("Running")
-                            || sa_status.eq_ignore_ascii_case("Running"),
-                        tb_service_status: tb_status,
-                        shared_access_service_status: sa_status,
-                        default_routes_preserved: true,
-                    };
+                let tb_status = parsed.tb_service_status.unwrap_or_else(|| "Unknown".to_string());
+                let share_tb_status = parsed.share_tb_service_status.unwrap_or_else(|| "Unknown".to_string());
+                let sa_status = parsed.shared_access_status.unwrap_or_else(|| "Unknown".to_string());
+                let svc_telemetry = LocalServiceAndRoutePreservationTelemetry {
+                    share_tb_service_running: tb_status.eq_ignore_ascii_case("Running")
+                        || share_tb_status.eq_ignore_ascii_case("Running"),
+                    tb_service_status: tb_status,
+                    shared_access_service_status: sa_status,
+                    default_routes_preserved: true,
+                    collection_error: None,
+                };
 
-                    let mut caps = Vec::new();
-                    for adapter in &snapshot.adapters {
-                        let matched = parsed
-                            .adapters
-                            .iter()
-                            .find(|p| p.interface_alias.eq_ignore_ascii_case(&adapter.interface_alias));
-                        let speed_bps = if adapter.transmit_link_speed_bps > 0 {
-                            adapter.transmit_link_speed_bps
-                        } else {
-                            20_000_000_000
-                        };
-                        if let Some(pm) = matched {
-                            let sel_susp = pm
-                                .selective_suspend
+                let mut caps = Vec::new();
+                for adapter in &snapshot.adapters {
+                    let matched = parsed
+                        .adapters
+                        .iter()
+                        .find(|p| p.interface_alias.eq_ignore_ascii_case(&adapter.interface_alias));
+                    let speed_bps = adapter.transmit_link_speed_bps;
+                    if let Some(pm) = matched {
+                        let sel_susp = pm
+                            .selective_suspend
+                            .as_deref()
+                            .is_some_and(|s| s.trim().eq_ignore_ascii_case("Enabled") || s.trim() == "1");
+                        let base_cap = Usb4AdapterPowerCapabilities::evaluate(
+                            adapter.interface_index,
+                            &adapter.interface_alias,
+                            pm.interface_description
                                 .as_deref()
-                                .is_some_and(|s| s.trim().eq_ignore_ascii_case("Enabled") || s.trim() == "1");
-                            let base_cap = Usb4AdapterPowerCapabilities::evaluate(
-                                adapter.interface_index,
-                                &adapter.interface_alias,
-                                pm.interface_description
-                                    .as_deref()
-                                    .unwrap_or(&adapter.interface_description),
-                                sel_susp,
-                                pm.wake_on_magic_packet.as_deref().unwrap_or("Unsupported"),
-                                pm.wake_on_pattern.as_deref().unwrap_or("Unsupported"),
-                                pm.arp_offload.as_deref().unwrap_or("Unsupported"),
-                                pm.ns_offload.as_deref().unwrap_or("Unsupported"),
-                                pm.device_sleep_on_disconnect.as_deref().unwrap_or("Inactive"),
-                                &adapter.operational_status,
-                            );
-                            caps.push(base_cap.with_pnp_and_link_speed(
-                                pm.pnp_ancestry.clone(),
-                                &parsed.dock_routers,
-                                speed_bps,
-                            ));
-                        } else {
-                            caps.push(
-                                Usb4AdapterPowerCapabilities::evaluate(
-                                    adapter.interface_index,
-                                    &adapter.interface_alias,
-                                    &adapter.interface_description,
-                                    true,
-                                    "Unsupported",
-                                    "Unsupported",
-                                    "Unsupported",
-                                    "Unsupported",
-                                    "Inactive",
-                                    &adapter.operational_status,
-                                )
-                                .with_pnp_and_link_speed(
-                                    Vec::new(),
-                                    &parsed.dock_routers,
-                                    speed_bps,
-                                ),
-                            );
-                        }
+                                .unwrap_or(&adapter.interface_description),
+                            sel_susp,
+                            pm.wake_on_magic_packet.as_deref().unwrap_or("Unsupported"),
+                            pm.wake_on_pattern.as_deref().unwrap_or("Unsupported"),
+                            pm.arp_offload.as_deref().unwrap_or("Unsupported"),
+                            pm.ns_offload.as_deref().unwrap_or("Unsupported"),
+                            pm.device_sleep_on_disconnect.as_deref().unwrap_or("Inactive"),
+                            &adapter.operational_status,
+                        );
+                        caps.push(base_cap.with_pnp_and_link_speed(
+                            pm.pnp_ancestry.clone(),
+                            &parsed.dock_routers,
+                            speed_bps,
+                        ));
                     }
-                    return (standby, caps, svc_telemetry);
                 }
+                return (standby, caps, svc_telemetry);
             }
+            Err(error) => collection_error = Some(format!("Windows power/service observation unavailable: {error}")),
         }
     }
 
-    let standby = ModernStandbyTelemetry {
-        s0_low_power_idle_state: "Unknown".to_string(),
-        ..Default::default()
-    };
-    let svc_telemetry = LocalServiceAndRoutePreservationTelemetry {
-        share_tb_service_running: true,
-        tb_service_status: "Preserved".to_string(),
-        shared_access_service_status: "Preserved".to_string(),
-        default_routes_preserved: true,
-    };
-    let caps = snapshot
-        .adapters
-        .iter()
-        .map(|a| {
-            Usb4AdapterPowerCapabilities::evaluate(
-                a.interface_index,
-                &a.interface_alias,
-                &a.interface_description,
-                true,
-                "Unsupported",
-                "Unsupported",
-                "Unsupported",
-                "Unsupported",
-                "Inactive",
-                &a.operational_status,
-            )
-        })
-        .collect();
-    (standby, caps, svc_telemetry)
+    #[cfg(target_os = "windows")]
+    {
+        unavailable_windows_power_observation(collection_error)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let standby = ModernStandbyTelemetry {
+            s0_low_power_idle_state: "Unknown".to_string(),
+            ..Default::default()
+        };
+        let svc_telemetry = LocalServiceAndRoutePreservationTelemetry {
+            share_tb_service_running: true,
+            tb_service_status: "Preserved".to_string(),
+            shared_access_service_status: "Preserved".to_string(),
+            default_routes_preserved: true,
+            collection_error: None,
+        };
+        let caps = snapshot
+            .adapters
+            .iter()
+            .map(|a| {
+                Usb4AdapterPowerCapabilities::evaluate(
+                    a.interface_index,
+                    &a.interface_alias,
+                    &a.interface_description,
+                    true,
+                    "Unsupported",
+                    "Unsupported",
+                    "Unsupported",
+                    "Unsupported",
+                    "Inactive",
+                    &a.operational_status,
+                )
+            })
+            .collect();
+        (standby, caps, svc_telemetry)
+    }
 }
 
 pub async fn run_usb4_lifecycle_evaluation(
@@ -1732,6 +1846,9 @@ pub async fn run_usb4_lifecycle_evaluation(
             .filter(|w| !w.preserved)
             .all(|w| !is_protected_default_or_non_owned_route(&w.route_prefix));
 
+    if let Some(error) = svc_telemetry.collection_error {
+        warnings.push(error);
+    }
     Ok(Usb4LifecycleReport {
         schema: "pcai.usb4-lifecycle/v1".to_string(),
         computer_name: local_canon,
@@ -1761,6 +1878,269 @@ mod tests {
     use crate::platform::AdapterAddressEntry;
     use chrono::TimeZone;
     use std::sync::Mutex;
+
+    // Protects bounded optional observation; detects the original blocking output() call.
+    // Needs only this test executable; breadcrumb: windows_power_provider_command.
+    #[test]
+    fn windows_power_provider_deadline_bounds_delay_and_inherited_pipe() {
+        let executable = std::env::current_exe().unwrap();
+        for fixture in [
+            "windows_power_provider_delayed_child",
+            "windows_power_provider_inherited_pipe_child",
+        ] {
+            let selected = format!("lifecycle::tests::{fixture}");
+            let started = Instant::now();
+            let result = windows_power_provider_command(&executable, &["--exact", &selected, "--nocapture"], 100, 4096);
+            if fixture == "windows_power_provider_delayed_child" || cfg!(target_os = "windows") {
+                assert!(
+                    result.is_err(),
+                    "delayed provider or open Windows descendant pipe must not produce success"
+                );
+            } else {
+                // Unix group cleanup closes the descendant's pipe after its parent exits.
+                assert_eq!(result.unwrap().0, Some(0));
+            }
+            assert!(
+                started.elapsed() < std::time::Duration::from_millis(1500),
+                "provider response exceeded its bounded return budget"
+            );
+        }
+    }
+
+    // Process fixture for the deadline selector above; direct suite execution does not delay.
+    // Protects realistic child timing; needs --exact child invocation, no hardware or network.
+    #[test]
+    fn windows_power_provider_delayed_child() {
+        if std::env::args().any(|arg| arg == "--exact") {
+            std::thread::sleep(std::time::Duration::from_secs(2));
+        }
+    }
+
+    // Process fixture: the finite descendant inherits output after its parent exits.
+    // Detects blocking pipe drains; needs the current test binary, no shell or host mutation.
+    #[expect(
+        clippy::zombie_processes,
+        reason = "The owned two-second self-expiring descendant must outlive its fixture parent to exercise pipe-drain deadlines; Windows all-descendant containment is not claimed"
+    )]
+    #[test]
+    fn windows_power_provider_inherited_pipe_child() {
+        if std::env::args().any(|arg| arg == "--exact") {
+            let _child = crate::platform::hidden_command(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "lifecycle::tests::windows_power_provider_delayed_child",
+                    "--nocapture",
+                ])
+                .spawn()
+                .unwrap();
+        }
+    }
+
+    // Protects bounded capture; detects ignoring the shared helper's output limit.
+    // Needs only this test executable; breadcrumb: windows_power_provider_command.
+    #[test]
+    fn windows_power_provider_output_budget_refuses_oversized_child() {
+        let executable = std::env::current_exe().unwrap();
+        let result = windows_power_provider_command(
+            &executable,
+            &[
+                "--exact",
+                "lifecycle::tests::windows_power_provider_output_child",
+                "--nocapture",
+            ],
+            2000,
+            128,
+        );
+        assert!(result.unwrap_err().to_string().contains("budget"));
+    }
+
+    // Finite process fixture supplying oversized output only when explicitly selected.
+    // Protects the capture control above; needs no shell, network or live provider.
+    #[test]
+    fn windows_power_provider_output_child() {
+        if std::env::args().any(|arg| arg == "--exact") {
+            println!("{}", "x".repeat(8192));
+        }
+    }
+
+    // Protects native failure status rather than merely a mocked status tuple.
+    // Detects nonzero child exits being parsed as successful telemetry.
+    // Needs this test executable; breadcrumb: provider command and result parser.
+    #[test]
+    fn windows_power_provider_preserves_actual_nonzero_exit() {
+        let executable = std::env::current_exe().unwrap();
+        let outcome = windows_power_provider_command(
+            &executable,
+            &[
+                "--exact",
+                "lifecycle::tests::windows_power_provider_nonzero_child",
+                "--nocapture",
+            ],
+            2000,
+            16_384,
+        )
+        .unwrap();
+        assert_eq!(outcome.0, Some(101));
+        let error = parse_windows_power_provider_result(outcome).unwrap_err().to_string();
+        assert!(error.contains("101"));
+        assert!(error.contains("provider fixture native failure"));
+    }
+
+    // Process fixture producing an actual test-process failure only when selected.
+    // Protects the native exit selector above; never runs provider or network commands.
+    #[test]
+    fn windows_power_provider_nonzero_child() {
+        assert!(
+            !std::env::args().any(|arg| arg == "--exact"),
+            "provider fixture native failure"
+        );
+    }
+
+    // Protects missing-provider versus failed-provider semantics and exact budgets.
+    // Detects retries after timeout/nonzero exits and omission of bounded arguments.
+    // Needs an injected runner; breadcrumb: collect_windows_power_provider_with.
+    #[test]
+    fn windows_power_provider_fallback_is_only_for_missing_executable() {
+        let valid = r#"{"PowercfgOutput":null,"EventLogAvailable":false,"TbServiceStatus":"NotInstalled","SharedAccessStatus":"NotInstalled","DockRouters":[],"Adapters":[]}"#;
+        let mut calls = Vec::new();
+        let parsed = collect_windows_power_provider_with("fixture", |program, args, timeout, limit| {
+            calls.push(program.to_string_lossy().into_owned());
+            assert_eq!(args, ["-NoProfile", "-NonInteractive", "-Command", "fixture"]);
+            assert_eq!(timeout, 10_000);
+            assert_eq!(limit, 256 * 1024);
+            if calls.len() == 1 {
+                return Err(std::io::Error::from(std::io::ErrorKind::NotFound).into());
+            }
+            Ok((Some(0), valid.to_string(), String::new()))
+        })
+        .unwrap();
+        assert_eq!(calls, ["pwsh", "powershell"]);
+        assert_eq!(parsed.tb_service_status.as_deref(), Some("NotInstalled"));
+        let mut count = 0;
+        assert!(collect_windows_power_provider_with("fixture", |_, _, _, _| {
+            count += 1;
+            anyhow::bail!("Timed out waiting for fixture");
+        })
+        .is_err());
+        assert_eq!(
+            count, 1,
+            "failed providers must not multiply the deadline with a fallback"
+        );
+        let mut count = 0;
+        assert!(collect_windows_power_provider_with("fixture", |_, _, _, _| {
+            count += 1;
+            Ok((Some(23), valid.to_string(), "fixture failure".into()))
+        })
+        .unwrap_err()
+        .to_string()
+        .contains("23"));
+        assert_eq!(count, 1);
+    }
+
+    // Protects honest optional telemetry; detects empty/default JSON becoming observation success.
+    // Needs in-memory outcomes; breadcrumb: parse_windows_power_provider_result.
+    #[test]
+    fn windows_power_provider_rejects_failed_empty_and_malformed_outcomes() {
+        for stdout in ["", "{}", "[]", "not-json", "null"] {
+            assert!(
+                parse_windows_power_provider_result((Some(0), stdout.into(), String::new())).is_err(),
+                "{stdout:?}"
+            );
+        }
+        assert!(parse_windows_power_provider_result((None, "{}".into(), String::new())).is_err());
+        assert!(
+            parse_windows_power_provider_result((Some(5), "{}".into(), "Access denied".into()))
+                .unwrap_err()
+                .to_string()
+                .contains("Access denied")
+        );
+    }
+
+    // Protects schema type checks instead of accepting plausible empty telemetry.
+    // Detects wrong boolean, list, service and adapter values from a successful process.
+    // Needs only JSON values; breadcrumb: parse_windows_power_provider_result.
+    #[test]
+    fn windows_power_provider_rejects_wrong_envelope_field_types() {
+        let valid = serde_json::json!({"PowercfgOutput":null,"EventLogAvailable":false,"TbServiceStatus":"NotInstalled","SharedAccessStatus":"NotInstalled","DockRouters":[],"Adapters":[]});
+        for (key, bad) in [
+            ("EventLogAvailable", serde_json::json!("false")),
+            ("TbServiceStatus", serde_json::json!(5)),
+            ("Adapters", serde_json::json!({})),
+            ("DockRouters", serde_json::json!(false)),
+        ] {
+            let mut value = valid.clone();
+            value[key] = bad;
+            assert!(
+                parse_windows_power_provider_result((Some(0), value.to_string(), String::new())).is_err(),
+                "{key}"
+            );
+        }
+    }
+
+    // Protects actual PowerShell provider semantics without touching host providers.
+    // Detects access errors becoming NotInstalled, silent inventory failure and
+    // conflation of ShareTBService with TBService. Needs Windows pwsh and fixture
+    // functions only; breadcrumb: windows_power_provider_script and result parser.
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn windows_power_provider_script_distinguishes_absence_access_failure_and_services() {
+        let prelude = r#"
+function powercfg.exe { $global:LASTEXITCODE=0; 'The following sleep states are available: Standby (S3)' }
+function Get-WinEvent { [CmdletBinding()]param($FilterHashtable,$MaxEvents) @() }
+function Get-PnpDevice { [CmdletBinding()]param([switch]$PresentOnly) @() }
+function Get-NetAdapter { [CmdletBinding()]param([switch]$IncludeHidden) @() }
+"#;
+        let missing = r#"function Get-Service { [CmdletBinding()]param($Name)
+$e=[Management.Automation.ErrorRecord]::new([InvalidOperationException]::new('No service fixture'),'NoServiceFoundForGivenName',[Management.Automation.ErrorCategory]::ObjectNotFound,$Name);$PSCmdlet.ThrowTerminatingError($e) }
+"#;
+        let script = format!("{prelude}{missing}{}", windows_power_provider_script());
+        let parsed = collect_windows_power_provider_with(&script, windows_power_provider_command).unwrap();
+        assert_eq!(parsed.tb_service_status.as_deref(), Some("NotInstalled"));
+        assert_eq!(parsed.share_tb_service_status.as_deref(), Some("NotInstalled"));
+        assert!(parsed.adapters.is_empty());
+        for failure in [
+            "function Get-Service { [CmdletBinding()]param($Name) throw [UnauthorizedAccessException]::new('service fixture access denied') }",
+            "function Get-PnpDevice { [CmdletBinding()]param([switch]$PresentOnly) throw [UnauthorizedAccessException]::new('PnP fixture access denied') }",
+            "function Get-NetAdapter { [CmdletBinding()]param([switch]$IncludeHidden) throw [UnauthorizedAccessException]::new('adapter fixture access denied') }",
+            "function Get-NetAdapter { [CmdletBinding()]param([switch]$IncludeHidden) [pscustomobject]@{Name='fixture';InterfaceDescription='USB4 P2P'} }; function Get-NetAdapterPowerManagement { [CmdletBinding()]param($Name) throw [UnauthorizedAccessException]::new('power fixture access denied') }",
+        ] {
+            let script = format!("{prelude}{missing}\n{failure}\n{}", windows_power_provider_script());
+            assert!(collect_windows_power_provider_with(&script, windows_power_provider_command).unwrap_err().to_string().contains("access denied"));
+        }
+        let services = r#"function Get-Service { [CmdletBinding()]param($Name) [pscustomobject]@{Status=$(if($Name -eq 'TBService'){'Stopped'}else{'Running'})} }
+"#;
+        let script = format!("{prelude}{services}{}", windows_power_provider_script());
+        let parsed = collect_windows_power_provider_with(&script, windows_power_provider_command).unwrap();
+        assert_eq!(parsed.tb_service_status.as_deref(), Some("Stopped"));
+        assert_eq!(parsed.share_tb_service_status.as_deref(), Some("Running"));
+        assert_eq!(parsed.shared_access_status.as_deref(), Some("Running"));
+        let empty_power = "function Get-NetAdapter { [CmdletBinding()]param([switch]$IncludeHidden) [pscustomobject]@{Name='fixture';InterfaceDescription='USB4 P2P'} }; function Get-NetAdapterPowerManagement { [CmdletBinding()]param($Name) $null }";
+        let script = format!(
+            "{prelude}{services}\n{empty_power}\n{}",
+            windows_power_provider_script()
+        );
+        assert!(
+            collect_windows_power_provider_with(&script, windows_power_provider_command)
+                .unwrap_err()
+                .to_string()
+                .contains("Power management record unavailable")
+        );
+    }
+
+    // Protects Unknown versus NotInstalled and observed running state on provider failure.
+    // Detects the old Preserved/running=true fallback fabricating successful collection.
+    // Needs in-memory provider failure; breadcrumb: unknown_windows_service_telemetry.
+    #[test]
+    fn windows_power_provider_failure_never_claims_running_or_not_installed() {
+        let (standby, caps, telemetry) = unavailable_windows_power_observation(Some("fixture timeout".into()));
+        assert_eq!(standby.s0_low_power_idle_state, "Unknown");
+        assert!(caps.is_empty(), "unobserved power capabilities must not be fabricated");
+        assert!(!telemetry.share_tb_service_running);
+        assert_eq!(telemetry.tb_service_status, "Unknown");
+        assert_eq!(telemetry.shared_access_service_status, "Unknown");
+        assert!(telemetry.default_routes_preserved);
+        assert_eq!(telemetry.collection_error.as_deref(), Some("fixture timeout"));
+    }
 
     struct MockRunner {
         pub calls: Mutex<Vec<(String, Vec<String>)>>,

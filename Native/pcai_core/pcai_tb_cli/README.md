@@ -63,6 +63,24 @@ source reviewed. These controls do not qualify physical unplug, reboot or sleep.
 
 ## Deployment limits
 
+The Windows lifecycle power/service provider has a ten-second process deadline
+and a 256 KiB capture limit per output stream. It falls back to Windows PowerShell
+only when `pwsh` cannot be found, rather than retrying a timeout or failed query.
+Service absence is recorded only for the exact missing-service error; provider
+failures yield Unknown service/standby state, no invented power records, and a
+report warning. TBService and ShareTBService are queried separately; neither is a
+license prerequisite for the PC-AI observer. No service is started or stopped.
+
+The [provider controls](src/lifecycle.rs) cover real delayed, inherited-pipe,
+nonzero and oversized child processes, malformed responses, fallback policy and
+Windows PowerShell fixtures for missing services versus denied service/PnP/
+adapter/power queries. [Their review register](../../../Tests/Portable/usb4-provider-bounds-review.json)
+records the exact selectors and source. Windows timeout cleanup terminates the
+direct provider; the shared executor does not provide all-descendant Job Object
+containment. The inherited-pipe control uses an owned, two-second self-expiring
+descendant and qualifies bounded return only. Physical hot-plug and sleep remain
+separate hardware acceptance.
+
 Linux currently reports hard-coded interface metrics; MTU configuration does not set the requested metric. Registration is temporary `ip` configuration, without NetworkManager ownership or reboot persistence. Windows metric changes likewise require review. Do not deploy automatic apply until those contracts, strict CLI argument validation, cancellation/timeouts, identity authentication, route rollback and management-path preservation are implemented and tested.
 
 No throughput, reconnect, DHCP forwarding, bridge-loop protection, or hardware acceptance is established by the unit tests. Discovery hints and SSH/NTLM banners are not authenticated host identity. Benchmark collection is not a link throughput benchmark.

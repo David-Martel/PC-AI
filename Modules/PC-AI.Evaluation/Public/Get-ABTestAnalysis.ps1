@@ -3,6 +3,12 @@ function Get-ABTestAnalysis {
     .SYNOPSIS
         Performs statistical analysis on A/B test results
 
+    .DESCRIPTION
+        Uses a two-sided Welch test for independent finite sample groups.
+        Degenerate variance and unrepresentable summaries return an Error result.
+        Effect size retains the existing equal-weight RMS standard-deviation
+        convention; it is not a sample-count-weighted pooled estimator.
+
     .PARAMETER TestName
         Name of the A/B test
 
@@ -17,6 +23,9 @@ function Get-ABTestAnalysis {
         [double]$Alpha = 0.05
     )
 
+    if (-not [double]::IsFinite($Alpha) -or $Alpha -le 0.0 -or $Alpha -ge 1.0) {
+        throw 'Alpha must be finite and strictly between zero and one.'
+    }
     if (-not $script:ABTests.ContainsKey($TestName)) {
         Write-Error "A/B test not found: $TestName"
         return
@@ -35,32 +44,50 @@ function Get-ABTestAnalysis {
         }
     }
 
-    # Calculate statistics
-    $aMean = ($aScores | Measure-Object -Average).Average
-    $bMean = ($bScores | Measure-Object -Average).Average
-    $aStd = Get-StandardDeviation $aScores
-    $bStd = Get-StandardDeviation $bScores
+    # A common scale avoids overflowing the variance for finite large observations.
+    $scale = 0.0
+    foreach ($score in @($aScores) + @($bScores)) {
+        if (-not [double]::IsFinite($score)) { return @{ Error='All observations must be finite.' } }
+        $scale = [Math]::Max($scale, [Math]::Abs($score))
+    }
+    if ($scale -eq 0.0) { return @{ Error='Welch inference requires nonzero sample variance.' } }
+    $normalizedA = [double[]]@($aScores | ForEach-Object { $_/$scale })
+    $normalizedB = [double[]]@($bScores | ForEach-Object { $_/$scale })
+    $normalizedMeanA = ($normalizedA | Measure-Object -Average).Average
+    $normalizedMeanB = ($normalizedB | Measure-Object -Average).Average
+    $normalizedStdA = Get-StandardDeviation $normalizedA
+    $normalizedStdB = Get-StandardDeviation $normalizedB
+    $varianceA = $normalizedStdA*$normalizedStdA/$aScores.Count
+    $varianceB = $normalizedStdB*$normalizedStdB/$bScores.Count
+    $variance = $varianceA+$varianceB
+    if ($variance -le 0.0) { return @{ Error='Welch inference requires nonzero sample variance.' } }
+    $aMean = $normalizedMeanA*$scale
+    $bMean = $normalizedMeanB*$scale
+    $aStd = $normalizedStdA*$scale
+    $bStd = $normalizedStdB*$scale
 
     # Welch's t-test
-    $tStat = ($bMean - $aMean) / [math]::Sqrt(($aStd * $aStd / $aScores.Count) + ($bStd * $bStd / $bScores.Count))
+    $tStat = ($normalizedMeanB-$normalizedMeanA)/[Math]::Sqrt($variance)
 
     # Degrees of freedom (Welch-Satterthwaite)
-    $num = [math]::Pow(($aStd * $aStd / $aScores.Count) + ($bStd * $bStd / $bScores.Count), 2)
-    $denom = ([math]::Pow($aStd, 4) / ([math]::Pow($aScores.Count, 2) * ($aScores.Count - 1))) +
-             ([math]::Pow($bStd, 4) / ([math]::Pow($bScores.Count, 2) * ($bScores.Count - 1)))
-    $df = $num / $denom
+    $shareA = $varianceA/$variance
+    $shareB = $varianceB/$variance
+    $df = 1.0/($shareA*$shareA/($aScores.Count-1) + $shareB*$shareB/($bScores.Count-1))
 
-    # Approximate p-value using normal distribution for large samples
-    $pValue = 2 * (1 - [math]::Min(1, [math]::Abs($tStat) / 2))
+    $pValue = Get-StudentTProbability -Statistic $tStat -DegreesOfFreedom $df
 
     # Effect size (Cohen's d)
-    $pooledStd = [math]::Sqrt(($aStd * $aStd + $bStd * $bStd) / 2)
-    $cohensD = if ($pooledStd -gt 0) { ($bMean - $aMean) / $pooledStd } else { 0 }
+    $pooledStd = [Math]::Sqrt(($normalizedStdA*$normalizedStdA + $normalizedStdB*$normalizedStdB)/2.0)
+    $cohensD = ($normalizedMeanB-$normalizedMeanA)/$pooledStd
+    $relativeImprovement = if ($aMean -ne 0.0) { ($bMean-$aMean)/$aMean*100.0 } else { 0.0 }
+    if (-not [double]::IsFinite($aStd) -or -not [double]::IsFinite($bStd) -or -not [double]::IsFinite($bMean-$aMean) -or -not [double]::IsFinite($relativeImprovement)) {
+        return @{ Error='Reported summary exceeds the finite numerical domain.' }
+    }
 
     $effectSize = switch ([math]::Abs($cohensD)) {
-        { $_ -lt 0.2 } { "negligible" }
-        { $_ -lt 0.5 } { "small" }
-        { $_ -lt 0.8 } { "medium" }
+        { $_ -lt 0.2 } { "negligible"; break }
+        { $_ -lt 0.5 } { "small"; break }
+        { $_ -lt 0.8 } { "medium"; break }
         default { "large" }
     }
 
@@ -79,7 +106,7 @@ function Get-ABTestAnalysis {
             StdDev = [math]::Round($bStd, 4)
         }
         Difference = [math]::Round($bMean - $aMean, 4)
-        RelativeImprovement = if ($aMean -ne 0) { [math]::Round(($bMean - $aMean) / $aMean * 100, 2) } else { 0 }
+        RelativeImprovement = [math]::Round($relativeImprovement, 2)
         TStatistic = [math]::Round($tStat, 4)
         DegreesOfFreedom = [math]::Round($df, 2)
         PValue = [math]::Round($pValue, 4)

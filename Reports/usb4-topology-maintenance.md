@@ -32,9 +32,14 @@ review caught an alias-coverage gap and masked uniqueness checks; the corrected
 selectors detected eleven compiling runtime faults. Three initial uniqueness
 mutants did not compile and receive no detection credit. Six public CLI controls
 cover argument refusal, input bounds, prior-edge withdrawal and FIFO refusal;
-the FIFO control is explicitly unsupported on Windows. Seven PowerShell fixture
+the FIFO control is explicitly unsupported on Windows. Eight PowerShell fixture
 controls cover present-only discovery, unknown roots, errors, neighbor filtering,
-bounds and side-effect-free help/DryRun; seven targeted faults were detected.
+bounds and side-effect-free help/DryRun. The initial seven controls detected seven
+targeted faults. A successor addressless-adapter control reproduces the original
+failure, retains a healthy second adapter and detects both ID-only and
+category-only error guards. Its eight-selector suite passes in native PowerShell
+under WSL; local Windows PowerShell startup stalled before output, so Windows
+qualification remains the exact-head CI job. No adapter was disabled to test it.
 
 Hash-bound review records:
 

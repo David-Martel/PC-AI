@@ -85,8 +85,15 @@ foreach ($adapter in $candidates) {
         $cursor = [string](Get-PnpDeviceProperty -InstanceId $cursor -KeyName DEVPKEY_Device_Parent -ErrorAction Stop).Data
     }
     $index = [int]$adapter.ifIndex
-    $addresses = @(Get-NetIPAddress -InterfaceIndex $index -PolicyStore ActiveStore -ErrorAction Stop |
-        Where-Object { [string]$_.AddressState -eq 'Preferred' } | ForEach-Object { [string]$_.IPAddress })
+    try {
+        $addresses = @(Get-NetIPAddress -InterfaceIndex $index -PolicyStore ActiveStore -ErrorAction Stop |
+            Where-Object { [string]$_.AddressState -eq 'Preferred' } | ForEach-Object { [string]$_.IPAddress })
+    }
+    catch {
+        if ($_.FullyQualifiedErrorId -cne 'CmdletizationQuery_NotFound,Get-NetIPAddress' -or
+            $_.CategoryInfo.Category -ne [Management.Automation.ErrorCategory]::ObjectNotFound) { throw }
+        $addresses = @()
+    }
     try { $neighbors = @(Get-NetNeighbor -InterfaceIndex $index -ErrorAction Stop) }
     catch {
         if ($_.FullyQualifiedErrorId -cne 'CmdletizationQuery_NotFound,Get-NetNeighbor' -or

@@ -1,19 +1,19 @@
 {
   "SchemaVersion": 1,
-  "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
+  "ReviewedCommit": null,
   "Disposition": "keep",
   "Reviewer": "root",
   "ReviewerType": "independent agent; did not author collector tests",
   "SourceBindings": [
     {
       "Path": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1",
-      "RawSha256": "841f5965d85dc8fd9b1a4c5790413dd043ae1e4584badcc67d91383f80bfe964",
-      "LfSha256": "841f5965d85dc8fd9b1a4c5790413dd043ae1e4584badcc67d91383f80bfe964"
+      "RawSha256": "919638f05e89f4a0186f905c7568bdb4e8586928f0fbbe90f54857956cead164",
+      "LfSha256": "ad6a90025803ec7d733104efe928926e245931665f219749446bd4956cc7b8ba"
     },
     {
       "Path": "Tests/Portable/Test-Usb4FabricObservation.ps1",
-      "RawSha256": "5dff9778cc6be8337637e4615b0b11f4bf2d15d59182d1a639ef4959e4a69ffa",
-      "LfSha256": "5dff9778cc6be8337637e4615b0b11f4bf2d15d59182d1a639ef4959e4a69ffa"
+      "RawSha256": "7c1b0d3b1d6dfc4871b04f127d6a9336b96bec9eb55c5b9be16f95d6430292cb",
+      "LfSha256": "cf4ed0e1a22cb5db5e170d475dcf043c9a0d3eb5fbd584e052c3460be868141f"
     }
   ],
   "Rows": [
@@ -24,7 +24,7 @@
       "Needs": "Actual entrypoint with Collect guard and child-scope API spies",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
+      "ReviewedCommit": null,
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
       "ReviewedUtc": "2026-11-05T11:53:33.990904+00:00",
@@ -47,7 +47,7 @@
       "Needs": "Exact provider AST and host API fixtures",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
+      "ReviewedCommit": null,
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
       "ReviewedUtc": "2026-11-05T11:53:33.990913+00:00",
@@ -70,7 +70,7 @@
       "Needs": "Root-not-present/no-root fixtures",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
+      "ReviewedCommit": null,
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
       "ReviewedUtc": "2026-11-05T11:53:33.990917+00:00",
@@ -93,7 +93,7 @@
       "Needs": "Specific mocked exceptions and genuine empty adapter response",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
+      "ReviewedCommit": null,
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
       "ReviewedUtc": "2026-11-05T11:53:33.990920+00:00",
@@ -116,7 +116,7 @@
       "Needs": "Real ErrorRecord category/FQID fixtures",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
+      "ReviewedCommit": null,
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
       "ReviewedUtc": "2026-11-05T11:53:33.990923+00:00",
@@ -139,7 +139,7 @@
       "Needs": "Accepted and rejected neighbor rows",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
+      "ReviewedCommit": null,
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
       "ReviewedUtc": "2026-11-05T11:53:33.990927+00:00",
@@ -162,7 +162,7 @@
       "Needs": "Bounded fixture arrays and ancestry maps",
       "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
       "Disposition": "keep",
-      "ReviewedCommit": "11388e1eec973a69f6925df3e5a9b7105560ca5d",
+      "ReviewedCommit": null,
       "Reviewer": "root",
       "ReviewerType": "independent agent; did not author collector tests",
       "ReviewedUtc": "2026-11-05T11:53:33.990930+00:00",
@@ -177,15 +177,44 @@
       "SelectorLfSha256": "c0da4fc2dbab676f09ed5daa943d7775e82c94b87b4cb311078526c70fc2b870",
       "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained.",
       "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00"
+    },
+    {
+      "Selector": "Test-AddressNotFoundBoundaryPreservesHealthyAdapter",
+      "Protects": "Addressless present interface preserves healthy host inventory and original identity/down evidence",
+      "Detects": "Unhandled exact empty-address result and ID-only/category-only suppression of real provider errors",
+      "Needs": "Distinct present interface fixtures, real PowerShell ErrorRecord FQID/category construction and exact provider AST",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1::Get-Usb4FabricHost",
+      "Disposition": "keep",
+      "Reviewer": "codex-terminal-audit",
+      "ReviewerType": "Independent review; did not author this successor collector change or selector",
+      "ReviewedUtc": "2026-11-05T12:21:26.566315+00:00",
+      "ReviewedCommit": null,
+      "MutationEvidence": {
+        "id_only_mutant": "DETECTED exit1 Expected specific refusal; wrong-category exact ID cannot be swallowed",
+        "category_only_mutant": "DETECTED exit1 Expected specific refusal; similar/unrelated ID cannot be swallowed",
+        "genuine_empty_list": "Retained",
+        "provider_errors": "WrongCategory, Denied, SimilarId, Other and pre-existing arbitrary addressError remain fatal"
+      },
+      "SelectorLfSha256": "fe75a1d57cb7b00000dd88e3a1372b2e1cdaa7d73df005eae6d259cdb72239d7",
+      "SelectorHashNormalization": "UTF-8 LF exact function declaration through closing brace, no final newline; whole-file binding also retained."
     }
   ],
-  "Validation": "Native PowerShell 7.6.7 actual script controls:7 passed; exact provider AST imported without rewriting; host APIs mocked, preflight script actual. Actual local/Carbon collection receipts separate.",
+  "Validation": "Successor: 8 native PowerShell fixture selectors pass under WSL; original collector fails the new selector; ID-only and category-only mutants detected. Local Windows PowerShell startup stalled, so no local Windows successor pass claimed; exact-head CI required. Original 7-selector Windows qualification and live Gen9/Carbon captures refer to the earlier source cohort.",
   "Limits": [
     "Provider controls do not qualify actual hardware hotplug, service route canaries, mutation, native wrapper process bounds, or file-sharing.",
     "Source/test hashes must be revalidated after any subsequent edit; independent selector review covers these frozen bytes only."
   ],
-  "ReviewedUtc": "2026-11-05T11:53:33.990932+00:00",
-  "CommitBinding": "Frozen implementation and test selector hashes bind to 11388e1eec973a69f6925df3e5a9b7105560ca5d; this review-only successor does not change implementation.",
+  "ReviewedUtc": "2026-11-05T12:21:26.566315+00:00",
+  "CommitBinding": "Successor frozen source/test hashes independently reviewed; bind actual signed successor implementation commit.",
   "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00",
-  "CommitBoundUtc": "2026-11-05T11:53:33.990939+00:00"
+  "CommitBoundUtc": "2026-11-05T11:53:33.990939+00:00",
+  "AddresslessSuccessor": {
+    "SourceSha256": "919638f05e89f4a0186f905c7568bdb4e8586928f0fbbe90f54857956cead164",
+    "TestSha256": "7c1b0d3b1d6dfc4871b04f127d6a9336b96bec9eb55c5b9be16f95d6430292cb",
+    "ReviewedCommit": null,
+    "Reviewer": "codex-terminal-audit",
+    "ReviewedUtc": "2026-11-05T12:21:26.566315+00:00",
+    "Disposition": "keep",
+    "Review": "Exact case-sensitive Get-NetIPAddress FQID plus ObjectNotFound required; wrong category, similar ID, denied and unrelated errors remain fatal. Two unique present adapters demonstrate healthy continuity; genuine empty response remains valid. No production network mutation."
+  }
 }

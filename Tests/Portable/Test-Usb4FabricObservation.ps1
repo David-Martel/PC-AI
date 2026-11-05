@@ -23,6 +23,7 @@ if ($provider.Count -ne 1) { throw 'Expected exactly one real USB4 provider func
 function Reset-Fixture {
     $script:fixture = @{
         calls = 0; writes = 0; starts = 0; pnpError = ''; adapterError = ''; addressError = ''; neighborError = ''
+        addressOutcomes = @{}
         adapters = @([pscustomobject]@{
             PnPDeviceID = 'USB4\VEN_045E&PROT_USB4NET\edge-a'; Name = 'Ethernet 14'; ifIndex = 77
             InterfaceGuid = '19a70777-e51c-4b8f-97e7-1dbf1d9f3bd4'; MacAddress = '88-b9-b3-c9-54-dc'
@@ -51,12 +52,29 @@ function Get-PnpDeviceProperty { [CmdletBinding()]param($InstanceId, $KeyName)
 }
 function Get-NetIPAddress { [CmdletBinding()]param($InterfaceIndex, $PolicyStore)
     $script:fixture.calls++; if ($script:fixture.addressError) { throw $script:fixture.addressError }
-    if ($InterfaceIndex -ne 77 -or $PolicyStore -cne 'ActiveStore') { throw 'Address query lost actual interface scope.' }
+    if ($InterfaceIndex -notin @($script:fixture.adapters.ifIndex) -or $PolicyStore -cne 'ActiveStore') {
+        throw 'Address query lost actual interface scope.'
+    }
+    if ($script:fixture.addressOutcomes.ContainsKey($InterfaceIndex)) {
+        $outcome = $script:fixture.addressOutcomes[$InterfaceIndex]
+        $category = if ($outcome -in @('Denied', 'WrongCategory')) {
+            [Management.Automation.ErrorCategory]::PermissionDenied
+        } else { [Management.Automation.ErrorCategory]::ObjectNotFound }
+        $id = switch ($outcome) {
+            'Empty' { 'CmdletizationQuery_NotFound' }
+            'WrongCategory' { 'CmdletizationQuery_NotFound' }
+            'SimilarId' { 'CmdletizationQuery_NotFoundOther' }
+            'Denied' { 'CimAccessDenied' }
+            default { 'CimProviderMissing' }
+        }
+        $PSCmdlet.ThrowTerminatingError([Management.Automation.ErrorRecord]::new(
+            [InvalidOperationException]::new('Fixture address outcome'), $id, $category, $InterfaceIndex))
+    }
     $script:fixture.addresses
 }
 function Get-NetNeighbor { [CmdletBinding()]param($InterfaceIndex)
     $script:fixture.calls++
-    if ($InterfaceIndex -ne 77) { throw 'Neighbor query lost actual interface scope.' }
+    if ($InterfaceIndex -notin @($script:fixture.adapters.ifIndex)) { throw 'Neighbor query lost actual interface scope.' }
     if ($script:fixture.neighborError) {
         $category = if ($script:fixture.neighborError -eq 'Denied') {
             [Management.Automation.ErrorCategory]::PermissionDenied
@@ -150,6 +168,49 @@ function Test-ProviderErrorsRefuseEmptySuccess {
     if ($actual.interfaces.Count -ne 0 -or $script:fixture.calls -ne 1) { throw 'True empty adapter result was not preserved.' }
 }
 
+# Protects: one addressless present adapter cannot abort healthy host observations.
+# Detects: unhandled native empty-address errors or suppressing real provider failures.
+# Needs: distinct present GUID/MAC/PnP/root/index fixtures and real ErrorRecord FQIDs.
+# Breadcrumb: Get-Usb4FabricHost Get-NetIPAddress catch; no live Windows API calls.
+function Test-AddressNotFoundBoundaryPreservesHealthyAdapter {
+    Reset-Fixture
+    $script:fixture.adapters[0].AdminStatus = 2
+    $healthy = $script:fixture.adapters[0].PSObject.Copy()
+    $healthy.PnPDeviceID = 'USB4\VEN_045E&PROT_USB4NET\edge-b'
+    $healthy.Name = 'Healthy USB4'; $healthy.ifIndex = 78; $healthy.AdminStatus = 1
+    $healthy.InterfaceGuid = '19a70778-e51c-4b8f-97e7-1dbf1d9f3bd4'
+    $healthy.MacAddress = '88-b9-b3-c9-54-dd'
+    $script:fixture.adapters += @($healthy)
+    $script:fixture.present += @($healthy.PnPDeviceID, 'USB4\ROOT_DEVICE_ROUTER\root-b')
+    $script:fixture.parent[$healthy.PnPDeviceID] = 'USB4\ROOT_DEVICE_ROUTER\root-b'
+    $script:fixture.addressOutcomes[77] = 'Empty'
+    $actual = Get-Usb4FabricHost
+    if ($actual.interfaces.Count -ne 2) { throw 'Addressless adapter aborted or discarded present inventory.' }
+    $empty = $actual.interfaces[0]; $retained = $actual.interfaces[1]
+    if ($empty.interface_index -ne 77 -or $empty.up -or $empty.addresses.Count -ne 0 -or
+        $empty.interface_guid -cne '19a70777-e51c-4b8f-97e7-1dbf1d9f3bd4' -or
+        $empty.mac -cne '88-B9-B3-C9-54-DC' -or
+        $empty.root_router_id -cne 'USB4\ROOT_DEVICE_ROUTER\root-a') {
+        throw 'Addressless adapter identity/down evidence was changed.'
+    }
+    if ($retained.interface_index -ne 78 -or -not $retained.up -or $retained.addresses.Count -ne 1 -or
+        $retained.addresses[0] -cne 'fe80::1' -or
+        $retained.interface_guid -cne '19a70778-e51c-4b8f-97e7-1dbf1d9f3bd4' -or
+        $retained.mac -cne '88-B9-B3-C9-54-DD' -or
+        $retained.root_router_id -cne 'USB4\ROOT_DEVICE_ROUTER\root-b') {
+        throw 'Healthy adapter identity/address was lost after an empty address result.'
+    }
+    Reset-Fixture; $script:fixture.addresses = @()
+    $emptyResult = (Get-Usb4FabricHost).interfaces
+    if ($emptyResult.Count -ne 1 -or $emptyResult[0].addresses.Count -ne 0) {
+        throw 'Genuine empty address result was not retained.'
+    }
+    foreach ($outcome in @('WrongCategory', 'Denied', 'SimilarId', 'Other')) {
+        Reset-Fixture; $script:fixture.addressOutcomes[77] = $outcome
+        Assert-Refused { Get-Usb4FabricHost } '*Fixture address outcome*'
+    }
+}
+
 # Protects: only the exact native empty-neighbor outcome is converted to an empty table.
 # Detects: similar ID, access-denied or unrelated ObjectNotFound error suppression.
 # Needs: real ErrorRecord categories/FQIDs from mocked Get-NetNeighbor. Breadcrumb: catch.
@@ -205,7 +266,8 @@ function Test-ProviderCardinalityAndAncestryBounds {
 }
 
 $selectors = @('Test-DryRunAndHelpAvoidProviders', 'Test-PresentIdentityExcludesPhantomsAndAliasDecoys',
-    'Test-UnknownRootRetainsUnqualifiedInterface', 'Test-ProviderErrorsRefuseEmptySuccess', 'Test-NeighborNotFoundBoundary',
+    'Test-UnknownRootRetainsUnqualifiedInterface', 'Test-ProviderErrorsRefuseEmptySuccess',
+    'Test-AddressNotFoundBoundaryPreservesHealthyAdapter', 'Test-NeighborNotFoundBoundary',
     'Test-NeighborsFilterUnusableEntries', 'Test-ProviderCardinalityAndAncestryBounds')
 if (@($Selector | Where-Object { $_ -cnotin $selectors }).Count) { throw 'Unknown USB4 observation test selector.' }
 $passed = 0

@@ -11,13 +11,19 @@ See [the topology maintenance review](Reports/usb4-topology-maintenance.md) and
       projection with expiry, reciprocal neighbor checks and stable edge identity.
 - [x] Exercise actual two-host observations; retain an unverified Carbon edge and
       reject an unknown peer. Record overlapping APIPA interfaces as ambiguity.
-- [ ] Obtain exact-head CI and independent merge-autopilot admission; deployed
-      networking helpers and installed native binaries remain separately qualified.
+- [x] Obtain exact-head CI and independent merge-autopilot admission for the
+      observation and bounded-provider changes (PR287/286); combined accepted main
+      passes native/Linux package and strict clippy checks, with native nextest.
+      Installed networking helpers and native binaries remain separately qualified.
 - [ ] Qualify physical unplug/replug, adapter replacement, sleep/resume and reboot
       using fresh paired observations. Expired observations cannot authorize reuse.
-- [ ] Implement Windows-to-Windows enrolled application only after authenticated
-      peer enrollment, address ownership, conflict rollback and service access are
-      qualified. Do not infer authentication from neighbor-cache reciprocity.
+- [x] Exercise the accepted standalone peer/controller installer fixtures under
+      WSL and wire both suites into cross-platform USB4 CI.
+- [ ] Reconcile the preserved release-bound framework successor and per-edge task
+      isolation before adding Carbon Peer enrollment alongside existing roles.
+      Preserve pending ownership state and compare installed/source manifests;
+      main can be older than a deployed release. Qualify authenticated service
+      access and explicit address ownership before applying a new link.
 - [ ] Qualify Work/QNAP/UniFi forwarding and sharing per enrolled edge. Keep NAS
       transfers on the owner-cleared Work path; do not bridge management networks.
 

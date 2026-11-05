@@ -38,8 +38,9 @@ bounds and side-effect-free help/DryRun. The initial seven controls detected sev
 targeted faults. A successor addressless-adapter control reproduces the original
 failure, retains a healthy second adapter and detects both ID-only and
 category-only error guards. Its eight-selector suite passes in native PowerShell
-under WSL; local Windows PowerShell startup stalled before output, so Windows
-qualification remains the exact-head CI job. No adapter was disabled to test it.
+under WSL and in the exact-head hosted Windows job; local Windows PowerShell
+startup stalled before output. No adapter was disabled to test the native empty
+query error ID, so real provider error-shape qualification remains separate.
 
 Hash-bound review records:
 
@@ -50,9 +51,10 @@ The [cross-platform CI entrypoint](../.github/workflows/usb4-lifecycle.yml) runs
 the actual Rust package, collector fixtures and explicit CLI contracts.
 
 The separate [bounded-provider fix, PR286](https://github.com/David-Martel/PC-AI/pull/286)
-qualifies optional Windows telemetry failures. Its exact implementation passed
-88 library and 13 CLI integration tests on Windows, and 92 plus 11 on Linux,
-with strict clippy on both. Those counts exclude this topology feature.
+qualifies optional Windows telemetry failures and requires observed ancestry
+before required topology admission or configuration reapply. Its
+[review record](../Tests/Portable/usb4-provider-bounds-review.json) distinguishes
+the implementation cohorts and their exact test counts.
 
 ## Deployment boundaries
 
@@ -62,8 +64,11 @@ is post-capture, not a streaming memory cap. No performance improvement or actua
 hot-plug, sleep, reboot or throughput acceptance is claimed. A withdrawal list is
 plan data, not an operating-system deletion command.
 
-Windows-to-Windows automatic enrolled networking remains follow-up work. Existing
-Linux enrolled backends do not establish Windows parity. Work, QNAP and UniFi
-must remain separate authenticated management/storage edges until each route and
-service is qualified. The QNAP owner cleared hash-checked transfers through Work;
-this change neither performs NAS transfers nor changes gateway or cloud settings.
+Accepted main also contains the [standalone Windows peer framework](../docs/usb4/peer-networking.md).
+Remaining deployment work includes source/release provenance, per-edge task
+isolation and qualified explicit enrollment. An installed release can be ahead
+of main; compare manifests and preserve pending ownership journals before any
+promotion. Work, QNAP and UniFi remain separate authenticated management/storage
+edges until each route and service is qualified. The QNAP owner cleared
+hash-checked transfers through Work; this change performs no NAS transfers or
+gateway/cloud configuration.

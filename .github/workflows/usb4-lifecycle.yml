@@ -16,12 +16,18 @@ on:
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltEnrolledPeer.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltStartup.ps1'
       - 'Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1'
+      - 'Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1'
+      - 'Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1'
+      - 'Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1'
+      - 'Config/usb4-peer-network.example.json'
       - 'Tools/SystemScripts/Networking/Export-ThunderboltEnrolledObserver.sh'
       - 'Tests/Portable/Test-ThunderboltBootReadiness.ps1'
       - 'Tests/Portable/Test-ThunderboltMountGate.ps1'
       - 'Tests/Portable/Test-ThunderboltEnrolledPeer.ps1'
       - 'Tests/Portable/Test-ThunderboltStartup.ps1'
       - 'Tests/Portable/Test-Usb4FabricObservation.ps1'
+      - 'Tests/Portable/Test-Usb4PeerNetwork.ps1'
+      - 'Tests/Portable/Test-Usb4PeerNetworkInstall.ps1'
       - 'Tests/Portable/test_usb4_fabric_cli.py'
       - '.github/actions/setup-job-rust/action.yml'
       - '.github/workflows/usb4-lifecycle.yml'
@@ -65,6 +71,15 @@ jobs:
           ./Tests/Portable/Test-ThunderboltEnrolledPeer.ps1
           ./Tests/Portable/Test-ThunderboltStartup.ps1
           ./Tests/Portable/Test-Usb4FabricObservation.ps1
+      # Protects enrolled peer policy, ownership, rollback and task installation.
+      # Uses fixture operations and owned temporary files; never installs a task
+      # or configures live networking. Windows-only controls identify unsupported
+      # platforms explicitly. Source: Networking/*Usb4PeerNetwork.ps1.
+      - name: Standalone peer controller and installer contracts
+        shell: pwsh
+        run: |
+          ./Tests/Portable/Test-Usb4PeerNetwork.ps1
+          ./Tests/Portable/Test-Usb4PeerNetworkInstall.ps1
       # Protects route/identity/custody decisions on both native backends.
       # Detects stale-edge deletion, foreign ownership mutation and CLI evidence leaks.
       # Needs standard Rust/MSVC host tools; no attached devices or privileged Apply.

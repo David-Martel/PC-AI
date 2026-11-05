@@ -77,10 +77,13 @@ never bridge a USB4 path to Work, QNAP or UniFi solely from physical adjacency.
    until listener, firewall and source-policy evidence resolves it.
 3. Use the existing [enrolled policy](enrolled-observer.md) and
    [Windows ownership/recovery contract](windows-boot.md) for reviewed addresses,
-   freshness, custody and revocation. The current Windows reconciliation helper
-   consumes a Linux enrolled observer; Windows-to-Windows enrollment parity is
-   still required before automatic address adoption. Do not label a topology plan
-   as that implementation.
+   freshness, custody and revocation. The enrolled observer helper consumes Linux
+   evidence; the [standalone Windows peer framework](peer-networking.md) supports
+   explicit Peer, Provider and Consumer policies. Before adding a Carbon Peer
+   link, reconcile release provenance, pending ownership state and per-edge task
+   isolation. The current installer uses a singleton task; a different install
+   directory alone cannot isolate another link. Preserve existing Consumer
+   custody and compare installed manifests before promoting source from main.
 4. Admit a disjoint per-edge IPAM allocation, authenticated bilateral identity,
    direct/return route, service permissions and explicit owner before applying
    configuration. Keep default routes, DNS and foreign interface/share state.

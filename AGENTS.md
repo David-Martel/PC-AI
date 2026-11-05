@@ -180,6 +180,17 @@ Operational rules:
 - `Reports/`: evidence snapshots and generated diagnostics; preserve dated
   artifacts that explain workstation or benchmark decisions
 
+### Offline USB4 peer-client planning
+
+`Native/pcai_core/pcai_tb_cli` also builds `pcai-usb4-client`, a declaration-only
+IPv4/IPv6 SSH/SFTP argument planner. `plan --policy` reads one explicitly named
+bounded local policy; no interface, route, credential or peer inspection occurs,
+and no process is launched. `OfflinePlan` is not execution permission or runtime
+readiness. Use the [native client guide](docs/usb4/native-peer-client.md) and
+`cargo test --locked -p pcai-tb --test client_plan_contract` from
+`Native/pcai_core`. The installed legacy controller, recovery journal and working
+vendor session remain separate; do not deploy or reset them to try a plan.
+
 ## Prompt and routing contracts
 
 - Diagnose mode uses `DIAGNOSE.md` + `DIAGNOSE_LOGIC.md`

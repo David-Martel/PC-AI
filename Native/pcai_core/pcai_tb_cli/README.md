@@ -81,6 +81,20 @@ containment. The inherited-pipe control uses an owned, two-second self-expiring
 descendant and qualifies bounded return only. Physical hot-plug and sleep remain
 separate hardware acceptance.
 
+Run these process controls under both `cargo test --locked -p pcai-tb` and
+`cargo nextest run --locked -p pcai-tb` when changing their harness.
+[Nextest runs individual tests in separate processes](https://nexte.st/docs/design/why-process-per-test/);
+`--exact` is an ordinary test-selection argument, not a child-fixture marker.
+Explicit per-child environment markers select the finite fixture bodies. The
+control rejects missing, foreign or mismatched markers before it can skip an
+assertion. The output control's 1024-byte threshold excludes ordinary harness
+text while rejecting the 8192-byte fixture payload; production capture limits
+are unchanged by this test-harness threshold.
+On Windows the inherited-pipe control also allows its known two-second fixture
+descendant three seconds to expire after the inner deadline assertion. That
+bounded cleanup fence prevents fixture leakage into the nextest lifecycle; it
+does not extend the production provider deadline or prove process-tree cleanup.
+
 Linux currently reports hard-coded interface metrics; MTU configuration does not set the requested metric. Registration is temporary `ip` configuration, without NetworkManager ownership or reboot persistence. Windows metric changes likewise require review. Do not deploy automatic apply until those contracts, strict CLI argument validation, cancellation/timeouts, identity authentication, route rollback and management-path preservation are implemented and tested.
 
 No throughput, reconnect, DHCP forwarding, bridge-loop protection, or hardware acceptance is established by the unit tests. Discovery hints and SSH/NTLM banners are not authenticated host identity. Benchmark collection is not a link throughput benchmark.

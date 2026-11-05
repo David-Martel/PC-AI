@@ -2,152 +2,160 @@
   "schema_version": 1,
   "recorded_utc": "2026-11-05T11:08:28.5489033+00:00",
   "base_commit": "ee2ab4cc1f9f5848e68e43260193438092eea4b5",
-  "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
+  "reviewed_commit": null,
   "scope": "Windows optional lifecycle provider only; no network mutation or deployed binary changes",
   "rows": [
     {
       "selector": "windows_power_provider_deadline_bounds_delay_and_inherited_pipe",
       "source_path": "Native/pcai_core/pcai_tb_cli/src/lifecycle.rs",
-      "source_sha256": "d632747c6b93aead4c45b1d37f27b5fc74ee85f257844aeeda2deda9840c333a",
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "hash_normalization": "UTF-8 LF entire lifecycle source",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
-      "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
-      "selector_sha256": "0bcb5b81451d5c209b2611f62027b967facec7bdac2eab562c78fe336d477574",
-      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
+      "reviewed_commit": null,
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
+      "selector_sha256": "90f409c5baece8da4aad9c966303afbe6abf5a19a96cb7557b060c3fd6a5baa1",
+      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
     },
     {
       "selector": "windows_power_provider_output_budget_refuses_oversized_child",
       "source_path": "Native/pcai_core/pcai_tb_cli/src/lifecycle.rs",
-      "source_sha256": "d632747c6b93aead4c45b1d37f27b5fc74ee85f257844aeeda2deda9840c333a",
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "hash_normalization": "UTF-8 LF entire lifecycle source",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
-      "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
-      "selector_sha256": "2c87a11c783676ed83c2a8d09499b72af2961ad3479b74c5c709029b00adcff1",
-      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
+      "reviewed_commit": null,
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
+      "selector_sha256": "8cb79735d445b85bd734eba7317be034ebd9213db9e95a08eca6e07bf750f384",
+      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
     },
     {
       "selector": "windows_power_provider_preserves_actual_nonzero_exit",
       "source_path": "Native/pcai_core/pcai_tb_cli/src/lifecycle.rs",
-      "source_sha256": "d632747c6b93aead4c45b1d37f27b5fc74ee85f257844aeeda2deda9840c333a",
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "hash_normalization": "UTF-8 LF entire lifecycle source",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
-      "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
-      "selector_sha256": "dceb1f28d2ced569e727ed23fdac5c16da782c1ffb8a78b59ccc7cbe26cc2e67",
-      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
+      "reviewed_commit": null,
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
+      "selector_sha256": "5c19a80bbda511a35207a6341104ff9ec28a311902b653ac01d60b208d9458a3",
+      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
     },
     {
       "selector": "windows_power_provider_fallback_is_only_for_missing_executable",
       "source_path": "Native/pcai_core/pcai_tb_cli/src/lifecycle.rs",
-      "source_sha256": "d632747c6b93aead4c45b1d37f27b5fc74ee85f257844aeeda2deda9840c333a",
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "hash_normalization": "UTF-8 LF entire lifecycle source",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
-      "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
+      "reviewed_commit": null,
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "883d0032a2a6a6b5ae162984696fa25f18b0a029b1f1b47a847719271dad4e70",
-      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
+      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
     },
     {
       "selector": "windows_power_provider_rejects_failed_empty_and_malformed_outcomes",
       "source_path": "Native/pcai_core/pcai_tb_cli/src/lifecycle.rs",
-      "source_sha256": "d632747c6b93aead4c45b1d37f27b5fc74ee85f257844aeeda2deda9840c333a",
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "hash_normalization": "UTF-8 LF entire lifecycle source",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
-      "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
+      "reviewed_commit": null,
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "5040139a0fc26ced8db33e8a08bc85ecea2a60a33be0d6211c5a59966bb2b614",
-      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
+      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
     },
     {
       "selector": "windows_power_provider_rejects_wrong_envelope_field_types",
       "source_path": "Native/pcai_core/pcai_tb_cli/src/lifecycle.rs",
-      "source_sha256": "d632747c6b93aead4c45b1d37f27b5fc74ee85f257844aeeda2deda9840c333a",
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "hash_normalization": "UTF-8 LF entire lifecycle source",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
-      "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
+      "reviewed_commit": null,
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "ff038dccf19e4d1e205c68d405c8b2dc692e161b5b5e01876866ce63e4e57f84",
-      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
+      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
     },
     {
       "selector": "windows_power_provider_script_distinguishes_absence_access_failure_and_services",
       "source_path": "Native/pcai_core/pcai_tb_cli/src/lifecycle.rs",
-      "source_sha256": "d632747c6b93aead4c45b1d37f27b5fc74ee85f257844aeeda2deda9840c333a",
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "hash_normalization": "UTF-8 LF entire lifecycle source",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
-      "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
+      "reviewed_commit": null,
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "ae72f5c4d7da2d67b29a2f610b03892fc0d873aa1d5f4b61191a677d6bf5cf88",
-      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
+      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
     },
     {
       "selector": "windows_power_provider_failure_never_claims_running_or_not_installed",
       "source_path": "Native/pcai_core/pcai_tb_cli/src/lifecycle.rs",
-      "source_sha256": "d632747c6b93aead4c45b1d37f27b5fc74ee85f257844aeeda2deda9840c333a",
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
       "hash_normalization": "UTF-8 LF entire lifecycle source",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "reviewer_type": "independent agent; did not author lifecycle source or tests",
       "disposition": "keep",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
-      "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
+      "reviewed_commit": null,
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
       "selector_sha256": "84eab2a7d2044d38fc34826d174398ba0d77704059d6879123391aa093889035",
-      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls."
+      "review_scope": "Source and actual native/Linux results reviewed. Original unbounded-provider baseline detects delay/output faults; actual exit, schema, capability fallback and Windows provider-negative controls retained. No runtime/HIL claim beyond these controls. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors. Successor review verifies production provider unchanged and explicit per-child marker harness; no new test selectors."
     }
   ],
   "process_fixtures": [
     {
       "selector": "windows_power_provider_delayed_child",
-      "selector_sha256": "95176ce5604e90137cab8a9af0956b7a9a6271086db5ac626a1d70f76d40d5cb",
+      "selector_sha256": "0f12c350c728ac559839a1e6151436d7b20b0ff5e4d4614cdab95bcccc945857",
       "disposition": "keep",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d"
+      "reviewed_commit": null,
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00"
     },
     {
       "selector": "windows_power_provider_inherited_pipe_child",
-      "selector_sha256": "134aaecb18813f3fe88830070c3159497e02a0a4660ac5ffa2d6560f73b904d7",
+      "selector_sha256": "cbd17a3c231327b2212ac34082ddb2c0852007eef4f76e4a69c4879d166864ad",
       "disposition": "keep",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d"
+      "reviewed_commit": null,
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00"
     },
     {
       "selector": "windows_power_provider_output_child",
-      "selector_sha256": "5c7b433f7e4a105fc2a77602af4c1e44aee38735cddef1adfe3cebffe4ecdcb3",
+      "selector_sha256": "29dcf961816901451703b47e011a4f49f8aaa1780bcbe84126d6acabbc93b75e",
       "disposition": "keep",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d"
+      "reviewed_commit": null,
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00"
     },
     {
       "selector": "windows_power_provider_nonzero_child",
-      "selector_sha256": "420b3611e1688f5ac67dc90222a31a3edf6a86bf9591adf6b085693a655cb320",
+      "selector_sha256": "4d3bc654f566376152ce862f880535a57e352f39775a3e62c1f87c0a15cafa14",
       "disposition": "keep",
-      "reviewer": "root",
+      "reviewer": "codex-terminal-audit",
       "scope": "Supporting finite child fixture for named behavioral controls, not separate acceptance credit",
-      "reviewed_commit": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d"
+      "reviewed_commit": null,
+      "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
+      "reviewed_utc": "2026-11-05T12:09:29.309205+00:00"
     }
   ],
   "validation": {
-    "baseline": "Original unbounded output() at the same provider boundary: 6 passed, 2 failed; real deadline and output limit controls detect failures. Full local baseline.log retained.",
-    "windows": "Exact provider-only implementation: 88 library and 13 registry CLI integration tests passed; zero failed or ignored; strict all-target clippy passed.",
-    "linux": "Exact provider-only implementation: 92 library and 11 registry CLI integration tests passed; zero failed or ignored; strict all-target clippy passed. Earlier corrected Unix group-cleanup oracle remains documented."
+    "baseline": "Original unbounded output() at the same provider boundary: 6 passed, 2 failed. Historical harness used a 128-byte output threshold. Successor raises it to 1024; ordinary harness text is 179\u2013187 bytes and marked output is 8372 bytes. Six missing/wrong-marker controls fail explicitly.",
+    "windows": "Frozen successor: 88 library + 13 CLI integration tests passed; strict all-target clippy passed; actual nextest 101 passed, zero failed/skipped/leaky.",
+    "linux": "Frozen successor: 92 library + 11 CLI integration tests passed; strict all-target clippy passed. Local nextest absent at known path and PATH; no installation. Actual Linux nextest qualification remains the exact-head CI job."
   },
   "limits": [
     "Shared Windows executor terminates direct provider only; all-descendant Job Object containment is not qualified.",
@@ -156,10 +164,26 @@
     "No Thunderbolt Share service start/stop, license check, address, route, MTU, firewall or task mutation was performed."
   ],
   "documentation": "Native/pcai_core/pcai_tb_cli/README.md",
-  "reviewer": "root",
+  "reviewer": "codex-terminal-audit",
   "reviewer_type": "independent agent; did not author lifecycle source or tests",
-  "reviewed_utc": "2026-11-05T11:22:57.337799+00:00",
+  "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
   "disposition": "keep",
   "hash_convention": "UTF-8 LF source; selector starts at fn token and ends at closing brace, without final newline.",
-  "commit_binding": "Implementation and selector hashes bind to the named implementation commit; this review-only successor records exact clean-head qualification."
+  "commit_binding": "Bind signed successor implementation commit after final Cargo/nextest qualification.",
+  "test_harness_successor": {
+    "previous_implementation": "a0342e0c4d0bec125ee04978ad56942cc6c8f00d",
+    "source_sha256": "76c8fb8bc9af184aca599005daeaa4dff4a020f06b9ea076ae05465c2adf741a",
+    "introduced_failure": "Ordinary nextest --exact selection activated child fixtures; actual baseline nextest failure retained. Cargo-only green did not qualify nextest.",
+    "repair": "Test-only owned control child sets explicit Command.env markers. Child entry validates selector-specific fixture allowlist before any skip. No global environment mutation. Outer child has a 15-second direct kill/wait guard, followed only for the successful Windows inherited fixture by a separate three-second finite-fixture expiry fence. The inner deadline assertion finishes first. This is not Job Object containment.",
+    "output_oracle": "1024-byte test threshold excludes measured ordinary harness output (179\u2013187 bytes) while rejecting the marked 8192-byte payload; production 256 KiB limit unchanged.",
+    "runtime_controls": "11 actual controls: four ordinary exact fixture invocations pass without payload, one marked output emits 8372 captured bytes, six missing/wrong child markers fail with exit101 and the intended assertion.",
+    "reviewer": "codex-terminal-audit",
+    "reviewer_type": "independent source review; did not author lifecycle code or tests",
+    "reviewed_commit": null,
+    "reviewed_utc": "2026-11-05T12:09:29.309205+00:00",
+    "production_prefix_unchanged": true,
+    "failure_history": "Original nextest fixture panic and both one-leaky attempts retained. Null-output isolation did not resolve the leak and was reverted. Final three-second Windows finite-fixture expiry fence yields actual nextest zero leaks without extending the provider deadline or claiming process-tree containment.",
+    "second_reviewer": "codex-terminal-fleet-review",
+    "second_review_scope": "Independent read-only selector allowlist, assertion skipping and finite-fixture cleanup/documentation review; no source edits or duplicate runtime qualification."
+  }
 }

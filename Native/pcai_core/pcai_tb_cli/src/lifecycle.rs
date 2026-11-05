@@ -1879,6 +1879,81 @@ mod tests {
     use chrono::TimeZone;
     use std::sync::Mutex;
 
+    const PROVIDER_CONTROL_ENV: &str = "PCAI_USB4_TEST_PROVIDER_CONTROL";
+    const PROVIDER_FIXTURE_ENV: &str = "PCAI_USB4_TEST_PROVIDER_FIXTURE";
+
+    fn provider_fixture_selected(fixture: &str) -> bool {
+        std::env::var(PROVIDER_FIXTURE_ENV).as_deref() == Ok(fixture)
+    }
+
+    // Run the behavioral selector in an owned child with an exact fixture marker.
+    // This preserves the production executor's normal inherited environment while
+    // avoiding global environment mutation in parallel cargo/nextest processes.
+    fn enter_provider_fixture_control(selector: &str, fixture: &str) -> bool {
+        match std::env::var(PROVIDER_CONTROL_ENV) {
+            Ok(control) => {
+                assert_eq!(control, selector, "Unexpected provider control recursion");
+                let selected = std::env::var(PROVIDER_FIXTURE_ENV).expect("Provider control requires a fixture marker");
+                let allowed: &[&str] = match selector {
+                    "lifecycle::tests::windows_power_provider_deadline_bounds_delay_and_inherited_pipe" => &[
+                        "windows_power_provider_delayed_child",
+                        "windows_power_provider_inherited_pipe_child",
+                    ],
+                    "lifecycle::tests::windows_power_provider_output_budget_refuses_oversized_child" => {
+                        &["windows_power_provider_output_child"]
+                    }
+                    "lifecycle::tests::windows_power_provider_preserves_actual_nonzero_exit" => {
+                        &["windows_power_provider_nonzero_child"]
+                    }
+                    _ => panic!("Unknown provider control selector: {selector}"),
+                };
+                assert!(
+                    allowed.contains(&selected.as_str()),
+                    "Provider control fixture marker is not admitted for this selector"
+                );
+                return selected == fixture;
+            }
+            Err(std::env::VarError::NotPresent) => {}
+            Err(error) => panic!("Invalid provider control marker: {error}"),
+        }
+        let mut child = crate::platform::hidden_command(std::env::current_exe().unwrap())
+            .args(["--exact", selector, "--nocapture"])
+            .env(PROVIDER_CONTROL_ENV, selector)
+            .env(PROVIDER_FIXTURE_ENV, fixture)
+            .stdin(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        // Inherit diagnostic output without blocking on a pipe drain. The inner
+        // provider owns real pipes through the shared bounded executor.
+        let deadline = Instant::now() + std::time::Duration::from_secs(15);
+        loop {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    assert!(
+                        status.success(),
+                        "Provider fixture control failed: {selector}/{fixture}: {status}"
+                    );
+                    if cfg!(target_os = "windows") && fixture == "windows_power_provider_inherited_pipe_child" {
+                        // The response deadline was already asserted in the control.
+                        // Give its finite 2s descendant a separate 3s fixture-expiry
+                        // budget before nextest checks for leaks. This is not proof
+                        // of production process-tree containment.
+                        std::thread::sleep(std::time::Duration::from_secs(3));
+                    }
+                    return false;
+                }
+                Ok(None) if Instant::now() < deadline => {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                outcome => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    panic!("Provider fixture control did not complete within 15s: {selector}/{fixture}: {outcome:?}");
+                }
+            }
+        }
+    }
+
     // Protects bounded optional observation; detects the original blocking output() call.
     // Needs only this test executable; breadcrumb: windows_power_provider_command.
     #[test]
@@ -1888,6 +1963,12 @@ mod tests {
             "windows_power_provider_delayed_child",
             "windows_power_provider_inherited_pipe_child",
         ] {
+            if !enter_provider_fixture_control(
+                "lifecycle::tests::windows_power_provider_deadline_bounds_delay_and_inherited_pipe",
+                fixture,
+            ) {
+                continue;
+            }
             let selected = format!("lifecycle::tests::{fixture}");
             let started = Instant::now();
             let result = windows_power_provider_command(&executable, &["--exact", &selected, "--nocapture"], 100, 4096);
@@ -1908,10 +1989,10 @@ mod tests {
     }
 
     // Process fixture for the deadline selector above; direct suite execution does not delay.
-    // Protects realistic child timing; needs --exact child invocation, no hardware or network.
+    // Protects realistic child timing; needs an explicit per-Command fixture marker.
     #[test]
     fn windows_power_provider_delayed_child() {
-        if std::env::args().any(|arg| arg == "--exact") {
+        if provider_fixture_selected("windows_power_provider_delayed_child") {
             std::thread::sleep(std::time::Duration::from_secs(2));
         }
     }
@@ -1924,13 +2005,14 @@ mod tests {
     )]
     #[test]
     fn windows_power_provider_inherited_pipe_child() {
-        if std::env::args().any(|arg| arg == "--exact") {
+        if provider_fixture_selected("windows_power_provider_inherited_pipe_child") {
             let _child = crate::platform::hidden_command(std::env::current_exe().unwrap())
                 .args([
                     "--exact",
                     "lifecycle::tests::windows_power_provider_delayed_child",
                     "--nocapture",
                 ])
+                .env(PROVIDER_FIXTURE_ENV, "windows_power_provider_delayed_child")
                 .spawn()
                 .unwrap();
         }
@@ -1940,6 +2022,12 @@ mod tests {
     // Needs only this test executable; breadcrumb: windows_power_provider_command.
     #[test]
     fn windows_power_provider_output_budget_refuses_oversized_child() {
+        if !enter_provider_fixture_control(
+            "lifecycle::tests::windows_power_provider_output_budget_refuses_oversized_child",
+            "windows_power_provider_output_child",
+        ) {
+            return;
+        }
         let executable = std::env::current_exe().unwrap();
         let result = windows_power_provider_command(
             &executable,
@@ -1949,7 +2037,7 @@ mod tests {
                 "--nocapture",
             ],
             2000,
-            128,
+            1024,
         );
         assert!(result.unwrap_err().to_string().contains("budget"));
     }
@@ -1958,7 +2046,7 @@ mod tests {
     // Protects the capture control above; needs no shell, network or live provider.
     #[test]
     fn windows_power_provider_output_child() {
-        if std::env::args().any(|arg| arg == "--exact") {
+        if provider_fixture_selected("windows_power_provider_output_child") {
             println!("{}", "x".repeat(8192));
         }
     }
@@ -1968,6 +2056,12 @@ mod tests {
     // Needs this test executable; breadcrumb: provider command and result parser.
     #[test]
     fn windows_power_provider_preserves_actual_nonzero_exit() {
+        if !enter_provider_fixture_control(
+            "lifecycle::tests::windows_power_provider_preserves_actual_nonzero_exit",
+            "windows_power_provider_nonzero_child",
+        ) {
+            return;
+        }
         let executable = std::env::current_exe().unwrap();
         let outcome = windows_power_provider_command(
             &executable,
@@ -1991,7 +2085,7 @@ mod tests {
     #[test]
     fn windows_power_provider_nonzero_child() {
         assert!(
-            !std::env::args().any(|arg| arg == "--exact"),
+            !provider_fixture_selected("windows_power_provider_nonzero_child"),
             "provider fixture native failure"
         );
     }

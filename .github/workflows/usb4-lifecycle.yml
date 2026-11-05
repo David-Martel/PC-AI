@@ -10,6 +10,7 @@ on:
       - 'Deploy/Cargo.lock'
       - 'Deploy/**/Cargo.toml'
       - 'Config/thunderbolt-peers.json'
+      - 'Config/machine-profiles/dtm-super-nuc.json'
       - 'Tools/SystemScripts/Networking/Configure-ThunderboltSwitchRoutes.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltRcloneMount.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltEnrolledPeer.ps1'
@@ -19,6 +20,7 @@ on:
       - 'Tests/Portable/Test-ThunderboltMountGate.ps1'
       - 'Tests/Portable/Test-ThunderboltEnrolledPeer.ps1'
       - 'Tests/Portable/Test-ThunderboltStartup.ps1'
+      - '.github/actions/setup-job-rust/action.yml'
       - '.github/workflows/usb4-lifecycle.yml'
   workflow_dispatch:
 permissions:
@@ -36,9 +38,12 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
+      - name: Set up job-local self-hosted Rust
+        if: runner.environment == 'self-hosted'
+        uses: ./.github/actions/setup-job-rust
+        with:
+          components: clippy
       - uses: dtolnay/rust-toolchain@stable
-        # Self-hosted runners must supply their own toolchain for this workflow.
-        # Linux CI and portable bootstrap use the separate job-local Rust action.
         if: runner.environment != 'self-hosted'
       # Protects the fixed read-only SSH service command; detects shell syntax
       # errors before deployment. Needs POSIX sh; source is root-owned on Linux.

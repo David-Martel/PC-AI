@@ -587,6 +587,7 @@ pub fn evaluate_link_admission_and_qualification(
         .as_deref()
         .is_some_and(|s| s.eq_ignore_ascii_case("host_port_control_only"))
         || observed_class == TopologyPathClass::HostPortControl
+        || power_opt.is_some_and(|power| power.topology_path_class == TopologyPathClass::HostPortControl)
         || (required_class == TopologyPathClass::RequiredTwoHub
             && power_opt
                 .and_then(|p| p.root_router_id.as_deref())
@@ -616,7 +617,31 @@ pub fn evaluate_link_admission_and_qualification(
         );
     }
 
-    // Verify full PnP parent ancestry against expected Root Router and Dock Router if specified
+    // Optional observation failure cannot waive a requested ancestry requirement.
+    let requires_ancestry = link.expected_local_root_router_id.is_some()
+        || link.expected_local_dock_router_id.is_some()
+        || required_class == TopologyPathClass::RequiredTwoHub;
+    if requires_ancestry {
+        let missing = match power_opt {
+            None => Some("missing_provider_ancestry"),
+            Some(power) if power.pnp_ancestry.len() < 2 => Some("pnp_ancestry_prefix_only_rejected"),
+            Some(power) if power.root_router_id.is_none() => Some("missing_observed_root_router"),
+            Some(power) if power.pci_host_router_id.is_none() => Some("missing_observed_pci_host_router"),
+            _ => None,
+        };
+        if let Some(reason) = missing {
+            return (
+                false,
+                reason.to_string(),
+                required_class,
+                observed_class,
+                "unqualified_missing_pnp_ancestry".to_string(),
+                false,
+            );
+        }
+    }
+
+    // Verify full PnP parent ancestry against expected Root Router and Dock Router if specified.
     if let Some(ref exp_root) = link.expected_local_root_router_id {
         if let Some(p) = power_opt {
             if p.pnp_ancestry.len() < 2 {
@@ -687,6 +712,19 @@ pub fn evaluate_link_admission_and_qualification(
         );
     }
 
+    if required_class == TopologyPathClass::RequiredTwoHub
+        && !power_opt.is_some_and(|power| power.topology_path_class == TopologyPathClass::RequiredTwoHub)
+    {
+        return (
+            false,
+            "observed_topology_does_not_qualify_required_two_hub".to_string(),
+            required_class,
+            observed_class,
+            "unqualified_observed_topology".to_string(),
+            false,
+        );
+    }
+
     if lifecycle_state == Usb4LifecycleState::Ready && canary.canary_passed {
         let qualified = link.required_topology_qualified.unwrap_or(true)
             && !(required_class == TopologyPathClass::RequiredTwoHub
@@ -720,6 +758,32 @@ pub fn evaluate_link_admission_and_qualification(
                 .unwrap_or_else(|| "unqualified".to_string()),
             false,
         )
+    }
+}
+
+/// Return observed router identity and reported speed without inventing provider data.
+fn observed_link_router_and_speed(
+    link: &TopologyLinkSpec,
+    power: Option<&Usb4AdapterPowerCapabilities>,
+) -> (Option<String>, u64) {
+    (
+        power.and_then(|power| power.root_router_id.clone()),
+        link.windows_reported_link_speed_bps
+            .or_else(|| power.map(|power| power.windows_reported_link_speed_bps))
+            .unwrap_or(0),
+    )
+}
+
+/// Dispatch reapply only after admission, preserving externally managed bridge custody.
+fn reapply_admitted_links(links: &[PeerLinkLifecycleStatus], mut reapply: impl FnMut(&PeerLinkLifecycleStatus)) {
+    for link in links {
+        if link.link_admitted
+            && link.lifecycle_state == Usb4LifecycleState::Ready
+            && link.canary.canary_passed
+            && !link.preserve_bridge_custody
+        {
+            reapply(link);
+        }
     }
 }
 
@@ -1713,17 +1777,11 @@ pub async fn run_usb4_lifecycle_evaluation(
         ) = evaluate_link_admission_and_qualification(link, state, adapter_opt, power_opt, xdomain_present, &canary);
 
         let pnp_ancestry = power_opt.map(|p| p.pnp_ancestry.clone()).unwrap_or_default();
-        let root_router_id = power_opt
-            .and_then(|p| p.root_router_id.clone())
-            .or_else(|| link.expected_local_root_router_id.clone());
+        let (root_router_id, windows_reported_link_speed_bps) = observed_link_router_and_speed(link, power_opt);
         let pci_host_router_id = power_opt.and_then(|p| p.pci_host_router_id.clone());
         let intermediate_dock_routers = power_opt
             .map(|p| p.intermediate_dock_routers.clone())
             .unwrap_or_default();
-        let windows_reported_link_speed_bps = link
-            .windows_reported_link_speed_bps
-            .or_else(|| power_opt.map(|p| p.windows_reported_link_speed_bps))
-            .unwrap_or(20_000_000_000);
         let link_speed_is_nominal_driver_display = link.link_speed_is_nominal_driver_display.unwrap_or(true);
         let link_speed_is_hardware_maximum = link.link_speed_is_hardware_maximum.unwrap_or(false);
         let measured_payload_gbps_samples = link.measured_payload_gbps_samples.clone();
@@ -1784,31 +1842,29 @@ pub async fn run_usb4_lifecycle_evaluation(
         Vec::new()
     };
 
-    // Reapply idempotent configuration only on Ready links with verified canary
+    // Admission failure prevents reapply without changing observed transport state.
     let mut reapply_actions = Vec::new();
-    for pl in &peer_link_states {
-        if pl.lifecycle_state == Usb4LifecycleState::Ready && pl.canary.canary_passed {
-            if let Some(adapter) = snapshot
-                .adapters
-                .iter()
-                .find(|a| a.interface_alias.eq_ignore_ascii_case(&pl.local_interface))
-            {
-                let acts = plan_and_apply_adapter_actions(
-                    &runner,
-                    adapter,
-                    &local_id,
-                    Some(&pl.peer_host),
-                    apply,
-                    false,
-                    reg.default_mtu_bytes.unwrap_or(62000),
-                    reg.default_interface_metric.unwrap_or(5),
-                    true,
-                    registry_path,
-                );
-                reapply_actions.extend(acts);
-            }
+    reapply_admitted_links(&peer_link_states, |pl| {
+        if let Some(adapter) = snapshot
+            .adapters
+            .iter()
+            .find(|a| a.interface_alias.eq_ignore_ascii_case(&pl.local_interface))
+        {
+            let acts = plan_and_apply_adapter_actions(
+                &runner,
+                adapter,
+                &local_id,
+                Some(&pl.peer_host),
+                apply,
+                false,
+                reg.default_mtu_bytes.unwrap_or(62000),
+                reg.default_interface_metric.unwrap_or(5),
+                true,
+                registry_path,
+            );
+            reapply_actions.extend(acts);
         }
-    }
+    });
 
     let resume_reprobe = BoundedResumeReprobeReport {
         triggered: true,
@@ -2658,6 +2714,227 @@ $e=[Management.Automation.ErrorRecord]::new([InvalidOperationException]::new('No
             !hp_qualified,
             "host_port_control must never qualify required_two_hub topology"
         );
+    }
+
+    // Protects required router evidence after optional provider failure or partial output.
+    // Detects None/absent root records bypassing admission; needs inert observed fixtures.
+    // Breadcrumb: evaluate_link_admission_and_qualification and provider failure observation.
+    #[test]
+    fn required_router_admission_refuses_missing_and_partial_provider_evidence() {
+        let adapter = sample_gen9_adapter();
+        let root = "USB4\\ROOT_DEVICE_ROUTER&VID_8086&PID_5781\\fixture";
+        let dock = "USB4\\VID_8087&PID_5786\\fixture";
+        let power = Usb4AdapterPowerCapabilities::evaluate(
+            22,
+            "Ethernet 4",
+            "USB4 P2P",
+            true,
+            "Unknown",
+            "Unknown",
+            "Unknown",
+            "Unknown",
+            "Unknown",
+            "Up",
+        )
+        .with_pnp_and_link_speed(
+            vec![
+                "USB4\\NETWORK\\fixture".to_string(),
+                dock.to_string(),
+                "USB4\\VID_8087&PID_5786\\second".to_string(),
+                root.to_string(),
+                "PCI\\VEN_8086&DEV_5781\\fixture".to_string(),
+            ],
+            &[dock.to_string()],
+            0,
+        );
+        assert_eq!(power.root_router_id.as_deref(), Some(root));
+        assert_eq!(power.intermediate_dock_routers.len(), 2);
+        let mut canary = stale_withdrawal_fixture("Ethernet 4").canary;
+        canary.canary_passed = true;
+        canary.observed_peer = Some(canary.expected_peer.clone());
+        canary.failure_reason = None;
+        let base = TopologyLinkSpec {
+            observed_topology_class: Some(TopologyPathClass::RequiredTwoHub),
+            windows_xdomain_present: Some(true),
+            ..Default::default()
+        };
+        let evaluate = |link: &TopologyLinkSpec, caps: Option<&Usb4AdapterPowerCapabilities>| {
+            evaluate_link_admission_and_qualification(
+                link,
+                Usb4LifecycleState::Ready,
+                Some(&adapter),
+                caps,
+                true,
+                &canary,
+            )
+        };
+        for (require_root, require_dock) in [(true, false), (false, true), (true, true)] {
+            let link = TopologyLinkSpec {
+                expected_local_root_router_id: require_root.then(|| root.to_string()),
+                expected_local_dock_router_id: require_dock.then(|| dock.to_string()),
+                ..base.clone()
+            };
+            let absent = evaluate(&link, None);
+            assert!(
+                !absent.0 && !absent.5,
+                "missing provider data must refuse root={require_root}/dock={require_dock}: {absent:?}"
+            );
+            let observed = evaluate(&link, Some(&power));
+            assert!(observed.0 && observed.5, "fully observed requirements: {observed:?}");
+
+            let mut prefix_only = power.clone();
+            prefix_only.pnp_ancestry.truncate(1);
+            let partial = evaluate(&link, Some(&prefix_only));
+            assert!(!partial.0 && !partial.5, "a prefix alone is not ancestry: {partial:?}");
+            let mut missing_root = power.clone();
+            missing_root.root_router_id = None;
+            let partial = evaluate(&link, Some(&missing_root));
+            assert!(!partial.0 && !partial.5, "missing observed root: {partial:?}");
+            let mut missing_pci = power.clone();
+            missing_pci.pci_host_router_id = None;
+            let partial = evaluate(&link, Some(&missing_pci));
+            assert!(
+                !partial.0 && !partial.5,
+                "missing observed PCI host router: {partial:?}"
+            );
+            if require_dock {
+                let mut missing_dock = power.clone();
+                missing_dock.intermediate_dock_routers.clear();
+                let partial = evaluate(&link, Some(&missing_dock));
+                assert!(!partial.0 && !partial.5, "missing observed dock: {partial:?}");
+            }
+        }
+        let unrelated = evaluate(&base, None);
+        assert!(unrelated.0 && unrelated.5, "no router requirement keeps existing scope");
+        let two_hub = TopologyLinkSpec {
+            required_topology_class: Some(TopologyPathClass::RequiredTwoHub),
+            ..base.clone()
+        };
+        let absent = evaluate(&two_hub, None);
+        assert!(!absent.0 && !absent.5, "the class alone requires observed ancestry");
+        let observed = evaluate(&two_hub, Some(&power));
+        assert!(observed.0 && observed.5, "observed two-hub ancestry qualifies");
+        for class in [TopologyPathClass::Unknown, TopologyPathClass::SingleHubChain] {
+            let mut lower = power.clone();
+            lower.topology_path_class = class;
+            let rejected = evaluate(&two_hub, Some(&lower));
+            assert!(
+                !rejected.0 && !rejected.5,
+                "configured two-hub hint cannot replace observed {class:?} evidence"
+            );
+        }
+        let host_port = power.clone().with_pnp_and_link_speed(
+            vec![
+                "USB4\\NETWORK\\fixture".to_string(),
+                "USB4\\ROOT_DEVICE_ROUTER&VID_8086&PID_E333\\fixture".to_string(),
+                "PCI\\VEN_8086&DEV_E333\\fixture".to_string(),
+            ],
+            &[],
+            0,
+        );
+        let control = evaluate(&two_hub, Some(&host_port));
+        assert!(
+            control.0 && !control.5,
+            "observed host-port control remains admitted only"
+        );
+        assert_eq!(control.4, "host_port_control_only");
+
+        let expected_only = TopologyLinkSpec {
+            expected_local_root_router_id: Some(root.to_string()),
+            ..base.clone()
+        };
+        assert_eq!(observed_link_router_and_speed(&expected_only, None), (None, 0));
+        let explicit_speed = TopologyLinkSpec {
+            windows_reported_link_speed_bps: Some(10_000_000_000),
+            ..expected_only
+        };
+        assert_eq!(
+            observed_link_router_and_speed(&explicit_speed, None),
+            (None, 10_000_000_000),
+            "explicit reported metadata survives missing provider data"
+        );
+        assert_eq!(
+            observed_link_router_and_speed(&explicit_speed, Some(&power)),
+            (Some(root.to_string()), 10_000_000_000)
+        );
+        let external = TopologyLinkSpec {
+            expected_local_root_router_id: Some(root.to_string()),
+            expected_local_dock_router_id: Some(dock.to_string()),
+            preserve_bridge_custody: Some(true),
+            ..base
+        };
+        let preserved = evaluate(&external, None);
+        assert!(preserved.0 && preserved.5);
+        assert_eq!(preserved.1, "external_bridge_custody_preserved");
+    }
+
+    // Protects the actual reapply consumer without inventing a physical disconnect.
+    // Detects Ready+canary bypassing rejected admission or external custody; needs inert callbacks/runner.
+    // Breadcrumb: reapply_admitted_links, run_usb4_lifecycle_evaluation and stale-route planner.
+    #[test]
+    fn rejected_admission_keeps_ready_transport_and_never_dispatches_reapply() {
+        let mut link = stale_withdrawal_fixture("Ethernet 4");
+        link.canary.canary_passed = true;
+        link.canary.interface_index = Some(22);
+        link.canary.failure_reason = None;
+        let spec = TopologyLinkSpec {
+            windows_xdomain_present: Some(true),
+            expected_local_root_router_id: Some("USB4\\ROOT_DEVICE_ROUTER\\required".to_string()),
+            ..Default::default()
+        };
+        let adapter = sample_gen9_adapter();
+        let (state, _, _) = evaluate_link_lifecycle_state(
+            &spec,
+            "dtm-p1gen9",
+            Some(&adapter),
+            None,
+            &ModernStandbyTelemetry::default(),
+            &link.evidence,
+            &link.canary,
+            false,
+        );
+        let admission =
+            evaluate_link_admission_and_qualification(&spec, state, Some(&adapter), None, true, &link.canary);
+        link.lifecycle_state = state;
+        link.link_admitted = admission.0;
+        link.required_topology_qualified = admission.5;
+        assert!(!link.link_admitted && !link.required_topology_qualified);
+        let mut dispatched = Vec::new();
+        reapply_admitted_links(std::slice::from_ref(&link), |status| {
+            dispatched.push(status.link_id.clone());
+        });
+        assert!(dispatched.is_empty(), "a rejected Ready link must not reach reapply");
+        assert_eq!(link.lifecycle_state, Usb4LifecycleState::Ready);
+        let runner = MockRunner::new();
+        let withdrawals = plan_and_withdraw_stale_owned_routes(
+            &runner,
+            "dtm-p1gen9",
+            std::slice::from_ref(&link),
+            &[sample_gen9_adapter()],
+            None,
+            true,
+        );
+        assert_eq!(withdrawals.len(), 1, "the Ready-route preservation remains visible");
+        assert!(withdrawals.iter().all(|action| action.preserved && !action.withdrawn));
+        assert!(runner.calls.lock().unwrap().is_empty());
+
+        link.link_admitted = true;
+        reapply_admitted_links(std::slice::from_ref(&link), |status| {
+            dispatched.push(status.link_id.clone());
+        });
+        assert_eq!(dispatched, [link.link_id.clone()], "positive eligible dispatch control");
+        for (state, canary, custody) in [
+            (Usb4LifecycleState::Disconnected, true, false),
+            (Usb4LifecycleState::Ready, false, false),
+            (Usb4LifecycleState::Ready, true, true),
+        ] {
+            link.lifecycle_state = state;
+            link.canary.canary_passed = canary;
+            link.preserve_bridge_custody = custody;
+            reapply_admitted_links(std::slice::from_ref(&link), |_| {
+                panic!("ineligible or externally managed link reached reapply");
+            });
+        }
     }
 
     #[test]

@@ -71,6 +71,15 @@ failures yield Unknown service/standby state, no invented power records, and a
 report warning. TBService and ShareTBService are queried separately; neither is a
 license prerequisite for the PC-AI observer. No service is started or stopped.
 
+Required root/dock or two-hub qualification refuses missing or partial ancestry.
+An observed root and PCI host router are required; a configured topology hint
+cannot replace the observed two-hub class. Explicit host-port-control scope
+remains admitted without qualifying a two-hub requirement, and external bridge
+custody remains separate. Rejected admission blocks configuration reapply while
+preserving verified Ready transport and its existing routes. Expected router
+names never fill observed router fields; absent speed data is zero (unknown),
+while explicit reported metadata keeps its existing precedence.
+
 The [provider controls](src/lifecycle.rs) cover real delayed, inherited-pipe,
 nonzero and oversized child processes, malformed responses, fallback policy and
 Windows PowerShell fixtures for missing services versus denied service/PnP/

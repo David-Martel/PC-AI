@@ -127,9 +127,11 @@ function Get-PcaiAccelerationProbe {
     $repoRoot = $null
 
     if ($moduleRoot) {
-        $candidateRepoRoot = Resolve-PcaiRepoRoot -StartPath $moduleRoot
-        # The shared resolver also recognizes unrelated AGENTS/.git roots.
-        # A native probe must bind to a PC_AI checkout before using its bin directory.
+        # Native files belong to the selected manifest's checkout. Runtime
+        # configuration overrides can deliberately select a different machine root.
+        $candidateRepoRoot = [Pcai.Common.RuntimeConfigBridge]::FindRepoRoot($moduleRoot)
+        # The ancestry bridge also recognizes unrelated AGENTS/.git roots.
+        # Require a PC_AI checkout before using its bin directory.
         if ($candidateRepoRoot -and (Test-Path -LiteralPath (Join-Path $candidateRepoRoot 'PC-AI.ps1') -PathType Leaf)) {
             $repoRoot = $candidateRepoRoot
         }

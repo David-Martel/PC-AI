@@ -536,7 +536,16 @@ fn cli_lifecycle_subcommand_evaluates_usb4_states_and_never_claims_always_on_tra
         .iter()
         .find(|l| l["LinkId"] == "ms01-plugable-dock-usb4-routed")
         .expect("ms01-plugable-dock-usb4-routed entry");
-    assert_eq!(plugable["LifecycleState"], "disconnected");
+    // Protects state precedence against the telemetry returned by this same CLI
+    // invocation. Detects a state inconsistent with standby without assuming the
+    // Windows event log is awake. Pure lifecycle unit controls cover both inputs.
+    let in_standby = json["ModernStandby"]["CurrentlyInModernStandby"]
+        .as_bool()
+        .expect("current standby must be an explicit boolean");
+    assert_eq!(
+        plugable["LifecycleState"],
+        if in_standby { "asleep" } else { "disconnected" }
+    );
     assert_eq!(plugable["DownstreamLinkStatus"], "none");
     assert_eq!(plugable["WindowsXdomainPresent"], false);
     assert_eq!(plugable["LinkAdmitted"], false);

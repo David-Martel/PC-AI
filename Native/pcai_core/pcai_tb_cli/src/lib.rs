@@ -3,6 +3,7 @@ pub mod configure;
 pub mod edge_observer;
 pub mod edge_policy;
 pub mod edge_probe;
+pub mod fabric_plan;
 pub mod handshake;
 pub mod identity;
 pub mod lifecycle;

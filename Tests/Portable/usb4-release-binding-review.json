@@ -1,0 +1,79 @@
+{
+    "SchemaVersion":  1,
+    "ReviewedCommit":  "65ba3ae772cc44bbaa101d555e78d2286caff513",
+    "ReviewKind":  "Optional installer release binding, source execution ordering and recovery custody",
+    "SourceBaseline":  "4e33b63a4aaba2083ed4fbce524a835d6cbcd7bb",
+    "PreservedDonor":  "069a61264eb930fc914ed3ee8c54ea4823bfe9ea",
+    "ExtractionPatchSha256":  "25903aa1c11f18cd4e3bb3c5d1b3fb7b36ecb79c2ecb65bdf8436747c7364456",
+    "SourceBindings":  {
+                           "Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1":  "19d128d29b5fc596101e7e0d994375254b9f0dc7899f45e10d4cfa541aa3766f",
+                           "Tests/Portable/Test-Usb4PeerNetworkInstall.ps1":  "92d839459e33637136587fa8fd20d9cdf5d18f953d8bc5c695647ca29d965431"
+                       },
+    "HashConvention":  "UTF-8 LF; whole source includes final LF. Selector extent includes its four-space # Selector comment through exact PASS Write-Output line, no final LF.",
+    "Selectors":  [
+                      {
+                          "Selector":  "ReleaseManifestMalformedForeignOrMismatchedRefusedBeforeMutation",
+                          "Source":  "Tests/Portable/Test-Usb4PeerNetworkInstall.ps1",
+                          "Sha256":  "a3fcf4fd348c9df2b7b4812896b588cf325bb6ad01738fb308ea10da967ce196",
+                          "Protects":  "Declared host/platform/architecture and three payload bindings precede task/runtime changes.",
+                          "Detects":  "29 malformed/foreign/mismatched/coercive records accepted, or refusal causing task/runtime writes.",
+                          "Needs":  "GUID-owned temporary directory, inert controller fixture and injected scheduler/ACL operations; no live task/network/backend. Marker control writes only inside that fixture root and exact controller bytes restore in finally.",
+                          "Breadcrumb":  "Install-Usb4PeerNetwork.ps1::Get-Usb4PeerInstallPlan/Assert-Usb4ReleaseBinding/Invoke-Usb4PeerInstall/Test-Usb4PeerInstallation."
+                      },
+                      {
+                          "Selector":  "ReleaseBindingPrecedesControllerExecution",
+                          "Source":  "Tests/Portable/Test-Usb4PeerNetworkInstall.ps1",
+                          "Sha256":  "9741699963049659ca6e96c504b8713005735d0734a9361aa278c8ea1b6bcc00",
+                          "Protects":  "A rejected controller never executes its top-level fixture code before release refusal.",
+                          "Detects":  "Late manifest validation after dot-source, detected by an owned temporary marker.",
+                          "Needs":  "GUID-owned temporary directory, inert controller fixture and injected scheduler/ACL operations; no live task/network/backend. Marker control writes only inside that fixture root and exact controller bytes restore in finally.",
+                          "Breadcrumb":  "Install-Usb4PeerNetwork.ps1::Get-Usb4PeerInstallPlan/Assert-Usb4ReleaseBinding/Invoke-Usb4PeerInstall/Test-Usb4PeerInstallation."
+                      },
+                      {
+                          "Selector":  "ChangedReleaseManifestPreservesTasks",
+                          "Source":  "Tests/Portable/Test-Usb4PeerNetworkInstall.ps1",
+                          "Sha256":  "18da6451df26ce2f428198e1b213966064c787fa230f85d219a5206754bd994a",
+                          "Protects":  "Exact approved manifest bytes remain stable from planning through installation.",
+                          "Detects":  "Changed release source accepted after planning, with task/runtime mutation.",
+                          "Needs":  "GUID-owned temporary directory, inert controller fixture and injected scheduler/ACL operations; no live task/network/backend. Marker control writes only inside that fixture root and exact controller bytes restore in finally.",
+                          "Breadcrumb":  "Install-Usb4PeerNetwork.ps1::Get-Usb4PeerInstallPlan/Assert-Usb4ReleaseBinding/Invoke-Usb4PeerInstall/Test-Usb4PeerInstallation."
+                      },
+                      {
+                          "Selector":  "ImmutableReleaseReadbackAndInstalledPayloadBinding",
+                          "Source":  "Tests/Portable/Test-Usb4PeerNetworkInstall.ps1",
+                          "Sha256":  "97231c82ef2ff8660917999f76b3032478dd04365b1235df242d75c43e319989",
+                          "Protects":  "Retained manifest/payload/source and NotVerified authenticity read back consistently.",
+                          "Detects":  "Changed manifest copy, ACL-hook race, inconsistent payload binding or invented authenticity/readiness.",
+                          "Needs":  "GUID-owned temporary directory, inert controller fixture and injected scheduler/ACL operations; no live task/network/backend. Marker control writes only inside that fixture root and exact controller bytes restore in finally.",
+                          "Breadcrumb":  "Install-Usb4PeerNetwork.ps1::Get-Usb4PeerInstallPlan/Assert-Usb4ReleaseBinding/Invoke-Usb4PeerInstall/Test-Usb4PeerInstallation."
+                      },
+                      {
+                          "Selector":  "FailedReleaseInstallationPreservesPreimagesAndRollsBack",
+                          "Source":  "Tests/Portable/Test-Usb4PeerNetworkInstall.ps1",
+                          "Sha256":  "ee9a070f36385dce484b9c6a62bdfc2672a1daf648ddfb75a6da345cbe50efe4",
+                          "Protects":  "Failed enable preserves immutable evidence and restores owned task/pointer state.",
+                          "Detects":  "New task/pointer remains or prior task/XML/release evidence is lost on failure.",
+                          "Needs":  "GUID-owned temporary directory, inert controller fixture and injected scheduler/ACL operations; no live task/network/backend. Marker control writes only inside that fixture root and exact controller bytes restore in finally.",
+                          "Breadcrumb":  "Install-Usb4PeerNetwork.ps1::Get-Usb4PeerInstallPlan/Assert-Usb4ReleaseBinding/Invoke-Usb4PeerInstall/Test-Usb4PeerInstallation."
+                      }
+                  ],
+    "RecordedReview":  "Independent source review detected HIGH pre-execution ordering defect; parent verified both-OS behavioral RED, then inspected moving only dot-source/validator after optional manifest validation. Source recheck and final-head remote GREEN remain required.",
+    "RedEvidence":  {
+                        "Head":  "0422f16f736b62345d6088310b47d7d23bd62b6a",
+                        "Workflow":  42056188193,
+                        "WindowsJob":  127345093712,
+                        "LinuxJob":  127345094212,
+                        "Failure":  "A controller rejected by release binding executed before refusal.",
+                        "Boundary":  "Both suites parsed, controller110 assertions and prior7 portable installer groups plus29 malformed variants passed before exact marker assertion. Later groups/Windows-only controls were not reached; no claim for them."
+                    },
+    "BindingScope":  "Only supplied controller, current installer source and policy bytes are matched; other files[] records receive shape checks, not installation or byte verification. Declared Git identity is not authenticated.",
+    "Compatibility":  "Unbound usage, singleton task identity and global locks retained; old bound metadata need not have additive releaseAuthenticity field.",
+    "QualificationBoundary":  "No installed payload/controller replacement, task/network changes, r5 recovery, per-edge enrollment, ARM64 hardware or full draft233 coverage admission.",
+    "IndependentReview":  {
+                              "Reviewer":  "codex/usb4_agent_status_review",
+                              "Type":  "source-only",
+                              "Disposition":  "KEEP all five controls and corrected execution order",
+                              "Qualification":  "No parsing/tests/builds; final-head remote GREEN still required."
+                          },
+    "RecordedReviewUtc":  "2026-11-05T15:46:01.2062004+00:00"
+}

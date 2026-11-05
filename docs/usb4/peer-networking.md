@@ -127,6 +127,18 @@ the runtime to SYSTEM/Administrators, and records the installed revision in
 Revision directories use stable sequence names; observation times are metadata.
 Previous revisions and task XML preimages remain available for rollback.
 
+### Optional release binding
+
+Supply `-ReleaseManifestPath` only for an independently approved deployable manifest. Planning checks its schema, declared Git repository/full commit, current host/platform/OS architecture, and the hashes/sizes of the supplied controller, current installer source and exact policy bytes **before dot-sourcing the controller**. `-ExpectedControllerSha256` remains an independent early approved-hash check. Input sources must stay trusted and stable; path-based loading does not close every mutable-file race or authenticate an arbitrary manifest.
+
+The installer shape-checks all `files[]` records, but matches bytes only for those three inputs. It does not install or qualify arbitrary additional payloads. Source repository/commit fields are declarations, not proof of repository custody or a signature. Bound plans, installed metadata and Verify report `releaseAuthenticity` as NotVerified. Installation and verification still leave RuntimeQualified false.
+
+Planning/DryRun creates no release copy, revision or task. Apply revalidates the binding, preserves an exact immutable `release.json`, checks staging readback, and records source/hash metadata alongside existing rollback preimages. Verify checks the retained manifest and installed controller/policy binding. Changed source/manifest, malformed duplicate policy scalars or inconsistent readback refuse the operation; failed publication retains existing recovery behavior. Existing unbound use and previously bound manifests remain compatible.
+
+The [release-binding controls](../../Tests/Portable/usb4-release-binding-review.json) cover malformed/foreign declarations, controller execution ordering, post-plan drift, immutable readback and failed-install recovery. They use owned temporary files and injected task/ACL operations. They do not qualify a scheduled runtime or physical link.
+
+This restores only the installer prerequisite from preserved source. It does not deploy an older controller over an installed newer release, clear a pending journal, isolate another link, or resolve draft233's separate coverage/integration hold. Reconcile installed provenance, recovery ownership and per-edge resource coordination before promoting an additional Peer enrollment.
+
 The new `\PC-AI\Usb4PeerNetwork` task runs SYSTEM/Highest, with boot, network
 connect/disconnect, resume and one-minute fallback triggers, IgnoreNew overlap control and
 a two-minute runtime limit. It uses absolute PowerShell/controller/policy/state

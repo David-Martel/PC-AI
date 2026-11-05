@@ -177,7 +177,8 @@ separately for fresh OS observations. It sends no active peer or Internet probe.
 
 Malformed or remote pointers, unsafe path traversal, reparse points, invalid
 manifest shapes and changed declarations produce explicit unknown/refusal
-results. A future or invalid timestamp has no freshness verdict. A pending
+results. The inspector checks path components from the filesystem root toward
+the leaf, refusing unsafe ancestors before querying descendant metadata. A future or invalid timestamp has no freshness verdict. A pending
 rollback remains pending. Manifest byte agreement leaves authenticity
 `NotVerified`; historical readiness is not current link qualification.
 

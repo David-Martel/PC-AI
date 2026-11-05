@@ -126,6 +126,54 @@ try {
     Write-FixtureJson $installed.reportPath $report
     Write-FixtureJson $manifestPath $manifest
 
+    # Selector group: AncestorsCheckedBeforeDescendantMetadata.
+    # Protects local inspection against a stable ancestor junction to a remote
+    # namespace; detects a leaf-first Attributes call before that junction is
+    # refused. Needs real safe fixtures plus metadata/read boundary traps only,
+    # no junction privilege or actual remote filesystem. Breadcrumb: path walk
+    # in Assert-Usb4InspectionPath before Attributes and ReadBytes.
+    foreach ($pointer in @('InstallRoot', 'controllerPath', 'policyPath', 'statePath', 'reportPath', 'releaseManifestPath')) {
+        $unsafeAncestor = Join-Path $installation 'synthetic-remote-junction'
+        $unsafePrefix = $unsafeAncestor + [IO.Path]::DirectorySeparatorChar
+        $candidate = $installedJson | ConvertFrom-Json -AsHashtable
+        $inspectionRoot = $installation
+        if ($pointer -ceq 'InstallRoot') { $inspectionRoot = Join-Path $unsafeAncestor 'nested-installation' }
+        else { $candidate[$pointer] = Join-Path $unsafeAncestor 'descendant.json' }
+        Write-FixtureJson (Join-Path $installation 'installed.json') $candidate
+        $ops = New-FixtureProviders
+        $innerAttributes = $ops.Attributes; $innerRead = $ops.ReadBytes
+        $pathComparison = if ($IsWindows) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+        $ordering = @{ ancestorQueries = 0
+            descendantMetadata = [Collections.Generic.List[string]]::new()
+            descendantReads = [Collections.Generic.List[string]]::new() }
+        $ops.Attributes = { param($Path)
+            if ($Path.Equals($unsafeAncestor, $pathComparison)) {
+                $ordering.ancestorQueries++
+                return [IO.FileAttributes]::Directory -bor [IO.FileAttributes]::ReparsePoint
+            }
+            if ($Path.StartsWith($unsafePrefix, $pathComparison)) {
+                $ordering.descendantMetadata.Add($Path)
+                throw 'Fixture trapped descendant metadata without touching a remote filesystem.'
+            }
+            & $innerAttributes $Path
+        }.GetNewClosure()
+        $ops.ReadBytes = { param($Path, $Limit)
+            if ($Path.Equals($unsafeAncestor, $pathComparison) -or $Path.StartsWith($unsafePrefix, $pathComparison)) {
+                $ordering.descendantReads.Add($Path)
+                throw 'Fixture trapped descendant content without touching a remote filesystem.'
+            }
+            & $innerRead $Path $Limit
+        }.GetNewClosure()
+        $data = Invoke-DeploymentFixture -Root $inspectionRoot -Providers $ops
+        Assert-DeploymentCondition ($ordering.descendantMetadata.Count -eq 0 -and
+            $ordering.descendantReads.Count -eq 0) 'Reparse ancestor was traversed before validation.'
+        Assert-DeploymentCondition ($ordering.ancestorQueries -eq 1 -and
+            $data.status -ceq 'Unknown' -and $data.sourceIdentity.byteMatched -eq $false -and
+            @($data.readErrors).Count -gt 0) 'Unsafe ancestor was not explicitly refused.'
+    }
+    Write-FixtureJson (Join-Path $installation 'installed.json') ($installedJson | ConvertFrom-Json -AsHashtable)
+    $script:groups++; Write-Output 'PASS: AncestorsCheckedBeforeDescendantMetadata'
+
     # Selector group: DeclarationDoesNotAuthenticateOrExecute.
     # Protects local evidence inspection; detects executing a hashed controller or
     # calling byte equality authentication. Needs pwsh7 and temp files, no hardware.

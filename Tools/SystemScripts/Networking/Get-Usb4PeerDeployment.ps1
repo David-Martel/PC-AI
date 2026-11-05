@@ -103,17 +103,24 @@ function Assert-Usb4InspectionPath {
     }
     # Containment is checked before Attributes can touch a pointer. This is an
     # inspection of a mutable filesystem, not an atomic no-follow file capability.
+    # Collect components lexically, then inspect the filesystem root first.
+    # A descendant Attributes call can already traverse an unchecked junction.
+    $components = [Collections.Generic.List[string]]::new()
     $cursor = $full
     while ($cursor) {
+        $components.Add($cursor)
+        $parent = [IO.Path]::GetDirectoryName($cursor)
+        if ($parent -eq $cursor) { break }
+        $cursor = $parent
+    }
+    $components.Reverse()
+    foreach ($cursor in $components) {
         $attributes = & $providers.Attributes $cursor
         if ($null -ne $attributes -and ($Directory -or $cursor -cne $full) -and
             -not ([long]$attributes -band [long][IO.FileAttributes]::Directory)) { throw 'Installation root and existing path ancestors must be directories.' }
         # Offline/RecallOnOpen/RecallOnDataAccess can hydrate file content.
         $refusedAttributes = [long][IO.FileAttributes]::ReparsePoint -bor [long][IO.FileAttributes]::Offline -bor 0x00040000 -bor 0x00400000
         if ($null -ne $attributes -and ([long]$attributes -band $refusedAttributes)) { throw 'Inspection path traverses a reparse, offline or recall-on-access item.' }
-        $parent = [IO.Path]::GetDirectoryName($cursor)
-        if ($parent -eq $cursor) { break }
-        $cursor = $parent
     }
     $full
 }

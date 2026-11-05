@@ -423,7 +423,7 @@
   "CiWiringReview": {
     "Reviewer": "codex-terminal-fleet-review",
     "Disposition": "keep",
-    "ReviewedCommit": null,
+    "ReviewedCommit": "3a5521ce9bcfddcf437554d54a88cb3f6c7c94d5",
     "ReviewedUtc": "2026-11-05T13:35:59.082339+00:00",
     "Path": ".github/workflows/usb4-lifecycle.yml",
     "Sha256": "13f90823954f95439a483eae9b2fa0ad41487ec4fbfbc1801f5908739a7c4088",
@@ -466,7 +466,8 @@
     ],
     "Evidence": "Independent full CI/docs change review and actionlint passed. Trust expression, permissions, matrix and timeout unchanged. Existing WSL controller34groups/110assertions, installer7groups plus2Windows-only unsupported, collector8 all passed; exact-head hosted CI remains required.",
     "ReviewScope": "CI selection and entrypoint safety. Existing test-script bytes are bound in full; this does not claim a new per-assertion review, real scheduler installation or hardware qualification.",
-    "SequenceQualification": "Exact two-script sequence in one fresh WSL PowerShell using GitHub-style Stop/LASTEXITCODE wrapper passed: controller34groups/110assertions then installer7groups,2Windows-only unsupported; exit0/stderr empty. No observed scope/type/exit-code leakage."
+    "SequenceQualification": "Exact two-script sequence in one fresh WSL PowerShell using GitHub-style Stop/LASTEXITCODE wrapper passed: controller34groups/110assertions then installer7groups,2Windows-only unsupported; exit0/stderr empty. No observed scope/type/exit-code leakage.",
+    "CommitBoundUtc": "2026-11-05T13:37:16.626884+00:00"
   },
   "SourceReviewUtc": "2026-11-05T11:40:02.577269+00:00",
   "CommitBoundUtc": "2026-11-05T11:53:33.990269+00:00",

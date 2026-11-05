@@ -261,6 +261,7 @@ isolated too. This Cargo home does not inherit the image's Cargo-home configurat
 clear that wrapper. `CARGO_INCREMENTAL=0` is explicit in the workflow because `.cargo/config.toml` enables
 incremental builds, and an incremental unit is never cached by sccache. The final step prints per-run
 `sccache --show-stats`; cross-run cache hits and target-directory persistence require separate evidence.
+`portable-contracts` also uses the job-local Rust action because its Python admission tests compile native Rust fixtures.
 NUC PC-AI runners also apply the committed machine profile's build-job cap while retaining any stricter existing
 Cargo limit. Details and measurements:
 `vigil-utils/docs/rust-build-acceleration.md`, "Runner job environment".

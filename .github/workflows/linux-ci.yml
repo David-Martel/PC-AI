@@ -59,6 +59,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
+      - name: Set up job-local Rust for admission fixtures
+        uses: ./.github/actions/setup-job-rust
+
       - name: Tool versions
         run: |
           pwsh --version

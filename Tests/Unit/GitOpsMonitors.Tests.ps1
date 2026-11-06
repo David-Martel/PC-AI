@@ -410,3 +410,133 @@ Describe 'Repository discovery diagnostics in the actual GitOps worker' -Tag Rep
         ($response | ConvertTo-Json -Depth 12) | Should -Not -Match 'fixture-secret|C:/private|untrusted-extra-field'
     }
 }
+
+Describe 'Workflow producer schema contracts through actual scripts' -Tag WorkflowSchema {
+    BeforeAll {
+        function Get-WorkflowFixtureReport {
+            param($Result)
+            $Result.Reports.Count | Should -Be 1
+            $Result.Reports[0].Name | Should -Be 'workflow-health-fixture_repo.json'
+            ($Result.Calls.operation -join ',') | Should -Be 'runs,workflows,billing'
+            $Result.Reports[0].Value
+        }
+        function Assert-NoWorkflowFixtureLeak {
+            param($Result, $Report)
+            ($Result.Stdout + $Result.Stderr + ($Report | ConvertTo-Json -Depth 12)) | Should -Not -Match 'fixture-secret|C:/private|untrusted-extra-field'
+        }
+    }
+
+    # Protects: workflow availability reflects validated run and workflow-list metadata independently of billing.
+    # Detects: missing producer status fields, billing-only failure mislabeled as workflow failure, or failed workflow metadata reported available.
+    # Needs: PowerShell 7, Pester 5, and the existing actual-script child fixture; all three external requests are stubbed.
+    # Breadcrumb: Tools/GitOps/Watch-WorkflowHealth.ps1
+    It 'reports independent workflow and billing inspection status for <Label>' -ForEach @(
+        @{ Label = 'healthy empty metadata'; Scenario = @{}; Workflow = 'Available'; Billing = 'Available'; Overall = 'Available'; ExitCode = 0; FailedOperation = $null; Reason = $null }
+        @{ Label = 'run request failure'; Scenario = @{ runs = @{ ExitCode = 1; Stdout = ''; Stderr = 'fixture-secret-DO-NOT-LOG C:/private/credential-file' } }; Workflow = 'Unavailable'; Billing = 'Available'; Overall = 'Unavailable'; ExitCode = 2; FailedOperation = 'runs'; Reason = 'GitHub inspection failed (exit 1).' }
+        @{ Label = 'workflow-list request failure'; Scenario = @{ workflows = @{ ExitCode = 1; Stdout = ''; Stderr = 'fixture-secret-DO-NOT-LOG C:/private/credential-file' } }; Workflow = 'Unavailable'; Billing = 'Available'; Overall = 'Unavailable'; ExitCode = 2; FailedOperation = 'workflows'; Reason = 'GitHub inspection failed (exit 1).' }
+        @{ Label = 'missing workflow-list metadata'; Scenario = @{ workflows = @{ ExitCode = 0; Stdout = '{"unexpected":"untrusted-extra-field fixture-secret-DO-NOT-LOG C:/private/credential-file"}'; Stderr = '' } }; Workflow = 'Unavailable'; Billing = 'Available'; Overall = 'Unavailable'; ExitCode = 2; FailedOperation = 'workflows'; Reason = 'Workflow metadata is incomplete.' }
+        @{ Label = 'incomplete completed-run metadata'; Scenario = @{ runs = @{ ExitCode = 0; Stdout = '[{"status":"completed","workflowName":"ci","conclusion":null}]'; Stderr = '' } }; Workflow = 'Unavailable'; Billing = 'Available'; Overall = 'Unavailable'; ExitCode = 2; FailedOperation = 'runs'; Reason = 'Run metadata is incomplete.' }
+        @{ Label = 'billing-only request failure'; Scenario = @{ billing = @{ ExitCode = 4; Stdout = ''; Stderr = 'fixture-secret-DO-NOT-LOG C:/private/credential-file' } }; Workflow = 'Available'; Billing = 'Unavailable'; Overall = 'Unavailable'; ExitCode = 2; FailedOperation = 'billing'; Reason = 'GitHub inspection failed (exit 4).' }
+    ) {
+        $r = Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1 -Scenario $Scenario)
+        $w = Get-WorkflowFixtureReport $r
+        $r.ExitCode | Should -Be $ExitCode
+        $w.inspection_status | Should -Be $Overall
+        $w.workflow_inspection_status | Should -Be $Workflow
+        $w.billing.status | Should -Be $Billing
+        $w.problem_count | Should -Be 0
+        if ($Billing -eq 'Unavailable') {
+            $w.billing.quota_status | Should -Be Unknown
+            ($null -eq $w.billing.used) | Should -BeTrue
+            ($null -eq $w.billing.included) | Should -BeTrue
+        }
+        else {
+            $w.billing.used | Should -Be 0
+            $w.billing.included | Should -Be 100
+        }
+        if ($FailedOperation) {
+            $inspection = $w.inspections | Where-Object operation -EQ $FailedOperation
+            $inspection.status | Should -Be Unavailable
+            $inspection.reason | Should -Be $Reason
+        }
+        Assert-NoWorkflowFixtureLeak -Result $r -Report $w
+    }
+
+    # Protects: unavailable billing remains explicitly unknown and cannot project private or coercible nonnumeric metric values.
+    # Detects: null-only validation accepting strings, Booleans, arrays or objects as minutes, leaking those values, or returning anonymous null billing.
+    # Needs: PowerShell 7, Pester 5, and the existing actual-script child fixture; no live billing API, network or credentials.
+    # Breadcrumb: Tools/GitOps/Watch-WorkflowHealth.ps1
+    It 'rejects invalid billing metric schema without exposing values for <Label>' -ForEach @(
+        @{ Label = 'missing metrics'; Json = '{"unexpected":"untrusted-extra-field fixture-secret-DO-NOT-LOG C:/private/credential-file"}' }
+        @{ Label = 'null used'; Json = '{"total_minutes_used":null,"included_minutes":100}' }
+        @{ Label = 'null included'; Json = '{"total_minutes_used":0,"included_minutes":null}' }
+        @{ Label = 'private used string'; Json = '{"total_minutes_used":"fixture-secret-DO-NOT-LOG C:/private/credential-file","included_minutes":100}' }
+        @{ Label = 'numeric-looking included string'; Json = '{"total_minutes_used":0,"included_minutes":"100"}' }
+        @{ Label = 'Boolean used'; Json = '{"total_minutes_used":false,"included_minutes":100}' }
+        @{ Label = 'object included'; Json = '{"total_minutes_used":0,"included_minutes":{"unexpected":"untrusted-extra-field fixture-secret-DO-NOT-LOG C:/private/credential-file"}}' }
+        @{ Label = 'array used'; Json = '{"total_minutes_used":[0],"included_minutes":100}' }
+    ) {
+        $r = Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1 -Scenario @{ billing = @{ ExitCode = 0; Stdout = $Json; Stderr = '' } })
+        $w = Get-WorkflowFixtureReport $r
+        $r.ExitCode | Should -Be 2
+        $w.inspection_status | Should -Be Unavailable
+        $w.workflow_inspection_status | Should -Be Available
+        $w.billing.status | Should -Be Unavailable
+        $w.billing.quota_status | Should -Be Unknown
+        ($null -eq $w.billing.used) | Should -BeTrue
+        ($null -eq $w.billing.included) | Should -BeTrue
+        $w.problem_count | Should -Be 0
+        $billingInspection = $w.inspections | Where-Object operation -EQ billing
+        $billingInspection.exit_code | Should -Be 0
+        $billingInspection.status | Should -Be Unavailable
+        $billingInspection.reason | Should -Be 'Billing metadata is incomplete.'
+        Assert-NoWorkflowFixtureLeak -Result $r -Report $w
+    }
+
+    # Protects: finite numeric minutes and the existing quota-exhaustion finding survive stricter billing validation.
+    # Detects: rejecting legitimate fractional values, losing existing numeric projections, or suppressing the established exhaustion finding/exit.
+    # Needs: PowerShell 7, Pester 5, and the actual-script child fixture with a stubbed billing response.
+    # Breadcrumb: Tools/GitOps/Watch-WorkflowHealth.ps1
+    It 'preserves finite billing values and findings for <Label>' -ForEach @(
+        @{ Label = 'fractional minutes'; Json = '{"total_minutes_used":0.5,"included_minutes":100,"unexpected":"untrusted-extra-field fixture-secret-DO-NOT-LOG C:/private/credential-file"}'; Used = 0.5; Included = 100; Problems = 0; ExitCode = 0 }
+        @{ Label = 'exhausted quota'; Json = '{"total_minutes_used":100,"included_minutes":100}'; Used = 100; Included = 100; Problems = 1; ExitCode = 1 }
+    ) {
+        $r = Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1 -Scenario @{ billing = @{ ExitCode = 0; Stdout = $Json; Stderr = '' } })
+        $w = Get-WorkflowFixtureReport $r
+        $r.ExitCode | Should -Be $ExitCode
+        $w.inspection_status | Should -Be Available
+        $w.workflow_inspection_status | Should -Be Available
+        $w.billing.status | Should -Be Available
+        $w.billing.used | Should -Be $Used
+        $w.billing.included | Should -Be $Included
+        $w.problem_count | Should -Be $Problems
+        if ($Problems) { $w.problems[0] | Should -Be 'Actions minutes exhausted: 100/100' }
+        Assert-NoWorkflowFixtureLeak -Result $r -Report $w
+    }
+
+    # Protects: unrepresentable/nonfinite numeric inputs cannot become a known billing quota or persisted metric.
+    # Detects: NaN or infinite minutes accepted by the parser and passed through the producer as available numeric data.
+    # Needs: PowerShell 7, Pester 5, and the actual-script child fixture; parser-level refusal and producer-level refusal both preserve unknown.
+    # Breadcrumb: Tools/GitOps/Watch-WorkflowHealth.ps1
+    It 'keeps nonfinite billing numbers unavailable through the actual parser and producer for <Label>' -ForEach @(
+        @{ Label = 'positive overflow used'; Json = '{"total_minutes_used":1e400,"included_minutes":100}' }
+        @{ Label = 'negative overflow included'; Json = '{"total_minutes_used":0,"included_minutes":-1e400}' }
+        @{ Label = 'NaN used'; Json = '{"total_minutes_used":NaN,"included_minutes":100}' }
+    ) {
+        $r = Complete-Fixture (Start-Fixture -Script Watch-WorkflowHealth.ps1 -Scenario @{ billing = @{ ExitCode = 0; Stdout = $Json; Stderr = '' } })
+        $w = Get-WorkflowFixtureReport $r
+        $r.ExitCode | Should -Be 2
+        $w.inspection_status | Should -Be Unavailable
+        $w.workflow_inspection_status | Should -Be Available
+        $w.billing.status | Should -Be Unavailable
+        $w.billing.quota_status | Should -Be Unknown
+        ($null -eq $w.billing.used) | Should -BeTrue
+        ($null -eq $w.billing.included) | Should -BeTrue
+        $w.problem_count | Should -Be 0
+        $billingInspection = $w.inspections | Where-Object operation -EQ billing
+        $billingInspection.exit_code | Should -Be 0
+        $billingInspection.status | Should -Be Unavailable
+        $billingInspection.reason | Should -Match '^(Billing metadata is incomplete\.|GitHub inspection returned missing or invalid JSON\.)$'
+        Assert-NoWorkflowFixtureLeak -Result $r -Report $w
+    }
+}

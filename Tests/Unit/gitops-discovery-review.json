@@ -7,15 +7,16 @@
     "canonical_parser_or_ast_pass_claimed": false,
     "detail": "The available shared parser supports Python, shell and Rust. An independent reviewer verified the seven complete Pester extents and hashes; no parser implementation or fallback was added."
   },
-  "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
+  "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
   "reviews": [
     {
       "selector": "Repository discovery diagnostics in the actual GitOps worker.retains a sanitized successful repository probe alongside child inspection reports",
       "test_path": "Tests/Unit/GitOpsMonitors.Tests.ps1",
-      "test_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "selector_sha256": "963131ce236f885324709af5820e944ee9f23c01d0608afe5e4f9449b08c5ee9",
       "source_sha256": {
-        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
+        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
+        "Tools/GitOps/Watch-WorkflowHealth.ps1": "54daad3ef51228d5b8097255f47a54db368ee80268cb1377dc714aea8e064d27"
       },
       "protects": "discovery diagnostics survive successful workflow/upstream aggregation without exposing extra GitHub JSON.",
       "detects": "overwriting detail after discovery, leaking the full value object, or skipping actual identity discovery.",
@@ -23,36 +24,39 @@
       "breadcrumb": "Tools/GitOps/Invoke-GitOpsMonitors.ps1",
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
-      "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
-      "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
+      "reviewed_utc": "2026-11-06T02:10:17Z",
+      "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
+      "base_commit": "2800c09957e9073a079e2321f00149f0ea2d0595",
       "disposition": "keep",
-      "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
+      "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance.",
       "receipt": "../../Tools/GitOps/README.md#repository-discovery-and-report-limits",
       "selector_hash_extent": "UTF-8 LF; complete It declaration through its own closing brace followed by exactly one LF; includes ForEach table and body; excludes rationale comments and trailing blank lines.",
-      "candidate_revision": "r3",
+      "candidate_revision": "schema-r2",
       "selector_start_line": 279,
       "selector_end_line": 298,
       "selector_bytes": 1374,
       "case_count": 1,
       "target_sha256": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
       "target_digest_method": "SHA-256 of the named target file after CRLF-to-LF normalization; not canonical doc_checks target_digest.",
-      "test_raw_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
-      "test_lf_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_raw_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
+      "test_lf_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "source_raw_sha256": {
-        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
+        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
+        "Tools/GitOps/Watch-WorkflowHealth.ps1": "54daad3ef51228d5b8097255f47a54db368ee80268cb1377dc714aea8e064d27"
       },
       "source_lf_sha256": {
-        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
+        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
+        "Tools/GitOps/Watch-WorkflowHealth.ps1": "54daad3ef51228d5b8097255f47a54db368ee80268cb1377dc714aea8e064d27"
       }
     },
     {
       "selector": "Repository discovery diagnostics in the actual GitOps worker.keeps an explicit repository independent of a failing discovery response",
       "test_path": "Tests/Unit/GitOpsMonitors.Tests.ps1",
-      "test_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "selector_sha256": "63a4602f40c838438a53fc6283b13b3c321c4102542e44475089051e48f7cc71",
       "source_sha256": {
-        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
+        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
+        "Tools/GitOps/Watch-WorkflowHealth.ps1": "54daad3ef51228d5b8097255f47a54db368ee80268cb1377dc714aea8e064d27"
       },
       "protects": "explicit -Repo continues bypassing discovery and the existing child/report behavior remains available.",
       "detects": "introducing an unnecessary repository probe or fabricated discovery diagnostics for an explicit repository.",
@@ -60,33 +64,35 @@
       "breadcrumb": "Tools/GitOps/Invoke-GitOpsMonitors.ps1",
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
-      "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
-      "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
+      "reviewed_utc": "2026-11-06T02:10:17Z",
+      "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
+      "base_commit": "2800c09957e9073a079e2321f00149f0ea2d0595",
       "disposition": "keep",
-      "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
+      "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance.",
       "receipt": "../../Tools/GitOps/README.md#repository-discovery-and-report-limits",
       "selector_hash_extent": "UTF-8 LF; complete It declaration through its own closing brace followed by exactly one LF; includes ForEach table and body; excludes rationale comments and trailing blank lines.",
-      "candidate_revision": "r3",
+      "candidate_revision": "schema-r2",
       "selector_start_line": 304,
       "selector_end_line": 313,
       "selector_bytes": 539,
       "case_count": 1,
       "target_sha256": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
       "target_digest_method": "SHA-256 of the named target file after CRLF-to-LF normalization; not canonical doc_checks target_digest.",
-      "test_raw_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
-      "test_lf_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_raw_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
+      "test_lf_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "source_raw_sha256": {
-        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
+        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
+        "Tools/GitOps/Watch-WorkflowHealth.ps1": "54daad3ef51228d5b8097255f47a54db368ee80268cb1377dc714aea8e064d27"
       },
       "source_lf_sha256": {
-        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
+        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
+        "Tools/GitOps/Watch-WorkflowHealth.ps1": "54daad3ef51228d5b8097255f47a54db368ee80268cb1377dc714aea8e064d27"
       }
     },
     {
       "selector": "Repository discovery diagnostics in the actual GitOps worker.retains sanitized repository failure details for <Label>",
       "test_path": "Tests/Unit/GitOpsMonitors.Tests.ps1",
-      "test_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "selector_sha256": "d5b546774e9aebe3fd6338ba3dff57552432379430c8745ea78f8e5925e7bcc0",
       "source_sha256": {
         "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
@@ -97,22 +103,22 @@
       "breadcrumb": "Tools/GitOps/Invoke-GitOpsMonitors.ps1",
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
-      "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
-      "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
+      "reviewed_utc": "2026-11-06T02:10:17Z",
+      "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
+      "base_commit": "2800c09957e9073a079e2321f00149f0ea2d0595",
       "disposition": "keep",
-      "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
+      "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance.",
       "receipt": "../../Tools/GitOps/README.md#repository-discovery-and-report-limits",
       "selector_hash_extent": "UTF-8 LF; complete It declaration through its own closing brace followed by exactly one LF; includes ForEach table and body; excludes rationale comments and trailing blank lines.",
-      "candidate_revision": "r3",
+      "candidate_revision": "schema-r2",
       "selector_start_line": 319,
       "selector_end_line": 334,
       "selector_bytes": 2794,
       "case_count": 11,
       "target_sha256": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
       "target_digest_method": "SHA-256 of the named target file after CRLF-to-LF normalization; not canonical doc_checks target_digest.",
-      "test_raw_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
-      "test_lf_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_raw_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
+      "test_lf_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "source_raw_sha256": {
         "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
       },
@@ -123,7 +129,7 @@
     {
       "selector": "Repository discovery diagnostics in the actual GitOps worker.rejects an invalid discovered repository identity without echoing it: <Label>",
       "test_path": "Tests/Unit/GitOpsMonitors.Tests.ps1",
-      "test_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "selector_sha256": "32ec28c7785cd8cd4b53d5a37cad7df53b3d61cc80a8762082f56da1a98d9a1a",
       "source_sha256": {
         "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
@@ -134,22 +140,22 @@
       "breadcrumb": "Tools/GitOps/Invoke-GitOpsMonitors.ps1",
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
-      "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
-      "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
+      "reviewed_utc": "2026-11-06T02:10:17Z",
+      "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
+      "base_commit": "2800c09957e9073a079e2321f00149f0ea2d0595",
       "disposition": "keep",
-      "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
+      "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance.",
       "receipt": "../../Tools/GitOps/README.md#repository-discovery-and-report-limits",
       "selector_hash_extent": "UTF-8 LF; complete It declaration through its own closing brace followed by exactly one LF; includes ForEach table and body; excludes rationale comments and trailing blank lines.",
-      "candidate_revision": "r3",
+      "candidate_revision": "schema-r2",
       "selector_start_line": 340,
       "selector_end_line": 350,
       "selector_bytes": 1143,
       "case_count": 6,
       "target_sha256": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
       "target_digest_method": "SHA-256 of the named target file after CRLF-to-LF normalization; not canonical doc_checks target_digest.",
-      "test_raw_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
-      "test_lf_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_raw_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
+      "test_lf_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "source_raw_sha256": {
         "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
       },
@@ -160,7 +166,7 @@
     {
       "selector": "Repository discovery diagnostics in the actual GitOps worker.preserves valid object response values through the actual shared helper",
       "test_path": "Tests/Unit/GitOpsMonitors.Tests.ps1",
-      "test_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "selector_sha256": "5e0c44e44c3fa9f0c99552be93a87bdcd33bdc9b55025c9b8fc1b4646753b482",
       "source_sha256": {
         "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
@@ -171,22 +177,22 @@
       "breadcrumb": "Tools/GitOps/Invoke-GitOpsMonitors.ps1",
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
-      "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
-      "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
+      "reviewed_utc": "2026-11-06T02:10:17Z",
+      "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
+      "base_commit": "2800c09957e9073a079e2321f00149f0ea2d0595",
       "disposition": "keep",
-      "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
+      "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance.",
       "receipt": "../../Tools/GitOps/README.md#repository-discovery-and-report-limits",
       "selector_hash_extent": "UTF-8 LF; complete It declaration through its own closing brace followed by exactly one LF; includes ForEach table and body; excludes rationale comments and trailing blank lines.",
-      "candidate_revision": "r3",
+      "candidate_revision": "schema-r2",
       "selector_start_line": 356,
       "selector_end_line": 366,
       "selector_bytes": 805,
       "case_count": 1,
       "target_sha256": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
       "target_digest_method": "SHA-256 of the named target file after CRLF-to-LF normalization; not canonical doc_checks target_digest.",
-      "test_raw_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
-      "test_lf_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_raw_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
+      "test_lf_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "source_raw_sha256": {
         "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
       },
@@ -197,7 +203,7 @@
     {
       "selector": "Repository discovery diagnostics in the actual GitOps worker.preserves actual array response handling for <Label>",
       "test_path": "Tests/Unit/GitOpsMonitors.Tests.ps1",
-      "test_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "selector_sha256": "a060eaaa636c89c8e4b6b941f2d8b5b0d3283f72a212cceeff9fcb3e1738e064",
       "source_sha256": {
         "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
@@ -208,22 +214,22 @@
       "breadcrumb": "Tools/GitOps/Invoke-GitOpsMonitors.ps1",
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
-      "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
-      "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
+      "reviewed_utc": "2026-11-06T02:10:17Z",
+      "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
+      "base_commit": "2800c09957e9073a079e2321f00149f0ea2d0595",
       "disposition": "keep",
-      "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
+      "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance.",
       "receipt": "../../Tools/GitOps/README.md#repository-discovery-and-report-limits",
       "selector_hash_extent": "UTF-8 LF; complete It declaration through its own closing brace followed by exactly one LF; includes ForEach table and body; excludes rationale comments and trailing blank lines.",
-      "candidate_revision": "r3",
+      "candidate_revision": "schema-r2",
       "selector_start_line": 372,
       "selector_end_line": 386,
       "selector_bytes": 954,
       "case_count": 2,
       "target_sha256": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
       "target_digest_method": "SHA-256 of the named target file after CRLF-to-LF normalization; not canonical doc_checks target_digest.",
-      "test_raw_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
-      "test_lf_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_raw_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
+      "test_lf_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "source_raw_sha256": {
         "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
       },
@@ -234,7 +240,7 @@
     {
       "selector": "Repository discovery diagnostics in the actual GitOps worker.rejects non-object roots in the actual shared helper for <Label>",
       "test_path": "Tests/Unit/GitOpsMonitors.Tests.ps1",
-      "test_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "selector_sha256": "9b90cf3e0432bd7fc8db894ddc18b0cbfc8a6fcdc695964030769111160eb982",
       "source_sha256": {
         "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
@@ -245,22 +251,22 @@
       "breadcrumb": "Tools/GitOps/Invoke-GitOpsMonitors.ps1",
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
-      "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
-      "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
+      "reviewed_utc": "2026-11-06T02:10:17Z",
+      "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
+      "base_commit": "2800c09957e9073a079e2321f00149f0ea2d0595",
       "disposition": "keep",
-      "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
+      "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance.",
       "receipt": "../../Tools/GitOps/README.md#repository-discovery-and-report-limits",
       "selector_hash_extent": "UTF-8 LF; complete It declaration through its own closing brace followed by exactly one LF; includes ForEach table and body; excludes rationale comments and trailing blank lines.",
-      "candidate_revision": "r3",
+      "candidate_revision": "schema-r2",
       "selector_start_line": 392,
       "selector_end_line": 411,
       "selector_bytes": 1524,
       "case_count": 7,
       "target_sha256": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
       "target_digest_method": "SHA-256 of the named target file after CRLF-to-LF normalization; not canonical doc_checks target_digest.",
-      "test_raw_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
-      "test_lf_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "test_raw_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
+      "test_lf_sha256": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
       "source_raw_sha256": {
         "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300"
       },
@@ -270,120 +276,96 @@
     }
   ],
   "runtime_qualification": {
-    "state": "FocusedPassedLegacyFailed",
-    "revision": "r3",
-    "red": {
-      "state": "Executed",
-      "selected_total": 29,
-      "passed": 5,
-      "failed": 24,
-      "skipped": 0,
-      "discovered_total": 47,
-      "other_selection_not_run": 18,
-      "receipt_sha256": "0e7573d54d23ae1b67011aa1fd8a06d70987e057c7403a2b333d36342484e0af",
-      "native_job_elapsed_seconds": 27.5864397000405,
-      "native_job_timed_out": false,
-      "remaining_owned_pids_count": 0,
-      "external_guard_hits": 0
+    "state": "PassedFixtureFile",
+    "scope": "Exactly 66 GitOps fixture cases: original 18, discovery 29, schema 19. External process/CIM boundaries are stubbed; no full-project, live-provider, deployment or application-runtime qualification.",
+    "runs": {
+      "red-schema": {
+        "selected": 19,
+        "passed": 0,
+        "failed": 19,
+        "skipped": 0,
+        "filtered_not_run": 47,
+        "discovered_total": 66,
+        "native_job_seconds": 25.953826099983416,
+        "timed_out": false,
+        "unstubbed_external_guard_hits": 0,
+        "frozen_packet_before_after_equal": true,
+        "receipt_sha256": "1969572bab5482eb3229bf998e7f75691f1c5b7812a1cb3013e5cf22d0ebe638"
+      },
+      "green-schema": {
+        "selected": 19,
+        "passed": 19,
+        "failed": 0,
+        "skipped": 0,
+        "filtered_not_run": 47,
+        "discovered_total": 66,
+        "native_job_seconds": 24.98080989997834,
+        "timed_out": false,
+        "unstubbed_external_guard_hits": 0,
+        "frozen_packet_before_after_equal": true,
+        "receipt_sha256": "8eb14705aeda3428045489e2db6dacd11841ad45c262b8b8d12f06ebedc6bf85"
+      },
+      "green-all": {
+        "selected": 66,
+        "passed": 66,
+        "failed": 0,
+        "skipped": 0,
+        "filtered_not_run": 0,
+        "discovered_total": 66,
+        "native_job_seconds": 104.94088010000996,
+        "timed_out": false,
+        "unstubbed_external_guard_hits": 0,
+        "frozen_packet_before_after_equal": true,
+        "receipt_sha256": "92c06e1e7249dfcab16fc4ffdaa5b5bce53ca2be07bf75f264e31817fb2e9829"
+      }
     },
-    "green": {
-      "state": "Executed",
-      "selected_total": 29,
-      "passed": 29,
-      "failed": 0,
-      "skipped": 0,
-      "discovered_total": 47,
-      "other_selection_not_run": 18,
-      "receipt_sha256": "c4d47633b28773726cdeb8707217607d5da796d8dc5882d2cb4a14fbcb427b0d",
-      "native_job_elapsed_seconds": 26.619338999968022,
-      "native_job_timed_out": false,
-      "remaining_owned_pids_count": 0,
-      "external_guard_hits": 0
-    },
-    "legacy": {
-      "state": "Executed",
-      "selected_total": 18,
-      "passed": 14,
-      "failed": 4,
-      "skipped": 0,
-      "discovered_total": 47,
-      "other_selection_not_run": 29,
-      "receipt_sha256": "37027be37403278303080692aa0d3b85d435805c0d1b5852a25bea66fe47cf26",
-      "native_job_elapsed_seconds": 52.80799249996198,
-      "native_job_timed_out": false,
-      "remaining_owned_pids_count": 0,
-      "external_guard_hits": 0
-    },
-    "scope": "Focused stubbed-worker/helper contracts and separate original-selector replay. No complete-suite or live-service qualification.",
-    "legacy_comparison": {
-      "receipt_sha256": "4893f807cefa9adb5db139f96322eec50e2a2257f8c6640fa39631c7771d088b",
-      "new_failing_selector_names": [],
-      "baseline_failure_selectors_now_passing": [
-        "Actual GitOps scripts with external requests stubbed.rejects malformed JSON from a successful request"
-      ],
-      "remaining_failures": [
-        {
-          "selector": "Actual GitOps scripts with external requests stubbed.uses canonical client send with all and preserves candidate configuration",
-          "failed_in_original_baseline": true,
-          "baseline_failure_was_fixture_deadline": false
-        },
-        {
-          "selector": "Actual GitOps scripts with external requests stubbed.publishes available workflow findings when billing inspection fails",
-          "failed_in_original_baseline": true,
-          "baseline_failure_was_fixture_deadline": true
-        },
-        {
-          "selector": "Actual GitOps scripts with external requests stubbed.distinguishes unavailable workflow metadata from billing-only failure",
-          "failed_in_original_baseline": true,
-          "baseline_failure_was_fixture_deadline": false
-        },
-        {
-          "selector": "Actual GitOps scripts with external requests stubbed.retains unknown upstream state instead of presenting zero inspected findings",
-          "failed_in_original_baseline": true,
-          "baseline_failure_was_fixture_deadline": true
-        }
-      ],
-      "limitation": "Same failing selector names do not equate prior deadline causes with current schema assertions; no timing improvement is claimed."
-    }
-  },
-  "known_unchanged_baseline": {
-    "source_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
-    "total": 18,
-    "passed": 13,
-    "failed": 5,
-    "skipped": 0,
-    "limitations": [
-      "Two workflow/billing summary-field mismatches.",
-      "Three existing 20-second child-fixture deadline failures; their cause is unproven."
-    ]
+    "full_receipt_sha256": "92c06e1e7249dfcab16fc4ffdaa5b5bce53ca2be07bf75f264e31817fb2e9829",
+    "stable_before_after_hash_count": 14
   },
   "evidence": {
-    "independent_static_attestation_utc": "2026-11-06T01:13:07Z",
-    "type_control_sha256": "84f3a55d666be09fe77f0e0560251d599b49340f5b06439d72931704985c4290",
-    "red_new_sha256": "0e7573d54d23ae1b67011aa1fd8a06d70987e057c7403a2b333d36342484e0af",
-    "green_new_sha256": "c4d47633b28773726cdeb8707217607d5da796d8dc5882d2cb4a14fbcb427b0d",
-    "green_legacy_sha256": "37027be37403278303080692aa0d3b85d435805c0d1b5852a25bea66fe47cf26",
-    "legacy_comparison_sha256": "4893f807cefa9adb5db139f96322eec50e2a2257f8c6640fa39631c7771d088b"
+    "current_full_receipt_sha256": "92c06e1e7249dfcab16fc4ffdaa5b5bce53ca2be07bf75f264e31817fb2e9829",
+    "current_qualification_summary_sha256": "969b92fd2cbd479d00bbeb3db810fd621535376e2907f57457aebd4d9bfe50d2",
+    "historical_signed_record_url": "https://github.com/David-Martel/PC-AI/blob/2800c09957e9073a079e2321f00149f0ea2d0595/Tests/Unit/gitops-discovery-review.json"
   },
   "runtime_review": {
     "reviewer": "codex-gitops-identity-review",
     "reviewer_type": "independent_agent",
-    "reviewed_utc": "2026-11-06T01:27:34Z",
+    "reviewed_utc": "2026-11-06T02:10:17Z",
     "disposition": "keep",
-    "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
-    "scope": "Independent r3 runtime receipt and original-selector comparison assessment: detecting RED, all 29 new GREEN cases passing, legacy 14 pass/four baseline-failure-subset selectors. No full-suite or live-service approval."
+    "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
+    "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance."
   },
   "commit_binding": {
-    "bound_utc": "2026-11-06T01:53:08.340016+00:00",
+    "bound_utc": "2026-11-06T02:37:22.949545+00:00",
     "verifier": "codex-gen9-usb4-root",
     "verification_source": "GitHub immutable commit and tree verification",
     "github_commit_verified": true,
     "github_verification_reason": "valid",
-    "implementation_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
-    "implementation_tree": "b8b5241e28caa82ea02200d54f226770eb00e2e2",
+    "implementation_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
+    "implementation_tree": "213333779378f4aa252e3a3a0caae2e394071db4",
     "unchanged_source_blobs": {
-      "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "6c147b04d99c0fd3dc9324d138f4830899eb95d5",
-      "Tests/Unit/GitOpsMonitors.Tests.ps1": "d28af214b5574c2609d3428469fccb08d545ac96"
+      "Tools/GitOps/Watch-WorkflowHealth.ps1": "ce083943f3885f43a397f1eaa8e41766dbf5e054",
+      "Tests/Unit/GitOpsMonitors.Tests.ps1": "2e0a5665eac5f0abdae4d874d2165cdb3521933f",
+      "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "6c147b04d99c0fd3dc9324d138f4830899eb95d5"
     }
-  }
+  },
+  "historical_attestations": [
+    {
+      "record_url": "https://github.com/David-Martel/PC-AI/blob/2800c09957e9073a079e2321f00149f0ea2d0595/Tests/Unit/gitops-discovery-review.json",
+      "record_lf_sha256": "b8108b8a52c2d1c1eb240ebec48a2f72013c65a874c43adb9669f9ed893f0434",
+      "metadata_commit": "2800c09957e9073a079e2321f00149f0ea2d0595",
+      "reviewed_implementation_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
+      "test_sha256": "3019432f8979a7e71b819838031fed8ddcd456757804019b6e77fb4b748c149e",
+      "monitor_sha256": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
+      "static_review_utc": "2026-11-06T01:13:07Z",
+      "runtime_review_utc": "2026-11-06T01:27:34Z",
+      "runtime_summary": {
+        "discovery_green_passed": 29,
+        "legacy_passed": 14,
+        "legacy_failed": 4
+      },
+      "scope": "Historical signed first-PR binding and results. The immutable record retains the original full rows, baseline/comparison and commit-binding evidence."
+    }
+  ],
+  "candidate_revision": "schema-r2"
 }

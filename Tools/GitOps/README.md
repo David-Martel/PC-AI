@@ -74,44 +74,58 @@ Failed discovery produces overall `Unavailable`, process exit `2`, and
 publication. This report is evidence of the probe outcome, not a diagnosis of
 credentials, working directory, encoding or environment.
 
+### Workflow and billing report contract
+
+The [workflow producer](Watch-WorkflowHealth.ps1) reports
+`workflow_inspection_status` from both run and workflow-list inspection after
+metadata validation. Billing failure leaves that workflow status independent.
+Aggregate inspection status, existing findings/exhaustion comparison, exits and
+publication decisions retain their existing behavior.
+
+`billing.status` reflects inspection availability. Successful legacy responses
+retain numeric `used` and `included` values after finite-scalar validation.
+Strings, Booleans, containers, null and nonfinite values are unavailable.
+Unavailable billing exposes `quota_status=Unknown` with exact-null metrics;
+it does not infer zero usage or included entitlement. The endpoint, authentication
+and request deadlines are unchanged.
+
 ### Focused controls and remaining qualification
 
-The [unit fixture](../../Tests/Unit/GitOpsMonitors.Tests.ps1) executes actual
-workers with only external process boundaries stubbed. Direct helper cases load
-the maintained helper through `-LibraryOnly` and stub only its process call.
-Run the discovery contract from the repository root in a fresh PowerShell 7 shell:
+The [unit fixture](../../Tests/Unit/GitOpsMonitors.Tests.ps1) executes the actual
+worker, workflow producer and shared helper with external process/CIM boundaries
+stubbed. Run this complete fixture file from the repository root in a fresh shell:
 
 ~~~powershell
-pwsh -NoProfile -Command "Invoke-Pester -Path Tests/Unit/GitOpsMonitors.Tests.ps1 -TagFilter RepositoryDiscovery -Output Detailed"
+pwsh -NoProfile -Command "Invoke-Pester -Path Tests/Unit/GitOpsMonitors.Tests.ps1 -Output Detailed"
 ~~~
 
-The [selector review record](../../Tests/Unit/gitops-discovery-review.json) binds
-seven groups and 29 cases to exact source and test hashes. Independent static
-review inspected complete selector extents. The shared checker currently lacks a
-Pester parser; these bindings do not claim a canonical Pester AST check.
-Focused qualification executed on Windows with PowerShell 7.6.9/Pester 5.7.1:
-the 29 new cases produced RED 24 failures/five passes, then GREEN 29 passes,
-zero failures and zero skips. A separate replay of the 18 unchanged legacy cases
-produced 14 passes/four failures. All four failing selector names also failed in
-the unchanged baseline; two earlier fixture deadlines now reach schema/message
-assertions, while the malformed-JSON case now passes. This records selector
-history, not a shared cause for previous deadlines and current assertions.
-The review record retains receipt hashes and independent comparison disposition.
-These are focused stubbed contracts; full-suite and live GitHub, bus and billing
-qualification remain separate.
+The [schema review](../../Tests/Unit/gitops-workflow-schema-review.json) binds
+four groups/19 cases to the current producer and whole-test hashes. The
+[discovery reaffirmation](../../Tests/Unit/gitops-discovery-review.json) retains
+all seven unchanged selector bodies under that new whole-test context and the
+updated workflow dependency where exercised. Independent review verified complete
+byte extents; the shared checker still has no Pester parser or canonical AST PASS.
 
-An unchanged baseline at `b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6` executed 18
-legacy cases on Windows with PowerShell 7.6.9/Pester 5.7.1: 13 passed, five failed, zero
-skipped. Two failures were workflow/billing summary-field mismatches; three hit
-the existing 20-second fixture deadline. The discovery change preserves those
-legacy assertions and deadlines. It does not resolve or explain those timeouts.
+Schema RED produced 19 failures, then focused GREEN produced 19 passes. The final
+bounded file replay passed all 66 unique cases: original 18, discovery 29 and schema
+19, with zero failures, skips or not-run cases. Its owned job elapsed 104.94 seconds,
+did not time out, left no owned processes, recorded zero external guard hits and
+preserved all 14 bound hashes. Receipt SHA-256:
+`92c06e1e7249dfcab16fc4ffdaa5b5bce53ca2be07bf75f264e31817fb2e9829`.
+This qualifies the stubbed GitOps fixture file, not the complete project suite,
+live GitHub/bus/billing availability, application runtime or deployment.
+
+The [signed first-PR record](https://github.com/David-Martel/PC-AI/blob/2800c09957e9073a079e2321f00149f0ea2d0595/Tests/Unit/gitops-discovery-review.json)
+preserves the earlier `dc5da21962ac15b63d39b738eab41ffd15238d90` implementation
+binding to the `301943` test revision and its historical 29-pass discovery and
+14-pass/four-failure legacy result. That history and the earlier 13-pass/five-failure
+baseline remain distinct from this current 66-case candidate. Current review
+commit fields remain null until the actual schema implementation is committed.
 
 The [workflow producer](Watch-WorkflowHealth.ps1) still calls the product-specific
 `/user/settings/billing/actions` endpoint. [GitHub retired that endpoint family on
 September 26, 2025](https://github.blog/changelog/2025-09-26-product-specific-billing-apis-are-closing-down/).
-This discovery correction does not qualify live billing availability or included
-quota. Billing report-schema correction and API migration require separate
-validation; missing quota information remains unknown.
+This report-schema correction does not qualify live billing availability or included quota. API migration requires separate validation; missing quota information remains unknown.
 
 ## Roadmap (remaining)
 - [ ] **Reconcile-GitSigning.ps1** — flip an arbitrary local clone's `.git/config` to SSH signing (PC-AI done inline).

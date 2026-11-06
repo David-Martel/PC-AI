@@ -2,6 +2,10 @@
 <#
 .SYNOPSIS
 Inspect workflow failures and expose unavailable GitHub metadata explicitly.
+.DESCRIPTION
+Workflow availability reflects validated run and workflow-list metadata separately
+from billing. Unavailable billing retains unknown quota and null metrics. Successful
+billing projects only finite JSON numeric scalars. The legacy billing endpoint is unchanged.
 #>
 [CmdletBinding()]
 param([string]$Repo, [ValidateRange(1, 100)][int]$Limit = 15, [switch]$Quiet,
@@ -43,15 +47,26 @@ if ($workflows.status -eq 'Available') {
 $billing = Get-GitOpsResponse -Operation billing -Arguments @('api', '/user/settings/billing/actions') -WorkingDirectory $RepoRoot -TimeoutSeconds $RequestTimeoutSeconds -Shape Object
 $inspections.Add($billing)
 if ($billing.status -eq 'Available') {
-    if ($null -eq $billing.value.total_minutes_used -or $null -eq $billing.value.included_minutes) { $billing.status = 'Unavailable'; $billing.reason = 'Billing metadata is incomplete.' }
+    $used = $billing.value.total_minutes_used
+    $included = $billing.value.included_minutes
+    $usedIsNumber = $used -is [int] -or $used -is [long] -or $used -is [double]
+    $includedIsNumber = $included -is [int] -or $included -is [long] -or $included -is [double]
+    # JSON strings, Booleans and containers must not coerce into known quota values.
+    if (-not $usedIsNumber -or -not $includedIsNumber -or
+        [double]::IsNaN([double]$used) -or [double]::IsInfinity([double]$used) -or
+        [double]::IsNaN([double]$included) -or [double]::IsInfinity([double]$included)) {
+        $billing.status = 'Unavailable'; $billing.reason = 'Billing metadata is incomplete.'
+    }
     elseif ($billing.value.included_minutes -gt 0 -and $billing.value.total_minutes_used -ge $billing.value.included_minutes) { $problems.Add("Actions minutes exhausted: $($billing.value.total_minutes_used)/$($billing.value.included_minutes)") }
 }
+$workflowAvailable = $runs.status -eq 'Available' -and $workflows.status -eq 'Available'
 $available = @($inspections | Where-Object status -EQ Unavailable).Count -eq 0
 $snap = [ordered]@{
     repo = $Repo; checked_utc = [datetime]::UtcNow.ToString('o'); inspection_status = if ($available) { 'Available' } else { 'Unavailable' }
+    workflow_inspection_status = if ($workflowAvailable) { 'Available' } else { 'Unavailable' }
     problem_count = $problems.Count; problems = @($problems)
     last_runs   = if ($runs.status -eq 'Available') { @($runs.value | Select-Object -First 5 | ForEach-Object { @{ wf = $_.workflowName; status = $_.status; conclusion = $_.conclusion } }) } else { @() }
-    billing     = if ($billing.status -eq 'Available') { @{ used = $billing.value.total_minutes_used; included = $billing.value.included_minutes } } else { $null }
+    billing     = if ($billing.status -eq 'Available') { @{ status = $billing.status; used = $billing.value.total_minutes_used; included = $billing.value.included_minutes } } else { @{ status = $billing.status; quota_status = 'Unknown'; used = $null; included = $null } }
     inspections = @($inspections | Select-Object operation, status, exit_code, reason)
 }
 Write-GitOpsReport -Report $snap -Directory $OutputDirectory -Name ('workflow-health-' + $Repo.Replace('/', '_') + '.json')

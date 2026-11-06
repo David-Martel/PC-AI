@@ -76,7 +76,7 @@
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
       "reviewed_utc": "2026-11-06T02:10:17Z",
-      "reviewed_commit": null,
+      "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
       "disposition": "keep",
       "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance.",
       "extent_method": "UTF-8 LF, complete It declaration including ForEach table through own closing brace followed by one LF; excludes rationale and trailing blank lines. Whole-test hash separately binds all fixture/support bytes.",
@@ -109,7 +109,7 @@
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
       "reviewed_utc": "2026-11-06T02:10:17Z",
-      "reviewed_commit": null,
+      "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
       "disposition": "keep",
       "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance.",
       "extent_method": "UTF-8 LF, complete It declaration including ForEach table through own closing brace followed by one LF; excludes rationale and trailing blank lines. Whole-test hash separately binds all fixture/support bytes.",
@@ -142,7 +142,7 @@
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
       "reviewed_utc": "2026-11-06T02:10:17Z",
-      "reviewed_commit": null,
+      "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
       "disposition": "keep",
       "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance.",
       "extent_method": "UTF-8 LF, complete It declaration including ForEach table through own closing brace followed by one LF; excludes rationale and trailing blank lines. Whole-test hash separately binds all fixture/support bytes.",
@@ -175,7 +175,7 @@
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
       "reviewed_utc": "2026-11-06T02:10:17Z",
-      "reviewed_commit": null,
+      "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
       "disposition": "keep",
       "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance.",
       "extent_method": "UTF-8 LF, complete It declaration including ForEach table through own closing brace followed by one LF; excludes rationale and trailing blank lines. Whole-test hash separately binds all fixture/support bytes.",
@@ -184,14 +184,28 @@
       "base_commit": "2800c09957e9073a079e2321f00149f0ea2d0595"
     }
   ],
-  "reviewed_commit": null,
+  "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
   "base_commit": "2800c09957e9073a079e2321f00149f0ea2d0595",
   "runtime_review": {
     "reviewer": "codex-gitops-identity-review",
     "reviewer_type": "independent_agent",
     "reviewed_utc": "2026-11-06T02:10:17Z",
     "disposition": "keep",
-    "reviewed_commit": null,
+    "reviewed_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
     "scope": "Independent complete selector/rationale/production review and exact 66-case runtime reaffirmation under the current whole-test and producer dependency hashes. No live-provider, API-health, application-runtime or deployment acceptance."
+  },
+  "commit_binding": {
+    "bound_utc": "2026-11-06T02:37:22.949545+00:00",
+    "verifier": "codex-gen9-usb4-root",
+    "verification_source": "GitHub immutable commit and tree verification",
+    "github_commit_verified": true,
+    "github_verification_reason": "valid",
+    "implementation_commit": "d5aac007a19df0cb1b0295a50828eb990dbb4d10",
+    "implementation_tree": "213333779378f4aa252e3a3a0caae2e394071db4",
+    "unchanged_source_blobs": {
+      "Tools/GitOps/Watch-WorkflowHealth.ps1": "ce083943f3885f43a397f1eaa8e41766dbf5e054",
+      "Tests/Unit/GitOpsMonitors.Tests.ps1": "2e0a5665eac5f0abdae4d874d2165cdb3521933f",
+      "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "6c147b04d99c0fd3dc9324d138f4830899eb95d5"
+    }
   }
 }

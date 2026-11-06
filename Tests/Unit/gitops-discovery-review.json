@@ -7,7 +7,7 @@
     "canonical_parser_or_ast_pass_claimed": false,
     "detail": "The available shared parser supports Python, shell and Rust. An independent reviewer verified the seven complete Pester extents and hashes; no parser implementation or fallback was added."
   },
-  "reviewed_commit": null,
+  "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
   "reviews": [
     {
       "selector": "Repository discovery diagnostics in the actual GitOps worker.retains a sanitized successful repository probe alongside child inspection reports",
@@ -24,7 +24,7 @@
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
       "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": null,
+      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
       "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
       "disposition": "keep",
       "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
@@ -61,7 +61,7 @@
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
       "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": null,
+      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
       "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
       "disposition": "keep",
       "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
@@ -98,7 +98,7 @@
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
       "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": null,
+      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
       "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
       "disposition": "keep",
       "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
@@ -135,7 +135,7 @@
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
       "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": null,
+      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
       "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
       "disposition": "keep",
       "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
@@ -172,7 +172,7 @@
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
       "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": null,
+      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
       "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
       "disposition": "keep",
       "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
@@ -209,7 +209,7 @@
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
       "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": null,
+      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
       "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
       "disposition": "keep",
       "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
@@ -246,7 +246,7 @@
       "reviewer": "codex-gitops-identity-review",
       "reviewer_type": "independent_agent",
       "reviewed_utc": "2026-11-06T01:13:07Z",
-      "reviewed_commit": null,
+      "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
       "base_commit": "b26d35c3a7da6588e57ad8e06a239f3c98c2dbb6",
       "disposition": "keep",
       "scope": "Independent read-only production, test and rationale review plus complete selector byte extents and SHA-256 verification. Static attestation preceded the separately recorded focused runtime assessment.",
@@ -370,7 +370,20 @@
     "reviewer_type": "independent_agent",
     "reviewed_utc": "2026-11-06T01:27:34Z",
     "disposition": "keep",
-    "reviewed_commit": null,
+    "reviewed_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
     "scope": "Independent r3 runtime receipt and original-selector comparison assessment: detecting RED, all 29 new GREEN cases passing, legacy 14 pass/four baseline-failure-subset selectors. No full-suite or live-service approval."
+  },
+  "commit_binding": {
+    "bound_utc": "2026-11-06T01:53:08.340016+00:00",
+    "verifier": "codex-gen9-usb4-root",
+    "verification_source": "GitHub immutable commit and tree verification",
+    "github_commit_verified": true,
+    "github_verification_reason": "valid",
+    "implementation_commit": "dc5da21962ac15b63d39b738eab41ffd15238d90",
+    "implementation_tree": "b8b5241e28caa82ea02200d54f226770eb00e2e2",
+    "unchanged_source_blobs": {
+      "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "6c147b04d99c0fd3dc9324d138f4830899eb95d5",
+      "Tests/Unit/GitOpsMonitors.Tests.ps1": "d28af214b5574c2609d3428469fccb08d545ac96"
+    }
   }
 }

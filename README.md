@@ -23,6 +23,9 @@ qualification remain separate from managed compilation.
 Empty module discovery is covered by the [command-map binding controls](Tests/Unit/command-map-empty-review.md).
 Captured report bytes follow the [evidence custody rules](docs/captured-evidence-custody.md).
 
+GitOps repository discovery and qualification limits are documented in the
+[GitOps monitor guide](Tools/GitOps/README.md#repository-discovery-and-report-limits).
+
 ## Key Features
 
 Windows fleet discovery and media qualification are documented in

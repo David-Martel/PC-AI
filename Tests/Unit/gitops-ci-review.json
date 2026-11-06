@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 raw bytes with LF; whole-workflow digest binds triggers/permissions/trust/concurrency; job digest binds complete contracts job.",
+  "runtime_qualification": {
+    "state": "WindowsInlinePassedWithSetupSubstitution",
+    "receipt_sha256": "f42d1537a55fdee3a8bc58b0ecfc687a03e6fa09909f4d5ba546751c77b11bc0",
+    "authored_inline_sha256": "4627747a3d75581f5f1c2d878a3753aeec5a0689ddb7104ede0d427be93a92f2",
+    "executed_substituted_inline_sha256": "73503c2ffc244eb4e9100354b5bcb5d0ec9208f0bed58d49e858f70088647f65",
+    "windows": {
+      "state": "Executed",
+      "total": 66,
+      "passed": 66,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0,
+      "failed_blocks": 0,
+      "failed_containers": 0,
+      "actual_guard_hits": 0,
+      "outer_guard_hits": 0,
+      "native_job_seconds": 123.73630759998923,
+      "timed_out": false,
+      "remaining_owned_pids_count": 0,
+      "before_after_raw_and_lf_file_count": 5,
+      "before_after_hashes_stable": true
+    },
+    "aggregate_controls": {
+      "state": "Executed",
+      "count": 4,
+      "outcomes": [
+        "all success accepted",
+        "GitOps failure rejected",
+        "GitOps cancelled rejected",
+        "GitOps skipped rejected"
+      ],
+      "exact_existing_python_sha256": "936501dd96a47e76bdafc8422692048e0406c43dc9ac03e6f9ce9d1aea76db2f"
+    },
+    "yaml_and_call_graph": {
+      "state": "ParsedOnWork",
+      "yaml_module": "powershell-yaml 0.4.12",
+      "trusted_reusable_and_needs_structure": "Passed"
+    },
+    "module_download": {
+      "state": "NOT_RUN",
+      "limitation": "Exactly one private Save-Module line was substituted by selection/import of an already installed Pester 5.7.1. The authored download/setup path was not qualified."
+    },
+    "actionlint": {
+      "execution_state": "NOT_RUN",
+      "limitation": "No existing Work actionlint executable was found; the self-hosted Linux actionlint step remains to execute."
+    },
+    "linux": {
+      "runtime_state": "NOT_RUN",
+      "required_total": 66,
+      "required_passed": 64,
+      "required_exact_named_skips": 2,
+      "limitation": "Synthetic Linux result controls passed; no Linux fixture execution is claimed."
+    },
+    "scope": "Exact inline gate/guard controls and 66 Windows fixture cases, with one disclosed setup-line substitution, plus exact aggregate needs controls. No live provider/API/hardware/application/deployment or full-project qualification."
+  },
+  "reviews": [
+    {
+      "selector": ".github/workflows/gitops-contracts.yml::contracts",
+      "workflow_raw_sha256": "51c73cd393904617902fb708bb2f80c2abfbcb7ec5a3d3fb3d8226d03e303157",
+      "workflow_lf_sha256": "51c73cd393904617902fb708bb2f80c2abfbcb7ec5a3d3fb3d8226d03e303157",
+      "selector_sha256": "02e6ac25e6c33537dcdd9743b4be6885f66470ae352b0772b79edc571250b7a3",
+      "selector_extent": "Complete YAML job key/body through its final line; exact UTF-8 LF. Whole workflow/caller hashes bind surrounding routing and graph context.",
+      "source_sha256": {
+        "Tests/Unit/GitOpsMonitors.Tests.ps1": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
+        "Tools/GitOps/Watch-WorkflowHealth.ps1": "54daad3ef51228d5b8097255f47a54db368ee80268cb1377dc714aea8e064d27",
+        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
+        ".github/workflows/linux-ci.yml": "b667a3f4e81717ec862ab6497640e38859edf65d9c7ef774cddde0a03a59d30d",
+        ".github/workflows/gitops-contracts.yml": "51c73cd393904617902fb708bb2f80c2abfbcb7ec5a3d3fb3d8226d03e303157"
+      },
+      "protects": "The reusable matrix requires complete inspected fixture results and expected per-platform skips.",
+      "detects": "Test/setup/discovery errors, incomplete runs, NotRun, unexpected skips or unstubbed wrapper boundary.",
+      "needs": "PowerShell 7, exact job-local Pester 5.7.1, public module download and existing runner trust gate; Linux runtime remains unqualified.",
+      "breadcrumb": "Tests/Unit/GitOpsMonitors.Tests.ps1",
+      "positive_controls": [
+        "Synthetic Windows 66 pass result",
+        "Synthetic Linux 64 pass plus exactly two named Windows-only skips",
+        "Guard throws and increments exactly once, then resets before tests"
+      ],
+      "negative_controls": [
+        "Zero tests",
+        "Failed test count",
+        "Failed block count",
+        "Failed container count",
+        "NotRun count",
+        "Unexpected skipped selector"
+      ],
+      "runtime_state": "Windows inline and aggregate controls qualified with disclosed setup substitution; Linux/module-download/actionlint execution NOT_RUN.",
+      "reviewer": "codex-gen9-usb4-root",
+      "reviewed_commit": "35828e1b6e98a38714ba0a36a518be621f7f2a6b",
+      "disposition": "keep",
+      "review_plan": "Root is independent of the draft writer. Record KEEP only after root confirms actual exact-byte gate/guard/needs controls and actual platform proof. Current static intent review does not establish runtime qualification.",
+      "candidate_revision": "ci-metadata-docs-r3",
+      "receipt": "../../Tools/GitOps/README.md",
+      "reviewed_utc": "2026-11-06T03:41:30Z",
+      "required_dependency": {
+        "caller_workflow": ".github/workflows/linux-ci.yml",
+        "caller_job": "gitops-contracts",
+        "aggregate_job": "ci-gate",
+        "aggregate_python_sha256": "936501dd96a47e76bdafc8422692048e0406c43dc9ac03e6f9ce9d1aea76db2f",
+        "existing_rejection_code_unchanged": true,
+        "needs_controls": "all success passes; gitops failure/cancelled/skipped fail",
+        "runtime_state": "Executed: four exact existing aggregate controls; real GitHub routing still awaits CI."
+      },
+      "group": "GitOps required-contract gate",
+      "reviewer_type": "independent_agent"
+    },
+    {
+      "selector": ".github/workflows/linux-ci.yml::gitops-contracts",
+      "workflow_raw_sha256": "b667a3f4e81717ec862ab6497640e38859edf65d9c7ef774cddde0a03a59d30d",
+      "workflow_lf_sha256": "b667a3f4e81717ec862ab6497640e38859edf65d9c7ef774cddde0a03a59d30d",
+      "selector_sha256": "577c6ff4738486ff383e033b49e11cf2b0b448e43fb12aa6765b1d02fb4d266b",
+      "selector_extent": "Complete YAML job key/body through its final line; exact UTF-8 LF. Whole workflow/caller hashes bind surrounding routing and graph context.",
+      "source_sha256": {
+        "Tests/Unit/GitOpsMonitors.Tests.ps1": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
+        "Tools/GitOps/Watch-WorkflowHealth.ps1": "54daad3ef51228d5b8097255f47a54db368ee80268cb1377dc714aea8e064d27",
+        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
+        ".github/workflows/linux-ci.yml": "b667a3f4e81717ec862ab6497640e38859edf65d9c7ef774cddde0a03a59d30d",
+        ".github/workflows/gitops-contracts.yml": "51c73cd393904617902fb708bb2f80c2abfbcb7ec5a3d3fb3d8226d03e303157"
+      },
+      "protects": "The reusable matrix is called under the existing trusted/runner-enabled condition.",
+      "detects": "A missing caller edge or a changed trusted-event condition excludes or misroutes the matrix.",
+      "needs": "PowerShell 7, exact job-local Pester 5.7.1, public module download and existing runner trust gate; Linux runtime remains unqualified.",
+      "breadcrumb": ".github/workflows/gitops-contracts.yml",
+      "positive_controls": [
+        "Synthetic Windows 66 pass result",
+        "Synthetic Linux 64 pass plus exactly two named Windows-only skips",
+        "Guard throws and increments exactly once, then resets before tests"
+      ],
+      "negative_controls": [
+        "Zero tests",
+        "Failed test count",
+        "Failed block count",
+        "Failed container count",
+        "NotRun count",
+        "Unexpected skipped selector"
+      ],
+      "runtime_state": "Windows inline and aggregate controls qualified with disclosed setup substitution; Linux/module-download/actionlint execution NOT_RUN.",
+      "reviewer": "codex-gen9-usb4-root",
+      "reviewed_commit": "35828e1b6e98a38714ba0a36a518be621f7f2a6b",
+      "disposition": "keep",
+      "review_plan": "Root is independent of the draft writer. Record KEEP only after root confirms actual exact-byte gate/guard/needs controls and actual platform proof. Current static intent review does not establish runtime qualification.",
+      "candidate_revision": "ci-metadata-docs-r3",
+      "receipt": "../../Tools/GitOps/README.md",
+      "reviewed_utc": "2026-11-06T03:41:30Z",
+      "required_dependency": {
+        "caller_workflow": ".github/workflows/linux-ci.yml",
+        "caller_job": "gitops-contracts",
+        "aggregate_job": "ci-gate",
+        "aggregate_python_sha256": "936501dd96a47e76bdafc8422692048e0406c43dc9ac03e6f9ce9d1aea76db2f",
+        "existing_rejection_code_unchanged": true,
+        "needs_controls": "all success passes; gitops failure/cancelled/skipped fail",
+        "runtime_state": "Executed: four exact existing aggregate controls; real GitHub routing still awaits CI."
+      },
+      "group": "GitOps required-contract gate",
+      "reviewer_type": "independent_agent"
+    },
+    {
+      "selector": ".github/workflows/linux-ci.yml::ci-gate",
+      "workflow_raw_sha256": "b667a3f4e81717ec862ab6497640e38859edf65d9c7ef774cddde0a03a59d30d",
+      "workflow_lf_sha256": "b667a3f4e81717ec862ab6497640e38859edf65d9c7ef774cddde0a03a59d30d",
+      "selector_sha256": "b1e88d8438b11b5dfe187046d0f1f0e0b356400443b59915492b1e2804e05bd4",
+      "selector_extent": "Complete YAML job key/body through its final line; exact UTF-8 LF. Whole workflow/caller hashes bind surrounding routing and graph context.",
+      "source_sha256": {
+        "Tests/Unit/GitOpsMonitors.Tests.ps1": "cb523cd8da6ffad00f71ee166cb256bb768b1f48449c9439998fcf72d2dbec0a",
+        "Tools/GitOps/Watch-WorkflowHealth.ps1": "54daad3ef51228d5b8097255f47a54db368ee80268cb1377dc714aea8e064d27",
+        "Tools/GitOps/Invoke-GitOpsMonitors.ps1": "9fd7d2652516cb0aa65763adbb7c00f3e1ae7fbb144f5281b93bc54cbf40c300",
+        ".github/workflows/linux-ci.yml": "b667a3f4e81717ec862ab6497640e38859edf65d9c7ef774cddde0a03a59d30d",
+        ".github/workflows/gitops-contracts.yml": "51c73cd393904617902fb708bb2f80c2abfbcb7ec5a3d3fb3d8226d03e303157"
+      },
+      "protects": "The existing required aggregate gate depends on the reusable matrix and rejects non-success needs.",
+      "detects": "A failing, cancelled or skipped GitOps caller is admitted by aggregate CI.",
+      "needs": "PowerShell 7, exact job-local Pester 5.7.1, public module download and existing runner trust gate; Linux runtime remains unqualified.",
+      "breadcrumb": ".github/workflows/linux-ci.yml",
+      "positive_controls": [
+        "Synthetic Windows 66 pass result",
+        "Synthetic Linux 64 pass plus exactly two named Windows-only skips",
+        "Guard throws and increments exactly once, then resets before tests"
+      ],
+      "negative_controls": [
+        "Zero tests",
+        "Failed test count",
+        "Failed block count",
+        "Failed container count",
+        "NotRun count",
+        "Unexpected skipped selector"
+      ],
+      "runtime_state": "Windows inline and aggregate controls qualified with disclosed setup substitution; Linux/module-download/actionlint execution NOT_RUN.",
+      "reviewer": "codex-gen9-usb4-root",
+      "reviewed_commit": "35828e1b6e98a38714ba0a36a518be621f7f2a6b",
+      "disposition": "keep",
+      "review_plan": "Root is independent of the draft writer. Record KEEP only after root confirms actual exact-byte gate/guard/needs controls and actual platform proof. Current static intent review does not establish runtime qualification.",
+      "candidate_revision": "ci-metadata-docs-r3",
+      "receipt": "../../Tools/GitOps/README.md",
+      "reviewed_utc": "2026-11-06T03:41:30Z",
+      "required_dependency": {
+        "caller_workflow": ".github/workflows/linux-ci.yml",
+        "caller_job": "gitops-contracts",
+        "aggregate_job": "ci-gate",
+        "aggregate_python_sha256": "936501dd96a47e76bdafc8422692048e0406c43dc9ac03e6f9ce9d1aea76db2f",
+        "existing_rejection_code_unchanged": true,
+        "needs_controls": "all success passes; gitops failure/cancelled/skipped fail",
+        "runtime_state": "Executed: four exact existing aggregate controls; real GitHub routing still awaits CI."
+      },
+      "group": "GitOps required-contract gate",
+      "reviewer_type": "independent_agent"
+    }
+  ],
+  "review_group": "GitOps required-contract gate: callee contracts, caller GitOps job, required ci-gate."
+}

@@ -1,11 +1,10 @@
 name: CI (Linux self-hosted)
 
-# Why this exists: the main `CI` workflow is disabled because every job in it runs on `windows-latest`, and PC-AI has
-# no Windows runner. That left pull requests with only the path-filtered contract workflows. This workflow runs, on the
-# persistent repo-scoped vigil1 runner `vigil1-pc-ai-1` (labels self-hosted, Linux, X64, vigil1, pc-ai-local; the jobs
-# select runners by the role label `pc-ai-local` only, not by host, so they can move to any runner that carries it), every
-# check that is meaningful on Linux: workflow lint, the PowerShell and Python portable contracts, the Pester files that
-# pass on Linux, PSScriptAnalyzer errors, and rustfmt, clippy and nextest for Native/pcai_core.
+# Why this exists: the main CI workflow is disabled. Linux remains the primary gate: workflow lint, portable contracts,
+# Linux-compatible Pester, PSScriptAnalyzer and native Rust checks use the persistent repo-scoped role labels
+# [self-hosted, Linux, X64, pc-ai-local]. Trusted calls also run GitOps fixture contracts on hosted Windows.
+# That Windows job covers stubbed contracts only; devices, live services and the other Windows surfaces below
+# remain outside this gate. Runner selection uses role labels rather than a fixed host name.
 #
 # What it deliberately does not cover (needs Windows or a GPU, see CI-CD-GUIDE.md "Linux self-hosted gate"):
 # the Windows-only PowerShell modules (CIM/WMI, registry, drivers, network, Hyper-V), the complete PcaiNative C# test
@@ -205,13 +204,21 @@ jobs:
         if: always()
         run: sccache --show-stats
 
+  # Protects: the required ci-gate includes both GitOps fixture platforms.
+  # Detects: a failing, cancelled or skipped reusable matrix escaping the aggregate check.
+  # Needs: the existing enabled-runner/trusted-event condition and the reusable GitOps workflow.
+  # Breadcrumb: .github/workflows/gitops-contracts.yml
+  gitops-contracts:
+    if: vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    uses: ./.github/workflows/gitops-contracts.yml
+
   # ---------------------------------------------------------------------------
   # Single check name for this workflow. `always()` makes it run and fail when a needed job failed, was cancelled or was
   # skipped, instead of reporting "skipped", which GitHub treats as passing.
   # ---------------------------------------------------------------------------
   ci-gate:
     if: always() && vars.PCAI_LINUX_RUNNER_ENABLED == 'true'
-    needs: [portable-contracts, pester-lint, rust-linux]
+    needs: [portable-contracts, pester-lint, rust-linux, gitops-contracts]
     runs-on: [self-hosted, Linux, X64, pc-ai-local]
     timeout-minutes: 5
     steps:

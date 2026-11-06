@@ -6,7 +6,7 @@ BeforeAll {
     $childScript = @'
 [CmdletBinding()]
 param([string]$SourceRoot, [string]$RepoRoot, [string]$OutputDirectory, [string]$ScenarioPath,
-    [string]$CallsPath, [string]$Script = 'Invoke-GitOpsMonitors.ps1', [string]$BusUrl)
+    [string]$CallsPath, [string]$Script = 'Invoke-GitOpsMonitors.ps1', [string]$BusUrl, [switch]$DiscoverRepository)
 $ErrorActionPreference = 'Stop'
 $global:fixtureScenario = Get-Content -LiteralPath $ScenarioPath -Raw | ConvertFrom-Json -AsHashtable
 $global:fixtureCalls = $CallsPath
@@ -34,6 +34,7 @@ function global:Invoke-VigilBoundedProcess {
     $defaults = @{ repository = '{"nameWithOwner":"fixture/repo"}'; runs = '[]'; workflows = '{"workflows":[]}'; billing = '{"total_minutes_used":0,"included_minutes":100}'; dependabot = '[[]]'; 'code-scanning' = '[]'; pulls = '[]'; reviews = '[]'; send = '{"ok":true}' }
     $selected = if ($global:fixtureScenario.ContainsKey($operation)) { $global:fixtureScenario[$operation] } elseif ($operation -ne 'send' -and $global:fixtureScenario.ContainsKey('all_gh')) { $global:fixtureScenario.all_gh } else { @{ ExitCode = 0; Stdout = $defaults[$operation]; Stderr = '' } }
     if ($selected.Throw) { throw 'fixture-secret-DO-NOT-LOG C:/private/credential-file' }
+    if ($selected.ThrowKind -eq 'Deadline') { throw [TimeoutException]::new('fixture-secret-DO-NOT-LOG C:/private/credential-file') }
     [pscustomobject]@{ ExitCode = $selected.ExitCode; Stdout = $selected.Stdout; Stderr = $selected.Stderr }
 }
 function global:Invoke-CimMethod {
@@ -53,6 +54,7 @@ function global:Invoke-CimMethod {
     [pscustomobject]@{ ReturnValue = if ($global:fixtureScenario.ContainsKey('launch_code')) { $global:fixtureScenario.launch_code } else { 0 }; ProcessId = 12345 }
 }
 $parameters = @{ Repo = 'fixture/repo'; RepoRoot = $RepoRoot; OutputDirectory = $OutputDirectory; RequestTimeoutSeconds = 2; Quiet = $true }
+if ($DiscoverRepository) { $parameters.Remove('Repo') }
 if ($Script -eq 'Invoke-GitOpsMonitors.ps1') { $parameters.Remove('Quiet'); $parameters.NoDelay = $true }
 if ($BusUrl) { $parameters.BusUrl = $BusUrl }
 if ($Script -eq 'Start-GitOpsMonitors.ps1') { $parameters = @{} }
@@ -61,7 +63,7 @@ exit $LASTEXITCODE
 '@
     [IO.File]::WriteAllText($script:child, $childScript, [Text.UTF8Encoding]::new($false))
     function Start-Fixture {
-        param([hashtable]$Scenario = @{}, [string]$Script = 'Invoke-GitOpsMonitors.ps1', [string]$Root, [string]$Calls, [string]$BusUrl, [string]$SourceRoot = $script:source)
+        param([hashtable]$Scenario = @{}, [string]$Script = 'Invoke-GitOpsMonitors.ps1', [string]$Root, [string]$Calls, [string]$BusUrl, [string]$SourceRoot = $script:source, [switch]$DiscoverRepository)
         $case = Join-Path $script:base ('case-' + [guid]::NewGuid().ToString('N'))
         $null = New-Item -ItemType Directory -Path $case -Force
         if (-not $Root) { $Root = $case }
@@ -76,6 +78,7 @@ exit $LASTEXITCODE
         $info.WorkingDirectory = $script:base
         foreach ($argument in @('-NoLogo', '-NoProfile', '-File', $script:child, '-SourceRoot', $SourceRoot, '-RepoRoot', $Root, '-OutputDirectory', $case, '-ScenarioPath', $scenarioPath, '-CallsPath', $Calls, '-Script', $Script)) { $info.ArgumentList.Add($argument) }
         if ($BusUrl) { $info.ArgumentList.Add('-BusUrl'); $info.ArgumentList.Add($BusUrl) }
+        if ($DiscoverRepository) { $info.ArgumentList.Add('-DiscoverRepository') }
         $process = [Diagnostics.Process]::new()
         $process.StartInfo = $info
         $null = $process.Start()
@@ -237,5 +240,173 @@ Describe 'Actual GitOps scripts with external requests stubbed' {
         $next = Complete-Fixture (Start-Fixture -Root $root); $next.ExitCode | Should -Be 0; (Get-Combined $next).inspection_status | Should -Be Available
         @(Get-ChildItem $r.Directory, $next.Directory -Filter '.gitops-*.tmp').Count | Should -Be 0
         ($r.Stdout + $r.Stderr + (Get-Combined $r | ConvertTo-Json -Depth 12)) | Should -Not -Match 'fixture-secret|C:/private'
+    }
+}
+
+Describe 'Repository discovery diagnostics in the actual GitOps worker' -Tag RepositoryDiscovery {
+    BeforeAll {
+        function Assert-RepositoryProbeFailure {
+            param($Result, [int]$ExitCode, [string]$Reason)
+            $combined = Get-Combined $Result
+            $Result.ExitCode | Should -Be 2
+            $combined.inspection_status | Should -Be Unavailable
+            $combined.configuration_error | Should -Be 'Repository identity is unavailable or invalid.'
+            $combined.repo | Should -BeNullOrEmpty
+            $combined.workflow_problems | Should -BeNullOrEmpty
+            $combined.upstream_items | Should -BeNullOrEmpty
+            $combined.publication.status | Should -Be NotAttempted
+            $Result.Reports.Count | Should -Be 1
+            $Result.Reports[0].Name | Should -Be 'monitors-latest-unavailable.json'
+            $Result.Calls.Count | Should -Be 1
+            $Result.Calls[0].operation | Should -Be repository
+            ($Result.Calls[0].arguments -join '|') | Should -Be 'repo|view|--json|nameWithOwner'
+            $probe = $combined.detail.repository
+            $probe.operation | Should -Be repository
+            $probe.status | Should -Be Unavailable
+            $probe.exit_code | Should -Be $ExitCode
+            $probe.reason | Should -Be $Reason
+            (@($probe.PSObject.Properties.Name | Sort-Object) -join ',') | Should -Be 'exit_code,operation,reason,status'
+            $serialized = $Result.Stdout + $Result.Stderr + ($combined | ConvertTo-Json -Depth 12)
+            $serialized | Should -Not -Match 'fixture-secret|C:/private|untrusted-extra-field'
+            $serialized | Should -Not -Match ([regex]::Escape($Result.Directory))
+        }
+    }
+
+    # Protects: discovery diagnostics survive successful workflow/upstream aggregation without exposing extra GitHub JSON.
+    # Detects: overwriting detail after discovery, leaking the full value object, or skipping actual identity discovery.
+    # Needs: PowerShell 7, Pester 5, and the existing bounded-process child fixture; no GitHub or agent-bus requests.
+    # Breadcrumb: Tools/GitOps/Invoke-GitOpsMonitors.ps1
+    It 'retains a sanitized successful repository probe alongside child inspection reports' {
+        $scenario = @{ repository = @{ ExitCode = 0; Stdout = '{"nameWithOwner":"fixture/repo","unexpected":"untrusted-extra-field fixture-secret-DO-NOT-LOG C:/private/credential-file"}'; Stderr = '' } }
+        $r = Complete-Fixture (Start-Fixture -DiscoverRepository -Scenario $scenario)
+        $c = Get-Combined $r
+        $r.ExitCode | Should -Be 0
+        $c.repo | Should -Be 'fixture/repo'
+        $c.inspection_status | Should -Be Available
+        $c.publication.status | Should -Be NotAttempted
+        $r.Reports.Count | Should -Be 3
+        ($r.Calls.operation -join ',') | Should -Be 'repository,runs,workflows,billing,dependabot,code-scanning,pulls'
+        $c.detail.workflow.inspection_status | Should -Be Available
+        $c.detail.upstream.inspection_status | Should -Be Available
+        $probe = $c.detail.repository
+        $probe.operation | Should -Be repository
+        $probe.status | Should -Be Available
+        $probe.exit_code | Should -Be 0
+        $probe.reason | Should -BeNullOrEmpty
+        (@($probe.PSObject.Properties.Name | Sort-Object) -join ',') | Should -Be 'exit_code,operation,reason,status'
+        ($r.Stdout + $r.Stderr + ($c | ConvertTo-Json -Depth 12)) | Should -Not -Match 'fixture-secret|C:/private|untrusted-extra-field'
+    }
+
+    # Protects: explicit -Repo continues bypassing discovery and the existing child/report behavior remains available.
+    # Detects: introducing an unnecessary repository probe or fabricated discovery diagnostics for an explicit repository.
+    # Needs: PowerShell 7, Pester 5, and the existing child fixture; all external requests are stubbed.
+    # Breadcrumb: Tools/GitOps/Invoke-GitOpsMonitors.ps1
+    It 'keeps an explicit repository independent of a failing discovery response' {
+        $r = Complete-Fixture (Start-Fixture -Scenario @{ repository = @{ Throw = $true } })
+        $c = Get-Combined $r
+        $r.ExitCode | Should -Be 0
+        $c.repo | Should -Be 'fixture/repo'
+        $c.inspection_status | Should -Be Available
+        $r.Calls.Count | Should -Be 6
+        @($r.Calls | Where-Object operation -EQ repository).Count | Should -Be 0
+        $c.detail.PSObject.Properties.Name | Should -Not -Contain repository
+    }
+
+    # Protects: each unavailable discovery retains its truthful exit/status and sanitized reason, with no later inspection or publication.
+    # Detects: the old empty detail report, accepting JSON from a failed process, malformed responses marked healthy, or raw errors leaking.
+    # Needs: PowerShell 7, Pester 5, and the existing child fixture; launch/deadline exceptions are simulated at the external process boundary.
+    # Breadcrumb: Tools/GitOps/Invoke-GitOpsMonitors.ps1
+    It 'retains sanitized repository failure details for <Label>' -ForEach @(
+        @{ Label = 'nonzero exit with valid-looking identity JSON'; Response = @{ ExitCode = 1; Stdout = '{"nameWithOwner":"fixture/repo","unexpected":"untrusted-extra-field fixture-secret-DO-NOT-LOG C:/private/credential-file"}'; Stderr = '' }; ExpectedExit = 1; ExpectedReason = 'GitHub inspection failed (exit 1).' }
+        @{ Label = 'authentication-style exit with private stderr'; Response = @{ ExitCode = 4; Stdout = ''; Stderr = 'fixture-secret-DO-NOT-LOG C:/private/credential-file' }; ExpectedExit = 4; ExpectedReason = 'GitHub inspection failed (exit 4).' }
+        @{ Label = 'invalid JSON'; Response = @{ ExitCode = 0; Stdout = '{malformed fixture-secret-DO-NOT-LOG C:/private/credential-file'; Stderr = '' }; ExpectedExit = 0; ExpectedReason = 'GitHub inspection returned missing or invalid JSON.' }
+        @{ Label = 'wrong JSON shape'; Response = @{ ExitCode = 0; Stdout = '["fixture-secret-DO-NOT-LOG C:/private/credential-file"]'; Stderr = '' }; ExpectedExit = 0; ExpectedReason = 'GitHub inspection returned missing or invalid JSON.' }
+        @{ Label = 'root array with one valid-looking identity object'; Response = @{ ExitCode = 0; Stdout = '[{"nameWithOwner":"fixture/repo","unexpected":"untrusted-extra-field fixture-secret-DO-NOT-LOG C:/private/credential-file"}]'; Stderr = '' }; ExpectedExit = 0; ExpectedReason = 'GitHub inspection returned missing or invalid JSON.' }
+        @{ Label = 'root string'; Response = @{ ExitCode = 0; Stdout = '"fixture-secret-DO-NOT-LOG C:/private/credential-file"'; Stderr = '' }; ExpectedExit = 0; ExpectedReason = 'GitHub inspection returned missing or invalid JSON.' }
+        @{ Label = 'root number'; Response = @{ ExitCode = 0; Stdout = '42'; Stderr = '' }; ExpectedExit = 0; ExpectedReason = 'GitHub inspection returned missing or invalid JSON.' }
+        @{ Label = 'root Boolean'; Response = @{ ExitCode = 0; Stdout = 'true'; Stderr = '' }; ExpectedExit = 0; ExpectedReason = 'GitHub inspection returned missing or invalid JSON.' }
+        @{ Label = 'empty root array'; Response = @{ ExitCode = 0; Stdout = '[]'; Stderr = '' }; ExpectedExit = 0; ExpectedReason = 'GitHub inspection returned missing or invalid JSON.' }
+        @{ Label = 'thrown launch error'; Response = @{ Throw = $true }; ExpectedExit = -1; ExpectedReason = 'GitHub inspection failed (exit -1).' }
+        @{ Label = 'thrown deadline error'; Response = @{ ThrowKind = 'Deadline' }; ExpectedExit = -1; ExpectedReason = 'GitHub inspection failed (exit -1).' }
+    ) {
+        $r = Complete-Fixture (Start-Fixture -DiscoverRepository -Scenario @{ repository = $Response })
+        Assert-RepositoryProbeFailure -Result $r -ExitCode $ExpectedExit -Reason $ExpectedReason
+    }
+
+    # Protects: valid JSON still requires a string repository identity matching the existing accepted syntax before it enters output.
+    # Detects: invalid identity text leaking through repo/stdout, non-string identities accepted by coercion, or invalid identity reported Available.
+    # Needs: PowerShell 7, Pester 5, and the existing bounded-process child fixture; no external requests.
+    # Breadcrumb: Tools/GitOps/Invoke-GitOpsMonitors.ps1
+    It 'rejects an invalid discovered repository identity without echoing it: <Label>' -ForEach @(
+        @{ Label = 'private text'; Json = '{"nameWithOwner":"fixture-secret-DO-NOT-LOG C:/private/credential-file","unexpected":"untrusted-extra-field"}' }
+        @{ Label = 'missing identity'; Json = '{"unexpected":"untrusted-extra-field fixture-secret-DO-NOT-LOG C:/private/credential-file"}' }
+        @{ Label = 'null identity'; Json = '{"nameWithOwner":null,"unexpected":"untrusted-extra-field"}' }
+        @{ Label = 'trailing LF'; Json = '{"nameWithOwner":"fixture/repo\n","unexpected":"untrusted-extra-field"}' }
+        @{ Label = 'array identity'; Json = '{"nameWithOwner":["fixture/repo"],"unexpected":"untrusted-extra-field"}' }
+        @{ Label = 'object identity'; Json = '{"nameWithOwner":{"value":"fixture/repo","unexpected":"untrusted-extra-field"}}' }
+    ) {
+        $r = Complete-Fixture (Start-Fixture -DiscoverRepository -Scenario @{ repository = @{ ExitCode = 0; Stdout = $Json; Stderr = '' } })
+        Assert-RepositoryProbeFailure -Result $r -ExitCode 0 -Reason 'Repository identity is unavailable or invalid.'
+    }
+
+    # Protects: an actual JSON object still yields available parsed metadata through the maintained response helper.
+    # Detects: an over-restrictive runtime-type correction rejecting valid objects or discarding their parsed value.
+    # Needs: PowerShell 7 and Pester 5; LibraryOnly loads the real helper and only the process boundary is mocked.
+    # Breadcrumb: Tools/GitOps/Invoke-GitOpsMonitors.ps1
+    It 'preserves valid object response values through the actual shared helper' {
+        . (Join-Path $script:source 'Tools/GitOps/Invoke-GitOpsMonitors.ps1') -LibraryOnly
+        $script:probeJson = '{"nameWithOwner":"fixture/repo","untouched":42}'
+        Mock Invoke-GitOpsProcess { [pscustomobject]@{ ExitCode = 0; Stdout = $script:probeJson; Stderr = '' } }
+        $response = Get-GitOpsResponse -Operation repository -Arguments @('repo', 'view', '--json', 'nameWithOwner') -WorkingDirectory $TestDrive -TimeoutSeconds 2 -Shape Object
+        $response.status | Should -Be Available
+        $response.exit_code | Should -Be 0
+        $response.reason | Should -BeNullOrEmpty
+        $response.value.nameWithOwner | Should -Be 'fixture/repo'
+        $response.value.untouched | Should -Be 42
+    }
+
+    # Protects: genuine empty and nonempty JSON arrays remain valid for the existing array request contract.
+    # Detects: applying the concrete object check to array operations, dropping an empty array, or losing parsed array values.
+    # Needs: PowerShell 7 and Pester 5; LibraryOnly loads the real helper and only the process boundary is mocked.
+    # Breadcrumb: Tools/GitOps/Invoke-GitOpsMonitors.ps1
+    It 'preserves actual array response handling for <Label>' -ForEach @(
+        @{ Label = 'empty array'; Json = '[]'; ExpectedCount = 0 }
+        @{ Label = 'nonempty array'; Json = '[{"databaseId":42}]'; ExpectedCount = 1 }
+    ) {
+        . (Join-Path $script:source 'Tools/GitOps/Invoke-GitOpsMonitors.ps1') -LibraryOnly
+        $script:probeJson = $Json
+        Mock Invoke-GitOpsProcess { [pscustomobject]@{ ExitCode = 0; Stdout = $script:probeJson; Stderr = '' } }
+        $response = Get-GitOpsResponse -Operation runs -Arguments @('run', 'list') -WorkingDirectory $TestDrive -TimeoutSeconds 2 -Shape Array
+        $response.status | Should -Be Available
+        $response.exit_code | Should -Be 0
+        $response.reason | Should -BeNullOrEmpty
+        ($response.value -is [array]) | Should -BeTrue
+        $response.value.Count | Should -Be $ExpectedCount
+        if ($ExpectedCount) { $response.value[0].databaseId | Should -Be 42 }
+    }
+
+    # Protects: Object requests reject every non-object JSON root without exposing returned content.
+    # Detects: the pscustomobject accelerator accepting wrapped arrays/scalars or array member enumeration hiding the wrong root shape.
+    # Needs: PowerShell 7 and Pester 5; LibraryOnly loads the real helper and only the process boundary is mocked.
+    # Breadcrumb: Tools/GitOps/Invoke-GitOpsMonitors.ps1
+    It 'rejects non-object roots in the actual shared helper for <Label>' -ForEach @(
+        @{ Label = 'one-object array'; Json = '[{"nameWithOwner":"fixture/repo","unexpected":"untrusted-extra-field fixture-secret-DO-NOT-LOG C:/private/credential-file"}]' }
+        @{ Label = 'empty array'; Json = '[]' }
+        @{ Label = 'string array'; Json = '["fixture-secret-DO-NOT-LOG C:/private/credential-file"]' }
+        @{ Label = 'string'; Json = '"fixture-secret-DO-NOT-LOG C:/private/credential-file"' }
+        @{ Label = 'number'; Json = '42' }
+        @{ Label = 'Boolean'; Json = 'true' }
+        @{ Label = 'null'; Json = 'null' }
+    ) {
+        . (Join-Path $script:source 'Tools/GitOps/Invoke-GitOpsMonitors.ps1') -LibraryOnly
+        $script:probeJson = $Json
+        Mock Invoke-GitOpsProcess { [pscustomobject]@{ ExitCode = 0; Stdout = $script:probeJson; Stderr = 'fixture-secret-DO-NOT-LOG C:/private/credential-file' } }
+        $response = Get-GitOpsResponse -Operation repository -Arguments @('repo', 'view', '--json', 'nameWithOwner') -WorkingDirectory $TestDrive -TimeoutSeconds 2 -Shape Object
+        $response.operation | Should -Be repository
+        $response.status | Should -Be Unavailable
+        $response.exit_code | Should -Be 0
+        $response.reason | Should -Be 'GitHub inspection returned missing or invalid JSON.'
+        $response.value | Should -BeNullOrEmpty
+        ($response | ConvertTo-Json -Depth 12) | Should -Not -Match 'fixture-secret|C:/private|untrusted-extra-field'
     }
 }

@@ -4,6 +4,8 @@
 Run bounded GitOps inspections and publish through the configured agent-bus client.
 .DESCRIPTION
 The detached worker retains inspection and publication failures in its local report.
+Repository discovery retains only operation, status, exit code and controlled reason;
+invalid discovered identity text and raw response/error content never enter its report.
 LibraryOnly loads shared helpers without starting work.
 #>
 [CmdletBinding()]
@@ -82,7 +84,7 @@ function Get-GitOpsResponse {
     else {
         try {
             $value = ConvertFrom-Json -InputObject $response.Stdout -NoEnumerate -ErrorAction Stop
-            if ($null -eq $value -or ($Shape -eq 'Array' -and $value -isnot [array]) -or ($Shape -eq 'Object' -and $value -isnot [pscustomobject])) { throw 'Unexpected response shape.' }
+            if ($null -eq $value -or ($Shape -eq 'Array' -and $value -isnot [array]) -or ($Shape -eq 'Object' -and $value.GetType() -ne [System.Management.Automation.PSCustomObject])) { throw 'Unexpected response shape.' }
         }
         catch {
             $status = 'Unavailable'
@@ -126,14 +128,24 @@ try {
     if (-not $NoDelay -and $DelaySeconds -gt 0) { Start-Sleep -Seconds $DelaySeconds }
     $configurationError = $null
     if ($BusUrl) { $configurationError = 'BusUrl is unsupported; configure agent-bus candidates and their credential sources.' }
+    $detail = @{}
     if (-not $Repo -and -not $configurationError) {
         $identity = Get-GitOpsResponse -Operation repository -Arguments @('repo', 'view', '--json', 'nameWithOwner') -WorkingDirectory $RepoRoot -TimeoutSeconds $RequestTimeoutSeconds -Shape Object
-        if ($identity.status -eq 'Available') { $Repo = $identity.value.nameWithOwner }
+        if ($identity.status -eq 'Available') {
+            $discoveredRepo = $identity.value.nameWithOwner
+            if ($discoveredRepo -is [string] -and $discoveredRepo -match '\A[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\z') { $Repo = $discoveredRepo }
+            else { $identity.status = 'Unavailable'; $identity.reason = 'Repository identity is unavailable or invalid.' }
+        }
+        # Project controlled metadata only; the response value can contain private data.
+        $detail.repository = [pscustomobject]@{
+            operation = [string]$identity.operation; status = [string]$identity.status
+            exit_code = [int]$identity.exit_code; reason = $identity.reason
+        }
     }
     if ($Repo -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') { $configurationError = 'Repository identity is unavailable or invalid.' }
     $combined = [ordered]@{
         repo = $Repo; ts_utc = [datetime]::UtcNow.ToString('o'); inspection_status = 'Unavailable'; configuration_error = $configurationError
-        workflow_problems = $null; upstream_items = $null; detail = @{}
+        workflow_problems = $null; upstream_items = $null; detail = $detail
         publication = @{ status = 'NotAttempted'; exit_code = $null; reason = $null }
     }
     if (-not $configurationError) {
@@ -142,7 +154,8 @@ try {
         if ($wh.inspection_status -notin @('Available', 'Unavailable') -or $ur.inspection_status -notin @('Available', 'Unavailable') -or $null -eq $wh.problem_count -or $null -eq $ur.total) { throw 'Missing child inspection metadata.' }
         $combined.workflow_problems = $wh.problem_count
         $combined.upstream_items = $ur.total
-        $combined.detail = @{ workflow = $wh; upstream = $ur }
+        $combined.detail.workflow = $wh
+        $combined.detail.upstream = $ur
         $combined.inspection_status = if ($wh.inspection_status -eq 'Available' -and $ur.inspection_status -eq 'Available') { 'Available' } else { 'Unavailable' }
         $exitCode = if ($combined.inspection_status -eq 'Unavailable') { 2 } elseif ($wh.problem_count -gt 0 -or $ur.total -gt 0) { 1 } else { 0 }
         if ($exitCode -ne 0) {

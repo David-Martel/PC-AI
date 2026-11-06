@@ -1,0 +1,106 @@
+name: GitOps monitor contracts
+on:
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gitops-contracts-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  # Protects: all 66 GitOps fixture contracts and refusal of uninspected or incompletely executed results on each OS.
+  # Detects: missing tests, test/setup/discovery errors, not-run cases, unexpected skips and unstubbed process-boundary calls.
+  # Needs: PowerShell 7, job-local Pester 5.7.1, hosted Windows or trusted Linux runner; no secrets, live provider or hardware.
+  # Breadcrumb: Tests/Unit/GitOpsMonitors.Tests.ps1
+  contracts:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os == 'windows-latest' && 'windows-latest' || (vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON('["self-hosted","Linux","X64","pc-ai-local"]') || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    env:
+      GITOPS_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    defaults:
+      run:
+        shell: pwsh -NoLogo -NoProfile -NonInteractive -Command . '{0}'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Lint own workflow on trusted Linux
+        if: runner.os == 'Linux' && runner.environment == 'self-hosted'
+        shell: bash
+        run: actionlint .github/workflows/gitops-contracts.yml
+      - name: Pinned job-local Pester and exact-head contracts
+        timeout-minutes: 8
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $actualHead = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $actualHead -cne $env:GITOPS_HEAD_SHA) { throw 'Checkout is not the requested immutable head.' }
+          $moduleRoot = Join-Path $env:RUNNER_TEMP 'gitops-pester'
+          Save-Module -Name Pester -RequiredVersion 5.7.1 -Repository PSGallery -Path $moduleRoot -Force -ErrorAction Stop
+          $manifest = Join-Path $moduleRoot 'Pester/5.7.1/Pester.psd1'
+          Import-Module -Name $manifest -Force -ErrorAction Stop
+          if ((Get-Module Pester).Version -ne [version]'5.7.1') { throw 'Unexpected Pester version.' }
+
+          $windowsOnly = @(
+            'checks WMI result and keeps launch rejection visible without blocking the hook'
+            'anchors a launcher under a checkout with spaces regardless of caller cwd'
+          )
+          function Assert-GitOpsResult {
+            param($Run, [string[]]$ExpectedSkipped = @())
+            if ($null -eq $Run -or [string]$Run.Result -cne 'Passed' -or $Run.TotalCount -ne 66) { throw 'Missing, failed or incomplete GitOps test run.' }
+            if ($Run.FailedCount -ne 0 -or $Run.FailedBlocksCount -ne 0 -or $Run.FailedContainersCount -ne 0 -or $Run.NotRunCount -ne 0) { throw 'GitOps test/setup/discovery/not-run errors.' }
+            $rows = @($Run.Tests)
+            if ($rows.Count -ne 66 -or @($rows.ExpandedName | Sort-Object -Unique).Count -ne 66) { throw 'Incomplete or duplicate case inventory.' }
+            if (@($rows | Where-Object Result -NotIn @('Passed', 'Skipped')).Count -ne 0) { throw 'Unexpected test terminal state.' }
+            $skipped = @($rows | Where-Object Result -EQ Skipped | ForEach-Object ExpandedName | Sort-Object)
+            if (($skipped -join '|') -cne (@($ExpectedSkipped | Sort-Object) -join '|') -or $Run.SkippedCount -ne $ExpectedSkipped.Count) { throw 'Unexpected skipped contract.' }
+            if ($Run.PassedCount + $Run.SkippedCount -ne 66) { throw 'Incomplete inspected result count.' }
+          }
+
+          # Exercise this exact gate with passing controls and detecting counter/skip mutations.
+          $passing = [pscustomobject]@{ Result = 'Passed'; TotalCount = 66; PassedCount = 66; FailedCount = 0; FailedBlocksCount = 0; FailedContainersCount = 0; NotRunCount = 0; SkippedCount = 0; Tests = @(1..66 | ForEach-Object { [pscustomobject]@{ ExpandedName = "control $_"; Result = 'Passed' } }) }
+          Assert-GitOpsResult $passing
+          $linuxPassing = $passing.PSObject.Copy()
+          $linuxPassing.PassedCount = 64; $linuxPassing.SkippedCount = 2
+          $linuxPassing.Tests = @($windowsOnly | ForEach-Object { [pscustomobject]@{ ExpandedName = $_; Result = 'Skipped' } }) + @($passing.Tests[2..65])
+          Assert-GitOpsResult $linuxPassing -ExpectedSkipped $windowsOnly
+          foreach ($field in @('TotalCount', 'FailedCount', 'FailedBlocksCount', 'FailedContainersCount', 'NotRunCount')) {
+            $bad = $passing.PSObject.Copy()
+            $bad.$field = if ($field -eq 'TotalCount') { 0 } else { 1 }
+            $rejected = $false
+            try { Assert-GitOpsResult $bad } catch { $rejected = $true }
+            if (-not $rejected) { throw "Result gate accepted bad $field." }
+          }
+          $bad = $passing.PSObject.Copy()
+          $bad.PassedCount = 65; $bad.SkippedCount = 1
+          $bad.Tests = @([pscustomobject]@{ ExpandedName = 'unexpected skip'; Result = 'Skipped' }) + @($passing.Tests[1..65])
+          $rejected = $false
+          try { Assert-GitOpsResult $bad } catch { $rejected = $true }
+          if (-not $rejected) { throw 'Result gate accepted unexpected skip.' }
+
+          $script:GitOpsCiGuardHits = 0
+          function global:Invoke-VigilBoundedProcess {
+            param([string]$FilePath, [string[]]$Arguments, [string]$WorkingDirectory, [int]$TimeoutSeconds)
+            $script:GitOpsCiGuardHits++
+            throw 'CI refused an unstubbed GitOps process boundary.'
+          }
+          $caught = $false
+          try { Invoke-VigilBoundedProcess -FilePath 'guard-control' -Arguments @() -WorkingDirectory $env:RUNNER_TEMP -TimeoutSeconds 1 }
+          catch { if ($_.Exception.Message -cne 'CI refused an unstubbed GitOps process boundary.') { throw }; $caught = $true }
+          if (-not $caught -or $script:GitOpsCiGuardHits -ne 1) { throw 'Process guard positive control failed.' }
+          $script:GitOpsCiGuardHits = 0
+
+          $config = New-PesterConfiguration
+          $config.Run.Path = @(Join-Path $env:GITHUB_WORKSPACE 'Tests/Unit/GitOpsMonitors.Tests.ps1')
+          $config.Run.PassThru = $true; $config.Run.Exit = $false; $config.Run.Throw = $false
+          $config.Output.Verbosity = 'Detailed'
+          $result = Invoke-Pester -Configuration $config
+          if ($script:GitOpsCiGuardHits -ne 0) { throw 'An unstubbed GitOps process boundary was attempted.' }
+          $allowed = if ($IsWindows) { @() } else { $windowsOnly }
+          Assert-GitOpsResult $result -ExpectedSkipped $allowed
+          [ordered]@{ Platform = $env:RUNNER_OS; Head = $actualHead; Pester = '5.7.1'; Total = $result.TotalCount; Passed = $result.PassedCount; Skipped = $result.SkippedCount; Failed = $result.FailedCount; Blocks = $result.FailedBlocksCount; Containers = $result.FailedContainersCount; NotRun = $result.NotRunCount; GuardHits = $script:GitOpsCiGuardHits } | ConvertTo-Json -Compress

@@ -119,8 +119,9 @@ The [signed first-PR record](https://github.com/David-Martel/PC-AI/blob/2800c099
 preserves the earlier `dc5da21962ac15b63d39b738eab41ffd15238d90` implementation
 binding to the `301943` test revision and its historical 29-pass discovery and
 14-pass/four-failure legacy result. That history and the earlier 13-pass/five-failure
-baseline remain distinct from this current 66-case candidate. Current review
-commit fields remain null until the actual schema implementation is committed.
+baseline remain distinct from this 66-case qualification. Review records bind
+attestations to their recorded source and test hashes; reviewed_commit identifies
+the signed implementation covered by each record.
 
 The [workflow producer](Watch-WorkflowHealth.ps1) still calls the product-specific
 `/user/settings/billing/actions` endpoint. [GitHub retired that endpoint family on
@@ -135,3 +136,10 @@ This report-schema correction does not qualify live billing availability or incl
 ## Coordination
 Multiple agents (Claude, Codex, Jules) work these repos. Claim files via the agent-bus `topic=ownership`
 before editing shared config; post pushed SHAs so peers rebase, not clobber.
+
+The reusable [GitOps contract workflow](../../.github/workflows/gitops-contracts.yml)
+is a dependency of the existing required ci-gate in [Linux CI](../../.github/workflows/linux-ci.yml)
+under its unchanged trusted-event/runner-enabled condition. It pins this fixture inventory at 66 cases. Intentional case additions or removals require
+a reviewed count update and refreshed [gate bindings](../../Tests/Unit/gitops-ci-review.json).
+The gate requires an actual Linux 64-pass/two-skip result; synthetic Linux
+controls do not qualify Linux execution.

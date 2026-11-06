@@ -1,0 +1,765 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 bytes with CRLF converted to LF",
+  "disposition": "KEEP_SOURCE_REVIEW_WITH_PLATFORM_EXECUTION_SCOPES",
+  "reviewed_utc": "2026-11-05T23:44:58Z",
+  "recorded_utc": "2026-11-05T23:55:36.191174+00:00",
+  "source_files": [
+    {
+      "path": "Cargo.toml",
+      "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+    },
+    {
+      "path": "src/lib.rs",
+      "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+    },
+    {
+      "path": "src/client_plan.rs",
+      "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+    },
+    {
+      "path": "src/bin/pcai-usb4-client.rs",
+      "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+    },
+    {
+      "path": "tests/client_plan_contract.rs",
+      "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+    },
+    {
+      "path": "../../../docs/usb4/native-peer-client.md",
+      "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+    },
+    {
+      "path": "../../../AGENTS.md",
+      "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+    },
+    {
+      "path": "README.md",
+      "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+    }
+  ],
+  "validation": {
+    "windows_package_before_equivalent_literal_correction": {
+      "existing_selectors": 119,
+      "new_client_selectors": 11,
+      "passed": true,
+      "source_sha256": "4de0c254f7921a4337eb3738f4e4b9096e0f764f6bca31167e1b184176d7ac9c",
+      "test_sha256": "5437cb7c672c10bf964b0d671deeaaba6400ed5aa96e5c163e46d29671a79a58",
+      "receipt_sha256": "e142b2a974d752d4e8fae8d627983c552570ae83fc8e09a45512efbe623edec3"
+    },
+    "current_windows_client_contracts": {
+      "passed": 11,
+      "failed": 0,
+      "source_sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a",
+      "test_sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc",
+      "receipt_sha256": "a60f1dd341de22a94419efe2aba0c06269ff205516184b5b06817c57c7ec22e5"
+    },
+    "strict_analysis": {
+      "command": "cargo clippy --locked --offline -p pcai-tb --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    "detecting_mutation": {
+      "change": "StrictHostKeyChecking=yes to no in the actual private Work builder",
+      "selector": "ssh_ipv4_retains_exact_source_and_every_isolation_guard",
+      "mutant_exit_code": 101,
+      "expected_failure": "Missing explicit guard: StrictHostKeyChecking=yes",
+      "restored_focused_exit_code": 0,
+      "production_sha256_restored": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+    },
+    "unix_only": {
+      "state": "NOT_RUN on Windows; matching-OS CI required",
+      "selectors": [
+        "fifo_policy_is_refused_without_waiting_for_a_writer",
+        "offline_plan_does_not_launch_a_proven_owned_client_sentinel",
+        "policy_symlinks_and_regular_file_ancestors_are_refused"
+      ]
+    },
+    "documentation": {
+      "selectors": 14,
+      "relative_links": 19,
+      "broken": 0,
+      "unexamined": 0,
+      "rationale_labels": "Protects, Detects, Needs, Breadcrumb all present"
+    },
+    "boundaries": [
+      "Static reviewer did not execute these tests; separate Work lane produced the bound receipts.",
+      "Windows package and current focused runs have distinct source cohorts; exact-PR-head CI remains required.",
+      "No client inspection/execution, live USB4 hardware, reconnect, throughput or installed-client qualification follows from these fixture contracts.",
+      "Offline missing-path checks are not a syscall audit for ignored access errors; POSIX sentinel qualification is separate."
+    ],
+    "offline_startup": {
+      "state": "PASS: 20 identical fixed-policy plans",
+      "configuration": "debug / unoptimized plus debuginfo",
+      "measurement": "20 fresh native OS processes after compilation; filesystem caches not flushed; no PowerShell per sample; no comparison baseline or speedup claim",
+      "statistics": {
+        "Count": 20,
+        "MinMs": 43.6257,
+        "MedianMs": 47.89575,
+        "P95Ms": 50.8234,
+        "MaxMs": 55.7179
+      },
+      "output_sha256": "2b3af7d1cd1f92b5cf837ce06123981f07cac11078c022bcc9664c6dbadecda1",
+      "binary_sha256_recorded_before_run": "768de3ade1c43c6ca95223b9a4575b5f30d19c368c8b86ff4d16fe8d90ff832a",
+      "receipt_sha256": "ee3fc3c7426311af334de20fae26b3ab8cf9031de8ad43aa0fad3217e585923b",
+      "limits": "Fresh process with warm filesystem caches; no equivalent baseline or performance-win claim. Separate parser phase failed; do not label the combined receipt Qualified."
+    },
+    "native_openssh_config_parser": {
+      "state": "NOT_QUALIFIED",
+      "observed_binary": "OpenSSH_for_Windows_9.5p2, LibreSSL 3.8.2",
+      "actual_plan": "5-second timeout, zero configuration stdout",
+      "minimal_control": "Same timeout with first -G, -F NUL and numeric IPv4, independent of production options",
+      "verbose_control": "Only version line captured before same bounded timeout; exact wait is unknown",
+      "qualification": "No planner-specific syntax defect established; no authentication, pin/key token expansion or runtime session qualification. No timeout or production option was changed.",
+      "verbose_receipt_sha256": "4d1c2ad5599e2da43501f3a5e329154fe5d659fe1371056c3a051131e4e7c229"
+    }
+  },
+  "reviews": [
+    {
+      "selector": "client_plan_contract::ssh_ipv4_retains_exact_source_and_every_isolation_guard",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Explicit family/config/source/account guards and truthful unqualified state; assertions enumerate the isolation options independently.",
+      "selector_sha256": "1c454530e05ea10dd117589e203ee2bf920bb12c2dd5852727bfe32454d5405a",
+      "target_sha256": "1e81f8e4c8aa6a7641a252c7e7773312dbba70a53ca6886676b6dc4a753747a4",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "PASS: current focused contract cohort",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::ipv6_scope_and_protocol_specific_destination_grammar_are_exact",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Both protocol destinations and local scope normalization, IPv6 family flag and SFTP source-option grammar are asserted.",
+      "selector_sha256": "25e77cd814da933be181a18bb59aae5df5ec03700cc44c8e4c882c5c9dee48d1",
+      "target_sha256": "1e81f8e4c8aa6a7641a252c7e7773312dbba70a53ca6886676b6dc4a753747a4",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "PASS: current focused contract cohort",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::sftp_source_binding_is_an_option_and_batch_file_stays_literal",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Distinguishes SFTP batch -b from BindAddress, proves explicit SSH helper -S and NotVerified, rejects missing/unsafe helper and batch-on-SSH.",
+      "selector_sha256": "4120b168d9eb2fa77e3e341017b694ade454e8a9316052c79b968b5215bafdb0",
+      "target_sha256": "1e81f8e4c8aa6a7641a252c7e7773312dbba70a53ca6886676b6dc4a753747a4",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "PASS: current focused contract cohort",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::identity_and_pin_paths_preserve_spaces_percent_and_apostrophes",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Manual expected config-option strings cover quoting, backslash/percent preservation and absence of premature-stat -i. This is argv contract evidence, not an executed OpenSSH tokenizer test.",
+      "selector_sha256": "ac4b07487a10ec21eb96ad53f0420f1607bd9a8c106468f2ab4c3aab7947ca27",
+      "target_sha256": "1e81f8e4c8aa6a7641a252c7e7773312dbba70a53ca6886676b6dc4a753747a4",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "PASS: current focused contract cohort",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::posix_plan_uses_explicit_null_config_and_unscoped_ula",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Pure declared POSIX SSH/SFTP paths, /dev/null and ULA grammar; does not claim POSIX host qualification.",
+      "selector_sha256": "ff8ae2301a051eebcfc193527086432174011e077e7c2d929e33d072a28329a3",
+      "target_sha256": "1e81f8e4c8aa6a7641a252c7e7773312dbba70a53ca6886676b6dc4a753747a4",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "PASS: current focused contract cohort",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::unsafe_declarations_refuse_instead_of_widening_a_plan",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Negative endpoints/identity/path cases include all six Microsoft documented superscript COM/LPT device forms.",
+      "selector_sha256": "386ec51325eaf250ad3c432bef027e72ed33b8b6db626610f45c5eceafa22c8d",
+      "target_sha256": "1e81f8e4c8aa6a7641a252c7e7773312dbba70a53ca6886676b6dc4a753747a4",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "PASS: current focused contract cohort",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::policy_json_is_bounded_typed_and_closed",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Root duplicate/unknown fields, mistyped index, malformed UTF-8 and overbudget JSON are refused; nested closed-field behavior also clear in serde declaration source.",
+      "selector_sha256": "b5369a41b6a51bde29d223fd5129450ebe9f5ecddbab070263a4712f75b4846a",
+      "target_sha256": "1e81f8e4c8aa6a7641a252c7e7773312dbba70a53ca6886676b6dc4a753747a4",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "PASS: current focused contract cohort",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::parser_rejects_unavailable_actions_and_keeps_plan_flags_offline",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Pure parser covers unavailable actions, duplicate/missing policy and arbitrary option refusal; dry-run flags dispatch only to offline plan.",
+      "selector_sha256": "a6f8248074cf9beb61e0728077198ddcd4d322ae35a440e54ccfbf7f1669e66a",
+      "target_sha256": "1e81f8e4c8aa6a7641a252c7e7773312dbba70a53ca6886676b6dc4a753747a4",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "PASS: current focused contract cohort",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::actual_binary_plans_offline_without_opening_declared_credentials_or_program",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Actual binary/default/dry-run/what-if wiring and truthful JSON/no additional owned files. Missing declared paths detect propagated accesses; this is not a syscall audit for ignored access errors.",
+      "selector_sha256": "0231a4d25376ab920035d64f07dd93b91744485a5752758108b862bdca252316",
+      "target_sha256": "50286911a8debd23df3e5b01ccded29cbfddbd4ffb4a3063885d466a3d38b4c2",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "PASS: current focused contract cohort",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::actual_help_is_offline_and_unavailable_actions_exit_nonzero",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Actual help succeeds even with missing policy; unavailable actions must exit2 without stdout.",
+      "selector_sha256": "d5768ada6cc23c465e00b5f76badce4c2991596d46465665643289671bc09045",
+      "target_sha256": "50286911a8debd23df3e5b01ccded29cbfddbd4ffb4a3063885d466a3d38b4c2",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "PASS: current focused contract cohort",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::actual_binary_refuses_overbudget_and_nonregular_policy_files",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Actual MAX+1 regular file and directory admission refusal. r3 correctly removes unsupported claim of detecting allocation strategy.",
+      "selector_sha256": "a1e4ca40530fc573ed607fa7b79db8ac09decb74964439d24d538980199ed1e2",
+      "target_sha256": "50286911a8debd23df3e5b01ccded29cbfddbd4ffb4a3063885d466a3d38b4c2",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "PASS: current focused contract cohort",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::fifo_policy_is_refused_without_waiting_for_a_writer",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Unix-only real FIFO/no-writer case with two-second child deadline and explicit failure cleanup.",
+      "selector_sha256": "733967a6ba90fc5a55a99891e3c2d1f940543c16f872c5eb303651b7574ebacd",
+      "target_sha256": "50286911a8debd23df3e5b01ccded29cbfddbd4ffb4a3063885d466a3d38b4c2",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "NOT_RUN: cfg(unix) selector is not compiled on Windows",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::policy_symlinks_and_regular_file_ancestors_are_refused",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Unix-only stable symlink/regular-ancestor rejection; no claim of race-free traversal.",
+      "selector_sha256": "35797cc68f087802d20ef84acf0e358cb5c1f1352b76135bf135472a275091a7",
+      "target_sha256": "50286911a8debd23df3e5b01ccded29cbfddbd4ffb4a3063885d466a3d38b4c2",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "NOT_RUN: cfg(unix) selector is not compiled on Windows",
+      "unix_execution": "PENDING: matching-OS CI required"
+    },
+    {
+      "selector": "client_plan_contract::offline_plan_does_not_launch_a_proven_owned_client_sentinel",
+      "disposition": "KEEP",
+      "reviewer": "codex-gen9-reverse-audit",
+      "reviewer_type": "agent",
+      "reviewed_utc": "2026-11-05T23:44:58Z",
+      "rationale": "Unix-only real executable with marker-positive control and marker absence after planning detects an ignored-error launch. Both positive and planner children have finite deadlines.",
+      "selector_sha256": "44b9744a57cc1bec33707d9bbae0e6fd65085b59444a00c3271ec823a262eed7",
+      "target_sha256": "50286911a8debd23df3e5b01ccded29cbfddbd4ffb4a3063885d466a3d38b4c2",
+      "source_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bbd632524edb348dd6830dd881cfbc55f39935924395a28729199b1dda8600ea"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3b811b6d0d5e6d0f3d4fc1d9f343535ddc1089b03feebff09e7e41f6304c6664"
+        },
+        {
+          "path": "src/client_plan.rs",
+          "sha256": "0572f6a12546d132d231b1a3b8dbc35a31e18350d4c4284e4a62565aae6f0c1a"
+        },
+        {
+          "path": "src/bin/pcai-usb4-client.rs",
+          "sha256": "f9d9c8eb613706f2a12bd73cb61741e517651bc5287cfc21ceca4eaea153cee6"
+        },
+        {
+          "path": "tests/client_plan_contract.rs",
+          "sha256": "35baf63704ad9b257c4345affd7b91cbcf68cab68dc3c8a6408bc1a4062ff7cc"
+        },
+        {
+          "path": "../../../docs/usb4/native-peer-client.md",
+          "sha256": "ede00c012a8b1bf6beccadcf4ca85690add29014eecdea35d03b1b59b676118a"
+        },
+        {
+          "path": "../../../AGENTS.md",
+          "sha256": "d886836c6c8c8a5788cf6a42240678e0df1f5f1a9924f752f413d86ea36686ac"
+        },
+        {
+          "path": "README.md",
+          "sha256": "f5411f4905171c804b60ab4122752c6cdd2a712998e415a158ebacfbcab449eb"
+        }
+      ],
+      "windows_execution": "NOT_RUN: cfg(unix) selector is not compiled on Windows",
+      "unix_execution": "PENDING: matching-OS CI required"
+    }
+  ],
+  "ReviewedCommit": "083c6aeee6419851656e2867f6c0a935dec81b03",
+  "ReviewedTree": "0b12bbaabdce735223fd31309ccdd747604184cf",
+  "ReviewCommitScope": "ReviewedCommit identifies the normally signed implementation snapshot for the eight source/document bindings. This metadata follow-up changes only this review record."
+}

@@ -12,6 +12,10 @@ rust-version.workspace = true
 name = "pcai-tb"
 path = "src/main.rs"
 
+[[bin]]
+name = "pcai-usb4-client"
+path = "src/bin/pcai-usb4-client.rs"
+
 [lib]
 name = "pcai_tb"
 path = "src/lib.rs"
@@ -36,6 +40,7 @@ windows-sys = { workspace = true, features = [
     "Win32_Networking_WinSock",
     "Win32_System_WindowsProgramming",
     "Win32_System_Console",
+    "Win32_Storage_FileSystem",
 ] }
 
 [dev-dependencies]

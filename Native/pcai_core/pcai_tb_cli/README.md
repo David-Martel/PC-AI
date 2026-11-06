@@ -14,6 +14,30 @@ cargo install --path pcai_tb_cli --locked --bin pcai-tb
 pcai-tb status --compact
 ```
 
+## Offline peer-client plans
+
+The separate `pcai-usb4-client` binary renders source-bound IPv4/IPv6 SSH or
+SFTP argument arrays. It reads an explicitly named bounded policy file; it does
+not inspect interfaces, verify credentials, launch OpenSSH or change networking.
+`OfflinePlan` leaves local inspection and peer authentication `NotCollected`.
+
+From `Native/pcai_core`, install, build, test and run with:
+
+```bash
+cargo install --path pcai_tb_cli --locked --bin pcai-usb4-client
+cargo build --locked -p pcai-tb --bin pcai-usb4-client
+cargo test --locked -p pcai-tb --test client_plan_contract
+pcai-usb4-client --help
+pcai-usb4-client plan --policy /absolute/path/to/client-policy.json
+```
+
+Windows requires an ordinary absolute drive path for the policy, such as
+`C:/Peer/client-policy.json`. The [native client guide](../../../docs/usb4/native-peer-client.md)
+contains policy examples, transport grammar and the remaining execution gates.
+The [client contracts](tests/client_plan_contract.rs) and their
+[review register](tests/client-plan-review.json) cover this separate entrypoint;
+portable tests do not qualify installed USB4 hardware or a runnable session.
+
 ## Subcommands
 
 ```bash

@@ -758,5 +758,8 @@
       "windows_execution": "NOT_RUN: cfg(unix) selector is not compiled on Windows",
       "unix_execution": "PENDING: matching-OS CI required"
     }
-  ]
+  ],
+  "ReviewedCommit": "083c6aeee6419851656e2867f6c0a935dec81b03",
+  "ReviewedTree": "0b12bbaabdce735223fd31309ccdd747604184cf",
+  "ReviewCommitScope": "ReviewedCommit identifies the normally signed implementation snapshot for the eight source/document bindings. This metadata follow-up changes only this review record."
 }

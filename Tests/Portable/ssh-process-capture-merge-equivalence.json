@@ -1,0 +1,23 @@
+{
+  "ReviewedHead": "e6fdb53a01fabae08a333e3ad216b8d1e3862eb4",
+  "ImmutableReviewSha256": "ed86fa577b5c482c14d14deb26eb1f26092b51400d160997508018832c1f771e",
+  "HashConvention": "UTF8 LF full files include final LF",
+  "SchemaVersion": 1,
+  "ChangedDocumentation": {
+    "reason": "Resolve independent append conflict by retaining both process-capture and merged private-peer SSH contract backlinks; no production/test/CI changes",
+    "currentSha256": "ef615ebb8450f5ccfc6c9eaa127932ac7c4482c96c1dc93dfa2c25d6e1cd8004",
+    "previousSha256": "7d9d5f684a9a4250b632346d61d4776cfc67bcd30c3453ad52eebd179ab52c81",
+    "path": "docs/usb4/peer-ssh-access.md"
+  },
+  "Disposition": "Source/test/CI byte-equivalent; documentation backlink composition only",
+  "MergedMain": "cd9a6e245891d6246b787a2fd7867724e10f45db",
+  "UnchangedReviewedBindings": {
+    "Tests/Portable/Test-SshStdioInheritance.ps1": "4083f9673e32fe5a4b81da98369937ce40896fc9b0853625a15e583dd91839e8",
+    ".github/workflows/usb4-lifecycle.yml": "8049d0fde8fdfa20f15aa5988c4220d24e19ab4713e515b8aaa1ff9c09075a31",
+    "docs/usb4/ssh-process-capture.md": "5daa7203ea2ce959fc353bf67a849d772ee9d9ce590cec03e993727592e91934",
+    "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1": "caa89c4ec2e46fc37b56caf911df76b176d918074231213f8cf6c866b9498040"
+  },
+  "Reviewer": "author equivalence receipt; original independent review remains immutable",
+  "ImmutableReview": "Tests/Portable/ssh-process-capture-review.json",
+  "ObservedUtc": "2026-11-10T20:33:16.9005158Z"
+}

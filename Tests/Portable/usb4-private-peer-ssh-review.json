@@ -1,0 +1,111 @@
+{
+  "ReviewKind": "Exact explicit RFC1918 Peer /30 enrollment",
+  "ReviewedCommit": "eb14f871b6ae53375cfc960938a4f0f2466b5fbf + exact hash-bound working snapshot",
+  "Selectors": [
+    {
+      "Reviewer": "codex-p1gen9-connectivity",
+      "Disposition": "keep",
+      "Sha256": "f94b3088e2311870057cc15dd590a68d15d6b56b3ec92600e889486777765a64",
+      "Selector": "ExplicitPrivatePairKeepsOfflineExactHostScope",
+      "TestSha256": "a1daba4c57c2165ce3e7c86ec4d0ddcedefbc9896b2f9d1105ff4a7fc6a059f7",
+      "ReviewerType": "independent_agent",
+      "Source": "Tests/Portable/Test-Usb4PrivatePeerSsh.ps1",
+      "SourceSha256": "e7040d25df2d8747d97fcdd8e3a42135535724ab6133970ab34964d1411d0c00",
+      "ReviewScope": "Exact LF source and tests; independently executed64 new assertions and239 existing default assertions. No live firewall Apply by reviewer.",
+      "Protects": "Exact explicit Peer host, MACs and /30 pair retain TCP22/interface/application scope",
+      "Detects": "Implicit private admission, broadened hosts and provider calls while planning",
+      "Needs": "Inert policy dictionaries only",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Set-Usb4PeerSshAccess.ps1::private enrollment / snapshot / rule identity"
+    },
+    {
+      "Reviewer": "codex-p1gen9-connectivity",
+      "Disposition": "keep",
+      "Sha256": "15518983a5973a3d8ba1466147549eef1908d776f4a2740db965ad509496f608",
+      "Selector": "MalformedOrMismatchedEnrollmentRefusesBeforeProviders",
+      "TestSha256": "a1daba4c57c2165ce3e7c86ec4d0ddcedefbc9896b2f9d1105ff4a7fc6a059f7",
+      "ReviewerType": "independent_agent",
+      "Source": "Tests/Portable/Test-Usb4PrivatePeerSsh.ps1",
+      "SourceSha256": "e7040d25df2d8747d97fcdd8e3a42135535724ab6133970ab34964d1411d0c00",
+      "ReviewScope": "Exact LF source and tests; independently executed64 new assertions and239 existing default assertions. No live firewall Apply by reviewer.",
+      "Protects": "Only exact usable RFC1918 /30 enrollment is admitted",
+      "Detects": "Wrong role/host/MAC/peer, broad/public/subnet/broadcast input before providers",
+      "Needs": "Inert declarations and provider traps",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Set-Usb4PeerSshAccess.ps1::private enrollment / snapshot / rule identity"
+    },
+    {
+      "Reviewer": "codex-p1gen9-connectivity",
+      "Disposition": "keep",
+      "Sha256": "1a9739b3c40312d9aff24f756b856477afb62cf76367c8d65ea1334d7adeaac0",
+      "Selector": "FreshUsb4PrefixAndResolvedPeerAreRequired",
+      "TestSha256": "a1daba4c57c2165ce3e7c86ec4d0ddcedefbc9896b2f9d1105ff4a7fc6a059f7",
+      "ReviewerType": "independent_agent",
+      "Source": "Tests/Portable/Test-Usb4PrivatePeerSsh.ps1",
+      "SourceSha256": "e7040d25df2d8747d97fcdd8e3a42135535724ab6133970ab34964d1411d0c00",
+      "ReviewScope": "Exact LF source and tests; independently executed64 new assertions and239 existing default assertions. No live firewall Apply by reviewer.",
+      "Protects": "Fresh positive USB4 identity, assigned /30 and resolved peer MAC",
+      "Detects": "Unknown/stale/foreign prefix and neighbor or second-preflight identity drift",
+      "Needs": "Injected OS snapshots and lease custody",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Set-Usb4PeerSshAccess.ps1::private enrollment / snapshot / rule identity"
+    },
+    {
+      "Reviewer": "codex-p1gen9-connectivity",
+      "Disposition": "keep",
+      "Sha256": "a0d8c0252881103d2e2fbe2ecf7da17b8ccfc22281ba7c24262413e55d53ce46",
+      "Selector": "PrivateRuleReadbackAndRemovalRetainOwnedScope",
+      "TestSha256": "a1daba4c57c2165ce3e7c86ec4d0ddcedefbc9896b2f9d1105ff4a7fc6a059f7",
+      "ReviewerType": "independent_agent",
+      "Source": "Tests/Portable/Test-Usb4PrivatePeerSsh.ps1",
+      "SourceSha256": "e7040d25df2d8747d97fcdd8e3a42135535724ab6133970ab34964d1411d0c00",
+      "ReviewScope": "Exact LF source and tests; independently executed64 new assertions and239 existing default assertions. No live firewall Apply by reviewer.",
+      "Protects": "Exact private rule add/no-op/removal and foreign rule preservation",
+      "Detects": "Widened observed masks, drift overwrite/removal and lost idempotence",
+      "Needs": "Inert firewall store with exact-host mask readback",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Set-Usb4PeerSshAccess.ps1::private enrollment / snapshot / rule identity"
+    },
+    {
+      "Reviewer": "codex-p1gen9-connectivity",
+      "Disposition": "keep",
+      "Sha256": "a5775a056ac3729ce8615e6559e0821dc082172db94fcb22e843669e4b35c559",
+      "Selector": "UnregisteredWindowsPrivateComRuleRetainsExactHosts",
+      "TestSha256": "a1daba4c57c2165ce3e7c86ec4d0ddcedefbc9896b2f9d1105ff4a7fc6a059f7",
+      "ReviewerType": "independent_agent",
+      "Source": "Tests/Portable/Test-Usb4PrivatePeerSsh.ps1",
+      "SourceSha256": "e7040d25df2d8747d97fcdd8e3a42135535724ab6133970ab34964d1411d0c00",
+      "ReviewScope": "Exact LF source and tests; independently executed64 new assertions and239 existing default assertions. No live firewall Apply by reviewer.",
+      "Protects": "Actual Windows COM values retain exact private hosts",
+      "Detects": "COM VARIANT/normalization mismatch before registration",
+      "Needs": "Windows and an unregistered COM rule only",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Set-Usb4PeerSshAccess.ps1::private enrollment / snapshot / rule identity"
+    }
+  ],
+  "SourceBindings": {
+    "docs/usb4/peer-ssh-access.md": "2373c43e12328f97b1cd15a0fbc1c9d4018a4e4b82fece02b2df8301f304825e",
+    "Tests/Portable/Test-Usb4PrivatePeerSsh.ps1": "a1daba4c57c2165ce3e7c86ec4d0ddcedefbc9896b2f9d1105ff4a7fc6a059f7",
+    "docs/usb4/private-peer-ssh-access.md": "3cf3e18decb0c8cc14431e0ad2291f27be57a1b8ba9b320145d6d250f2bf82e9",
+    "Tools/SystemScripts/Networking/Set-Usb4PeerSshAccess.ps1": "e7040d25df2d8747d97fcdd8e3a42135535724ab6133970ab34964d1411d0c00",
+    ".github/workflows/usb4-peer-ssh-access.yml": "88de5626592f01c46046282b462c734fbd5f0d008512aeec6e90ed7bb797c931"
+  },
+  "SchemaVersion": 1,
+  "SourceBaseline": "eb14f871b6ae53375cfc960938a4f0f2466b5fbf",
+  "HashConvention": "UTF8 LF complete source/test/docs/workflow files. Each new group selector starts at its # Selector group marker and ends immediately before the next such marker, or the final assertion summary. Original reviewed default-mode records remain historical.",
+  "ReviewedUtc": "2026-11-10T19:56:38.840757+00:00",
+  "Reviewer": "codex-p1gen9-connectivity",
+  "Disposition": "KEEP_WITH_EXPLICIT_RUNTIME_BOUNDARIES",
+  "Execution": {
+    "privateAssertions": 64,
+    "defaultAssertions": 239,
+    "realUnregisteredWindowsCom": true
+  },
+  "Conclusions": [
+    "Default mode still rejects private IPv4 and original default rule-name hashes remain stable.",
+    "Private declaration admits exactly two usable distinct hosts on one /30, bound to host and local/peer unicast MACs; actual firewall addresses remain exact hosts.",
+    "Both preflights require assigned /30, positive USB4 GUID/MAC and a unique Reachable neighbor on that interface; no stale/static/unknown observation is promoted.",
+    "Observed /32 or full-host masks normalize only to the exact pair; widened ranges and foreign/drifted rules remain refused.",
+    "Dedicated CI exercises offline controls; tests do not register firewall rules or create credentials."
+  ],
+  "Limits": [
+    "A declared physical MAC is not cryptographic peer authentication; SSH host pins remain separately required.",
+    "Fresh reachable neighbor state does not replace source-bound authenticated SSH/file-transfer qualification.",
+    "Real Apply still requires current executable/service generation and external bounded process custody; failure outcomes remain subject to fresh readback."
+  ]
+}

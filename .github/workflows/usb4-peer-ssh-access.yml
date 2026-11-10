@@ -4,6 +4,9 @@ on:
     paths:
       - 'Tools/SystemScripts/Networking/Set-Usb4PeerSshAccess.ps1'
       - 'Tests/Portable/Test-Usb4PeerSshAccess.ps1'
+      - 'Tests/Portable/Test-Usb4PrivatePeerSsh.ps1'
+      - 'Tests/Portable/usb4-private-peer-ssh-review.json'
+      - 'docs/usb4/private-peer-ssh-access.md'
       - 'Tests/Portable/usb4-peer-ssh-access-review.json'
       - 'docs/usb4/peer-ssh-access.md'
       - 'docs/usb4/peer-networking.md'
@@ -30,7 +33,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($path in @('Tools/SystemScripts/Networking/Set-Usb4PeerSshAccess.ps1', 'Tests/Portable/Test-Usb4PeerSshAccess.ps1')) {
+          foreach ($path in @('Tools/SystemScripts/Networking/Set-Usb4PeerSshAccess.ps1', 'Tests/Portable/Test-Usb4PeerSshAccess.ps1', 'Tests/Portable/Test-Usb4PrivatePeerSsh.ps1')) {
             $tokens = $null
             $parseErrors = $null
             [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD $path), [ref]$tokens, [ref]$parseErrors)
@@ -49,3 +52,11 @@ jobs:
           $global:LASTEXITCODE = 0
           ./Tests/Portable/Test-Usb4PeerSshAccess.ps1
           if ($LASTEXITCODE -ne 0) { throw 'USB4 peer SSH access fixture contracts failed' }
+      # Protects explicit enrolled private /30 admission and resolved USB4 custody.
+      # Detects public/broad/mismatched policy, foreign interfaces and rule drift.
+      # Needs inert providers; Windows additionally constructs an unregistered
+      # COM value. No network traffic or registered firewall mutation occurs.
+      # Breadcrumb: Set-Usb4PeerSshAccess.ps1 private enrollment and preflight.
+      - name: Enrolled private peer SSH fixture contracts
+        shell: pwsh
+        run: ./Tests/Portable/Test-Usb4PrivatePeerSsh.ps1

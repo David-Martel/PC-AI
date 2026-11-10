@@ -240,6 +240,11 @@ Use a trusted protected runtime and the controller/installer mutexes.
 Installer upgrades preserve this history only after checking administrator-only
 ACLs, exact content-addressed filenames, bounded bytes and object custody.
 Unknown entries, substituted generations and reparse points refuse an upgrade.
+The controller protects new history directories before publication. It can seal
+legacy inherited ACLs only when their owner and full-control grants already name
+SYSTEM and Administrators exclusively; foreign ACLs remain unchanged. The
+[actual Windows ACL controls](../../Tests/Portable/usb4-history-acl-review.json)
+exercise controller-created history against real installer admission.
 Keep journal-recovery archives outside the installation root, for example under
 its sibling `journal-recovery` directory; the installer does not adopt them.
 

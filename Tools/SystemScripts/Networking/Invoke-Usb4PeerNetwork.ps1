@@ -1441,6 +1441,40 @@ function Write-Usb4NetworkJson {
     Write-Usb4NetworkBytes -Path $Path -Bytes $bytes
 }
 
+function Protect-Usb4StateHistoryDirectory {
+    <# .SYNOPSIS Protect new or already-private history without adopting foreign ACLs. #>
+    param([Parameter(Mandatory)][string]$Path)
+    $full = Assert-Usb4PublicationPath $Path
+    $allowed = @('S-1-5-18', 'S-1-5-32-544')
+    if ($IsWindows -and [IO.Directory]::Exists($full)) {
+        $current = Get-Acl -LiteralPath $full -ErrorAction Stop
+        if ($current.GetOwner([Security.Principal.SecurityIdentifier]).Value -notin $allowed) { throw 'Existing state history has a foreign owner; preserving its ACL.' }
+        $grants = @()
+        foreach ($rule in $current.Access) {
+            $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
+            if ($sid -notin $allowed -or $rule.AccessControlType -ne 'Allow' -or
+                ($rule.FileSystemRights -band [Security.AccessControl.FileSystemRights]::FullControl) -ne [Security.AccessControl.FileSystemRights]::FullControl) { throw 'Existing state history has foreign access grants; preserving its ACL.' }
+            $grants += $sid
+        }
+        if (@($allowed | Where-Object { $_ -notin $grants }).Count) { throw 'Existing state history lacks required private grants.' }
+        if ($current.AreAccessRulesProtected) { return }
+    }
+    [void][IO.Directory]::CreateDirectory($full)
+    if ($IsWindows) {
+        $security = [Security.AccessControl.DirectorySecurity]::new()
+        $security.SetAccessRuleProtection($true, $false)
+        $security.SetOwner([Security.Principal.SecurityIdentifier]::new('S-1-5-32-544'))
+        foreach ($sid in $allowed) {
+            $security.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid), 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow'))
+        }
+        Set-Acl -LiteralPath $full -AclObject $security -ErrorAction Stop
+        $readback = Get-Acl -LiteralPath $full -ErrorAction Stop
+        if (-not $readback.AreAccessRulesProtected -or $readback.GetOwner([Security.Principal.SecurityIdentifier]).Value -notin $allowed) { throw 'State history protection readback failed.' }
+        # Validate the actual effective grants after protection, not only flags.
+        Protect-Usb4StateHistoryDirectory -Path $full
+    }
+}
+
 function Write-Usb4NetworkState {
     <# .SYNOPSIS Preserve exact prior custody before publishing a new state generation. #>
     param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][object]$Value)
@@ -1459,6 +1493,7 @@ function Write-Usb4NetworkState {
         if ($before -ceq (Get-Usb4BytesHash $bytes)) { return }
         $history = Join-Path ($full + '.history') ($before.ToLowerInvariant() + '.json')
         $null = Assert-Usb4PublicationPath $history
+        Protect-Usb4StateHistoryDirectory -Path ($full + '.history')
         if ([IO.File]::Exists($history)) {
             if ((Get-Usb4BytesHash (Read-Usb4NetworkBytes $history)) -cne $before) { throw 'State history identity collision; preserving both records.' }
         }

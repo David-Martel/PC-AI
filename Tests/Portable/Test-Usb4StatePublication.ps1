@@ -120,6 +120,44 @@ try {
     $result = Invoke-ActualStatePublication @{ schemaVersion = 1; generation = 2 }
     Assert-Publication ($result.exitCode -eq 1 -and @(Compare-Object $files @(Get-FixtureFiles)).Count -eq 0) 'History collision was adopted or overwritten.'
     Write-Output 'PASS: content-bound history collision fails closed'
+    # Protects actual controller-to-installer Windows ACL compatibility. Detects
+    # inherited history that blocks upgrades, and ACL takeover of foreign data.
+    # Needs elevated Windows and owned real files; no task/network mutation.
+    # Breadcrumb: Protect-Usb4StateHistoryDirectory / Assert-Usb4StateHistory.
+    if ($IsWindows) {
+        & {
+            . (Join-Path $PSScriptRoot '../../Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1')
+            foreach ($kind in @('new', 'legacy')) {
+                $parent = Join-Path $workspace ('real-acl-' + $kind)
+                [void][IO.Directory]::CreateDirectory($parent)
+                Set-Usb4RuntimeProtection -Path $parent
+                $stateFile = Join-Path $parent 'owned-state.json'
+                Write-Usb4NetworkState -Path $stateFile -Value @{ generation = 1 }
+                $historyDirectory = $stateFile + '.history'
+                if ($kind -eq 'legacy') {
+                    [void][IO.Directory]::CreateDirectory($historyDirectory)
+                    $inherited = Get-Acl -LiteralPath $historyDirectory
+                    $inherited.SetOwner([Security.Principal.SecurityIdentifier]::new('S-1-5-32-544'))
+                    Set-Acl -LiteralPath $historyDirectory -AclObject $inherited
+                    Assert-Publication (-not (Get-Acl -LiteralPath $historyDirectory).AreAccessRulesProtected) 'Legacy ACL fixture was already protected.'
+                }
+                Write-Usb4NetworkState -Path $stateFile -Value @{ generation = 2 }
+                Assert-Usb4StateHistory -Path $historyDirectory -Operations (New-Usb4InstallerOperations)
+                Assert-Publication ((Get-Acl -LiteralPath $historyDirectory).AreAccessRulesProtected) "$kind controller history does not pass actual installer ACL admission."
+            }
+            $foreignState = Join-Path $workspace 'foreign-acl-state.json'
+            Write-Usb4NetworkState -Path $foreignState -Value @{ generation = 1 }
+            $foreignDirectory = $foreignState + '.history'
+            [void][IO.Directory]::CreateDirectory($foreignDirectory)
+            $priorAcl = (Get-Acl -LiteralPath $foreignDirectory).Sddl
+            $priorState = (Get-FileHash -LiteralPath $foreignState).Hash
+            $refused = $false
+            try { Write-Usb4NetworkState -Path $foreignState -Value @{ generation = 2 } } catch { $refused = $true }
+            Assert-Publication ($refused -and (Get-Acl -LiteralPath $foreignDirectory).Sddl -ceq $priorAcl -and (Get-FileHash -LiteralPath $foreignState).Hash -ceq $priorState) 'Foreign history ACL or custody was adopted or rewritten.'
+        }
+        Write-Output 'PASS: actual new and inherited history pass protected Windows upgrade admission'
+    }
+    else { Write-Output 'NOT_RUN: protected history upgrade admission requires Windows ACLs' }
     Write-Output "PASS: $script:checks real-file state publication assertions"
 }
 finally {

@@ -58,6 +58,19 @@ deleting state to bypass that check is unsafe. An interrupted transaction retain
 its pending journal and refuses further mutation until the preimage and current
 state have been reconciled. Adapter incarnation changes likewise require review.
 
+The [controller](../../Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1)
+admits persisted state before collecting an initial OS snapshot. A missing file
+permits bootstrap. An existing blank, zero-filled, null, non-object or malformed
+JSON record is refused in `ReadPolicyAndState` with an explicit state-admission
+error. A present `pendingTransaction` must remain an object. Refusal preserves
+the journal bytes; it never treats unreadable custody as a new enrollment.
+An explicit JSON `{}` remains readable because successful rollback to a missing
+state preimage publishes that legacy empty-object record.
+Preserve the damaged file and any independently verified backup. Restoring a
+backup that contains an unfinished rollback does not resolve that rollback or
+authorize another Apply. These guards do not establish how corruption occurred
+or qualify durable state publication under power loss.
+
 Windows ICS supports one public/private sharing pair. A foreign existing pair
 must be refused rather than stolen. WinNAT permits one internal prefix; this
 controller must not create a competing NAT or remove WSL/Hyper-V/container NAT
@@ -196,14 +209,23 @@ Run the existing fixture contracts from the repository root:
 
 ```powershell
 pwsh -NoLogo -NoProfile -File Tests/Portable/Test-Usb4PeerNetwork.ps1
+pwsh -NoLogo -NoProfile -File Tests/Portable/Test-Usb4StateAdmission.ps1
 pwsh -NoLogo -NoProfile -File Tests/Portable/Test-Usb4PeerNetworkInstall.ps1
 ```
 
-The [USB4 workflow](../../.github/workflows/usb4-lifecycle.yml) runs both suites
+The [USB4 workflow](../../.github/workflows/usb4-lifecycle.yml) runs these suites
 on Windows and Linux. Network and scheduler mutations use fixtures; installer
 controls create and clean their own temporary files. Windows-only task-schema
 and file-ownership controls explicitly report unsupported platforms. These
 contracts do not install a runtime or qualify a physical connection.
+The [state-admission controls](../../Tests/Portable/Test-Usb4StateAdmission.ps1)
+exercise the actual entrypoint read against real files and retain unknown fields
+and pending custody. A bounded Windows child also verifies failure before the
+observation phase and no DryRun writes; Linux reports that child as `NOT_RUN`.
+The [independent review](../../Tests/Portable/usb4-state-admission-review.md)
+and [selector register](../../Tests/Portable/usb4-state-admission-review.json)
+record exact source bindings, the resolved rollback compatibility finding and
+the limits of the fixture evidence.
 
 Run the portable controller and installer controls first, then qualify:
 

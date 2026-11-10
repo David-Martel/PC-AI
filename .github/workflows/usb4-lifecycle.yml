@@ -28,6 +28,8 @@ on:
       - 'Tests/Portable/Test-ThunderboltStartup.ps1'
       - 'Tests/Portable/Test-Usb4FabricObservation.ps1'
       - 'Tests/Portable/Test-Usb4PeerNetwork.ps1'
+      - 'Tests/Portable/Test-Usb4StateAdmission.ps1'
+      - 'Tests/Portable/usb4-state-admission-review.json'
       - 'Tests/Portable/Test-Usb4PeerNetworkInstall.ps1'
       - 'Tests/Portable/Test-Usb4PeerDeployment.ps1'
       - 'Tests/Portable/usb4-deployment-doctor-review.json'
@@ -82,6 +84,7 @@ jobs:
         shell: pwsh
         run: |
           ./Tests/Portable/Test-Usb4PeerNetwork.ps1
+          ./Tests/Portable/Test-Usb4StateAdmission.ps1
           ./Tests/Portable/Test-Usb4PeerNetworkInstall.ps1
       # Protects file-only installed-release inspection, pointer containment and
       # recovery/freshness truth. Detects unsafe reads and invented readiness.

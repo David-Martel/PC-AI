@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "codex-p1gen9-zip-fix",
+  "reviewerType": "independent source and execution reviewer; authored no reviewed production/test/CI/docs changes",
+  "reviewedUtc": "2026-11-10T21:44:05.027783+00:00",
+  "reviewedBase": "b7433756abc62df67fac24b64484654e06428f1a",
+  "reviewedHead": "e25a3d0ab132cbdbd8c44eb554353e636ae71d34",
+  "disposition": "KEEP_WITH_EXPLICIT_RUNTIME_BOUNDARIES",
+  "hashConvention": "SHA256 complete files with CRLF normalized LF; logical groups start at exact Protects comment and end immediately before next group, last includes cleanup",
+  "sourceBindings": {
+    "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1": "327119b6a60d170105341a1ea5f03391ace00640b2525584755c33ad88cbfc0c",
+    "Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1": "c530e8b6d1a6ba3afdb518e6d4c5816045b295cba597a883e075b0dacf8f01dc",
+    "Tests/Portable/Test-Usb4StateHistoryRetention.ps1": "925c4292949cef8c366e5334e3c1b3be9b9331ba7c334f737b3475d5c30f4479",
+    ".github/workflows/usb4-lifecycle.yml": "c414d242fddbfa996a50a1b86a960e5b85f1334484d74d29c5c03a4840d7f482",
+    "docs/usb4/peer-networking.md": "46094555a8b0da3003143f6ce14529b5579591b390f11c86ab3d284ffd8034e7"
+  },
+  "auxiliaryExecutionBindings": {
+    "Tests/Portable/Test-Usb4StatePublication.ps1": "24aa11e9a0256afcc9150a890754b8004ea72040962b0d6fd8648fa750871d96",
+    "Tests/Portable/Test-Usb4PeerNetworkInstall.ps1": "2bdbb614bb432db1d8f4f173a0627bc812aa52ee8c694ff124b467513d31379e",
+    "Tests/Portable/Test-Usb4PeerNetwork.ps1": "b214f95b7cf6649edbeef2aa25eba661b9f09628565504781ab24af75df2a2d1"
+  },
+  "selectors": [
+    {
+      "selector": "Tests/Portable/Test-Usb4StateHistoryRetention.ps1::RecurringFailedTransactions",
+      "selectorGroupSha256": "fe6651221db0af5cc9b6453854c29c697c3c6cdddcee0a8635e03f6b19d09958",
+      "testFileSha256": "925c4292949cef8c366e5334e3c1b3be9b9331ba7c334f737b3475d5c30f4479",
+      "protects": "Repeated rollback custody and bounded disk use",
+      "detects": "Checkpoint histories accumulating without limits",
+      "needs": "Owned temporary Windows files and inert existing provider; actual Windows ACLs/installer admission where guarded",
+      "breadcrumb": "Invoke-Usb4PeerNetwork.ps1::{Limit-Usb4StateHistory,Write-Usb4NetworkState}; Install-Usb4PeerNetwork.ps1::Assert-Usb4StateHistory"
+    },
+    {
+      "selector": "Tests/Portable/Test-Usb4StateHistoryRetention.ps1::LargeSnapshotsPreservePredecessor",
+      "selectorGroupSha256": "0c423a745d353882992b269f1ae663e02a7440968907a1d5e0075e9da168a113",
+      "testFileSha256": "925c4292949cef8c366e5334e3c1b3be9b9331ba7c334f737b3475d5c30f4479",
+      "protects": "Byte budget and exact immediate predecessor",
+      "detects": "Count-only retention or pruning current recovery bytes",
+      "needs": "Owned temporary Windows files and inert existing provider; actual Windows ACLs/installer admission where guarded",
+      "breadcrumb": "Invoke-Usb4PeerNetwork.ps1::{Limit-Usb4StateHistory,Write-Usb4NetworkState}; Install-Usb4PeerNetwork.ps1::Assert-Usb4StateHistory"
+    },
+    {
+      "selector": "Tests/Portable/Test-Usb4StateHistoryRetention.ps1::ForeignHistoryAndNoApplyPreserved",
+      "selectorGroupSha256": "2c18a7b95e7c9319a1f81d26bcd75237e5c17f68225dc886f2562ee6773656b5",
+      "testFileSha256": "925c4292949cef8c366e5334e3c1b3be9b9331ba7c334f737b3475d5c30f4479",
+      "protects": "Foreign history and no-Apply custody",
+      "detects": "Foreign-entry adoption/deletion or dry-run writes",
+      "needs": "Owned temporary Windows files and inert existing provider; actual Windows ACLs/installer admission where guarded",
+      "breadcrumb": "Invoke-Usb4PeerNetwork.ps1::{Limit-Usb4StateHistory,Write-Usb4NetworkState}; Install-Usb4PeerNetwork.ps1::Assert-Usb4StateHistory"
+    },
+    {
+      "selector": "Tests/Portable/Test-Usb4StateHistoryRetention.ps1::CompleteAdmissionAndLegacyRefusal",
+      "selectorGroupSha256": "c1466cd9b357f3887d5878a87bda96ef02cba0219e4e073268fcda3ac7779292",
+      "testFileSha256": "925c4292949cef8c366e5334e3c1b3be9b9331ba7c334f737b3475d5c30f4479",
+      "protects": "Complete validation before deletion and bounded legacy refusal",
+      "detects": "Substituted-content/foreign-ACL pruning, oversized legacy adoption",
+      "needs": "Owned temporary Windows files and inert existing provider; actual Windows ACLs/installer admission where guarded",
+      "breadcrumb": "Invoke-Usb4PeerNetwork.ps1::{Limit-Usb4StateHistory,Write-Usb4NetworkState}; Install-Usb4PeerNetwork.ps1::Assert-Usb4StateHistory"
+    }
+  ],
+  "execution": {
+    "retentionWindowsAssertions": 92,
+    "publicationWindowsAssertions": 27,
+    "installerGroups": 15,
+    "failed": 0,
+    "independentCurrentSourceControls": {
+      "byteOnlyLegacyRecords": 9,
+      "controllerByteBudgetRefused": true,
+      "installerByteBudgetRefused": true,
+      "legacyBytesAndStateUnchanged": true,
+      "ordinaryFullEntryReads": 0,
+      "boundedBatchFullEntryReads": 193,
+      "retainedAfterBatch": 64,
+      "exactPredecessorRetained": true
+    },
+    "independentControlScriptSha256": "1711f609fc4cfa3def981fb24107012c290cdc97dc612a17ac104185628f1f2d",
+    "independentControlResultSha256": "91345a67e927aae6bf2184303a2095a620273e5f3ce0d28d216b2e0d8775812e"
+  },
+  "conclusions": [
+    "Controller reserves incoming predecessor before staging; hard 128 records / 32 MiB caps include that reservation. Lazy metadata enumeration bounds work and refuses existing over-budget/unknown/reparse entries without pruning.",
+    "Before deleting any history record, every existing record passes private ACL, bounded byte, object-custody and filename/content hash admission. Each selected candidate is revalidated against its captured identity/length before file-only deletion. Current predecessor hash is excluded.",
+    "Batch pruning targets 64 records / 16 MiB and avoids full history rehash during ordinary checkpoint writes. Independent instrumentation observed 0 full entry reads ordinarily and 193 on 128-record batch admission/trim, retaining 64 including exact predecessor.",
+    "Actual 16 failed reconciliation attempts use maintained inert provider and real checkpoint writes; rollback preimages/custody remain exact. Large snapshots exercise byte-triggered trimming. Adversarial controls genuinely require a fresh unarchived predecessor before substituted-content/foreign-ACL pruning tests.",
+    "Installer applies the same hard record/byte bounds during immutable-history admission; actual Windows tests and independent 9-record 36 MiB legacy refusal pass. CI adds this inert fixture to existing portable suite; documentation describes caps, batch validation and manual oversized-store review."
+  ],
+  "baselineAssessment": "Read-only source comparison: prior writer archived each distinct predecessor without retention bounds; no old staged code replay was performed.",
+  "limits": [
+    "No deployed task/payload, real networking mutation, power-cut/directory-metadata durability or arbitrary privileged-writer CAS qualification. Root retains live deployment/readback ownership.",
+    "Mutex/trusted-private-path assumptions remain. Metadata/hash rechecks coordinate cooperating participants; this is not atomic exclusion against arbitrary administrators.",
+    "Existing over-budget stores deliberately refuse writes/upgrades pending explicit custody review; this review authorizes no arbitrary legacy pruning or recovery-archive deletion.",
+    "The earlier automatically rejected old-script staged replay was not retried or routed through another agent; baseline growth assessment is source-only.",
+    "Accepted-main SSH stdio CI additions present in the bound workflow remain covered by their separate review, not reapproved as part of retention."
+  ]
+}

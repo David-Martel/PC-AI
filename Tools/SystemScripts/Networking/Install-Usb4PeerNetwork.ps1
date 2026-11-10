@@ -281,6 +281,35 @@ function Assert-Usb4RuntimeProtection {
     if (@($allowed | Where-Object { $_ -notin $grants }).Count) { throw 'Runtime is missing required SYSTEM/Administrators grants.' }
 }
 
+function Assert-Usb4StateHistory {
+    <# .SYNOPSIS Admit protected content-addressed object generations without changing their bytes. #>
+    param([string]$Path, [hashtable]$Operations)
+    $null = Assert-Usb4InstallPath $Path
+    & $Operations.AssertRoot $Path | Out-Null
+    foreach ($entry in @(Get-ChildItem -LiteralPath $Path -Force -ErrorAction Stop)) {
+        if ($entry.PSIsContainer -or $entry.Attributes -band [IO.FileAttributes]::ReparsePoint -or $entry.Name -cnotmatch '^[a-f0-9]{64}\.json$') { throw 'State history contains an unrecognized entry.' }
+        & $Operations.AssertRoot $entry.FullName | Out-Null
+        $stream = [IO.File]::Open($entry.FullName, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+        try {
+            if ($stream.Length -gt 4MB) { throw 'State history exceeds the four-megabyte generation bound.' }
+            $bytes = [byte[]]::new([int]$stream.Length); $offset = 0
+            while ($offset -lt $bytes.Length) {
+                $count = $stream.Read($bytes, $offset, $bytes.Length - $offset)
+                if ($count -eq 0) { throw 'State history was truncated while reading.' }
+                $offset += $count
+            }
+            if ($stream.ReadByte() -ne -1) { throw 'State history grew beyond its captured generation.' }
+        }
+        finally { $stream.Dispose() }
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { $hash = [BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+        if ($hash -cne [IO.Path]::GetFileNameWithoutExtension($entry.Name)) { throw 'State history content identity differs from its filename.' }
+        try { $value = [Text.UTF8Encoding]::new($false, $true).GetString($bytes).TrimStart([char]0xFEFF) | ConvertFrom-Json -AsHashtable -NoEnumerate }
+        catch { throw 'State history is unreadable JSON.' }
+        if ($value -isnot [Collections.IDictionary] -or ($value.Contains('pendingTransaction') -and $value.pendingTransaction -isnot [Collections.IDictionary])) { throw 'State history is not valid object custody.' }
+    }
+}
+
 function New-Usb4InstallerOperations {
     <# .SYNOPSIS
     Supply the real operating-system boundaries for installation and rollback.
@@ -385,11 +414,11 @@ function Invoke-Usb4PeerInstall {
         $children = @(Get-ChildItem -LiteralPath $Plan.root -Force)
         if ($children.Count) {
             $unexpected = @($children | Where-Object {
-                    if ($_.PSIsContainer) { $_.Name -notmatch '^(?:r[1-9][0-9]*|\.staging-r[1-9][0-9]*)$' }
+                    if ($_.PSIsContainer) { $_.Name -cnotmatch '^(?:r[1-9][0-9]*|\.staging-r[1-9][0-9]*|owned-state\.json\.history)$' }
                     else { $_.Name -notmatch '^(?:installed\.json(?:\.pending)?|owned-state\.json(?:\.(?:pending|tmp))?|current\.json(?:\.(?:pending|tmp))?)$' }
                 })
             if ($unexpected.Count) { throw 'Existing nonempty runtime contains unowned paths; refusing ACL or file changes.' }
-            $markers = @($children | Where-Object PSIsContainer | ForEach-Object { Join-Path $_.FullName 'manifest.json' })
+            $markers = @($children | Where-Object { $_.PSIsContainer -and $_.Name -match '^(?:r[1-9][0-9]*|\.staging-r[1-9][0-9]*)$' } | ForEach-Object { Join-Path $_.FullName 'manifest.json' })
             $markers += (Join-Path $Plan.root 'installed.json')
             $owned = $false
             foreach ($marker in $markers) {
@@ -400,6 +429,9 @@ function Invoke-Usb4PeerInstall {
             }
             if (-not $owned) { throw 'Existing nonempty runtime has no owned installation manifest.' }
             & $Operations.AssertRoot $Plan.root | Out-Null
+            foreach ($history in @($children | Where-Object { $_.PSIsContainer -and $_.Name -ceq 'owned-state.json.history' })) {
+                Assert-Usb4StateHistory -Path $history.FullName -Operations $Operations
+            }
         }
     }
     if (-not $Apply) { return [pscustomobject]@{ State = 'Planned'; Applied = $false; RuntimeQualified = $false; Plan = $Plan; LegacyTasks = @($legacy | ForEach-Object Name) } }

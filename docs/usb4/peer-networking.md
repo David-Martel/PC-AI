@@ -237,6 +237,11 @@ converted into a new enrollment. Identical states do not create new generations.
 This reduces exposure to interrupted writes; it does not establish physical
 power-loss durability or atomic comparison against arbitrary administrator writes.
 Use a trusted protected runtime and the controller/installer mutexes.
+Installer upgrades preserve this history only after checking administrator-only
+ACLs, exact content-addressed filenames, bounded bytes and object custody.
+Unknown entries, substituted generations and reparse points refuse an upgrade.
+Keep journal-recovery archives outside the installation root, for example under
+its sibling `journal-recovery` directory; the installer does not adopt them.
 
 For the narrow case of a disabled ExistingWinNat consumer interrupted while
 observing its rollback, [Resolve-Usb4PeerJournal.ps1](../../Tools/SystemScripts/Networking/Resolve-Usb4PeerJournal.ps1)

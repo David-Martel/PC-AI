@@ -122,4 +122,10 @@ try {
     Write-Output 'PASS: content-bound history collision fails closed'
     Write-Output "PASS: $script:checks real-file state publication assertions"
 }
-finally { [IO.Directory]::Delete($workspace, $true) }
+finally {
+    $absolute = [IO.Path]::GetFullPath($workspace)
+    $temporary = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    if (-not $absolute.StartsWith($temporary, [StringComparison]::OrdinalIgnoreCase) -or
+        [IO.Path]::GetFileName($absolute) -notmatch '^pcai-state-publication-[a-f0-9]{32}$') { throw 'Refusing cleanup outside the owned publication fixture.' }
+    [IO.Directory]::Delete($absolute, $true)
+}

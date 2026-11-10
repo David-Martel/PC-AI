@@ -11,6 +11,15 @@ function Assert-Retirement([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw $Message }
     $script:checks++
 }
+# Protects offline recovery usage before state reads or privilege providers;
+# detects either mandated alias falling into admission or write paths. Needs
+# pwsh only, without state/backup paths or admin rights. Breadcrumb:
+# Resolve-Usb4PeerJournal.ps1 early ShowHelp entrypoint guard.
+foreach ($helpForm in @('-h', '--help')) {
+    $usage = & (Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })) -NoLogo -NoProfile -File $SourcePath $helpForm -Apply 2>&1
+    Assert-Retirement ($LASTEXITCODE -eq 0 -and ($usage -join "`n") -match 'Retire interrupted USB4 custody') "Offline recovery help failed: $helpForm"
+}
+Write-Output 'PASS: both recovery help forms return offline before Apply'
 function New-RetirementFixture {
     $script:state = @{ schemaVersion = 1; hostName = 'fixture'; adapterMac = '020000000001'; interfaceGuid = '11111111-1111-1111-1111-111111111111';
         mode = 'Consumer'; backend = 'ExistingWinNat'; ownedAddresses = @(@{ address = '172.16.252.2'; prefix = 30 });
@@ -115,4 +124,10 @@ try {
     Write-Output 'PASS: exact damaged and pending records precede explicit retirement'
     Write-Output "PASS: $script:checks journal-retirement assertions"
 }
-finally { [IO.Directory]::Delete($workspace, $true) }
+finally {
+    $absolute = [IO.Path]::GetFullPath($workspace)
+    $temporary = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    if (-not $absolute.StartsWith($temporary, [StringComparison]::OrdinalIgnoreCase) -or
+        [IO.Path]::GetFileName($absolute) -notmatch '^pcai-journal-retirement-[a-f0-9]{32}$') { throw 'Refusing cleanup outside the owned retirement fixture.' }
+    [IO.Directory]::Delete($absolute, $true)
+}

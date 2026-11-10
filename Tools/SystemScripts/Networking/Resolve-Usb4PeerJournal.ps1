@@ -18,8 +18,26 @@ param(
     [string]$ExpectedBackupSha256, [string]$ExpectedStateSha256,
     [string]$ExpectedHostName, [string]$ExpectedAdapterGuid, [string]$ExpectedMac,
     [string]$ExpectedAttemptId, [string]$ExpectedPolicySha256, [string]$ExpectedControllerSha256,
-    [switch]$Apply, [switch]$DryRun
+    [switch]$Apply, [switch]$DryRun,
+    [Alias('h', 'help')][switch]$ShowHelp
 )
+if ($ShowHelp) {
+    Write-Output @'
+Retire interrupted USB4 custody only after its owned addresses are proven absent.
+Usage: Resolve-Usb4PeerJournal.ps1 -BackupPath FILE -StatePath FILE
+  -ArchivePath NEW_DIRECTORY -InstalledPath FILE -ExpectedBackupSha256 SHA256
+  -ExpectedStateSha256 SHA256 -ExpectedHostName HOST -ExpectedAdapterGuid GUID
+  -ExpectedMac MAC -ExpectedAttemptId ID -ExpectedPolicySha256 SHA256
+  -ExpectedControllerSha256 SHA256 [-Apply] [-DryRun] [-WhatIf]
+  -h | --help
+Default and DryRun inspect files and Windows state without writes. Apply requires
+an administrator, exact disabled-task identity and absent address-only custody.
+It archives original bytes and task XML before emptying retired custody; it never
+changes networking or enables a task. An existing archive or uncertain custody
+requires explicit review. DryRun suppresses Apply. Help performs no observations.
+'@
+    return
+}
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Invoke-Usb4PeerNetwork.ps1')

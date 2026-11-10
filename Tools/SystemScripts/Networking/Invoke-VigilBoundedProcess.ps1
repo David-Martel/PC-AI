@@ -5,7 +5,7 @@ function Initialize-VigilBoundedProcessRunner {
     param()
     if ('Vigil.BoundedProcess' -as [type]) {
         $contract = [Vigil.BoundedProcess].GetField('ContractVersion')
-        if (-not $contract -or $contract.GetValue($null) -ne 2) { throw 'An older Vigil process runner is loaded. Use a fresh PowerShell process.' }
+        if (-not $contract -or $contract.GetValue($null) -ne 3) { throw 'An older Vigil process runner is loaded. Use a fresh PowerShell process.' }
         return
     }
     Add-Type -TypeDefinition @'
@@ -26,7 +26,7 @@ namespace Vigil {
         public string Stderr { get; set; }
     }
     public static class BoundedProcess {
-        public const int ContractVersion = 2;
+        public const int ContractVersion = 3;
         static readonly object CustodyGate = new object();
         static readonly Dictionary<Guid, SafeProcessHandle> PendingCleanup = new Dictionary<Guid, SafeProcessHandle>();
         static readonly Dictionary<Guid, List<SafeFileHandle>> PendingOtherHandles = new Dictionary<Guid, List<SafeFileHandle>>();
@@ -79,6 +79,8 @@ namespace Vigil {
         static extern bool TerminateProcess(IntPtr process, uint code);
         [DllImport("kernel32.dll", SetLastError=true)]
         static extern bool CloseHandle(IntPtr handle);
+        [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern IntPtr GetEnvironmentStrings();
+        [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern bool FreeEnvironmentStrings(IntPtr block);
 
         static void Check(bool success, string operation) {
             if (!success) throw new Win32Exception(Marshal.GetLastWin32Error(), operation);
@@ -113,6 +115,26 @@ namespace Vigil {
                 text.Append(c); slashes = 0;
             }
             text.Append('\\', slashes * 2); return text.Append('"').ToString();
+        }
+        static IntPtr CreateChildEnvironment() {
+            // These private OpenSSH variables describe the ancestor's handles.
+            // This launcher creates fresh synchronous stdio handles, so importing
+            // an sshd grandparent's descriptor types would misclassify them.
+            IntPtr inherited = GetEnvironmentStrings();
+            if (inherited == IntPtr.Zero) throw new Win32Exception(Marshal.GetLastWin32Error(), "Read inherited environment");
+            try {
+                var result = new StringBuilder();
+                int offset = 0;
+                while (Marshal.ReadInt16(inherited, offset) != 0) {
+                    string entry = Marshal.PtrToStringUni(IntPtr.Add(inherited, offset));
+                    offset += checked((entry.Length + 1) * 2);
+                    if (entry.StartsWith("c28fc6f98a2c44abbbd89d6a3037d0d9_POSIX_FD_STATE=", StringComparison.OrdinalIgnoreCase) ||
+                        entry.StartsWith("OPENSSH_STDIO_MODE=", StringComparison.OrdinalIgnoreCase)) continue;
+                    result.Append(entry).Append('\0');
+                }
+                result.Append('\0');
+                return Marshal.StringToHGlobalUni(result.ToString());
+            } finally { Check(FreeEnvironmentStrings(inherited), "Release inherited environment snapshot"); }
         }
         static Task<string> ReadPipe(IntPtr handle) {
             var owned = new SafeFileHandle(handle, true);
@@ -178,6 +200,7 @@ namespace Vigil {
             IntPtr job = IntPtr.Zero, outRead = IntPtr.Zero, outWrite = IntPtr.Zero;
             IntPtr errRead = IntPtr.Zero, errWrite = IntPtr.Zero, input = IntPtr.Zero, inputWrite = IntPtr.Zero;
             ProcessInfo process = new ProcessInfo();
+            IntPtr childEnvironment = IntPtr.Zero;
             Exception operationFailure = null;
             try {
                 job = CreateJobObject(IntPtr.Zero, null);
@@ -199,7 +222,8 @@ namespace Vigil {
                 var startup = new StartupInfo { Size = Marshal.SizeOf<StartupInfo>(), Flags = 0x101, Input = input, Output = outWrite, Error = errWrite };
                 var command = new StringBuilder(Quote(path));
                 foreach (string argument in arguments) command.Append(' ').Append(Quote(argument));
-                Check(CreateProcess(path, command, IntPtr.Zero, IntPtr.Zero, true, 0x08000004, IntPtr.Zero, string.IsNullOrEmpty(directory) ? null : directory, ref startup, out process), "CreateProcess suspended");
+                childEnvironment = CreateChildEnvironment();
+                Check(CreateProcess(path, command, IntPtr.Zero, IntPtr.Zero, true, 0x08000404, childEnvironment, string.IsNullOrEmpty(directory) ? null : directory, ref startup, out process), "CreateProcess suspended");
                 Check(AssignProcessToJobObject(job, process.Process), "AssignProcessToJobObject");
                 if (ResumeThread(process.Thread) == uint.MaxValue) throw new Win32Exception(Marshal.GetLastWin32Error(), "ResumeThread");
                 Close(ref outWrite); Close(ref errWrite); Close(ref input);
@@ -231,6 +255,7 @@ namespace Vigil {
             catch (Exception failure) { operationFailure = failure; throw; }
             finally {
                 var failures = new List<Exception>();
+                if (childEnvironment != IntPtr.Zero) Marshal.FreeHGlobal(childEnvironment);
                 TryClose(ref job, failures);
                 bool exited = process.Process == IntPtr.Zero;
                 try {
@@ -304,6 +329,10 @@ function Invoke-VigilBoundedProcess {
     With no InputText, stdin is noninteractive EOF. Arguments use Windows command
     line escaping, and output is decoded as UTF8. Initialization compiles the
     helper once per PowerShell process before the native runtime deadline starts.
+    Child environment omits only inherited OpenSSH stdio mode and descriptor
+    metadata because this runner creates fresh synchronous handles. The parent
+    environment, SSH configuration and any inherited chroot declaration remain.
+    See docs/usb4/ssh-process-capture.md for detection and qualification.
     Returns ExitCode, Stdout and Stderr; launch/capture/timeout errors throw.
     #>
     [CmdletBinding()]

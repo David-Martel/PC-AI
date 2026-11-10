@@ -191,3 +191,5 @@ These observations do not qualify reverse-initiated sessions, hot-plug/reconnect
 IPv6 SSH, other source versions, Linux or other fleet hosts, or Thunderbolt Share
 features. Keep those checks in the separate
 [qualification sequence](peer-networking.md#qualification-and-performance).
+
+For native Windows SSH capture handles, memory-only stdin and reproducible qualification, see the [process capture contract](ssh-process-capture.md).

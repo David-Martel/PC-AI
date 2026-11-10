@@ -1,0 +1,75 @@
+{
+  "SourceBaseline": "eb14f871b6ae53375cfc960938a4f0f2466b5fbf",
+  "SchemaVersion": 1,
+  "ReviewKind": "Fresh Windows child stdio inheritance",
+  "Selectors": [
+    {
+      "Sha256": "fef3d96822d73d56392a7187ed3223643032cf5623e6ae2f3fa2be99046955e2",
+      "TestSha256": "4083f9673e32fe5a4b81da98369937ce40896fc9b0853625a15e583dd91839e8",
+      "Needs": "Windows and PowerShell 7; inert local child only",
+      "Disposition": "keep",
+      "Selector": "FreshChildHandlesDiscardOnlyAncestorStdioMetadata",
+      "ReviewScope": "Independently read production and test source; offline19/live21 assertions and existing Pester6 passed. Live test uses existing strict pinned Carbon alias and actual P1 native client; inert400KB UTF8 input only.",
+      "ReviewerType": "independent_agent",
+      "SourceSha256": "caa89c4ec2e46fc37b56caf911df76b176d918074231213f8cf6c866b9498040",
+      "Source": "Tests/Portable/Test-SshStdioInheritance.ps1",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1::CreateChildEnvironment and Run",
+      "Detects": "Stale descriptor/mode inheritance, altered argv/input/output/status or jail custody",
+      "Protects": "Fresh handles and parent/unrelated environment preservation",
+      "Reviewer": "codex-p1gen9-connectivity"
+    },
+    {
+      "Sha256": "fbbe0620043050f60c79c2560ba8a8b81ded74a563a077f87f989af6b53d360f",
+      "TestSha256": "4083f9673e32fe5a4b81da98369937ce40896fc9b0853625a15e583dd91839e8",
+      "Needs": "Explicit installed client plus existing pinned alias; peer pwsh for optional Windows echo",
+      "Disposition": "keep",
+      "Selector": "ActualPinnedNativeSshCompletesThroughFreshPipes",
+      "ReviewScope": "Independently read production and test source; offline19/live21 assertions and existing Pester6 passed. Live test uses existing strict pinned Carbon alias and actual P1 native client; inert400KB UTF8 input only.",
+      "ReviewerType": "independent_agent",
+      "SourceSha256": "caa89c4ec2e46fc37b56caf911df76b176d918074231213f8cf6c866b9498040",
+      "Source": "Tests/Portable/Test-SshStdioInheritance.ps1",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1::CreateChildEnvironment and Run",
+      "Detects": "EOF hang, truncated or recoded inert stdin, merged stderr or lost remote failure",
+      "Protects": "Actual installed native SSH completion through fresh pipes",
+      "Reviewer": "codex-p1gen9-connectivity"
+    },
+    {
+      "Selector": "Windows SSH stdio inheritance contracts",
+      "Source": ".github/workflows/usb4-lifecycle.yml",
+      "Sha256": "8049d0fde8fdfa20f15aa5988c4220d24e19ab4713e515b8aaa1ff9c09075a31",
+      "HashScope": "Complete LF workflow file",
+      "Disposition": "keep",
+      "Reviewer": "codex-p1gen9-connectivity",
+      "ReviewerType": "independent_agent",
+      "Protects": "Fresh-handle environment contract on Windows CI",
+      "Detects": "Loss of the offline stdio test route or attempts to claim unsupported Linux runtime coverage",
+      "Needs": "Windows runner and PowerShell7; no live peer, keys, services or networking changes",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1"
+    }
+  ],
+  "ReviewedCommit": "eb14f871b6ae53375cfc960938a4f0f2466b5fbf + exact hash-bound working snapshot",
+  "SourceBindings": {
+    "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1": "caa89c4ec2e46fc37b56caf911df76b176d918074231213f8cf6c866b9498040",
+    "Tests/Portable/Test-SshStdioInheritance.ps1": "4083f9673e32fe5a4b81da98369937ce40896fc9b0853625a15e583dd91839e8",
+    "docs/usb4/ssh-process-capture.md": "5daa7203ea2ce959fc353bf67a849d772ee9d9ce590cec03e993727592e91934",
+    "docs/usb4/peer-ssh-access.md": "7d9d5f684a9a4250b632346d61d4776cfc67bcd30c3453ad52eebd179ab52c81",
+    ".github/workflows/usb4-lifecycle.yml": "8049d0fde8fdfa20f15aa5988c4220d24e19ab4713e515b8aaa1ff9c09075a31"
+  },
+  "HashConvention": "UTF8 LF whole source files include final LF. Test group selector starts at leading spaces before its named Selector group comment and ends after closing quote of its exact PASS Write-Output; full test binding also covers cleanup and restored environment. CI selector binds complete workflow.",
+  "ReviewedUtc": "2026-11-10T19:39:10.753428+00:00",
+  "Disposition": "KEEP_WITH_EXPLICIT_RUNTIME_BOUNDARIES",
+  "ResolvedFinding": "PowerShell .NET null-string restoration created empty chroot metadata; fixture now removes originally absent Env entries and verifies all four exact original identities before live execution. Production still preserves any real chroot declaration.",
+  "IndependentExecution": {
+    "offlineAssertions": 19,
+    "liveAssertions": 21,
+    "pesterPassed": 6,
+    "pesterFailed": 0,
+    "liveClient": "C:/Windows/System32/OpenSSH/ssh.exe",
+    "pinnedPeer": "dtm-carbon-two-usb4"
+  },
+  "Limitations": [
+    "No tool reinstall, PATH, services, SSH trust or private keys changed by this source fix.",
+    "Author additionally qualified installed Carbon10.0/10.4 SSH/SFTP/Git; those are author receipts rather than independently repeated cross-host execution.",
+    "Global process mutation/privileged hostile writers remain outside the runner custody model."
+  ]
+}

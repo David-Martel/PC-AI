@@ -1,0 +1,71 @@
+{
+  "SchemaVersion": 1,
+  "Reviewer": "codex-p1gen9-zip-fix",
+  "ReviewerType": "independent source/execution reviewer; authored no reviewed production/test files",
+  "ReviewedUtc": "2026-11-10T19:20:29.858638+00:00",
+  "ReviewIdentity": "Working snapshot on fix/usb4-journal-recovery; exact LF SourceBindings identify reviewed source, not an uncommitted revision claim",
+  "Disposition": "KEEP_WITH_EXPLICIT_RUNTIME_BOUNDARIES",
+  "HashConvention": "SHA256 of complete file bytes with CRLF normalized to LF; selector-group context remains bound by complete test/source hashes",
+  "SourceBindings": {
+    "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1": "d641660a1f21117d15fdc099e0df8a8f40ec0a06ee4b06833723fc16f07b516a",
+    "Tools/SystemScripts/Networking/Resolve-Usb4PeerJournal.ps1": "6ad400613a63633b8a6492e3b0060c1731fe08a3ff2b8924b1a33d2c453a2b69",
+    "Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1": "19d128d29b5fc596101e7e0d994375254b9f0dc7899f45e10d4cfa541aa3766f",
+    "Tests/Portable/Test-Usb4StatePublication.ps1": "d080057e6cdef024e7fef216b6e2bbd76ddeeee44bc185797dbad673581fc7f6",
+    "Tests/Portable/Test-Usb4StateAdmission.ps1": "369d34a3950243f82e3e4d7a62c3285fbab725672c1d099461cda49812a5fbb2",
+    "Tests/Portable/Test-Usb4JournalRetirement.ps1": "4691326f6e7f02a02eecf7b9eb1b5ef520a10e1c5513b248ee4f0cb0dde3d8cd",
+    "Tests/Portable/Test-Usb4PeerNetwork.ps1": "b214f95b7cf6649edbeef2aa25eba661b9f09628565504781ab24af75df2a2d1",
+    "docs/usb4/peer-networking.md": "23911678a19ada79af2379b06dd5c01ca7ef3eb23749ee04ac691e6d80862e5c",
+    ".github/workflows/usb4-lifecycle.yml": "a6d3142bddda40c9d517d0c6a575c08fb7eb84ffb472cf007bd621389788abda"
+  },
+  "Executed": [
+    {
+      "Test": "Test-Usb4StatePublication.ps1",
+      "PassedAssertions": 23
+    },
+    {
+      "Test": "Test-Usb4StateAdmission.ps1",
+      "PassedAssertions": 45
+    },
+    {
+      "Test": "Test-Usb4PeerNetwork.ps1",
+      "PassedAssertions": 130
+    },
+    {
+      "Test": "Test-Usb4JournalRetirement.ps1",
+      "PassedAssertions": 34
+    },
+    {
+      "Test": "reviewer exact-generation injected real-file regression",
+      "PassedAssertions": 2,
+      "Results": {
+        "separateValidationReadCalls": 0,
+        "capturedScalarRefused": true,
+        "corruptBytesPreserved": true,
+        "historyUnchanged": true
+      }
+    }
+  ],
+  "ResolvedFindings": [
+    {
+      "Issue": "Separate parsed-state and captured-byte reads could archive null and overwrite corrupted predecessor",
+      "PriorReproduction": "Injected external edit immediately after original ReadState returned: publicationSucceeded=true, history=[null], generation2 published",
+      "Correction": "Writer captures once, validates captured bytes with ConvertFrom-Usb4StateBytes, hashes and archives the same bytes; empty input accepted at binding and explicitly refused by admission"
+    },
+    {
+      "Issue": "Retirement could ignore untracked in-flight mutator custody",
+      "PriorReproduction": "Top-level ownedAddresses empty, pending AddAddress completed=false and same current live address returned Admissible",
+      "Correction": "Only exact Rollback/Snapshot observation and reviewed Consumer ExistingWinNat policy/preimage admitted; uncertain mutators and unknown custody fields refused; policy IPv4/consumer/optional ULA candidates absent unless preexisting on exact preimage adapter"
+    }
+  ],
+  "ReviewConclusions": [
+    "State publication uses unique create-new staging, WriteThrough and Flush(true), readback hashes, exact immutable-name predecessor history and idempotent unchanged no-op. Foreign fixed staging is preserved. Errors remain nonzero even after an uncertain post-Move flush/readback failure.",
+    "Recovery archives damaged bytes, trusted pending JSON and disabled-task XML with create-only writes/readback before replacing state. It rechecks hashes and observed task/resource state under installer/controller mutexes and again immediately before retirement. No network mutation or task enable operation is present.",
+    "Default-preference r5 controller logic remains unchanged relative to 069a612; new deltas are state admission/publication and main wiring."
+  ],
+  "Limits": [
+    "No power-cut, storage-controller persistence or directory-metadata durability qualification. Flush API use is not proof against hardware power loss.",
+    "Mutexes coordinate cooperating installer/controller/recovery participants. Hash-before-Move is not atomic compare-and-swap against arbitrary privileged writers. Trusted administrator-controlled paths and declarations remain prerequisites.",
+    "Portable/inert provider tests do not qualify live hardware, actual task scheduler behavior, deployed controller identity or real retirement; root must bind and recheck its read-only plan before live Apply.",
+    "This record does not approve any later source/test/docs/workflow revision with different hashes."
+  ]
+}

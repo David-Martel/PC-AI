@@ -48,8 +48,14 @@ function Read-Usb4NetworkState {
     #>
     param([Parameter(Mandatory)][string]$Path)
     if (-not (Test-Path -LiteralPath $Path -ErrorAction Stop)) { return @{} }
+    ConvertFrom-Usb4StateBytes -Bytes (Read-Usb4NetworkBytes -Path $Path)
+}
+
+function ConvertFrom-Usb4StateBytes {
+    <# .SYNOPSIS Validate the exact captured custody generation before replacement. #>
+    param([Parameter(Mandatory)][AllowEmptyCollection()][byte[]]$Bytes)
     try {
-        $json = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+        $json = [Text.UTF8Encoding]::new($false, $true).GetString($Bytes).TrimStart([char]0xFEFF)
         $state = ConvertFrom-Json -InputObject $json -AsHashtable -NoEnumerate -ErrorAction Stop
     }
     catch { throw 'USB4 state admission failed: existing state is unreadable JSON; preserve the journal for ownership review.' }
@@ -213,7 +219,7 @@ function Get-Usb4NetworkSnapshot {
                 prefixOrigin = [string]$_.PrefixOrigin; suffixOrigin = [string]$_.SuffixOrigin; skipAsSource = [bool]$_.SkipAsSource
             }
         })
-    $interfaces = @(Get-NetIPInterface -ErrorAction Stop)
+    $interfaces = @(Get-NetIPInterface -PolicyStore ActiveStore -ErrorAction Stop)
     $dns = @(Get-DnsClientServerAddress -ErrorAction Stop)
     $adapters = @(Get-NetAdapter -IncludeHidden -ErrorAction Stop | ForEach-Object {
             $adapter = $_; $ipif = @($interfaces | Where-Object { $_.InterfaceIndex -eq $adapter.ifIndex -and $_.AddressFamily -eq 'IPv4' })
@@ -248,7 +254,10 @@ function Get-Usb4NetworkSnapshot {
             if ($configuration.SharingEnabled) { @{ guid = ([string]$properties.Guid).Trim('{}').ToLowerInvariant(); type = [int]$configuration.SharingConnectionType } }
         })
     $nat = $(if ($SkipNat) { @() } else { @(Get-NetNat -ErrorAction Stop | ForEach-Object { @{ name = [string]$_.Name; prefix = [string]$_.InternalIPInterfaceAddressPrefix } }) })
-    @{ hostName = [Environment]::MachineName; adapters = $adapters; addresses = $addresses; routes = $routes; sharing = $sharing; nat = @($nat); natObserved = -not $SkipNat }
+    $routingInterfaces = @($interfaces | ForEach-Object {
+            @{ index = [int]$_.InterfaceIndex; family = [string]$_.AddressFamily; metric = $(if ($null -ne $_.InterfaceMetric) { [int]$_.InterfaceMetric } else { $null }); state = [string]$_.ConnectionState }
+        })
+    @{ hostName = [Environment]::MachineName; adapters = $adapters; addresses = $addresses; routes = $routes; sharing = $sharing; nat = @($nat); natObserved = -not $SkipNat; routingInterfaces = $routingInterfaces }
 }
 
 function Invoke-Usb4BoundTcpProbe {
@@ -331,6 +340,52 @@ function Set-Usb4IcsPair {
         }
         throw "ICS change failed: $failure. Restoration errors: $($restoreErrors -join '; ')"
     }
+}
+
+function Get-Usb4DefaultRouteSelection {
+    <# .SYNOPSIS
+    Describe per-family default candidates without claiming destination or source selection.
+    .EXAMPLE
+    Get-Usb4DefaultRouteSelection -Snapshot $snapshot -Family IPv6
+    #>
+    param([hashtable]$Snapshot, [ValidateSet('IPv4', 'IPv6')][string]$Family = 'IPv4',
+        [int]$ExpectedInterfaceIndex = -1, [string]$ExpectedNextHop)
+    $destination = $(if ($Family -eq 'IPv4') { '0.0.0.0/0' } else { '::/0' })
+    $result = @{ family = $Family; state = 'Absent'; candidates = @(); selectedInterfaceIndex = $null; selectedNextHop = $null;
+        selectedEffectiveMetric = $null; sourceAddress = $null; sourceSelection = 'NotObserved'; desiredPreferenceMet = $null;
+        selectionBasis = 'ActiveStore default candidates only; more-specific routes and source policy may override'
+    }
+    $interfaces = $(if ($Snapshot.ContainsKey('routingInterfaces')) { @($Snapshot.routingInterfaces) } else { @() })
+    $unknown = $false
+    foreach ($route in @($Snapshot.routes | Where-Object destination -EQ $destination)) {
+        $ipif = @($interfaces | Where-Object { $_.index -eq $route.index -and $_.family -eq $Family })
+        $candidate = @{ index = $route.index; nextHop = $route.nextHop; routeMetric = $route.metric; interfaceMetric = $null; effectiveMetric = $null; eligible = $false; state = 'Unknown' }
+        if ($ipif.Count -eq 1 -and $ipif[0].ContainsKey('metric') -and $ipif[0].ContainsKey('state') -and
+            ($ipif[0].metric -is [int] -or $ipif[0].metric -is [long] -or $ipif[0].metric -is [uint32]) -and $ipif[0].metric -ge 0 -and
+            ($route.metric -is [int] -or $route.metric -is [long] -or $route.metric -is [uint32]) -and $route.metric -ge 0) {
+            $candidate.interfaceMetric = $ipif[0].metric; $candidate.effectiveMetric = [long]$route.metric + [long]$ipif[0].metric
+            $candidate.state = $ipif[0].state
+            $candidate.eligible = $ipif[0].state -eq 'Connected'
+            if ($ipif[0].state -notin @('Connected', 'Disconnected')) { $unknown = $true }
+        }
+        else { $unknown = $true }
+        $result.candidates += $candidate
+    }
+    $eligible = @($result.candidates | Where-Object eligible | Sort-Object effectiveMetric)
+    if ($unknown) { $result.state = 'Unknown' }
+    elseif ($eligible.Count) {
+        $best = @($eligible | Where-Object effectiveMetric -EQ $eligible[0].effectiveMetric)
+        $identities = @($best | ForEach-Object { "$($_.index)|$($_.nextHop)" } | Select-Object -Unique)
+        if ($identities.Count -eq 1) {
+            $result.state = 'Selected'; $result.selectedInterfaceIndex = $best[0].index; $result.selectedNextHop = $best[0].nextHop; $result.selectedEffectiveMetric = $best[0].effectiveMetric
+        }
+        else { $result.state = 'Tie' }
+    }
+    if ($ExpectedInterfaceIndex -ge 0) {
+        $result.desiredPreferenceMet = $result.state -eq 'Selected' -and $result.selectedInterfaceIndex -eq $ExpectedInterfaceIndex -and
+        (-not $ExpectedNextHop -or $result.selectedNextHop -eq $ExpectedNextHop)
+    }
+    $result
 }
 
 function Get-Usb4SelectedIPv4Route {
@@ -778,13 +833,21 @@ function Invoke-Usb4NetworkReconcile {
         preservedNat = $(if ($Snapshot.ContainsKey('natObserved') -and -not $Snapshot.natObserved) { $null } else { Copy-Usb4NetworkValue @($Snapshot.nat) }); authentication = 'PinnedPhysicalLink; not cryptographic authentication';
         attemptId = [guid]::NewGuid().ToString('D'); phase = 'Preflight'; reconcileElapsedMilliseconds = 0;
         operationTimings = [Collections.Generic.List[hashtable]]::new(); firstFailure = $null; diagnosticPublicationErrors = @(); lastOperation = $null
+        sharedPathInternetReady = $false; internetProofScope = 'NotVerified'; desiredDefaultPreferenceMet = $null;
+        defaultPreferenceRequested = $p.mode -eq 'Consumer' -and $p.sharing.preferSharedInternet;
+        ipv4DefaultSelection       = (Get-Usb4DefaultRouteSelection -Snapshot $Snapshot -Family IPv4);
+        ipv6                       = @{ linkLocalPeerReady = $false; ulaConfigured = $false; ulaPeerVerified = $null; internetVerified = $false; internetState = 'NotVerified';
+            defaultSelection = (Get-Usb4DefaultRouteSelection -Snapshot $Snapshot -Family IPv6)
+        }
     }
+    $record.ipv6.defaultRoutePresent = $record.ipv6.defaultSelection.candidates.Count -gt 0
     if ($state.ContainsKey('pendingTransaction')) {
         $record.exitCode = 1; $record.phase = 'PendingOwnershipReview'; $record.preservedNat = $null
         $record.pendingTransaction = Copy-Usb4NetworkValue $state.pendingTransaction
         $record.originalAttemptId = $(if ($state.pendingTransaction.ContainsKey('attemptId')) { $state.pendingTransaction.attemptId } else { $null })
         $record.firstFailure = $(if ($state.pendingTransaction.ContainsKey('firstFailure')) { Copy-Usb4NetworkValue $state.pendingTransaction.firstFailure } else { $null })
         $record.originalFailureKnown = $null -ne $record.firstFailure
+        $record.ipv4DefaultSelection.state = 'NotObserved'; $record.ipv6.defaultSelection.state = 'NotObserved'; $record.ipv6.defaultRoutePresent = $null
         $record.errors += 'An interrupted or incompletely rolled-back transaction requires exact preimage review before another apply.'
         if ($record.firstFailure) { $record.errors += "Original failure: $($record.firstFailure.message)" }
         else { $record.errors += 'The interrupted journal does not contain the original failure cause.' }
@@ -795,6 +858,7 @@ function Invoke-Usb4NetworkReconcile {
     $publishFailure = {
         param([Management.Automation.ErrorRecord]$FailureRecord)
         $record.exitCode = 1; $record.networkReady = $false; $record.internetReady = $false; $record.peerReady = $false; $record.ipv4Ready = $false
+        $record.sharedPathInternetReady = $false; $record.desiredDefaultPreferenceMet = $null; $record.ipv6.linkLocalPeerReady = $false; $record.ipv6.ulaConfigured = $false
         $record.sharingConfigured = $false; $record.upstreamInternetReady = $false; $record.peerInternetVerified = $null
         if (-not $record.firstFailure) {
             $record.firstFailure = @{ attemptId = $record.attemptId; observedAt = [DateTimeOffset]::UtcNow.ToString('o');
@@ -944,6 +1008,7 @@ function Invoke-Usb4NetworkReconcile {
     }
     $record.peerProof = $proof
     $record.linkLocalReady = $true
+    $record.ipv6.linkLocalPeerReady = $true
     # Conflicting sharing ownership is rejected before the first network write.
     $sharing = @($Snapshot.sharing)
     if ($p.mode -eq 'Consumer' -and (@($sharing | Where-Object guid -EQ $adapter.guid).Count -gt 0 -or
@@ -1038,6 +1103,7 @@ function Invoke-Usb4NetworkReconcile {
             }
         }
     }
+    $preferenceSnapshot = $Snapshot
     try {
         $record.phase = 'ReconcileTransport'
         foreach ($item in $desired) { & $ensureAddress $item }
@@ -1147,6 +1213,7 @@ function Invoke-Usb4NetworkReconcile {
             }
             else {
                 $record.internetReady = $true
+                $record.sharedPathInternetReady = $true; $record.internetProofScope = 'SourceBoundIpv4TlsAndDnsViaDedicatedProbeRoutes'
                 $record.peerInternetVerified = $true; $record.sharingConfigured = $true; $record.qualification = 'ConsumerSourceBoundHttpsAndDns'
                 if ($p.sharing.preferSharedInternet) {
                     & $ensureRoute '0.0.0.0/0' $p.sharing.providerAddress $p.sharing.routeMetric
@@ -1170,6 +1237,14 @@ function Invoke-Usb4NetworkReconcile {
         if ($Apply) {
             $record.phase = 'FinalInvariantReadback'
             $after = & $call 'Snapshot' @{}
+            $preferenceSnapshot = $after
+            $record.ipv4DefaultSelection = Get-Usb4DefaultRouteSelection -Snapshot $after -Family IPv4
+            $record.ipv6.defaultSelection = Get-Usb4DefaultRouteSelection -Snapshot $after -Family IPv6
+            $record.ipv6.defaultRoutePresent = $record.ipv6.defaultSelection.candidates.Count -gt 0
+            if ($p.ContainsKey('localUla')) {
+                $record.ipv6.ulaConfigured = @($after.addresses | Where-Object { $_.index -eq $adapter.index -and $_.address -eq $p.localUla -and $_.prefix -in @(64, 128) }).Count -eq 1 -and
+                @($after.routes | Where-Object { $_.index -eq $adapter.index -and $_.destination -eq "$($p.peerUla)/128" -and $_.nextHop -eq '::' }).Count -eq 1
+            }
             $ownedDnsTransition = $p.mode -eq 'Consumer' -and ($state.dns -or ($PreviousState.ContainsKey('dns') -and $PreviousState.dns))
             if ((Get-Usb4UnrelatedNetworkFingerprint $Snapshot $adapter.index $record.allowedForwardingGuids -AllowManagedAutomaticDnsFallback:$ownedDnsTransition) -cne
                 (Get-Usb4UnrelatedNetworkFingerprint $after $adapter.index $record.allowedForwardingGuids -AllowManagedAutomaticDnsFallback:$ownedDnsTransition)) { throw 'Unrelated addressing, routes, DNS, or WinNAT changed during reconciliation; refusing readiness.' }
@@ -1206,6 +1281,15 @@ function Invoke-Usb4NetworkReconcile {
         }
         elseif ($record.planned.Count -gt 0) {
             $record.networkReady = $false; $record.exitCode = 2
+        }
+        if ($record.internetReady -and $p.mode -eq 'Consumer' -and $p.sharing.preferSharedInternet) {
+            $record.ipv4DefaultSelection = Get-Usb4DefaultRouteSelection -Snapshot $preferenceSnapshot -Family IPv4 -ExpectedInterfaceIndex $adapter.index -ExpectedNextHop $p.sharing.providerAddress
+            $record.desiredDefaultPreferenceMet = $record.ipv4DefaultSelection.desiredPreferenceMet
+            if (-not $record.desiredDefaultPreferenceMet) {
+                $record.internetReady = $false; $record.networkReady = $false; $record.exitCode = 2
+                $record.qualification = 'ConsumerScopedIpv4InternetVerified; requested general IPv4 default preference unmet'
+                $record.errors += 'Requested shared Internet default preference is unmet or unknown; foreign defaults and interface metrics were preserved.'
+            }
         }
     }
     catch {
@@ -1258,25 +1342,129 @@ function Invoke-Usb4NetworkReconcile {
     $record
 }
 
-function Write-Usb4NetworkJson {
+function Read-Usb4NetworkBytes {
     <# .SYNOPSIS
-    Publish JSON atomically without accepting reserved Windows output paths.
+    Read one local publication within the four-megabyte custody bound.
     #>
-    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][object]$Value)
-    $full = [IO.Path]::GetFullPath($Path); $leaf = [IO.Path]::GetFileName($full).TrimEnd(' ', '.')
-    if ($leaf -match '^(\$null|CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)' -or -not $leaf) { throw 'Unsafe Windows output leaf.' }
-    [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($full)) | Out-Null
-    $temporary = $full + '.pending'
-    [IO.File]::WriteAllText($temporary, (ConvertTo-Json -InputObject $Value -Depth 40), [Text.UTF8Encoding]::new($false))
-    if ($IsWindows) {
-        $acl = [Security.AccessControl.FileSecurity]::new()
-        $administrators = [Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
-        $system = [Security.Principal.SecurityIdentifier]::new('S-1-5-18')
-        $acl.SetOwner($administrators); $acl.SetAccessRuleProtection($true, $false)
-        foreach ($identity in @($administrators, $system)) { $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($identity, 'FullControl', 'Allow')) }
-        Set-Acl -LiteralPath $temporary -AclObject $acl -ErrorAction Stop
+    param([Parameter(Mandatory)][string]$Path)
+    if ([IO.File]::GetAttributes($Path) -band [IO.FileAttributes]::ReparsePoint) { throw 'Publication cannot be a reparse point.' }
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    $memory = [IO.MemoryStream]::new()
+    try {
+        if ($stream.Length -gt 4MB) { throw 'USB4 publication exceeds the four-megabyte bound.' }
+        $buffer = [byte[]]::new(8192)
+        while ($true) {
+            $count = $stream.Read($buffer, 0, [Math]::Min($buffer.Length, 4MB + 1 - [int]$memory.Length))
+            if ($count -eq 0) { break }
+            $memory.Write($buffer, 0, $count)
+            if ($memory.Length -gt 4MB) { throw 'USB4 publication grew beyond the four-megabyte bound.' }
+        }
+        ,$memory.ToArray()
     }
-    [IO.File]::Move($temporary, $full, $true)
+    finally { $memory.Dispose(); $stream.Dispose() }
+}
+
+function Get-Usb4BytesHash {
+    <# .SYNOPSIS Return a content identity without retaining a cryptographic provider. #>
+    param([byte[]]$Bytes)
+    $algorithm = [Security.Cryptography.SHA256]::Create()
+    try { [BitConverter]::ToString($algorithm.ComputeHash($Bytes)).Replace('-', '') }
+    finally { $algorithm.Dispose() }
+}
+
+function Assert-Usb4PublicationPath {
+    <# .SYNOPSIS Reject reserved leaves and existing reparse components before writes. #>
+    param([string]$Path)
+    $full = [IO.Path]::GetFullPath($Path); $leaf = [IO.Path]::GetFileName($full).TrimEnd(' ', '.')
+    if ($leaf -match '^(\$null|CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)' -or -not $leaf -or $leaf -cne [IO.Path]::GetFileName($full)) { throw 'Unsafe Windows output leaf.' }
+    $cursor = $full
+    while ($cursor) {
+        try {
+            if ([IO.File]::GetAttributes($cursor) -band [IO.FileAttributes]::ReparsePoint) { throw 'Publication path contains a reparse point.' }
+        }
+        catch [IO.FileNotFoundException] { }
+        catch [IO.DirectoryNotFoundException] { }
+        $parent = [IO.Path]::GetDirectoryName($cursor)
+        if ($parent -eq $cursor) { break }
+        $cursor = $parent
+    }
+    $full
+}
+
+function Write-Usb4NetworkBytes {
+    <# .SYNOPSIS
+    Flush, verify and publish one bounded JSON generation without fixed staging.
+    #>
+    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][byte[]]$Bytes,
+        [string]$ExpectedPreviousHash, [switch]$ExpectAbsent, [switch]$CreateOnly)
+    if ($Bytes.Length -gt 4MB) { throw 'USB4 publication exceeds the four-megabyte bound.' }
+    $json = [Text.UTF8Encoding]::new($false, $true).GetString($Bytes).TrimStart([char]0xFEFF)
+    $null = ConvertFrom-Json -InputObject $json -AsHashtable -NoEnumerate -ErrorAction Stop
+    $full = Assert-Usb4PublicationPath $Path
+    $exists = [IO.File]::Exists($full)
+    $before = $(if ($exists) { Get-Usb4BytesHash (Read-Usb4NetworkBytes $full) } else { $null })
+    if (($ExpectAbsent -or $CreateOnly) -and $exists) { throw 'An unexpected publication already exists.' }
+    if ($ExpectedPreviousHash -and $before -cne $ExpectedPreviousHash) { throw 'Publication predecessor changed before staging.' }
+    $hash = Get-Usb4BytesHash $Bytes
+    if ($before -ceq $hash) { return }
+    [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($full)) | Out-Null
+    $temporary = $full + '.pending-' + [guid]::NewGuid().ToString('N')
+    try {
+        $stream = [IO.FileStream]::new($temporary, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None, 8192, [IO.FileOptions]::WriteThrough)
+        try { $stream.Write($Bytes, 0, $Bytes.Length); $stream.Flush($true) }
+        finally { $stream.Dispose() }
+        if ($IsWindows) {
+            $acl = [Security.AccessControl.FileSecurity]::new()
+            $administrators = [Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
+            $system = [Security.Principal.SecurityIdentifier]::new('S-1-5-18')
+            $acl.SetOwner($administrators); $acl.SetAccessRuleProtection($true, $false)
+            foreach ($identity in @($administrators, $system)) { $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($identity, 'FullControl', 'Allow')) }
+            Set-Acl -LiteralPath $temporary -AclObject $acl -ErrorAction Stop
+        }
+        if ((Get-Usb4BytesHash (Read-Usb4NetworkBytes $temporary)) -cne $hash) { throw 'Staged publication readback differs.' }
+        $current = $(if ([IO.File]::Exists($full)) { Get-Usb4BytesHash (Read-Usb4NetworkBytes $full) } else { $null })
+        if ($current -cne $before) { throw 'Publication predecessor changed during staging.' }
+        [IO.File]::Move($temporary, $full, $exists)
+        $published = [IO.FileStream]::new($full, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read, 8192, [IO.FileOptions]::WriteThrough)
+        try { $published.Flush($true) } finally { $published.Dispose() }
+        if ((Get-Usb4BytesHash (Read-Usb4NetworkBytes $full)) -cne $hash) { throw 'Published JSON readback differs; outcome requires review.' }
+    }
+    finally {
+        if ([IO.File]::Exists($temporary) -and (Get-Usb4BytesHash (Read-Usb4NetworkBytes $temporary)) -ceq $hash) { [IO.File]::Delete($temporary) }
+    }
+}
+
+function Write-Usb4NetworkJson {
+    <# .SYNOPSIS Publish bounded JSON with verified, flushed, unique staging. #>
+    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][object]$Value)
+    $bytes = [Text.UTF8Encoding]::new($false).GetBytes((ConvertTo-Json -InputObject $Value -Depth 40))
+    Write-Usb4NetworkBytes -Path $Path -Bytes $bytes
+}
+
+function Write-Usb4NetworkState {
+    <# .SYNOPSIS Preserve exact prior custody before publishing a new state generation. #>
+    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][object]$Value)
+    if ($Value -isnot [Collections.IDictionary] -or
+        ($Value.Contains('pendingTransaction') -and $Value.pendingTransaction -isnot [Collections.IDictionary])) {
+        throw 'New USB4 state must retain object custody and an object pending transaction.'
+    }
+    $bytes = [Text.UTF8Encoding]::new($false).GetBytes((ConvertTo-Json -InputObject $Value -Depth 40))
+    if ($bytes.Length -gt 4MB) { throw 'USB4 state exceeds the four-megabyte bound.' }
+    $full = Assert-Usb4PublicationPath $Path
+    $before = $null
+    if ([IO.File]::Exists($full)) {
+        $previous = Read-Usb4NetworkBytes $full
+        $null = ConvertFrom-Usb4StateBytes -Bytes $previous
+        $before = Get-Usb4BytesHash $previous
+        if ($before -ceq (Get-Usb4BytesHash $bytes)) { return }
+        $history = Join-Path ($full + '.history') ($before.ToLowerInvariant() + '.json')
+        $null = Assert-Usb4PublicationPath $history
+        if ([IO.File]::Exists($history)) {
+            if ((Get-Usb4BytesHash (Read-Usb4NetworkBytes $history)) -cne $before) { throw 'State history identity collision; preserving both records.' }
+        }
+        else { Write-Usb4NetworkBytes -Path $history -Bytes $previous -CreateOnly }
+    }
+    Write-Usb4NetworkBytes -Path $full -Bytes $bytes -ExpectedPreviousHash $before -ExpectAbsent:($null -eq $before)
 }
 
 function Publish-Usb4NetworkResult {
@@ -1315,6 +1503,10 @@ try {
         Write-Usb4NetworkJson -Path $ReportPath -Value @{ schema = 'pcai.usb4-peer-network/v1'; observedAt = [DateTimeOffset]::UtcNow.ToString('o');
             scope = 'generic-usb4-transport'; invocationId = $invocationId; phase = $mainPhase; inProgress = $true;
             networkReady = $false; peerReady = $false; ipv4Ready = $false; internetReady = $false; exitCode = 2
+            sharedPathInternetReady = $false; internetProofScope = 'NotVerified'; desiredDefaultPreferenceMet = $null
+            defaultPreferenceRequested = $null
+            ipv4DefaultSelection       = @{ state = 'NotObserved'; sourceAddress = $null }
+            ipv6                       = @{ linkLocalPeerReady = $false; ulaConfigured = $false; ulaPeerVerified = $null; internetVerified = $false; internetState = 'NotVerified'; defaultRoutePresent = $null; defaultSelection = @{ state = 'NotObserved' } }
         }
     }
     $snapshotClock = [Diagnostics.Stopwatch]::StartNew()
@@ -1330,7 +1522,7 @@ try {
     }
     $snapshotClock.Stop()
     $mainPhase = 'Reconcile'
-    $result = Invoke-Usb4NetworkReconcile -Policy $policy -Snapshot $snapshot -PreviousState $previous -Apply:$execute -StateCheckpoint { param($Value); Write-Usb4NetworkJson -Path $StatePath -Value $Value } -ReportCheckpoint { param($Value); Write-Usb4NetworkJson -Path $ReportPath -Value $Value }
+    $result = Invoke-Usb4NetworkReconcile -Policy $policy -Snapshot $snapshot -PreviousState $previous -Apply:$execute -StateCheckpoint { param($Value); Write-Usb4NetworkState -Path $StatePath -Value $Value } -ReportCheckpoint { param($Value); Write-Usb4NetworkJson -Path $ReportPath -Value $Value }
     $result.initialSnapshotMilliseconds = $snapshotClock.ElapsedMilliseconds
     $result.invocationId = $invocationId; $result.inProgress = $false
     $result.initialSnapshotSkippedForPending = $previous.ContainsKey('pendingTransaction')
@@ -1338,7 +1530,7 @@ try {
     $result.timingBoundary = 'before_final_publication'
     $result.controllerSha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256 -ErrorAction Stop).Hash
     $mainPhase = 'FinalPublication'
-    $result = Publish-Usb4NetworkResult -Result $result -Apply:$execute -StateWriter { param($Value); Write-Usb4NetworkJson -Path $StatePath -Value $Value } -ReportWriter { param($Value); Write-Usb4NetworkJson -Path $ReportPath -Value $Value }
+    $result = Publish-Usb4NetworkResult -Result $result -Apply:$execute -StateWriter { param($Value); Write-Usb4NetworkState -Path $StatePath -Value $Value } -ReportWriter { param($Value); Write-Usb4NetworkJson -Path $ReportPath -Value $Value }
     $result | ConvertTo-Json -Depth 40
     exit $result.exitCode
 }

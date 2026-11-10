@@ -286,12 +286,17 @@ function Assert-Usb4StateHistory {
     param([string]$Path, [hashtable]$Operations)
     $null = Assert-Usb4InstallPath $Path
     & $Operations.AssertRoot $Path | Out-Null
-    foreach ($entry in @(Get-ChildItem -LiteralPath $Path -Force -ErrorAction Stop)) {
+    $entryCount = 0; [long]$total = 0
+    foreach ($candidate in [IO.Directory]::EnumerateFileSystemEntries($Path)) {
+        if (++$entryCount -gt 128) { throw 'State history exceeds the supported record count; explicit recovery review required.' }
+        $entry = Get-Item -LiteralPath $candidate -Force -ErrorAction Stop
         if ($entry.PSIsContainer -or $entry.Attributes -band [IO.FileAttributes]::ReparsePoint -or $entry.Name -cnotmatch '^[a-f0-9]{64}\.json$') { throw 'State history contains an unrecognized entry.' }
         & $Operations.AssertRoot $entry.FullName | Out-Null
         $stream = [IO.File]::Open($entry.FullName, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
         try {
             if ($stream.Length -gt 4MB) { throw 'State history exceeds the four-megabyte generation bound.' }
+            $total += $stream.Length
+            if ($total -gt 32MB) { throw 'State history exceeds the supported byte budget; explicit recovery review required.' }
             $bytes = [byte[]]::new([int]$stream.Length); $offset = 0
             while ($offset -lt $bytes.Length) {
                 $count = $stream.Read($bytes, $offset, $bytes.Length - $offset)

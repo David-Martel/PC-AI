@@ -234,6 +234,19 @@ different valid generation under `owned-state.json.history/<sha256>.json`, and
 uses unique create-only staging, write-through handles, `Flush(true)` and hash
 readback before and after replacement. A damaged predecessor is never silently
 converted into a new enrollment. Identical states do not create new generations.
+History retains at most128 generations and32MiB, including the incoming exact
+predecessor. Before staging, the controller checks bounded filenames, attributes
+and sizes. When pruning is needed it first validates every retained content hash,
+object custody and private Windows ACL, then removes oldest validated entries
+to half the hard budget, reserving that predecessor. Batching avoids rehashing
+the whole history on every checkpoint. It never prunes
+the immediate predecessor. Unrecognized names, sizes or reparse entries refuse
+publication. Substituted content or foreign ACLs refuse pruning without deleting
+any history. Existing stores already exceeding either budget require
+explicit recovery review instead of automatic cleanup. Recovery archives outside
+this directory remain untouched. The [retention controls](../../Tests/Portable/Test-Usb4StateHistoryRetention.ps1)
+repeat actual failed reconciliation/rollback attempts and exercise byte bounds,
+predecessor preservation and foreign-entry/no-Apply refusal.
 This reduces exposure to interrupted writes; it does not establish physical
 power-loss durability or atomic comparison against arbitrary administrator writes.
 Use a trusted protected runtime and the controller/installer mutexes.

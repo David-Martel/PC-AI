@@ -31,6 +31,7 @@ on:
       - 'Tests/Portable/Test-Usb4PeerNetwork.ps1'
       - 'Tests/Portable/Test-Usb4StateAdmission.ps1'
       - 'Tests/Portable/Test-Usb4StatePublication.ps1'
+      - 'Tests/Portable/Test-Usb4StateHistoryRetention.ps1'
       - 'Tests/Portable/Test-Usb4JournalRetirement.ps1'
       - 'Tests/Portable/usb4-journal-publication-review.json'
       - 'Tests/Portable/usb4-state-admission-review.json'
@@ -90,6 +91,7 @@ jobs:
           ./Tests/Portable/Test-Usb4PeerNetwork.ps1
           ./Tests/Portable/Test-Usb4StateAdmission.ps1
           ./Tests/Portable/Test-Usb4StatePublication.ps1
+          ./Tests/Portable/Test-Usb4StateHistoryRetention.ps1
           ./Tests/Portable/Test-Usb4JournalRetirement.ps1
           ./Tests/Portable/Test-Usb4PeerNetworkInstall.ps1
       # Protects file-only installed-release inspection, pointer containment and

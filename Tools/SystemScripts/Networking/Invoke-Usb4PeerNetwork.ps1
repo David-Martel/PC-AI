@@ -1475,6 +1475,66 @@ function Protect-Usb4StateHistoryDirectory {
     }
 }
 
+function Get-Usb4StateHistoryEntry {
+    <# .SYNOPSIS Validate one owned recovery generation before considering its retention. #>
+    param([Parameter(Mandatory)][string]$Path)
+    $full = Assert-Usb4PublicationPath $Path
+    $item = Get-Item -LiteralPath $full -Force -ErrorAction Stop
+    if ($item.PSIsContainer -or $item.Name -cnotmatch '^[a-f0-9]{64}\.json$') { throw 'State history contains an unrecognized entry; preserving it.' }
+    if ($IsWindows) {
+        $acl = Get-Acl -LiteralPath $full -ErrorAction Stop
+        $allowed = @('S-1-5-18', 'S-1-5-32-544'); $grants = @()
+        if (-not $acl.AreAccessRulesProtected -or $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -notin $allowed) { throw 'State history entry is not privately owned; preserving it.' }
+        foreach ($rule in $acl.Access) {
+            $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
+            if ($sid -notin $allowed -or $rule.AccessControlType -ne 'Allow' -or
+                ($rule.FileSystemRights -band [Security.AccessControl.FileSystemRights]::FullControl) -ne [Security.AccessControl.FileSystemRights]::FullControl) { throw 'State history entry has foreign grants; preserving it.' }
+            $grants += $sid
+        }
+        if (@($allowed | Where-Object { $_ -notin $grants }).Count) { throw 'State history entry lacks private grants.' }
+    }
+    $bytes = Read-Usb4NetworkBytes $full
+    $null = ConvertFrom-Usb4StateBytes -Bytes $bytes
+    $hash = Get-Usb4BytesHash $bytes
+    if ($hash.ToLowerInvariant() -cne [IO.Path]::GetFileNameWithoutExtension($item.Name)) { throw 'State history identity differs from its filename; preserving it.' }
+    @{ path = $full; hash = $hash; length = $bytes.Length; written = $item.LastWriteTimeUtc }
+}
+
+function Limit-Usb4StateHistory {
+    <# .SYNOPSIS Bound private history while preserving the exact current predecessor. #>
+    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][string]$PredecessorHash,
+        [Parameter(Mandatory)][int]$IncomingLength, [switch]$IncomingAbsent)
+    # Bound both normal retention and inspection work. Oversized legacy stores
+    # require explicit review, rather than automatically deleting unknown data.
+    $maximumFiles = 128; $maximumBytes = 32MB
+    $entries = @(); [long]$total = 0
+    foreach ($candidate in [IO.Directory]::EnumerateFileSystemEntries($Path)) {
+        if ($entries.Count -ge $maximumFiles) { throw 'State history exceeds the supported record count; explicit recovery review required.' }
+        $item = [IO.FileInfo]::new($candidate)
+        if ($item.Attributes -band ([IO.FileAttributes]::Directory -bor [IO.FileAttributes]::ReparsePoint) -or
+            $item.Name -cnotmatch '^[a-f0-9]{64}\.json$' -or $item.Length -gt 4MB) { throw 'State history contains an unrecognized entry; preserving it.' }
+        $entry = @{ path = $candidate; hash = [IO.Path]::GetFileNameWithoutExtension($item.Name).ToUpperInvariant(); length = $item.Length; written = $item.LastWriteTimeUtc }
+        $entries += $entry; $total += $entry.length
+        if ($total -gt $maximumBytes) { throw 'Existing state history exceeds the supported byte budget; explicit recovery review required.' }
+    }
+    # Validate every entry before any deletion. Reserve the incoming generation
+    # before staging it, so failed publication also stays inside the budget.
+    $count = $entries.Count + [int][bool]$IncomingAbsent
+    if ($IncomingAbsent) { $total += $IncomingLength }
+    if ($count -le $maximumFiles -and $total -le $maximumBytes) { return }
+    # Full byte/ACL validation is needed only before pruning. Trim a batch to
+    # half the hard budget, avoiding a complete history rehash per checkpoint.
+    foreach ($entry in $entries) { $null = Get-Usb4StateHistoryEntry -Path $entry.path }
+    foreach ($entry in @($entries | Where-Object hash -CNE $PredecessorHash | Sort-Object written, path)) {
+        if ($count -le 64 -and $total -le 16MB) { break }
+        $current = Get-Usb4StateHistoryEntry -Path $entry.path
+        if ($current.hash -cne $entry.hash -or $current.length -ne $entry.length) { throw 'History changed during retention; preserving current custody.' }
+        [IO.File]::Delete($entry.path)
+        $count--; $total -= $entry.length
+    }
+    if ($count -gt $maximumFiles -or $total -gt $maximumBytes) { throw 'Cannot retain the current predecessor inside the history budget.' }
+}
+
 function Write-Usb4NetworkState {
     <# .SYNOPSIS Preserve exact prior custody before publishing a new state generation. #>
     param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][object]$Value)
@@ -1497,7 +1557,9 @@ function Write-Usb4NetworkState {
         if ([IO.File]::Exists($history)) {
             if ((Get-Usb4BytesHash (Read-Usb4NetworkBytes $history)) -cne $before) { throw 'State history identity collision; preserving both records.' }
         }
-        else { Write-Usb4NetworkBytes -Path $history -Bytes $previous -CreateOnly }
+        $incomingAbsent = -not [IO.File]::Exists($history)
+        Limit-Usb4StateHistory -Path ($full + '.history') -PredecessorHash $before -IncomingLength $previous.Length -IncomingAbsent:$incomingAbsent
+        if ($incomingAbsent) { Write-Usb4NetworkBytes -Path $history -Bytes $previous -CreateOnly }
     }
     Write-Usb4NetworkBytes -Path $full -Bytes $bytes -ExpectedPreviousHash $before -ExpectAbsent:($null -eq $before)
 }

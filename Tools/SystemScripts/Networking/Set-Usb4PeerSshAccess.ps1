@@ -32,6 +32,10 @@ Remove only an exactly matching owned rule; never edit a foreign rule.
 .PARAMETER ServiceBinding
 Service (default) requires a supported configured service SID. Executable must
 be selected explicitly and leaves the optional COM ServiceName unassigned.
+.PARAMETER EnrolledPrivatePolicy
+Explicit controller Peer policy object for an exact RFC1918 IPv4 /30 pair.
+Requires ExpectedPeerMac; default admission remains link-local only. Apply
+also requires the assigned /30 and exact freshly reachable peer on the USB4 NIC.
 .PARAMETER Help
 Show usage. Aliases -h and --help are accepted without other arguments.
 #>
@@ -41,6 +45,8 @@ param(
     [string]$InterfaceGuid,
     [string]$ExpectedInterfaceAlias,
     [string]$ExpectedMac,
+    [string]$ExpectedPeerMac,
+    [Collections.IDictionary]$EnrolledPrivatePolicy,
     [object[]]$LocalAddress,
     [object[]]$RemoteAddress,
     [string]$ProgramPath,
@@ -65,8 +71,36 @@ function ConvertTo-Usb4SshProgramPath {
     if ($parts[-1] -ine 'sshd.exe') { throw 'SSH executable must be sshd.exe.' }
     $normalized
 }
+function ConvertTo-Usb4SshPrivateEnrollment {
+    param([Collections.IDictionary]$Policy, [string]$HostName, [string]$Mac, [string]$PeerMac)
+    if ($null -eq $Policy) {
+        if ($PeerMac) { throw 'ExpectedPeerMac requires explicit private enrollment.' }
+        return $null
+    }
+    foreach ($field in @('schemaVersion','hostName','mode','adapterMac','peerMac','localIPv4','peerIPv4','prefixLength')) {
+        if (-not $Policy.Contains($field)) { throw 'Private enrollment is incomplete.' }
+    }
+    if (($Policy.schemaVersion -isnot [int] -and $Policy.schemaVersion -isnot [long]) -or $Policy.schemaVersion -ne 1 -or
+        ($Policy.prefixLength -isnot [int] -and $Policy.prefixLength -isnot [long]) -or $Policy.prefixLength -ne 30) { throw 'Private enrollment requires schema 1 and an integer /30 prefix.' }
+    if ($Policy.mode -isnot [string] -or $Policy.mode -cne 'Peer' -or $Policy.hostName -isnot [string] -or $Policy.hostName -ine $HostName) { throw 'Private enrollment must name this exact Peer host.' }
+    if ($PeerMac -notmatch '^(?:[0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2}$' -or $PeerMac -in @('00-00-00-00-00-00','FF-FF-FF-FF-FF-FF') -or
+        ([Convert]::ToByte($PeerMac.Substring(0,2),16) -band 1) -ne 0 -or $PeerMac -ieq $Mac) { throw 'Private enrollment requires an explicit distinct unicast peer MAC.' }
+    if ($Policy.adapterMac -isnot [string] -or $Policy.peerMac -isnot [string] -or $Policy.adapterMac -ine $Mac -or $Policy.peerMac -ine $PeerMac) { throw 'Private enrollment differs from the exact declared local/peer MACs.' }
+    $networks = @(); $hosts = @()
+    foreach ($field in @('localIPv4','peerIPv4')) {
+        $address = $null; $value = $Policy[$field]
+        if ($value -isnot [string] -or -not [Net.IPAddress]::TryParse($value,[ref]$address) -or $address.AddressFamily -ne [Net.Sockets.AddressFamily]::InterNetwork -or $value -cne $address.ToString()) { throw 'Private enrollment requires canonical IPv4 hosts.' }
+        $bytes = $address.GetAddressBytes()
+        $private = $bytes[0] -eq 10 -or ($bytes[0] -eq 172 -and $bytes[1] -ge 16 -and $bytes[1] -le 31) -or ($bytes[0] -eq 192 -and $bytes[1] -eq 168)
+        if (-not $private -or ($bytes[3] -band 3) -notin @(1,2)) { throw 'Private enrollment requires usable RFC1918 /30 hosts.' }
+        $hosts += $value
+        $networks += ('{0}.{1}.{2}.{3}' -f $bytes[0],$bytes[1],$bytes[2],($bytes[3] -band 252))
+    }
+    if ($hosts[0] -ceq $hosts[1] -or $networks[0] -cne $networks[1]) { throw 'Private enrollment hosts must be distinct members of the same /30.' }
+    [ordered]@{ schemaVersion=1; hostName=$HostName.ToLowerInvariant(); mode='Peer'; adapterMac=$Mac.ToUpperInvariant(); peerMac=$PeerMac.ToUpperInvariant(); localIPv4=$hosts[0]; peerIPv4=$hosts[1]; prefixLength=30 }
+}
 function ConvertTo-Usb4SshAddresses {
-    param([object[]]$Address)
+    param([object[]]$Address, [Collections.IDictionary]$PrivateEnrollment)
     if ($null -eq $Address -or $Address.Count -lt 1 -or $Address.Count -gt 2) { throw 'Provide one or two exact link-local addresses.' }
     $result = [Collections.Generic.List[string]]::new()
     $families = [Collections.Generic.HashSet[int]]::new()
@@ -77,7 +111,10 @@ function ConvertTo-Usb4SshAddresses {
         $family = [int]$parsed.AddressFamily
         if ($family -eq 2) {
             $bytes = $parsed.GetAddressBytes()
-            if ($item -cne $parsed.ToString() -or $bytes[0] -ne 169 -or $bytes[1] -ne 254 -or $bytes[2] -in @(0, 255)) { throw 'IPv4 address must be a canonical assignable 169.254 link-local host.' }
+            if ($null -ne $PrivateEnrollment) {
+                if ($item -cne $parsed.ToString() -or $item -cnotin @($PrivateEnrollment.localIPv4,$PrivateEnrollment.peerIPv4)) { throw 'IPv4 address differs from the exact enrolled private pair.' }
+            }
+            elseif ($item -cne $parsed.ToString() -or $bytes[0] -ne 169 -or $bytes[1] -ne 254 -or $bytes[2] -in @(0, 255)) { throw 'IPv4 address must be a canonical assignable 169.254 link-local host.' }
         }
         elseif ($family -eq 23) {
             if (-not $parsed.IsIPv6LinkLocal -or $parsed.ScopeId -ne 0) { throw 'IPv6 address must be an unscoped link-local host.' }
@@ -92,6 +129,7 @@ function New-Usb4PeerSshAccessPlan {
     [CmdletBinding()]
     param(
         [string]$ExpectedHostName, [string]$InterfaceGuid, [string]$ExpectedInterfaceAlias, [string]$ExpectedMac,
+        [string]$ExpectedPeerMac, [Collections.IDictionary]$EnrolledPrivatePolicy,
         [object[]]$LocalAddress, [object[]]$RemoteAddress, [string]$ProgramPath,
         [ValidateSet('Service', 'Executable')][string]$ServiceBinding = 'Service',
         [ValidateSet('Add', 'Remove')][string]$Action = 'Add'
@@ -102,8 +140,10 @@ function New-Usb4PeerSshAccessPlan {
     if (-not $ExpectedInterfaceAlias -or $ExpectedInterfaceAlias.Length -gt 128 -or $ExpectedInterfaceAlias -match '[\x00-\x1f\x7f]') { throw 'An exact current interface alias is required.' }
     if ($ExpectedMac -notmatch '^(?:[0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2}$' -or $ExpectedMac -in @('00-00-00-00-00-00', 'FF-FF-FF-FF-FF-FF')) { throw 'An exact six-byte interface MAC is required.' }
     if (([Convert]::ToByte($ExpectedMac.Substring(0, 2), 16) -band 1) -ne 0) { throw 'The interface MAC must be unicast.' }
-    $local = @(ConvertTo-Usb4SshAddresses $LocalAddress)
-    $remote = @(ConvertTo-Usb4SshAddresses $RemoteAddress)
+    $enrollment = ConvertTo-Usb4SshPrivateEnrollment -Policy $EnrolledPrivatePolicy -HostName $ExpectedHostName -Mac $ExpectedMac -PeerMac $ExpectedPeerMac
+    $local = @(ConvertTo-Usb4SshAddresses $LocalAddress -PrivateEnrollment $enrollment)
+    $remote = @(ConvertTo-Usb4SshAddresses $RemoteAddress -PrivateEnrollment $enrollment)
+    if ($null -ne $enrollment -and ($local.Count -ne 1 -or $remote.Count -ne 1 -or $local[0] -cne $enrollment.localIPv4 -or $remote[0] -cne $enrollment.peerIPv4)) { throw 'Private enrollment must retain only its exact local and remote IPv4 hosts.' }
     $localFamilies = @($local | ForEach-Object { [int]([Net.IPAddress]::Parse($_)).AddressFamily })
     $remoteFamilies = @($remote | ForEach-Object { [int]([Net.IPAddress]::Parse($_)).AddressFamily })
     if (@(Compare-Object $localFamilies $remoteFamilies).Count -ne 0) { throw 'Local and remote address families must match.' }
@@ -114,6 +154,7 @@ function New-Usb4PeerSshAccessPlan {
         mac = $ExpectedMac.ToUpperInvariant(); localAddresses = $local; remoteAddresses = $remote; program = $program; service = 'sshd'; serviceBinding = $binding; protocol = 6; localPort = 22; profiles = 7 }
     $hashScope = [ordered]@{ hostName = $scope.hostName.ToLowerInvariant(); interfaceGuid = $scope.interfaceGuid; interfaceAlias = $scope.interfaceAlias.ToLowerInvariant(); mac = $scope.mac
         localAddresses = $local; remoteAddresses = $remote; program = $program.ToLowerInvariant(); service = 'sshd'; serviceBinding = $binding; protocol = 6; localPort = 22; profiles = 7 }
+    if ($null -ne $enrollment) { $scope.privateEnrollment=$enrollment; $hashScope.privateEnrollment=$enrollment }
     $bytes = [Text.Encoding]::UTF8.GetBytes(($hashScope | ConvertTo-Json -Depth 8 -Compress))
     $hash = [Security.Cryptography.SHA256]::Create()
     try { $digest = [BitConverter]::ToString($hash.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant() } finally { $hash.Dispose() }
@@ -121,6 +162,7 @@ function New-Usb4PeerSshAccessPlan {
         grouping = 'PC-AI USB4 peer SSH'; enabled = $true; direction = 1; action = 1; protocol = 6; localPorts = '22'; remotePorts = '*'
         localAddresses = $local -join ','; remoteAddresses = $remote -join ','; applicationName = $program; serviceBinding = $binding; serviceName = $(if ($binding -eq 'Service') { 'sshd' } else { '' })
         interfaces = @($ExpectedInterfaceAlias); interfaceTypes = 'All'; profiles = 7; edgeTraversal = $false }
+    if ($null -ne $enrollment) { $rule.privateEnrollment=$enrollment }
     [ordered]@{ schema = 'pcai.usb4-peer-ssh-access/v1'; action = $Action; scope = $scope; rule = $rule; peerIdentity = 'DeclaredByCaller'
         qualification = 'OfflinePlanNotRuntimeQualification'; externalDeadlineRequired = $true; writesFiles = $false }
 }
@@ -132,7 +174,7 @@ function Get-Usb4SshRuleField {
     return ,($Rule[$Name])
 }
 function ConvertFrom-Usb4SshObservedAddresses {
-    param([string]$Value)
+    param([string]$Value, [Collections.IDictionary]$PrivateEnrollment)
     $hosts = [Collections.Generic.List[string]]::new()
     foreach ($entry in $Value.Split(',')) {
         $token = $entry.Trim()
@@ -155,10 +197,11 @@ function ConvertFrom-Usb4SshObservedAddresses {
         }
         $hosts.Add($parts[0])
     }
-    (ConvertTo-Usb4SshAddresses @($hosts)) -join ','
+    (ConvertTo-Usb4SshAddresses @($hosts) -PrivateEnrollment $PrivateEnrollment) -join ','
 }
 function ConvertTo-Usb4SshRuleIdentity {
-    param([object]$Rule, [switch]$Observed, [ValidateSet('Service', 'Executable')][string]$ServiceBinding = 'Service')
+    param([object]$Rule, [switch]$Observed, [ValidateSet('Service', 'Executable')][string]$ServiceBinding = 'Service', [Collections.IDictionary]$PrivateEnrollment)
+    if ($null -eq $PrivateEnrollment -and $Rule -is [Collections.IDictionary] -and $Rule.Contains('privateEnrollment')) { $PrivateEnrollment=$Rule.privateEnrollment }
     $result = [ordered]@{}
     foreach ($field in @('name', 'description', 'grouping', 'localPorts', 'remotePorts', 'localAddresses', 'remoteAddresses', 'applicationName', 'serviceName', 'interfaceTypes')) {
         $value = Get-Usb4SshRuleField $Rule $field
@@ -185,20 +228,21 @@ function ConvertTo-Usb4SshRuleIdentity {
     $result.interfaces = @($interfaces[0].ToLowerInvariant())
     foreach ($field in @('name', 'applicationName', 'serviceName', 'interfaceTypes')) { $result[$field] = $result[$field].ToLowerInvariant() }
     if ($Observed) {
-        $result.localAddresses = ConvertFrom-Usb4SshObservedAddresses $result.localAddresses
-        $result.remoteAddresses = ConvertFrom-Usb4SshObservedAddresses $result.remoteAddresses
+        $result.localAddresses = ConvertFrom-Usb4SshObservedAddresses $result.localAddresses -PrivateEnrollment $PrivateEnrollment
+        $result.remoteAddresses = ConvertFrom-Usb4SshObservedAddresses $result.remoteAddresses -PrivateEnrollment $PrivateEnrollment
     }
     else {
-        $result.localAddresses = (ConvertTo-Usb4SshAddresses @($result.localAddresses.Split(','))) -join ','
-        $result.remoteAddresses = (ConvertTo-Usb4SshAddresses @($result.remoteAddresses.Split(','))) -join ','
+        $result.localAddresses = (ConvertTo-Usb4SshAddresses @($result.localAddresses.Split(',')) -PrivateEnrollment $PrivateEnrollment) -join ','
+        $result.remoteAddresses = (ConvertTo-Usb4SshAddresses @($result.remoteAddresses.Split(',')) -PrivateEnrollment $PrivateEnrollment) -join ','
     }
     $result | ConvertTo-Json -Depth 8 -Compress
 }
 function Assert-Usb4SshRule {
     param([object[]]$Rules, [Collections.IDictionary]$Expected)
     $binding = if ($Expected.Contains('serviceBinding')) { $Expected.serviceBinding } else { 'Service' }
+    $enrollment = if ($Expected.Contains('privateEnrollment')) { $Expected.privateEnrollment } else { $null }
     if ($Rules.Count -gt 1) { throw 'Refusing duplicate firewall rule names.' }
-    if ($Rules.Count -eq 1 -and (ConvertTo-Usb4SshRuleIdentity $Rules[0] -Observed -ServiceBinding $binding) -cne (ConvertTo-Usb4SshRuleIdentity $Expected -ServiceBinding $binding)) { throw 'Existing firewall rule is foreign or drifted; no overwrite or removal is permitted.' }
+    if ($Rules.Count -eq 1 -and (ConvertTo-Usb4SshRuleIdentity $Rules[0] -Observed -ServiceBinding $binding -PrivateEnrollment $enrollment) -cne (ConvertTo-Usb4SshRuleIdentity $Expected -ServiceBinding $binding -PrivateEnrollment $enrollment)) { throw 'Existing firewall rule is foreign or drifted; no overwrite or removal is permitted.' }
 }
 function Get-Usb4SshSidConfiguration {
     param([Collections.IDictionary]$Snapshot)
@@ -219,6 +263,15 @@ function Assert-Usb4SshSnapshot {
     $instant = [DateTimeOffset]::MinValue
     if (-not [DateTimeOffset]::TryParse($Snapshot.processStartedUtc, [ref]$instant)) { throw 'Running SSH process generation is unknown.' }
     foreach ($address in $Plan.scope.localAddresses) { if (@($Snapshot.localAddresses) -notcontains $address) { throw 'Declared local address is not currently assigned to the exact USB4 interface.' } }
+    if ($Plan.scope.Contains('privateEnrollment')) {
+        $enrollment=$Plan.scope.privateEnrollment
+        if (-not $Snapshot.Contains('prefixLengths') -or $Snapshot.prefixLengths -isnot [Collections.IDictionary] -or
+            -not $Snapshot.prefixLengths.Contains($enrollment.localIPv4) -or
+            ($Snapshot.prefixLengths[$enrollment.localIPv4] -isnot [int] -and $Snapshot.prefixLengths[$enrollment.localIPv4] -isnot [long]) -or
+            $Snapshot.prefixLengths[$enrollment.localIPv4] -ne 30) { throw 'Enrolled local IPv4 /30 is not currently assigned to this USB4 interface.' }
+        if (-not $Snapshot.Contains('peerMac') -or $Snapshot.peerMac -isnot [string] -or $Snapshot.peerMac -ine $enrollment.peerMac -or
+            -not $Snapshot.Contains('peerNeighborState') -or ($Snapshot.peerNeighborState -isnot [int] -and $Snapshot.peerNeighborState -isnot [long]) -or $Snapshot.peerNeighborState -ne 5) { throw 'Exact enrolled peer MAC must be freshly reachable on this USB4 interface.' }
+    }
     if ($Plan.scope.serviceBinding -eq 'Service') {
         $sid = Get-Usb4SshSidConfiguration $Snapshot
         if ($sid.status -ne 'KnownConfigured') { throw 'Service SID configuration is unknown; Service binding requires a registry DWORD value 1 or 3. Review explicit Executable binding without changing the service.' }
@@ -315,9 +368,21 @@ function New-Usb4SshAccessOperations {
             if ($attributes -band [IO.FileAttributes]::Directory) { throw 'SSH executable path is a directory.' }
             $process = [Diagnostics.Process]::GetProcessById([int]$service.ProcessId)
             try { $runningPath = $process.MainModule.FileName; $started = $process.StartTime.ToUniversalTime().ToString('o') } finally { $process.Dispose() }
+            $prefixLengths=@{}; $peerMac=$null; $peerState=$null
+            if ($Plan.scope.Contains('privateEnrollment')) {
+                foreach ($unicast in $properties.UnicastAddresses) {
+                    if ($unicast.Address.AddressFamily -eq [Net.Sockets.AddressFamily]::InterNetwork) { $prefixLengths[$unicast.Address.ToString()]=[int]$unicast.PrefixLength }
+                }
+                $index=$properties.GetIPv4Properties().Index
+                $peerAddress=$Plan.scope.privateEnrollment.peerIPv4
+                $neighbors=@(Get-CimInstance -Namespace root/StandardCimv2 -ClassName MSFT_NetNeighbor -Filter "InterfaceIndex=$index AND IPAddress='$peerAddress'" -OperationTimeoutSec 3 -ErrorAction Stop)
+                if ($neighbors.Count -ne 1) { throw 'Exact private peer neighbor is missing or ambiguous on this USB4 interface.' }
+                $peerMac=[string]$neighbors[0].LinkLayerAddress; $peerState=[int]$neighbors[0].State
+            }
             @{ hostName = [Environment]::MachineName; interfaceGuid = $nic.Id.Trim('{}'); alias = $nic.Name; mac = [BitConverter]::ToString($mac)
                 up = $nic.OperationalStatus -eq [Net.NetworkInformation.OperationalStatus]::Up; localAddresses = $addresses
                 usb4 = $pnp -is [string] -and $pnp -match '^USB4\\' -and $pnp -match '&PROT_USB4NET\\'
+                prefixLengths=$prefixLengths; peerMac=$peerMac; peerNeighborState=$peerState
                 serviceRunning = $true; serviceSidType = $sidType; serviceImagePath = $servicePath; runningImagePath = $runningPath; processId = [int]$service.ProcessId; processStartedUtc = $started }
         }
         ReadRules = { param($Name)
@@ -423,7 +488,9 @@ Usage: Set-Usb4PeerSshAccess.ps1 -ExpectedHostName HOST -InterfaceGuid GUID
   -h | --help
 Default, DryRun and WhatIf are offline. Apply requires elevated Windows and a fresh
 exact interface/service match. Scope is TCP22 only; peer identity is declared by
-caller. Default Service binding needs configured service SID 1 or 3; explicit
+caller. An explicit EnrolledPrivatePolicy plus ExpectedPeerMac permits only its
+exact RFC1918 Peer /30 pair; Apply requires assigned prefix and reachable peer MAC.
+Default Service binding needs configured service SID 1 or 3; explicit
 Executable omits the firewall service condition without changing service settings.
 Remove touches only the identical owned rule. Use an external owned-process
 deadline; ambiguous mutation outcomes require fresh readback, never blind cleanup.
@@ -431,6 +498,7 @@ deadline; ambiguous mutation outcomes require fresh readback, never blind cleanu
         return
     }
     $request = @{ ExpectedHostName = $ExpectedHostName; InterfaceGuid = $InterfaceGuid; ExpectedInterfaceAlias = $ExpectedInterfaceAlias; ExpectedMac = $ExpectedMac
+        ExpectedPeerMac=$ExpectedPeerMac; EnrolledPrivatePolicy=$EnrolledPrivatePolicy
         LocalAddress = $LocalAddress; RemoteAddress = $RemoteAddress; ProgramPath = $ProgramPath; ServiceBinding = $ServiceBinding; Action = $(if ($Remove) { 'Remove' } else { 'Add' }) }
     try { Invoke-Usb4PeerSshAccess -Request $request -Apply:$Apply -DryRun:$DryRun -Operations $Operations -WhatIf:$WhatIfPreference | ConvertTo-Json -Depth 20 }
     catch {

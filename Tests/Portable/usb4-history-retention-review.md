@@ -1,0 +1,3 @@
+The bounded history retention passes independent review. Fresh Windows runs pass 92 retention assertions,27 publication assertions and15 installer groups. Additional current-source controls refuse a nine-record 36 MiB legacy store without changing bytes or state; ordinary checkpoints perform no full-entry reads, while a bounded trim retains 64 records and the exact predecessor.
+
+[Exact source/group hashes and runtime limits](usb4-history-retention-review.json) bind this review. Every entry is admitted before any pruning; selected files are rechecked, and unknown/oversized legacy stores fail closed. No deployed controller or networking changes were performed. The previously rejected old staged replay was not repeated; its unbounded-growth assessment is source-only.

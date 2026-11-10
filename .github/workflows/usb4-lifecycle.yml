@@ -18,6 +18,7 @@ on:
       - 'Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1'
+      - 'Tools/SystemScripts/Networking/Resolve-Usb4PeerJournal.ps1'
       - 'Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1'
       - 'Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1'
       - 'Config/usb4-peer-network.example.json'
@@ -32,6 +33,10 @@ on:
       - 'docs/usb4/ssh-process-capture.md'
       - 'Tests/Portable/Test-Usb4PeerNetwork.ps1'
       - 'Tests/Portable/Test-Usb4StateAdmission.ps1'
+      - 'Tests/Portable/Test-Usb4StatePublication.ps1'
+      - 'Tests/Portable/Test-Usb4StateHistoryRetention.ps1'
+      - 'Tests/Portable/Test-Usb4JournalRetirement.ps1'
+      - 'Tests/Portable/usb4-journal-publication-review.json'
       - 'Tests/Portable/usb4-state-admission-review.json'
       - 'Tests/Portable/Test-Usb4PeerNetworkInstall.ps1'
       - 'Tests/Portable/Test-Usb4PeerDeployment.ps1'
@@ -88,6 +93,9 @@ jobs:
         run: |
           ./Tests/Portable/Test-Usb4PeerNetwork.ps1
           ./Tests/Portable/Test-Usb4StateAdmission.ps1
+          ./Tests/Portable/Test-Usb4StatePublication.ps1
+          ./Tests/Portable/Test-Usb4StateHistoryRetention.ps1
+          ./Tests/Portable/Test-Usb4JournalRetirement.ps1
           ./Tests/Portable/Test-Usb4PeerNetworkInstall.ps1
       # Protects file-only installed-release inspection, pointer containment and
       # recovery/freshness truth. Detects unsafe reads and invented readiness.

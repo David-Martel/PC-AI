@@ -409,6 +409,46 @@ function Assert-Usb4NetworkPolicy {
     }
     else { Write-Output 'NOT_RUN: WindowsTaskSchemaAndServiceAccount requires Windows Task Scheduler.' }
 
+    # Selector: ContentAddressedHistorySurvivesUpgrade. Protects retained state
+    # generations across future upgrades; detects rejecting legitimate history
+    # or adopting foreign filenames, substituted bytes or scalar JSON. Needs
+    # owned temp files + inert task/ACL boundaries; breadcrumb: installer history admission.
+    $historyRoot = Join-Path $workspace 'history-upgrade'
+    $historyDirectory = Join-Path $historyRoot 'owned-state.json.history'
+    [void][IO.Directory]::CreateDirectory($historyDirectory)
+    [IO.File]::WriteAllText((Join-Path $historyRoot 'installed.json'), (@{ owner = $script:Usb4InstallOwner } | ConvertTo-Json))
+    $generation = [Text.UTF8Encoding]::new($false).GetBytes('{"schemaVersion":1,"generation":1}')
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $generationHash = [BitConverter]::ToString($sha.ComputeHash($generation)).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+    $historyFile = Join-Path $historyDirectory ($generationHash + '.json')
+    [IO.File]::WriteAllBytes($historyFile, $generation)
+    $historyPlan = Get-Usb4PeerInstallPlan -PolicySource $policy -ControllerSource $controller -Destination $historyRoot -Executable $executable -CurrentHost 'fixture-host'
+    $historyOps = New-TaskFixture
+    $historyResult = Invoke-Usb4PeerInstall -Plan $historyPlan -Operations $historyOps
+    Assert-InstallCondition ($historyResult.State -eq 'Planned' -and (Get-FileHash $historyFile).Hash -ieq $generationHash) 'Valid retained history was refused or changed during upgrade planning.'
+    $foreignHistory = Join-Path $historyDirectory 'foreign.json'
+    [IO.File]::WriteAllText($foreignHistory, '{}')
+    Assert-InstallThrows { Invoke-Usb4PeerInstall -Plan $historyPlan -Operations $historyOps } 'history'
+    [IO.File]::Delete($foreignHistory)
+    [IO.File]::WriteAllText($historyFile, '{}')
+    Assert-InstallThrows { Invoke-Usb4PeerInstall -Plan $historyPlan -Operations $historyOps } 'history'
+    [IO.File]::Delete($historyFile)
+    $scalarBytes = [Text.Encoding]::UTF8.GetBytes('null')
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $scalarHash = [BitConverter]::ToString($sha.ComputeHash($scalarBytes)).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+    $scalarFile = Join-Path $historyDirectory ($scalarHash + '.json')
+    [IO.File]::WriteAllBytes($scalarFile, $scalarBytes)
+    Assert-InstallThrows { Invoke-Usb4PeerInstall -Plan $historyPlan -Operations $historyOps } 'history'
+    $mixedRoot = Join-Path $workspace 'mixed-history-upgrade'
+    $mixedDirectory = Join-Path $mixedRoot 'OWNED-STATE.JSON.HISTORY'
+    [void][IO.Directory]::CreateDirectory($mixedDirectory)
+    [IO.File]::WriteAllText((Join-Path $mixedRoot 'installed.json'), (@{ owner = $script:Usb4InstallOwner } | ConvertTo-Json))
+    [IO.File]::WriteAllText((Join-Path $mixedDirectory 'foreign.json'), '{}')
+    $mixedPlan = Get-Usb4PeerInstallPlan -PolicySource $policy -ControllerSource $controller -Destination $mixedRoot -Executable $executable -CurrentHost 'fixture-host'
+    Assert-InstallThrows { Invoke-Usb4PeerInstall -Plan $mixedPlan -Operations $historyOps } 'unowned|history'
+    Assert-InstallCondition (@($script:TaskCalls | Where-Object { $_ -notlike 'verify-acl:*' }).Count -eq 0) 'History refusal changed tasks or ACLs.'
+    Write-Output 'PASS: ContentAddressedHistorySurvivesUpgrade'
+
     if ($IsWindows -and [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         # Selector: RealImmutableFileOwnership. Uses the actual Windows ACL
         # implementation; a protected parent alone leaves copied files user-owned.

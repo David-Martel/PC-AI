@@ -1,0 +1,45 @@
+{
+  "SchemaVersion": 1,
+  "Reviewer": "codex-p1gen9-zip-fix",
+  "ReviewedUtc": "2026-11-10T20:48:04.852088+00:00",
+  "Disposition": "KEEP_WITH_RUNTIME_BOUNDARIES",
+  "Scope": "Independent controller-history Windows ACL / installer upgrade compatibility review",
+  "HashConvention": "SHA256 complete bytes normalized CRLF to LF",
+  "SourceBindings": {
+    "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1": "a0d1b9b69845f9d530b10ea110f6e77461868556b4ff1a2ccd68206288d4429f",
+    "Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1": "485678741d681c52344a643ed9fac1c1d486639549fde48b2e078c81b29f23bb",
+    "Tests/Portable/Test-Usb4StatePublication.ps1": "24aa11e9a0256afcc9150a890754b8004ea72040962b0d6fd8648fa750871d96"
+  },
+  "BaselineEvidence": {
+    "Path": "C:\\codedev\\evidence\\fleet-remediation\\usb4-recovery\\installed-history-acl-baseline.json",
+    "Sha256": "31201d2648251cf74cac78bc6cca34a2a0e6062d3a9797bfce371a49e427b741",
+    "Record": {
+      "protected": false,
+      "source": "Installed r6 controller history; actual installer read-only admission",
+      "owner": "NT AUTHORITY\\SYSTEM",
+      "observedAtUtc": "2026-11-10T20:46:14.1703446+00:00",
+      "changed": false,
+      "admissionFailure": "Runtime ACL inheritance remains enabled."
+    }
+  },
+  "Executed": {
+    "Test": "Test-Usb4StatePublication.ps1",
+    "ActualWindowsAssertionsPassed": 27,
+    "Provider": "Actual Windows filesystem ACL Set/Get and actual installer Assert-Usb4StateHistory, elevated test session",
+    "Cases": [
+      "New controller history protected and installer admitted",
+      "Legacy inherited private SYSTEM/Admin history sealed and installer admitted",
+      "Foreign history owner/grants refused with original ACL and custody bytes unchanged"
+    ]
+  },
+  "Conclusions": [
+    "Protection executes before history publication. Existing owner must be SYSTEM/Admin; every ACE must allow FullControl only to those SIDs and both grants must exist. Foreign ACLs fail before Set-Acl or state publication.",
+    "Private legacy history may be sealed; new history receives protected explicit SYSTEM/Admin inheritance and readback validation. No source downgrade, network or task operation added.",
+    "Current real-Windows controls detect the recorded installed r6 incompatibility rather than merely mocking protection flags."
+  ],
+  "Limits": [
+    "Did not replay old-script staging/execution/deletion after the prior automatic policy rejection; load-bearing old-runtime evidence is the recorded read-only actual installed admission failure.",
+    "No live installed directory repair or controller/task deployment performed by this reviewer. Root retains responsibility for post-deployment readback.",
+    "Mutex/trusted-administrator assumptions remain; this does not establish atomic exclusion against arbitrary privileged ACL races."
+  ]
+}

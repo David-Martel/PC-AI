@@ -1,0 +1,44 @@
+{
+  "SchemaVersion": 1,
+  "Reviewer": "codex-p1gen9-zip-fix",
+  "ReviewedUtc": "2026-11-10T20:37:04.259188+00:00",
+  "Disposition": "KEEP",
+  "Scope": "Independent review of early offline help and bounded temporary-fixture cleanup only; prior custody/publication review receipts remain immutable.",
+  "HashConvention": "SHA256 complete file bytes CRLF normalized LF; logical help cases additionally bound by complete test source",
+  "SourceBindings": {
+    "Tools/SystemScripts/Networking/Resolve-Usb4PeerJournal.ps1": "3c1352e87dd4790e5dadc8f795ac0e50917ebffbb148c48765058f922620979f",
+    "Tests/Portable/Test-Usb4JournalRetirement.ps1": "d5ed741c2b3fe7f3e1e695408a237eb6f0d0fe8d7ea784e716170b50da3a4f19",
+    "Tests/Portable/Test-Usb4StatePublication.ps1": "1d58e17f22de523af2c32e9c7a3644a83c4864fd8105bcbc349d1ec111870fbf"
+  },
+  "Selectors": [
+    {
+      "Id": "Test-Usb4JournalRetirement.ps1::OfflineHelp[-h]",
+      "Protects": "Offline usage without file/state/admin providers even when Apply supplied",
+      "Detects": "Help aliases entering admission or write paths",
+      "Needs": "Fresh NoProfile child pwsh, no paths, credentials or network",
+      "Breadcrumb": "Resolve-Usb4PeerJournal.ps1 early ShowHelp return",
+      "TestFileSha256": "d5ed741c2b3fe7f3e1e695408a237eb6f0d0fe8d7ea784e716170b50da3a4f19"
+    },
+    {
+      "Id": "Test-Usb4JournalRetirement.ps1::OfflineHelp[--help]",
+      "Protects": "Offline usage without file/state/admin providers even when Apply supplied",
+      "Detects": "Help aliases entering admission or write paths",
+      "Needs": "Fresh NoProfile child pwsh, no paths, credentials or network",
+      "Breadcrumb": "Resolve-Usb4PeerJournal.ps1 early ShowHelp return",
+      "TestFileSha256": "d5ed741c2b3fe7f3e1e695408a237eb6f0d0fe8d7ea784e716170b50da3a4f19"
+    }
+  ],
+  "Executed": {
+    "RetirementAssertionsPassed": 36,
+    "RealFilePublicationAssertionsPassed": 23,
+    "ActualPreFixNegativeControl": "Unchanged current test against git HEAD helper fails Offline recovery help failed: -h after required neighboring source dependencies copied; no test assertion removed."
+  },
+  "Conclusions": [
+    "Help guard returns before StrictMode, source loading, observations or privilege providers. Both aliases pass with Apply and no supplied paths. DryRun admission logic is unchanged.",
+    "Fixture recursive cleanup resolves absolute path, requires temporary-root prefix with separator plus exact generated UUID leaf. Checks precede delete. Source creates owned fresh UUID directories; no production deletion path changed."
+  ],
+  "Limits": [
+    "No live recovery Apply, network change, installed task or power-loss behavior qualified by this delta.",
+    "Temporary paths assume trusted local temp parent; cleanup checks do not establish arbitrary-admin-resistant race isolation."
+  ]
+}

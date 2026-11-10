@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "codex-p1gen9-zip-fix",
+  "reviewerType": "independent source/execution agent; no reviewed production or test edits",
+  "reviewedUtc": "2026-11-10T19:40:21.628576+00:00",
+  "disposition": "KEEP_WITH_EXPLICIT_RUNTIME_BOUNDARIES",
+  "scope": "Protected state-history admission during future upgrades; exact frozen working snapshot after PR307 first head",
+  "hashConvention": "SHA256 of complete UTF8 files normalized CRLF to LF; selector group exact comment start through immediately before next Windows-only group",
+  "sourceBindings": {
+    "Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1": "485678741d681c52344a643ed9fac1c1d486639549fde48b2e078c81b29f23bb",
+    "Tests/Portable/Test-Usb4PeerNetworkInstall.ps1": "2bdbb614bb432db1d8f4f173a0627bc812aa52ee8c694ff124b467513d31379e",
+    "docs/usb4/peer-networking.md": "ebe390ee05bd5adecfb71653b672bbb556c41b9bc7a7de0dc24eab7b98b1c374"
+  },
+  "selector": {
+    "name": "ContentAddressedHistorySurvivesUpgrade",
+    "file": "Tests/Portable/Test-Usb4PeerNetworkInstall.ps1",
+    "sha256": "c90f5068d780681eeab72fd9a692411ffa100c62b81b4920fb52dfab3e3cb583",
+    "protects": "Valid immutable history survives upgrade without broader ownership adoption",
+    "detects": "Unknown filename, hash substitution, scalar JSON and mixed-case foreign history admission; planning must not mutate task or ACL state",
+    "needs": "Owned temporary filesystem and injected task/ACL providers; suite also runs actual Windows Task Scheduler schema and protected-file controls",
+    "breadcrumb": "Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1::Assert-Usb4StateHistory and Invoke-Usb4PeerInstall"
+  },
+  "execution": {
+    "command": "pwsh -NoLogo -NoProfile -File Tests/Portable/Test-Usb4PeerNetworkInstall.ps1",
+    "result": "PASS all 15 detecting groups, including WindowsTaskSchemaAndServiceAccount, ContentAddressedHistorySurvivesUpgrade and RealImmutableFileOwnership",
+    "negativeControl": {
+      "method": "Copy exact frozen installer into owned temporary .ps1, change only root container admission -cnotmatch back to -notmatch, run unchanged test suite with -SourcePath, remove owned fixture afterwards",
+      "result": "exit1; Expected refusal /unowned|history/; observed empty refusal. The mixed uppercase directory with foreign.json was wrongly admitted."
+    }
+  },
+  "findingResolved": "Case-insensitive root allowlist and case-sensitive history selection previously allowed OWNED-STATE.JSON.HISTORY to bypass content/ACL validation. Canonical case-sensitive directory admission now rejects it before mutation.",
+  "conclusions": [
+    "Root ownership marker remains required. History directory is excluded from release-manifest discovery, then directory and each entry must pass the existing administrator/SYSTEM ACL assertion.",
+    "Each entry must be a regular non-reparse canonical SHA256.json leaf. Captured content is bounded to4MiB, read completely, checked for unexpected growth, hash-matched and parsed as object custody with object pendingTransaction if present. History bytes are never rewritten by admission.",
+    "Foreign recovery archives remain outside the installed runtime allowlist and are not silently adopted."
+  ],
+  "limits": [
+    "No installed payload deployment or actual future upgrade was performed by this reviewer.",
+    "File and ancestor checks plus mutexes assume trusted administrator-controlled paths and cooperating writers; arbitrary privileged race resistance is not claimed.",
+    "No hardware power-loss durability qualification; review does not modify or supersede the earlier publication/retirement receipt.",
+    "Workflow path-filter additions made after this bound review require the owning lane review; this receipt covers only the listed source/test/docs."
+  ]
+}

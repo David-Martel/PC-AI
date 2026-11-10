@@ -210,6 +210,8 @@ Run the existing fixture contracts from the repository root:
 ```powershell
 pwsh -NoLogo -NoProfile -File Tests/Portable/Test-Usb4PeerNetwork.ps1
 pwsh -NoLogo -NoProfile -File Tests/Portable/Test-Usb4StateAdmission.ps1
+pwsh -NoLogo -NoProfile -File Tests/Portable/Test-Usb4StatePublication.ps1
+pwsh -NoLogo -NoProfile -File Tests/Portable/Test-Usb4JournalRetirement.ps1
 pwsh -NoLogo -NoProfile -File Tests/Portable/Test-Usb4PeerNetworkInstall.ps1
 ```
 
@@ -226,6 +228,57 @@ The [independent review](../../Tests/Portable/usb4-state-admission-review.md)
 and [selector register](../../Tests/Portable/usb4-state-admission-review.json)
 record exact source bindings, the resolved rollback compatibility finding and
 the limits of the fixture evidence.
+
+State publication validates the exact captured predecessor bytes, preserves each
+different valid generation under `owned-state.json.history/<sha256>.json`, and
+uses unique create-only staging, write-through handles, `Flush(true)` and hash
+readback before and after replacement. A damaged predecessor is never silently
+converted into a new enrollment. Identical states do not create new generations.
+History retains at most128 generations and32MiB, including the incoming exact
+predecessor. Before staging, the controller checks bounded filenames, attributes
+and sizes. When pruning is needed it first validates every retained content hash,
+object custody and private Windows ACL, then removes oldest validated entries
+to half the hard budget, reserving that predecessor. Batching avoids rehashing
+the whole history on every checkpoint. It never prunes
+the immediate predecessor. Unrecognized names, sizes or reparse entries refuse
+publication. Substituted content or foreign ACLs refuse pruning without deleting
+any history. Existing stores already exceeding either budget require
+explicit recovery review instead of automatic cleanup. Recovery archives outside
+this directory remain untouched. The [retention controls](../../Tests/Portable/Test-Usb4StateHistoryRetention.ps1)
+repeat actual failed reconciliation/rollback attempts and exercise byte bounds,
+predecessor preservation and foreign-entry/no-Apply refusal.
+This reduces exposure to interrupted writes; it does not establish physical
+power-loss durability or atomic comparison against arbitrary administrator writes.
+Use a trusted protected runtime and the controller/installer mutexes.
+Installer upgrades preserve this history only after checking administrator-only
+ACLs, exact content-addressed filenames, bounded bytes and object custody.
+Unknown entries, substituted generations and reparse points refuse an upgrade.
+The controller protects new history directories before publication. It can seal
+legacy inherited ACLs only when their owner and full-control grants already name
+SYSTEM and Administrators exclusively; foreign ACLs remain unchanged. The
+[actual Windows ACL controls](../../Tests/Portable/usb4-history-acl-review.json)
+exercise controller-created history against real installer admission.
+Keep journal-recovery archives outside the installation root, for example under
+its sibling `journal-recovery` directory; the installer does not adopt them.
+
+For the narrow case of a disabled ExistingWinNat consumer interrupted while
+observing its rollback, [Resolve-Usb4PeerJournal.ps1](../../Tools/SystemScripts/Networking/Resolve-Usb4PeerJournal.ps1)
+provides an explicit file-only retirement. Declare the exact host, adapter,
+interrupted attempt, installed controller/policy hashes and damaged/trusted state
+hashes. Run with `-DryRun` first. An incomplete identity, unknown custody field,
+in-flight mutation, non-address ownership, or any remaining possibly owned
+address refuses retirement. The tool archives the exact damaged bytes, pending
+backup and disabled task, writes a prepared receipt, and reobserves absence under
+both mutexes before publishing `{}`. It leaves the task disabled and preserves
+foreign network settings. An existing archive requires explicit review of the
+interrupted recovery; it is never overwritten automatically.
+
+The [publication and retirement tests](../../Tests/Portable/Test-Usb4StatePublication.ps1)
+exercise actual temporary-file publication, locks, byte preservation and refusal;
+[retirement controls](../../Tests/Portable/Test-Usb4JournalRetirement.ps1) inject
+only the operating-system boundaries. Neither suite qualifies a live deployment.
+The [review register](../../Tests/Portable/usb4-journal-publication-review.json)
+records the source snapshot and independent findings.
 
 Run the portable controller and installer controls first, then qualify:
 

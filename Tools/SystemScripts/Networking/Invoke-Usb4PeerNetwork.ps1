@@ -42,6 +42,26 @@ function Copy-Usb4NetworkValue {
     , (ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $Value -Depth 40 -Compress) -AsHashtable)
 }
 
+function Read-Usb4NetworkState {
+    <# .SYNOPSIS
+    Refuse unreadable persisted custody before any network observation or mutation.
+    #>
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not (Test-Path -LiteralPath $Path -ErrorAction Stop)) { return @{} }
+    try {
+        $json = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+        $state = ConvertFrom-Json -InputObject $json -AsHashtable -NoEnumerate -ErrorAction Stop
+    }
+    catch { throw 'USB4 state admission failed: existing state is unreadable JSON; preserve the journal for ownership review.' }
+    if ($state -isnot [Collections.IDictionary]) {
+        throw 'USB4 state admission failed: existing state must be a JSON object; preserve the journal for ownership review.'
+    }
+    if ($state.Contains('pendingTransaction') -and $state.pendingTransaction -isnot [Collections.IDictionary]) {
+        throw 'USB4 state admission failed: pendingTransaction must be a JSON object; preserve the journal for ownership review.'
+    }
+    return ,$state
+}
+
 function ConvertTo-Usb4Mac {
     <# .SYNOPSIS
     Validate and normalize a unicast, nonempty hardware address.
@@ -1289,7 +1309,7 @@ try {
     }
     $mainPhase = 'ReadPolicyAndState'
     $policy = Get-Content -LiteralPath $PolicyPath -Raw -ErrorAction Stop | ConvertFrom-Json -AsHashtable
-    $previous = $(if (Test-Path -LiteralPath $StatePath) { Get-Content -LiteralPath $StatePath -Raw -ErrorAction Stop | ConvertFrom-Json -AsHashtable } else { @{} })
+    $previous = Read-Usb4NetworkState -Path $StatePath
     $mainPhase = 'InitialObservation'
     if ($execute) {
         Write-Usb4NetworkJson -Path $ReportPath -Value @{ schema = 'pcai.usb4-peer-network/v1'; observedAt = [DateTimeOffset]::UtcNow.ToString('o');

@@ -1,0 +1,142 @@
+{
+  "SchemaVersion": 1,
+  "ReviewKind": "Persisted USB4 state admission, actual assignment and Windows entrypoint",
+  "ReviewedBaseCommit": "96135799f1a0d0e1a80e30aa0ed9a1e008510b0b",
+  "ReviewIdentity": "Uncommitted fix/usb4-state-admission working snapshot identified by SourceBindings; base commit is not claimed to contain the new source.",
+  "ReviewedUtc": "2026-11-10T17:32:25.0302709+00:00",
+  "Reviewer": "codex-p1gen9-connectivity-context",
+  "Disposition": "KEEP_WITH_EXPLICIT_RUNTIME_BOUNDARIES",
+  "HashConvention": "UTF-8 LF whole files include final LF. Selector starts at its named Protects comment marker and ends immediately before the next group marker or final assertion-summary Write-Output; includes intervening blank lines.",
+  "SourceBindings": {
+    "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1": "11deaa033f207e97e272f9838f884e2342c097ab69b9c876623211418f9b8d3c",
+    "Tests/Portable/Test-Usb4StateAdmission.ps1": "369d34a3950243f82e3e4d7a62c3285fbab725672c1d099461cda49812a5fbb2",
+    ".github/workflows/usb4-lifecycle.yml": "d5f5d91e49ccab84cf8f046c7da54a1eb0122afb5b44c078a9b0bb2cd1831c62",
+    "docs/usb4/peer-networking.md": "b347494f48b27c28051717b3ebfaa06c4ddbc2504c6fb98b8d7420d4dfb58e31"
+  },
+  "Selectors": [
+    {
+      "Selector": "MissingStateBootstrap",
+      "Source": "Tests/Portable/Test-Usb4StateAdmission.ps1",
+      "Sha256": "7859e77b80d21cf1b4e4e5401382e1ce48bce390ba3c2841883a9281542be934",
+      "Protects": "Missing-file bootstrap without inventing prior custody",
+      "Detects": "Refusing a nonexistent state file or losing dictionary shape",
+      "Needs": "PowerShell7 and owned temporary local files; actual AST-selected entrypoint assignment, no hardware or network provider.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1::Read-Usb4NetworkState and actual main assignment",
+      "Reviewer": "codex-p1gen9-connectivity-context",
+      "ReviewerType": "independent source and execution agent; did not author production or tests",
+      "Disposition": "keep",
+      "SourceSha256": "11deaa033f207e97e272f9838f884e2342c097ab69b9c876623211418f9b8d3c",
+      "TestSha256": "369d34a3950243f82e3e4d7a62c3285fbab725672c1d099461cda49812a5fbb2",
+      "ReviewedUtc": "2026-11-10T17:32:25.0302709+00:00",
+      "ReviewedBaseCommit": "96135799f1a0d0e1a80e30aa0ed9a1e008510b0b",
+      "ReviewScope": "Exact LF-normalized working-source snapshot; no installed runtime qualification"
+    },
+    {
+      "Selector": "MalformedPersistedCustodyRefusedAndPreserved",
+      "Source": "Tests/Portable/Test-Usb4StateAdmission.ps1",
+      "Sha256": "f4dedeefc02aa5a3fa80ea8261710c4caab9945d89b85f169c41c677f0b465c5",
+      "Protects": "Damaged persisted custody cannot silently become empty/new state",
+      "Detects": "Accepting blank, NUL, null, scalar, array, malformed JSON or malformed pending shape; changing source evidence",
+      "Needs": "PowerShell7 and owned temporary local files; actual AST-selected entrypoint assignment, no hardware or network provider.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1::Read-Usb4NetworkState and actual main assignment",
+      "Reviewer": "codex-p1gen9-connectivity-context",
+      "ReviewerType": "independent source and execution agent; did not author production or tests",
+      "Disposition": "keep",
+      "SourceSha256": "11deaa033f207e97e272f9838f884e2342c097ab69b9c876623211418f9b8d3c",
+      "TestSha256": "369d34a3950243f82e3e4d7a62c3285fbab725672c1d099461cda49812a5fbb2",
+      "ReviewedUtc": "2026-11-10T17:32:25.0302709+00:00",
+      "ReviewedBaseCommit": "96135799f1a0d0e1a80e30aa0ed9a1e008510b0b",
+      "ReviewScope": "Exact LF-normalized working-source snapshot; no installed runtime qualification"
+    },
+    {
+      "Selector": "SuccessfulRollbackEmptyObjectCompatibility",
+      "Source": "Tests/Portable/Test-Usb4StateAdmission.ps1",
+      "Sha256": "d64b80c1ee05f7413216d5ca3fa165b815ed267e77fab55cec2dd6e7e85a1ccb",
+      "Protects": "Legacy empty-object state produced by successful initial rollback remains readable",
+      "Detects": "Rejecting the exact empty-object record the existing rollback path legitimately publishes",
+      "Needs": "PowerShell7 and owned temporary local files; actual AST-selected entrypoint assignment, no hardware or network provider.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1::Read-Usb4NetworkState and actual main assignment",
+      "Reviewer": "codex-p1gen9-connectivity-context",
+      "ReviewerType": "independent source and execution agent; did not author production or tests",
+      "Disposition": "keep",
+      "SourceSha256": "11deaa033f207e97e272f9838f884e2342c097ab69b9c876623211418f9b8d3c",
+      "TestSha256": "369d34a3950243f82e3e4d7a62c3285fbab725672c1d099461cda49812a5fbb2",
+      "ReviewedUtc": "2026-11-10T17:32:25.0302709+00:00",
+      "ReviewedBaseCommit": "96135799f1a0d0e1a80e30aa0ed9a1e008510b0b",
+      "ReviewScope": "Exact LF-normalized working-source snapshot; no installed runtime qualification"
+    },
+    {
+      "Selector": "PendingCustodyAndUnknownFieldsPreserved",
+      "Source": "Tests/Portable/Test-Usb4StateAdmission.ps1",
+      "Sha256": "3a34f1ab86bf2130998bdcad994747954a0d2283f588df0f49a49b65aa59f3bf",
+      "Protects": "Reading existing custody retains pending attempt and unknown fields",
+      "Detects": "Dropping original pending attempt, unknown state fields, or rewriting valid bytes",
+      "Needs": "PowerShell7 and owned temporary local files; actual AST-selected entrypoint assignment, no hardware or network provider.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1::Read-Usb4NetworkState and actual main assignment",
+      "Reviewer": "codex-p1gen9-connectivity-context",
+      "ReviewerType": "independent source and execution agent; did not author production or tests",
+      "Disposition": "keep",
+      "SourceSha256": "11deaa033f207e97e272f9838f884e2342c097ab69b9c876623211418f9b8d3c",
+      "TestSha256": "369d34a3950243f82e3e4d7a62c3285fbab725672c1d099461cda49812a5fbb2",
+      "ReviewedUtc": "2026-11-10T17:32:25.0302709+00:00",
+      "ReviewedBaseCommit": "96135799f1a0d0e1a80e30aa0ed9a1e008510b0b",
+      "ReviewScope": "Exact LF-normalized working-source snapshot; no installed runtime qualification"
+    },
+    {
+      "Selector": "RealWindowsEntrypointOrderingAndNoWrite",
+      "Source": "Tests/Portable/Test-Usb4StateAdmission.ps1",
+      "Sha256": "c0ae74ac1e7690614f5a6e23f325e34c263e6e818f9adbbb990d0b13c135e349",
+      "Protects": "Actual Windows runtime refuses corruption before InitialObservation and emits no DryRun files",
+      "Detects": "Unwired or delayed reader, wrong exit/phase/readiness, unexpected report/state mutation or stderr",
+      "Needs": "Windows, PowerShell7 and bounded owned child; temporary fixture files only, no installed policy or network mutation. Linux explicitly NOT_RUN.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1::main ReadPolicyAndState before InitialObservation",
+      "Reviewer": "codex-p1gen9-connectivity-context",
+      "ReviewerType": "independent source and execution agent; did not author production or tests",
+      "Disposition": "keep",
+      "SourceSha256": "11deaa033f207e97e272f9838f884e2342c097ab69b9c876623211418f9b8d3c",
+      "TestSha256": "369d34a3950243f82e3e4d7a62c3285fbab725672c1d099461cda49812a5fbb2",
+      "ReviewedUtc": "2026-11-10T17:32:25.0302709+00:00",
+      "ReviewedBaseCommit": "96135799f1a0d0e1a80e30aa0ed9a1e008510b0b",
+      "ReviewScope": "Exact LF-normalized working-source snapshot; no installed runtime qualification"
+    }
+  ],
+  "Validation": {
+    "Platform": "Windows x64 dtm-p1gen9",
+    "PowerShell": "7.6.7",
+    "StateAdmission": {
+      "WindowsChild": "RUN, passed",
+      "Assertions": 45,
+      "ExitCode": 0
+    },
+    "ExistingPeerNetwork": {
+      "ExitCode": 0,
+      "Assertions": 110
+    },
+    "ExistingInstaller": {
+      "BaselineSourceAndTestDiffExitCode": 0,
+      "ExitCode": 0,
+      "Groups": 14
+    },
+    "CombinedSequence": {
+      "Command": "pwsh -NoLogo -NoProfile -NonInteractive -Command '& ./Tests/Portable/Test-Usb4StateAdmission.ps1; & ./Tests/Portable/Test-Usb4PeerNetwork.ps1; & ./Tests/Portable/Test-Usb4PeerNetworkInstall.ps1'",
+      "Result": "45 admission assertions,110 existing controller assertions,14 installer groups pass in one fresh child",
+      "ExitCode": 0
+    },
+    "FailingFirst": {
+      "Source": "Parent-provided existing baseline reproduction",
+      "Observed": "Original actual entrypoint assignment accepted zero-byte journal; new test failed before production fix",
+      "IndependentlyExecutedHere": false
+    },
+    "ReviewFinding": {
+      "Disposition": "Resolved: reader accepts exact empty object and detecting fixture verifies readability and byte preservation",
+      "Finding": "Existing {} rejection would strand successful rollback to missing-file bootstrap"
+    },
+    "AmbientSessionAnomaly": "Parent reported installer desired-task mismatch after three groups in an existing process; standalone and combined fresh-child runs pass. Cause remains unclassified; no installer source/test changes from base."
+  },
+  "Limitations": [
+    "No installed controller, current journal, live adapter/task/firewall or network was changed by these controls.",
+    "No Linux runtime execution in this review; workflow includes portable fixture run, actual Windows child reports NOT_RUN on Linux.",
+    "This patch does not repair a corrupt journal, clear pending recovery, qualify a deployment, prove file crash durability or bound state-file size.",
+    "Shape admission is narrow; existing reconciliation still owns host/schema/policy custody validation."
+  ]
+}

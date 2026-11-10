@@ -27,6 +27,9 @@ on:
       - 'Tests/Portable/Test-ThunderboltEnrolledPeer.ps1'
       - 'Tests/Portable/Test-ThunderboltStartup.ps1'
       - 'Tests/Portable/Test-Usb4FabricObservation.ps1'
+      - 'Tests/Portable/Test-SshStdioInheritance.ps1'
+      - 'Tests/Portable/ssh-process-capture-review.json'
+      - 'docs/usb4/ssh-process-capture.md'
       - 'Tests/Portable/Test-Usb4PeerNetwork.ps1'
       - 'Tests/Portable/Test-Usb4StateAdmission.ps1'
       - 'Tests/Portable/usb4-state-admission-review.json'
@@ -93,6 +96,14 @@ jobs:
       - name: File-only deployment inspection contracts
         shell: pwsh
         run: ./Tests/Portable/Test-Usb4PeerDeployment.ps1
+      # Protects fresh native stdio handles and unrelated/jail environment custody.
+      # Detects stale OpenSSH ancestor descriptors through a real inert child.
+      # Needs Windows + pwsh only; no peer, credentials, service or network changes.
+      # Source: Networking/Invoke-VigilBoundedProcess.ps1::CreateChildEnvironment.
+      - name: Windows SSH stdio inheritance contracts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./Tests/Portable/Test-SshStdioInheritance.ps1
       # Protects route/identity/custody decisions on both native backends.
       # Detects stale-edge deletion, foreign ownership mutation and CLI evidence leaks.
       # Needs standard Rust/MSVC host tools; no attached devices or privileged Apply.

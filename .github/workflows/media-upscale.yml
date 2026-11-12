@@ -9,6 +9,7 @@ on:
       - 'Native/pcai_core/Cargo.toml'
       - 'Native/pcai_core/Cargo.lock'
       - '.github/workflows/media-upscale.yml'
+      - '.github/actions/setup-job-rust/**'
       - '.cargo/config.toml'
   push:
     branches: [main]
@@ -18,6 +19,7 @@ on:
       - 'Native/pcai_core/Cargo.toml'
       - 'Native/pcai_core/Cargo.lock'
       - '.github/workflows/media-upscale.yml'
+      - '.github/actions/setup-job-rust/**'
       - '.cargo/config.toml'
 
 permissions:
@@ -42,9 +44,15 @@ jobs:
       CARGO_BUILD_JOBS: '2'
     steps:
       - uses: actions/checkout@v7
+      # The dtm-super-nuc pool image installs no Rust ("cargo: command not found" since the move
+      # off vigil1). A job-local toolchain, as linux-ci.yml and portable-bootstrap.yml use, leaves
+      # the persistent runner's toolchain homes and profiles untouched.
+      - name: Set up job-local self-hosted Rust
+        if: runner.environment == 'self-hosted'
+        uses: ./.github/actions/setup-job-rust
+        with:
+          components: clippy
       - uses: dtolnay/rust-toolchain@stable
-        # The self-hosted runner keeps its image toolchain (with clippy and rustfmt), as linux-ci.yml
-        # does: installing `stable` there replaces the default toolchain for every later job on it.
         if: runner.environment != 'self-hosted'
       - name: Check default FFI and optional CPU upscale
         run: cargo check --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale

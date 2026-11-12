@@ -10,6 +10,7 @@ on:
       - 'Tests/Portable/Test-NativeOverrideAdmission.ps1'
       - 'Tests/Portable/Test-NativeEstimatorAndStatus.ps1'
       - '.github/workflows/native-override-admission.yml'
+      - '.github/actions/setup-job-rust/**'
   workflow_dispatch:
 permissions:
   contents: read
@@ -31,9 +32,13 @@ jobs:
           DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
         with:
           dotnet-version: '8.0.x'
+      # The dtm-super-nuc pool image installs no Rust ("cargo: command not found" since the move
+      # off vigil1). A job-local toolchain, as linux-ci.yml and portable-bootstrap.yml use, leaves
+      # the persistent runner's toolchain homes and profiles untouched.
+      - name: Set up job-local self-hosted Rust
+        if: runner.environment == 'self-hosted'
+        uses: ./.github/actions/setup-job-rust
       - uses: dtolnay/rust-toolchain@stable
-        # The self-hosted runner keeps its image toolchain (with clippy and rustfmt), as linux-ci.yml
-        # does: installing `stable` there replaces the default toolchain for every later job on it.
         if: runner.environment != 'self-hosted'
       - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
         with:

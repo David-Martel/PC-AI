@@ -22,6 +22,11 @@ on:
       - '.github/actions/setup-job-rust/**'
       - '.cargo/config.toml'
 
+# A rebased or re-pushed pull request cancels the run it superseded; a push to main is never cancelled.
+concurrency:
+  group: media-upscale-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 

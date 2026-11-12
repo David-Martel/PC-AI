@@ -48,6 +48,12 @@ on:
       - 'Config/machine-profiles/dtm-super-nuc.json'
       - '.github/actions/setup-job-rust/**'
       - '.github/workflows/portable-bootstrap.yml'
+
+# A rebased or re-pushed pull request cancels the run it superseded; a push to main is never cancelled.
+concurrency:
+  group: portable-bootstrap-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 jobs:

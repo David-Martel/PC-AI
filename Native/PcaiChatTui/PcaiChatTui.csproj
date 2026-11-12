@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="10.0.15" />
     <None Include="..\PcaiNative\pcai_core_lib.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\PcaiNative\pcai_core_lib.dll')" />
     <None Include="..\PcaiNative\pcai_search.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\PcaiNative\pcai_search.dll')" />
     <None Include="..\PcaiNative\pcai_performance.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\PcaiNative\pcai_performance.dll')" />

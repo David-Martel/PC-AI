@@ -13,6 +13,10 @@ version: 2
 # One grouped PR per ecosystem resolves a single lockfile against current main
 # and is gated once. Major bumps stay ungrouped so they keep an individual,
 # reviewable PR -- those are the ones that break APIs.
+#
+# Reviewers come from .github/CODEOWNERS (`* @David-Martel` covers every
+# directory below). GitHub retired the per-entry `reviewers` key in favour of
+# CODEOWNERS, and the current SchemaStore schema rejects it.
 
 updates:
   # ── Rust: pcai_core workspace ────────────────────────────────
@@ -72,8 +76,6 @@ updates:
     labels:
       - "dependencies"
       - "rust"
-    reviewers:
-      - "David-Martel"
     commit-message:
       prefix: "chore(deps):"
 
@@ -109,8 +111,6 @@ updates:
     labels:
       - "dependencies"
       - "rust"
-    reviewers:
-      - "David-Martel"
     commit-message:
       prefix: "chore(deps):"
 
@@ -132,8 +132,6 @@ updates:
     labels:
       - "dependencies"
       - "dotnet"
-    reviewers:
-      - "David-Martel"
     commit-message:
       prefix: "chore(deps):"
 
@@ -149,8 +147,6 @@ updates:
     labels:
       - "dependencies"
       - "dotnet"
-    reviewers:
-      - "David-Martel"
     commit-message:
       prefix: "chore(deps):"
 
@@ -166,8 +162,6 @@ updates:
     labels:
       - "dependencies"
       - "dotnet"
-    reviewers:
-      - "David-Martel"
     commit-message:
       prefix: "chore(deps):"
 
@@ -183,8 +177,6 @@ updates:
     labels:
       - "dependencies"
       - "dotnet"
-    reviewers:
-      - "David-Martel"
     commit-message:
       prefix: "chore(deps):"
 
@@ -200,8 +192,6 @@ updates:
     labels:
       - "dependencies"
       - "dotnet"
-    reviewers:
-      - "David-Martel"
     commit-message:
       prefix: "chore(deps):"
 
@@ -219,8 +209,6 @@ updates:
     labels:
       - "dependencies"
       - "dotnet"
-    reviewers:
-      - "David-Martel"
     commit-message:
       prefix: "chore(deps):"
 
@@ -237,7 +225,5 @@ updates:
     labels:
       - "dependencies"
       - "ci"
-    reviewers:
-      - "David-Martel"
     commit-message:
       prefix: "chore(ci):"

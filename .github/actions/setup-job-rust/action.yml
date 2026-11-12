@@ -44,8 +44,21 @@ runs:
         $cargoBin = Join-Path $cargoHome 'bin'
         New-Item -ItemType Directory -Path $cargoHome, $rustupHome, $profileHome, $cargoBin -ErrorAction Stop | Out-Null
         "CARGO_HOME=$cargoHome", "RUSTUP_HOME=$rustupHome" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+        # sccache keys on absolute paths, and every job compiles its dependencies from a new pcai-rust-<guid> home, so
+        # without base directories nothing ever hits (0 of 690 on dtm-super-nuc, 2026-11-12). SCCACHE_BASEDIRS strips
+        # these prefixes before hashing (sccache 0.14+), which keeps the keys the same from job to job.
+        $baseDirs = @($rustRoot)
+        if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_WORKSPACE)) { $baseDirs += $env:GITHUB_WORKSPACE }
+        "SCCACHE_BASEDIRS=$($baseDirs -join [IO.Path]::PathSeparator)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
         $cargoBin | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
         "home=$profileHome" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+    - name: Restart sccache so it reads this job's base directories
+      shell: pwsh
+      run: |
+        # A server left from an earlier job keeps the environment it started with; the next compile starts a new one.
+        $sccache = Get-Command sccache -ErrorAction SilentlyContinue
+        if ($sccache) { & $sccache.Source --stop-server *> $null }
+        $global:LASTEXITCODE = 0
     - name: Install job-local Rust
       uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
       with:

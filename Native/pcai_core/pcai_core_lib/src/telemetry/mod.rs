@@ -99,8 +99,6 @@ pub fn check_resource_safety(gpu_limit: f32) -> bool {
             return false;
         }
     }
-    if telemetry.cpu_usage > 90.0 {
-        return false;
-    }
-    true
+    // A NaN reading is not over the limit, as before: only a CPU above 90 % is unsafe.
+    telemetry.cpu_usage <= 90.0 || telemetry.cpu_usage.is_nan()
 }

@@ -129,6 +129,15 @@ updates:
     groups:
       nuget-pcainative:
         update-types: ["minor", "patch"]
+    ignore:
+      # System.Text.Json is held on the 10.x line while this project targets
+      # net8.0. 11.0.0 does not support net8.0: restore warns "doesn't support
+      # net8.0 and has not been tested with it" for it and its 11.0.0
+      # transitive packages, and #305 (10.0.14 -> 11.0.0) aborted the managed
+      # native suite on windows-latest. 10.x patch updates still flow. Remove
+      # this entry when the project moves off net8.0.
+      - dependency-name: "System.Text.Json"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
       - "dotnet"
@@ -146,6 +155,11 @@ updates:
     groups:
       nuget-servicehost:
         update-types: ["minor", "patch"]
+    ignore:
+      # Same hold as PcaiNative: net8.0 target, and #305 proposed
+      # System.Text.Json 11.0.0 for this project's csproj.
+      - dependency-name: "System.Text.Json"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
       - "dotnet"

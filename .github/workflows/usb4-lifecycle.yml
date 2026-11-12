@@ -45,6 +45,12 @@ on:
       - '.github/actions/setup-job-rust/action.yml'
       - '.github/workflows/usb4-lifecycle.yml'
   workflow_dispatch:
+
+# A rebased or re-pushed pull request cancels the run it superseded; a push to main is never cancelled.
+concurrency:
+  group: usb4-lifecycle-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 jobs:

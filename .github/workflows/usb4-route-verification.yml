@@ -14,6 +14,12 @@ on:
       - 'Tests/Portable/Test-Usb4RouteVerification.ps1'
       - 'Tests/Portable/Test-Usb4RouteOwnership.ps1'
       - '.github/workflows/usb4-route-verification.yml'
+
+# A rebased or re-pushed pull request cancels the run it superseded; a push to main is never cancelled.
+concurrency:
+  group: usb4-route-verification-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 jobs:

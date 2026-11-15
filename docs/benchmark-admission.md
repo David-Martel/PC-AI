@@ -85,3 +85,40 @@ selectors and preserves the two independent native fallback/status controls.
 
 [Developer hook validation](developer-hook-validation.md) covers portable
 manifest checks and the refreshed runner review bindings.
+
+## Explicit-root duplicate fallback
+
+[Find-DuplicatesFast](../Modules/PC-AI.Acceleration/Public/Find-DuplicatesFast.ps1)
+accepts `-DisableNative` to select its PowerShell/.NET scanner. That scanner may
+still use installed `fd` for enumeration; the switch does not force every stage
+to managed code. Without `fd`, enumeration uses `Get-ChildItem`.
+
+The `fd` path now uses `--no-ignore-parent`: an ancestor ignore file cannot
+silently hide the contents of the explicitly selected `-Path`. This changes only
+the inherited-ignore boundary. The selected root's own/descendant ignore files,
+default hidden-file filtering and public include/exclude, recursion and size
+parameters keep their existing `fd` behavior. This is not global `--no-ignore`
+or unrestricted traversal, and does not claim full ignore-policy equivalence
+between native, `fd` and `Get-ChildItem` backends.
+
+The [focused Pester controls](../Modules/PC-AI.Acceleration/Tests/Find-DuplicatesFast.Tests.ps1)
+use actual `fd` in an isolated Git-ignored fixture, an exact duplicate hash/pair,
+equal-size different content, selected-root exclusions and negative public
+filters. Missing `fd` is explicitly skipped; the managed enumeration/hash case
+still runs with only tool discovery mocked absent. No real native DLL is
+removed or disabled. These correctness controls establish no throughput gain,
+GPU/NPU offload or live-demo release; cold-child diagnostic timings are not
+comparative benchmarks.
+
+The [independent selector review](../Modules/PC-AI.Acceleration/Tests/Find-DuplicatesFast.review.json)
+binds these controls to their source hashes. The installed `fd` was exercised;
+older-tool compatibility and nonzero-exit recovery remain separate validation
+work. The existing enumerator does not yet distinguish a nonzero tool exit from
+an empty successful scan. Do not interpret an empty result after a tool error
+as evidence that a directory contains no duplicates.
+
+Run the focused check in PowerShell 7 with Pester 5 and Git installed:
+
+```powershell
+Invoke-Pester -Path Modules/PC-AI.Acceleration/Tests/Find-DuplicatesFast.Tests.ps1 -Output Detailed
+```

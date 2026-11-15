@@ -32,6 +32,17 @@
 .PARAMETER ThrottleLimit
     Maximum concurrent hash operations
 
+.PARAMETER DisableNative
+    Use the PowerShell/.NET scanner instead of the native duplicate engine.
+    The scanner can still use fd for enumeration when it is installed.
+
+.NOTES
+    An explicit Path selects the scan root. The fd backend ignores ancestor
+    ignore files so they cannot silently hide that selected root's contents.
+    Ignore files inside the root, hidden filtering and explicit Include/Exclude
+    parameters retain their existing fd behavior. No global no-ignore or hidden
+    traversal option is enabled.
+
 .EXAMPLE
     Find-DuplicatesFast -Path "D:\Downloads" -Recurse
     Finds all duplicates in Downloads
@@ -280,7 +291,8 @@ function Find-WithFdForDuplicates {
         [string]$FdPath
     )
 
-    $args = @('.', '-t', 'f', '-a')  # Pattern first, then type=file, absolute paths
+    # Honor the explicit root without disabling its own ignore/hidden policy.
+    $args = @('.', '-t', 'f', '-a', '--no-ignore-parent')
 
     if (-not $Recurse) {
         $args += '-d'

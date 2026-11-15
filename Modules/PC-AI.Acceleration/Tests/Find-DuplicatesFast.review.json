@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "CRLF converted to LF before SHA256",
+  "reviews": [
+    {
+      "selector": "Uses the native duplicate path when available for SHA256 requests",
+      "selector_sha256": "c7ffee27bb169cef5bb881ef6e46cc7d19cee581d2992e7323e7632d76c5fed3",
+      "test_path": "Modules/PC-AI.Acceleration/Tests/Find-DuplicatesFast.Tests.ps1",
+      "test_sha256": "a86c1c515dbf2535324d1c4551fb034976ef4f577a08cee4eb0cd09f1277f979",
+      "source_sha256": {
+        "Modules/PC-AI.Acceleration/Public/Find-DuplicatesFast.ps1": "480f7a9e949e0115deb9d2bf3839509ad9c03e26832ea402b924df6a35961cf5"
+      },
+      "reviewer": "codex-mbd-campus",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-11-15T17:34:17.2529145Z",
+      "reviewed_commit": null,
+      "base_commit": "932f667f69a4f1eafb4bcda093d7b308ac30f6e8",
+      "disposition": "keep",
+      "relevance": "Protects shipped native dispatch or the public managed scanner and explicit-root fd visibility; author is a separate specialist.",
+      "coverage": "Root read all selectors and source; independently ran ten cases with real fd/Git and managed hashing: 10 passed, 0 failed, 0 skipped, 3.64 seconds. Author RED: 8 passed/2 failed before the one-argument production correction. Exact hash/membership rejects equal-size different bytes; local ignore/hidden and five filter cases reject broad traversal.",
+      "breaking_behavior": "No assertion weakened. Real-fd cases skip only when fd is unavailable; managed case mocks discovery only. Native dispatch tests use scoped mocks and establish dispatch, not native hardware or DLL outage.",
+      "limits": "No speedup, deployment or complete backend ignore parity claimed. Nonzero fd exit handling remains a pre-existing separately documented gap."
+    },
+    {
+      "selector": "Falls back when the native path is disabled",
+      "selector_sha256": "e32bbb99fc0d57bbb0d500757b0f3c9f50527ac4e8065fd5eefd14e1f7bab95a",
+      "test_path": "Modules/PC-AI.Acceleration/Tests/Find-DuplicatesFast.Tests.ps1",
+      "test_sha256": "a86c1c515dbf2535324d1c4551fb034976ef4f577a08cee4eb0cd09f1277f979",
+      "source_sha256": {
+        "Modules/PC-AI.Acceleration/Public/Find-DuplicatesFast.ps1": "480f7a9e949e0115deb9d2bf3839509ad9c03e26832ea402b924df6a35961cf5"
+      },
+      "reviewer": "codex-mbd-campus",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-11-15T17:34:17.2562654Z",
+      "reviewed_commit": null,
+      "base_commit": "932f667f69a4f1eafb4bcda093d7b308ac30f6e8",
+      "disposition": "keep",
+      "relevance": "Protects shipped native dispatch or the public managed scanner and explicit-root fd visibility; author is a separate specialist.",
+      "coverage": "Root read all selectors and source; independently ran ten cases with real fd/Git and managed hashing: 10 passed, 0 failed, 0 skipped, 3.64 seconds. Author RED: 8 passed/2 failed before the one-argument production correction. Exact hash/membership rejects equal-size different bytes; local ignore/hidden and five filter cases reject broad traversal.",
+      "breaking_behavior": "No assertion weakened. Real-fd cases skip only when fd is unavailable; managed case mocks discovery only. Native dispatch tests use scoped mocks and establish dispatch, not native hardware or DLL outage.",
+      "limits": "No speedup, deployment or complete backend ignore parity claimed. Nonzero fd exit handling remains a pre-existing separately documented gap."
+    },
+    {
+      "selector": "finds the exact duplicate pair with real fd when its explicit root is ignored by a parent",
+      "selector_sha256": "415a39a3fb95b162174e0829375d6511a8a039caf1a924da1ab52589aeaf425a",
+      "test_path": "Modules/PC-AI.Acceleration/Tests/Find-DuplicatesFast.Tests.ps1",
+      "test_sha256": "a86c1c515dbf2535324d1c4551fb034976ef4f577a08cee4eb0cd09f1277f979",
+      "source_sha256": {
+        "Modules/PC-AI.Acceleration/Public/Find-DuplicatesFast.ps1": "480f7a9e949e0115deb9d2bf3839509ad9c03e26832ea402b924df6a35961cf5"
+      },
+      "reviewer": "codex-mbd-campus",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-11-15T17:34:17.2563513Z",
+      "reviewed_commit": null,
+      "base_commit": "932f667f69a4f1eafb4bcda093d7b308ac30f6e8",
+      "disposition": "keep",
+      "relevance": "Protects shipped native dispatch or the public managed scanner and explicit-root fd visibility; author is a separate specialist.",
+      "coverage": "Root read all selectors and source; independently ran ten cases with real fd/Git and managed hashing: 10 passed, 0 failed, 0 skipped, 3.64 seconds. Author RED: 8 passed/2 failed before the one-argument production correction. Exact hash/membership rejects equal-size different bytes; local ignore/hidden and five filter cases reject broad traversal.",
+      "breaking_behavior": "No assertion weakened. Real-fd cases skip only when fd is unavailable; managed case mocks discovery only. Native dispatch tests use scoped mocks and establish dispatch, not native hardware or DLL outage.",
+      "limits": "No speedup, deployment or complete backend ignore parity claimed. Nonzero fd exit handling remains a pre-existing separately documented gap."
+    },
+    {
+      "selector": "keeps ignore files inside the selected root and hidden-file filtering effective",
+      "selector_sha256": "950fd3b8f27b05b56ebe41f22bd4fdbd48394ed552b957b9008b3c8db19d4741",
+      "test_path": "Modules/PC-AI.Acceleration/Tests/Find-DuplicatesFast.Tests.ps1",
+      "test_sha256": "a86c1c515dbf2535324d1c4551fb034976ef4f577a08cee4eb0cd09f1277f979",
+      "source_sha256": {
+        "Modules/PC-AI.Acceleration/Public/Find-DuplicatesFast.ps1": "480f7a9e949e0115deb9d2bf3839509ad9c03e26832ea402b924df6a35961cf5"
+      },
+      "reviewer": "codex-mbd-campus",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-11-15T17:34:17.2564304Z",
+      "reviewed_commit": null,
+      "base_commit": "932f667f69a4f1eafb4bcda093d7b308ac30f6e8",
+      "disposition": "keep",
+      "relevance": "Protects shipped native dispatch or the public managed scanner and explicit-root fd visibility; author is a separate specialist.",
+      "coverage": "Root read all selectors and source; independently ran ten cases with real fd/Git and managed hashing: 10 passed, 0 failed, 0 skipped, 3.64 seconds. Author RED: 8 passed/2 failed before the one-argument production correction. Exact hash/membership rejects equal-size different bytes; local ignore/hidden and five filter cases reject broad traversal.",
+      "breaking_behavior": "No assertion weakened. Real-fd cases skip only when fd is unavailable; managed case mocks discovery only. Native dispatch tests use scoped mocks and establish dispatch, not native hardware or DLL outage.",
+      "limits": "No speedup, deployment or complete backend ignore parity claimed. Nonzero fd exit handling remains a pre-existing separately documented gap."
+    },
+    {
+      "selector": "retains the <label> exclusion with real fd",
+      "selector_sha256": "d54cc057c866f789e85a7e45b14bf0f0ccb990d26313f1c74c2c2f74f21989b4",
+      "test_path": "Modules/PC-AI.Acceleration/Tests/Find-DuplicatesFast.Tests.ps1",
+      "test_sha256": "a86c1c515dbf2535324d1c4551fb034976ef4f577a08cee4eb0cd09f1277f979",
+      "source_sha256": {
+        "Modules/PC-AI.Acceleration/Public/Find-DuplicatesFast.ps1": "480f7a9e949e0115deb9d2bf3839509ad9c03e26832ea402b924df6a35961cf5"
+      },
+      "reviewer": "codex-mbd-campus",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-11-15T17:34:17.2564990Z",
+      "reviewed_commit": null,
+      "base_commit": "932f667f69a4f1eafb4bcda093d7b308ac30f6e8",
+      "disposition": "keep",
+      "relevance": "Protects shipped native dispatch or the public managed scanner and explicit-root fd visibility; author is a separate specialist.",
+      "coverage": "Root read all selectors and source; independently ran ten cases with real fd/Git and managed hashing: 10 passed, 0 failed, 0 skipped, 3.64 seconds. Author RED: 8 passed/2 failed before the one-argument production correction. Exact hash/membership rejects equal-size different bytes; local ignore/hidden and five filter cases reject broad traversal.",
+      "breaking_behavior": "No assertion weakened. Real-fd cases skip only when fd is unavailable; managed case mocks discovery only. Native dispatch tests use scoped mocks and establish dispatch, not native hardware or DLL outage.",
+      "limits": "No speedup, deployment or complete backend ignore parity claimed. Nonzero fd exit handling remains a pre-existing separately documented gap."
+    },
+    {
+      "selector": "returns the same exact pair through real managed enumeration and hashing when fd is unavailable",
+      "selector_sha256": "3e02525b50f8aacb9db6beb6b2bf764f937f3a6fdf96678b352891ac771b0618",
+      "test_path": "Modules/PC-AI.Acceleration/Tests/Find-DuplicatesFast.Tests.ps1",
+      "test_sha256": "a86c1c515dbf2535324d1c4551fb034976ef4f577a08cee4eb0cd09f1277f979",
+      "source_sha256": {
+        "Modules/PC-AI.Acceleration/Public/Find-DuplicatesFast.ps1": "480f7a9e949e0115deb9d2bf3839509ad9c03e26832ea402b924df6a35961cf5"
+      },
+      "reviewer": "codex-mbd-campus",
+      "reviewer_type": "independent-agent",
+      "reviewed_utc": "2026-11-15T17:34:17.2565576Z",
+      "reviewed_commit": null,
+      "base_commit": "932f667f69a4f1eafb4bcda093d7b308ac30f6e8",
+      "disposition": "keep",
+      "relevance": "Protects shipped native dispatch or the public managed scanner and explicit-root fd visibility; author is a separate specialist.",
+      "coverage": "Root read all selectors and source; independently ran ten cases with real fd/Git and managed hashing: 10 passed, 0 failed, 0 skipped, 3.64 seconds. Author RED: 8 passed/2 failed before the one-argument production correction. Exact hash/membership rejects equal-size different bytes; local ignore/hidden and five filter cases reject broad traversal.",
+      "breaking_behavior": "No assertion weakened. Real-fd cases skip only when fd is unavailable; managed case mocks discovery only. Native dispatch tests use scoped mocks and establish dispatch, not native hardware or DLL outage.",
+      "limits": "No speedup, deployment or complete backend ignore parity claimed. Nonzero fd exit handling remains a pre-existing separately documented gap."
+    }
+  ]
+}

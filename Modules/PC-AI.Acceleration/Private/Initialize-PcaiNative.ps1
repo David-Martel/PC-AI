@@ -118,6 +118,75 @@ function Get-PcaiNativeCandidatePaths {
     return @($candidates | Select-Object -Unique)
 }
 
+function Select-PcaiNativeArtifactPair {
+    <#
+    .SYNOPSIS
+        Picks the PcaiNative.dll wrapper and pcai_core_lib core to load together.
+    .DESCRIPTION
+        The wrapper and the core are built as a matched ABI pair. Pass 1 returns the first search path that holds
+        both (the core either directly or under runtimes/<rid>/native/). Only when no directory holds both does
+        pass 2 fall back to the first wrapper and first core found independently, which may be cross-directory
+        and is reported on the verbose stream. An explicit core path always wins for the core.
+    #>
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter()]
+        [string[]]$SearchPaths = @(),
+
+        [Parameter(Mandatory)]
+        [string]$CoreFileName,
+
+        [Parameter(Mandatory)]
+        [string]$RuntimeIdentifier,
+
+        [Parameter()]
+        [string]$ExplicitCorePath
+    )
+
+    $wrapperPath = $null
+    $coreLibPath = $ExplicitCorePath
+    $coLocated = $false
+    $firstWrapper = $null
+    $firstCore = $null
+
+    foreach ($searchPath in $SearchPaths) {
+        $candidateWrapper = Join-Path $searchPath 'PcaiNative.dll'
+        $candidateCore = Join-Path $searchPath $CoreFileName
+        $candidateRuntimeCore = Join-Path $searchPath "runtimes/$RuntimeIdentifier/native/$CoreFileName"
+
+        $hasWrapper = Test-Path -LiteralPath $candidateWrapper -PathType Leaf
+        $foundCore = if (Test-Path -LiteralPath $candidateCore -PathType Leaf) {
+            $candidateCore
+        } elseif (Test-Path -LiteralPath $candidateRuntimeCore -PathType Leaf) {
+            $candidateRuntimeCore
+        }
+
+        if ($hasWrapper -and $foundCore) {
+            $wrapperPath = $candidateWrapper
+            if (-not $coreLibPath) { $coreLibPath = $foundCore }
+            $coLocated = $true
+            break
+        }
+        if ($hasWrapper -and -not $firstWrapper) { $firstWrapper = $candidateWrapper }
+        if ($foundCore -and -not $firstCore) { $firstCore = $foundCore }
+    }
+
+    if (-not $coLocated) {
+        $wrapperPath = $firstWrapper
+        if (-not $coreLibPath) { $coreLibPath = $firstCore }
+        if ($wrapperPath -and $coreLibPath -and -not $ExplicitCorePath) {
+            Write-Verbose "No search path holds both PcaiNative.dll and $CoreFileName; using a cross-directory pair (Wrapper='$wrapperPath', CoreLib='$coreLibPath')"
+        }
+    }
+
+    [pscustomobject]@{
+        WrapperPath = $wrapperPath
+        CoreLibPath = $coreLibPath
+        CoLocated   = $coLocated
+    }
+}
+
 function Initialize-PcaiNative {
     [CmdletBinding()]
     [OutputType([bool])]
@@ -206,6 +275,11 @@ function Initialize-PcaiNative {
         $bridgeBin = Join-Path $bridgeModuleRoot 'bin'
     }
 
+    # The installed bridge bin is also probed directly: Get-Module only finds it when its parent is on PSModulePath.
+    $installedBridgeBin = if ($env:LOCALAPPDATA) {
+        Join-Path $env:LOCALAPPDATA 'PowerShell/Modules/PcaiNativeBridge/bin'
+    }
+
     $userHome = if ($HOME) { $HOME } else { $env:USERPROFILE }
     $baseSearchPaths = @(
         $(if ($repoRoot) { Join-Path $repoRoot 'bin' })                                  # Repo bin
@@ -219,40 +293,21 @@ function Initialize-PcaiNative {
         $(if ($repoRoot) { Join-Path $repoRoot 'Native/pcai_core/target/debug' })        # Native workspace debug
         $(if ($repoRoot) { Join-Path $repoRoot 'target/debug' })
         $bridgeBin                                                                         # Installed bridge bin
+        $installedBridgeBin                                                                # Installed bridge bin (not on PSModulePath)
         $(if ($userHome) { Join-Path $userHome '.local/bin' })
         $(if ($userHome) { Join-Path $userHome 'PC_AI/bin' })                              # Legacy compatibility path
     ) | Select-Object -Unique | Where-Object { $_ }
 
     $searchPaths = Get-PcaiNativeCandidatePaths -BasePaths $baseSearchPaths
 
-    $wrapperPath = $null
-    $coreLibPath = $null
-
+    $resolvedExplicitCore = $null
     if ($explicitCorePath) {
-        $coreLibPath = (Resolve-Path -LiteralPath $explicitCorePath -ErrorAction Stop).Path
+        $resolvedExplicitCore = (Resolve-Path -LiteralPath $explicitCorePath -ErrorAction Stop).Path
     }
 
-    foreach ($searchPath in $searchPaths) {
-        $candidateCore = Join-Path $searchPath $coreFileName
-        $candidateRuntimeCore = Join-Path $searchPath "runtimes/$rid/native/$coreFileName"
-        $candidateWrapper = Join-Path $searchPath 'PcaiNative.dll'
-
-        if ((Test-Path $candidateWrapper -PathType Leaf) -and (Test-Path $candidateCore -PathType Leaf)) {
-            $wrapperPath = $candidateWrapper
-            if (-not $coreLibPath) { $coreLibPath = $candidateCore }
-            break
-        }
-        if (-not $wrapperPath -and (Test-Path $candidateWrapper -PathType Leaf)) {
-            $wrapperPath = $candidateWrapper
-        }
-        if (-not $coreLibPath) {
-            if (Test-Path $candidateCore -PathType Leaf) {
-                $coreLibPath = $candidateCore
-            } elseif (Test-Path $candidateRuntimeCore -PathType Leaf) {
-                $coreLibPath = $candidateRuntimeCore
-            }
-        }
-    }
+    $pair = Select-PcaiNativeArtifactPair -SearchPaths $searchPaths -CoreFileName $coreFileName -RuntimeIdentifier $rid -ExplicitCorePath $resolvedExplicitCore
+    $wrapperPath = $pair.WrapperPath
+    $coreLibPath = $pair.CoreLibPath
 
     if (-not $wrapperPath -or -not $coreLibPath) {
         Write-Verbose "PCAI Native artifacts not found in search paths (Wrapper=$wrapperPath, CoreLib=$coreLibPath, Expected=$coreFileName)"

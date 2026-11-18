@@ -9,3 +9,20 @@ Each register row records protects/detects/needs, the test and production source
 The [CI workflow](../../.github/workflows/native-override-admission.yml) uses Windows and Ubuntu hosts, read-only contents permission, .NET8 setup and locked no-default-feature host-core compilation. It supplies the actual artifact to the resolver controls and fails if that artifact or its build is missing. Its 25-minute disposable-job limit and subprocess bounds affect validation execution, not production resource limits; timeout is a visible failed check. Source revert is the rollback. Native prerequisites, full-workspace lock resolution and hosted runtime differences can still fail CI; local success does not predict all hosted results.
 
 See [deployment boundaries](../../docs/native-override-admission.md). The earlier full managed-suite environment race, required-export admission and physical USB4 topology remain separate work. No production deployment, routing, firmware, session timeout or concurrency setting changed in this slice.
+
+## Explicit bundle pairing
+
+The [updated pairing selectors](../Unit/PcaiNativeArtifactPairing.Tests.ps1)
+initially failed four controls against the original initializer on Windows.
+They detected the ambient wrapper winning both explicit layouts and the
+managed load boundary, and a split result incorrectly reported as co-located.
+The corrected initializer passed all 12 pairing cases and six isolated
+override-admission checks on profile-free Windows PowerShell 7.6.10. A separate
+fresh-process smoke test reproduced the ambient-wrapper selection with an
+inert wrapper and confirmed that the corrected initializer loaded the actual
+win-x64 bridge beside the selected core.
+
+The independent review accepted the flat and matching-runtime package
+locations, the wrong-runtime negative case, and the existing core-only
+fallback. The [review register](native-override-review.json) binds the
+reviewed selector spans and initializer to their SHA-256 hashes.

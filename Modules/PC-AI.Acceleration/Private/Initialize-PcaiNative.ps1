@@ -123,10 +123,10 @@ function Select-PcaiNativeArtifactPair {
     .SYNOPSIS
         Picks the PcaiNative.dll wrapper and pcai_core_lib core to load together.
     .DESCRIPTION
-        The wrapper and the core are built as a matched ABI pair. Pass 1 returns the first search path that holds
-        both (the core either directly or under runtimes/<rid>/native/). Only when no directory holds both does
-        pass 2 fall back to the first wrapper and first core found independently, which may be cross-directory
-        and is reported on the verbose stream. An explicit core path always wins for the core.
+        An explicit core prefers a wrapper beside it or at its runtimes/<rid>/native package root.
+        Otherwise, discovery prefers the first directory with both artifacts, then the first available halves.
+        A core-only override keeps the selected core and uses the discovered wrapper. Split pairs emit a verbose
+        diagnostic.
     #>
     [CmdletBinding()]
     [OutputType([pscustomobject])]
@@ -143,6 +143,28 @@ function Select-PcaiNativeArtifactPair {
         [Parameter()]
         [string]$ExplicitCorePath
     )
+
+    if ($ExplicitCorePath) {
+        $coreDirectory = [System.IO.Path]::GetDirectoryName([System.IO.Path]::GetFullPath($ExplicitCorePath))
+        $wrapperDirectories = @($coreDirectory)
+        $runtimeLayout = [System.IO.Path]::Combine('runtimes', $RuntimeIdentifier, 'native')
+        $runtimeSuffix = [System.IO.Path]::DirectorySeparatorChar + $runtimeLayout
+        $pathComparison = if ($IsWindows) { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
+        if ($coreDirectory.EndsWith($runtimeSuffix, $pathComparison)) {
+            $wrapperDirectories += $coreDirectory.Substring(0, $coreDirectory.Length - $runtimeLayout.Length)
+        }
+
+        foreach ($directory in $wrapperDirectories) {
+            $explicitWrapper = Join-Path $directory 'PcaiNative.dll'
+            if (Test-Path -LiteralPath $explicitWrapper -PathType Leaf) {
+                return [pscustomobject]@{
+                    WrapperPath = $explicitWrapper
+                    CoreLibPath = $ExplicitCorePath
+                    CoLocated   = $true
+                }
+            }
+        }
+    }
 
     $wrapperPath = $null
     $coreLibPath = $ExplicitCorePath
@@ -164,20 +186,20 @@ function Select-PcaiNativeArtifactPair {
 
         if ($hasWrapper -and $foundCore) {
             $wrapperPath = $candidateWrapper
-            if (-not $coreLibPath) { $coreLibPath = $foundCore }
-            $coLocated = $true
+            if (-not $coreLibPath) {
+                $coreLibPath = $foundCore
+                $coLocated = $true
+            }
             break
         }
         if ($hasWrapper -and -not $firstWrapper) { $firstWrapper = $candidateWrapper }
         if ($foundCore -and -not $firstCore) { $firstCore = $foundCore }
     }
 
-    if (-not $coLocated) {
-        $wrapperPath = $firstWrapper
-        if (-not $coreLibPath) { $coreLibPath = $firstCore }
-        if ($wrapperPath -and $coreLibPath -and -not $ExplicitCorePath) {
-            Write-Verbose "No search path holds both PcaiNative.dll and $CoreFileName; using a cross-directory pair (Wrapper='$wrapperPath', CoreLib='$coreLibPath')"
-        }
+    if (-not $wrapperPath) { $wrapperPath = $firstWrapper }
+    if (-not $coreLibPath) { $coreLibPath = $firstCore }
+    if ($wrapperPath -and $coreLibPath -and -not $coLocated) {
+        Write-Verbose "Using a cross-directory pair (Wrapper='$wrapperPath', CoreLib='$coreLibPath')"
     }
 
     [pscustomobject]@{

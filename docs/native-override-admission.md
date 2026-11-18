@@ -18,6 +18,13 @@ searching other directories, changing PATH, or overwriting the override.
 A previously loaded-state flag must not turn that failure into success.
 The initializer returns false and clears its availability/provenance state.
 
+For a valid override, the initializer prefers the managed `PcaiNative.dll`
+beside the core. When the core is under `runtimes/<rid>/native/`, the package
+root is the second wrapper location. A core-only override still uses the
+discovered wrapper and reports the split pair in verbose output. Use a paired
+bundle when selecting a specific build. The [pairing tests](../Tests/Unit/PcaiNativeArtifactPairing.Tests.ps1)
+exercise both layouts, ambient fallback, and the managed load boundary.
+
 The production C# import resolver must also stop when the selected override
 is missing or cannot load. Returning a zero handle delegates to the runtime's
 default search, which can silently load another library. An explicit loading

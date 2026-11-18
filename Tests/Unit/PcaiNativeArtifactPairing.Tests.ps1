@@ -74,7 +74,8 @@ Describe 'Select-PcaiNativeArtifactPair' -Tag 'Unit', 'Acceleration', 'Portable'
         ($verbose -join "`n") | Should -Match 'cross-directory'
     }
 
-    # Why: an explicit core override is authoritative and must survive pairing, as it did before the two-pass change.
+    # Protects the core-only override contract; detects replacement or a false co-location claim.
+    # Needs inert core and ambient-pair files. Breadcrumb: Select-PcaiNativeArtifactPair.
     It 'keeps an explicit core path while taking the wrapper from the first directory that holds a core and wrapper' {
         $explicit = New-ArtifactDirectory -Path (Join-Path $script:Root 'explicit') -Core
         $stale = New-ArtifactDirectory -Path (Join-Path $script:Root 'stale') -Core
@@ -83,6 +84,39 @@ Describe 'Select-PcaiNativeArtifactPair' -Tag 'Unit', 'Acceleration', 'Portable'
         $selection = Select-PcaiNativeArtifactPair -SearchPaths @($stale, $pair) -CoreFileName $script:CoreName -RuntimeIdentifier $script:Rid -ExplicitCorePath $explicitCore
         $selection.WrapperPath | Should -BeExactly (Join-Path $pair 'PcaiNative.dll')
         $selection.CoreLibPath | Should -BeExactly $explicitCore
+        $selection.CoLocated | Should -BeFalse
+    }
+
+    # Protects the wrapper belonging to a selected bundle; detects preference for a stale ambient pair.
+    # Needs flat and runtime-layout inert artifacts. Breadcrumb: Select-PcaiNativeArtifactPair.
+    It 'uses the selected bundle instead of an ambient pair (runtime layout=<RuntimeCore>)' -TestCases @(
+        @{ RuntimeCore = $false }, @{ RuntimeCore = $true }
+    ) {
+        param([bool]$RuntimeCore)
+
+        $ambient = New-ArtifactDirectory -Path (Join-Path $script:Root 'ambient') -Wrapper -Core
+        $selected = New-ArtifactDirectory -Path (Join-Path $script:Root 'selected') -Wrapper -Core:(-not $RuntimeCore) -RuntimeCore:$RuntimeCore
+        $coreDirectory = if ($RuntimeCore) { Join-Path $selected "runtimes/$($script:Rid)/native" } else { $selected }
+        $explicitCore = Join-Path $coreDirectory $script:CoreName
+        $selection = Select-PcaiNativeArtifactPair -SearchPaths @($ambient) -CoreFileName $script:CoreName -RuntimeIdentifier $script:Rid -ExplicitCorePath $explicitCore
+
+        $selection.WrapperPath | Should -BeExactly (Join-Path $selected 'PcaiNative.dll')
+        $selection.CoreLibPath | Should -BeExactly $explicitCore
+        $selection.CoLocated | Should -BeTrue
+    }
+
+    # Protects the runtime package boundary; detects an ancestor wrapper from a different runtime layout.
+    # Needs an explicit core in the wrong RID folder and a separate ambient pair. Breadcrumb: Select-PcaiNativeArtifactPair.
+    It 'does not treat a wrapper above a different runtime identifier as paired' {
+        $ambient = New-ArtifactDirectory -Path (Join-Path $script:Root 'ambient') -Wrapper -Core
+        $selected = New-ArtifactDirectory -Path (Join-Path $script:Root 'selected') -Wrapper
+        $coreDirectory = New-ArtifactDirectory -Path (Join-Path $selected "runtimes/other-$($script:Rid)/native") -Core
+        $explicitCore = Join-Path $coreDirectory $script:CoreName
+        $selection = Select-PcaiNativeArtifactPair -SearchPaths @($ambient) -CoreFileName $script:CoreName -RuntimeIdentifier $script:Rid -ExplicitCorePath $explicitCore
+
+        $selection.WrapperPath | Should -BeExactly (Join-Path $ambient 'PcaiNative.dll')
+        $selection.CoreLibPath | Should -BeExactly $explicitCore
+        $selection.CoLocated | Should -BeFalse
     }
 
     # Why: callers test for null to decide the artifacts are missing, so an empty search must not invent a path.
@@ -126,6 +160,20 @@ Describe 'Initialize-PcaiNative artifact resolution' -Tag 'Unit', 'Acceleration'
         $script:PcaiNativeCoreLibraryPath | Should -BeExactly (Join-Path $pair $script:CoreName)
         $script:PcaiNativeDllPath | Should -BeExactly $pair
         Should -Invoke Add-Type -Times 1 -Exactly -ParameterFilter { $Path -eq (Join-Path $pair 'PcaiNative.dll') }
+    }
+
+    # Protects PCAI_NATIVE_DIR at the managed load boundary; detects loading a wrapper from ambient discovery.
+    # Needs two inert bundles and an unloaded bridge. Breadcrumb: Initialize-PcaiNative.
+    It 'passes the explicit directory wrapper to the managed loader even when the repository has a complete pair' -Skip:$script:AssemblyAlreadyLoaded {
+        $null = New-ArtifactDirectory -Path (Join-Path $script:OwnedRepo 'bin') -Wrapper -Core
+        $selected = New-ArtifactDirectory -Path (Join-Path $TestDrive ('selected-' + [guid]::NewGuid().ToString('N'))) -Wrapper -Core
+        $env:PCAI_NATIVE_DIR = $selected
+
+        Initialize-PcaiNative -WarningAction SilentlyContinue | Should -BeFalse
+
+        $script:PcaiNativeWrapperPath | Should -BeExactly (Join-Path $selected 'PcaiNative.dll')
+        $script:PcaiNativeCoreLibraryPath | Should -BeExactly (Join-Path $selected $script:CoreName)
+        Should -Invoke Add-Type -Times 1 -Exactly -ParameterFilter { $Path -eq (Join-Path $selected 'PcaiNative.dll') }
     }
 
     # Why: the installed bridge is only visible to Get-Module when its parent is on PSModulePath, which is often not the case.

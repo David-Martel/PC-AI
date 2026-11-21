@@ -164,8 +164,25 @@ function Measure-PcaiProfileLoad {
     return [pscustomobject]@{ Seconds = $r.Seconds; ExitCode = $r.ExitCode; TimedOut = $r.TimedOut; FirstError = $firstErr }
 }
 
-function Test-PcaiToolShim {
+function Test-PcaiHelpOutcome {
     <#
+    .SYNOPSIS
+    Decides whether what a tool printed for --help (its first few lines) shows a working tool. Pure function.
+    .DESCRIPTION
+    Printing something is not proof of health: a missing shared library or a shim traceback prints
+    a line too. A failure diagnostic is never healthy. Otherwise exit 0 is healthy, and a nonzero
+    exit is accepted only when the line reads as a usage or help message, because some tools
+    (several Windows CLIs and wrappers) exit 1 or 2 from --help.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Line, $ExitCode)
+    $diagnostic = '(?i)error while loading shared libraries|cannot open shared object|traceback \(most recent|unhandled exception|the code execution cannot proceed|is not recognized as|no such file or directory|exec format error|bad cpu type|cannot execute|permission denied'
+    if ($Line -match $diagnostic) { return $false }
+    if ($ExitCode -eq 0) { return $true }
+    return ($Line -match '(?i)\b(usage|options|commands|synopsis|help)\b')
+}
+
+function Test-PcaiToolShim {    <#
     .SYNOPSIS
     Resolves each tool on PATH, runs every `--help` concurrently, and reports shadowing copies.
     .DESCRIPTION
@@ -192,11 +209,15 @@ function Test-PcaiToolShim {
     $hashOf = { param($p) (Get-FileHash -LiteralPath $p).Hash.Substring(0, 12).ToLowerInvariant() }
     return , @(foreach ($e in $entries) {
             if (-not $e.All) { [pscustomobject]@{ Name = $e.Name; Path = $null; Hash = $null; Ok = $false; Help = 'not found on PATH'; Shadowed = @() }; continue }
-            $line = $null
+            $line = $null; $exitCode = $null; $sample = $null
             if ($e.Proc) {
                 $left = [math]::Max(0, ($deadline - [DateTime]::UtcNow).TotalMilliseconds)
                 if ($e.Proc.WaitForExit([int]$left)) {
-                    $line = @(($e.Out.GetAwaiter().GetResult() + "`n" + $e.Err.GetAwaiter().GetResult()) -split "`n" | Where-Object { $_.Trim() }) | Select-Object -First 1
+                    # Classify on the first few lines: ssh prints an option complaint before its usage line.
+                    $lines = @(($e.Out.GetAwaiter().GetResult() + "`n" + $e.Err.GetAwaiter().GetResult()) -split "`n" | Where-Object { $_.Trim() } | Select-Object -First 6)
+                    $line = $lines | Select-Object -First 1
+                    $sample = $lines -join "`n"
+                    $exitCode = $e.Proc.ExitCode
                 } else { try { $e.Proc.Kill($true) } catch { Write-Verbose "kill: $_" } }
             }
             $first = $e.All[0]
@@ -214,7 +235,8 @@ function Test-PcaiToolShim {
                     [pscustomobject]@{ Path = $_; Length = $i.Length; SameAsFirst = $same }
                 })
             [pscustomobject]@{
-                Name = $e.Name; Path = $first; Length = $firstItem.Length; Ok = [bool]($line -or $ResolveOnly)
+                Name = $e.Name; Path = $first; Length = $firstItem.Length; ExitCode = $exitCode
+                Ok = [bool]($ResolveOnly -or ($line -and (Test-PcaiHelpOutcome -Line $sample -ExitCode $exitCode)))
                 Help = if ($line) { $line.Trim().Substring(0, [math]::Min(100, $line.Trim().Length)) } elseif ($ResolveOnly) { 'resolved (quick: --help not run)' } else { 'no --help output within the deadline' }
                 Shadowed = $shadowed
             }

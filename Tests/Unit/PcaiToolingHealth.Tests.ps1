@@ -231,6 +231,50 @@ Describe 'Help switches (AGENTS.md: -h and --help)' -Tag 'Unit', 'Portable' {
 }
 
 Describe 'Tool shim resolution' -Tag 'Unit', 'Portable' {
+    # Why: a tool that resolves and prints something is not necessarily healthy. A missing shared
+    # library or a shim traceback produces output too (codex review of PR 345). The exit status
+    # decides, with an allowance for tools whose --help legitimately exits nonzero and prints usage.
+    Context 'help output versus execution failure' {
+        BeforeAll {
+            $bin = Join-Path $TestDrive 'toolbin'
+            $null = New-Item -ItemType Directory -Path $bin
+            function New-FakeTool {
+                param([string]$Name, [string]$Line, [int]$Code)
+                if ($IsWindows) {
+                    $echo = ($Line -split '\|' | ForEach-Object { "echo $_" }) -join "`r`n"
+                    [IO.File]::WriteAllText((Join-Path $bin "$Name.cmd"), "@echo off`r`n$echo`r`nexit /b $Code`r`n")
+                } else {
+                    $p = Join-Path $bin $Name
+                    $echo = ($Line -split '\|' | ForEach-Object { "echo '$_'" }) -join "`n"
+                    [IO.File]::WriteAllText($p, "#!/bin/sh`n$echo`nexit $Code`n")
+                    & chmod +x $p
+                }
+            }
+            New-FakeTool 'pcai-fake-ok' 'pcai-fake-ok 1.2.3 usage: pcai-fake-ok [options]' 0
+            New-FakeTool 'pcai-fake-usage-nonzero' 'Usage: pcai-fake-usage-nonzero [options]' 2
+            New-FakeTool 'pcai-fake-broken' 'error while loading shared libraries: libgone.so: cannot open shared object file' 127
+            New-FakeTool 'pcai-fake-silent-failure' 'something unexpected happened' 1
+            # ssh prints "unknown option -- -" first and its usage line second, exiting 255.
+            New-FakeTool 'pcai-fake-ssh-like' 'unknown option -- -|usage: pcai-fake-ssh-like [-46AaCfGgKkMNnqsTtVvXxYy] [-B bind_interface]' 255
+            $script:oldPath = $env:PATH
+            $env:PATH = $bin + [IO.Path]::PathSeparator + $env:PATH
+            $script:fake = Test-PcaiToolShim -Name @('pcai-fake-ok', 'pcai-fake-usage-nonzero', 'pcai-fake-broken', 'pcai-fake-silent-failure', 'pcai-fake-ssh-like') -TimeoutSeconds 30
+        }
+        AfterAll { $env:PATH = $script:oldPath }
+        It 'accepts help output with exit 0' { ($script:fake | Where-Object Name -eq 'pcai-fake-ok').Ok | Should -BeTrue }
+        It 'accepts a usage message from a tool whose --help exits nonzero' { ($script:fake | Where-Object Name -eq 'pcai-fake-usage-nonzero').Ok | Should -BeTrue }
+        It 'accepts a usage message that follows a one-line option complaint (ssh)' { ($script:fake | Where-Object Name -eq 'pcai-fake-ssh-like').Ok | Should -BeTrue }
+        It 'rejects a loader failure even though it printed a line' {
+            $r = $script:fake | Where-Object Name -eq 'pcai-fake-broken'
+            $r.Ok | Should -BeFalse
+            $r.ExitCode | Should -Be 127
+        }
+        It 'rejects a nonzero exit that is not a usage message' { ($script:fake | Where-Object Name -eq 'pcai-fake-silent-failure').Ok | Should -BeFalse }
+        It 'does not claim a quick resolve-only check proved the tool runs' {
+            $r = Test-PcaiToolShim -Name @('pcai-fake-broken') -ResolveOnly
+            $r[0].Help | Should -Match 'quick: --help not run'
+        }
+    }
     It 'resolves pwsh and reports a missing tool as not ok' {
         $r = Test-PcaiToolShim -Name @('pwsh', 'pcai-no-such-tool-0b9f') -ResolveOnly
         ($r | Where-Object Name -eq 'pwsh').Ok | Should -BeTrue

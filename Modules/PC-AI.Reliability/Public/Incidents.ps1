@@ -186,7 +186,13 @@ function Add-FleetIncidentOutbox {
     $dir = Join-Path (Get-FleetPath -Kind state) 'outbox'
     if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     $name = '{0:D19}-{1}.json' -f [datetime]::UtcNow.Ticks, $LedgerEvent.event_id
-    Write-FleetJsonFile -Path (Join-Path $dir $name) -Value @{ forward = $Forward; event = $LedgerEvent }
+    # The alert settings in effect NOW travel with the event: a retry under another call's -PolicyPath (or
+    # the default) sent it to another channel or skipped it (fourteenth review of #346).
+    $policy = $script:FleetEffectivePolicy
+    if (-not $policy) { try { $policy = Get-FleetPolicy } catch { $policy = $null } }
+    $entry = @{ forward = $Forward; event = $LedgerEvent; alerts_captured = ($null -ne $policy); alerts = $null }
+    if ($policy) { $entry.alerts = $policy.alerts }
+    Write-FleetJsonFile -Path (Join-Path $dir $name) -Value $entry
 }
 
 function Invoke-FleetIncidentOutboxFlush {
@@ -200,11 +206,25 @@ function Invoke-FleetIncidentOutboxFlush {
     $order = @((New-FleetLedgerEvent -Source sweeper -Name order -Check order -Kind observation -Status ok -Severity info -Message order).Keys)
     $null = Invoke-FleetWithLock -LockName 'incident-outbox' -NoWait -ScriptBlock {
         foreach ($f in @(Get-ChildItem -LiteralPath $dir -Filter '*.json' -File | Sort-Object Name)) {
-            $item = Read-FleetJsonFile -Path $f.FullName -Default $null
-            if ($null -eq $item -or $null -eq $item.event) { Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue; continue }
+            # An entry that cannot be read is never deleted: it is quarantined for inspection (left in place in
+            # read-only mode), and the entries behind it still flush.
+            try { $item = Read-FleetJsonFile -Path $f.FullName -ThrowOnError } catch { $item = $null }
+            if ($null -eq $item -or $null -eq $item.event) {
+                if ($script:FleetReadOnly) { continue }
+                $q = Join-Path $dir 'corrupt'
+                try {
+                    if (-not (Test-Path -LiteralPath $q)) { New-Item -ItemType Directory -Path $q -Force | Out-Null }
+                    Move-Item -LiteralPath $f.FullName -Destination (Join-Path $q $f.Name) -Force -ErrorAction Stop
+                    Write-Warning ("fleet incidents: unreadable outbox entry quarantined: {0}" -f (Join-Path $q $f.Name))
+                }
+                catch { Write-Warning ("fleet incidents: unreadable outbox entry left in place: {0}: {1}" -f $f.FullName, $_.Exception.Message) }
+                continue
+            }
             $ev = [ordered]@{}
             foreach ($k in $order) { $ev[$k] = $item.event[$k] }
-            try { $null = Write-FleetLedgerEvent -LedgerEvent $ev -NoForward:(-not $item.forward) }
+            $alertPolicy = $null
+            if ($item.alerts_captured) { $alertPolicy = @{ alerts = $item.alerts } }
+            try { $null = Write-FleetLedgerEvent -LedgerEvent $ev -NoForward:(-not $item.forward) -AlertPolicy $alertPolicy }
             catch { Write-Warning ("fleet incidents: event {0} kept for retry: {1}" -f $ev.event_id, $_.Exception.Message); break }
             Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue
         }

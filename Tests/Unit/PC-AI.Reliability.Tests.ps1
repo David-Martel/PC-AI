@@ -76,6 +76,35 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
+    Describe 'Incident outbox retries' -Tag 'Portable' {
+        It 'delivers a queued alert with the alert policy that was in effect when it was queued' {
+            # Detects the misrouting from the fourteenth review of #346: a queued event was retried under the
+            # retrying call's policy (or the default), so Discord could reach another channel or be skipped.
+            Mock -ModuleName PC-AI.Reliability Send-FleetDiscordEvent { 'sent' }
+            InModuleScope PC-AI.Reliability {
+                $script:FleetEffectivePolicy = @{ alerts = @{ discord_min_severity = 'low'; discord_channel_id = 'C-origin'; discord_dm_user_id = $null } }
+                $ev = New-FleetLedgerEvent -Source task -Name '\q\job' -Check run -Kind incident-open -Status failed -Severity high -Message 'queued'
+                Add-FleetIncidentOutbox -LedgerEvent $ev -Forward $true
+                $script:FleetEffectivePolicy = @{ alerts = @{ discord_min_severity = 'critical'; discord_channel_id = 'C-other'; discord_dm_user_id = $null } }
+                try { Invoke-FleetIncidentOutboxFlush } finally { $script:FleetEffectivePolicy = $null }
+            }
+            Should -Invoke -ModuleName PC-AI.Reliability Send-FleetDiscordEvent -Times 1 -Exactly -ParameterFilter { $Policy.alerts.discord_channel_id -eq 'C-origin' }
+            Should -Invoke -ModuleName PC-AI.Reliability Send-FleetDiscordEvent -Times 0 -Exactly -ParameterFilter { $Policy.alerts.discord_channel_id -ne 'C-origin' }
+        }
+
+        It 'never deletes an outbox entry it cannot read, even in read-only mode' {
+            $dir = InModuleScope PC-AI.Reliability { $d = Join-Path (Get-FleetPath -Kind state) 'outbox'; New-Item -ItemType Directory -Force $d | Out-Null; $d }
+            $bad = Join-Path $dir '0000000000000000001-bad.json'
+            Set-Content -LiteralPath $bad -Value '{ not json'
+            InModuleScope PC-AI.Reliability { $script:FleetReadOnly = $true; try { Invoke-FleetIncidentOutboxFlush } finally { $script:FleetReadOnly = $false } }
+            Test-Path -LiteralPath $bad | Should -BeTrue
+            # Outside read-only mode it is quarantined for inspection, not deleted.
+            InModuleScope PC-AI.Reliability { Invoke-FleetIncidentOutboxFlush }
+            Test-Path -LiteralPath $bad | Should -BeFalse
+            @(Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object { $_.Name -like '0000000000000000001-bad.json*' }).Count | Should -Be 1
+        }
+    }
+
     Describe 'Ledger events (fleet-ledger/1)' -Tag 'Portable' {
         It 'writes one line carrying every contract field, with nulls instead of missing keys' {
             # Protects the cross-host contract: the bash emitter and the digest read the same fields.
@@ -561,6 +590,36 @@ Describe 'PC-AI.Reliability' {
             ($o | Where-Object { $_.Check -eq 'drain-state-read' }).Status | Should -Be 'ok'
             foreach ($x in $o) { $null = Submit-FleetObservation -Observation $x }
             (Get-FleetIncidentState)[$key].state | Should -Be 'resolved'
+        }
+
+        It 'keeps a DRAIN active after its START ages out of the bounded bus read window' {
+            # Detects the false recovery from the fourteenth review of #346: the bus read covers 600 minutes, so
+            # an overrun past ten hours read an empty window as "no DRAIN" and resolved without an end message.
+            $toJson = { param($items) '[' + ((@($items) | ForEach-Object { $_ | ConvertTo-Json -Compress }) -join ',') + ']' }
+            $read = { InModuleScope PC-AI.Reliability -Parameters @{ P = $script:Policy } { param($P) Get-FleetDrainState -Policy $P } }
+            $script:Fake.ReadOut = & $toJson @(@{ timestamp_utc = '2026-11-21T08:00:00Z'; body = 'vct-nightly START on dtm-work: DRAIN, then compact' })
+            $env:FLEET_NOW = '2026-11-21T08:20:00Z'
+            (& $read).Active | Should -BeTrue
+            $script:Fake.ReadOut = '[]'
+            $env:FLEET_NOW = '2026-11-21T19:00:00Z'
+            $s = & $read
+            $s.Active | Should -BeTrue
+            $s.Minutes | Should -Be 660
+            ($s.Unknown -eq $true) | Should -BeFalse
+            (@(Get-FleetRunnerObservations -Policy $script:Policy) | Where-Object { $_.Check -eq 'drain-overrun' }).Status | Should -Be 'failed'
+            # Positive control: an end message ends it, and the empty window after it is a known "no DRAIN".
+            $script:Fake.ReadOut = & $toJson @(@{ timestamp_utc = '2026-11-21T19:05:00Z'; body = 'vct-nightly ended and restored cleanly' })
+            (& $read).Active | Should -BeFalse
+            $script:Fake.ReadOut = '[]'
+            $env:FLEET_NOW = '2026-11-22T08:00:00Z'
+            $q = & $read
+            $q.Active | Should -BeFalse
+            ($q.Unknown -eq $true) | Should -BeFalse
+            # An unreadable remembered state is unknown, not "no DRAIN".
+            $statePath = InModuleScope PC-AI.Reliability { Join-Path (Get-FleetPath -Kind state) 'drain-vct-nightly.json' }
+            Set-Content -LiteralPath $statePath -Value '{ not json'
+            (& $read).Unknown | Should -BeTrue
+            Remove-Item Env:FLEET_NOW -ErrorAction SilentlyContinue
         }
 
         It 'reports an expected workflow whose newest run is too old as stale' {

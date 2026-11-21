@@ -60,7 +60,10 @@ function Write-FleetLedgerEvent {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][System.Collections.IDictionary]$LedgerEvent,
-        [switch]$NoForward
+        [switch]$NoForward,
+        # The policy whose alert settings route this event (a queued event keeps the one it was queued under);
+        # when omitted, Send-FleetDiscordEvent uses the effective or default policy.
+        [hashtable]$AlertPolicy
     )
     $ledgerDir = Get-FleetPath -Kind ledger
     $ledger = Join-Path $ledgerDir 'ledger.jsonl'
@@ -82,7 +85,7 @@ function Write-FleetLedgerEvent {
 
     if (-not $NoForward -and ($script:FleetForwardKinds -contains $LedgerEvent.kind)) {
         $bus = Send-FleetBusEvent -LedgerEvent $LedgerEvent
-        $discord = Send-FleetDiscordEvent -LedgerEvent $LedgerEvent
+        $discord = Send-FleetDiscordEvent -LedgerEvent $LedgerEvent -Policy $AlertPolicy
         # Record what each transport did. "Alerts that never arrive" was invisible until someone read a
         # text log; this line makes a lost or skipped delivery queryable from the ledger and the digest.
         $deliveryStatus = 'ok'

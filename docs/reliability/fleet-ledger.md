@@ -107,6 +107,10 @@ that does not parse is quarantined.
   its detector completes a sweep without seeing it. Keys that only the wrapper reports (a task outside
   `task_scope`) are exempt; they resolve only on the wrapper's next clean run. A `detector-error` clears only when
   that detector runs successfully.
+- **Outbox:** events are queued in `state\outbox\` before the state that implies them is committed, and flushed in
+  order. Each entry carries the alert settings (`alerts`) that were in effect when it was queued, so a retry under
+  another `-PolicyPath` cannot send it to another Discord recipient or drop it. An entry that cannot be read is moved
+  to `state\outbox\corrupt\` (left in place in a dry run), never deleted.
 
 ## Detectors
 
@@ -123,7 +127,7 @@ staged rollout; empty means every local task.
 | `disk-free` | below `min_free_gb`/`min_free_pct`; a missing **required** drive is a failure, never 0 GB | above floor |
 | `disk-trend` | a least-squares slope over 6 h projects the floor within 24 h ("T: hits 15 GB in 7.5 h") | trend flattens |
 | `runner-offline` | a self-hosted runner offline (gh API; run on one host with `fleet_checks`) | online |
-| `drain-overrun` | a DRAIN announced on agent-bus that has lasted longer than `drain.max_minutes`; while the DRAIN state cannot be read it is `skipped` (neutral), so an open overrun is never resolved by a bus outage | a successful read showing the DRAIN ended |
+| `drain-overrun` | a DRAIN announced on agent-bus that has lasted longer than `drain.max_minutes`. The newest lifecycle state is remembered in `state\drain-<agent>.json`, so a START older than the 600-minute bus read window still counts as running. While the state cannot be read it is `skipped` (neutral), so an open overrun is never resolved by a bus outage | a lifecycle message showing the DRAIN ended |
 | `drain-state-read` | the agent-bus read of the DRAIN lifecycle failed, timed out or returned unparseable output (offline runners are then reported, not excused) | a successful read |
 | `workflow-no-runs` | an expected workflow's newest run is older than `max_age_days` | a new run |
 | `pg-connections` | established connections reach `warn_pct` of `max_connections`; no database credentials needed | below |

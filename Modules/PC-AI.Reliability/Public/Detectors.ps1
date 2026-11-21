@@ -118,16 +118,36 @@ function Get-FleetDrainState {
     if ($msgs.Count -eq 1 -and $msgs[0].PSObject.Properties.Name -contains 'messages') { $msgs = @($msgs[0].messages) }
     $life = @($msgs | Where-Object { $_.body -cmatch '^ALERT\b' -or $_.body -cmatch '\bSTART\b' -or $_.body -cmatch '\bended\b|restored cleanly' } |
             Sort-Object { try { ConvertFrom-FleetIso $_.timestamp_utc } catch { [datetime]::MinValue } })
-    if ($life.Count -eq 0) { return $none }
-    $last = $life[-1]
-    $body = [string]$last.body
-    if ($body -cmatch '^ALERT\b') {
-        $none.Alert = $body.Substring(0, [Math]::Min(240, $body.Length))
+    # The read window is bounded (600 min), so the newest lifecycle state is remembered per agent: an empty
+    # window after a START is "still running", not "no DRAIN". Forgetting it resolved an overrun once its
+    # START aged past ten hours, with no end message (fourteenth review of #346).
+    $statePath = Join-Path (Get-FleetPath -Kind state) ('drain-{0}.json' -f ($agent -replace '[^A-Za-z0-9_.-]', '_'))
+    if ($life.Count -eq 0) {
+        try { $known = Read-FleetJsonFile -Path $statePath -Default $null -ThrowOnError }
+        catch { return (& $unknown ("remembered DRAIN state unreadable: {0}" -f $_.Exception.Message)) }
+        if ($null -eq $known) { return $none }
+        if ($known.active) {
+            $started = ConvertFrom-FleetIso ([string]$known.started_at)
+            if ($null -eq $started) { return (& $unknown 'remembered DRAIN state has no start time') }
+            return @{ Active = $true; StartedAt = $started; Minutes = [int]((Get-FleetNow) - $started).TotalMinutes; Alert = $null; Unknown = $false; Error = $null }
+        }
+        if ($known.alert) { $none.Alert = [string]$known.alert }
         return $none
     }
-    if ($body -cmatch '\bended\b|restored cleanly') { return $none }
-    $started = ConvertFrom-FleetIso $last.timestamp_utc
-    return @{ Active = $true; StartedAt = $started; Minutes = [int]((Get-FleetNow) - $started).TotalMinutes; Alert = $null }
+    $last = $life[-1]
+    $body = [string]$last.body
+    $result = $none
+    if ($body -cmatch '^ALERT\b') { $none.Alert = $body.Substring(0, [Math]::Min(240, $body.Length)) }
+    elseif ($body -cmatch '\bended\b|restored cleanly') { }
+    else {
+        $started = ConvertFrom-FleetIso $last.timestamp_utc
+        $result = @{ Active = $true; StartedAt = $started; Minutes = [int]((Get-FleetNow) - $started).TotalMinutes; Alert = $null; Unknown = $false; Error = $null }
+    }
+    if (-not $script:FleetReadOnly) {
+        $startedIso = $null; if ($result.Active) { $startedIso = ConvertTo-FleetIso $result.StartedAt }
+        Write-FleetJsonFile -Path $statePath -Value @{ agent = $agent; active = [bool]$result.Active; started_at = $startedIso; alert = $result.Alert; seen_at = [string]$last.timestamp_utc }
+    }
+    return $result
 }
 
 function Get-FleetTcpListenerConnectionCount {

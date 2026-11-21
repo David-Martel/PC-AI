@@ -1,0 +1,93 @@
+{
+  "schema": "pcai.usb4-fabric-observation/v1",
+  "ttl_seconds": 300,
+  "hosts": [
+    {
+      "observed_at_utc": "2026-11-21T09:30:00Z",
+      "host": "dtm-p1gen7",
+      "source": "management-ssh",
+      "interfaces": [
+        {
+          "interface_guid": "a0000000-0000-4000-8000-000000000731",
+          "mac": "02-00-00-07-00-31",
+          "pnp_instance_id": "USB4\\VEN_045E&DEV_0000083F&PROT_USB4NET\\6&391f9031&1&7",
+          "root_router_id": "USB4\\ROOT_DEVICE_ROUTER&VID_8086&PID_7EC2\\4&1f6645ca&0&0",
+          "interface_index": 31,
+          "interface_alias": "Ethernet 12",
+          "up": true,
+          "addresses": ["fe80::7:31%31", "169.254.143.238"],
+          "neighbors": [
+            { "address": "fe80::b:12", "mac": "02-00-00-0B-00-12" },
+            { "address": "169.254.194.182", "mac": "02-00-00-0B-00-12" }
+          ]
+        }
+      ],
+      "reference_applications": []
+    },
+    {
+      "observed_at_utc": "2026-11-21T09:30:00Z",
+      "host": "dtm-super-nuc",
+      "source": "management-ssh",
+      "interfaces": [
+        {
+          "interface_guid": "a0000000-0000-4000-8000-000000000b19",
+          "mac": "02-00-00-0B-00-19",
+          "pnp_instance_id": "USB4\\VEN_045E&DEV_0000083F&PROT_USB4NET\\5&2d9efce4&0&1",
+          "root_router_id": "USB4\\ROOT_DEVICE_ROUTER&VID_8086&PID_A73E\\4&20ae3bb2&0&0",
+          "interface_index": 19,
+          "interface_alias": "Ethernet 3",
+          "up": true,
+          "addresses": [
+            "fe80::d700:9058:d9e:d2a7%19",
+            "fe80::b:19%19",
+            "fe80::d700:50%19",
+            "fd00:7462:7032:d700:0:9058:d9e:d2a7",
+            "fd00:7462:7032::50",
+            "172.31.255.22"
+          ],
+          "neighbors": [
+            { "address": "fe80::9:28", "mac": "02-00-00-09-00-28" },
+            { "address": "169.254.38.152", "mac": "02-00-00-09-00-28" }
+          ]
+        },
+        {
+          "interface_guid": "a0000000-0000-4000-8000-000000000b12",
+          "mac": "02-00-00-0B-00-12",
+          "pnp_instance_id": "USB4\\VEN_045E&DEV_0000083F&PROT_USB4NET\\5&1ec6aa16&0&1",
+          "root_router_id": "USB4\\ROOT_DEVICE_ROUTER&VID_8086&PID_A76D\\4&28054190&0&0",
+          "interface_index": 12,
+          "interface_alias": "Ethernet",
+          "up": true,
+          "addresses": ["fe80::b:12%12", "169.254.194.182"],
+          "neighbors": [
+            { "address": "fe80::7:31", "mac": "02-00-00-07-00-31" },
+            { "address": "169.254.143.238", "mac": "02-00-00-07-00-31" }
+          ]
+        }
+      ],
+      "reference_applications": []
+    },
+    {
+      "observed_at_utc": "2026-11-21T09:30:00Z",
+      "host": "dtm-p1gen9",
+      "source": "local",
+      "interfaces": [
+        {
+          "interface_guid": "a0000000-0000-4000-8000-000000000928",
+          "mac": "02-00-00-09-00-28",
+          "pnp_instance_id": "USB4\\VEN_045E&DEV_0000083F&PROT_USB4NET\\9&2990a603&0&5",
+          "root_router_id": "USB4\\ROOT_DEVICE_ROUTER&VID_8086&PID_5781\\7&290e0051&0&0",
+          "interface_index": 28,
+          "interface_alias": "Ethernet 18",
+          "up": true,
+          "addresses": ["fe80::9:28%28", "169.254.38.152"],
+          "neighbors": [
+            { "address": "fe80::b:19", "mac": "02-00-00-0B-00-19" },
+            { "address": "172.31.255.22", "mac": "02-00-00-0B-00-19" }
+          ]
+        }
+      ],
+      "reference_applications": []
+    }
+  ]
+}

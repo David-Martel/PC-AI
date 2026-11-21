@@ -8,6 +8,7 @@ use pcai_tb::handshake::discover_thunderbolt_peers;
 use pcai_tb::identity::{load_peer_registry, resolve_peer_identity};
 use pcai_tb::lifecycle::run_usb4_lifecycle_evaluation;
 use pcai_tb::platform::collect_platform_snapshot;
+use pcai_tb::route_plan::{build_route_plan, RoutePolicy};
 use pcai_tb::switch::{
     collect_switch_status, collect_switch_status_with_options, run_switch_observe, run_vnv_verification,
 };
@@ -30,6 +31,7 @@ SUBCOMMANDS:
   unregister      Plan (or with --apply, remove) the addresses and /128 routes that register owns; MTU/metric untouched
   lifecycle       Evaluate USB4 lifecycle states (asleep/disconnected/probing/ready), TTL, standby 506/507, and stale route withdrawal
   topology-plan   Project fresh bilateral USB4 observations into separate segments; never changes networking
+  route-plan      Plan /30 addressing, host routes and transit forwarding across USB4 hops and hubs; emits commands, never applies
   switch          Inspect SFP+ switch custody, USB4 router trees, shared 10.* routes (--apply provisions routes)
   verify-custody  Enforce SFP+ switch, USB4 veth symmetry, and metric hierarchy invariants (exits non-zero on violation)
   observe         Capture non-payload switch/bridge/FDB/VLAN telemetry (--apply writes latest.json)
@@ -45,6 +47,7 @@ COMMON OPTIONS:
   --output <path>            Output file path for V&V evidence artifact (used by vnv)
   --input <path>             Explicit observation JSON for topology-plan (maximum 1 MiB)
   --previous <path>          Previous topology plan for withdrawn-edge data only
+  --policy <path>            Route policy for route-plan (schema pcai.usb4-route-policy/v1; names transit hosts)
   --timeout-ms <ms>          Per-socket handshake timeout in milliseconds (default: 220)
   --iterations <n>           Benchmark iteration count (default: 10)
   --mtu <bytes>              Target USB4 P2P MTU in bytes (default: 62000, range: 1280..=65535)
@@ -90,6 +93,7 @@ pub struct ParsedCliArgs {
     pub output: Option<PathBuf>,
     pub input: Option<PathBuf>,
     pub previous: Option<PathBuf>,
+    pub policy: Option<PathBuf>,
     pub timeout_ms: u64,
     pub iterations: usize,
     pub mtu_bytes: u32,
@@ -116,6 +120,7 @@ pub fn parse_cli_args(args: &[String]) -> Result<ParsedCliArgs> {
         output: None,
         input: None,
         previous: None,
+        policy: None,
         timeout_ms: 220,
         iterations: 10,
         mtu_bytes: 62000,
@@ -162,6 +167,10 @@ pub fn parse_cli_args(args: &[String]) -> Result<ParsedCliArgs> {
             }
             "--previous" => {
                 parsed.previous = Some(PathBuf::from(require_arg_value(args, i, flag)?));
+                i += 1;
+            }
+            "--policy" => {
+                parsed.policy = Some(PathBuf::from(require_arg_value(args, i, flag)?));
                 i += 1;
             }
             "--timeout-ms" | "-t" => {
@@ -300,8 +309,38 @@ async fn main() -> Result<()> {
         emit_json(&plan, parsed.compact)?;
         return Ok(());
     }
-    if parsed.input.is_some() || parsed.previous.is_some() {
-        anyhow::bail!("--input and --previous are only supported by topology-plan");
+    if parsed.subcommand == "route-plan" {
+        let mut index = 1;
+        while index < args.len() {
+            match args[index].as_str() {
+                "--input" | "--policy" | "--registry" => index += 2,
+                "--compact" => index += 1,
+                _ => anyhow::bail!(
+                    "route-plan option is unsupported; only --input, --policy, --registry and --compact are accepted"
+                ),
+            }
+        }
+        let input = parsed
+            .input
+            .as_deref()
+            .ok_or_else(|| anyhow::anyhow!("route-plan requires --input (a pcai.usb4-fabric-observation/v1 file)"))?;
+        let policy_path = parsed
+            .policy
+            .as_deref()
+            .ok_or_else(|| anyhow::anyhow!("route-plan requires --policy (a pcai.usb4-route-policy/v1 file)"))?;
+        let observation: FabricObservation = read_topology_json(input)?;
+        let policy: RoutePolicy = read_topology_json(policy_path)?;
+        let known: std::collections::BTreeSet<String> =
+            pcai_tb::identity::known_fleet_peer_names(parsed.registry.as_deref(), "")?
+                .into_iter()
+                .map(|name| name.to_ascii_lowercase())
+                .collect();
+        let plan = build_route_plan(&observation, &policy, &known, chrono::Utc::now())?;
+        emit_json(&plan, parsed.compact)?;
+        return Ok(());
+    }
+    if parsed.input.is_some() || parsed.previous.is_some() || parsed.policy.is_some() {
+        anyhow::bail!("--input, --previous and --policy are only supported by topology-plan and route-plan");
     }
 
     match parsed.subcommand.as_str() {

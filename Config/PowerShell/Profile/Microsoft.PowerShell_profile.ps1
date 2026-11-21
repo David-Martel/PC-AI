@@ -53,13 +53,24 @@ if (-not $env:PS_SKIP_PSMODULEPATH_OPTIMIZE) {
     $env:PS_SKIP_PSMODULEPATH_OPTIMIZE = '1'
 }
 
+if (Microsoft.PowerShell.Management\Test-Path -LiteralPath $localProfile) {
+    . $localProfile
+}
+else {
+    # Qualify built-ins: wildcard-export module manifests can otherwise cause
+    # command discovery to import unrelated modules during early profile startup.
+    Microsoft.PowerShell.Utility\Write-Warning "Canonical local PowerShell profile not found: $localProfile"
+}
+
 # Lazy WinGet "command not found" suggestions, interactive shells only. The PowerToys installer
 # appends an eager `Import-Module Microsoft.WinGet.CommandNotFound` after this bootstrap. That import
 # cost 1.4-31 s (the module is a cloud-only OneDrive file) and throws where winget is missing, so
-# every path below ends in `return` and the appended block is unreachable. This one-shot hook
+# every path ends in `return` and the appended block is unreachable. This one-shot hook
 # restores the feature: it imports the module on the first unresolved command, and only if winget
-# is on PATH. The imported module registers its own feedback provider.
-if ($Host.Name -eq 'ConsoleHost' -and -not [Console]::IsInputRedirected -and [Environment]::CommandLine -notmatch '(?i)(?:^|\s)-noni') {
+# is on PATH. The imported module registers its own feedback provider. It is registered AFTER the
+# private profile has run, and only if that profile left no handler: command discovery misses during
+# private startup (a Get-Command probe) would otherwise fire it and pay the import every start.
+if ($Host.Name -eq 'ConsoleHost' -and -not [Console]::IsInputRedirected -and [Environment]::CommandLine -notmatch '(?i)(?:^|\s)-noni' -and $null -eq $ExecutionContext.InvokeCommand.CommandNotFoundAction) {
     $ExecutionContext.InvokeCommand.CommandNotFoundAction = {
         param($CommandName, $CommandLookupEventArgs)
         $ExecutionContext.InvokeCommand.CommandNotFoundAction = $null
@@ -73,12 +84,4 @@ if ($Host.Name -eq 'ConsoleHost' -and -not [Console]::IsInputRedirected -and [En
     }
 }
 
-if (Microsoft.PowerShell.Management\Test-Path -LiteralPath $localProfile) {
-    . $localProfile
-    return
-}
-
-# Qualify built-ins: wildcard-export module manifests can otherwise cause
-# command discovery to import unrelated modules during early profile startup.
-Microsoft.PowerShell.Utility\Write-Warning "Canonical local PowerShell profile not found: $localProfile"
 return

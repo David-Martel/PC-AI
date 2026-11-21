@@ -71,7 +71,7 @@ $referenceDirs = @('.machine', 'Documents\PowerShell', 'OneDrive\Documents\Power
     '.codex\hooks', '.claude\hooks', '.local\share\agent-hooks', '.local\share\git-guard\current\bin') | ForEach-Object { Join-Path $ctx.UserHome $_ }
 $script:refCorpus = $null
 if (-not $SkipArchive) {
-    $script:refCorpus = Get-MachineReferenceCorpus -Files $referenceFiles -Directories $referenceDirs
+    $script:refCorpus = Get-MachineReferenceCorpus -Files $referenceFiles -Directories $referenceDirs -ManagedWrapperDirectory $policy.ManagedBinDirs
     if ($script:refCorpus.Failures.Count -gt 0) {
         "reference discovery INCOMPLETE ($($script:refCorpus.Failures.Count) sources unreadable); archival is disabled for this run:"
         $script:refCorpus.Failures | Select-Object -First 10 | ForEach-Object { "  $_" }
@@ -110,9 +110,9 @@ if (-not $SkipArchive) {
     $managed = $policy.ManagedBinDirs
     foreach ($d in $managed) { foreach ($v in @(Get-MachineVariantFile -Directory $d)) { $archive.Add([pscustomobject]@{ Path = $v; Why = 'versioned variant' }) } }
 
-    $machineDirs = @($machine.Entries | ForEach-Object { Resolve-MachinePathEntry -Entry $_ -Context $ctx } | Where-Object { [IO.Directory]::Exists($_) })
-    $userDirs = @($plan.UserEntries | Where-Object { [IO.Directory]::Exists($_) })
-    $allDirs = @($userDirs + $machineDirs | Select-Object -Unique)
+    # Replacements are judged against the PATH as it will be AFTER this run (planned user entries, plus the planned machine entries
+    # when -IncludeMachine rewrites them), never the old one: a directory this run removes cannot be the surviving copy.
+    $allDirs = @(Get-MachineEffectivePathDirectories -Plan $plan -CurrentMachineEntry $machine.Entries -IncludeMachine:$IncludeMachine -Context $ctx)
     $index = Get-MachineCommandIndex -Directories $allDirs
     $cargoBin = (Join-Path $ctx.CargoHome 'bin').ToLowerInvariant()
     $procDirs = @($env:Path -split ';' | Where-Object { $_ } | ForEach-Object { (Resolve-MachinePathEntry -Entry $_ -Context $ctx).TrimEnd('\').ToLowerInvariant() })

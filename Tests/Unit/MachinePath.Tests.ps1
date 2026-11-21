@@ -380,3 +380,67 @@ Describe 'Get-GitGuardWrapperText' {
         $text | Should -Match ([regex]::Escape($(if ($Kind -eq 'ps1') { 'C:\Users\tester\.local\share\git-guard\current\bin\git-guard' } else { 'C:/Users/tester/.local/share/git-guard/current/bin/git-guard' })))
     }
 }
+
+
+Describe 'Reference corpus includes surviving managed wrappers' {
+    # Why: a surviving ~/bin/tool.cmd can name a versioned executable in the same directory; if wrappers are not searched the executable
+    # is archived as unreferenced and the wrapper breaks while the executable-only baseline still resolves it (codex review of PR 343, round 6, P2).
+    BeforeEach {
+        $script:Bin = Join-Path $TestDrive 'bin'
+        Remove-Item -LiteralPath $script:Bin -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Force -Path $script:Bin | Out-Null
+        $script:Ok = { @('') }
+    }
+    It 'finds a .cmd, a .ps1 and an extensionless shim that name an executable' {
+        Set-Content (Join-Path $script:Bin 'a.cmd') '@echo off', '"%~dp0agent-bus-mcp-abc1234.exe" %*'
+        Set-Content (Join-Path $script:Bin 'b.ps1') '& "C:\x\bin\tool-def5678.exe" @args'
+        Set-Content (Join-Path $script:Bin 'c') '#!/bin/sh', 'exec "C:/x/bin/other-0a1b2c3.exe" "$@"'
+        $c = Get-MachineReferenceCorpus -Files @() -Directories @() -ManagedWrapperDirectory @($script:Bin) -TaskProvider $script:Ok -ServiceProvider $script:Ok -ProcessProvider $script:Ok
+        $c.Failures.Count | Should -Be 0
+        $c.Text | Should -Match 'agent-bus-mcp-abc1234\.exe'
+        $c.Text | Should -Match 'tool-def5678\.exe'
+        $c.Text | Should -Match 'other-0a1b2c3\.exe'
+    }
+    It 'expands %~dp0 and $PSScriptRoot to the wrapper directory so the absolute-path match applies' {
+        Set-Content (Join-Path $script:Bin 'd.cmd') '"%~dp0rel-1111111.exe" %*'
+        Set-Content (Join-Path $script:Bin 'e.ps1') '& "$PSScriptRoot\rel-2222222.exe" @args'
+        $c = Get-MachineReferenceCorpus -Files @() -Directories @() -ManagedWrapperDirectory @($script:Bin) -TaskProvider $script:Ok -ServiceProvider $script:Ok -ProcessProvider $script:Ok
+        Test-MachineTextReference -CorpusText $c.Text -Path (Join-Path $script:Bin 'rel-1111111.exe') -UserHome 'C:\Users\tester' | Should -BeTrue
+        Test-MachineTextReference -CorpusText $c.Text -Path (Join-Path $script:Bin 'rel-2222222.exe') -UserHome 'C:\Users\tester' | Should -BeTrue
+        Test-MachineTextReference -CorpusText $c.Text -Path (Join-Path $script:Bin 'rel-3333333.exe') -UserHome 'C:\Users\tester' | Should -BeFalse
+    }
+    It 'reports an unreadable wrapper as a failure and ignores binaries' {
+        Set-Content (Join-Path $script:Bin 'locked.cmd') 'x'
+        Set-Content (Join-Path $script:Bin 'big.exe') 'MZ not a wrapper'
+        $locked = [IO.File]::Open((Join-Path $script:Bin 'locked.cmd'), 'Open', 'ReadWrite', 'None')
+        try { $c = Get-MachineReferenceCorpus -Files @() -Directories @() -ManagedWrapperDirectory @($script:Bin) -TaskProvider $script:Ok -ServiceProvider $script:Ok -ProcessProvider $script:Ok }
+        finally { $locked.Dispose() }
+        $c.Failures.Count | Should -Be 1
+        $c.Text | Should -Not -Match 'mz not a wrapper'
+    }
+}
+
+Describe 'Get-MachineEffectivePathDirectories' {
+    # Why: with -IncludeMachine the plan removes machine entries, so replacements must be chosen from the PATH as it will be after the
+    # apply, not the old one: a wrapper forwarding into a directory that is about to leave PATH was archived too early (codex review of PR 343, round 6, P2).
+    BeforeAll {
+        $script:Plan = [pscustomobject]@{ UserEntries = @('C:\Users\tester\bin'); MachineEntries = @('C:\Windows') }
+        $script:CurrentMachine = @('C:\Windows', 'C:\Program Files\Git\usr\bin')
+    }
+    It 'uses the planned machine entries when the machine PATH is being rewritten' {
+        $d = Get-MachineEffectivePathDirectories -Plan $script:Plan -CurrentMachineEntry $script:CurrentMachine -IncludeMachine -Context $script:Ctx -DirectoryExists $script:AllExist
+        $d | Should -Contain 'C:\Windows'
+        $d | Should -Not -Contain 'C:\Program Files\Git\usr\bin'
+        $d[0] | Should -Be 'C:\Users\tester\bin'
+    }
+    It 'keeps the current machine entries when the machine PATH is not touched' {
+        $d = Get-MachineEffectivePathDirectories -Plan $script:Plan -CurrentMachineEntry $script:CurrentMachine -Context $script:Ctx -DirectoryExists $script:AllExist
+        $d | Should -Contain 'C:\Program Files\Git\usr\bin'
+    }
+    It 'drops directories that do not exist and duplicates' {
+        $gone = { param($p) $p -ne 'C:\Windows' }
+        $d = Get-MachineEffectivePathDirectories -Plan $script:Plan -CurrentMachineEntry @('C:\Windows', 'C:\Users\tester\bin') -Context $script:Ctx -DirectoryExists $gone
+        $d | Should -Not -Contain 'C:\Windows'
+        @($d | Where-Object { $_ -ieq 'C:\Users\tester\bin' }).Count | Should -Be 1
+    }
+}

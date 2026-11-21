@@ -654,6 +654,9 @@ function Get-MachineReferenceCorpus {
     [CmdletBinding()]
     param(
         [string[]]$Files = @(), [string[]]$Directories = @(),
+        # Managed bin directories: their surviving wrapper scripts (.cmd, .bat, .ps1, extensionless shims) can name a sibling executable,
+        # so they are part of the evidence. Scanned non-recursively; a wrapper that cannot be read is a failure.
+        [string[]]$ManagedWrapperDirectory = @(),
         [string[]]$ExcludePattern = @('\\(backups|archive|logs|imports|migration|\.superseded|node_modules|path-tool)\\'),
         [scriptblock]$TaskProvider = { Get-MachineTaskActionText -Task @(Get-ScheduledTask -ErrorAction Stop) },
         [scriptblock]$ServiceProvider = { Get-CimInstance Win32_Service -ErrorAction Stop | ForEach-Object { $_.PathName } },
@@ -676,10 +679,53 @@ function Get-MachineReferenceCorpus {
             try { [void]$sb.AppendLine((Get-Content -LiteralPath $item.FullName -Raw -ErrorAction Stop)); $sources++ } catch { $failures.Add("file $($item.FullName): $($_.Exception.Message)") }
         }
     }
+    foreach ($d in $ManagedWrapperDirectory) {
+        if (-not [IO.Directory]::Exists($d)) { continue }
+        $dirText = $d.TrimEnd('\', '/')
+        foreach ($f in [IO.Directory]::EnumerateFiles($d)) {
+            $ext = [IO.Path]::GetExtension($f).ToLowerInvariant()
+            if ($ext -notin '.cmd', '.bat', '.ps1', '') { continue }
+            try {
+                $info = [IO.FileInfo]::new($f)
+                if ($ext -eq '' -and $info.Length -gt 65536) { continue }   # an extensionless file this large is a binary, not a shim
+                $text = [IO.File]::ReadAllText($f)
+                # Wrappers usually name siblings relative to themselves; expand those spellings to the absolute directory so the
+                # same absolute-path match used for every other source applies.
+                $rep = ($dirText + '\').Replace('$', '$$')   # '$' is special in a -replace replacement string
+                $text = $text -replace '(?i)%~dp0\\?', $rep
+                $text = $text -replace '(?i)\$\{?PSScriptRoot\}?[\\/]?', $rep
+                $text = $text -replace '(?i)\$\(\s*dirname\s+"?\$0"?\s*\)/?', $rep
+                [void]$sb.AppendLine($text); $sources++
+            } catch { $failures.Add("wrapper ${f}: $($_.Exception.Message)") }
+        }
+    }
     foreach ($p in @(@{ Name = 'scheduled tasks'; Block = $TaskProvider }, @{ Name = 'services'; Block = $ServiceProvider }, @{ Name = 'processes'; Block = $ProcessProvider })) {
         try { foreach ($line in @(& $p.Block)) { [void]$sb.AppendLine([string]$line) }; $sources++ } catch { $failures.Add("$($p.Name): $($_.Exception.Message)") }
     }
     [pscustomobject]@{ Text = $sb.ToString().Replace('\\', '\').Replace('/', '\').ToLowerInvariant(); Sources = $sources; Failures = @($failures) }
+}
+
+function Get-MachineEffectivePathDirectories {
+    <#
+    .SYNOPSIS
+        Existing directories of the PATH as it will be after the plan is applied: planned user entries first, then the planned
+        machine entries when the machine PATH is being rewritten (-IncludeMachine), otherwise the current ones.
+    .DESCRIPTION
+        Archive eligibility asks "what runs once this file is gone", which must be answered against the future PATH. Using the
+        old machine PATH let a wrapper be archived while its forwarding target sat in a directory the same run removes.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]$Plan, [string[]]$CurrentMachineEntry = @(), [switch]$IncludeMachine, [Parameter(Mandatory)]$Context,
+        [scriptblock]$DirectoryExists = { param($p) [IO.Directory]::Exists($p) }
+    )
+    $machineEntries = if ($IncludeMachine) { @($Plan.MachineEntries) } else { @($CurrentMachineEntry) }
+    $seen = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($e in (@($Plan.UserEntries) + $machineEntries)) {
+        if (-not $e) { continue }
+        $dir = Resolve-MachinePathEntry -Entry $e -Context $Context
+        if ($dir -and (& $DirectoryExists $dir) -and $seen.Add($dir)) { $dir }
+    }
 }
 
 function Send-MachineEnvironmentChange {
@@ -765,7 +811,7 @@ function Compare-MachineResolutionBaseline {
     }
 }
 
-Export-ModuleMember -Function Get-MachineFirstRemainingCandidate, Get-GitGuardWrapperText, Test-MachineTextReference, Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
+Export-ModuleMember -Function Get-MachineFirstRemainingCandidate, Get-GitGuardWrapperText, Test-MachineTextReference, Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineEffectivePathDirectories, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
     Get-MachinePathRegistry, Resolve-MachinePathEntry, Test-MachinePathEntries, Get-MachineCommandIndex, Resolve-MachineCommand,
     Test-MachinePathShadows, Test-MachinePathExtensionless, Get-MachineVariantFile, Test-MachinePathWrappers, Get-MachinePathPlan, Backup-MachinePath,
     Send-MachineEnvironmentChange, Set-MachinePathValue, Get-MachineResolutionBaseline, Compare-MachineResolutionBaseline

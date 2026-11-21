@@ -357,11 +357,33 @@ pub fn build_route_plan(
     let mut actions: BTreeMap<String, Vec<RouteAction>> = BTreeMap::new();
     let mut guards: BTreeMap<String, BTreeMap<u32, (String, String)>> = BTreeMap::new();
     let mut transit_used = BTreeSet::new();
+    let mut conflicts = Vec::new();
+    // One action per (kind, interface, target): the per-pair note differs when a transit
+    // host routes the same destination both for itself and for an upstream source. A second
+    // next hop for the same destination on the same host is a conflict, never a duplicate.
     let mut push = |host: &str, action: RouteAction| {
         let list = actions.entry(host.to_string()).or_default();
-        if !list.contains(&action) {
-            list.push(action);
+        let destination = |a: &RouteAction| a.target.split(" via ").next().map(str::to_string);
+        if list.iter().any(|existing| {
+            existing.kind == action.kind
+                && existing.interface_index == action.interface_index
+                && existing.target == action.target
+        }) {
+            return;
         }
+        if action.kind == RouteActionKind::HostRoute {
+            if let Some(existing) = list
+                .iter()
+                .find(|e| e.kind == RouteActionKind::HostRoute && destination(e) == destination(&action))
+            {
+                conflicts.push(format!(
+                    "{host}: keeping route {} on ifIndex {}; dropped conflicting {} on ifIndex {}",
+                    existing.target, existing.interface_index, action.target, action.interface_index
+                ));
+                return;
+            }
+        }
+        list.push(action);
     };
 
     for edge in &edge_list {
@@ -514,6 +536,7 @@ pub fn build_route_plan(
         }
     }
 
+    plan.warnings.extend(conflicts);
     for (host, mut list) in actions {
         list.sort_by_key(|a| (a.kind, a.interface_index, a.target.clone()));
         let host_guards = guards.remove(&host).unwrap_or_default();
@@ -742,5 +765,90 @@ mod tests {
             .warnings
             .iter()
             .any(|w| w.contains("dtm-p1gen9 ifIndex 28 holds pool address 172.31.252.133")));
+    }
+
+    fn chain_interface(
+        guid: u32,
+        index: u32,
+        address: &str,
+        peer_mac: u32,
+        peer_address: &str,
+    ) -> crate::fabric_plan::InterfaceObservation {
+        crate::fabric_plan::InterfaceObservation {
+            interface_guid: format!("00000000-0000-4000-8000-{guid:012x}"),
+            mac: format!("02:00:00:00:00:{guid:02x}"),
+            pnp_instance_id: format!("USB4\\VEN_045E&DEV_0000083F&PROT_USB4NET\\CHAIN{guid}"),
+            root_router_id: Some(format!("USB4\\ROOT_DEVICE_ROUTER\\CHAINROOT{guid}")),
+            interface_index: index,
+            interface_alias: "Ethernet".into(),
+            up: true,
+            addresses: vec![address.into()],
+            neighbors: vec![crate::fabric_plan::NeighborObservation {
+                address: peer_address.into(),
+                mac: format!("02:00:00:00:00:{peer_mac:02x}"),
+            }],
+        }
+    }
+
+    // Protects: chains with two transit hosts (A - T1 - T2 - B). Detects: duplicate
+    // New-NetRoute/Remove-NetRoute lines when a transit host routes the same destination for
+    // itself and for an upstream source (gemini review of #335), and missing third-hop routes.
+    // Needs: synthetic four-host observation. Breadcrumb: build_route_plan push dedup.
+    #[test]
+    fn two_transit_chain_plans_each_route_once() {
+        use crate::fabric_plan::HostObservation;
+        let make_host = |name: &str, interfaces| HostObservation {
+            observed_at_utc: now(),
+            host: name.into(),
+            source: crate::fabric_plan::ObservationSource::ManagementSsh,
+            interfaces,
+            reference_applications: vec![],
+        };
+        let observation = FabricObservation {
+            schema: crate::fabric_plan::OBSERVATION_SCHEMA.into(),
+            ttl_seconds: 300,
+            hosts: vec![
+                make_host("chain-a", vec![chain_interface(1, 11, "169.254.1.1", 2, "169.254.1.2")]),
+                make_host(
+                    "chain-t1",
+                    vec![
+                        chain_interface(2, 21, "169.254.1.2", 1, "169.254.1.1"),
+                        chain_interface(3, 22, "169.254.2.1", 4, "169.254.2.2"),
+                    ],
+                ),
+                make_host(
+                    "chain-t2",
+                    vec![
+                        chain_interface(4, 31, "169.254.2.2", 3, "169.254.2.1"),
+                        chain_interface(5, 32, "169.254.3.1", 6, "169.254.3.2"),
+                    ],
+                ),
+                make_host("chain-b", vec![chain_interface(6, 41, "169.254.3.2", 5, "169.254.3.1")]),
+            ],
+        };
+        let known: BTreeSet<String> = ["chain-a", "chain-t1", "chain-t2", "chain-b"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        let plan = build_route_plan(&observation, &policy(&["chain-t1", "chain-t2"]), &known, now()).unwrap();
+        assert_eq!(plan.edges.len(), 3);
+        assert_eq!(path(&plan, "chain-a", "chain-b").hops.len(), 4);
+        for host in &plan.hosts {
+            let mut seen = BTreeSet::new();
+            for action in &host.actions {
+                assert!(
+                    seen.insert((action.kind, action.interface_index, action.target.clone())),
+                    "{} repeats {action:?}",
+                    host.host
+                );
+            }
+        }
+        let t1_routes = host(&plan, "chain-t1")
+            .actions
+            .iter()
+            .filter(|a| a.kind == RouteActionKind::HostRoute)
+            .count();
+        assert_eq!(t1_routes, 1, "T1 needs exactly one route, to B's far /30");
+        assert!(!plan.warnings.iter().any(|w| w.contains("conflicting")));
     }
 }

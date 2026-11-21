@@ -621,3 +621,26 @@ fn cli_lifecycle_empty_topology_is_valid_without_route_actions() {
     assert!(value["StaleRouteWithdrawals"].as_array().unwrap().is_empty());
     assert!(value["PeerLinkStates"].as_array().unwrap().is_empty());
 }
+
+// Protects: unregister and --adapter stay local and scoped. Detects: unregister accepting a
+// remote --computer or register-only flags, and --adapter leaking into read-only commands.
+// Needs: repository registry only; every case is refused before any adapter query or Apply.
+// Breadcrumb: src/main.rs unregister dispatch and --adapter gate.
+#[test]
+fn cli_unregister_and_adapter_selector_are_scoped() {
+    let registry = repo_registry_path();
+    let registry = registry.to_str().unwrap();
+    for args in [
+        vec!["unregister", "--computer", "minisforum", "--registry", registry],
+        vec!["unregister", "--assign-pairwise-ipv4", "--registry", registry],
+        vec!["status", "--adapter", "02-00-00-0B-00-19", "--registry", registry],
+        vec!["identity", "--adapter", "02-00-00-0B-00-19", "--registry", registry],
+    ] {
+        let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
+            .args(&args)
+            .output()
+            .expect("run scoped refusal");
+        assert!(!output.status.success(), "{args:?} succeeded");
+        assert!(output.stdout.is_empty(), "{args:?} emitted output");
+    }
+}

@@ -142,14 +142,22 @@ if (-not $SkipArchive) {
                 if ($lines.Count -eq 1 -and ($lines -join ' ') -match '^\s*(?:call\s+)?"?(?<t>[A-Za-z]:\\[^"]+?\.(?:exe|cmd|bat))"?\s+%\*\s*$' -and
                     ([IO.Path]::GetFileNameWithoutExtension($Matches['t']).ToLowerInvariant() -eq $name) -and (Test-Path -LiteralPath $Matches['t']) -and
                     ($others | Where-Object { $_.Path -eq $Matches['t'] }) -and
+                    $Matches['t'] -notlike ((Join-Path $ctx.UserHome 'AppData') + '\*') -and
                     ($procDirs -contains (Split-Path $Matches['t'] -Parent).TrimEnd('\').ToLowerInvariant())) {   # the target's directory must be on THIS process's PATH too: a service started before a PATH change keeps the old one
                     $archive.Add([pscustomobject]@{ Path = $m.Path; Why = "pass-through to $($Matches['t'])" })
                 }
             } elseif ($m.Ext -eq '.exe' -and $m.Dir.TrimEnd('\') -eq (Join-Path $ctx.UserHome 'bin')) {
                 # Only ~/bin copies are candidates: ~/.local/bin belongs to self-updating installers (uv, claude, python).
                 # Repo build output (C:\codedev) and cargo bin directories are not stable enough to be the surviving copy.
-                $twin = @($others | Where-Object { $_.Ext -eq '.exe' -and $_.Dir.ToLowerInvariant() -ne $cargoBin -and $_.Dir.ToLowerInvariant() -notlike '*\.cargo\bin' -and $_.Dir -notlike 'C:\codedev\*' } | Select-Object -First 1)
-                if ($twin -and ((Get-FileHash -LiteralPath $m.Path).Hash -eq (Get-FileHash -LiteralPath $twin[0].Path).Hash)) {
+                # The twin must be the copy that WINS once this one is gone: the first runnable candidate on PATH, not merely any identical one
+                # (gen7: an identical Program Files copy sat behind a WindowsApps alias that would have started winning).
+                $firstOther = @($others | Where-Object { $_.Ext -in '.com', '.exe', '.bat', '.cmd' } | Select-Object -First 1)
+                $twin = @($firstOther | Where-Object { $_.Ext -eq '.exe' -and $_.Dir.ToLowerInvariant() -ne $cargoBin -and $_.Dir.ToLowerInvariant() -notlike '*\.cargo\bin' -and $_.Dir -notlike 'C:\codedev\*' -and $_.Dir -notlike ((Join-Path $ctx.UserHome 'AppData') + '\*') })
+                # A twin under the profile's AppData (WinGet Links, WindowsApps) is not enough: the Codex sandbox users cannot read
+                # %LOCALAPPDATA%, so the ~/bin copy is the one they can run.
+                # Get-MachineFileHash returns $null for an unreadable file (WinGet app-execution aliases are reparse points that cannot be opened); never equal.
+                $hm = if ($twin) { Get-MachineFileHash $m.Path } else { $null }
+                if ($twin -and $hm -and $hm -eq (Get-MachineFileHash $twin[0].Path)) {
                     $archive.Add([pscustomobject]@{ Path = $m.Path; Why = "identical to $($twin[0].Path)" })
                 }
             }

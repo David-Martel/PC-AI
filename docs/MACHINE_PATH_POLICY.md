@@ -46,6 +46,12 @@ See also `~/.agents/RUST_TOOLING.md` for the cargo home.
 * **Archive, never delete.** Superseded files move to `<bin>\.superseded\<name>-<sha12><ext>` after a reference search
   (live MCP configs, Codex, Gemini, VS Code, git and ssh config, hooks, `.machine`, scheduled tasks, services and running
   processes) finds nothing that names them.
+* **Only a copy that would actually win is a twin.** An identical copy elsewhere on PATH justifies archiving a `~/bin` exe only
+  when it is the first runnable candidate left, and never when it lives under the profile's `AppData` (WinGet Links,
+  WindowsApps): the Codex sandbox users cannot read it, so the `~/bin` copy is the one they can run.
+* **Per-host overrides** live in `hostOverrides` in the policy. dtm-work uses `keepOrder` and a machine-PATH addition because
+  its services and sshd sessions never see the user PATH (it keeps `~/bin` and `~/.local/bin` in the machine PATH on purpose) and
+  its `python.cmd` and `npm.cmd` wrappers are deliberate. A directory present in both scopes is informational, not a defect.
 * **Hardlinks are left alone.** Rustup proxies and pdf-tools links are maintained by `Sync-MachineEnvironment.ps1`.
 
 ## Running it

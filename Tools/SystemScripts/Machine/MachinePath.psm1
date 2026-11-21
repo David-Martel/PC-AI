@@ -598,7 +598,7 @@ function Compare-MachineResolutionBaseline {
     }
 }
 
-Export-ModuleMember -Function ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
+Export-ModuleMember -Function Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
     Get-MachinePathRegistry, Resolve-MachinePathEntry, Test-MachinePathEntries, Get-MachineCommandIndex, Resolve-MachineCommand,
     Test-MachinePathShadows, Test-MachinePathExtensionless, Get-MachineVariantFile, Test-MachinePathWrappers, Get-MachinePathPlan, Backup-MachinePath,
     Send-MachineEnvironmentChange, Set-MachinePathValue, Get-MachineResolutionBaseline, Compare-MachineResolutionBaseline

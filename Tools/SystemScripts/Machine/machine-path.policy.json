@@ -66,6 +66,9 @@
     "codex": "Wrapper for the npm codex shim.",
     "gemini": "Superseded by the Antigravity CLI; forwards to agy.",
     "copilot": "Alias for gh copilot.",
+    "gcloud": "Wrapper sets DisableDelayedExpansion before calling the Cloud SDK.",
+    "gswin64c": "Finds the newest Ghostscript under Program Files, so the versioned install path never goes stale.",
+    "usbipd": "A 170 KB shim in ~/bin, not a copy of the usbipd-win binary.",
     "claude": "Launcher that sets up agent homes. claude.exe is the real binary.",
     "cargo": "Rustup proxy in ~/bin; cargo.ps1 is the CargoTools-aware wrapper for PowerShell."
   },

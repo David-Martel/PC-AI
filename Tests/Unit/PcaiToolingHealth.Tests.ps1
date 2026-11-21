@@ -340,6 +340,19 @@ Describe 'Tool shim resolution' -Tag 'Unit', 'Portable' {
         }
         AfterAll { $env:PATH = $script:oldPath }
         It 'accepts help output with exit 0' { ($script:fake | Where-Object Name -eq 'pcai-fake-ok').Ok | Should -BeTrue }
+        # Why: on Windows these fixtures are .cmd files started with UseShellExecute=$false. A review of
+        # PR 345 at f4087914 said such a launch fails. CreateProcess starts cmd.exe for a .cmd or .bat
+        # file, so it runs; these assertions prove the script ran by its own exit code and output, which
+        # a launch failure (no exit code, no output) cannot produce.
+        It 'runs the fixture and captures its exit code and output' {
+            $ok = $script:fake | Where-Object Name -eq 'pcai-fake-ok'
+            $ok.ExitCode | Should -Be 0
+            $ok.Help | Should -BeLike 'pcai-fake-ok 1.2.3 usage*'
+            $nz = $script:fake | Where-Object Name -eq 'pcai-fake-usage-nonzero'
+            $nz.ExitCode | Should -Be 2
+            $nz.Help | Should -BeLike 'Usage: pcai-fake-usage-nonzero*'
+            ($script:fake | Where-Object Name -eq 'pcai-fake-ssh-like').ExitCode | Should -Be 255
+        }
         It 'accepts a usage message from a tool whose --help exits nonzero' { ($script:fake | Where-Object Name -eq 'pcai-fake-usage-nonzero').Ok | Should -BeTrue }
         It 'accepts a usage message that follows a one-line option complaint (ssh)' { ($script:fake | Where-Object Name -eq 'pcai-fake-ssh-like').Ok | Should -BeTrue }
         It 'rejects a loader failure even though it printed a line' {

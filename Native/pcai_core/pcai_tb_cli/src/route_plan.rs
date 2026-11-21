@@ -699,6 +699,7 @@ mod tests {
             .as_deref()
             .unwrap()
             .starts_with("Remove-NetIPAddress -InterfaceIndex 28 "));
+        assert!(missing.note.as_deref().unwrap().contains("-Dhcp Enabled"));
     }
 
     // Protects: transit is explicit. Detects: forwarding inferred from adjacency (the NUC

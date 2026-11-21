@@ -73,6 +73,9 @@ For each host, run `guard`, then `preflight` (read-only; keep the output), then
 each action's `apply`. To undo, run the `rollback` lines in reverse order. A
 forwarding rollback sets `Disabled`; run it only if the preflight showed
 `Disabled`, because the observation does not record the forwarding preimage.
+`New-NetIPAddress` disables DHCP on an interface where it is enabled. The USB4
+interfaces observed on 2026-11-21 already had `Dhcp Disabled`, but the preflight
+records `Dhcp` so the rollback can restore it.
 
 ## Limits
 

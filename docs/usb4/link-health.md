@@ -108,6 +108,14 @@ Apply mode runs only in the SYSTEM task, and only when all of these hold:
   `{"schema": "pcai.link-health-auto-apply/v1", "enabled": true, "planPath": "<path>"}`;
 - the `planPath` file passes the same ownership checks (the check executes command text from
   the plan, so a user-writable plan or policy would be a privilege escalation);
+- the status root `%ProgramData%\pcai-usb4\link-health` is itself admin-owned and grants Users
+  only read access. `-System` creates it that way, because a directory created under
+  `%ProgramData%` otherwise inherits "Users may create files", which would let a standard user
+  plant `config.json` or pre-create `apply\`. The installer refuses an existing `pcai-usb4` or
+  `link-health` that another account owns. Apply mode ignores a `config.json` that is not
+  admin-owned. Every ancestor of a trusted path must be owned by Administrators, SYSTEM or
+  TrustedInstaller, must not be a reparse point, and must not let another account delete,
+  rename or re-permission it;
 - the state is `Drift`, so every guard (ifIndex, MAC, GUID) still matches.
 
 It then runs the plan's own guard and apply lines, which create state only when absent and

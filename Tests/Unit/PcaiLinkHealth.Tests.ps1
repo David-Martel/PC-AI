@@ -133,6 +133,19 @@ Describe 'Auto-apply stays off unless every condition holds' -Tag 'Unit', 'Porta
     }
 }
 
+Describe 'Trust checks walk every ancestor' -Tag 'Unit' {
+    It 'rejects a protected directory whose ancestor a standard user owns (user temp)' -Skip:(-not $IsWindows) {
+        if (-not (Test-PcaiElevated)) { Set-ItResult -Skipped -Because 'creating an Administrators-owned directory needs elevation' }
+        $dir = Join-Path $TestDrive 'protected'
+        New-PcaiProtectedStatusRoot -Path $dir
+        (Get-Acl -LiteralPath $dir).GetOwner([Security.Principal.SecurityIdentifier]).Value | Should -Be 'S-1-5-32-544'
+        Test-PcaiAdminOwnedPath -Path $dir | Should -BeFalse
+    }
+    It 'returns false off Windows and for a missing path' {
+        Test-PcaiAdminOwnedPath -Path (Join-Path $TestDrive 'missing.json') | Should -BeFalse
+    }
+}
+
 Describe 'Service recovery leaves disabled and mutating tasks alone' -Tag 'Unit', 'Portable' {
     It 'restarts only an allow-listed, enabled observer that last failed' {
         $services = @(

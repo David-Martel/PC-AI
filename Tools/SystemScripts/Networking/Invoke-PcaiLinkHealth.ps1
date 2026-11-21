@@ -429,26 +429,62 @@ function Get-PcaiObserverReceipt {
 function Test-PcaiAdminOwnedPath {
     <#
     .SYNOPSIS
-    True when a path and its parent are owned by Administrators or SYSTEM, are not reparse points,
-    and grant no other account a right to change them. Auto-apply executes command text from the
-    plan, so a user-writable policy or plan would be a privilege escalation.
+    True when a file or directory is safe for a SYSTEM task to trust.
+    .DESCRIPTION
+    Auto-apply executes command text from the plan, so a user-writable policy, plan or status
+    root would be a privilege escalation. The path and its parent must be owned by
+    Administrators or SYSTEM and grant no other account a right to change them. Every further
+    ancestor up to the volume root must not be a reparse point and must be owned by
+    Administrators, SYSTEM or TrustedInstaller; an ancestor may still let Users create entries
+    (as %ProgramData% does), because that does not let them replace an existing child.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path)
     if (-not $IsWindows) { return $false }
     if (-not (Test-Path -LiteralPath $Path)) { return $false }
-    foreach ($p in @((Split-Path -Parent $Path), $Path)) {
+    $trustedOwners = $script:PcaiAdminSids + @('S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464')
+    $chain = [Collections.Generic.List[string]]::new()
+    $cursor = (Get-Item -LiteralPath $Path -Force).FullName
+    while ($cursor) { $chain.Add($cursor); $cursor = Split-Path -Parent $cursor }
+    for ($i = 0; $i -lt $chain.Count; $i++) {
+        $p = $chain[$i]
         $item = Get-Item -LiteralPath $p -Force
         if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { return $false }
+        if ($i -eq $chain.Count - 1) { break }   # the volume root itself
         $acl = Get-Acl -LiteralPath $p
-        if ($acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -notin $script:PcaiAdminSids) { return $false }
+        $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
+        if ($i -le 1 -and $owner -notin $script:PcaiAdminSids) { return $false }
+        if ($owner -notin $trustedOwners) { return $false }
+        # The path itself: no other account may write it at all. Every ancestor: no other account
+        # may delete, rename, re-permission or take it over (Delete, DeleteChild, WriteDAC,
+        # WriteOwner, generic write/all); creating new entries, as %ProgramData% allows, is fine.
+        $mask = if ($i -eq 0) { $script:PcaiWriteRightsMask } else { [int64]0x500D0040 }
         foreach ($rule in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) {
             if ($rule.AccessControlType -ne 'Allow' -or $rule.IdentityReference.Value -in $script:PcaiAdminSids) { continue }
             if ($rule.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly) { continue }
-            if ([int64]$rule.FileSystemRights -band $script:PcaiWriteRightsMask) { return $false }
+            if ([int64]$rule.FileSystemRights -band $mask) { return $false }
         }
     }
     return $true
+}
+
+function New-PcaiProtectedStatusRoot {
+    <#
+    .SYNOPSIS
+    Creates a directory owned by Administrators with full control for Administrators and SYSTEM
+    and read access for Users, so a standard user cannot plant files the SYSTEM task trusts.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { $null = New-Item -ItemType Directory -Path $Path -Force }
+    $acl = [Security.AccessControl.DirectorySecurity]::new()
+    $acl.SetAccessRuleProtection($true, $false)
+    $acl.SetOwner([Security.Principal.SecurityIdentifier]'S-1-5-32-544')
+    foreach ($sid in $script:PcaiAdminSids) {
+        $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]$sid, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow'))
+    }
+    $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]'S-1-5-32-545', 'ReadAndExecute', 'ContainerInherit, ObjectInherit', 'None', 'Allow'))
+    Set-Acl -LiteralPath $Path -AclObject $acl
 }
 
 function Get-PcaiAutoApplyPolicy {
@@ -593,6 +629,15 @@ function Invoke-PcaiLinkHealth {
     )
     if (-not $Root) { $Root = Get-PcaiLinkHealthDefaultRoot -RunMode $RunMode }
     if (-not $Config) { $Config = Join-Path $Root 'config.json' }
+    $rootTrusted = $false
+    if ($RunMode -eq 'Apply' -and $IsWindows -and -not $IsDryRun) {
+        # The SYSTEM task writes and runs apply scripts under this root, so it must not inherit
+        # %ProgramData%'s "Users may create" right. Create it protected; never adopt a root that
+        # another account created or can change, and only read a config file it cannot change.
+        if (-not (Test-Path -LiteralPath $Root) -and (Test-PcaiElevated)) { New-PcaiProtectedStatusRoot -Path $Root }
+        $rootTrusted = Test-PcaiAdminOwnedPath -Path $Root
+        if ((Test-Path -LiteralPath $Config) -and -not ($rootTrusted -and (Test-PcaiAdminOwnedPath -Path $Config))) { $Config = $null }
+    }
     $cfg = Read-PcaiLinkHealthConfig -Path $Config -Root $Root
     if ($Plan) { $cfg.planPath = $Plan }
     $hostName = Get-PcaiHostName
@@ -629,12 +674,14 @@ function Invoke-PcaiLinkHealth {
 
         $auto = [ordered]@{ Enabled = $policy.Enabled; Reason = $policy.Reason; Applied = $false; Outcome = $null }
         $decision = Get-PcaiAutoApplyDecision -RunMode $RunMode -Elevated (Test-PcaiElevated) -Policy $policy -Comparison $comparison
+        if ($decision.Apply -and -not $rootTrusted) { $decision = [pscustomobject]@{ Apply = $false; Reason = "Status root $Root is not admin-owned and protected; not applying" } }
         $auto.Decision = $decision.Reason
         if ($comparison.State -eq 'Drift' -and $comparison.PlanHost -and $planId) {
             $body = New-PcaiHostApplyScript -PlanHost $comparison.PlanHost -PlanId $planId -Source $cfg.planPath
             if ($decision.Apply -and -not $IsDryRun) {
                 $applyDir = Join-Path $Root 'apply'
-                $null = New-Item -ItemType Directory -Force -Path $applyDir
+                if (-not (Test-Path -LiteralPath $applyDir)) { $null = New-Item -ItemType Directory -Path $applyDir }
+                if (-not (Test-PcaiAdminOwnedPath -Path $applyDir)) { throw "Apply directory $applyDir is not admin-owned and protected; review and remove it" }
                 $applyFile = Join-Path $applyDir ("{0}-{1}.ps1" -f $planId, [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ'))
                 Write-PcaiAtomicFile -Path $applyFile -Content $body
                 $pwsh = (Get-Process -Id $PID).Path

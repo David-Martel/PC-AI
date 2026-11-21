@@ -88,7 +88,7 @@ function Get-PcaiHealthFile {
     if ('ToolingHealth' -in $Components) {
         $files.Add([pscustomobject]@{ Component = 'ToolingHealth'; Source = Join-Path $Root 'Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1'; Name = 'Invoke-PcaiToolingHealth.ps1' })
     }
-    return , $files.ToArray()
+    return $files.ToArray()
 }
 
 function Get-PcaiContentVersion {
@@ -193,7 +193,7 @@ function Get-PcaiTaskSpec {
                         -Description 'PC-AI USB4 link health, boot and reconnect, SYSTEM. Applies the recorded route plan only when the admin-owned auto-apply policy enables it.' `
                         -BootDelay 'PT1M' -EventQuery $script:PcaiLinkEventQuery -RepeatInterval 'PT30M' })
         }
-        return , $specs.ToArray()
+        return $specs.ToArray()
     }
     if ('LinkHealth' -in $Components) {
         $specs.Add([pscustomobject]@{ Name = 'LinkHealth'; Xml = New-PcaiTaskXml -Principal User -UserId $UserId -Command $Pwsh `
@@ -207,7 +207,7 @@ function Get-PcaiTaskSpec {
                     -Description 'PC-AI profile and tooling health: profile chain, tool shims, fast-forward of clean default-branch checkouts, stale worktree and PR report.' `
                     -LogonDelay 'PT2M' -EventQuery $script:PcaiToolingEventQuery -EventDelay 'PT1M' -RepeatInterval 'PT4H' -ExecutionTimeLimit 'PT15M' })
     }
-    return , $specs.ToArray()
+    return $specs.ToArray()
 }
 
 function Get-PcaiSystemdUnit {
@@ -317,7 +317,23 @@ function Install-PcaiHealthWindows {
         foreach ($s in $specs) { Write-Output "would register $($script:PcaiTaskFolder)$($s.Name)" }
         return
     }
-    if ($SystemTask) { New-PcaiProtectedDirectory -Path $Target }
+    if ($SystemTask) {
+        # The SYSTEM task trusts everything under %ProgramData%\pcai-usb4\link-health. Protect that
+        # directory itself, not only bin\, and refuse a pcai-usb4 or link-health that another
+        # account created first (it could otherwise swap the scripts the task runs).
+        $linkRoot = Split-Path -Parent $Target
+        $usb4Root = Split-Path -Parent $linkRoot
+        foreach ($dir in @($usb4Root, $linkRoot)) {
+            if (-not (Test-Path -LiteralPath $dir)) { continue }
+            $item = Get-Item -LiteralPath $dir -Force
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$dir is a reparse point; review and remove it" }
+            $owner = (Get-Acl -LiteralPath $dir).GetOwner([Security.Principal.SecurityIdentifier]).Value
+            if ($owner -notin $script:PcaiAdminSids) { throw "$dir is owned by $owner, not Administrators or SYSTEM; review it, then: icacls `"$dir`" /setowner *S-1-5-32-544" }
+        }
+        if (-not (Test-Path -LiteralPath $usb4Root)) { New-PcaiProtectedDirectory -Path $usb4Root }
+        New-PcaiProtectedDirectory -Path $linkRoot
+        New-PcaiProtectedDirectory -Path $Target
+    }
     $null = New-Item -ItemType Directory -Force -Path $bin, $backupDir
     foreach ($f in $files) { Copy-Item -LiteralPath $f.Source -Destination (Join-Path $bin $f.Name) -Force }
     $commit = $null
@@ -339,7 +355,7 @@ function Install-PcaiHealthWindows {
 
 function Install-PcaiHealthLinux {
     [CmdletBinding()]
-    param([string]$Root, [string]$Target, [string[]]$Components, [switch]$Remove, [switch]$StartNow, [switch]$IsDryRun)
+    param([string]$Root, [string]$Target, [string[]]$Components, [switch]$Remove, [switch]$RestoreSaved, [switch]$StartNow, [switch]$IsDryRun)
     $unitDir = Join-Path $HOME '.config/systemd/user'
     $backupDir = Join-Path $Target 'backup'
     $pwsh = Join-Path $PSHOME 'pwsh'
@@ -350,11 +366,16 @@ function Install-PcaiHealthLinux {
             & systemctl --user disable --now $u 2>$null
             Remove-Item -LiteralPath (Join-Path $unitDir $u) -Force -ErrorAction SilentlyContinue
             Write-Output "removed $u"
+            if ($RestoreSaved) {
+                $saved = Get-ChildItem -LiteralPath $backupDir -Filter "$u.*" -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
+                if ($saved) { Copy-Item -LiteralPath $saved.FullName -Destination (Join-Path $unitDir $u); Write-Output "restored $u from $($saved.Name)" }
+            }
         }
         if (-not $IsDryRun) { & systemctl --user daemon-reload }
         return
     }
     $files = @(Get-PcaiHealthFile -Root $Root -Components $Components | Where-Object { Test-Path -LiteralPath $_.Source })
+    if (-not $files) { throw "No health scripts found under $Root" }
     $present = @($files | ForEach-Object Component | Sort-Object -Unique)
     $version = Get-PcaiContentVersion -File $files
     $bin = Join-Path $Target $version
@@ -405,7 +426,7 @@ if ($MyInvocation.InvocationName -ne '.') {
     } elseif ($IsLinux) {
         if ($System) { throw '-System is Windows-only; on Linux the auto-apply path is not implemented (route-plan emits Windows commands).' }
         if (-not $InstallRoot) { $InstallRoot = Join-Path $HOME '.local/share/pcai/health-bin' }
-        Install-PcaiHealthLinux -Root $SourceRoot -Target $InstallRoot -Components $Component -Remove:$Uninstall -StartNow:$RunNow -IsDryRun:$DryRun
+        Install-PcaiHealthLinux -Root $SourceRoot -Target $InstallRoot -Components $Component -Remove:$Uninstall -RestoreSaved:$Restore -StartNow:$RunNow -IsDryRun:$DryRun
     } else {
         throw 'Unsupported platform'
     }

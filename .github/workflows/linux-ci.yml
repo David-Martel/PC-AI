@@ -215,11 +215,16 @@ jobs:
   # ---------------------------------------------------------------------------
   # Single check name for this workflow. `always()` makes it run and fail when a needed job failed, was cancelled or was
   # skipped, instead of reporting "skipped", which GitHub treats as passing.
+  #
+  # It runs on a hosted runner. It reads only the `needs` results, checks out nothing and uses no secret, so the trust
+  # boundary above does not apply. On the two pc-ai-local runners this 4-second job queued behind other pull requests'
+  # build jobs: across the last 20 runs on 2026-11-21 it waited a median of 503 s (p90 1863 s, max 2703 s) after its
+  # last needed job finished, and the merge autopilot waits on it. Keep it free of checkout and repository code.
   # ---------------------------------------------------------------------------
   ci-gate:
     if: always() && vars.PCAI_LINUX_RUNNER_ENABLED == 'true'
     needs: [portable-contracts, pester-lint, rust-linux, gitops-contracts]
-    runs-on: [self-hosted, Linux, X64, pc-ai-local]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require every job to have succeeded

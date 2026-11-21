@@ -246,7 +246,7 @@ runner. `CI` stays disabled until a Windows runner for this repo exists.
 | `portable-contracts` | actionlint on the workflow, profile-free bootstrap, Rust-tool discovery, module-manifest and benchmark-admission contracts, Python admission tests | the Linux leg of `portable-bootstrap.yml`, without its .NET steps |
 | `pester-lint` | the Pester files listed in `Tests/linux-ci-pester.txt` (Portable tag), then PSScriptAnalyzer at Error severity over `Modules/` | `Tests/Invoke-PortableTests.ps1` sections Pester and Lint |
 | `rust-linux` | `cargo fmt --check`, clippy (`-D warnings`), `cargo nextest run` and `cargo test --doc` for `Native/pcai_core` with `--no-default-features --features server,ffi` | `Tests/Invoke-PortableTests.ps1` sections RustFmt, RustClippy, Rust |
-| `ci-gate` | fails unless the three jobs above succeeded | single check name for this workflow |
+| `ci-gate` | fails unless every job above succeeded; runs on a hosted runner because it checks out nothing, and on `pc-ai-local` it queued a median of 8 minutes behind other jobs | single check name for this workflow |
 
 **What it does not cover.** The Windows-only PowerShell modules (CIM/WMI, registry, drivers, network adapters,
 Hyper-V and WSL), the `PcaiNative` C# bridge (the runner image has no .NET SDK), CUDA builds and the NVIDIA stack.

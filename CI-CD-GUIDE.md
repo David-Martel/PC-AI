@@ -259,8 +259,11 @@ clippy and rustfmt in job-temporary `CARGO_HOME` and `RUSTUP_HOME` directories. 
 isolated too. This Cargo home does not inherit the image's Cargo-home configuration, so the job explicitly sets
 `RUSTC_WRAPPER=sccache`. It calls `cargo` directly because the Rust sections of `Tests/Invoke-PortableTests.ps1`
 clear that wrapper. `CARGO_INCREMENTAL=0` is explicit in the workflow because `.cargo/config.toml` enables
-incremental builds, and an incremental unit is never cached by sccache. The final step prints per-run
-`sccache --show-stats`; cross-run cache hits and target-directory persistence require separate evidence.
+incremental builds, and an incremental unit is never cached by sccache. The job-temporary homes sit under a fixed
+`$RUNNER_TEMP/pcai-rust` name, because sccache 0.19.0 keys Rust compiles on the absolute `CARGO_HOME` path even when
+`SCCACHE_BASEDIRS` names it: a per-job `pcai-rust-<guid>` name gave 0 Rust hits in 640 compiles (run 44893813238).
+The runner empties `RUNNER_TEMP` between jobs, so the homes stay job-local. The final step prints per-run
+`sccache --show-stats`; compare `Cache hits (Rust)` across two runs on the same runner to see cross-run reuse.
 `portable-contracts` also uses the job-local Rust action because its Python admission tests compile native Rust fixtures.
 NUC PC-AI runners also apply the committed machine profile's build-job cap while retaining any stricter existing
 Cargo limit. Details and measurements:

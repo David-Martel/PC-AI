@@ -323,7 +323,7 @@ function Install-PcaiHealthWindows {
         # account created first (it could otherwise swap the scripts the task runs).
         $linkRoot = Split-Path -Parent $Target
         $usb4Root = Split-Path -Parent $linkRoot
-        foreach ($dir in @($usb4Root, $linkRoot)) {
+        foreach ($dir in @($usb4Root, $linkRoot, $Target)) {
             if (-not (Test-Path -LiteralPath $dir)) { continue }
             $item = Get-Item -LiteralPath $dir -Force
             if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$dir is a reparse point; review and remove it" }

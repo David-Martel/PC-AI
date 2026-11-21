@@ -23,13 +23,18 @@ pending=0
 # `ip -o monitor` prints one line per event: "<n>: <ifname>[@...]: <...>" for link events and
 # "<n>: <ifname>    inet ..." for address events. Deleted links are prefixed with "Deleted".
 while true; do
+    # Capture read's own status: after an if without else, $? is 0, not read's timeout status.
     if IFS= read -r -t "$QUIET_SECONDS" line; then
+        status=0
+    else
+        status=$?
+    fi
+    if [ "$status" -eq 0 ]; then
         line="${line#Deleted }"
         name="$(printf '%s\n' "$line" | sed -n 's/^[0-9][0-9]*: \([^:@ ]*\).*/\1/p')"
         if is_usb4_ifname "$name"; then pending=1; fi
         continue
     fi
-    status=$?
     if [ "$status" -gt 128 ]; then
         # Read timed out: the quiet window elapsed.
         if [ "$pending" -eq 1 ]; then

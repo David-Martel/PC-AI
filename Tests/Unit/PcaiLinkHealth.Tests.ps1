@@ -146,6 +146,65 @@ Describe 'Trust checks walk every ancestor' -Tag 'Unit' {
     }
 }
 
+Describe 'Invoke-PcaiLinkHealth side effects' -Tag 'Unit', 'Portable' {
+    BeforeAll {
+        $planFile = Join-Path $TestDrive 'plan.json'
+        $Plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planFile
+    }
+    BeforeEach {
+        Mock Get-PcaiUsb4Adapter { , @(New-TestAdapter -Ipv4 @()) }
+        Mock Get-PcaiIpv4HostRoute { , @() }
+        Mock Test-PcaiPeerReachability { , @() }
+        Mock Get-PcaiUsb4Service { , @([pscustomobject]@{ Name = '\PC-AI\Configure-ThunderboltSwitchRoutes'; Kind = 'ScheduledTask'; State = 'Ready'; LastResult = 1 }) }
+        Mock Invoke-PcaiServiceRecovery { , @() }
+        Mock Send-PcaiBusStatus { 'posted' }
+        Mock Get-PcaiHostName { 'hosta' }
+        Mock Invoke-PcaiBoundedCommand { [pscustomobject]@{ ExitCode = 0; Stdout = ''; Stderr = ''; TimedOut = $false } }
+    }
+    It 'writes nothing, restarts nothing and posts nothing with -IsDryRun' {
+        $root = Join-Path $TestDrive 'dry'
+        $status = @(Invoke-PcaiLinkHealth -RunMode Observe -RunTrigger Event -Root $root -Plan $planFile -IsDryRun) | Where-Object { $_ -isnot [string] }
+        $status.state | Should -Be 'Drift'
+        Test-Path -LiteralPath $root | Should -BeFalse
+        Should -Invoke Invoke-PcaiServiceRecovery -Times 0 -Exactly
+        Should -Invoke Send-PcaiBusStatus -Times 0 -Exactly
+        Should -Invoke Invoke-PcaiBoundedCommand -Times 0 -Exactly
+    }
+    It 'writes status and a review script but runs no apply in Observe mode' {
+        $root = Join-Path $TestDrive 'observe'
+        $null = Invoke-PcaiLinkHealth -RunMode Observe -RunTrigger Manual -Root $root -Plan $planFile -SkipBus
+        Test-Path -LiteralPath (Join-Path $root 'status.json') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $root 'pending-apply-0123456789abcdef.ps1') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $root 'apply') | Should -BeFalse
+        Should -Invoke Invoke-PcaiBoundedCommand -Times 0 -Exactly
+    }
+    It 'reads only the policy''s plan in Apply mode, ignoring a -PlanPath override' {
+        Mock Get-PcaiAutoApplyPolicy { [pscustomobject]@{ Path = 'p'; Enabled = $true; PlanPath = 'Z:\admin-only\route-plan.json'; Reason = 'Enabled by admin-owned policy' } }
+        Mock Read-PcaiRoutePlan { $null }
+        $null = Invoke-PcaiLinkHealth -RunMode Apply -RunTrigger Manual -Root (Join-Path $TestDrive 'apply-mode') -Plan $planFile -SkipBus -IsDryRun
+        Should -Invoke Read-PcaiRoutePlan -Times 1 -Exactly -ParameterFilter { $Path -eq 'Z:\admin-only\route-plan.json' }
+        Should -Invoke Invoke-PcaiBoundedCommand -Times 0 -Exactly
+    }
+}
+
+Describe 'Linux reconnect monitor' -Tag 'Unit', 'Portable' {
+    It 'starts the link-health unit once after a burst of thunderbolt events goes quiet' -Skip:(-not (Get-Command bash -ErrorAction SilentlyContinue)) {
+        $bin = Join-Path $TestDrive 'fakebin'
+        $null = New-Item -ItemType Directory -Path $bin
+        $log = Join-Path $TestDrive 'systemctl.log'
+        # Fake `ip`: two events for a thunderbolt interface and one for docker veth churn, then idle.
+        [IO.File]::WriteAllText((Join-Path $bin 'ip'), "#!/usr/bin/env bash`nprintf '7: thunderbolt0: <BROADCAST> state UP\n7: thunderbolt0    inet 172.31.255.21/30\n9: veth12ab@if8: <UP>\n'`nsleep 4`n")
+        [IO.File]::WriteAllText((Join-Path $bin 'systemctl'), "#!/usr/bin/env bash`necho `"`$*`" >> '$($log -replace '\\', '/')'`n")
+        $script = Join-Path $repoRoot 'Tools/SystemScripts/Networking/pcai-link-health-monitor.sh'
+        # Git Bash needs /c/... in PATH; cygpath is absent on Linux, where the path is already POSIX.
+        $b = $bin -replace '\\', '/'
+        $cmd = "B=`$(cygpath -u '$b' 2>/dev/null || echo '$b'); chmod +x `"`$B`"/*; PATH=`"`$B:`$PATH`" PCAI_LINK_HEALTH_QUIET_SECONDS=1 timeout 6 bash '$($script -replace '\\','/')'; true"
+        & bash -c $cmd
+        $calls = @(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue)
+        $calls | Should -Be @('--user start --no-block pcai-link-health.service')
+    }
+}
+
 Describe 'Service recovery leaves disabled and mutating tasks alone' -Tag 'Unit', 'Portable' {
     It 'restarts only an allow-listed, enabled observer that last failed' {
         $services = @(

@@ -657,7 +657,9 @@ function Invoke-PcaiLinkHealth {
     }
     try {
         $policy = Get-PcaiAutoApplyPolicy
-        if ($RunMode -eq 'Apply' -and $policy.Enabled -and -not $Plan) { $cfg.planPath = $policy.PlanPath }
+        # Apply mode only ever executes the plan the admin-owned policy names. A -PlanPath or
+        # config override is ignored here, so an elevated run cannot be pointed at a user file.
+        if ($RunMode -eq 'Apply' -and $policy.Enabled) { $cfg.planPath = $policy.PlanPath }
         $planObj = $null; $planError = $null
         try { $planObj = Read-PcaiRoutePlan -Path $cfg.planPath } catch { $planError = $_.Exception.Message }
         $adapters = Get-PcaiUsb4Adapter
@@ -675,6 +677,9 @@ function Invoke-PcaiLinkHealth {
         $auto = [ordered]@{ Enabled = $policy.Enabled; Reason = $policy.Reason; Applied = $false; Outcome = $null }
         $decision = Get-PcaiAutoApplyDecision -RunMode $RunMode -Elevated (Test-PcaiElevated) -Policy $policy -Comparison $comparison
         if ($decision.Apply -and -not $rootTrusted) { $decision = [pscustomobject]@{ Apply = $false; Reason = "Status root $Root is not admin-owned and protected; not applying" } }
+        if ($decision.Apply -and ($cfg.planPath -ne $policy.PlanPath -or -not (Test-PcaiAdminOwnedPath -Path $cfg.planPath))) {
+            $decision = [pscustomobject]@{ Apply = $false; Reason = "Plan $($cfg.planPath) is not the admin-owned plan the policy names; not applying" }
+        }
         $auto.Decision = $decision.Reason
         if ($comparison.State -eq 'Drift' -and $comparison.PlanHost -and $planId) {
             $body = New-PcaiHostApplyScript -PlanHost $comparison.PlanHost -PlanId $planId -Source $cfg.planPath

@@ -423,11 +423,19 @@ function Install-PcaiHealthWindows {
         if (-not (Test-Path -LiteralPath $usb4Root)) { New-PcaiProtectedDirectory -Path $usb4Root }
         New-PcaiProtectedDirectory -Path $linkRoot
         New-PcaiProtectedDirectory -Path $Target
+        # The install root's own chain first: below an untrusted ancestor nothing inside can be trusted.
+        if (-not (Test-PcaiSystemTrustedPath -Path $Target)) {
+            throw "$Target is not trusted for a SYSTEM task: it or an ancestor up to the volume root has an untrusted owner, is a reparse point or lets another account replace it. Use the default %ProgramData% root or fix the ACLs."
+        }
         # Protecting a directory does not change what is already in it. The SYSTEM task reads and appends
         # to its state files there (last-run.txt, history.jsonl, run.lock), so an entry planted while the
-        # directory let users create files must not survive into a SYSTEM install. bin\ is handled below.
+        # directory let users create files must not survive into a SYSTEM install. That covers bin\backup
+        # too, which the install below protects and cleans: a junction planted there would carry those ACL
+        # changes and deletions outside the tree (codex review of #344 at 4ec06bb1). Get-ChildItem does not
+        # follow a junction, and the trust check refuses a reparse point. Only this version's own directory
+        # is skipped: it is checked for a reparse point and rebuilt from scratch below.
         $planted = @(Get-ChildItem -LiteralPath $linkRoot -Recurse -Force -ErrorAction SilentlyContinue |
-                Where-Object { $_.FullName -ne $Target -and -not $_.FullName.StartsWith($Target + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -and -not (Test-PcaiSystemTrustedPath -Path $_.FullName) })
+                Where-Object { $_.FullName -ne $bin -and -not $_.FullName.StartsWith($bin + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -and -not (Test-PcaiSystemTrustedPath -Path $_.FullName) })
         if ($planted) {
             throw "$linkRoot holds entries that are not admin-owned and protected: $(@($planted | Select-Object -First 5 | ForEach-Object FullName) -join '; '). Review and remove them, then rerun -System."
         }

@@ -425,6 +425,29 @@ Describe 'SYSTEM install and restore trust the whole ancestor chain' -Tag 'Unit'
             Should -Throw '*holds entries that are not admin-owned and protected*last-run.txt*'
         Should -Invoke Register-ScheduledTask -Times 0 -Exactly
     }
+    # Protects: -System never changes ACLs on or deletes through a planted backup junction. Detects:
+    # bin\backup excluded from the planted-entry scan, then protected and cleaned (codex review of #344
+    # at 4ec06bb1). Needs: a real junction under TestDrive pointing at an outside directory.
+    It 'refuses a SYSTEM install whose backup directory is a planted junction' -Skip:(-not $IsWindows) {
+        Mock Get-ScheduledTask { }
+        Mock Register-ScheduledTask { }
+        Mock Resolve-PcaiSystemPwsh { Join-Path $env:ProgramFiles 'PowerShell/7/pwsh.exe' }
+        Mock New-PcaiProtectedDirectory { $null = New-Item -ItemType Directory -Force -Path $Path }
+        Mock Get-Acl { [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = 'S-1-5-32-544' } } -PassThru }
+        # Everything is trusted except a reparse point, as the real check decides.
+        Mock Test-PcaiSystemTrustedPath { -not ((Get-Item -LiteralPath $Path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) }
+        $outside = Join-Path $TestDrive 'outside'
+        $null = New-Item -ItemType Directory -Force -Path $outside
+        Set-Content -LiteralPath (Join-Path $outside 'victim.txt') -Value 'keep'
+        $target = Join-Path $TestDrive 'junction/pcai-usb4/link-health/bin'
+        $null = New-Item -ItemType Directory -Force -Path $target
+        $null = New-Item -ItemType Junction -Path (Join-Path $target 'backup') -Target $outside
+        { Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask } |
+            Should -Throw '*holds entries that are not admin-owned and protected*backup*'
+        Should -Invoke New-PcaiProtectedDirectory -Times 0 -Exactly -ParameterFilter { $Path -like '*backup' }
+        Test-Path -LiteralPath (Join-Path $outside 'victim.txt') | Should -BeTrue
+        Should -Invoke Register-ScheduledTask -Times 0 -Exactly
+    }
     It 'does not restore a SYSTEM baseline that is not admin-owned and protected' -Skip:(-not $IsWindows) {
         Mock Get-ScheduledTask { [pscustomobject]@{ TaskName = 'LinkHealthSystem' } }
         Mock Unregister-ScheduledTask { }

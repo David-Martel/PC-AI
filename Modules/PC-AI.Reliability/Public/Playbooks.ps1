@@ -74,6 +74,10 @@ function Invoke-FleetPlaybook {
                 $attempt = $attempts.Count + 1
                 $attempts = @($attempts + (ConvertTo-FleetIso $now))
                 $st.attempts = $attempts
+                # Reserve the attempt durably BEFORE acting: if anything after the action throws (the ledger
+                # write, the final state write), the budget is already spent and the next sweep cannot
+                # repeat it (second review of #346). A failed reservation throws here, before any action.
+                Write-FleetJsonFile -Path $statePath -Value $st
                 $res = $null
                 try { $res = & $Action $Arguments }
                 catch { $res = @{ outcome = 'failed'; detail = $_.Exception.Message } }
@@ -83,8 +87,9 @@ function Invoke-FleetPlaybook {
                 $ev = New-FleetLedgerEvent -Source playbook -Name $SubjectName -Check $Playbook -Kind remediation -Status $status -Severity info -IncidentKey $IncidentKey `
                     -Message ("{0} attempt {1}/{2}: {3} ({4})" -f $Playbook, $attempt, $settings.budget, $res.outcome, $res.detail) `
                     -Remediation @{ playbook = $Playbook; attempt = $attempt; budget = [int]$settings.budget; outcome = [string]$res.outcome; detail = [string]$res.detail }
-                $null = Write-FleetLedgerEvent -LedgerEvent $ev
                 $ctx.outcome = [string]$res.outcome
+                try { $null = Write-FleetLedgerEvent -LedgerEvent $ev }
+                catch { Write-Warning ("fleet playbook {0}: the remediation ran but could not be recorded: {1}" -f $Playbook, $_.Exception.Message) }
             }
         }
         Write-FleetJsonFile -Path $statePath -Value $st

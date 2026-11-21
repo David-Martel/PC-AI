@@ -191,7 +191,11 @@ function Get-FleetTaskObservations {
         $taskOk = @($okCodes)
         $byTask = $Policy.task_ok_codes_by_task
         if ($byTask) { foreach ($k in @($byTask.Keys)) { if ($full -like $k) { $taskOk += @($byTask[$k] | ForEach-Object { ([string]$_).ToUpperInvariant() }) } } }
-        $benign = ($null -ne $resultHex) -and ($resultHex -ne '0X0') -and ($taskOk -contains $resultHex)
+        # Benign only when the result code is the ONLY reason for Failed. Test-ScheduledTaskHealth words its
+        # result-axis reason "Last run <code> ..."; any other reason (a launcher timeout or exit, an unreadable
+        # status file, an unavailable task) is an independent failure and must stand (second review of #346).
+        $otherReasons = @(@($t.Reasons) | Where-Object { $_ -and ([string]$_) -notlike 'Last run *' })
+        $benign = ($null -ne $resultHex) -and ($resultHex -ne '0X0') -and ($taskOk -contains $resultHex) -and ($otherReasons.Count -eq 0)
         $rerun = $null
         if (Test-FleetWildcard $full $Policy.rerun_tasks) { $rerun = 'rerun-task' }
 

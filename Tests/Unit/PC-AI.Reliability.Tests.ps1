@@ -313,6 +313,19 @@ Describe 'PC-AI.Reliability' {
             $o[0].Status | Should -Be 'ok'
         }
 
+        It 'does not let a benign nonzero code mask a launcher failure reported alongside it' {
+            # Detects the masking found by the second review of #346: an allowlisted result code turned every
+            # Failed report into ok, including one that also carried a launcher timeout.
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData {
+                [pscustomobject]@{ Tasks = @(
+                        [pscustomobject]@{ TaskPath = '\'; TaskName = 'keepalive-plus-launcher'; Owner = 'Local'; State = 'Ready'; Status = 'Failed'; LastResult = 2147946720; ResultText = '0x800710E0'; Reasons = @('Last run 0x800710E0 The operator or administrator has refused the request', 'Launcher killed the task on timeout (124) at 2026-11-21 10:00 UTC; log: x'); LastRunTime = '2026-11-21T10:00:00Z'; Staleness = 'fresh' },
+                        [pscustomobject]@{ TaskPath = '\'; TaskName = 'keepalive-only'; Owner = 'Local'; State = 'Ready'; Status = 'Failed'; LastResult = 2147946720; ResultText = '0x800710E0'; Reasons = @('Last run 0x800710E0 The operator or administrator has refused the request'); LastRunTime = '2026-11-21T10:00:00Z'; Staleness = 'fresh' }) }
+            }
+            $o = @(Get-FleetTaskObservations -Policy $script:Policy | Where-Object { $_.Check -eq 'run' })
+            ($o | Where-Object Name -EQ '\keepalive-plus-launcher').Status | Should -Be 'failed'
+            ($o | Where-Object Name -EQ '\keepalive-only').Status | Should -Be 'ok'
+        }
+
         It 'does not let a benign 0x0 mask a launcher-reported failure' {
             $o = @(Get-FleetTaskObservations -Policy $script:Policy | Where-Object { $_.Name -eq '\launcher-failed' -and $_.Check -eq 'run' })
             $o[0].Status | Should -Be 'failed'
@@ -590,6 +603,17 @@ Describe 'PC-AI.Reliability' {
     Describe 'Bounded playbooks' {
         BeforeEach { $script:Policy = Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json'); $script:Ran = 0 }
 
+        It 'consumes the budget even when recording the remediation fails' -Tag 'Portable' {
+            # Detects the unbounded loop from the second review of #346: the action ran before its attempt was
+            # persisted, so a throwing ledger write left the budget unspent and every sweep acted again.
+            $script:Ran = 0
+            $action = { param($a) $script:Ran++; @{ outcome = 'triggered'; detail = 'x' } }
+            Mock -ModuleName PC-AI.Reliability Write-FleetLedgerEvent { throw 'disk full' } -ParameterFilter { $LedgerEvent.kind -eq 'remediation' }
+            $null = Invoke-FleetPlaybook -Playbook rerun-task -IncidentKey 'k-ledger' -Policy $script:Policy -Action $action
+            Invoke-FleetPlaybook -Playbook rerun-task -IncidentKey 'k-ledger' -Policy $script:Policy -Action $action | Should -Be 'budget-exhausted'
+            $script:Ran | Should -Be 1
+        }
+
         It 'acts once, then escalates exactly once when the budget is spent' -Tag 'Portable' {
             # Detects runaway remediation: a broken fix must not loop, and a human must hear about it.
             $action = { param($a) $script:Ran++; @{ outcome = 'triggered'; detail = 'x' } }
@@ -830,6 +854,23 @@ Describe 'PC-AI.Reliability' {
             @(Get-ChildItem -LiteralPath $env:FLEET_RELIABILITY_HOME -Recurse -File).Count | Should -Be 1
         }
 
+        It 'dry-run leaves a malformed policy and state file in place' {
+            # Detects the preview that moved live files: corrupt-file recovery renamed policy.json and
+            # last-sweep.json during a dry run (second review of #346).
+            $policy = Join-Path $TestDrive 'bad-policy.json'
+            Set-Content -LiteralPath $policy -Value '{ not json'
+            $stateDir = Join-Path $env:FLEET_RELIABILITY_HOME 'state'
+            New-Item -ItemType Directory -Force $stateDir | Out-Null
+            $last = Join-Path $stateDir 'last-sweep.json'
+            Set-Content -LiteralPath $last -Value '{ not json'
+            Mock -ModuleName PC-AI.Reliability Get-FleetDiskObservations { @() }
+            $null = @(Invoke-FleetHealthSweep -DryRun -Detector disk -PolicyPath $policy)
+            $null = Send-FleetDigest -DryRun -PolicyPath $policy
+            Test-Path -LiteralPath $policy | Should -BeTrue
+            Test-Path -LiteralPath $last | Should -BeTrue
+            @(Get-ChildItem -LiteralPath $TestDrive, $stateDir -Filter '*.corrupt-*').Count | Should -Be 0
+        }
+
         It 'dry-run digest builds the message and records or sends nothing' {
             $null = Submit-FleetObservation (New-TestObservation -Name 'a')
             $lines = @(Read-TestLedger).Count
@@ -965,12 +1006,24 @@ Describe 'PC-AI.Reliability child processes (unmocked)' -Tag 'Portable' {
         $sw.Elapsed.TotalSeconds | Should -BeLessThan 20
     }
 
+    It 'keeps output printed before a descendant holds the pipe, so a failure line is not lost' {
+        # Detects the false success from the second review of #346: the job printed [ERROR], exited 0 and left
+        # a background process on the pipe; the whole-stream read was discarded at the drain deadline.
+        if ($script:OnWindows) { $exe = Join-Path $env:SystemRoot 'System32\cmd.exe'; $argv = @('/c', 'echo [ERROR] integrity check did not pass & start /b ping -n 30 127.0.0.1 & exit 0') }
+        else { $exe = '/bin/sh'; $argv = @('-c', 'echo "[ERROR] integrity check did not pass"; sleep 30 & exit 0') }
+        $r = InModuleScope PC-AI.Reliability -Parameters @{ E = $exe; A = $argv } { param($E, $A) Invoke-FleetProcess -FilePath $E -ArgumentList $A -TimeoutSeconds 60 }
+        $r.ExitCode | Should -Be 0
+        $r.StdOut | Should -Match '\[ERROR\] integrity check'
+        $r.OutputComplete | Should -BeFalse
+    }
+
     It 'captures output and the exit code of a normal job' {
         if ($script:OnWindows) { $exe = Join-Path $env:SystemRoot 'System32\cmd.exe'; $argv = @('/c', 'echo hello & exit 3') }
         else { $exe = '/bin/sh'; $argv = @('-c', 'echo hello; exit 3') }
         $r = InModuleScope PC-AI.Reliability -Parameters @{ E = $exe; A = $argv } { param($E, $A) Invoke-FleetProcess -FilePath $E -ArgumentList $A -TimeoutSeconds 30 }
         $r.ExitCode | Should -Be 3
         $r.StdOut | Should -Match 'hello'
+        $r.OutputComplete | Should -BeTrue
     }
 }
 

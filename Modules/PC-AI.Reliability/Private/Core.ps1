@@ -169,7 +169,7 @@ function Invoke-FleetProcess {
         [int]$TimeoutSeconds = 20,
         [string]$WorkingDirectory
     )
-    $result = [pscustomobject]@{ ExitCode = -1; StdOut = ''; StdErr = ''; TimedOut = $false }
+    $result = [pscustomobject]@{ ExitCode = -1; StdOut = ''; StdErr = ''; TimedOut = $false; OutputComplete = $true }
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $FilePath
     $psi.Arguments = ConvertTo-FleetCommandLine -Arguments $ArgumentList
@@ -185,25 +185,45 @@ function Invoke-FleetProcess {
         $result.StdErr = "failed to start ${FilePath}: $($_.Exception.Message)"
         return $result
     }
-    $outTask = $proc.StandardOutput.ReadToEndAsync()
-    $errTask = $proc.StandardError.ReadToEndAsync()
-    if (-not $proc.WaitForExit([Math]::Max(1, $TimeoutSeconds) * 1000)) {
-        $result.TimedOut = $true
-        Stop-FleetProcessTree -Process $proc
-        [void]$proc.WaitForExit(5000)
-    }
-    else {
-        $result.ExitCode = $proc.ExitCode
-    }
-    # A descendant that outlives the child (a daemon, `start /b`, `cmd &`) keeps the output pipes open,
-    # and an unbounded read would hang the caller for as long as it lives (measured: a 2 s timeout took
-    # 26 s, and a job that exited at once took 25 s). Wait a bounded time, then return what we have.
+    # Both pipes are read in chunks while the job runs, so a full pipe never blocks the child and every
+    # chunk that arrived is kept. A descendant that outlives the child (a daemon, `start /b`, `cmd &`)
+    # keeps the pipes open; reading to the end would hang the caller as long as it lives (measured: 26 s
+    # for a 2 s timeout), and a whole-stream read abandoned at a deadline lost what the job HAD printed,
+    # including its [ERROR] line (second review of #346). After exit, drain for a bounded time.
+    $readers = @(
+        @{ Name = 'out'; Reader = $proc.StandardOutput; Text = New-Object System.Text.StringBuilder; Task = $null; Eof = $false; Buf = New-Object char[] 8192 },
+        @{ Name = 'err'; Reader = $proc.StandardError; Text = New-Object System.Text.StringBuilder; Task = $null; Eof = $false; Buf = New-Object char[] 8192 })
+    foreach ($rd in $readers) { $rd.Task = $rd.Reader.ReadAsync($rd.Buf, 0, $rd.Buf.Length) }
     $drainMs = 10000
     if ($env:FLEET_PIPE_DRAIN_MS) { $drainMs = [int]$env:FLEET_PIPE_DRAIN_MS }
-    $drained = [System.Threading.Tasks.Task]::WaitAll([System.Threading.Tasks.Task[]]@($outTask, $errTask), $drainMs)
-    if ($outTask.IsCompleted -and -not $outTask.IsFaulted) { $result.StdOut = $outTask.Result }
-    if ($errTask.IsCompleted -and -not $errTask.IsFaulted) { $result.StdErr = $errTask.Result }
-    if (-not $drained) { $result.StdErr += "`n[fleet] output not fully captured: a descendant process still holds the output pipe" }
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    $limitMs = [Math]::Max(1, $TimeoutSeconds) * 1000
+    $exitedAtMs = $null
+    while ($true) {
+        if ($null -eq $exitedAtMs) {
+            if ($proc.HasExited) { $result.ExitCode = $proc.ExitCode; $exitedAtMs = $clock.ElapsedMilliseconds }
+            elseif ($clock.ElapsedMilliseconds -ge $limitMs) {
+                $result.TimedOut = $true
+                Stop-FleetProcessTree -Process $proc
+                [void]$proc.WaitForExit(5000)
+                $exitedAtMs = $clock.ElapsedMilliseconds
+            }
+        }
+        $open = @($readers | Where-Object { -not $_.Eof })
+        if ($open.Count -eq 0 -and $null -ne $exitedAtMs) { break }
+        if ($null -ne $exitedAtMs -and ($clock.ElapsedMilliseconds - $exitedAtMs) -ge $drainMs) { $result.OutputComplete = ($open.Count -eq 0); break }
+        if ($open.Count -gt 0) { [void][System.Threading.Tasks.Task]::WaitAny([System.Threading.Tasks.Task[]]@($open | ForEach-Object { $_.Task }), 100) }
+        else { Start-Sleep -Milliseconds 50 }
+        foreach ($rd in $open) {
+            if (-not $rd.Task.IsCompleted) { continue }
+            if ($rd.Task.IsFaulted -or $rd.Task.IsCanceled -or $rd.Task.Result -le 0) { $rd.Eof = $true; continue }
+            [void]$rd.Text.Append($rd.Buf, 0, $rd.Task.Result)
+            $rd.Task = $rd.Reader.ReadAsync($rd.Buf, 0, $rd.Buf.Length)
+        }
+    }
+    $result.StdOut = $readers[0].Text.ToString()
+    $result.StdErr = $readers[1].Text.ToString()
+    if (-not $result.OutputComplete) { $result.StdErr += "`n[fleet] output not fully captured: a descendant process still holds the output pipe (what arrived before the deadline is kept)" }
     $proc.Dispose()
     return $result
 }
@@ -244,6 +264,8 @@ function Read-FleetJsonFile {
         return (ConvertTo-FleetHashtable ($raw | ConvertFrom-Json))
     }
     catch {
+        # A dry run never moves a live file, even a corrupt one (second review of #346).
+        if ($script:FleetReadOnly) { Write-Verbose "unreadable JSON left in place (read-only): $Path"; return $Default }
         # A corrupt state file must not stop the sweeper; keep it for inspection and start fresh.
         $bad = '{0}.corrupt-{1}' -f $Path, ([datetime]::UtcNow.ToString('yyyyMMddTHHmmss'))
         try { Move-Item -LiteralPath $Path -Destination $bad -Force } catch { Write-Verbose "could not move corrupt state: $($_.Exception.Message)" }

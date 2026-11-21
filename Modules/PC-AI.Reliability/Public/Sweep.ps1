@@ -92,8 +92,12 @@ function Invoke-FleetHealthSweep {
         [switch]$NoPlaybooks,
         [switch]$DryRun
     )
+    if ($DryRun) {
+        $script:FleetReadOnly = $true
+        try { return (Invoke-FleetDryRunSweep -Policy (Get-FleetPolicy -Path $PolicyPath) -Detector $Detector) }
+        finally { $script:FleetReadOnly = $false }
+    }
     $policy = Get-FleetPolicy -Path $PolicyPath
-    if ($DryRun) { return (Invoke-FleetDryRunSweep -Policy $policy -Detector $Detector) }
     $script:FleetEffectivePolicy = $policy
     $started = Get-FleetNow
     $spool = Invoke-FleetSpoolReplay
@@ -235,43 +239,49 @@ function Send-FleetDigest {
     #>
     [CmdletBinding()]
     param([string]$PolicyPath, [int]$SinceHours, [switch]$Fleet, [switch]$NoSend, [switch]$DryRun)
-    $policy = Get-FleetPolicy -Path $PolicyPath
-    if (-not $SinceHours) { $SinceHours = 24; if ($policy.digest.since_hours) { $SinceHours = [int]$policy.digest.since_hours } }
-    if (-not $Fleet -and $policy.digest.fleet) { $Fleet = [switch]$true }
-    $now = Get-FleetNow
-    $since = $now.AddHours(-$SinceHours)
-    if ($Fleet) { $events = @(Get-FleetBusLedgerEvents -SinceMinutes ($SinceHours * 60)) }
-    else { $events = @(Read-FleetLedger -Since $since) }
+    # A dry run never moves or rewrites a live file (second review of #346).
+    $savedReadOnly = $script:FleetReadOnly
+    if ($DryRun) { $script:FleetReadOnly = $true }
+    try {
+        $policy = Get-FleetPolicy -Path $PolicyPath
+        if (-not $SinceHours) { $SinceHours = 24; if ($policy.digest.since_hours) { $SinceHours = [int]$policy.digest.since_hours } }
+        if (-not $Fleet -and $policy.digest.fleet) { $Fleet = [switch]$true }
+        $now = Get-FleetNow
+        $since = $now.AddHours(-$SinceHours)
+        if ($Fleet) { $events = @(Get-FleetBusLedgerEvents -SinceMinutes ($SinceHours * 60)) }
+        else { $events = @(Read-FleetLedger -Since $since) }
 
-    $byKind = @{}
-    foreach ($e in $events) { $byKind[[string]$e.kind] = 1 + [int]$byKind[[string]$e.kind] }
-    $latest = @{}
-    # Sort by time, then by ledger order: Windows PowerShell 5.1's Sort-Object is not stable, and an
-    # open and its resolution can share a timestamp, which would otherwise reorder them.
-    $i = 0
-    $ordered = foreach ($e in $events) { [pscustomobject]@{ E = $e; T = (ConvertFrom-FleetIso $e.ts); I = $i++ } }
-    foreach ($e in (@($ordered | Where-Object { $_.E.incident_key } | Sort-Object T, I) | ForEach-Object { $_.E })) {
-        if (@('incident-open', 'incident-reminder', 'incident-flapping', 'escalation', 'incident-resolved') -contains $e.kind) { $latest[[string]$e.incident_key] = $e }
+        $byKind = @{}
+        foreach ($e in $events) { $byKind[[string]$e.kind] = 1 + [int]$byKind[[string]$e.kind] }
+        $latest = @{}
+        # Sort by time, then by ledger order: Windows PowerShell 5.1's Sort-Object is not stable, and an
+        # open and its resolution can share a timestamp, which would otherwise reorder them.
+        $i = 0
+        $ordered = foreach ($e in $events) { [pscustomobject]@{ E = $e; T = (ConvertFrom-FleetIso $e.ts); I = $i++ } }
+        foreach ($e in (@($ordered | Where-Object { $_.E.incident_key } | Sort-Object T, I) | ForEach-Object { $_.E })) {
+            if (@('incident-open', 'incident-reminder', 'incident-flapping', 'escalation', 'incident-resolved') -contains $e.kind) { $latest[[string]$e.incident_key] = $e }
+        }
+        $stillOpen = @($latest.Values | Where-Object { $_.kind -ne 'incident-resolved' } | Sort-Object host, name)
+        $hosts = @($events | ForEach-Object { $_.host } | Sort-Object -Unique)
+        $lines = @()
+        $lines += ("{0} {1} h to {2:yyyy-MM-dd HH:mm}Z, hosts [{3}]: opened {4}, resolved {5}, escalations {6}, remediations {7}, still open {8}" -f `
+                $(if ($Fleet) { 'fleet' } else { Get-FleetHostName }), $SinceHours, $now, ($hosts -join ' '),
+            [int]$byKind['incident-open'], [int]$byKind['incident-resolved'], [int]$byKind['escalation'], [int]$byKind['remediation'], $stillOpen.Count)
+        foreach ($o in ($stillOpen | Select-Object -First 12)) {
+            $lines += ("- OPEN [{0}] {1} {2}/{3} ({4}) since {5}: {6}" -f $o.severity, $o.host, $o.source, $o.name, $o.check, (ConvertTo-FleetIso (ConvertFrom-FleetIso $o.ts)).Substring(0, 16), ([string]$o.message).Substring(0, [Math]::Min(120, ([string]$o.message).Length)))
+        }
+        if ($stillOpen.Count -gt 12) { $lines += ("- ... and {0} more" -f ($stillOpen.Count - 12)) }
+        $last = Read-FleetJsonFile -Path (Join-Path (Get-FleetPath -Kind state -NoCreate) 'last-sweep.json') -Default @{}
+        foreach ($d in @($last.disks)) { if ($d) { $lines += ("- disk {0} {1}" -f (Get-FleetHostName), $d) } }
+        $msg = ($lines -join "`n")
+        $ev = New-FleetLedgerEvent -Source digest -Name $(if ($Fleet) { 'fleet' } else { Get-FleetHostName }) -Check daily -Kind digest -Status $(if ($stillOpen.Count) { 'degraded' } else { 'ok' }) -Severity info -Message $msg `
+            -Details @{ opened = [int]$byKind['incident-open']; resolved = [int]$byKind['incident-resolved']; escalations = [int]$byKind['escalation']; still_open = $stillOpen.Count; hosts = $hosts }
+        if (-not $DryRun) {
+            $script:FleetEffectivePolicy = $policy
+            try { $null = Write-FleetLedgerEvent -LedgerEvent $ev -NoForward:$NoSend }
+            finally { $script:FleetEffectivePolicy = $null }
+        }
+        return [pscustomobject]@{ Message = $msg; StillOpen = $stillOpen.Count; Event = $ev }
     }
-    $stillOpen = @($latest.Values | Where-Object { $_.kind -ne 'incident-resolved' } | Sort-Object host, name)
-    $hosts = @($events | ForEach-Object { $_.host } | Sort-Object -Unique)
-    $lines = @()
-    $lines += ("{0} {1} h to {2:yyyy-MM-dd HH:mm}Z, hosts [{3}]: opened {4}, resolved {5}, escalations {6}, remediations {7}, still open {8}" -f `
-            $(if ($Fleet) { 'fleet' } else { Get-FleetHostName }), $SinceHours, $now, ($hosts -join ' '),
-        [int]$byKind['incident-open'], [int]$byKind['incident-resolved'], [int]$byKind['escalation'], [int]$byKind['remediation'], $stillOpen.Count)
-    foreach ($o in ($stillOpen | Select-Object -First 12)) {
-        $lines += ("- OPEN [{0}] {1} {2}/{3} ({4}) since {5}: {6}" -f $o.severity, $o.host, $o.source, $o.name, $o.check, (ConvertTo-FleetIso (ConvertFrom-FleetIso $o.ts)).Substring(0, 16), ([string]$o.message).Substring(0, [Math]::Min(120, ([string]$o.message).Length)))
-    }
-    if ($stillOpen.Count -gt 12) { $lines += ("- ... and {0} more" -f ($stillOpen.Count - 12)) }
-    $last = Read-FleetJsonFile -Path (Join-Path (Get-FleetPath -Kind state -NoCreate) 'last-sweep.json') -Default @{}
-    foreach ($d in @($last.disks)) { if ($d) { $lines += ("- disk {0} {1}" -f (Get-FleetHostName), $d) } }
-    $msg = ($lines -join "`n")
-    $ev = New-FleetLedgerEvent -Source digest -Name $(if ($Fleet) { 'fleet' } else { Get-FleetHostName }) -Check daily -Kind digest -Status $(if ($stillOpen.Count) { 'degraded' } else { 'ok' }) -Severity info -Message $msg `
-        -Details @{ opened = [int]$byKind['incident-open']; resolved = [int]$byKind['incident-resolved']; escalations = [int]$byKind['escalation']; still_open = $stillOpen.Count; hosts = $hosts }
-    if (-not $DryRun) {
-        $script:FleetEffectivePolicy = $policy
-        try { $null = Write-FleetLedgerEvent -LedgerEvent $ev -NoForward:$NoSend }
-        finally { $script:FleetEffectivePolicy = $null }
-    }
-    return [pscustomobject]@{ Message = $msg; StillOpen = $stillOpen.Count; Event = $ev }
+    finally { $script:FleetReadOnly = $savedReadOnly }
 }

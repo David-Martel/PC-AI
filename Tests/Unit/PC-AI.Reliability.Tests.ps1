@@ -972,6 +972,19 @@ Describe 'PC-AI.Reliability' {
             InModuleScope PC-AI.Reliability -Parameters @{ L = $log } { param($L) Read-FleetLogTail -Path $L } | Should -Be 'line'
         }
 
+        It 'reports a configured log that does not exist as a read failure, not as silence' {
+            # Same class as the bash finding on #1600: a log rule whose log is missing produced only a neutral
+            # observation, so a job writing nowhere (or to a moved log) was never reported. A task that has never
+            # run has no log yet and stays neutral.
+            $missing = Join-Path $TestDrive 'nowhere\job-*.log'
+            $o = @(InModuleScope PC-AI.Reliability -Parameters @{ L = $missing } { param($L) Get-FleetLogRuleObservation -Rule @{ log = $L } -Tasks @{} })
+            ($o | Where-Object Check -EQ 'log-rule').Status | Should -Be 'skipped'
+            ($o | Where-Object Check -EQ 'log-read').Status | Should -Be 'failed'
+            $never = @{ '\t\new' = [pscustomobject]@{ LastRunTime = $null } }
+            $o = @(InModuleScope PC-AI.Reliability -Parameters @{ L = $missing; T = $never } { param($L, $T) Get-FleetLogRuleObservation -Rule @{ log = $L; task = '\t\new' } -Tasks $T })
+            @($o | Where-Object Check -EQ 'log-read').Count | Should -Be 0
+        }
+
         It 'does not act again when its budget state exists but cannot be read' {
             # Detects the reset budget from the fifth review of #346: an unreadable state file was moved aside and
             # treated as "no attempts yet", so the playbook acted again.
@@ -1118,6 +1131,12 @@ Describe 'PC-AI.Reliability' {
             # A real CIM failure is a NON-terminating error, which -ErrorAction SilentlyContinue used to swallow.
             Mock -ModuleName PC-AI.Reliability Get-CimInstance { Write-Error -Message 'WMI repository is broken' -ErrorId 'HRESULT 0x80041010' -Category InvalidOperation }
             { InModuleScope PC-AI.Reliability { Get-FleetProcessData } } | Should -Throw '*WMI*'
+        }
+
+        It 'raises when the interactive-session query fails instead of reporting nobody logged on' {
+            if (-not (Get-Command Get-CimInstance -ErrorAction SilentlyContinue)) { Set-ItResult -Skipped -Because 'no CIM'; return }
+            Mock -ModuleName PC-AI.Reliability Get-CimInstance { Write-Error -Message 'RPC server is unavailable' -ErrorId 'HRESULT 0x800706ba' -Category ConnectionError -ErrorAction Continue }
+            { InModuleScope PC-AI.Reliability { Get-FleetInteractiveUserData } } | Should -Throw '*RPC server*'
         }
 
         It 'raises when the connection query fails, and still counts a port with no connections as zero' {

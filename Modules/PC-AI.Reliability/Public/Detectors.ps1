@@ -53,7 +53,11 @@ function Get-FleetScheduledTaskData {
 function Get-FleetInteractiveUserData {
     <# Users with an interactive desktop right now (owners of explorer.exe), lowercase 'domain\user'. #>
     $users = @()
-    foreach ($p in @(Get-CimInstance Win32_Process -Filter "Name='explorer.exe'" -ErrorAction SilentlyContinue)) {
+    # A failed query is not "nobody is logged on": raise it, so the sweep records a detector error.
+    $cimErrors = @()
+    $shells = @(Get-CimInstance Win32_Process -Filter "Name='explorer.exe'" -ErrorAction SilentlyContinue -ErrorVariable cimErrors)
+    if (@($cimErrors).Count -gt 0) { throw "interactive-session query failed: $($cimErrors[0].Exception.Message)" }
+    foreach ($p in $shells) {
         $o = Invoke-CimMethod -InputObject $p -MethodName GetOwner -ErrorAction SilentlyContinue
         if ($o -and $o.User) { $users += ('{0}\{1}' -f $o.Domain, $o.User).ToLowerInvariant() }
     }
@@ -311,7 +315,12 @@ function Get-FleetLogRuleObservation {
     $logGlob = Resolve-FleetPolicyPath ([string]$Rule.log)
     $files = @(Get-ChildItem -Path $logGlob -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTimeUtc -Descending)
     if ($files.Count -eq 0) {
-        return (New-FleetObservation -Source task -Name $name -Check log-rule -Status skipped -Message "no log matches $($Rule.log)")
+        # No log is no evidence, so the rule stays neutral. But a configured log that is missing is itself a
+        # failure to report (the job writes nowhere, or the log moved), unless the task has never run yet.
+        $skip = New-FleetObservation -Source task -Name $name -Check log-rule -Status skipped -Message "no log matches $($Rule.log)"
+        $task = $null; if ($taskName) { $task = $Tasks[$taskName] }
+        if ($task -and [string]::IsNullOrWhiteSpace([string]$task.LastRunTime)) { return $skip }
+        return @($skip, (New-FleetObservation -Source task -Name $name -Check log-read -Status failed -Severity low -Message "configured log is missing: no file matches $($Rule.log)"))
     }
     $log = $files[0]
     $t = $null; if ($taskName) { $t = $Tasks[$taskName] }

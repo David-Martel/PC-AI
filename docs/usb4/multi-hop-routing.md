@@ -40,7 +40,8 @@ things prevented traffic between Gen7 and Gen9 (observed 2026-11-21):
    host a router.
 4. For a routed pair, it adds a `/32` host route on each hop that does not share
    the destination's /30, and enables IPv4 forwarding on both USB4 interfaces
-   of each transit host. Return routes come from the reverse pair.
+   of each transit host. Replies are planned explicitly: the reversed path gets
+   routes to the address the source sent from, its end of the first segment.
 5. Each host's commands begin with a guard. The guard checks that every planned
    ifIndex still carries the observed MAC and interface GUID, and stops if the
    adapter has been replaced. The plan expires with the oldest observation's TTL.

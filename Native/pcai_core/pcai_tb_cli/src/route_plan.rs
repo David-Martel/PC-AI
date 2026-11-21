@@ -470,33 +470,47 @@ pub fn build_route_plan(
                 continue;
             }
             let Some(destination) = destination else { continue };
-            // Every hop that is not already on the destination's /30 needs a host route.
-            for (i, node) in path.iter().enumerate().take(path.len() - 1) {
-                let edge = hop_edge(i);
-                let (Some(out), Some(next)) = (edge.end(node), edge.other(node)) else {
-                    continue;
-                };
-                if same_slash30(out.address, destination) {
-                    continue;
+            // Replies go to the address the source sent from: its end of the first segment.
+            // Plan that leg explicitly along the reversed path; the independently computed
+            // reverse pair can choose an equal-length path that reaches a different address.
+            let source = hop_edge(0).end(from).map(|end| end.address);
+            let mut legs = vec![(path.clone(), destination, format!("{from} -> {to}"))];
+            if let Some(source) = source {
+                legs.push((
+                    path.iter().rev().cloned().collect(),
+                    source,
+                    format!("{to} -> {from} (reply)"),
+                ));
+            }
+            for (leg, target_ip, note) in &legs {
+                // Every hop that is not already on the target's /30 needs a host route.
+                for (i, node) in leg.iter().enumerate().take(leg.len() - 1) {
+                    let edge = &edge_list[adjacency[node][&leg[i + 1]]];
+                    let (Some(out), Some(next)) = (edge.end(node), edge.other(node)) else {
+                        continue;
+                    };
+                    if same_slash30(out.address, *target_ip) {
+                        continue;
+                    }
+                    let index = out.interface_index;
+                    let gateway = next.address;
+                    push(
+                        node,
+                        RouteAction {
+                            kind: RouteActionKind::HostRoute,
+                            interface_index: index,
+                            target: format!("{target_ip}/32 via {gateway}"),
+                            already_present: false,
+                            apply: Some(format!(
+                                "New-NetRoute -InterfaceIndex {index} -AddressFamily IPv4 -DestinationPrefix {target_ip}/32 -NextHop {gateway} -RouteMetric {metric}"
+                            )),
+                            rollback: Some(format!(
+                                "Remove-NetRoute -InterfaceIndex {index} -DestinationPrefix {target_ip}/32 -NextHop {gateway} -Confirm:$false"
+                            )),
+                            note: Some(note.clone()),
+                        },
+                    );
                 }
-                let index = out.interface_index;
-                let gateway = next.address;
-                push(
-                    node,
-                    RouteAction {
-                        kind: RouteActionKind::HostRoute,
-                        interface_index: index,
-                        target: format!("{destination}/32 via {gateway}"),
-                        already_present: false,
-                        apply: Some(format!(
-                            "New-NetRoute -InterfaceIndex {index} -AddressFamily IPv4 -DestinationPrefix {destination}/32 -NextHop {gateway} -RouteMetric {metric}"
-                        )),
-                        rollback: Some(format!(
-                            "Remove-NetRoute -InterfaceIndex {index} -DestinationPrefix {destination}/32 -NextHop {gateway} -Confirm:$false"
-                        )),
-                        note: Some(format!("{from} -> {to}")),
-                    },
-                );
             }
             for (i, node) in path.iter().enumerate().take(path.len() - 1).skip(1) {
                 transit_used.insert(node.clone());
@@ -850,5 +864,124 @@ mod tests {
             .count();
         assert_eq!(t1_routes, 1, "T1 needs exactly one route, to B's far /30");
         assert!(!plan.warnings.iter().any(|w| w.contains("conflicting")));
+    }
+
+    fn mesh_observation(links: &[(&str, &str)]) -> FabricObservation {
+        use crate::fabric_plan::HostObservation;
+        let mut hosts: BTreeMap<String, Vec<crate::fabric_plan::InterfaceObservation>> = BTreeMap::new();
+        for (k, (x, y)) in links.iter().enumerate() {
+            let k = u32::try_from(k).unwrap() + 1;
+            let (gx, gy) = (2 * k + 1, 2 * k + 2);
+            let (ax, ay) = (format!("169.254.{k}.1"), format!("169.254.{k}.2"));
+            hosts
+                .entry((*x).to_string())
+                .or_default()
+                .push(chain_interface(gx, 10 + gx, &ax, gy, &ay));
+            hosts
+                .entry((*y).to_string())
+                .or_default()
+                .push(chain_interface(gy, 10 + gy, &ay, gx, &ax));
+        }
+        FabricObservation {
+            schema: crate::fabric_plan::OBSERVATION_SCHEMA.into(),
+            ttl_seconds: 300,
+            hosts: hosts
+                .into_iter()
+                .map(|(host, interfaces)| HostObservation {
+                    observed_at_utc: now(),
+                    host,
+                    source: crate::fabric_plan::ObservationSource::ManagementSsh,
+                    interfaces,
+                    reference_applications: vec![],
+                })
+                .collect(),
+        }
+    }
+
+    /// Follows on-link /30s and planned host routes from `start` toward `target`.
+    fn delivers(plan: &RoutePlan, start: &str, target: Ipv4Addr) -> bool {
+        let ends: Vec<&PlannedEdgeEnd> = plan.edges.iter().flat_map(|e| e.endpoints.iter()).collect();
+        let owner = |ip: Ipv4Addr| {
+            ends.iter()
+                .find(|e| e.ipv4_address == ip.to_string())
+                .map(|e| e.host.clone())
+        };
+        let mut at = start.to_string();
+        for _ in 0..16 {
+            if owner(target).as_deref() == Some(at.as_str()) {
+                return true;
+            }
+            let on_link = ends
+                .iter()
+                .find(|e| e.host == at && same_slash30(e.ipv4_address.parse().unwrap(), target));
+            if on_link.is_some() {
+                at = owner(target).unwrap();
+                continue;
+            }
+            let Some(route) = plan.hosts.iter().find(|h| h.host == at).and_then(|h| {
+                h.actions.iter().find(|a| {
+                    a.kind == RouteActionKind::HostRoute && a.target.starts_with(&format!("{target}/32 via "))
+                })
+            }) else {
+                return false;
+            };
+            let gateway: Ipv4Addr = route.target.rsplit(' ').next().unwrap().parse().unwrap();
+            at = owner(gateway).unwrap();
+        }
+        false
+    }
+
+    fn assert_every_routed_pair_round_trips(plan: &RoutePlan) {
+        for path in plan.paths.iter().filter(|p| p.status != PathStatus::Blocked) {
+            let destination: Ipv4Addr = path.destination_ipv4.as_deref().unwrap().parse().unwrap();
+            assert!(
+                delivers(plan, &path.from, destination),
+                "{} cannot reach {}",
+                path.from,
+                path.to
+            );
+            let first = plan
+                .edges
+                .iter()
+                .find(|e| {
+                    e.endpoints.iter().any(|x| x.host == path.from)
+                        && e.endpoints.iter().any(|x| x.host == path.hops[1])
+                })
+                .unwrap();
+            let source: Ipv4Addr = first
+                .endpoints
+                .iter()
+                .find(|x| x.host == path.from)
+                .unwrap()
+                .ipv4_address
+                .parse()
+                .unwrap();
+            assert!(
+                delivers(plan, &path.to, source),
+                "{} cannot reply to {} at {source}",
+                path.to,
+                path.from
+            );
+        }
+    }
+
+    // Protects: replies reach the address a packet was actually sent from. Detects: return
+    // routes planned only from the independently chosen reverse path, which with equal-length
+    // alternatives reaches a different source address (codex review of #335: a-e-c-d forward,
+    // d-b-f-a reverse). Needs: the reviewer's six-host mesh. Breadcrumb: reply legs.
+    #[test]
+    fn replies_reach_the_forward_source_address_on_equal_cost_meshes() {
+        let links = [("a", "e"), ("a", "f"), ("b", "d"), ("b", "f"), ("c", "d"), ("c", "e")];
+        let known: BTreeSet<String> = ["a", "b", "c", "d", "e", "f"].into_iter().map(String::from).collect();
+        let all: Vec<&str> = known.iter().map(String::as_str).collect();
+        let plan = build_route_plan(&mesh_observation(&links), &policy(&all), &known, now()).unwrap();
+        assert_eq!(plan.edges.len(), 6);
+        assert_every_routed_pair_round_trips(&plan);
+
+        let chain = [("a", "b"), ("b", "c"), ("c", "d")];
+        let plan = build_route_plan(&mesh_observation(&chain), &policy(&["b", "c"]), &known, now()).unwrap();
+        assert_every_routed_pair_round_trips(&plan);
+        let recorded = build_route_plan(&observation(), &policy(&["dtm-super-nuc"]), &fleet(), now()).unwrap();
+        assert_every_routed_pair_round_trips(&recorded);
     }
 }

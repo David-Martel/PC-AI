@@ -119,13 +119,15 @@ function Find-CredentialInText {
 
 # ---------------------------------------------------------------------------
 # Positive control. A scanner that cannot demonstrate a catch is not a scanner.
+# Fixtures with a recognizable key prefix are assembled from two pieces so the source text itself
+# carries no credential-shaped literal (reviewers and secret scanners quote what they read).
 # ---------------------------------------------------------------------------
 $canarySamples = @(
     '$password = "Gg7#kQ2vRm9Lz"'                                      # pragma: allowlist secret
-    '$apiKey = "sk-9fJ2mQ7vXb3nR8tZ4wY6cD1a"'                          # pragma: allowlist secret
+    ('$apiKey = "sk' + '-9fJ2mQ7vXb3nR8tZ4wY6cD1a"')                          # pragma: allowlist secret
     '$authToken = "hZ3q9WvK2mT7xR4bN8pL"'                              # pragma: allowlist secret
     'ConvertTo-SecureString -String "Vb7#nQ2mZx9Kt" -AsPlainText -Force' # pragma: allowlist secret
-    'AKIAIOSFODNN7EXAMPLE'  # pragma: allowlist secret
+    ('AKIA' + 'IOSFODNN7EXAMPLE')  # pragma: allowlist secret
 )
 foreach ($sample in $canarySamples) {
     if (@(Find-CredentialInText -Text $sample -Source '(canary)').Count -eq 0) {

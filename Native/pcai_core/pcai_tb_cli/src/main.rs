@@ -1,6 +1,8 @@
 use anyhow::Result;
 use pcai_tb::benchmark::run_architecture_benchmarks;
-use pcai_tb::configure::{check_applied_actions, install_framework, register_local_thunderbolt_fabric};
+use pcai_tb::configure::{
+    check_applied_actions, install_framework, register_local_thunderbolt_fabric, unregister_local_thunderbolt_fabric,
+};
 use pcai_tb::fabric_plan::{build_plan, FabricObservation, FabricPlan};
 use pcai_tb::handshake::discover_thunderbolt_peers;
 use pcai_tb::identity::{load_peer_registry, resolve_peer_identity};
@@ -26,6 +28,7 @@ SUBCOMMANDS:
   identity        Compute deterministic SHA-256 IPv6 LLA, ULA, and commutative pairwise /30 IPv4
   discover        Run async multiplexed peer discovery (NTLM Type-2 AV_PAIR + SSH banner + NDP/ARP)
   register        Configure local deterministic LLA/ULA, MTU=62000, and per-port /128 ULA host routes
+  unregister      Plan (or with --apply, remove) the addresses and /128 routes that register owns; MTU/metric untouched
   lifecycle       Evaluate USB4 lifecycle states (asleep/disconnected/probing/ready), TTL, standby 506/507, and stale route withdrawal
   topology-plan   Project fresh bilateral USB4 observations into separate segments; never changes networking
   route-plan      Plan /30 addressing, host routes and transit forwarding across USB4 hops and hubs; emits commands, never applies
@@ -39,6 +42,7 @@ SUBCOMMANDS:
 COMMON OPTIONS:
   --computer <name>          Target computer name (defaults to local hostname)
   --peer <name>              Peer computer name for commutative pairwise /30 IPv4 or route hint
+  --adapter <GUID|MAC>       Select the USB4 adapter for --peer (register/unregister); needed on hub/multi-port hosts
   --registry <path>          Explicit path to thunderbolt-peers.json
   --output <path>            Output file path for V&V evidence artifact (used by vnv)
   --input <path>             Explicit observation JSON for topology-plan (maximum 1 MiB)
@@ -48,7 +52,7 @@ COMMON OPTIONS:
   --iterations <n>           Benchmark iteration count (default: 10)
   --mtu <bytes>              Target USB4 P2P MTU in bytes (default: 62000, range: 1280..=65535)
   --metric <n>               Target interface/route metric (default: 5, range: 1..=9999)
-  --apply                    Apply changes (without --apply, register, switch, observe, and install run in dry-run mode)
+  --apply                    Apply changes (without --apply, register, unregister, switch, observe, and install run in dry-run mode)
   --assign-pairwise-ipv4     Also assign deterministic /30 IPv4 address during register
   --include-disconnected     Include disconnected/down USB4 P2P adapters
   --include-unreachable      Include unreachable candidate slots in discover output
@@ -84,6 +88,7 @@ pub struct ParsedCliArgs {
     pub subcommand: String,
     pub computer: Option<String>,
     pub peer: Option<String>,
+    pub adapter: Option<String>,
     pub registry: Option<PathBuf>,
     pub output: Option<PathBuf>,
     pub input: Option<PathBuf>,
@@ -110,6 +115,7 @@ pub fn parse_cli_args(args: &[String]) -> Result<ParsedCliArgs> {
         subcommand,
         computer: None,
         peer: None,
+        adapter: None,
         registry: None,
         output: None,
         input: None,
@@ -139,6 +145,10 @@ pub fn parse_cli_args(args: &[String]) -> Result<ParsedCliArgs> {
             "--peer" | "-p" => {
                 let val = require_arg_value(args, i, flag)?;
                 parsed.peer = Some(val.to_string());
+                i += 1;
+            }
+            "--adapter" => {
+                parsed.adapter = Some(require_arg_value(args, i, flag)?.to_string());
                 i += 1;
             }
             "--registry" | "-r" => {
@@ -334,13 +344,17 @@ async fn main() -> Result<()> {
     }
 
     match parsed.subcommand.as_str() {
-        "status" | "identity" | "discover" | "register" | "lifecycle" | "switch" | "verify-custody" | "observe"
-        | "vnv" | "benchmark" | "install" => {
+        "status" | "identity" | "discover" | "register" | "unregister" | "lifecycle" | "switch" | "verify-custody"
+        | "observe" | "vnv" | "benchmark" | "install" => {
             load_peer_registry(parsed.registry.as_deref())?;
         }
         other => {
             anyhow::bail!("Unknown subcommand '{other}'. Run 'pcai-tb --help' for usage.");
         }
+    }
+
+    if parsed.adapter.is_some() && !matches!(parsed.subcommand.as_str(), "register" | "unregister") {
+        anyhow::bail!("--adapter is only supported by register and unregister");
     }
 
     match parsed.subcommand.as_str() {
@@ -376,9 +390,25 @@ async fn main() -> Result<()> {
                 parsed.metric,
                 parsed.assign_pairwise_ipv4,
                 parsed.peer.as_deref(),
+                parsed.adapter.as_deref(),
                 parsed.registry.as_deref(),
             )
             .await?;
+            emit_json(&report, parsed.compact)?;
+            if parsed.apply {
+                check_applied_actions(&report.actions)?;
+            }
+        }
+        "unregister" => {
+            if parsed.computer.is_some() || parsed.assign_pairwise_ipv4 {
+                anyhow::bail!("unregister targets this machine and accepts only --peer, --adapter, --registry, --apply and --compact");
+            }
+            let report = unregister_local_thunderbolt_fabric(
+                parsed.apply,
+                parsed.peer.as_deref(),
+                parsed.adapter.as_deref(),
+                parsed.registry.as_deref(),
+            )?;
             emit_json(&report, parsed.compact)?;
             if parsed.apply {
                 check_applied_actions(&report.actions)?;

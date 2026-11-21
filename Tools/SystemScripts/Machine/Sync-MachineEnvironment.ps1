@@ -7,7 +7,7 @@
     3. Purges all orphaned *_PowerToys_* backup keys from HKCU:\Environment.
     4. Sets canonical developer, Rust/Cargo/SCCache, CMake, GitGuard, and PowerShell environment variables directly in HKCU:\Environment (with CARGO_PREFLIGHT=0 so cargo/rust-analyzer never block on PowerShell hooks).
     5. Deduplicates, removes dead paths, and deterministically orders HKCU:\Environment\Path with user shim directories first (~/.local/bin, ~/bin, ~/.cargo/bin, ~/.dotnet/tools, ~/go/bin, %LOCALAPPDATA%\agy\bin).
-    6. Sanitizes PSModulePath (removing dead C:\codedev\PC_AI\relative and OneDrive duplicate shadowing) and syncs CargoTools & PC-AI modules to host-local module roots.
+    6. (Not done here.) PSModulePath sanitising and module copies stay in the host's installed script until they get their own reviewed change.
     7. Repairs broken symlinks in ~/bin and ~/.local/bin and ensures git-guard shims exist in ~/bin.
 .PARAMETER DryRun
     Print what the PATH step would do and exit before any write: no backup, registry, module, link or file change.
@@ -28,7 +28,7 @@ if ($Help -or $RemainingArgs -contains '--help' -or $RemainingArgs -contains '-h
     'Usage: Sync-MachineEnvironment.ps1 [-DryRun] [-PassThru] [-h | --help | -Help]'
     '  -DryRun   print the planned PATH change and exit before any write (no backups, registry, modules, links or files)'
     '  -PassThru return the summary object'
-    'Writes: HKCU environment and PATH, PSModulePath, host-local module copies, ~/bin and ~/.local/bin shims, ~/.machine/backups.'
+    'Writes: HKCU environment and PATH, ~/bin and ~/.local/bin shims and hardlinks, ~/.machine/backups.'
     return
 }
 
@@ -56,7 +56,7 @@ if ($DryRun) {
     "  CARGO_HOME would be $plannedCargoHome; build jobs would be $buildJobs"
     "  user PATH: $((Get-MachinePathRegistry -Scope User).Entries.Count) -> $($dryPlan.UserEntries.Count) entries"
     foreach ($r in ($dryPlan.Removed | Where-Object Scope -eq 'User')) { "    remove $($r.Entry) ($($r.Reason))" }
-    '  not evaluated in a dry run: HKCU backup and environment values, PowerToys keys, PSModulePath, module copies, link and shim repair.'
+    '  not evaluated in a dry run: HKCU backup and environment values, PowerToys keys, link and shim repair.'
     return
 }
 
@@ -205,102 +205,11 @@ foreach ($kv in $canonicalEnv.GetEnumerator()) {
 $pathContext = Get-MachinePathContext -CargoHome $cargoHome
 
 # ---------------------------------------------------------------------------
-# 5. Sanitize PSModulePath & eliminate duplicate OneDrive module shadowing
+# 5. (removed) PSModulePath sanitising and module copies
 # ---------------------------------------------------------------------------
-$localAppModules   = Join-Path $env:LOCALAPPDATA 'PowerShell\Modules'
-$localShareModules = Join-Path $UserHomeReal '.local\share\powershell\Modules'
-$docsModules       = Join-Path $UserHomeReal 'Documents\PowerShell\Modules'
-$oneDriveModules   = Join-Path $UserHomeReal 'OneDrive\Documents\PowerShell\Modules'
-$pcaiRepoModules   = 'C:\codedev\PC_AI\Modules'
-
-New-Item -ItemType Directory -Force -Path $localAppModules, $localShareModules, $docsModules | Out-Null
-
-# Sync authoritative CargoTools from C:\codedev\CargoTools into localAppModules
-if (Test-Path -LiteralPath 'C:\codedev\CargoTools\CargoTools.psd1') {
-    # Staged, size-verified and swapped in; the previous installation is backed up and restored if anything fails.
-    $ctDest = Join-Path $localAppModules 'CargoTools'
-    [void](Publish-MachineModuleDirectory -Source 'C:\codedev\CargoTools' -Destination $ctDest -BackupRoot (Join-Path $backupRoot 'module-publish') -RootId 'live')
-}
-
-# Sync PcaiNativeBridge into localAppModules so sanitized PSModulePath (which excludes OneDrive)
-# retains the matched pcai_core_lib.dll + PcaiNative.dll pair locally off OneDrive.
-$oneDriveBridge = Join-Path $oneDriveModules 'PcaiNativeBridge'
-$localBridge    = Join-Path $localAppModules 'PcaiNativeBridge'
-if ((Test-Path -LiteralPath (Join-Path $oneDriveBridge 'PcaiNativeBridge.psd1')) -and
-    -not (Test-Path -LiteralPath (Join-Path $localBridge 'bin\pcai_core_lib.dll'))) {
-    New-Item -ItemType Directory -Force -Path $localBridge | Out-Null
-    Copy-Item -Path (Join-Path $oneDriveBridge '*') -Destination $localBridge -Recurse -Force
-}
-
-# Remove duplicate/stale CargoTools and PC-AI* modules from OneDrive\Documents\PowerShell\Modules
-# and Documents\PowerShell\Modules so localAppModules / C:\codedev\PC_AI\Modules are never shadowed
-$staleBackupDir = Join-Path $backupRoot 'stale-modules'
-New-Item -ItemType Directory -Force -Path $staleBackupDir | Out-Null
-foreach ($dupRoot in @($oneDriveModules, $docsModules, $localShareModules)) {
-    if (Test-Path -LiteralPath $dupRoot) {
-        Get-ChildItem -LiteralPath $dupRoot -Directory -Force -ErrorAction SilentlyContinue |
-            Where-Object { $_.Name -eq 'CargoTools' -or $_.Name -like 'PC-AI*' } |
-            ForEach-Object {
-                $modDir = $_
-                if ($modDir.LinkType) {
-                    try { [IO.Directory]::Delete($modDir.FullName) } catch { Remove-Item -LiteralPath $modDir.FullName -Force -ErrorAction SilentlyContinue }
-                } else {
-                    # The backup identity is unique per source root (the full root path, hashed): the OneDrive and Documents roots
-                    # both sit under a folder named PowerShell and used to share one destination. The live directory is removed
-                    # only after a staged, size-verified backup was published; on failure it stays and a warning is shown.
-                    $rootId = '{0}-{1}' -f (Split-Path (Split-Path (Split-Path $dupRoot -Parent) -Parent) -Leaf), ([BitConverter]::ToString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($dupRoot.ToLowerInvariant()))).Replace('-', '').Substring(0, 8).ToLowerInvariant())
-                    if (Backup-MachineModuleDirectory -Source $modDir.FullName -BackupRoot $staleBackupDir -RootId $rootId) {
-                        # Never uninstall the only copy: a validated replacement must exist in a kept root first. When none does,
-                        # this copy is consolidated into the host-local root (staged and verified) and only then removed from here.
-                        $hasReplacement = Test-MachineModuleReplacement -Name $modDir.Name -ReplacementRoot @($localAppModules, $pcaiRepoModules)
-                        if (-not $hasReplacement -and (Publish-MachineModuleDirectory -Source $modDir.FullName -Destination (Join-Path $localAppModules $modDir.Name) -BackupRoot (Join-Path $backupRoot 'module-publish') -RootId 'consolidate')) {
-                            $hasReplacement = Test-MachineModuleReplacement -Name $modDir.Name -ReplacementRoot @($localAppModules)
-                        }
-                        if ($hasReplacement) { Remove-Item -LiteralPath $modDir.FullName -Recurse -Force -ErrorAction SilentlyContinue }
-                        else { Write-Warning "Kept $($modDir.FullName): no validated replacement for $($modDir.Name) exists in a kept module root." }
-                    }
-                }
-            }
-    }
-}
-# If PC_AI repo exists at C:\codedev\PC_AI\Modules, remove duplicate PC-AI.* copies from localAppModules that exist in C:\codedev\PC_AI\Modules
-if (Test-Path -LiteralPath $pcaiRepoModules) {
-    Get-ChildItem -LiteralPath $localAppModules -Directory -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -like 'PC-AI.*' -and (Test-MachineModuleReplacement -Name $_.Name -ReplacementRoot @($pcaiRepoModules)) } |
-        ForEach-Object {
-            Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
-        }
-    $rootPcaiDest = Join-Path $localAppModules 'PC-AI'
-    $rootPcaiBackup = Get-ChildItem -LiteralPath $staleBackupDir -Directory -Filter '*_PC-AI' -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not (Test-Path -LiteralPath $rootPcaiDest) -and $rootPcaiBackup) {
-        Copy-Item -LiteralPath $rootPcaiBackup.FullName -Destination $rootPcaiDest -Recurse -Force
-    }
-}
-
-$desiredModDirs = @(
-    $localAppModules,
-    $localShareModules,
-    $pcaiRepoModules,
-    $docsModules
-) | Where-Object { Test-Path -LiteralPath $_ }
-
-$userPsModulePath = ($desiredModDirs -join ';')
-[Environment]::SetEnvironmentVariable('PSModulePath', $userPsModulePath, 'User')
-
-# Reconstruct current session $env:PSModulePath cleanly (without C:\codedev\PC_AI\relative or OneDrive shadowing)
-$sysModDirs = @(
-    'C:\Program Files\PowerShell\Modules',
-    (Join-Path $PSHOME 'Modules'),
-    'C:\Program Files\WindowsPowerShell\Modules',
-    'C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules'
-) | Where-Object { Test-Path -LiteralPath $_ }
-$modSeen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-$cleanSessionMods = [System.Collections.Generic.List[string]]::new()
-foreach ($m in ($desiredModDirs + $sysModDirs)) {
-    $norm = $m.TrimEnd('\')
-    if ($modSeen.Add($norm)) { $cleanSessionMods.Add($norm) }
-}
-$env:PSModulePath = ($cleanSessionMods -join ';')
+# Module publication and PSModulePath rewriting are not part of the PATH policy and are not performed here. The copy of this
+# script installed under ~/.machine keeps doing them until a separate change gives them staged, validated publication with
+# replacement checks and configuration merging (see docs/MACHINE_PATH_POLICY.md, Deferred).
 
 # ---------------------------------------------------------------------------
 # 6. User PATH from machine-path.policy.json
@@ -520,7 +429,6 @@ $summary = [pscustomobject]@{
     CanonicalEnvVarsSet   = $canonicalEnv.Count
     UserPathEntries       = $cleanUserPath.Count
     RemovedUserPaths      = $removedUserPaths
-    UserPSModulePath      = $userPsModulePath
     RepairedLinks         = $repairedLinks
     PathAudit             = $pathAudit
 }

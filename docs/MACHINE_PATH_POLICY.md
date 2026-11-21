@@ -72,6 +72,10 @@ broadcasts `WM_SETTINGCHANGE` for running Explorer-launched shells.
 
 ## Deferred on purpose
 
+* **Module publication and PSModulePath rewriting** are not in the tracked `Sync-MachineEnvironment.ps1`. The copy installed under
+  `~/.machine` still performs them. They are a separate concern (replacement validation including `RootModule` payloads and
+  syntax, linked installs, preserving installed `Config` overrides as `Tools/Install-PcaiDevModules.ps1` does, and keeping OneDrive
+  discoverable until a migration succeeds) and get their own change instead of growing this one.
 * The stray `~\.cargo` and `~\.rustup` homes keep being written by a context that lacks `CARGO_HOME`/`RUSTUP_HOME`. Codex's
   `shell_environment_policy.inherit = "core"` is the leading suspect. Pruning them needs the Codex MCP commands repointed first.
 * Copies that differ between `~\bin` and `~\.local\bin` (`vigilclarius-*`) need an owner decision; modification time does not

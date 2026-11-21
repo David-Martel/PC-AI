@@ -136,7 +136,9 @@ if (-not $SkipArchive) {
                 $lines = @(Get-Content -LiteralPath $m.Path | Where-Object { $_ -and $_ -notmatch '^\s*(@echo off|rem\b|::)' })
                 if ($lines.Count -eq 1 -and ($lines -join ' ') -match '^\s*(?:call\s+)?"?(?<t>[A-Za-z]:\\[^"]+?\.(?:exe|cmd|bat))"?\s+%\*\s*$' -and
                     ([IO.Path]::GetFileNameWithoutExtension($Matches['t']).ToLowerInvariant() -eq $name) -and (Test-Path -LiteralPath $Matches['t']) -and
-                    ($others | Where-Object { $_.Path -eq $Matches['t'] }) -and
+                    # The target must WIN once this wrapper (and any wrapper already queued) is gone; merely being on PATH is not enough,
+                    # another same-named executable ahead of it would change what runs.
+                    (Test-MachineShimReplacement -Target $Matches['t'] -Candidate @($cands | Where-Object { $_.Ext -in '.com', '.exe', '.bat', '.cmd' -and $_.Path -ne $m.Path -and @($archive | ForEach-Object { $_.Path }) -notcontains $_.Path } | ForEach-Object { $_.Path })) -and
                     $Matches['t'] -notlike ((Join-Path $ctx.UserHome 'AppData') + '\*') -and
                     ($procDirs -contains (Split-Path $Matches['t'] -Parent).TrimEnd('\').ToLowerInvariant())) {   # the target's directory must be on THIS process's PATH too: a service started before a PATH change keeps the old one
                     $archive.Add([pscustomobject]@{ Path = $m.Path; Why = "pass-through to $($Matches['t'])" })

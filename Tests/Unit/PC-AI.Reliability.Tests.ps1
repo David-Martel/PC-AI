@@ -777,6 +777,22 @@ Describe 'PC-AI.Reliability' {
             Invoke-FleetTask -Name '\t\utf16' -FilePath 'C:\fake\utf16job.exe' -LogPath $log | Should -Be 1
         }
 
+        It 'scans a log the job replaced with an equal or larger file from the start' {
+            # Detects the hidden failure from the ninth review of #346: the offset was reset only when the log got
+            # SHORTER, so a job that replaced its log with a bigger file had its early "[ERROR]" line skipped.
+            $log = Join-Path $TestDrive 'replaced.log'
+            Set-Content -LiteralPath $log -Value ('old clean line ' * 4)
+            $script:ReplacedLog = $log
+            Mock -ModuleName PC-AI.Reliability Invoke-FleetProcess {
+                if ($FilePath -eq 'C:\fake\replacejob.exe') {
+                    Remove-Item -LiteralPath $script:ReplacedLog -Force
+                    Set-Content -LiteralPath $script:ReplacedLog -Value ("[ERROR] integrity check did not pass`n" + ('padding ' * 40))
+                }
+                [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = ''; TimedOut = $false; OutputComplete = $true }
+            }
+            Invoke-FleetTask -Name '\t\replaced' -FilePath 'C:\fake\replacejob.exe' -LogPath $log | Should -Be 1
+        }
+
         It 'scans only the bytes the tool appended to its own log during this run' {
             $log = Join-Path $TestDrive 'tool.log'
             Set-Content -LiteralPath $log -Value 'STALE from yesterday'
@@ -983,6 +999,25 @@ Describe 'PC-AI.Reliability' {
             $o = @(Get-FleetTaskObservations -Policy $pol)
             @($o | Where-Object { $_.Name -like '\out\*' }).Count | Should -Be 0
             @($o | Where-Object { $_.Name -eq '\in\backup' -and $_.Check -eq 'task-expected' }).Count | Should -Be 1
+        }
+
+        It 'applies task_scope to the tasks an expect_enabled wildcard matches, not to the wildcard' {
+            # Detects the skipped check from the ninth review of #346: with expect_enabled '\backups\*' and task_scope
+            # '\backups\offsite-copy', the wildcard itself was out of scope, so the disabled in-scope task was never
+            # reported (and two sweeps resolved its incident).
+            $pol = Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json')
+            $pol.task_scope = @('\backups\offsite-copy')
+            $pol.expect_enabled = @('\backups\*')
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData {
+                [pscustomobject]@{ Tasks = @(
+                        [pscustomobject]@{ TaskPath = '\backups\'; TaskName = 'offsite-copy'; Owner = 'Local'; State = 'Disabled'; Status = 'Disabled'; LastResult = 0; ResultText = 'Success'; Reasons = @(); LastRunTime = '2026-11-20T00:00:00Z'; Staleness = 'fresh' },
+                        [pscustomobject]@{ TaskPath = '\backups\'; TaskName = 'local-copy'; Owner = 'Local'; State = 'Disabled'; Status = 'Disabled'; LastResult = 0; ResultText = 'Success'; Reasons = @(); LastRunTime = $null; Staleness = 'never run' }) }
+            }
+            Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @() }
+            Mock -ModuleName PC-AI.Reliability Get-FleetInteractiveUserData { @() }
+            $o = @(Get-FleetTaskObservations -Policy $pol | Where-Object { $_.Check -eq 'task-expected' })
+            ($o | Where-Object Name -EQ '\backups\offsite-copy').Status | Should -Be 'failed'
+            @($o | Where-Object Name -EQ '\backups\local-copy').Count | Should -Be 0
         }
 
         It 'clears a detector-error only when that detector itself runs successfully' {

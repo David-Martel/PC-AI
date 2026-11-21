@@ -4,6 +4,19 @@ Entry points: the task wrapper (Invoke-FleetTask), the health sweep (Invoke-Flee
 the daily digest (Send-FleetDigest). Tools/SystemScripts/Reliability/*.ps1 are thin CLIs over these.
 #>
 
+function Get-FleetFilePrefixHash {
+    <# SHA-256 of the first Bytes bytes of a file (shared read, so a writer may keep it open). #>
+    param([Parameter(Mandatory)][string]$Path, [int64]$Bytes)
+    $fs = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+    try {
+        $buf = New-Object byte[] ([int]$Bytes)
+        $n = $fs.Read($buf, 0, $buf.Length)
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { return [BitConverter]::ToString($sha.ComputeHash($buf, 0, $n)) } finally { $sha.Dispose() }
+    }
+    finally { $fs.Dispose() }
+}
+
 function Get-FleetStreamEncoding {
     <# Encoding named by the byte-order mark at the start of a stream (UTF-8 without one). Leaves the position at 0. #>
     param([Parameter(Mandatory)][IO.Stream]$Stream)
@@ -48,7 +61,11 @@ function Invoke-FleetTask {
     if ($PolicyPath) { $script:FleetEffectivePolicy = Get-FleetPolicy -Path $PolicyPath }
     $start = Get-FleetNow
     $logOffset = [int64]0
-    if ($LogPath -and (Test-Path -LiteralPath $LogPath)) { $logOffset = (Get-Item -LiteralPath $LogPath).Length }
+    $logPrefix = $null
+    if ($LogPath -and (Test-Path -LiteralPath $LogPath)) {
+        $logOffset = (Get-Item -LiteralPath $LogPath).Length
+        $logPrefix = Get-FleetFilePrefixHash -Path $LogPath -Bytes ([Math]::Min(4096, $logOffset))
+    }
     $r = Invoke-FleetProcess -FilePath $FilePath -ArgumentList $ArgumentList -TimeoutSeconds ($TimeoutMinutes * 60) -WorkingDirectory $WorkingDirectory
     $end = Get-FleetNow
 
@@ -62,6 +79,9 @@ function Invoke-FleetTask {
         $fs = [IO.File]::Open($LogPath, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
         try {
             if ($fs.Length -lt $logOffset) { $logOffset = 0 }   # rotated during the run
+            # Replaced by an equal or larger file: the bytes before the old offset are no longer the ones seen
+            # before the run, so scan from the start (ninth review of #346; size alone missed this).
+            elseif ($logOffset -gt 0 -and (Get-FleetFilePrefixHash -Path $LogPath -Bytes ([Math]::Min(4096, $logOffset))) -ne $logPrefix) { $logOffset = 0 }
             # The encoding comes from the byte-order mark at the START of the file; seeking first skipped it, and
             # appended UTF-16 text was decoded as UTF-8 so no failure pattern matched (sixth review of #346).
             $enc = Get-FleetStreamEncoding -Stream $fs

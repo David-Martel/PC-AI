@@ -244,10 +244,14 @@ function Get-FleetTaskObservations {
 
     # Tasks that must be enabled (an offsite backup task sat Disabled and never ran).
     foreach ($pattern in @($Policy.expect_enabled)) {
-        # Staged rollouts: task_scope / task_exclude govern every task check, not only the result axis
-        # (sixth review of #346).
-        if (-not (Test-FleetTaskInScope -Policy $Policy -FullName ([string]$pattern))) { continue }
-        $hits = @($tasks | Where-Object { ('{0}{1}' -f $_.TaskPath, $_.TaskName) -like $pattern })
+        # Staged rollouts: task_scope / task_exclude govern every task check (sixth review of #346), applied to
+        # the CONCRETE tasks a wildcard matches, not to the wildcard text: '\backups\*' is out of a
+        # '\backups\offsite-copy' scope as a string, but offsite-copy itself is in it (ninth review).
+        $hits = @($tasks | Where-Object { ('{0}{1}' -f $_.TaskPath, $_.TaskName) -like $pattern } |
+                Where-Object { Test-FleetTaskInScope -Policy $Policy -FullName ('{0}{1}' -f $_.TaskPath, $_.TaskName) })
+        $allHits = @($tasks | Where-Object { ('{0}{1}' -f $_.TaskPath, $_.TaskName) -like $pattern })
+        if ($hits.Count -eq 0 -and $allHits.Count -gt 0) { continue }   # matches exist, none in scope
+        if ($hits.Count -eq 0 -and -not (Test-FleetTaskInScope -Policy $Policy -FullName ([string]$pattern))) { continue }
         if ($hits.Count -eq 0) {
             $obs += New-FleetObservation -Source task -Name ([string]$pattern) -Check task-expected -Status failed -Severity medium -Message 'expected task is not registered' -ResolveAfter 1
             continue

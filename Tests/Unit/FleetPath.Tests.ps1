@@ -43,9 +43,23 @@ BeforeAll {
         param([string]$Ip = '192.0.2.1', [string]$Mac = '00-00-5E-00-53-01', [int[]]$Ports = @(443), [string]$Name = 'gw')
         [pscustomobject]@{ Name = $Name; Ip = $Ip; Mac = $Mac; ProbePorts = $Ports }
     }
+    # SourceAddress is empty for the ordinary gateway probe and the interface's IPv4 address for a per-interface probe.
     function New-TestProbeResult {
-        param([string]$Address = '192.0.2.1', [int]$Port = 443, [bool]$Reachable = $true)
-        [pscustomobject]@{ Address = $Address; Port = $Port; Reachable = $Reachable; LatencyMs = if ($Reachable) { 3.0 } else { $null }; Error = $null; RemoteAddress = $null }
+        param([string]$Address = '192.0.2.1', [int]$Port = 443, [bool]$Reachable = $true, [string]$Source = '')
+        [pscustomobject]@{ Address = $Address; Port = $Port; SourceAddress = $Source; Reachable = $Reachable; LatencyMs = if ($Reachable) { 3.0 } else { $null }; Error = $null; RemoteAddress = $null }
+    }
+    function New-TestInterface {
+        param([int]$Index = 12, [string]$Ip = '192.0.2.200', [string]$Alias = 'Ethernet 12', [int]$Prefix = 24)
+        [pscustomobject]@{ InterfaceIndex = $Index; InterfaceAlias = $Alias; IPAddress = $Ip; PrefixLength = $Prefix }
+    }
+    # Resolve-FleetLocation with the usual inputs: one gateway, one physical interface, and an ordinary plus a
+    # per-interface probe result for every interface (their reachability is set by -BoundReachable).
+    function Get-TestLocation {
+        param($Gateways = @(New-TestGateway), $Interfaces = @(New-TestInterface), [int[]]$Physical = @(12), $ProbeResults = $null, [bool]$BoundReachable = $true)
+        if ($null -eq $ProbeResults) {
+            $ProbeResults = @(New-TestProbeResult) + @($Interfaces | ForEach-Object { New-TestProbeResult -Source $_.IPAddress -Reachable $BoundReachable })
+        }
+        Resolve-FleetLocation -Gateways $Gateways -ProbeResults @($ProbeResults) -Interfaces @($Interfaces) -PhysicalIndexes $Physical
     }
     function New-TestNeighbor {
         param([string]$Ip = '192.0.2.1', [string]$Mac = '00-00-5E-00-53-01', [string]$State = 'Reachable', [string]$Alias = 'Ethernet 12', [int]$IfIndex = 12)
@@ -210,18 +224,40 @@ Describe 'Probe budget' -Tag 'Unit' {
 
     # Protects: the 5 s runtime target; probes in a wave must overlap, not queue.
     # Detects: a throttle below the probe count, which turns N hung probes into N/throttle budgets.
-    # Needs: PowerShell 7 ForEach-Object -Parallel; no network. Serial execution would take 8 x 500 ms.
+    # Needs: PowerShell 7 ForEach-Object -Parallel; no network. Deterministic: no wall-clock bound. Each connector call
+    # drops a marker file and then holds (inside the connector) until all eight markers exist. If the eight probes did
+    # not run at the same time, the first ones would wait out the 30 s safety valve and report the failure marker.
     # Breadcrumb: Invoke-FleetProbeBatch
-    It 'runs eight hung probes concurrently, in far less than eight budgets' {
+    It 'runs eight probes concurrently: all eight are in flight at the same moment' {
+        $dir = Join-Path $TestDrive 'barrier'
+        $null = New-Item -ItemType Directory -Path $dir
+        $barrier = [scriptblock]::Create(@"
+param(`$Address, `$Port, `$SourceAddress)
+`$null = New-Item -ItemType File -Path (Join-Path '$dir' "start-`$Address")
+`$limit = [Diagnostics.Stopwatch]::StartNew()
+while (@(Get-ChildItem -LiteralPath '$dir' -Filter 'start-*').Count -lt 8 -and `$limit.Elapsed.TotalSeconds -lt 30) { Start-Sleep -Milliseconds 20 }
+`$all = @(Get-ChildItem -LiteralPath '$dir' -Filter 'start-*').Count -ge 8
+`$task = if (`$all) { [Threading.Tasks.Task]::CompletedTask } else { [Threading.Tasks.Task]::FromException([InvalidOperationException]::new('probes did not overlap')) }
+[pscustomobject]@{ Task = `$task; Client = `$null }
+"@)
         $probes = 1..8 | ForEach-Object { [pscustomobject]@{ Address = "192.0.2.$_"; Port = 22 } }
-        $clock = [Diagnostics.Stopwatch]::StartNew()
-        $results = @(Invoke-FleetProbeBatch -Probes $probes -BudgetMs 500 -Connector $script:ConnectHang)
-        $clock.Stop()
+        $results = @(Invoke-FleetProbeBatch -Probes $probes -BudgetMs 5000 -Connector $barrier)
         $results.Count | Should -Be 8
-        @($results | Where-Object Reachable).Count | Should -Be 0
-        $clock.ElapsedMilliseconds | Should -BeLessThan 2500
+        @($results | Where-Object Reachable).Count | Should -Be 8
     }
 
+    # Protects: a hung probe in a batch ends at its budget and is reported unreachable, while the rest of the batch still
+    # completes. Deterministic: the budget is the only timing involved, and the assertion is on the outcome, not a duration.
+    # Detects: a hung connector stalling the batch or being reported reachable.
+    # Needs: one hung and seven answering probes.
+    # Breadcrumb: Invoke-FleetProbeBatch
+    It 'reports a hung probe unreachable by timeout while the others in the batch complete' {
+        $mixed = [scriptblock]::Create('param($Address, $Port, $SourceAddress) $task = if ($Address -eq ''192.0.2.1'') { [Threading.Tasks.TaskCompletionSource[bool]]::new().Task } else { [Threading.Tasks.Task]::CompletedTask }; [pscustomobject]@{ Task = $task; Client = $null }')
+        $probes = 1..8 | ForEach-Object { [pscustomobject]@{ Address = "192.0.2.$_"; Port = 22 } }
+        $results = @(Invoke-FleetProbeBatch -Probes $probes -BudgetMs 300 -Connector $mixed)
+        @($results | Where-Object Reachable).Count | Should -Be 7
+        ($results | Where-Object Address -EQ '192.0.2.1').Error | Should -Match 'timeout after 300ms'
+    }
     # Protects: an empty wave (everything skipped off-LAN) still runs the caller's wait work.
     # Detects: an early return that drops the WhileWaiting block, which would skip the route lookups.
     # Needs: nothing.
@@ -248,20 +284,18 @@ Describe 'Probe budget' -Tag 'Unit' {
 }
 
 Describe 'Location: home LAN versus a colliding subnet' -Tag 'Unit' {
-    BeforeEach {
-        # By default the gateway probe egresses interface 12, the interface the neighbour rows below sit on.
-        Mock Find-FleetRoute { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
-    }
-    # Protects: the home verdict gates every LAN recommendation, so it needs two independent facts.
-    # Detects: a verdict that trusts the subnet or the TCP connect alone.
-    # Needs: mocked neighbour table.
+    # Protects: the home verdict gates every LAN recommendation, so it needs independent facts per interface: a TCP
+    # connect bound to that interface's own source address succeeded, and that interface's own neighbour row matches.
+    # Detects: a verdict that trusts the subnet, the TCP connect, or a MAC row alone.
+    # Needs: mocked neighbour table and per-interface probe results.
     # Breadcrumb: Resolve-FleetLocation
-    It 'is home when the gateway answers and its on-link MAC matches the inventory' {
+    It 'is home when the bound gateway probe succeeds and the interface row matches the inventory MAC' {
         Mock Get-FleetNeighbor { New-TestNeighbor }
-        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)
+        $location = Get-TestLocation
         $location.State | Should -Be 'home-lan'
         $location.Collision | Should -BeFalse
         $location.Gateways[0].MacMatch | Should -BeTrue
+        @($location.VerifiedInterfaces) | Should -Be @(12)
     }
 
     # Protects: Windows prints MACs as AA-BB-..., other tools as aa:bb:...; both must match.
@@ -275,16 +309,16 @@ Describe 'Location: home LAN versus a colliding subnet' -Tag 'Unit' {
     ) {
         $row = New-TestNeighbor -Mac $Mac
         Mock Get-FleetNeighbor -MockWith ({ $row }.GetNewClosure())
-        (Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)).State | Should -Be 'home-lan'
+        (Get-TestLocation).State | Should -Be 'home-lan'
     }
-
-    # Protects: the Collision case. A foreign network can reuse the home subnet and its router then answers at the same gateway address (the real-world case is a hotel on 192.168.1.0/24).
-    # Detects: the subnet or an open port deciding "home"; that would send SSH to a stranger's 192.0.2.33.
+    # Protects: the Collision case. A foreign network can reuse the home subnet and its router then answers at the same
+    # gateway address (the real-world case is a hotel on 192.168.1.0/24).
+    # Detects: the subnet or an open port deciding "home".
     # Needs: mocked neighbour table returning a different gateway MAC.
     # Breadcrumb: Resolve-FleetLocation Collision
     It 'rejects a network that reuses the home subnet but has a different gateway MAC' {
         Mock Get-FleetNeighbor { New-TestNeighbor -Mac '00-11-22-33-44-55' }
-        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)
+        $location = Get-TestLocation
         $location.State | Should -Be 'off-lan'
         $location.Collision | Should -BeTrue
         $location.Reason | Should -Match 'another network is using the home subnet'
@@ -304,19 +338,19 @@ Describe 'Location: home LAN versus a colliding subnet' -Tag 'Unit' {
     ) {
         $rows = @($Rows | ForEach-Object { New-TestNeighbor -Mac $_.Mac -State $_.State })
         Mock Get-FleetNeighbor -MockWith ({ $rows }.GetNewClosure())
-        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)
+        $location = Get-TestLocation
         $location.State | Should -Be 'off-lan'
         $location.Collision | Should -BeFalse
-        $location.Reason | Should -Match 'cannot be verified|home cannot be verified'
+        $location.Reason | Should -Match 'cannot be verified'
     }
 
     # Protects: a leftover ARP row from the home network must not make a hotel look like home.
     # Detects: the verdict using the neighbour table without a live TCP connect.
-    # Needs: mocked neighbour table with a matching MAC and a probe that failed.
+    # Needs: mocked neighbour table with a matching MAC and probes that failed.
     # Breadcrumb: Resolve-FleetLocation
     It 'is off-LAN when the MAC matches but the gateway does not answer' {
         Mock Get-FleetNeighbor { New-TestNeighbor }
-        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult -Reachable $false)
+        $location = Get-TestLocation -ProbeResults @((New-TestProbeResult -Reachable $false), (New-TestProbeResult -Source '192.0.2.200' -Reachable $false))
         $location.State | Should -Be 'off-lan'
         $location.Reason | Should -Match 'No inventory gateway answered'
     }
@@ -324,52 +358,16 @@ Describe 'Location: home LAN versus a colliding subnet' -Tag 'Unit' {
     # Protects: two interfaces on different networks can both hold a row for the gateway address; only the
     # interface whose row matches the inventory MAC is verified.
     # Detects: "any row matches" logic that treats the whole host as home, or lets the home row hide a foreign row.
-    # Needs: mocked neighbour table with two rows on different interface indexes.
+    # Needs: mocked neighbour table with two rows on different interface indexes, both bound probes answered.
     # Breadcrumb: Resolve-FleetLocation VerifiedInterfaces / CollidingInterfaces
     It 'records the verified interface and the colliding interface separately' {
         Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12; New-TestNeighbor -Mac 'AA-BB-CC-DD-EE-FF' -Alias 'Wi-Fi' -IfIndex 7 }
-        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)
+        $location = Get-TestLocation -Interfaces @((New-TestInterface), (New-TestInterface -Index 7 -Ip '192.0.2.77' -Alias 'Wi-Fi')) -Physical @(12, 7)
         $location.State | Should -Be 'home-lan'
         $location.Collision | Should -BeTrue
         @($location.VerifiedInterfaces) | Should -Be @(12)
         @($location.CollidingInterfaces) | Should -Be @(7)
         $location.Reason | Should -Match 'interface 7'
-    }
-
-    # Protects: interface-specific evidence. The gateway answered over interface 12, but the only matching MAC row is on
-    # interface 7, which the probe never used; that row is not proof the probe's network is home.
-    # Detects: a reachable gateway plus a matching row anywhere authorizing that row's interface.
-    # Needs: mocked route (egress ifIndex 12) and a neighbour table holding the matching MAC only on ifIndex 7.
-    # Breadcrumb: Resolve-FleetLocation (verified interfaces require the probe's egress ifIndex)
-    It 'does not verify an interface the gateway probe did not egress' {
-        Mock Get-FleetNeighbor { New-TestNeighbor -Alias 'Wi-Fi' -IfIndex 7 }
-        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)
-        $location.State | Should -Be 'off-lan'
-        @($location.VerifiedInterfaces).Count | Should -Be 0
-        $location.Reason | Should -Match 'cannot be verified'
-    }
-
-    # Protects: the control for the test above; the same table with the row on the probe's egress interface verifies it.
-    # Detects: a harness that can never verify anything.
-    # Needs: the same mocks with the row on ifIndex 12.
-    # Breadcrumb: Resolve-FleetLocation
-    It 'positive control: verifies the interface the gateway probe egressed when its row matches' {
-        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12 }
-        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)
-        $location.State | Should -Be 'home-lan'
-        @($location.VerifiedInterfaces) | Should -Be @(12)
-    }
-
-    # Protects: fail closed when the probe's egress cannot be determined.
-    # Detects: an unresolved gateway route being treated as matching any row.
-    # Needs: Find-FleetRoute returning nothing.
-    # Breadcrumb: Resolve-FleetLocation
-    It 'verifies nothing when the gateway route cannot be resolved' {
-        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12 }
-        Mock Find-FleetRoute { $null }
-        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)
-        $location.State | Should -Be 'off-lan'
-        @($location.VerifiedInterfaces).Count | Should -Be 0
     }
 
     # Protects: when every interface that holds a row disagrees with the inventory there is no verified interface.
@@ -378,79 +376,189 @@ Describe 'Location: home LAN versus a colliding subnet' -Tag 'Unit' {
     # Breadcrumb: Resolve-FleetLocation
     It 'has no verified interface when the only row is a foreign MAC' {
         Mock Get-FleetNeighbor { New-TestNeighbor -Mac 'AA-BB-CC-DD-EE-FF' -Alias 'Wi-Fi' -IfIndex 7 }
-        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)
+        $location = Get-TestLocation -Interfaces @((New-TestInterface -Index 7 -Ip '192.0.2.77' -Alias 'Wi-Fi')) -Physical @(7)
         $location.State | Should -Be 'off-lan'
         @($location.VerifiedInterfaces).Count | Should -Be 0
         @($location.CollidingInterfaces) | Should -Be @(7)
     }
+
+    # Protects: a dual-NIC host with both NICs on the home subnet. Each NIC proves itself, so LAN candidates routed out
+    # of either are eligible.
+    # Detects: only one NIC being verified because only one probe was made.
+    # Needs: two interfaces, both with a matching row and a successful bound probe.
+    # Breadcrumb: Resolve-FleetLocation (per-interface verification)
+    It 'verifies both interfaces when each has a matching row and its own bound probe succeeds' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12; New-TestNeighbor -IfIndex 15 -Alias 'Ethernet 2' }
+        $location = Get-TestLocation -Interfaces @((New-TestInterface), (New-TestInterface -Index 15 -Ip '192.0.2.201' -Alias 'Ethernet 2')) -Physical @(12, 15)
+        $location.State | Should -Be 'home-lan'
+        @($location.VerifiedInterfaces) | Should -Be @(12, 15)
+    }
+
+    # Protects: interface-specific evidence. A matching MAC row on interface 15 says nothing unless a connect bound to
+    # interface 15's own address reached the gateway.
+    # Detects: a row alone, or another interface's successful probe, authorizing this interface.
+    # Needs: the bound probe on interface 15 failing while interface 12's succeeds, both rows matching.
+    # Breadcrumb: Resolve-FleetLocation
+    It 'does not verify an interface whose bound probe failed, though its row matches' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12; New-TestNeighbor -IfIndex 15 -Alias 'Ethernet 2' }
+        $probes = @((New-TestProbeResult), (New-TestProbeResult -Source '192.0.2.200'), (New-TestProbeResult -Source '192.0.2.201' -Reachable $false))
+        $location = Get-TestLocation -Interfaces @((New-TestInterface), (New-TestInterface -Index 15 -Ip '192.0.2.201' -Alias 'Ethernet 2')) -Physical @(12, 15) -ProbeResults $probes
+        $location.State | Should -Be 'home-lan'
+        @($location.VerifiedInterfaces) | Should -Be @(12)
+    }
+
+    # Protects: the mirror image. A successful bound probe on interface 15 is not proof of home when interface 15's own row
+    # does not match (it sits on another network that answers the gateway address).
+    # Detects: a bound probe alone authorizing the interface.
+    # Needs: a bound probe that succeeds and a row on interface 15 with a foreign MAC.
+    # Breadcrumb: Resolve-FleetLocation
+    It 'does not verify an interface whose bound probe succeeded but whose own row does not match' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12; New-TestNeighbor -IfIndex 15 -Alias 'Ethernet 2' -Mac 'AA-BB-CC-DD-EE-FF' }
+        $location = Get-TestLocation -Interfaces @((New-TestInterface), (New-TestInterface -Index 15 -Ip '192.0.2.201' -Alias 'Ethernet 2')) -Physical @(12, 15)
+        @($location.VerifiedInterfaces) | Should -Be @(12)
+        @($location.CollidingInterfaces) | Should -Be @(15)
+    }
+
+    # Protects: a matching row on ANOTHER interface is not proof for this one. A bound probe that succeeds on interface 15
+    # while only interface 12 holds a matching row (interface 15 has no row at all) leaves 15 unverified.
+    # Detects: an interface being verified by any matching row rather than its own. (A foreign row on 15 would be
+    # subtracted as colliding and hide this bug, so this case has no row on 15.)
+    # Needs: one matching row on ifIndex 12; successful bound probes on both interfaces.
+    # Breadcrumb: Resolve-FleetLocation (own row)
+    It 'does not verify an interface that has a successful bound probe but no neighbour row of its own' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12 }
+        $location = Get-TestLocation -Interfaces @((New-TestInterface), (New-TestInterface -Index 15 -Ip '192.0.2.201' -Alias 'Ethernet 2')) -Physical @(12, 15)
+        @($location.VerifiedInterfaces) | Should -Be @(12)
+    }
+    # Protects: an interface with a matching row but no bound-probe result at all (for example its address was not
+    # planned) is not verified. Positive control: the same row with a result is verified (see the dual-NIC test).
+    # Detects: a missing probe being treated as success.
+    # Needs: only interface 12 has a probe result; interface 15 has a matching row.
+    # Breadcrumb: Resolve-FleetLocation
+    It 'does not verify an interface with a matching row but no bound probe result' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12; New-TestNeighbor -IfIndex 15 -Alias 'Ethernet 2' }
+        $probes = @((New-TestProbeResult), (New-TestProbeResult -Source '192.0.2.200'))
+        $location = Get-TestLocation -Interfaces @((New-TestInterface), (New-TestInterface -Index 15 -Ip '192.0.2.201' -Alias 'Ethernet 2')) -Physical @(12, 15) -ProbeResults $probes
+        @($location.VerifiedInterfaces) | Should -Be @(12)
+    }
+
+    # Protects: candidate interfaces are physical, and sit on a subnet that contains an inventory gateway.
+    # Detects: a virtual adapter, or an interface on an unrelated subnet, being verified.
+    # Needs: interface 20 not in the physical set; interface 21 on 203.0.113.0/24, which does not contain the gateway.
+    # Breadcrumb: Resolve-FleetLocation; Test-FleetIpInSubnet
+    It 'ignores interfaces that are not physical or not on the gateway subnet' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 20; New-TestNeighbor -IfIndex 21 }
+        $interfaces = @((New-TestInterface -Index 20 -Ip '192.0.2.210' -Alias 'vEthernet'), (New-TestInterface -Index 21 -Ip '203.0.113.5' -Alias 'Other'))
+        $probes = @((New-TestProbeResult), (New-TestProbeResult -Source '192.0.2.210'), (New-TestProbeResult -Source '203.0.113.5'))
+        $location = Get-TestLocation -Interfaces $interfaces -Physical @(21) -ProbeResults $probes
+        $location.State | Should -Be 'off-lan'
+        @($location.VerifiedInterfaces).Count | Should -Be 0
+    }
+
     # Protects: an inventory entry without a MAC cannot verify anything.
     # Detects: a null expected MAC comparing equal to an observed one.
     # Needs: mocked neighbour table.
     # Breadcrumb: Resolve-FleetLocation
     It 'fails closed when the inventory records no MAC for the gateway' {
         Mock Get-FleetNeighbor { New-TestNeighbor }
-        $location = Resolve-FleetLocation -Gateways @(New-TestGateway -Mac $null) -ProbeResults @(New-TestProbeResult)
+        $location = Get-TestLocation -Gateways @(New-TestGateway -Mac $null)
         $location.State | Should -Be 'off-lan'
         $location.Collision | Should -BeFalse
     }
 
-    # Protects: this-host reaches 198.51.100.1 by routing, so it has no neighbour row for it; that must not veto 192.0.2.1.
+    # Protects: a host that reaches one gateway by routing holds no neighbour row for it; that must not veto the on-link one.
     # Detects: requiring every inventory gateway to verify.
-    # Needs: mocked neighbour table holding only the on-link gateway.
+    # Needs: mocked neighbour table holding only the on-link gateway; the routed gateway has no subnet match.
     # Breadcrumb: Resolve-FleetLocation (any verified gateway makes home)
     It 'is home when one gateway verifies and a routed one has no neighbour row' {
         Mock Get-FleetNeighbor { New-TestNeighbor }
         $gateways = @((New-TestGateway -Ip '198.51.100.1' -Name 'routed'), (New-TestGateway -Ip '192.0.2.1' -Name 'on-link'))
-        $probes = @((New-TestProbeResult -Address '198.51.100.1'), (New-TestProbeResult -Address '192.0.2.1'))
-        $location = Resolve-FleetLocation -Gateways $gateways -ProbeResults $probes
+        $probes = @((New-TestProbeResult -Address '198.51.100.1'), (New-TestProbeResult -Address '192.0.2.1'), (New-TestProbeResult -Address '192.0.2.1' -Source '192.0.2.200'))
+        $location = Get-TestLocation -Gateways $gateways -ProbeResults $probes
         $location.State | Should -Be 'home-lan'
         ($location.Gateways | Where-Object Name -EQ 'routed').MacMatch | Should -BeFalse
     }
-}
 
+    # Protects: the per-interface probe plan: bound probes only for interfaces on a gateway's subnet, each carrying its
+    # own source address, beside the ordinary probe.
+    # Detects: bound probes planned for unrelated interfaces, or lacking their source address.
+    # Needs: nothing.
+    # Breadcrumb: New-FleetGatewayProbePlan
+    It 'plans one ordinary probe plus one bound probe per interface on the gateway subnet' {
+        $gateways = @((New-TestGateway -Ports @(443, 80)))
+        $interfaces = @((New-TestInterface), (New-TestInterface -Index 15 -Ip '192.0.2.201' -Alias 'Ethernet 2'), (New-TestInterface -Index 21 -Ip '203.0.113.5' -Alias 'Other'))
+        $plan = @(New-FleetGatewayProbePlan -Gateways $gateways -Interfaces $interfaces)
+        @($plan | Where-Object { -not $_.SourceAddress }).Count | Should -Be 2
+        @($plan | Where-Object SourceAddress | ForEach-Object { "$($_.SourceAddress):$($_.Port)" } | Sort-Object) | Should -Be @('192.0.2.200:443', '192.0.2.200:80', '192.0.2.201:443', '192.0.2.201:80')
+    }
+
+    # Protects: the subnet rule used to choose candidate interfaces.
+    # Detects: a prefix-length or boundary error.
+    # Needs: nothing.
+    # Breadcrumb: Test-FleetIpInSubnet
+    It 'tests subnet membership: <Address> in <Network>/<Prefix> is <Expected>' -ForEach @(
+        @{ Address = '192.0.2.1'; Network = '192.0.2.200'; Prefix = 24; Expected = $true }
+        @{ Address = '192.0.2.1'; Network = '192.0.2.200'; Prefix = 32; Expected = $false }
+        @{ Address = '192.0.3.1'; Network = '192.0.2.200'; Prefix = 24; Expected = $false }
+        @{ Address = '192.0.3.1'; Network = '192.0.2.200'; Prefix = 23; Expected = $true }
+        @{ Address = '203.0.113.1'; Network = '192.0.2.200'; Prefix = 0; Expected = $true }
+    ) {
+        Test-FleetIpInSubnet -Address $Address -Network $Network -PrefixLength $Prefix | Should -Be $Expected
+    }
+}
 Describe 'Location retry after a transient gateway stall' -Tag 'Unit' {
     BeforeAll {
         $script:MiniInventory = Write-TestInventory '{"schema":"pcai.fleet-paths/1","gateways":[{"name":"gw","ip":"192.0.2.1","mac":"00-00-5E-00-53-01","probePorts":[443]}],"hosts":{"h":{"tailnet":"100.64.0.102","lan":["192.0.2.33"],"services":{"ssh":{"ports":[22]}}}}}'
         Mock Find-FleetRoute { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
         Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'test'; Status = $null } }
-        # Builds a connector that logs each gateway attempt to $Counter and fails the first $FailFirst attempts.
+        Mock Get-FleetInterface { New-TestInterface }
+        Mock Get-FleetPhysicalInterfaceIndex { @(12) }
+        # Builds a connector for the gateway probes. Each distinct (address, port, source) is one probe; the connector
+        # appends a line to that probe's own file per attempt (one writer per file per wave, so no race) and fails the
+        # first $FailFirst attempts of every gateway probe.
         function New-GatewayConnector {
-            param([string]$Counter, [int]$FailFirst)
+            param([string]$Dir, [int]$FailFirst)
+            $null = New-Item -ItemType Directory -Force -Path $Dir
             [scriptblock]::Create(@"
-param(`$Address, `$Port)
+param(`$Address, `$Port, `$SourceAddress)
 `$fail = `$false
 if (`$Address -eq '192.0.2.1') {
-    Add-Content -LiteralPath '$Counter' -Value 'attempt'
-    `$fail = @(Get-Content -LiteralPath '$Counter').Count -le $FailFirst
+    `$file = Join-Path '$Dir' "`$Address-`$Port-`$SourceAddress"
+    Add-Content -LiteralPath `$file -Value 'attempt'
+    `$fail = @(Get-Content -LiteralPath `$file).Count -le $FailFirst
 }
 `$task = if (`$fail) { [Threading.Tasks.Task]::FromException([Net.Sockets.SocketException]::new(10060)) } else { [Threading.Tasks.Task]::CompletedTask }
 [pscustomobject]@{ Task = `$task; Client = `$null }
 "@)
         }
+        function Get-AttemptCounts { param([string]$Dir) @(Get-ChildItem -LiteralPath $Dir | ForEach-Object { @(Get-Content -LiteralPath $_.FullName).Count }) }
     }
 
     # Protects: one transient stall on the gateway (seen about once in 40 live runs) must not read as "away from home".
     # Detects: a single failed gateway wave producing off-LAN, which would skip every LAN candidate.
-    # Needs: a connector that fails the first gateway attempt, then connects; the attempt counter proves the retry ran.
+    # Needs: a connector that fails the first attempt of every gateway probe, then connects; the per-probe attempt
+    # files prove each probe (ordinary and bound) ran exactly twice.
     # Breadcrumb: Invoke-FleetPathTest gateway retry
     It 'retries the gateway probes once and reaches home when the second attempt answers' {
         Mock Get-FleetNeighbor { New-TestNeighbor }
-        $counter = Join-Path $TestDrive 'stall-then-answer.log'
-        $report = Invoke-FleetPathTest -InventoryPath $script:MiniInventory -BudgetMs 500 -Connector (New-GatewayConnector -Counter $counter -FailFirst 1)
-        @(Get-Content -LiteralPath $counter).Count | Should -Be 2
+        $dir = Join-Path $TestDrive 'stall-then-answer'
+        $report = Invoke-FleetPathTest -InventoryPath $script:MiniInventory -BudgetMs 500 -Connector (New-GatewayConnector -Dir $dir -FailFirst 1)
+        $counts = Get-AttemptCounts -Dir $dir
+        $counts.Count | Should -Be 2
+        @($counts | Sort-Object -Unique) | Should -Be @(2)
         $report.Location.State | Should -Be 'home-lan'
         ($report.Targets[0].Endpoints[0].Candidates | Where-Object Kind -EQ 'lan').Reachable | Should -BeTrue
     }
 
     # Protects: the retry is bounded, so a real away-from-home run costs two gateway waves, not an endless loop.
     # Detects: an unbounded retry, or no retry at all; the control above proves the retry can succeed.
-    # Needs: a connector that never lets the gateway answer.
+    # Needs: a connector that never lets any gateway probe answer.
     # Breadcrumb: Invoke-FleetPathTest gateway retry
     It 'gives up after exactly one retry when the gateway never answers' {
         Mock Get-FleetNeighbor { New-TestNeighbor }
-        $counter = Join-Path $TestDrive 'never-answers.log'
-        $report = Invoke-FleetPathTest -InventoryPath $script:MiniInventory -BudgetMs 500 -Connector (New-GatewayConnector -Counter $counter -FailFirst 99)
-        @(Get-Content -LiteralPath $counter).Count | Should -Be 2
+        $dir = Join-Path $TestDrive 'never-answers'
+        $report = Invoke-FleetPathTest -InventoryPath $script:MiniInventory -BudgetMs 500 -Connector (New-GatewayConnector -Dir $dir -FailFirst 99)
+        @(Get-AttemptCounts -Dir $dir | Sort-Object -Unique) | Should -Be @(2)
         $report.Location.State | Should -Be 'off-lan'
         $report.Location.Reason | Should -Match 'No inventory gateway answered'
     }
@@ -461,9 +569,9 @@ if (`$Address -eq '192.0.2.1') {
     # Breadcrumb: Invoke-FleetPathTest gateway retry
     It 'does not retry when the gateway answers with the wrong MAC' {
         Mock Get-FleetNeighbor { New-TestNeighbor -Mac '00-11-22-33-44-55' }
-        $counter = Join-Path $TestDrive 'collision.log'
-        $report = Invoke-FleetPathTest -InventoryPath $script:MiniInventory -BudgetMs 500 -Connector (New-GatewayConnector -Counter $counter -FailFirst 0)
-        @(Get-Content -LiteralPath $counter).Count | Should -Be 1
+        $dir = Join-Path $TestDrive 'collision'
+        $report = Invoke-FleetPathTest -InventoryPath $script:MiniInventory -BudgetMs 500 -Connector (New-GatewayConnector -Dir $dir -FailFirst 0)
+        @(Get-AttemptCounts -Dir $dir | Sort-Object -Unique) | Should -Be @(1)
         $report.Location.Collision | Should -BeTrue
     }
 }
@@ -474,6 +582,8 @@ Describe 'LAN egress gating on a multihomed host' -Tag 'Unit' {
         # the subnet and answers at the same gateway address with a different MAC.
         $script:MultihomedInventory = Write-TestInventory '{"schema":"pcai.fleet-paths/1","gateways":[{"name":"gw","ip":"192.0.2.1","mac":"00-00-5E-00-53-01","probePorts":[443]}],"hosts":{"viaWired":{"tailnet":"100.64.0.102","lan":["198.51.100.20"],"services":{"ssh":{"ports":[22]}}},"viaWifi":{"tailnet":"100.64.0.103","lan":["198.51.100.30"],"services":{"ssh":{"ports":[22]}}},"noRoute":{"tailnet":"100.64.0.104","lan":["198.51.100.40"],"services":{"ssh":{"ports":[22]}}}}}'
         Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12; New-TestNeighbor -Mac 'AA-BB-CC-DD-EE-FF' -Alias 'Wi-Fi' -IfIndex 7 }
+        Mock Get-FleetInterface { New-TestInterface; New-TestInterface -Index 7 -Ip '192.0.2.77' -Alias 'Wi-Fi' }
+        Mock Get-FleetPhysicalInterfaceIndex { @(12, 7) }
         Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'test'; Status = $null } }
         Mock Find-FleetRoute {
             switch ($Address) {
@@ -484,13 +594,13 @@ Describe 'LAN egress gating on a multihomed host' -Tag 'Unit' {
                 default { [pscustomobject]@{ Interface = 'Tailscale'; InterfaceIndex = 3; SourceAddress = '100.64.0.100'; NextHop = 'on-link' } }
             }
         }
-        # Records every address:port a connect was attempted for, one file each, so "never probed" is observable
+        # Records every address-port a connect was attempted for, one file each, so "never probed" is observable
         # across the parallel runspaces. Every connect succeeds, so a probed candidate would show Reachable.
         $script:ProbeLog = Join-Path $TestDrive 'multihomed-probes'
         $null = New-Item -ItemType Directory -Path $script:ProbeLog
         $connector = [scriptblock]::Create(@"
-param(`$Address, `$Port)
-`$null = New-Item -ItemType File -Force -Path (Join-Path '$($script:ProbeLog)' "`$Address-`$Port")
+param(`$Address, `$Port, `$SourceAddress)
+`$null = New-Item -ItemType File -Force -Path (Join-Path '$($script:ProbeLog)' "`$Address-`$Port-`$SourceAddress")
 [pscustomobject]@{ Task = [Threading.Tasks.Task]::CompletedTask; Client = `$null }
 "@)
         $script:Multihomed = Invoke-FleetPathTest -InventoryPath $script:MultihomedInventory -BudgetMs 500 -Connector $connector
@@ -510,7 +620,7 @@ param(`$Address, `$Port)
         $script:Cand['viaWifi'].Skipped | Should -Be 'egress-not-verified'
         $script:Cand['viaWifi'].Reachable | Should -BeFalse
         $script:Cand['viaWifi'].Interface | Should -Be 'Wi-Fi'
-        Test-Path -LiteralPath (Join-Path $script:ProbeLog '198.51.100.30-22') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $script:ProbeLog '198.51.100.30-22-') | Should -BeFalse
         $wifiHost = $script:Multihomed.Targets | Where-Object Name -EQ 'viaWifi'
         $wifiHost.Endpoints[0].Recommended.Kind | Should -Be 'tailnet'
     }
@@ -522,7 +632,7 @@ param(`$Address, `$Port)
     It 'positive control: probes and recommends a LAN candidate routed via the verified interface' {
         $script:Cand['viaWired'].Skipped | Should -BeNullOrEmpty
         $script:Cand['viaWired'].Reachable | Should -BeTrue
-        Test-Path -LiteralPath (Join-Path $script:ProbeLog '198.51.100.20-22') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:ProbeLog '198.51.100.20-22-') | Should -BeTrue
         ($script:Multihomed.Targets | Where-Object Name -EQ 'viaWired').Endpoints[0].Recommended.Kind | Should -Be 'lan'
     }
 
@@ -532,7 +642,7 @@ param(`$Address, `$Port)
     # Breadcrumb: Test-FleetLanEgress
     It 'skips a LAN candidate whose egress cannot be resolved' {
         $script:Cand['noRoute'].Skipped | Should -Be 'egress-not-verified'
-        Test-Path -LiteralPath (Join-Path $script:ProbeLog '198.51.100.40-22') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $script:ProbeLog '198.51.100.40-22-') | Should -BeFalse
     }
 
     # Protects: the eligibility rule itself, independent of the report plumbing.
@@ -550,6 +660,158 @@ param(`$Address, `$Port)
     }
 }
 
+Describe 'Retry of a stalled per-interface probe' -Tag 'Unit' {
+    BeforeAll {
+        # Observed live under a saturated CPU: the bound probe of one NIC timed out once, so a healthy home NIC was left
+        # unverified and its LAN addresses were skipped. A NIC that already holds a matching neighbour row for the gateway
+        # gets one more bound probe; a NIC with no evidence of home does not (it would only cost the budget).
+        $script:StallInventory = Write-TestInventory '{"schema":"pcai.fleet-paths/1","gateways":[{"name":"gw","ip":"192.0.2.1","mac":"00-00-5E-00-53-01","probePorts":[443]}],"hosts":{"h":{"tailnet":"100.64.0.102","lan":["198.51.100.30"],"services":{"ssh":{"ports":[22]}}}}}'
+        Mock Get-FleetInterface { New-TestInterface; New-TestInterface -Index 15 -Ip '192.0.2.201' -Alias 'Ethernet 2' }
+        Mock Get-FleetPhysicalInterfaceIndex { @(12, 15) }
+        Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'test'; Status = $null } }
+        Mock Find-FleetRoute {
+            $index = if ($Address -eq '198.51.100.30') { 15 } elseif ($Address -eq '192.0.2.1') { 12 } else { 3 }
+            [pscustomobject]@{ Interface = 'Ethernet'; InterfaceIndex = $index; SourceAddress = '192.0.2.201'; NextHop = 'on-link' }
+        }
+        # The bound probe from 192.0.2.201 fails its first $FailFirst attempts; every other gateway probe answers. One
+        # file per probe (address, port, source), one appended line per attempt.
+        function Invoke-StallScenario {
+            param([string]$Name, [int]$FailFirst)
+            $dir = Join-Path $TestDrive "stall-$Name"
+            $null = New-Item -ItemType Directory -Path $dir
+            $connector = [scriptblock]::Create(@"
+param(`$Address, `$Port, `$SourceAddress)
+`$fail = `$false
+if (`$Address -eq '192.0.2.1') {
+    `$file = Join-Path '$dir' "`$Address-`$Port-`$SourceAddress"
+    Add-Content -LiteralPath `$file -Value 'attempt'
+    `$fail = `$SourceAddress -eq '192.0.2.201' -and @(Get-Content -LiteralPath `$file).Count -le $FailFirst
+}
+`$task = if (`$fail) { [Threading.Tasks.Task]::FromException([Net.Sockets.SocketException]::new(10060)) } else { [Threading.Tasks.Task]::CompletedTask }
+[pscustomobject]@{ Task = `$task; Client = `$null }
+"@)
+            $report = Invoke-FleetPathTest -InventoryPath $script:StallInventory -BudgetMs 500 -Connector $connector
+            [pscustomobject]@{
+                Report = $report
+                Attempts = { param($suffix) @(Get-Content -LiteralPath (Join-Path $dir "192.0.2.1-443-$suffix")).Count }.GetNewClosure()
+                Lan = @($report.Targets[0].Endpoints[0].Candidates | Where-Object Kind -EQ 'lan')[0]
+            }
+        }
+    }
+
+    # Protects: a transient bound-probe stall on a healthy home NIC must not skip that NIC's LAN addresses.
+    # Detects: no retry of a failed bound probe for an interface that already holds a matching row.
+    # Needs: matching rows on both NICs; the bound probe on Ethernet 2 fails once, then answers.
+    # Breadcrumb: Invoke-FleetPathTest bound-probe retry; Resolve-FleetLocation StalledSources
+    It 'retries a stalled bound probe once and verifies the interface when it then answers' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12; New-TestNeighbor -IfIndex 15 -Alias 'Ethernet 2' }
+        $run = Invoke-StallScenario -Name 'recovers' -FailFirst 1
+        @($run.Report.Location.VerifiedInterfaces) | Should -Be @(12, 15)
+        & $run.Attempts '192.0.2.201' | Should -Be 2
+        & $run.Attempts '192.0.2.200' | Should -Be 1
+        & $run.Attempts '' | Should -Be 1
+        $run.Lan.Skipped | Should -BeNullOrEmpty
+    }
+
+    # Protects: the retry is bounded; a NIC whose bound probe keeps failing is probed exactly twice, then left unverified.
+    # Detects: an unbounded retry, or a failed bound probe being forgiven.
+    # Needs: a bound probe that never answers.
+    # Breadcrumb: Invoke-FleetPathTest bound-probe retry
+    It 'gives up after one retry and leaves the interface unverified' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12; New-TestNeighbor -IfIndex 15 -Alias 'Ethernet 2' }
+        $run = Invoke-StallScenario -Name 'never' -FailFirst 99
+        @($run.Report.Location.VerifiedInterfaces) | Should -Be @(12)
+        & $run.Attempts '192.0.2.201' | Should -Be 2
+        $run.Lan.Skipped | Should -Be 'egress-not-verified'
+    }
+
+    # Protects: no budget is spent on a NIC with no evidence of home.
+    # Detects: the retry firing for an interface that has no matching neighbour row.
+    # Needs: only Ethernet 12 holds a matching row; the bound probe on Ethernet 2 fails.
+    # Breadcrumb: Resolve-FleetLocation StalledSources
+    It 'does not retry a failed bound probe for an interface without a matching row' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12 }
+        $run = Invoke-StallScenario -Name 'norow' -FailFirst 99
+        @($run.Report.Location.VerifiedInterfaces) | Should -Be @(12)
+        & $run.Attempts '192.0.2.201' | Should -Be 1
+    }
+}
+Describe 'Dual-NIC host with both NICs on the home subnet' -Tag 'Unit' {
+    BeforeAll {
+        # Ethernet (ifIndex 12) and Ethernet 2 (ifIndex 15) are both on the home subnet. Each must prove itself with a
+        # connect bound to its own source address; LAN candidates routed out of either are then eligible.
+        $script:DualInventory = Write-TestInventory '{"schema":"pcai.fleet-paths/1","gateways":[{"name":"gw","ip":"192.0.2.1","mac":"00-00-5E-00-53-01","probePorts":[443]}],"hosts":{"viaA":{"tailnet":"100.64.0.102","lan":["198.51.100.20"],"services":{"ssh":{"ports":[22]}}},"viaB":{"tailnet":"100.64.0.103","lan":["198.51.100.30"],"services":{"ssh":{"ports":[22]}}}}}'
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12; New-TestNeighbor -IfIndex 15 -Alias 'Ethernet 2' }
+        Mock Get-FleetInterface { New-TestInterface; New-TestInterface -Index 15 -Ip '192.0.2.201' -Alias 'Ethernet 2' }
+        Mock Get-FleetPhysicalInterfaceIndex { @(12, 15) }
+        Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'test'; Status = $null } }
+        Mock Find-FleetRoute {
+            switch ($Address) {
+                '198.51.100.20' { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
+                '198.51.100.30' { [pscustomobject]@{ Interface = 'Ethernet 2'; InterfaceIndex = 15; SourceAddress = '192.0.2.201'; NextHop = 'on-link' } }
+                '192.0.2.1' { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
+                default { [pscustomobject]@{ Interface = 'Tailscale'; InterfaceIndex = 3; SourceAddress = '100.64.0.100'; NextHop = 'on-link' } }
+            }
+        }
+        # The connector models the stack: a connect bound to 192.0.2.201 (Ethernet 2) fails when $FailBoundB is set,
+        # exactly like a NIC whose link to the gateway is down. A connector that ignored the source address could not
+        # tell the two interfaces apart, so these scenarios would not differ.
+        function Invoke-DualScenario {
+            param([string]$Name, [bool]$FailBoundB)
+            $log = Join-Path $TestDrive "dual-$Name"
+            $null = New-Item -ItemType Directory -Path $log
+            $failText = if ($FailBoundB) { '$true' } else { '$false' }
+            $connector = [scriptblock]::Create(@"
+param(`$Address, `$Port, `$SourceAddress)
+`$null = New-Item -ItemType File -Force -Path (Join-Path '$log' "`$Address-`$Port-`$SourceAddress")
+`$fail = $failText -and `$Address -eq '192.0.2.1' -and `$SourceAddress -eq '192.0.2.201'
+`$task = if (`$fail) { [Threading.Tasks.Task]::FromException([Net.Sockets.SocketException]::new(10060)) } else { [Threading.Tasks.Task]::CompletedTask }
+[pscustomobject]@{ Task = `$task; Client = `$null }
+"@)
+            $report = Invoke-FleetPathTest -InventoryPath $script:DualInventory -BudgetMs 500 -Connector $connector
+            [pscustomobject]@{
+                Log = $log; Report = $report
+                A = @(($report.Targets | Where-Object Name -EQ 'viaA').Endpoints[0].Candidates | Where-Object Kind -EQ 'lan')[0]
+                B = @(($report.Targets | Where-Object Name -EQ 'viaB').Endpoints[0].Candidates | Where-Object Kind -EQ 'lan')[0]
+            }
+        }
+        $script:Both = Invoke-DualScenario -Name 'both' -FailBoundB $false
+        $script:BFails = Invoke-DualScenario -Name 'bfails' -FailBoundB $true
+    }
+
+    # Protects: the dual-NIC workstation this tool exists for. Both NICs are on the home LAN, and LAN candidates routed
+    # out of either must be probed and recommended.
+    # Detects: only the NIC the ordinary gateway probe happened to use being trusted.
+    # Needs: two interfaces with matching rows and successful bound probes; routes sending one candidate out of each.
+    # Breadcrumb: Invoke-FleetPathTest per-interface gateway probes; Resolve-FleetLocation
+    It 'verifies both interfaces and probes LAN candidates routed via either' {
+        @($script:Both.Report.Location.VerifiedInterfaces) | Should -Be @(12, 15)
+        $script:Both.A.Skipped | Should -BeNullOrEmpty
+        $script:Both.B.Skipped | Should -BeNullOrEmpty
+        $script:Both.A.Reachable | Should -BeTrue
+        $script:Both.B.Reachable | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:Both.Log '192.0.2.1-443-192.0.2.201') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:Both.Log '198.51.100.30-22-') | Should -BeTrue
+        ($script:Both.Report.Targets | Where-Object Name -EQ 'viaB').Endpoints[0].Recommended.Kind | Should -Be 'lan'
+    }
+
+    # Protects: the negative control. When the bound probe fails on Ethernet 2, that NIC is not verified, whatever its row
+    # says, and a LAN candidate routed out of it is skipped and never connected to.
+    # Detects: the source address being ignored (the probe would then succeed via the other NIC), or a row alone verifying.
+    # Needs: the same setup with the bound probe on 192.0.2.201 failing. Ignoring the bound source in the probe makes
+    # this fail, so it is the mutation check for the source-address binding.
+    # Breadcrumb: $script:FleetTcpProbe SourceAddress; Resolve-FleetLocation
+    It 'does not verify an interface whose bound probe fails and never probes LAN addresses routed out of it' {
+        $script:BFails.Report.Location.State | Should -Be 'home-lan'
+        @($script:BFails.Report.Location.VerifiedInterfaces) | Should -Be @(12)
+        $script:BFails.A.Skipped | Should -BeNullOrEmpty
+        $script:BFails.A.Reachable | Should -BeTrue
+        $script:BFails.B.Skipped | Should -Be 'egress-not-verified'
+        $script:BFails.B.Reachable | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $script:BFails.Log '198.51.100.30-22-') | Should -BeFalse
+        ($script:BFails.Report.Targets | Where-Object Name -EQ 'viaB').Endpoints[0].Recommended.Kind | Should -Be 'tailnet'
+    }
+}
 Describe 'MagicDNS resolution guard' -Tag 'Unit' {
     BeforeAll {
         # Roaming: the system resolver, not Tailscale, may answer for the MagicDNS name, and a foreign network can
@@ -558,6 +820,8 @@ Describe 'MagicDNS resolution guard' -Tag 'Unit' {
         # ssh is offered over MagicDNS only, so a probe of the tailnet address cannot stand in for a probe of the name.
         $script:DnsInventory = Write-TestInventory '{"schema":"pcai.fleet-paths/1","gateways":[{"name":"gw","ip":"192.0.2.1","mac":"00-00-5E-00-53-01","probePorts":[443]}],"hosts":{"box":{"tailnet":"100.64.0.102","tailnetV6":"fd7a:115c:a1e0::66","magicDns":"box.tailnet.example.invalid","services":{"ssh":{"ports":[22],"via":["magicdns"]}}}}}'
         Mock Get-FleetNeighbor { New-TestNeighbor }
+        Mock Get-FleetInterface { New-TestInterface }
+        Mock Get-FleetPhysicalInterfaceIndex { @(12) }
         Mock Find-FleetRoute {
             $index = if ($Address -eq '192.0.2.1') { 12 } else { 3 }
             [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = $index; SourceAddress = '100.64.0.100'; NextHop = 'on-link' }
@@ -572,7 +836,7 @@ Describe 'MagicDNS resolution guard' -Tag 'Unit' {
             $connector = [scriptblock]::Create(@"
 param(`$Address, `$Port)
 if (`$Address -notmatch '^[0-9.]+`$') { `$null = New-Item -ItemType File -Force -Path (Join-Path '$log' 'second-lookup-203.0.113.9') }
-`$null = New-Item -ItemType File -Force -Path (Join-Path '$log' "`$Address-`$Port")
+`$null = New-Item -ItemType File -Force -Path (Join-Path '$log' "`$Address-`$Port-`$SourceAddress")
 [pscustomobject]@{ Task = [Threading.Tasks.Task]::CompletedTask; Client = `$null }
 "@)
             Mock Resolve-FleetDnsNames -MockWith $Resolver
@@ -599,7 +863,7 @@ if (`$Address -notmatch '^[0-9.]+`$') { `$null = New-Item -ItemType File -Force 
         $script:Foreign.Dns.Skipped | Should -Be 'magicdns-mismatch'
         $script:Foreign.Dns.Reachable | Should -BeFalse
         @($script:Foreign.Dns.Resolved) | Should -Be @('203.0.113.9')
-        @(Get-ChildItem -LiteralPath $script:Foreign.Log | Where-Object Name -NE '192.0.2.1-443') | Should -BeNullOrEmpty
+        @(Get-ChildItem -LiteralPath $script:Foreign.Log | Where-Object Name -NotLike '192.0.2.1-443-*') | Should -BeNullOrEmpty
         $script:Foreign.Recommended | Should -BeNullOrEmpty
     }
 
@@ -611,8 +875,8 @@ if (`$Address -notmatch '^[0-9.]+`$') { `$null = New-Item -ItemType File -Force 
     # Breadcrumb: Invoke-FleetPathTest ProbeAddress
     It 'connects to the validated IP literal, never to the name' {
         $script:Matching.Dns.ProbeAddress | Should -Be '100.64.0.102'
-        Test-Path -LiteralPath (Join-Path $script:Matching.Log '100.64.0.102-22') | Should -BeTrue
-        Test-Path -LiteralPath (Join-Path $script:Matching.Log 'box.tailnet.example.invalid-22') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $script:Matching.Log '100.64.0.102-22-') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:Matching.Log 'box.tailnet.example.invalid-22-') | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $script:Matching.Log 'second-lookup-203.0.113.9') | Should -BeFalse
     }
 
@@ -634,7 +898,7 @@ if (`$Address -notmatch '^[0-9.]+`$') { `$null = New-Item -ItemType File -Force 
     It 'skips a MagicDNS name that does not resolve and never connects to it' {
         $script:Failed.Dns.Skipped | Should -Be 'magicdns-unresolved'
         $script:Failed.Dns.Reachable | Should -BeFalse
-        @(Get-ChildItem -LiteralPath $script:Failed.Log | Where-Object Name -NE '192.0.2.1-443') | Should -BeNullOrEmpty
+        @(Get-ChildItem -LiteralPath $script:Failed.Log | Where-Object Name -NotLike '192.0.2.1-443-*') | Should -BeNullOrEmpty
     }
 
     # Protects: DNS answers are a set; one foreign address among correct ones can still be the one the connect uses.
@@ -643,7 +907,7 @@ if (`$Address -notmatch '^[0-9.]+`$') { `$null = New-Item -ItemType File -Force 
     # Breadcrumb: Test-FleetMagicDnsResolution
     It 'skips a MagicDNS name when any resolved address is foreign' {
         $script:Mixed.Dns.Skipped | Should -Be 'magicdns-mismatch'
-        @(Get-ChildItem -LiteralPath $script:Mixed.Log | Where-Object Name -NE '192.0.2.1-443') | Should -BeNullOrEmpty
+        @(Get-ChildItem -LiteralPath $script:Mixed.Log | Where-Object Name -NotLike '192.0.2.1-443-*') | Should -BeNullOrEmpty
     }
 
     # Protects: an IPv6 address inside the tailnet range can belong to ANOTHER tailnet peer, which a foreign resolver
@@ -653,7 +917,7 @@ if (`$Address -notmatch '^[0-9.]+`$') { `$null = New-Item -ItemType File -Force 
     # Breadcrumb: Test-FleetMagicDnsResolution
     It 'skips a MagicDNS name that also resolves to another peer''s tailnet IPv6 address' {
         $script:OtherPeerV6.Dns.Skipped | Should -Be 'magicdns-mismatch'
-        @(Get-ChildItem -LiteralPath $script:OtherPeerV6.Log | Where-Object Name -NE '192.0.2.1-443') | Should -BeNullOrEmpty
+        @(Get-ChildItem -LiteralPath $script:OtherPeerV6.Log | Where-Object Name -NotLike '192.0.2.1-443-*') | Should -BeNullOrEmpty
     }
 
     # Protects: the resolution rule itself, independent of the report plumbing.
@@ -880,6 +1144,8 @@ Describe 'Recommendation' -Tag 'Unit' {
 Describe 'Whole run on the home LAN' -Tag 'Unit' {
     BeforeAll {
         Mock Get-FleetNeighbor { New-TestNeighbor }
+        Mock Get-FleetInterface { New-TestInterface }
+        Mock Get-FleetPhysicalInterfaceIndex { @(12) }
         Mock Find-FleetRoute {
             [pscustomobject]@{ Interface = $(if ($Address -like '100.64.*') { 'Tailscale' } else { 'Ethernet 12' }); InterfaceIndex = $(if ($Address -like '100.64.*') { 3 } else { 12 }); SourceAddress = '192.0.2.200'; NextHop = 'on-link' }
         }
@@ -990,6 +1256,8 @@ Describe 'Whole run on a colliding network' -Tag 'Unit' {
     BeforeAll {
         # A hotel network: 192.0.2.1 answers and every address "connects", but the gateway MAC is not ours.
         Mock Get-FleetNeighbor { New-TestNeighbor -Mac '00-11-22-33-44-55' }
+        Mock Get-FleetInterface { New-TestInterface -Index 7 -Ip '192.0.2.77' -Alias 'Wi-Fi' }
+        Mock Get-FleetPhysicalInterfaceIndex { @(7) }
         Mock Find-FleetRoute { [pscustomobject]@{ Interface = 'Wi-Fi'; InterfaceIndex = 7; SourceAddress = '192.0.2.77'; NextHop = '192.0.2.1' } }
         Mock Resolve-FleetDnsNames { Get-TestMagicDns -Names $Names }
         Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $true; Error = $null; Status = $script:TailscaleFixture } }
@@ -1029,6 +1297,8 @@ Describe 'Whole run on a colliding network' -Tag 'Unit' {
 Describe 'Whole run without tailscale' -Tag 'Unit' {
     BeforeAll {
         Mock Get-FleetNeighbor { New-TestNeighbor }
+        Mock Get-FleetInterface { New-TestInterface }
+        Mock Get-FleetPhysicalInterfaceIndex { @(12) }
         Mock Find-FleetRoute { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
         Mock Resolve-FleetDnsNames { Get-TestMagicDns -Names $Names }
         Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'tailscale binary not found'; Status = $null } }

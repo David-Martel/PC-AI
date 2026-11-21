@@ -620,12 +620,14 @@ How to read the result:
   MAC equals the inventory MAC. A hotel LAN can also be 192.168.1.0/24, so the subnet
   never decides. Off the home LAN, LAN candidates are not probed or recommended, because a
   connect to a LAN address on a hotel network would reach someone else's machine.
-  Home is verified per interface, with interface-specific evidence: an interface counts only when
-  its own neighbour row for a gateway matches the inventory MAC and it is the interface the gateway
-  probe egressed (`Find-NetRoute`). Each LAN candidate's egress interface is resolved before it is
-  probed, and it is probed only if that interface is verified. A multihomed host with two NICs on the
-  home subnet therefore verifies only the NIC the gateway probe used, and a LAN address routed out of
-  the other NIC is skipped as `egress-not-verified` (the tailnet path is used instead).
+  Home is verified per interface, with evidence specific to that interface: for every physical, Up
+  interface whose IPv4 subnet contains an inventory gateway, the script connects to the gateway with a
+  TCP socket bound to that interface's own source address, and the interface counts only if that
+  bound probe succeeds and its own neighbour row for the gateway matches the inventory MAC. A
+  dual-NIC host with both NICs on the home subnet therefore verifies both. Each LAN candidate's
+  egress interface (`Find-NetRoute`) is then resolved before it is probed, and it is probed only if
+  that interface is verified; otherwise it is skipped as `egress-not-verified`. An interface whose
+  row disagrees with the inventory is recorded as colliding and is never trusted.
   A MagicDNS name is resolved before it is probed and is probed only when every answer is the
   host's own inventory tailnet address (`tailnet`, plus the one `tailnetV6` address if recorded; another
   peer's IPv6 address is rejected). The connect targets the validated IP literal, not the name. With

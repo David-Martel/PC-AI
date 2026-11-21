@@ -21,15 +21,17 @@ inventory gateway that answers a TCP connect AND whose on-link MAC address match
 the value recorded in the inventory. A missing, incomplete or all-zero MAC fails
 closed to off-LAN. While off the home LAN, LAN candidates are neither probed nor
 recommended: a connect to a LAN address on a hotel's 192.168.1.0/24 would reach a stranger's machine.
-Home is verified per interface, and only with interface-specific evidence: an interface
-counts as verified when its own neighbour row for a gateway matches the inventory MAC AND
-it is the interface the gateway probe egressed (Find-NetRoute for the gateway address). A
-matching row on some other interface verifies nothing. Each LAN candidate's egress
-interface is then resolved with Find-NetRoute before it is probed, and it is probed only
-if that interface is verified. On a host with Ethernet on the home LAN and Wi-Fi on a
+Home is verified per interface, with evidence specific to that interface. For every
+physical, Up interface whose IPv4 subnet contains an inventory gateway, the script also
+connects to the gateway through a TCP socket bound to that interface's own source address,
+in the same parallel wave. The interface counts as verified only when that bound probe
+succeeds AND its own neighbour row (same ifIndex) for the gateway equals the inventory MAC,
+so a host with two NICs on the home subnet verifies both. An interface whose row disagrees
+is recorded as colliding and is never trusted. Each LAN candidate's egress interface is then
+resolved with Find-NetRoute before it is probed, and it is probed only if that interface is
+verified. On a host with Ethernet on the home LAN and Wi-Fi on a
 network that reuses the subnet, a LAN address routed out of Wi-Fi is skipped with the
-reason egress-not-verified, as is one whose route cannot be resolved (and, on a host with
-two NICs on the home subnet, one routed out of the NIC the gateway probe did not use).
+reason egress-not-verified, as is one whose route cannot be resolved.
 A MagicDNS name is resolved before it is probed and is probed only if every answer is the
 host's own inventory tailnet address (plus, if the inventory records tailnetV6, that one
 IPv6 address; any other IPv6 answer, even inside fd7a:115c:a1e0::/48, can belong to another
@@ -224,23 +226,27 @@ function New-FleetCandidatePlan {
 # afterwards, or $null). The deadline lives here, outside the connector, so a
 # connector that never completes cannot defeat it.
 $script:FleetTcpProbe = {
-    param([string]$Address, [int]$Port, [int]$BudgetMs, [string]$ConnectorText)
+    param([string]$Address, [int]$Port, [int]$BudgetMs, [string]$ConnectorText, [string]$SourceAddress = '')
     $clock = [Diagnostics.Stopwatch]::StartNew()
     $connection = $null
     $result = [ordered]@{
-        Address = $Address; Port = $Port; Reachable = $false
+        Address = $Address; Port = $Port; SourceAddress = $SourceAddress; Reachable = $false
         LatencyMs = $null; Error = $null; RemoteAddress = $null
     }
     try {
         $connector = if ($ConnectorText) { [scriptblock]::Create($ConnectorText) }
         else {
             {
-                param($a, $p)
-                $client = [Net.Sockets.TcpClient]::new()
+                param($a, $p, $source)
+                # A source address binds the socket to one interface (the stack then sends from
+                # that interface only), which is what makes a per-interface probe evidence for
+                # that interface alone.
+                $client = if ($source) { [Net.Sockets.TcpClient]::new([Net.IPEndPoint]::new([ipaddress]::Parse($source), 0)) }
+                else { [Net.Sockets.TcpClient]::new() }
                 [pscustomobject]@{ Task = $client.ConnectAsync($a, $p); Client = $client }
             }
         }
-        $connection = & $connector $Address $Port
+        $connection = & $connector $Address $Port $SourceAddress
         if (-not $connection.Task.Wait($BudgetMs)) {
             $result.Error = "timeout after ${BudgetMs}ms"
         }
@@ -280,10 +286,11 @@ function Test-FleetTcpPort {
         [Parameter(Mandatory)][string]$Address,
         [Parameter(Mandatory)][int]$Port,
         [int]$BudgetMs = 1500,
-        [scriptblock]$Connector
+        [scriptblock]$Connector,
+        [string]$SourceAddress = ''
     )
     $connectorText = if ($Connector) { $Connector.ToString() } else { '' }
-    & $script:FleetTcpProbe $Address $Port $BudgetMs $connectorText
+    & $script:FleetTcpProbe $Address $Port $BudgetMs $connectorText $SourceAddress
 }
 
 function Invoke-FleetProbeBatch {
@@ -309,7 +316,7 @@ function Invoke-FleetProbeBatch {
     $throttle = [Math]::Min($items.Count, 64)
     $job = $items | ForEach-Object -ThrottleLimit $throttle -AsJob -Parallel {
         $probe = [scriptblock]::Create($using:probeText)
-        & $probe $_.Address $_.Port $using:BudgetMs $using:connectorText
+        & $probe $_.Address $_.Port $using:BudgetMs $using:connectorText $_.SourceAddress
     }
     try {
         if ($WhileWaiting) { $null = & $WhileWaiting }
@@ -367,50 +374,138 @@ function Find-FleetRoute {
     catch { $null }
 }
 
-function Resolve-FleetLocation {
-    # Home needs two independent facts per gateway: a TCP connect succeeded (so the
-    # ARP row is fresh, not left over from another network) AND the on-link MAC
-    # equals the inventory MAC. Every other outcome is off-LAN.
+function Get-FleetProbeKey {
+    # A per-interface probe shares its address and port with the ordinary probe, so the
+    # source address is part of the identity.
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)]$Probe)
+    $source = [string](Get-FleetProperty $Probe 'SourceAddress' '')
+    if ($source) { return "$($Probe.Address):$($Probe.Port)@$source" }
+    return "$($Probe.Address):$($Probe.Port)"
+}
+
+function Test-FleetIpInSubnet {
+    # Pure IPv4 subnet test. The network may be any address inside it (an interface address).
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)][string]$Address, [Parameter(Mandatory)][string]$Network, [Parameter(Mandatory)][int]$PrefixLength)
+    $a = $null; $n = $null
+    if (-not [ipaddress]::TryParse($Address, [ref]$a) -or -not [ipaddress]::TryParse($Network, [ref]$n)) { return $false }
+    if ($a.AddressFamily -ne 'InterNetwork' -or $n.AddressFamily -ne 'InterNetwork' -or $PrefixLength -lt 0 -or $PrefixLength -gt 32) { return $false }
+    $toNumber = { param($ip) $b = $ip.GetAddressBytes(); ([uint32]$b[0] -shl 24) -bor ([uint32]$b[1] -shl 16) -bor ([uint32]$b[2] -shl 8) -bor [uint32]$b[3] }
+    $mask = if ($PrefixLength -eq 0) { [uint32]0 } else { [uint32]([uint64]4294967295 -shl (32 - $PrefixLength) -band 4294967295) }
+    return ((& $toNumber $a) -band $mask) -eq ((& $toNumber $n) -band $mask)
+}
+
+function Get-FleetInterface {
+    # Up, non-loopback, non-tunnel interfaces with their IPv4 addresses. .NET, not CIM, so the
+    # list is available at once and the per-interface probes can start with wave A.
+    [CmdletBinding()]
+    param()
+    try {
+        foreach ($adapter in [Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces()) {
+            if ($adapter.OperationalStatus -ne 'Up' -or $adapter.NetworkInterfaceType -in 'Loopback', 'Tunnel') { continue }
+            try {
+                $properties = $adapter.GetIPProperties()
+                $index = [int]$properties.GetIPv4Properties().Index
+                foreach ($unicast in $properties.UnicastAddresses) {
+                    if ($unicast.Address.AddressFamily -eq 'InterNetwork') {
+                        [pscustomobject]@{ InterfaceIndex = $index; InterfaceAlias = $adapter.Name; IPAddress = $unicast.Address.ToString(); PrefixLength = [int]$unicast.PrefixLength }
+                    }
+                }
+            }
+            catch { }
+        }
+    }
+    catch { @() }
+}
+
+function Get-FleetPhysicalInterfaceIndex {
+    # ifIndex of every physical adapter that is Up. Failure reads as "none", so nothing
+    # verifies.
+    [CmdletBinding()]
+    param()
+    try { @(Get-NetAdapter -Physical -ErrorAction Stop | Where-Object { $_.Status -eq 'Up' } | ForEach-Object { [int]$_.ifIndex }) }
+    catch { @() }
+}
+
+function New-FleetGatewayProbePlan {
+    # One ordinary probe per gateway port, plus one probe per port bound to the source
+    # address of each interface whose subnet contains the gateway.
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Gateways,
-        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$ProbeResults
+        [AllowEmptyCollection()][object[]]$Interfaces = @()
+    )
+    foreach ($g in $Gateways) {
+        foreach ($p in $g.ProbePorts) { [pscustomobject]@{ Address = $g.Ip; Port = $p; SourceAddress = '' } }
+        foreach ($i in $Interfaces) {
+            if (-not (Test-FleetIpInSubnet -Address $g.Ip -Network $i.IPAddress -PrefixLength $i.PrefixLength)) { continue }
+            foreach ($p in $g.ProbePorts) { [pscustomobject]@{ Address = $g.Ip; Port = $p; SourceAddress = [string]$i.IPAddress } }
+        }
+    }
+}
+
+function Resolve-FleetLocation {
+    # Home is proven per interface, with evidence specific to that interface: a TCP
+    # connect bound to the interface's own source address reached a gateway AND the
+    # interface's own neighbour row for that gateway equals the inventory MAC. Only
+    # physical interfaces on a subnet containing the gateway are candidates. Every other
+    # outcome is off-LAN. Interfaces whose row disagrees are recorded as colliding and
+    # are never trusted.
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Gateways,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$ProbeResults,
+        [AllowEmptyCollection()][object[]]$Interfaces = @(),
+        [AllowEmptyCollection()][int[]]$PhysicalIndexes = @()
     )
     $byKey = @{}
-    foreach ($r in $ProbeResults) { $byKey["$($r.Address):$($r.Port)"] = $r }
+    foreach ($r in $ProbeResults) { $byKey[(Get-FleetProbeKey $r)] = $r }
 
     # Read the neighbour table after the probes, so a reached gateway has a fresh row.
     $neighbors = @(if (@($Gateways).Count -gt 0) { Get-FleetNeighbor -IPAddress @($Gateways | ForEach-Object { $_.Ip }) })
 
     $entries = foreach ($g in $Gateways) {
-        $probes = @($g.ProbePorts | ForEach-Object { $byKey["$($g.Ip):$_"] } | Where-Object { $_ })
-        $reached = @($probes | Where-Object { $_.Reachable })
-        $reachable = $reached.Count -gt 0
+        $reachedPlain = @($g.ProbePorts | ForEach-Object { $byKey["$($g.Ip):$_"] } | Where-Object { $_ -and $_.Reachable })
         $rows = @($neighbors | Where-Object {
                 $_.IPAddress -eq $g.Ip -and $_.State -notin 'Unreachable', 'Incomplete' -and (ConvertTo-FleetMac $_.LinkLayerAddress)
             })
         $observed = @($rows | ForEach-Object { ConvertTo-FleetMac $_.LinkLayerAddress } | Sort-Object -Unique)
-        # Verification is per interface: a row proves "home" only for the interface it was
-        # read on. A row without an interface index cannot be matched to an egress, so it
-        # verifies nothing.
-        # ...and only for the interface the gateway probe actually used: a matching row on
-        # some other interface says nothing about the network the TCP connect crossed.
-        $gatewayRoute = if ($reachable) { Find-FleetRoute -Address $g.Ip } else { $null }
-        $egressIndex = if ($gatewayRoute) { Get-FleetProperty $gatewayRoute 'InterfaceIndex' } else { $null }
-        $verified = @($rows | Where-Object { $g.Mac -and (ConvertTo-FleetMac $_.LinkLayerAddress) -eq $g.Mac -and $null -ne $_.InterfaceIndex -and $null -ne $egressIndex -and [int]$_.InterfaceIndex -eq [int]$egressIndex } |
-                ForEach-Object { [int]$_.InterfaceIndex } | Sort-Object -Unique)
+
+        $verified = [Collections.Generic.List[int]]::new()
+        $stalled = [Collections.Generic.List[string]]::new()
+        $boundAnswers = 0
+        foreach ($i in @($Interfaces)) {
+            $index = [int]$i.InterfaceIndex
+            if ($PhysicalIndexes -notcontains $index) { continue }
+            if (-not (Test-FleetIpInSubnet -Address $g.Ip -Network $i.IPAddress -PrefixLength $i.PrefixLength)) { continue }
+            $bound = @($g.ProbePorts | ForEach-Object { $byKey["$($g.Ip):$_@$($i.IPAddress)"] } | Where-Object { $_ -and $_.Reachable })
+            $ownRow = @($rows | Where-Object { $null -ne $_.InterfaceIndex -and [int]$_.InterfaceIndex -eq $index -and (ConvertTo-FleetMac $_.LinkLayerAddress) -eq $g.Mac })
+            if ($bound.Count -eq 0) {
+                # Evidence of home (a matching row) without a successful bound probe: a
+                # probe worth repeating once. No row, no evidence, nothing to repeat.
+                if ($g.Mac -and $ownRow.Count -gt 0 -and -not $stalled.Contains([string]$i.IPAddress)) { $stalled.Add([string]$i.IPAddress) }
+                continue
+            }
+            $boundAnswers++
+            if ($g.Mac -and $ownRow.Count -gt 0 -and -not $verified.Contains($index)) { $verified.Add($index) }
+        }
+
+        $reachable = $reachedPlain.Count -gt 0 -or $boundAnswers -gt 0
         $colliding = @($rows | Where-Object { $g.Mac -and (ConvertTo-FleetMac $_.LinkLayerAddress) -ne $g.Mac -and $null -ne $_.InterfaceIndex } |
                 ForEach-Object { [int]$_.InterfaceIndex } | Sort-Object -Unique)
         $mismatching = @($observed | Where-Object { $_ -ne $g.Mac })
-        $match = $reachable -and $verified.Count -gt 0
         $collision = $reachable -and [bool]$g.Mac -and $mismatching.Count -gt 0
         [pscustomobject]@{
             Name = $g.Name; Ip = $g.Ip; ExpectedMac = $g.Mac
             ObservedMac = ($observed -join ',')
             Reachable = $reachable
-            LatencyMs = if ($reachable) { ($reached | Measure-Object -Property LatencyMs -Minimum).Minimum } else { $null }
-            MacMatch = $match; Collision = $collision
-            VerifiedInterfaces = $(if ($reachable) { $verified } else { @() })
+            LatencyMs = if ($reachedPlain.Count -gt 0) { ($reachedPlain | Measure-Object -Property LatencyMs -Minimum).Minimum } else { $null }
+            MacMatch = ($verified.Count -gt 0); Collision = $collision
+            StalledSources = @($stalled)
+            VerifiedInterfaces = @($verified | Sort-Object)
             CollidingInterfaces = $(if ($collision) { $colliding } else { @() })
             Interface = (@($rows | ForEach-Object { $_.InterfaceAlias } | Sort-Object -Unique) -join ',')
         }
@@ -426,7 +521,7 @@ function Resolve-FleetLocation {
 
     if ($verifiedInterfaces.Count -gt 0 -and $homeGateways.Count -gt 0) {
         $state = 'home-lan'
-        $reason = "Gateway $($homeGateways[0].Ip) answered and its MAC $($homeGateways[0].ObservedMac) matches the inventory on interface $($verifiedInterfaces -join ', ')."
+        $reason = "Gateway $($homeGateways[0].Ip) answered a probe bound to interface $($verifiedInterfaces -join ', ') and that interface's MAC $($homeGateways[0].ObservedMac) matches the inventory."
         if ($collidingInterfaces.Count -gt 0) {
             $reason += " Interface $($collidingInterfaces -join ', ') holds a different MAC for a gateway address and is not trusted; LAN addresses routed through it are skipped."
         }
@@ -437,7 +532,7 @@ function Resolve-FleetLocation {
     }
     elseif ($unverified.Count -gt 0) {
         $state = 'off-lan'
-        $reason = "Gateway $($unverified[0].Ip) answered but no usable MAC could be read or none is recorded, so home cannot be verified."
+        $reason = "Gateway $($unverified[0].Ip) answered but no physical interface proved it with a bound probe and a matching MAC (or no MAC is recorded), so home cannot be verified."
     }
     else {
         $state = 'off-lan'
@@ -447,10 +542,10 @@ function Resolve-FleetLocation {
         State = $state; Reason = $reason; Collision = ($collided.Count -gt 0)
         VerifiedInterfaces = $(if ($state -eq 'home-lan') { $verifiedInterfaces } else { @() })
         CollidingInterfaces = $collidingInterfaces
+        StalledSources = @($entries | ForEach-Object { $_.StalledSources } | Where-Object { $_ } | Sort-Object -Unique)
         Gateways = $entries
     }
 }
-
 function Resolve-FleetDnsNames {
     # Wrapper so tests need no resolver. All lookups start together and share one deadline.
     # A failed, timed-out or empty lookup yields an empty list, which callers treat as
@@ -708,31 +803,42 @@ function Invoke-FleetPathTest {
     # route cmdlets in this runspace.
     $results = @{}
     $waveA = [ordered]@{}
-    $gatewayProbes = @(foreach ($g in $inventory.Gateways) { foreach ($p in $g.ProbePorts) { [pscustomobject]@{ Address = $g.Ip; Port = $p } } })
-    foreach ($probe in $gatewayProbes) { $waveA["$($probe.Address):$($probe.Port)"] = $probe }
+    # Gateway probes: the ordinary ones plus one per interface on a gateway subnet, bound
+    # to that interface's source address (the per-interface proof of home).
+    $interfaces = @(Get-FleetInterface)
+    $gatewayProbes = @(New-FleetGatewayProbePlan -Gateways $inventory.Gateways -Interfaces $interfaces)
+    foreach ($probe in $gatewayProbes) { $waveA[(Get-FleetProbeKey $probe)] = $probe }
     foreach ($e in $endpoints) {
         foreach ($c in $e.Candidates) {
             if ($c.Kind -ne 'lan' -and -not $c.Skipped) { $waveA["$($c.ProbeAddress):$($c.Port)"] = [pscustomobject]@{ Address = $c.ProbeAddress; Port = $c.Port } }
         }
     }
     $warmAddress = if (@($inventory.Gateways).Count -gt 0) { @($inventory.Gateways)[0].Ip } else { $null }
-    $warmUp = { if ($warmAddress) { $null = Get-FleetNeighbor -IPAddress $warmAddress; $null = Find-FleetRoute -Address $warmAddress } }
+    $physical = @{ Index = @() }
+    $warmUp = {
+        if ($warmAddress) { $null = Get-FleetNeighbor -IPAddress $warmAddress; $null = Find-FleetRoute -Address $warmAddress }
+        $physical.Index = @(Get-FleetPhysicalInterfaceIndex)
+    }
     foreach ($r in (Invoke-FleetProbeBatch -Probes @($waveA.Values) -BudgetMs $BudgetMs -Connector $Connector -WhileWaiting $warmUp)) {
-        $results["$($r.Address):$($r.Port)"] = $r
+        $results[(Get-FleetProbeKey $r)] = $r
     }
     & $stage 'wave A done (gateways and tailnet candidates)'
-    $location = Resolve-FleetLocation -Gateways $inventory.Gateways -ProbeResults @($results.Values)
-    # One transient stall (seen about once in 40 runs: both ports on the gateway timing
-    # out together) would otherwise read as "away from home". A colliding MAC is a
-    # definite answer and is not retried; anything else gets one more look.
-    if ($location.State -ne 'home-lan' -and -not $location.Collision -and $gatewayProbes.Count -gt 0) {
-        & $stage 'no home verdict; retrying the gateway probes once'
-        foreach ($r in (Invoke-FleetProbeBatch -Probes $gatewayProbes -BudgetMs $BudgetMs -Connector $Connector)) {
-            $results["$($r.Address):$($r.Port)"] = $r
+    $location = Resolve-FleetLocation -Gateways $inventory.Gateways -ProbeResults @($results.Values) -Interfaces $interfaces -PhysicalIndexes $physical.Index
+    # Two kinds of transient stall are retried once. No home verdict at all (seen about
+    # once in 40 runs: every gateway probe timing out together) would read as "away from
+    # home"; a colliding MAC is a definite answer and is not retried. And a NIC that holds
+    # a matching neighbour row but whose bound probe failed (seen under a saturated CPU)
+    # would leave a healthy home NIC unverified, so only its bound probes are repeated.
+    $retryProbes = @()
+    if ($location.State -ne 'home-lan' -and -not $location.Collision) { $retryProbes = @($gatewayProbes) }
+    elseif (@($location.StalledSources).Count -gt 0) { $retryProbes = @($gatewayProbes | Where-Object { $_.SourceAddress -and $_.SourceAddress -in $location.StalledSources }) }
+    if ($retryProbes.Count -gt 0) {
+        & $stage "retrying $($retryProbes.Count) gateway probe(s) once"
+        foreach ($r in (Invoke-FleetProbeBatch -Probes $retryProbes -BudgetMs $BudgetMs -Connector $Connector)) {
+            $results[(Get-FleetProbeKey $r)] = $r
         }
-        $location = Resolve-FleetLocation -Gateways $inventory.Gateways -ProbeResults @($results.Values)
-    }
-    $onHomeLan = $location.State -eq 'home-lan'
+        $location = Resolve-FleetLocation -Gateways $inventory.Gateways -ProbeResults @($results.Values) -Interfaces $interfaces -PhysicalIndexes $physical.Index
+    }    $onHomeLan = $location.State -eq 'home-lan'
     & $stage "location: $($location.State)"
 
     # Wave B: LAN candidates, only once home is proven. Off the home LAN a connect to
@@ -767,7 +873,7 @@ function Invoke-FleetPathTest {
         }
     }
     foreach ($r in (Invoke-FleetProbeBatch -Probes @($waveB.Values) -BudgetMs $BudgetMs -Connector $Connector -WhileWaiting $routeLookups)) {
-        $results["$($r.Address):$($r.Port)"] = $r
+        $results[(Get-FleetProbeKey $r)] = $r
     }
 
     & $stage 'wave B done (LAN candidates and route lookups)'

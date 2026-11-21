@@ -27,10 +27,12 @@ The shim to deploy. Defaults to the copy in the checkout this script runs from.
 Files to deploy to. Defaults to the Documents and OneDrive Documents PowerShell folders.
 .PARAMETER BackupRoot
 Where displaced files and the receipt go. Defaults to `~/.machine/backups/profiles`.
+.PARAMETER DryRun
+Preview only, the same as -WhatIf: no file, backup or receipt is written (AGENTS.md requires the switch).
 .PARAMETER PassThru
 Emit one result object per target.
 .EXAMPLE
-pwsh -NoProfile -File Tools/SystemScripts/Machine/Install-PcaiProfileShim.ps1 -WhatIf
+pwsh -NoProfile -File Tools/SystemScripts/Machine/Install-PcaiProfileShim.ps1 -DryRun
 .EXAMPLE
 pwsh -NoProfile -File Tools/SystemScripts/Machine/Install-PcaiProfileShim.ps1
 #>
@@ -40,6 +42,7 @@ param(
     [string[]]$Target,
     [string]$BackupRoot,
     [switch]$PassThru,
+    [switch]$DryRun,
     [Alias('h')][switch]$Help,
     # PowerShell cannot alias `--help`; it arrives here and is honored below (AGENTS.md: -h, --help).
     [Parameter(ValueFromRemainingArguments, DontShow)][string[]]$RemainingArguments = @()
@@ -129,7 +132,7 @@ if ($MyInvocation.InvocationName -ne '.') {
     if (-not $SourcePath) { $SourcePath = Join-Path $PSScriptRoot '../../../Config/PowerShell/Profile/Microsoft.PowerShell_profile.ps1' }
     if (-not $Target) { $Target = Get-PcaiShimDefaultTarget }
     if (-not $BackupRoot) { $BackupRoot = Join-Path $HOME '.machine/backups/profiles' }
-    $results = @(Install-PcaiProfileShim -Source $SourcePath -Path $Target -Backup $BackupRoot -WhatIf:$WhatIfPreference)
+    $results = @(Install-PcaiProfileShim -Source $SourcePath -Path $Target -Backup $BackupRoot -WhatIf:($DryRun -or $WhatIfPreference))
     foreach ($r in $results) { Write-Host ("{0,-10} {1}{2}{3}" -f $r.Action, $r.Target, $(if ($r.Backup) { "  (backup $($r.Backup))" } else { '' }), $(if ($r.Note) { "  ($($r.Note))" } else { '' })) }
     if ($PassThru) { $results }
 }

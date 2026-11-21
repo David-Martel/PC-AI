@@ -8,7 +8,7 @@ Deploy the same file to both possible user-document roots:
 - `%USERPROFILE%\Documents\PowerShell\Microsoft.PowerShell_profile.ps1`
 - `%USERPROFILE%\OneDrive\Documents\PowerShell\Microsoft.PowerShell_profile.ps1`
 
-Run `Tools/SystemScripts/Machine/Install-PcaiProfileShim.ps1` (`-WhatIf` first) to do it: it writes the
+Run `Tools/SystemScripts/Machine/Install-PcaiProfileShim.ps1` (`-DryRun` first) to do it: it writes the
 source to each root that exists, copies every file it replaces to `~/.machine/backups/profiles` as
 `<host>.<folder>.<file>.bak-<sha256 prefix>` with a UTC-stamped line in `receipts.jsonl`, and leaves a copy
 that already matches alone. It never touches the private profile. Tests:

@@ -104,6 +104,33 @@ Describe 'Install-PcaiProfileShim' -Tag 'Unit', 'Portable' {
 }
 
 Describe 'Install-PcaiProfileShim script entry point' -Tag 'Unit', 'Portable' {
+    # Why: AGENTS.md requires every write-capable script to expose -DryRun and a test that it
+    # suppresses side effects (review of PR 349). -DryRun routes through the same non-mutating path
+    # as -WhatIf, from the real command line.
+    It 'previews with -DryRun and leaves the profile, the backup directory and the receipt untouched' {
+        $f = New-ShimFixture 'dryrun'
+        $target = Join-Path $f.Root 'Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
+        $null = New-Item -ItemType Directory -Path (Split-Path -Parent $target)
+        [IO.File]::WriteAllText($target, '# stale')
+        $path = Join-Path $repoRoot 'Tools/SystemScripts/Machine/Install-PcaiProfileShim.ps1'
+        $out = & (Join-Path $PSHOME 'pwsh') -NoProfile -NonInteractive -File $path -SourcePath $f.Source -Target $target -BackupRoot $f.Backup -DryRun 2>&1 | Out-String
+        $LASTEXITCODE | Should -Be 0
+        $out | Should -Match 'WouldChange'
+        [IO.File]::ReadAllText($target) | Should -Be '# stale'
+        Test-Path -LiteralPath $f.Backup | Should -BeFalse
+        Get-ChildItem -LiteralPath (Split-Path -Parent $target) -Force | Where-Object Name -like '.pcai-shim-*' | Should -BeNullOrEmpty
+    }
+    It 'applies the same invocation without -DryRun, so the preview was not vacuous' {
+        $f = New-ShimFixture 'dryrun-control'
+        $target = Join-Path $f.Root 'Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
+        $null = New-Item -ItemType Directory -Path (Split-Path -Parent $target)
+        [IO.File]::WriteAllText($target, '# stale')
+        $path = Join-Path $repoRoot 'Tools/SystemScripts/Machine/Install-PcaiProfileShim.ps1'
+        $null = & (Join-Path $PSHOME 'pwsh') -NoProfile -NonInteractive -File $path -SourcePath $f.Source -Target $target -BackupRoot $f.Backup 2>&1
+        $LASTEXITCODE | Should -Be 0
+        (Get-FileHash -LiteralPath $target).Hash | Should -Be (Get-FileHash -LiteralPath $f.Source).Hash
+        Test-Path -LiteralPath (Join-Path $f.Backup 'receipts.jsonl') | Should -BeTrue
+    }
     It 'prints the comment-based help for <_>' -ForEach @('-h', '--help') {
         $path = Join-Path $repoRoot 'Tools/SystemScripts/Machine/Install-PcaiProfileShim.ps1'
         $out = & (Join-Path $PSHOME 'pwsh') -NoProfile -NonInteractive -File $path $_ 2>&1 | Out-String

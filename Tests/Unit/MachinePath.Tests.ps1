@@ -532,4 +532,3 @@ Describe 'Repair-MachinePath.ps1 archival is report-only by default' {
         $script:SyncText2 | Should -Not -Match 'ApplyArchive'
     }
 }
-

@@ -383,6 +383,7 @@ pub fn build_route_plan(
 
     let mut actions: BTreeMap<String, Vec<RouteAction>> = BTreeMap::new();
     let mut guards: BTreeMap<String, BTreeMap<u32, (String, String)>> = BTreeMap::new();
+    let mut prefix_guards: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut transit_used = BTreeSet::new();
     let mut conflicts = Vec::new();
     // One action per (kind, interface, target): the per-pair note differs when a transit
@@ -431,6 +432,13 @@ pub fn build_route_plan(
             }
             let present = end.observed_v4.contains(&end.address);
             let (index, ip) = (end.interface_index, end.address);
+            if present {
+                // The observation records addresses without prefix lengths; an address the plan
+                // relies on but does not own must really be the /30 before anything is applied.
+                prefix_guards.entry(end.host.clone()).or_default().push(format!(
+                    "$p = Get-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -ErrorAction Stop; if ($p.PrefixLength -ne 30) {{ throw 'ifIndex {index} holds {ip}/' + $p.PrefixLength + ', not the planned /30; review before applying' }}"
+                ));
+            }
             push(
                 &end.host,
                 RouteAction {
@@ -447,7 +455,7 @@ pub fn build_route_plan(
                             owned_apply(
                                 &journal,
                                 &key,
-                                &format!("Get-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -ErrorAction SilentlyContinue"),
+                                &format!("Get-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -ErrorAction SilentlyContinue | Where-Object PrefixLength -eq 30"),
                                 &format!("New-NetIPAddress -InterfaceIndex {index} -AddressFamily IPv4 -IPAddress {ip} -PrefixLength 30"),
                             )
                         )
@@ -622,7 +630,10 @@ pub fn build_route_plan(
             .collect();
         plan.hosts.push(HostRoutePlan {
             transit: transit_used.contains(&host),
-            guard: guard_lines(&host_guards),
+            guard: guard_lines(&host_guards)
+                .into_iter()
+                .chain(prefix_guards.remove(&host).unwrap_or_default())
+                .collect(),
             preflight,
             actions: list,
             host,
@@ -737,6 +748,10 @@ mod tests {
             .unwrap();
         assert_eq!(existing.target, "172.31.255.22/30");
         assert!(existing.already_present && existing.apply.is_none() && existing.rollback.is_none());
+        assert!(nuc
+            .guard
+            .iter()
+            .any(|g| g.contains("-IPAddress 172.31.255.22 ") && g.contains("PrefixLength -ne 30")));
         let gen9 = host(&plan, "dtm-p1gen9");
         let missing = gen9
             .actions

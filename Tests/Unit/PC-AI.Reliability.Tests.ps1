@@ -478,6 +478,35 @@ Describe 'PC-AI.Reliability' {
             ($o | Where-Object { $_.Name -eq 'o/r/hostA-1' }).Status | Should -Be 'failed'
         }
 
+        It 'reads the drain lifecycle case-sensitively from real vct-nightly messages' {
+            # Regression from live data (2026-11-21): an ALERT containing "restart" was read as an active DRAIN.
+            $msgs = @(
+                @{ timestamp_utc = '2026-11-21T14:20:53Z'; body = 'vct-nightly START on dtm-work: DRAIN, then compact vigil-ci-t' }
+                @{ timestamp_utc = '2026-11-21T14:56:35Z'; body = 'vct-nightly ended without a compact (rc=7) but restored cleanly' }
+                @{ timestamp_utc = '2026-11-21T15:14:22Z'; body = 'ALERT vct-nightly on dtm-work: the previous run died before its restore. Check the STOP/DRAIN files before a restart.' }
+            )
+            # Built element by element: Windows PowerShell 5.1 wraps a piped array as {value, Count}.
+            $toJson = { param($items) '[' + ((@($items) | ForEach-Object { $_ | ConvertTo-Json -Compress }) -join ',') + ']' }
+            $script:Fake.ReadOut = & $toJson $msgs
+            $s = InModuleScope PC-AI.Reliability -Parameters @{ P = $script:Policy } { param($P) Get-FleetDrainState -Policy $P }
+            $s.Active | Should -BeFalse
+            $s.Alert | Should -Match '^ALERT vct-nightly'
+            $script:Fake.ReadOut = & $toJson $msgs[0..1]
+            (InModuleScope PC-AI.Reliability -Parameters @{ P = $script:Policy } { param($P) Get-FleetDrainState -Policy $P }).Active | Should -BeFalse
+            $script:Fake.ReadOut = & $toJson @($msgs[0])
+            $env:FLEET_NOW = '2026-11-21T14:40:53Z'
+            $a = InModuleScope PC-AI.Reliability -Parameters @{ P = $script:Policy } { param($P) Get-FleetDrainState -Policy $P }
+            $a.Active | Should -BeTrue
+            $a.Minutes | Should -Be 20
+        }
+
+        It 'surfaces a drain-agent ALERT as a degraded observation, not as healthy' {
+            Mock -ModuleName PC-AI.Reliability Get-FleetDrainState { @{ Active = $false; Minutes = 0; Alert = 'ALERT vct-nightly: died before its restore' } }
+            $o = @(Get-FleetRunnerObservations -Policy $script:Policy | Where-Object { $_.Check -eq 'drain-overrun' })
+            $o[0].Status | Should -Be 'degraded'
+            $o[0].Message | Should -Match 'state unknown'
+        }
+
         It 'reports an expected workflow whose newest run is too old as stale' {
             # Positive control for a QA workflow that created no runs for over three weeks.
             $script:Policy.workflow_expectations = @(@{ repo = 'o/r'; workflow = 'qa.yml'; max_age_days = 3 })
@@ -485,6 +514,8 @@ Describe 'PC-AI.Reliability' {
             (@(Get-FleetWorkflowObservations -Policy $script:Policy))[0].Status | Should -Be 'stale'
             Mock -ModuleName PC-AI.Reliability Invoke-FleetGhApi { @(@{ workflow_runs = @(@{ created_at = '2026-11-21T06:00:00Z'; conclusion = 'success' }) }) }
             (@(Get-FleetWorkflowObservations -Policy $script:Policy))[0].Status | Should -Be 'ok'
+            # The newest-run query must not paginate (it walked the whole run history and timed out live).
+            Should -Invoke -ModuleName PC-AI.Reliability Invoke-FleetGhApi -ParameterFilter { $NoPaginate -and $Path -like '*runs?per_page=1' }
         }
     }
 
@@ -693,6 +724,17 @@ Describe 'PC-AI.Reliability' {
     }
 
     Describe 'Digest' -Tag 'Portable' {
+        It 'builds the fleet digest from every host on agent-bus' {
+            # Detects the Windows PowerShell 5.1 trap: ConvertFrom-Json returned the bus array as ONE object,
+            # so a fleet digest on 5.1 would have read three hosts' messages as a single malformed one.
+            $mk = { param($h, $k, $key, $ts) '{"metadata":' + (@{ schema = 'fleet-ledger/1'; host = $h; kind = $k; incident_key = $key; ts = $ts; severity = 'medium'; source = 'task'; name = 'n'; check = 'run'; message = 'm' } | ConvertTo-Json -Compress) + '}' }
+            $script:Fake.ReadOut = '[' + (((& $mk 'h1' 'incident-open' 'h1|task|n|run' '2026-11-21T10:00:00Z'), (& $mk 'h2' 'incident-open' 'h2|task|n|run' '2026-11-21T10:05:00Z'), (& $mk 'h1' 'incident-resolved' 'h1|task|n|run' '2026-11-21T11:00:00Z')) -join ',') + ']'
+            $d = Send-FleetDigest -Fleet -NoSend -PolicyPath (Join-Path $TestDrive 'none.json')
+            $d.Message | Should -Match 'hosts \[h1 h2\]: opened 2, resolved 1'
+            $d.StillOpen | Should -Be 1
+            $d.Message | Should -Match 'OPEN \[medium\] h2 task/n'
+        }
+
         It 'summarises opened, resolved and still-open incidents and posts a DIGEST status' {
             $null = Submit-FleetObservation (New-TestObservation -Name 'a')
             $null = Submit-FleetObservation (New-TestObservation -Name 'b')

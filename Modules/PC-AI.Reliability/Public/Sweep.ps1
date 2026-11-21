@@ -166,7 +166,7 @@ function Get-FleetBusLedgerEvents {
     param([int]$SinceMinutes = 1440)
     $r = Invoke-FleetProcess -FilePath (Get-FleetAgentBusPath) -ArgumentList @('read', '--topic', 'fleet-failures', '--since-minutes', [string]$SinceMinutes, '--limit', '500', '--encoding', 'json') -TimeoutSeconds 30
     if ($r.TimedOut -or $r.ExitCode -ne 0) { throw "agent-bus read failed (exit $($r.ExitCode))" }
-    $msgs = @($r.StdOut | ConvertFrom-Json)
+    $msgs = @($r.StdOut | ConvertFrom-Json | ForEach-Object { $_ })   # 5.1 emits a JSON array as one object
     if ($msgs.Count -eq 1 -and $msgs[0].PSObject.Properties.Name -contains 'messages') { $msgs = @($msgs[0].messages) }
     $events = @()
     foreach ($m in $msgs) {

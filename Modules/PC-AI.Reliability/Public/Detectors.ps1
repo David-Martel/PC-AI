@@ -64,38 +64,55 @@ function Get-FleetDriveData {
 }
 
 function Invoke-FleetGhApi {
-    <# gh api GET with pagination; returns parsed JSON (array pages flattened). #>
-    param([Parameter(Mandatory)][string]$Path)
+    <#
+    gh api GET; returns parsed JSON (array pages flattened). -NoPaginate for "newest N" queries:
+    --paginate with per_page=1 walks a repository's whole run history page by page and timed out.
+    #>
+    param([Parameter(Mandatory)][string]$Path, [switch]$NoPaginate)
     $gh = (Get-Command gh -ErrorAction SilentlyContinue)
     if (-not $gh) { throw 'gh CLI not found' }
-    $r = Invoke-FleetProcess -FilePath $gh.Source -ArgumentList @('api', '--paginate', $Path) -TimeoutSeconds 60
-    if ($r.TimedOut -or $r.ExitCode -ne 0) { throw "gh api $Path failed: $($r.StdErr.Trim())" }
+    $ghArgs = @('api')
+    if (-not $NoPaginate) { $ghArgs += '--paginate' }
+    $r = Invoke-FleetProcess -FilePath $gh.Source -ArgumentList ($ghArgs + $Path) -TimeoutSeconds 60
+    if ($r.TimedOut) { throw "gh api $Path timed out after 60 s" }
+    if ($r.ExitCode -ne 0) { throw "gh api $Path failed (exit $($r.ExitCode)): $($r.StdErr.Trim())" }
     # --paginate concatenates JSON documents; split them by re-reading each top-level value.
     $text = $r.StdOut.Trim()
     $docs = @()
     if ($text -match '^\{') { $text = '[' + ($text -replace '\}\s*\{', '},{') + ']' }
     elseif ($text -match '^\[') { $text = '[' + ($text -replace '\]\s*\[', '],[') + ']' }
-    foreach ($d in @($text | ConvertFrom-Json)) { $docs += $d }
+    foreach ($d in @($text | ConvertFrom-Json | ForEach-Object { $_ })) { $docs += $d }
     return (ConvertTo-FleetHashtable $docs)
 }
 
 function Get-FleetDrainState {
     <#
-    Whether a planned DRAIN (vct-nightly compaction) has the runners down on purpose: the newest
-    START/ended status from the drain agent on agent-bus. Returns @{ Active; StartedAt; Minutes }.
+    Whether a planned DRAIN (vct-nightly compaction) has the runners down on purpose, from the drain
+    agent's newest lifecycle message on agent-bus: '<agent> START ...' (active), '... ended ...' or
+    '... restored cleanly ...' (over), or 'ALERT ...' (state unknown: e.g. a run died before its restore).
+    Matching is case-SENSITIVE: case-insensitive 'START' matched "restart" inside an ALERT and read a
+    dead run as an active DRAIN. Returns @{ Active; StartedAt; Minutes; Alert }.
     #>
     param([hashtable]$Policy)
     $agent = [string]$Policy.drain.bus_agent
-    $none = @{ Active = $false; StartedAt = $null; Minutes = 0 }
+    $none = @{ Active = $false; StartedAt = $null; Minutes = 0; Alert = $null }
     if ([string]::IsNullOrWhiteSpace($agent)) { return $none }
     $r = Invoke-FleetProcess -FilePath (Get-FleetAgentBusPath) -ArgumentList @('read', '--from-agent', $agent, '--since-minutes', '600', '--limit', '20', '--encoding', 'json') -TimeoutSeconds 20
     if ($r.TimedOut -or $r.ExitCode -ne 0) { return $none }
-    $msgs = @($r.StdOut | ConvertFrom-Json)
+    $msgs = @($r.StdOut | ConvertFrom-Json | ForEach-Object { $_ })   # 5.1 emits a JSON array as one object
     if ($msgs.Count -eq 1 -and $msgs[0].PSObject.Properties.Name -contains 'messages') { $msgs = @($msgs[0].messages) }
-    $last = $msgs | Where-Object { $_.body -match 'START|ended|restored' } | Sort-Object timestamp_utc | Select-Object -Last 1
-    if ($null -eq $last -or $last.body -notmatch 'START') { return $none }
+    $life = @($msgs | Where-Object { $_.body -cmatch '^ALERT\b' -or $_.body -cmatch '\bSTART\b' -or $_.body -cmatch '\bended\b|restored cleanly' } |
+            Sort-Object { try { ConvertFrom-FleetIso $_.timestamp_utc } catch { [datetime]::MinValue } })
+    if ($life.Count -eq 0) { return $none }
+    $last = $life[-1]
+    $body = [string]$last.body
+    if ($body -cmatch '^ALERT\b') {
+        $none.Alert = $body.Substring(0, [Math]::Min(240, $body.Length))
+        return $none
+    }
+    if ($body -cmatch '\bended\b|restored cleanly') { return $none }
     $started = ConvertFrom-FleetIso $last.timestamp_utc
-    return @{ Active = $true; StartedAt = $started; Minutes = [int]((Get-FleetNow) - $started).TotalMinutes }
+    return @{ Active = $true; StartedAt = $started; Minutes = [int]((Get-FleetNow) - $started).TotalMinutes; Alert = $null }
 }
 
 function Get-FleetTcpListenerConnectionCount {
@@ -369,6 +386,12 @@ function Get-FleetRunnerObservations {
         if ($drain.Minutes -gt $max) { $st = 'failed'; $msg = "DRAIN has lasted $($drain.Minutes) min, over its $max min budget" }
         $obs += New-FleetObservation -Source runner -Name ([string]$Policy.drain.bus_agent) -Check drain-overrun -Status $st -Severity high -Message $msg -ResolveAfter 1
     }
+    elseif ($drain.Alert) {
+        # The drain agent itself raised an ALERT (e.g. a run died before its restore): STOP/DRAIN flags may
+        # be left behind, so the runners' state cannot be assumed. Surface it; do not act on it.
+        $obs += New-FleetObservation -Source runner -Name ([string]$Policy.drain.bus_agent) -Check drain-overrun -Status degraded -Severity high -ResolveAfter 1 `
+            -Message ("drain agent ALERT, state unknown: {0}" -f $drain.Alert)
+    }
     else {
         $obs += New-FleetObservation -Source runner -Name ([string]$Policy.drain.bus_agent) -Check drain-overrun -Status ok -Message 'no DRAIN active' -ResolveAfter 1
     }
@@ -399,7 +422,7 @@ function Get-FleetWorkflowObservations {
     foreach ($w in @($Policy.workflow_expectations)) {
         $name = '{0}:{1}' -f $w.repo, $w.workflow
         $days = 3; if ($w.max_age_days) { $days = [double]$w.max_age_days }
-        $page = Invoke-FleetGhApi -Path ("repos/{0}/actions/workflows/{1}/runs?per_page=1" -f $w.repo, $w.workflow)
+        $page = Invoke-FleetGhApi -NoPaginate -Path ("repos/{0}/actions/workflows/{1}/runs?per_page=1" -f $w.repo, $w.workflow)
         $runs = @(); foreach ($p in @($page)) { if ($p.workflow_runs) { $runs += @($p.workflow_runs) } }
         if ($runs.Count -eq 0) {
             $obs += New-FleetObservation -Source workflow -Name $name -Check workflow-no-runs -Status never-ran -Severity medium -Message 'no runs at all' -ResolveAfter 1

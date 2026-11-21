@@ -37,16 +37,22 @@ runs:
           $value = [Environment]::GetEnvironmentVariable($name)
           if ([string]::IsNullOrWhiteSpace($value) -or $value -match "[\r\n]") { throw "$name is required" }
         }
-        $rustRoot = Join-Path $env:RUNNER_TEMP ('pcai-rust-' + [Guid]::NewGuid().ToString('N'))
+        # The Rust root has a fixed name so its absolute path is the same in every job. sccache keys Rust compiles on
+        # absolute paths, and dependency sources live under CARGO_HOME. A per-job pcai-rust-<guid> name gave 0 Rust hits
+        # in 640 compiles on dtm-super-nuc (run 44893813238, 2026-11-21) although SCCACHE_BASEDIRS named that root;
+        # sccache 0.19.0 on minisforum-ms01 reproduced it (random root 0/7 hits, fixed root 7/7). The directory is
+        # still job-local: the runner empties RUNNER_TEMP at the start and end of every job, and a runner serves one job
+        # at a time. A copy left by an earlier use in this job is replaced so every use starts from empty homes.
+        $rustRoot = Join-Path $env:RUNNER_TEMP 'pcai-rust'
+        if (Test-Path -LiteralPath $rustRoot) { Remove-Item -LiteralPath $rustRoot -Recurse -Force -ErrorAction Stop }
         $cargoHome = Join-Path $rustRoot 'cargo'
         $rustupHome = Join-Path $rustRoot 'rustup'
         $profileHome = Join-Path $rustRoot 'home'
         $cargoBin = Join-Path $cargoHome 'bin'
         New-Item -ItemType Directory -Path $cargoHome, $rustupHome, $profileHome, $cargoBin -ErrorAction Stop | Out-Null
         "CARGO_HOME=$cargoHome", "RUSTUP_HOME=$rustupHome" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-        # sccache keys on absolute paths, and every job compiles its dependencies from a new pcai-rust-<guid> home, so
-        # without base directories nothing ever hits (0 of 690 on dtm-super-nuc, 2026-11-12). SCCACHE_BASEDIRS strips
-        # these prefixes before hashing (sccache 0.14+), which keeps the keys the same from job to job.
+        # SCCACHE_BASEDIRS stays for runners whose RUNNER_TEMP or workspace path differs; the fixed root above is what
+        # makes keys repeat on the same runner.
         $baseDirs = @($rustRoot)
         if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_WORKSPACE)) { $baseDirs += $env:GITHUB_WORKSPACE }
         "SCCACHE_BASEDIRS=$($baseDirs -join [IO.Path]::PathSeparator)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8

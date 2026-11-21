@@ -498,7 +498,7 @@ function Invoke-PcaiToolingHealth {
     if (@($chain | Where-Object { $_.Exists -and $_.ParseErrors }).Count -or @($tools | Where-Object { -not $_.Ok -and $_.Name -in @('git', 'pwsh') }).Count) { $severity = 'fail' }
     elseif (($load -and ($load.ExitCode -ne 0 -or $load.Seconds -gt $cfg.profileLoadBudgetSec)) -or $shimMatches -eq $false -or
         @($chain | Where-Object { $_.Required -and -not $_.Exists }).Count -or
-        @($tools | Where-Object { -not $_.Ok }).Count -or @($repos | Where-Object Action -in @('FastForwardFailed', 'FetchFailed', 'Diverged')).Count) { $severity = 'warn' }
+        @($tools | Where-Object { -not $_.Ok }).Count -or @($repos | Where-Object Action -in @('FastForwardFailed', 'FetchFailed', 'InspectFailed', 'Diverged')).Count) { $severity = 'warn' }
 
     $status = [ordered]@{
         schema = $script:PcaiToolingSchema; host = $hostName; evaluatedAtUtc = [DateTime]::UtcNow.ToString('o'); trigger = $RunTrigger

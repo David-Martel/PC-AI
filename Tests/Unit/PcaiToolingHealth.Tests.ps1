@@ -114,6 +114,12 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
         $status.repos[0].Action | Should -Be 'FastForwarded'
         Should -Invoke Invoke-PcaiToolingCommand -Times 1 -Exactly -ParameterFilter { $ArgumentList -contains 'merge' -and $ArgumentList -contains 'bbb' }
     }
+    It 'raises the severity when a git inspection failed' {
+        $script:behind | Add-Member -NotePropertyName InspectOk -NotePropertyValue $false
+        $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'insp') -SkipBus) | Where-Object { $_ -isnot [string] }
+        $status.repos[0].Action | Should -Be 'InspectFailed'
+        $status.severity | Should -Be 'warn'
+    }
     It 'raises the severity when the profile load reports runtime errors' {
         Mock Measure-PcaiProfileLoad { [pscustomobject]@{ Seconds = 0.5; ExitCode = 3; TimedOut = $false; FirstError = 'profile error: Import-Module failed' } }
         $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'err') -SkipBus -SkipFastForward) | Where-Object { $_ -isnot [string] }

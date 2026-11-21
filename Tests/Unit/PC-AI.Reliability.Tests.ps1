@@ -133,6 +133,19 @@ Describe 'PC-AI.Reliability' {
             }
         }
 
+        It 'review of 45461ab9 (P1): quoted JSON keys and escaped values are redacted too' {
+            # The closing quote of a JSON key sat between the key and ':', so '{"password": "..."}' kept its value.
+            $q = '"'
+            $esc = 'ab\' + $q + 'cd' + $script:Pw
+            $json = '{' + $q + 'pass' + 'word' + $q + ': ' + $q + $script:Pw + $q + ', ' + $q + 'api_key' + $q + ':' + $q + $script:Quoted + $q + ', ' + $q + 'tok' + 'en' + $q + ':' + $q + $esc + $q + ', ' + $q + 'note' + $q + ':' + $q + 'disk full' + $q + '}'
+            $m = (New-FleetLedgerEvent -Source task -Name n -Kind incident-open -Status failed -Severity high -Message $json).message
+            foreach ($x in @($script:Pw, $script:Quoted, 'cd' + $script:Pw)) { ([string]$m).Contains($x) | Should -BeFalse -Because "a JSON credential value survived: $m" }
+            $m | Should -Match 'disk full'
+            # Single-quoted keys as well (YAML-ish and Python reprs).
+            $py = "{'secret': '" + $script:Pw + "'}"
+            ([string](New-FleetObservation -Source task -Name n -Check run -Status failed -Message $py).Message).Contains($script:Pw) | Should -BeFalse
+        }
+
         It 'row 18 (P1): a failing job''s credential output never reaches the ledger, incident state or agent-bus' {
             $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = "[ERROR] $($script:SecretText)`n" }
             Invoke-FleetTask -Name '\t\job' -FilePath 'C:\fake\job.exe' | Should -Be 1

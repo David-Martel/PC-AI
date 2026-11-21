@@ -329,7 +329,9 @@ function Protect-FleetText {
     $t = [regex]::Replace($t, '(?i)\b([a-z][a-z0-9+.\-]*://)[^\s/:@]+:[^\s/@]+@', '$1***@')
     $t = [regex]::Replace($t, '(?i)\b(bearer|basic|token|digest)\s+[A-Za-z0-9._~+/=\-]{6,}', '$1 ***')
     $keys = 'password|passwd|pwd|passphrase|secret|token|api[_\-]?key|apikey|access[_\-]?key|private[_\-]?key|client[_\-]?secret|authorization|auth|credential|cookie|session[_\-]?id|sig|signature'
-    $t = [regex]::Replace($t, ('(?i)\b([A-Za-z0-9_.\-]*(?:{0})[A-Za-z0-9_.\-]*)(\s*[:=]\s*)("[^"]*"?|''[^'']*''?|[^\s;,&]+)' -f $keys), '$1$2***')
+    # The key may be quoted ("password": / 'secret':), and a quoted value may contain escapes ("ab\"cd"): a
+    # JSON key's closing quote between key and ':' used to stop the match and forward the value (review of 45461ab9).
+    $t = [regex]::Replace($t, ('(?i)\b([A-Za-z0-9_.\-]*(?:{0})[A-Za-z0-9_.\-]*)(["'']?\s*[:=]\s*)("(?:[^"\\]|\\.)*"?|''(?:[^''\\]|\\.)*''?|[^\s;,&}}]+)' -f $keys), '$1$2***')
     $t = [regex]::Replace($t, '\bsk-[A-Za-z0-9_\-]{12,}', 'sk-***')
     $t = [regex]::Replace($t, '\b(?:AKIA|ASIA|AGPA|AIDA|AROA)[A-Z0-9]{16}\b', 'AWS-KEY-***')
     $t = [regex]::Replace($t, '\bgh[pousr]_[A-Za-z0-9]{20,}', 'gh_***')

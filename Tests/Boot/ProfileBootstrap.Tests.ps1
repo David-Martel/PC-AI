@@ -31,7 +31,7 @@ Describe 'Public profile bootstrap command resolution' -Tag 'Unit', 'Boot', 'Por
     }
 
     It 'preserves guarded delegation and missing-profile diagnostics' {
-        $script:SourceText | Should -Match '(?s)if \(Microsoft\.PowerShell\.Management\\Test-Path -LiteralPath \$localProfile\) \{\s*\. \$localProfile\s*return\s*\}'
+        $script:SourceText | Should -Match '(?s)if \(Microsoft\.PowerShell\.Management\\Test-Path -LiteralPath \$localProfile\) \{\s*\. \$localProfile\s*\}\s*else \{'
         $script:SourceText | Should -Match 'Canonical local PowerShell profile not found: \$localProfile'
         $script:SourceText | Should -Not -Match '(?i)SetEnvironmentVariable|BW_SESSION|Invoke-Expression'
     }
@@ -54,6 +54,22 @@ Describe 'Public profile bootstrap command resolution' -Tag 'Unit', 'Boot', 'Por
         $hook | Should -Not -BeNullOrEmpty
         $imports[0].Extent.StartOffset | Should -BeGreaterThan $hook.Extent.StartOffset
         $imports[0].Extent.EndOffset | Should -BeLessThan $hook.Extent.EndOffset
+    }
+
+    # Why: command discovery misses during private startup (a Get-Command probe on work measured about
+    # six) fire a CommandNotFoundAction handler. Registering the WinGet hook before delegation made each
+    # interactive start pay the cloud-module import, so it must come after the private profile and must
+    # not replace a handler the private profile installed.
+    It 'registers the lazy hook after private delegation and only when no handler exists' {
+        $hook = $script:ProfileAst.FindAll({ param($node)
+            $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+            $node.Left.Extent.Text -match 'CommandNotFoundAction'
+        }, $true) | Select-Object -First 1
+        $delegation = $script:SourceText.IndexOf('. $localProfile')
+        $delegation | Should -BeGreaterThan 0
+        $hook.Extent.StartOffset | Should -BeGreaterThan $delegation
+        $guard = $script:SourceText.Substring($delegation, $hook.Extent.StartOffset - $delegation)
+        $guard | Should -Match '-and \$null -eq \$ExecutionContext\.InvokeCommand\.CommandNotFoundAction'
     }
 
     It 'ends every path with return so appended installer blocks are unreachable' {

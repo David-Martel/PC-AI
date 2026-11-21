@@ -366,7 +366,11 @@ function Get-FleetPolicy {
         fleet_checks          = $false
         digest                = @{ fleet = $false; since_hours = 24 }
     }
-    $loaded = Read-FleetJsonFile -Path $Path -Default @{}
+    # A policy that exists but cannot be read must fail the run: the defaults have no required drives,
+    # fleet checks or recipients, so falling back silently stopped monitoring and let two sweeps resolve
+    # a still-missing required drive (eighth review of #346). The file is left in place. No file = defaults.
+    try { $loaded = Read-FleetJsonFile -Path $Path -Default @{} -ThrowOnError }
+    catch { throw "fleet policy is unreadable, refusing to run on defaults: $($_.Exception.Message)" }
     foreach ($k in @($loaded.Keys)) { $defaults[$k] = $loaded[$k] }
     return $defaults
 }

@@ -1025,7 +1025,8 @@ Describe 'PC-AI.Reliability' {
 
         It 'dry-run leaves a malformed policy and state file in place' {
             # Detects the preview that moved live files: corrupt-file recovery renamed policy.json and
-            # last-sweep.json during a dry run (second review of #346).
+            # last-sweep.json during a dry run (second review of #346). Since the eighth review an unreadable
+            # policy fails the run explicitly; it must still be left exactly where it is.
             $policy = Join-Path $TestDrive 'bad-policy.json'
             Set-Content -LiteralPath $policy -Value '{ not json'
             $stateDir = Join-Path $env:FLEET_RELIABILITY_HOME 'state'
@@ -1033,11 +1034,26 @@ Describe 'PC-AI.Reliability' {
             $last = Join-Path $stateDir 'last-sweep.json'
             Set-Content -LiteralPath $last -Value '{ not json'
             Mock -ModuleName PC-AI.Reliability Get-FleetDiskObservations { @() }
-            $null = @(Invoke-FleetHealthSweep -DryRun -Detector disk -PolicyPath $policy)
-            $null = Send-FleetDigest -DryRun -PolicyPath $policy
+            { $null = @(Invoke-FleetHealthSweep -DryRun -Detector disk -PolicyPath $policy) } | Should -Throw '*policy*'
+            { $null = Send-FleetDigest -DryRun -PolicyPath $policy } | Should -Throw '*policy*'
+            $good = Join-Path $TestDrive 'good-policy.json'
+            Set-Content -LiteralPath $good -Value '{}'
+            $null = Send-FleetDigest -DryRun -PolicyPath $good
             Test-Path -LiteralPath $policy | Should -BeTrue
             Test-Path -LiteralPath $last | Should -BeTrue
             @(Get-ChildItem -LiteralPath $TestDrive, $stateDir -Filter '*.corrupt-*').Count | Should -Be 0
+        }
+
+        It 'fails a sweep whose policy exists but cannot be read, instead of falling back to defaults' {
+            # Detects the silent downgrade from the eighth review of #346: an unreadable policy.json became the
+            # defaults, dropping required drives, fleet checks and recipients, so two sweeps resolved a still-missing
+            # required drive.
+            $policy = Join-Path $TestDrive 'truncated-policy.json'
+            Set-Content -LiteralPath $policy -Value '{"disks": {"Q": {"min_free_gb": 5, "requ'
+            { Get-FleetPolicy -Path $policy } | Should -Throw '*policy*'
+            { $null = Invoke-FleetHealthSweep -Detector disk -NoPlaybooks -PolicyPath $policy } | Should -Throw '*policy*'
+            Test-Path -LiteralPath $policy | Should -BeTrue
+            (Get-FleetPolicy -Path (Join-Path $TestDrive 'absent.json')).Count | Should -BeGreaterThan 0
         }
 
         It 'dry-run digest builds the message and records or sends nothing' {

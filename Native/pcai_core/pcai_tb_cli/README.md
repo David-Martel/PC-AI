@@ -49,7 +49,12 @@ pcai-tb switch --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb verify-custody --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb observe --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb vnv --registry ../../../Config/thunderbolt-peers.json --output vnv-evidence.json --compact
+pcai-tb unregister --peer dtm-p1gen9 --adapter 02-00-00-0B-00-19 --registry ../../../Config/thunderbolt-peers.json
 ```
+
+`unregister` is the inverse of `register`. Without `--apply` it only plans. It recomputes ownership from the registry: this host's deterministic LLA and ULA addresses, the derived pairwise /30 for a fleet peer seen on the link, and that peer's /128 ULA routes. Nothing else is touched. MTU and interface metric are left unchanged, because `register` records no preimage; the report's `Notes` give the manual restore command. A route delete that fails is accepted as already absent only after re-reading the route table.
+
+On a hub, dock or multi-port host there is one USB4 adapter per peer. `register --peer` and `unregister --peer` then need `--adapter <GUID|MAC>`. Without it, a hint that discovery did not bind produces a failed `PeerHintGate` action, and no adapter is changed. Earlier versions dropped the hint silently. Aliases and indices never select an adapter, because Windows renumbers them when the cable path changes.
 
 `status`, `switch`, `verify-custody`, `observe`, and `vnv` are strictly read-only by default. Route mutation (`--apply-routes`) additionally requires `PC_AI_ALLOW_ROUTE_MUTATION=1` and fails closed on pre-existing conflicting routes.
 

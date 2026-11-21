@@ -128,9 +128,20 @@ Describe 'The watcher reads a plan printed by pcai-tb route-plan' -Tag 'Unit', '
         $r.GuardsMatch | Should -BeTrue
         $r.State | Should -Be 'InSync'
     }
-    It 'reports Drift on the transit host when its addresses are gone' {
-        $r = Compare-PcaiLinkPlan -Plan $RealPlan -HostName 'dtm-super-nuc' -Adapter @(New-PlannedAdapter -Plan $RealPlan -HostName 'dtm-super-nuc' -NoAddress) -Route @()
+    It 'reports Drift when only state the plan owns is gone' {
+        $r = Compare-PcaiLinkPlan -Plan $RealPlan -HostName 'dtm-p1gen9' -Adapter @(New-PlannedAdapter -Plan $RealPlan -HostName 'dtm-p1gen9' -NoAddress) -Route @()
         $r.State | Should -Be 'Drift'
+    }
+    # Protects: Drift means the generated script can repair it. Detects: Drift reported for an
+    # address the plan relies on but does not own (apply null; the NUC's 172.31.255.22), which the
+    # script cannot restore and whose prefix guard stops it (codex review of #344 at c463db6d).
+    It 'reports NeedsRegeneration, and applies nothing, when a not-owned address is gone' {
+        $r = Compare-PcaiLinkPlan -Plan $RealPlan -HostName 'dtm-super-nuc' -Adapter @(New-PlannedAdapter -Plan $RealPlan -HostName 'dtm-super-nuc' -NoAddress) -Route @()
+        $r.State | Should -Be 'NeedsRegeneration'
+        @($r.Findings | Where-Object Status -eq 'MissingNotOwned').Target | Should -Be @('172.31.255.22/30')
+        $policy = [pscustomobject]@{ Enabled = $true; Reason = 'enabled'; PlanPath = 'x' }
+        (Get-PcaiAutoApplyDecision -RunMode 'Apply' -Elevated $true -Policy $policy -Comparison $r).Apply | Should -BeFalse
+        Get-PcaiLinkHealthSeverity -State $r.State | Should -Be 'warn'
     }
 }
 
@@ -290,6 +301,21 @@ Describe 'Invoke-PcaiLinkHealth side effects' -Tag 'Unit', 'Portable' {
         @($status.guidance) -join ' ' | Should -Match 'not admin-owned and protected'
         Should -Invoke Invoke-PcaiBoundedCommand -Times 0 -Exactly
     }
+    # Protects: a hardened root's existing contents are checked too. Detects: SYSTEM reading
+    # last-run.txt or appending to history.jsonl that a user planted before the root was protected
+    # (codex review of #344 at c463db6d). Needs: the trust check mocked per path.
+    It 'treats a trusted root holding a planted file as untrusted' -Skip:(-not $IsWindows) {
+        $root = Join-Path $TestDrive 'planted-root'
+        $null = New-Item -ItemType Directory -Path $root
+        Set-Content -LiteralPath (Join-Path $root 'history.jsonl') -Value 'planted'
+        Mock Test-PcaiElevated { $true }
+        Mock Test-PcaiAdminOwnedPath { $Path -notlike '*history.jsonl' }
+        $out = @(Invoke-PcaiLinkHealth -RunMode Apply -RunTrigger Manual -Root $root -Plan $planFile -SkipBus)
+        ($out | Where-Object { $_ -is [string] }) -join ' ' | Should -Match 'holds entries that are not admin-owned and protected: history.jsonl'
+        (Get-Content -LiteralPath (Join-Path $root 'history.jsonl')) | Should -Be 'planted'
+        @(Get-ChildItem -LiteralPath $root -Force).Name | Should -Be @('history.jsonl')
+        (@($out | Where-Object { $_ -isnot [string] }) | Select-Object -Last 1).severity | Should -Be 'warn'
+    }
     It 'reads only the policy''s plan in Apply mode, ignoring a -PlanPath override' {
         Mock Get-PcaiAutoApplyPolicy { [pscustomobject]@{ Path = 'p'; Enabled = $true; PlanPath = 'Z:\admin-only\route-plan.json'; Reason = 'Enabled by admin-owned policy' } }
         Mock Read-PcaiRoutePlan { $null }
@@ -385,6 +411,20 @@ Describe 'SYSTEM install and restore trust the whole ancestor chain' -Tag 'Unit'
         Resolve-PcaiSystemPwsh -Candidate @($first, $second) | Should -Be $second
         Should -Invoke Test-PcaiSystemTrustedPath -ParameterFilter { $Path -eq (Join-Path $TestDrive 'b') }
     }
+    It 'refuses a SYSTEM install whose link-health root holds a planted state file' -Skip:(-not $IsWindows) {
+        Mock Get-ScheduledTask { }
+        Mock Register-ScheduledTask { }
+        Mock Resolve-PcaiSystemPwsh { Join-Path $env:ProgramFiles 'PowerShell/7/pwsh.exe' }
+        Mock New-PcaiProtectedDirectory { $null = New-Item -ItemType Directory -Force -Path $Path }
+        Mock Get-Acl { [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = 'S-1-5-32-544' } } -PassThru }
+        Mock Test-PcaiSystemTrustedPath { $Path -notlike '*last-run.txt' }
+        $linkRoot = Join-Path $TestDrive 'planted/pcai-usb4/link-health'
+        $null = New-Item -ItemType Directory -Force -Path $linkRoot
+        Set-Content -LiteralPath (Join-Path $linkRoot 'last-run.txt') -Value 'planted'
+        { Install-PcaiHealthWindows -Root $repoRoot -Target (Join-Path $linkRoot 'bin') -Components @('LinkHealth') -SystemTask } |
+            Should -Throw '*holds entries that are not admin-owned and protected*last-run.txt*'
+        Should -Invoke Register-ScheduledTask -Times 0 -Exactly
+    }
     It 'does not restore a SYSTEM baseline that is not admin-owned and protected' -Skip:(-not $IsWindows) {
         Mock Get-ScheduledTask { [pscustomobject]@{ TaskName = 'LinkHealthSystem' } }
         Mock Unregister-ScheduledTask { }
@@ -457,10 +497,29 @@ Describe 'Service recovery leaves disabled and mutating tasks alone' -Tag 'Unit'
             [pscustomobject]@{ Name = '\PC-AI\Configure-ThunderboltSwitchRoutes'; Kind = 'ScheduledTask'; State = 'Ready'; LastResult = 1 },
             [pscustomobject]@{ Name = '\PC-AI\Usb4PeerNetwork'; Kind = 'ScheduledTask'; State = 'Ready'; LastResult = 2 },
             [pscustomobject]@{ Name = '\PC-AI\Other'; Kind = 'ScheduledTask'; State = 'Disabled'; LastResult = 1 })
+        $services[0] | Add-Member -NotePropertyName Action -NotePropertyValue 'pwsh.exe -NoProfile -File C:\ProgramData\pcai-usb4\observer\Get-Usb4Observation.ps1 -Observe'
         $d = Get-PcaiServiceRecoveryPlan -Service $services -AllowList @('\PC-AI\Configure-ThunderboltSwitchRoutes', '\PC-AI\Other')
         ($d | Where-Object Name -eq '\PC-AI\Configure-ThunderboltSwitchRoutes').Decision | Should -Be 'Restart'
         ($d | Where-Object Name -eq '\PC-AI\Usb4PeerNetwork').Decision | Should -Be 'ReportOnly'
         ($d | Where-Object Name -eq '\PC-AI\Other').Decision | Should -Be 'LeaveDisabled'
+    }
+    # Protects: recovery never starts a task that can change the network. Detects: restarting an
+    # allow-listed task by name alone when its action runs -Apply or the startup coordinator, which
+    # applies the enrolled controller (codex review of #344 at c463db6d). Needs: synthetic tasks.
+    It 'leaves an allow-listed task alone when its action is <Name>' -ForEach @(
+        @{ Name = 'an -Apply run'; Action = 'pwsh.exe -File C:\x\Configure-ThunderboltSwitchRoutes.ps1 -Apply' }
+        @{ Name = 'the startup coordinator'; Action = 'pwsh.exe -File C:\x\Invoke-ThunderboltStartup.ps1' }
+        @{ Name = 'unknown'; Action = '' }
+    ) {
+        Mock Start-ScheduledTask { }
+        $svc = [pscustomobject]@{ Name = '\PC-AI\Configure-ThunderboltSwitchRoutes'; Kind = 'ScheduledTask'; State = 'Ready'; LastResult = 1; Action = $Action }
+        $d = Get-PcaiServiceRecoveryPlan -Service @($svc) -AllowList @('\PC-AI\Configure-ThunderboltSwitchRoutes')
+        $d[0].Decision | Should -Be 'MutatingAction'
+        (Invoke-PcaiServiceRecovery -Decision $d).Count | Should -Be 0
+        Should -Invoke Start-ScheduledTask -Times 0 -Exactly
+    }
+    It 'no longer allow-lists Configure-ThunderboltSwitchRoutes by default' {
+        (Read-PcaiLinkHealthConfig -Path (Join-Path $TestDrive 'absent.json') -Root $TestDrive).restartAllowList | Should -Not -Contain '\PC-AI\Configure-ThunderboltSwitchRoutes'
     }
 }
 

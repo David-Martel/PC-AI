@@ -106,7 +106,9 @@ function Read-PcaiLinkHealthConfig {
         planPath             = $null
         busEnabled           = $true
         busThread            = 'machine-hygiene'
-        restartAllowList     = @('\PC-AI\Configure-ThunderboltSwitchRoutes', 'pcai-usb4-observer.service')
+        # Configure-ThunderboltSwitchRoutes is not listed: its deployment can run Invoke-ThunderboltStartup.ps1,
+        # which applies the enrolled controller (codex review of #344 at c463db6d).
+        restartAllowList     = @('pcai-usb4-observer.service')
         tcpProbePort         = 22
         regenerateHint       = 'Recollect every host and rerun pcai-tb route-plan (docs/usb4/multi-hop-routing.md), then replace the recorded plan.'
     }
@@ -241,7 +243,8 @@ function Compare-PcaiLinkPlan {
     .SYNOPSIS
     Classifies this host's live USB4 state against its block of a route plan. Pure function.
     .OUTPUTS
-    State: NoPlan, NotInPlan, Absent, Healthy, InSync, Drift, LinkDown or InstanceChanged.
+    State: NoPlan, NotInPlan, Absent, Healthy, InSync, Drift, NeedsRegeneration, LinkDown or
+    InstanceChanged.
     #>
     [CmdletBinding()]
     param(
@@ -290,6 +293,7 @@ function Compare-PcaiLinkPlan {
     }
 
     $missing = 0
+    $unowned = 0
     foreach ($action in @(if ($planHost) { $planHost.actions })) {
         $idx = [int]$action.interface_index
         $live = @($Adapter | Where-Object InterfaceIndex -eq $idx) | Select-Object -First 1
@@ -305,11 +309,13 @@ function Compare-PcaiLinkPlan {
             'Forwarding' { $present = [bool]($live -and $live.Forwarding -eq 'Enabled') }
             default { $present = $false }
         }
-        if (-not $present) { $missing++ }
-        $findings.Add([pscustomobject]@{ Kind = [string]$action.kind; InterfaceIndex = $idx; Target = [string]$action.target; Status = $(if ($present) { 'Present' } else { 'Missing' }) })
+        # State the plan relied on but does not own (already_present, apply null) has no repair line,
+        # and the plan's prefix guard stops the generated script while it is gone, so it is not Drift.
+        $status = if ($present) { 'Present' } elseif ($action.apply) { $missing++; 'Missing' } else { $unowned++; 'MissingNotOwned' }
+        $findings.Add([pscustomobject]@{ Kind = [string]$action.kind; InterfaceIndex = $idx; Target = [string]$action.target; Status = $status })
     }
 
-    $state = if (-not $guardsMatch) { 'InstanceChanged' } elseif ($linkDown) { 'LinkDown' } elseif ($missing -gt 0) { 'Drift' } else { 'InSync' }
+    $state = if (-not $guardsMatch) { 'InstanceChanged' } elseif ($linkDown) { 'LinkDown' } elseif ($unowned -gt 0) { 'NeedsRegeneration' } elseif ($missing -gt 0) { 'Drift' } else { 'InSync' }
     return [pscustomobject]@{ State = $state; GuardsMatch = $guardsMatch; Findings = $findings.ToArray(); PlanHost = $planHost }
 }
 
@@ -355,6 +361,8 @@ function Get-PcaiUsb4Service {
             $items.Add([pscustomobject]@{
                     Name       = "$($t.TaskPath)$($t.TaskName)"
                     Kind       = 'ScheduledTask'
+                    # What the task actually runs, so recovery can refuse one that could mutate the network.
+                    Action     = (@($t.Actions | ForEach-Object { "$($_.Execute) $($_.Arguments)".Trim() }) -join ' && ')
                     State      = [string]$t.State
                     Principal  = [string]$t.Principal.UserId
                     LastResult = if ($info) { [int64]$info.LastTaskResult } else { $null }
@@ -382,13 +390,20 @@ function Get-PcaiServiceRecoveryPlan {
     .DESCRIPTION
     Only allow-listed, enabled, read-only observers that last failed are restarted. A disabled
     task stays disabled: enabling one is an owner decision (\PC-AI\Usb4PeerNetwork runs -Apply).
+    A name on the allow-list is not enough: a scheduled task is restarted only when its recorded
+    action is known, passes no -Apply and does not run the startup coordinator
+    (Invoke-ThunderboltStartup.ps1 runs the enrolled controller with -Apply). Anything else is
+    reported as MutatingAction and left alone, in Observe and Apply mode alike.
     #>
     [CmdletBinding()]
     param([AllowEmptyCollection()][object[]]$Service = @(), [string[]]$AllowList = @())
     return , @(foreach ($s in $Service) {
             $allowed = $s.Name -in $AllowList -or (Split-Path -Leaf $s.Name) -in $AllowList
+            $action = if ($s.PSObject.Properties['Action']) { [string]$s.Action } else { '' }
+            $mutating = $s.Kind -eq 'ScheduledTask' -and (-not $action -or $action -match '(?i)(^|\s)-Apply\b|Invoke-ThunderboltStartup')
             $decision = if (-not $allowed) { 'ReportOnly' }
             elseif ($s.State -match '^Disabled' -or $s.State -match '^disabled') { 'LeaveDisabled' }
+            elseif ($mutating) { 'MutatingAction' }
             elseif ($s.State -eq 'Running' -or $s.State -match '/active$') { 'Running' }
             elseif ($null -ne $s.LastResult -and $s.LastResult -ne 0) { 'Restart' }
             else { 'Healthy' }
@@ -644,6 +659,16 @@ function Invoke-PcaiLinkHealth {
         # another account created or can change, and only read a config file it cannot change.
         if (-not (Test-Path -LiteralPath $Root) -and (Test-PcaiElevated)) { New-PcaiProtectedStatusRoot -Path $Root }
         $rootTrusted = Test-PcaiAdminOwnedPath -Path $Root
+        # A root hardened after the fact can still hold files planted while it let users create
+        # them (last-run.txt, history.jsonl, run.lock, a link). Every existing entry must pass the
+        # same check before this run reads or appends to any of them.
+        if ($rootTrusted) {
+            $planted = @(Get-ChildItem -LiteralPath $Root -Recurse -Force -ErrorAction SilentlyContinue | Where-Object { -not (Test-PcaiAdminOwnedPath -Path $_.FullName) })
+            if ($planted) {
+                Write-Output "LINK-HEALTH status root $Root holds entries that are not admin-owned and protected: $(@($planted | Select-Object -First 5 | ForEach-Object Name) -join ', ')"
+                $rootTrusted = $false
+            }
+        }
         if ((Test-Path -LiteralPath $Config) -and -not ($rootTrusted -and (Test-PcaiAdminOwnedPath -Path $Config))) { $Config = $null }
         # An elevated process writing run.lock, status.json or a review script into a directory
         # another account can change could be redirected through a link that account planted, so
@@ -725,6 +750,8 @@ function Invoke-PcaiLinkHealth {
             } else {
                 $guidance.Add('Guards match; a run without -DryRun writes the elevated apply script for review')
             }
+        } elseif ($comparison.State -eq 'NeedsRegeneration') {
+            $guidance.Add("Planned state this plan does not own is gone, and the plan has no line to restore it; not applying. $($cfg.regenerateHint)")
         } elseif ($comparison.State -eq 'InstanceChanged') {
             $guidance.Add("Adapter replaced or moved; not applying. $($cfg.regenerateHint)")
         } elseif ($comparison.State -eq 'LinkDown') {

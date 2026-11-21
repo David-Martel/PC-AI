@@ -423,6 +423,14 @@ function Install-PcaiHealthWindows {
         if (-not (Test-Path -LiteralPath $usb4Root)) { New-PcaiProtectedDirectory -Path $usb4Root }
         New-PcaiProtectedDirectory -Path $linkRoot
         New-PcaiProtectedDirectory -Path $Target
+        # Protecting a directory does not change what is already in it. The SYSTEM task reads and appends
+        # to its state files there (last-run.txt, history.jsonl, run.lock), so an entry planted while the
+        # directory let users create files must not survive into a SYSTEM install. bin\ is handled below.
+        $planted = @(Get-ChildItem -LiteralPath $linkRoot -Recurse -Force -ErrorAction SilentlyContinue |
+                Where-Object { $_.FullName -ne $Target -and -not $_.FullName.StartsWith($Target + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -and -not (Test-PcaiSystemTrustedPath -Path $_.FullName) })
+        if ($planted) {
+            throw "$linkRoot holds entries that are not admin-owned and protected: $(@($planted | Select-Object -First 5 | ForEach-Object FullName) -join '; '). Review and remove them, then rerun -System."
+        }
         # A version directory that already exists may predate the protection (or hold files a user
         # planted while it was writable), and a content hash names only what we meant to copy. The
         # SYSTEM task never runs a directory it did not just create: rebuild it from scratch.

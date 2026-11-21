@@ -86,6 +86,7 @@ minisforum-ms01 has linger enabled. Enabling it elsewhere is an owner command:
    |---|---|---|
    | `InSync` | Guards match; every planned address, route and forwarding setting is present | ok |
    | `Drift` | Guards match; some planned state is missing (reboot, or replug into the same port) | warn |
+   | `NeedsRegeneration` | Guards match, but state the plan relies on and does not own (`already_present`, no apply line) is gone; the generated script cannot restore it, so nothing is applied and the plan must be regenerated | warn |
    | `LinkDown` | A planned adapter, or with no plan every adapter, is present but down (a USB4 P2P adapter exists only while a peer is attached) | warn |
    | `InstanceChanged` | The planned ifIndex names another adapter, the adapter moved, or it is gone | warn |
    | `Absent` | No USB4 adapter and no plan (for example ms01 today) | ok |
@@ -95,7 +96,9 @@ minisforum-ms01 has linger enabled. Enabling it elsewhere is an owner command:
    not admit the /30 source, see [peer SSH access](peer-ssh-access.md)).
 4. Reports PC-AI's own USB4 tasks (`\PC-AI\*Thunderbolt*`, `\PC-AI\*Usb4*`,
    `Rclone-*-Thunderbolt-*`) or `pcai-usb4-*` units. It restarts only an allow-listed,
-   **enabled**, read-only observer whose last run failed. A disabled task stays disabled:
+   **enabled**, read-only observer whose last run failed. A scheduled task's own action must be
+   known, pass no `-Apply` and not run `Invoke-ThunderboltStartup.ps1` (which applies the enrolled
+   controller); otherwise it is reported as `MutatingAction` and left alone. A disabled task stays disabled:
    `\PC-AI\Usb4PeerNetwork` runs `-Apply` as SYSTEM, so enabling it is the owner's decision.
 5. Reads the startup observer's receipt (`~/.machine/logs/usb4-boot/current.json`,
    [Windows boot](windows-boot.md)) and includes its state and age.
@@ -125,7 +128,10 @@ Apply mode runs only in the SYSTEM task, and only when all of these hold:
   plant `config.json` or pre-create `apply\`. The installer refuses an existing `pcai-usb4` or
   `link-health` that another account owns. Apply mode ignores a `config.json` that is not
   admin-owned. An elevated Apply run whose status root fails the check writes nothing there
-  (no lock, status or review script, which a planted link could redirect) and only prints. Every ancestor of a trusted path, the volume root included, must be owned by
+  (no lock, status or review script, which a planted link could redirect), only prints, and
+  reports a warning (exit 2). A root that passes but holds an entry that does not (a file
+  planted before it was protected) counts as failing; `-System` refuses to install over such
+  an entry and names it. Every ancestor of a trusted path, the volume root included, must be owned by
   Administrators, SYSTEM or TrustedInstaller, must not be a reparse point, and must not let
   another account delete, rename or re-permission it (letting Users create entries, as C:\
   and `%ProgramData%` do, is allowed);
@@ -157,7 +163,7 @@ The check reads an optional `config.json` in its status root and refuses unknown
 |---|---|
 | `planPath` | `<status root>/route-plan.json` |
 | `busEnabled`, `busThread` | `true`, `machine-hygiene` |
-| `restartAllowList` | `\PC-AI\Configure-ThunderboltSwitchRoutes`, `pcai-usb4-observer.service` |
+| `restartAllowList` | `pcai-usb4-observer.service` (`\PC-AI\Configure-ThunderboltSwitchRoutes` is not listed: its deployment can run the startup coordinator, which applies) |
 | `tcpProbePort` | `22` (0 disables) |
 
 ## Limits

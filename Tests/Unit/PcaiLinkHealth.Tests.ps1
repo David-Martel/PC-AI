@@ -87,6 +87,10 @@ Describe 'Plan helpers' -Tag 'Unit', 'Portable' {
     It 'extracts the plan ID from the journal path embedded in the apply lines' {
         Get-PcaiRoutePlanId -Plan $Plan | Should -Be '0123456789abcdef'
     }
+    It 'extracts the plan ID whatever the quoting of the journal path' {
+        $p = [pscustomobject]@{ hosts = @([pscustomobject]@{ actions = @([pscustomobject]@{ apply = "`$j = (Join-Path `$env:ProgramData 'pcai-usb4\route-plan\24851368c5f4eaa3.journal'); x" }) }) }
+        Get-PcaiRoutePlanId -Plan $p | Should -Be '24851368c5f4eaa3'
+    }
     It 'lists only this host''s reachability targets' {
         @(Get-PcaiReachabilityTarget -Plan $Plan -HostName 'hosta' | ForEach-Object { $_ } | ForEach-Object Address) | Should -Be @('172.31.255.22', '172.31.248.197')
     }

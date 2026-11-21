@@ -229,7 +229,8 @@ function Get-PcaiRoutePlanId {
     param([Parameter(Mandatory)]$Plan)
     foreach ($h in @($Plan.hosts)) {
         foreach ($a in @($h.actions)) {
-            if ($a.apply -and ([string]$a.apply -match "'([0-9a-f]{16})\.journal'")) { return $Matches[1] }
+            # Builds of the planner quote the journal path differently; match the file name only.
+            if ($a.apply -and ([string]$a.apply -match '([0-9a-f]{16})\.journal')) { return $Matches[1] }
         }
     }
     return $null

@@ -244,6 +244,7 @@ function Set-FleetDiscordToken {
     $dir = Join-Path (Get-FleetReliabilityHome) 'secrets'
     $file = Join-Path $dir 'discord-bot-token.dpapi'
     if (-not $PSCmdlet.ShouldProcess($file, 'write LocalMachine-DPAPI Discord token')) { return }
+    Assert-FleetNoReparsePoint -Path $dir
     if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     # The ACL is the only boundary for a LocalMachine-DPAPI blob, so it must be in place and verified
     # BEFORE the secret is written; a failed icacls aborts (codex review, #346).
@@ -296,6 +297,22 @@ function Set-FleetItemOwner {
     return $LASTEXITCODE
 }
 
+function Assert-FleetNoReparsePoint {
+    <# Throws when Path, one of its ancestors, or anything beneath it is a reparse point (junction, symlink, mount point). #>
+    param([Parameter(Mandatory)][string]$Path)
+    $link = Get-FleetReparseAncestor -Path $Path
+    if ($link) { throw "refusing to change permissions: $link is a reparse point (junction or symlink)" }
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    $pending = New-Object System.Collections.Stack
+    $pending.Push($Path)
+    while ($pending.Count -gt 0) {
+        foreach ($item in @(Get-ChildItem -LiteralPath $pending.Pop() -Force -ErrorAction Stop)) {
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "refusing to change permissions: $($item.FullName) is a reparse point (junction or symlink)" }
+            if ($item.PSIsContainer) { $pending.Push($item.FullName) }
+        }
+    }
+}
+
 function Confirm-FleetTrustedOwner {
     <#
     Makes sure Path is owned by SYSTEM, Administrators or the current user, taking ownership for the
@@ -319,6 +336,9 @@ function Set-FleetHomeAcl {
     (which /inheritance:r keeps) would let another user steer them (fifth review of #346).
     #>
     param([Parameter(Mandatory)][string]$Path)
+    # Before ANY change: a junction or symlink at the home, above it or anywhere under it would carry the
+    # elevated, recursive ACL reset outside the home (eleventh review of #346). Refuse, change nothing.
+    Assert-FleetNoReparsePoint -Path $Path
     if (-not (Test-Path -LiteralPath $Path)) { New-Item -ItemType Directory -Path $Path -Force | Out-Null }
     $exit = Set-FleetSecretDirAcl -Path $Path
     if ($exit -ne 0) { throw "icacls failed on $Path (exit $exit)" }

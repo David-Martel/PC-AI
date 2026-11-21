@@ -1231,6 +1231,29 @@ Describe 'PC-AI.Reliability' {
             { Set-FleetHomeAcl -Path $homeDir } | Should -Not -Throw
         }
 
+        It 'refuses to harden a home that is, or contains, a junction, and changes nothing behind it' -Tag 'WindowsOnly' {
+            # Detects the redirected hardening from the eleventh review of #346: a pre-created junction at (or under)
+            # the ProgramData home made the elevated installer reset ACLs outside the home.
+            if (-not (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows)) { Set-ItResult -Skipped -Because 'Windows junctions'; return }
+            $elsewhere = Join-Path $TestDrive 'elsewhere'
+            New-Item -ItemType Directory -Force $elsewhere | Out-Null
+            $victim = Join-Path $elsewhere 'victim.txt'
+            Set-Content -LiteralPath $victim -Value 'x'
+            & icacls.exe $victim /grant '*S-1-5-32-545:R' | Out-Null
+            $before = (Get-Acl -LiteralPath $victim).Sddl
+
+            $linkHome = Join-Path $TestDrive 'link-home'
+            New-Item -ItemType Junction -Path $linkHome -Target $elsewhere | Out-Null
+            { Set-FleetHomeAcl -Path $linkHome } | Should -Throw '*reparse*'
+            (Get-Acl -LiteralPath $victim).Sddl | Should -Be $before
+
+            $realHome = Join-Path $TestDrive 'real-home'
+            New-Item -ItemType Directory -Force $realHome | Out-Null
+            New-Item -ItemType Junction -Path (Join-Path $realHome 'escape') -Target $elsewhere | Out-Null
+            { Set-FleetHomeAcl -Path $realHome } | Should -Throw '*reparse*'
+            (Get-Acl -LiteralPath $victim).Sddl | Should -Be $before
+        }
+
         It 'refuses to write the token into a secrets directory owned by another account' -Tag 'WindowsOnly' {
             # Detects the trusted foreign owner from the tenth review of #346: Set-FleetDiscordToken restricted the
             # ACL but not the owner, who can rewrite that ACL later and read the LocalMachine-DPAPI token.

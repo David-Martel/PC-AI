@@ -22,6 +22,9 @@ interactive shell. It checks:
 Writes status.json and posts a compact summary to agent-bus when the result changes.
 .PARAMETER Quick
 Skip network fetch, pull-request listing and the timed profile load (well under 2 s).
+.PARAMETER MinIntervalSeconds
+A non-Manual run that starts within this many seconds of the previous one waits out the rest, then
+evaluates (trailing-edge debounce, as LinkHealth does). Default 60, at most 300; the task allows 15 minutes.
 .PARAMETER NoFastForward
 Report what would be fast-forwarded without merging.
 .PARAMETER DryRun
@@ -34,7 +37,7 @@ param(
     [ValidateSet('Manual', 'Logon', 'Boot', 'Event', 'Timer', 'Systemd')][string]$Trigger = 'Manual',
     [string]$StatusRoot,
     [string]$ConfigPath,
-    [ValidateRange(0, 86400)][int]$MinIntervalSeconds = 600,
+    [ValidateRange(0, 300)][int]$MinIntervalSeconds = 60,
     [switch]$Quick,
     [switch]$NoFastForward,
     [switch]$NoBus,
@@ -149,18 +152,45 @@ function Get-PcaiProfileChain {
 }
 
 function Measure-PcaiProfileLoad {
-    <# Starts a child pwsh that loads the profile chain and exits; returns seconds and outcome. #>
+    <#
+    .SYNOPSIS
+    Starts a child pwsh that loads the profile chain and exits; returns seconds and outcome.
+    .DESCRIPTION
+    A profile fails when loading it throws or writes an error to the error stream, which is what a
+    person sees at startup. $Error is no evidence: `Get-Variable X -ErrorAction SilentlyContinue`
+    (an existence check) still appends an ErrorRecord to it, and a healthy profile can leave a
+    dozen. So the child starts with -NoProfile, dot-sources each profile file in the order pwsh
+    does, and counts only what that load threw or wrote to the error stream. Exit 3 means a profile
+    failed; FirstError names it.
+    .PARAMETER ProfilePath
+    Profile files to load instead of the four $PROFILE locations. For tests.
+    #>
     [CmdletBinding()]
-    param([int]$TimeoutSeconds = 60)
+    param([int]$TimeoutSeconds = 60, [string[]]$ProfilePath)
     $pwsh = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
-    # A profile that fails at runtime still lets `exit 0` succeed, so the child reports the errors
-    # the chain left in $Error and exits 3 when there are any.
-    $probe = 'if ($Error.Count) { $Error | Select-Object -Last 3 | ForEach-Object { [Console]::Error.WriteLine("profile error: " + $_.ToString()) }; exit 3 }; exit 0'
+    $probe = @'
+$ErrorActionPreference = 'Continue'
+$pcaiRaw = $env:PCAI_TOOLING_PROFILE_PATHS
+$pcaiPaths = if ($pcaiRaw) { $pcaiRaw -split "`n" } else { @($PROFILE.AllUsersAllHosts, $PROFILE.AllUsersCurrentHost, $PROFILE.CurrentUserAllHosts, $PROFILE.CurrentUserCurrentHost) }
+$pcaiBad = 0
+foreach ($pcaiFile in $pcaiPaths) {
+    if (-not $pcaiFile -or -not (Test-Path -LiteralPath $pcaiFile -PathType Leaf)) { continue }
+    try { $pcaiOut = . $pcaiFile 2>&1 } catch { [Console]::Error.WriteLine('profile error: ' + $_.ToString()); $pcaiBad = 3; continue }
+    foreach ($pcaiItem in @($pcaiOut)) {
+        if ($pcaiItem -is [Management.Automation.ErrorRecord]) { [Console]::Error.WriteLine('profile error: ' + $pcaiItem.ToString()); $pcaiBad = 3 }
+    }
+}
+exit $pcaiBad
+'@
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($probe))
     # The profile shim returns early for SSH command sessions (it keeps ssh transfers clean), so a
     # probe started from an SSH session would never load the private profile. Clear the SSH
     # variables for the child so it loads the full chain, as a local terminal does.
-    $r = Invoke-PcaiToolingCommand -FilePath $pwsh -ArgumentList @('-NoLogo', '-Command', $probe) -TimeoutSeconds $TimeoutSeconds `
-        -UnsetEnvironment @('SSH_CONNECTION', 'SSH_CLIENT', 'SSH_TTY')
+    $unset = @('SSH_CONNECTION', 'SSH_CLIENT', 'SSH_TTY')
+    $environment = @{}
+    if ($ProfilePath) { $environment['PCAI_TOOLING_PROFILE_PATHS'] = ($ProfilePath -join "`n") } else { $unset += 'PCAI_TOOLING_PROFILE_PATHS' }
+    $r = Invoke-PcaiToolingCommand -FilePath $pwsh -ArgumentList @('-NoLogo', '-NoProfile', '-EncodedCommand', $encoded) -TimeoutSeconds $TimeoutSeconds `
+        -UnsetEnvironment $unset -Environment $environment
     $firstErr = (@($r.Stderr -split "`n" | Where-Object { $_.Trim() }) | Select-Object -First 1)
     return [pscustomobject]@{ Seconds = $r.Seconds; ExitCode = $r.ExitCode; TimedOut = $r.TimedOut; FirstError = $firstErr }
 }
@@ -533,7 +563,7 @@ function Format-PcaiToolingSummary {    [CmdletBinding()]
 
 function Invoke-PcaiToolingHealth {
     [CmdletBinding()]
-    param([string]$RunTrigger = 'Manual', [string]$Root, [string]$Config, [int]$MinInterval = 600,
+    param([string]$RunTrigger = 'Manual', [string]$Root, [string]$Config, [ValidateRange(0, 300)][int]$MinInterval = 60,
         [switch]$IsQuick, [switch]$SkipFastForward, [switch]$SkipBus, [switch]$Notify, [switch]$IsDryRun)
     if (-not $Root) {
         $Root = if ($IsWindows) { Join-Path $env:LOCALAPPDATA 'PC-AI\tooling-health' } else { Join-Path $(if ($env:XDG_STATE_HOME) { $env:XDG_STATE_HOME } else { Join-Path $HOME '.local/state' }) 'pcai/tooling-health' }
@@ -541,12 +571,22 @@ function Invoke-PcaiToolingHealth {
     if (-not $Config) { $Config = Join-Path $Root 'config.json' }
     $cfg = Read-PcaiToolingConfig -Path $Config
     $hostName = Get-PcaiToolingHostName
+    $debounceWait = 0
     if (-not $IsDryRun -and -not $IsQuick -and -not $SkipBus) {
         $null = New-Item -ItemType Directory -Force -Path $Root
         $lastRun = Join-Path $Root 'last-run.txt'
+        # Trailing-edge debounce, as LinkHealth does: a run that starts inside the window waits out
+        # the rest and then evaluates. Dropping it left status.json at the old evaluation after a
+        # hand-started task (exit 0, output into a hidden window), which read as a stuck check.
         if ($RunTrigger -ne 'Manual' -and $MinInterval -gt 0 -and (Test-Path -LiteralPath $lastRun)) {
-            $last = [DateTime]::Parse((Get-Content -LiteralPath $lastRun -Raw).Trim(), [Globalization.CultureInfo]::InvariantCulture, 'RoundtripKind')
-            if (([DateTime]::UtcNow - $last).TotalSeconds -lt $MinInterval) { Write-Output "TOOLING-HEALTH $hostName debounced"; return $null }
+            $last = [DateTime]::MinValue
+            if ([DateTime]::TryParse((Get-Content -LiteralPath $lastRun -Raw).Trim(), [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind, [ref]$last)) {
+                $wait = $MinInterval - ([DateTime]::UtcNow - $last.ToUniversalTime()).TotalSeconds
+                if ($wait -gt 0) {
+                    $debounceWait = [math]::Round([math]::Min($wait, $MinInterval), 2)
+                    Start-Sleep -Milliseconds ([int][math]::Ceiling($debounceWait * 1000))
+                }
+            }
         }
         Set-Content -LiteralPath $lastRun -Value ([DateTime]::UtcNow.ToString('o')) -NoNewline
     }
@@ -605,7 +645,7 @@ function Invoke-PcaiToolingHealth {
         schema = $script:PcaiToolingSchema; host = $hostName; evaluatedAtUtc = [DateTime]::UtcNow.ToString('o'); trigger = $RunTrigger
         quick = [bool]$IsQuick; dryRun = [bool]$IsDryRun; severity = $severity
         profile = [ordered]@{ Chain = $chain; ShimMatchesSource = $shimMatches; ShimDrift = $shimDrift; Load = $load }
-        tools = $tools; repos = $repos; pullRequests = $prs; elapsedSeconds = [math]::Round($sw.Elapsed.TotalSeconds, 2)
+        tools = $tools; repos = $repos; pullRequests = $prs; elapsedSeconds = [math]::Round($sw.Elapsed.TotalSeconds, 2); debounceWaitSeconds = $debounceWait
     }
     $summary = Format-PcaiToolingSummary -Status ([pscustomobject]$status)
     $status.summary = $summary

@@ -91,8 +91,11 @@ pwsh -NoProfile -File Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1 -
 
 - **Profile chain.** Every profile file exists and parses. The deployed shim copies are compared
   with `Config/PowerShell/Profile/Microsoft.PowerShell_profile.ps1` at the PC-AI checkout's
-  `origin/HEAD` (line endings normalized). The full pass times a child `pwsh -Command 'exit 0'`
-  that loads the chain, against a 5 s budget.
+  `origin/HEAD` (line endings normalized). The full pass starts a child `pwsh -NoProfile` that dot-sources each
+  profile file in pwsh's order, against a 5 s budget. A profile fails (exit 3, `FirstError` names it) when
+  loading it throws or writes to the error stream. `Get-Variable X -ErrorAction SilentlyContinue`, the usual
+  existence check, still appends to `$Error` while printing nothing, so `$Error` is not counted: a
+  healthy private profile can leave a dozen such records.
 - **Tool shims.** Each tool resolves on PATH and prints a `--help` banner (all started
   concurrently). Shadowing copies further down PATH are listed, with a size and SHA-256
   comparison. A tool is identified by path and `--help`, never by `--version` alone, because
@@ -118,6 +121,12 @@ pwsh -NoProfile -File Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1 -
 `-Quick` checks only the profile chain and the shims and does not run `--help`; it took about
 1 s inside the script on dtm-p1gen9, where `gh`, `rclone` and `pwsh` each need 1.5-2 s just to
 print `--help`. The scheduled full pass took 15-25 s with eight checkouts.
+
+The task's three triggers (logon, network connect, every 4 h) all pass `-Trigger Event`, so a start
+inside `-MinIntervalSeconds` (default 60, at most 300) of the previous one waits out the rest of the
+window and then evaluates, as LinkHealth does. An earlier 600 s window dropped the run instead, which
+left `status.json` at the old evaluation after a hand-started task; the status now records
+`debounceWaitSeconds`. `-Trigger Manual` never waits.
 
 It writes `status.json` under `%LOCALAPPDATA%\PC-AI\tooling-health` (or
 `~/.local/state/pcai/tooling-health`) and posts a one-line summary to agent-bus (thread

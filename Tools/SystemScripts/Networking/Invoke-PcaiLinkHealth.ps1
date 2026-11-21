@@ -1,4 +1,5 @@
 #Requires -Version 7.2
+
 <#
 .SYNOPSIS
 Re-validates this host's USB4/Thunderbolt links after boot, logon, replug or a network change.
@@ -53,7 +54,9 @@ param(
     [switch]$ForceNotify,
     [switch]$DryRun,
     [switch]$PassThru,
-    [Alias('h')][switch]$Help
+    [Alias('h')][switch]$Help,
+    # PowerShell cannot alias `--help`; it arrives here and is honored below (AGENTS.md: -h, --help).
+    [Parameter(ValueFromRemainingArguments, DontShow)][string[]]$RemainingArguments = @()
 )
 
 Set-StrictMode -Version Latest
@@ -724,7 +727,7 @@ function Invoke-PcaiLinkHealth {
             mode         = $RunMode
             dryRun       = [bool]$IsDryRun
             state        = $comparison.State
-            severity     = Get-PcaiLinkHealthSeverity -State $comparison.State -Reachability $reach
+            severity     = if ($planError) { 'warn' } else { Get-PcaiLinkHealthSeverity -State $comparison.State -Reachability $reach }
             adapters     = $adapters
             plan         = [ordered]@{ path = $cfg.planPath; planId = $planId; expiresAtUtc = if ($planObj) { $planObj.expires_at_utc } else { $null } }
             comparison   = [ordered]@{ GuardsMatch = $comparison.GuardsMatch; Findings = $comparison.Findings }
@@ -764,7 +767,9 @@ function Invoke-PcaiLinkHealth {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-    if ($Help) { Get-Help $PSCommandPath -Detailed; return }
+    $unknown = @($RemainingArguments | Where-Object { $_ -ne '--help' })
+    if ($unknown) { throw "Unknown arguments: $($unknown -join ' '). Use -h or --help." }
+    if ($Help -or $RemainingArguments -contains '--help') { Get-Help $PSCommandPath -Detailed; return }
     $result = Invoke-PcaiLinkHealth -RunMode $Mode -RunTrigger $Trigger -Root $StatusRoot -Config $ConfigPath -Plan $PlanPath `
         -MinInterval $MinIntervalSeconds -SkipBus:$NoBus -Notify:$ForceNotify -IsDryRun:$DryRun
     $statusObject = @($result | Where-Object { $_ -isnot [string] }) | Select-Object -Last 1

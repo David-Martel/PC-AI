@@ -1,4 +1,5 @@
 #Requires -Version 7.2
+
 <#
 .SYNOPSIS
 Installs, updates or removes the startup and reconnect triggers for the PC-AI health checks.
@@ -41,7 +42,9 @@ param(
     [switch]$Restore,
     [switch]$RunNow,
     [switch]$DryRun,
-    [Alias('h')][switch]$Help
+    [Alias('h')][switch]$Help,
+    # PowerShell cannot alias `--help`; it arrives here and is honored below (AGENTS.md: -h, --help).
+    [Parameter(ValueFromRemainingArguments, DontShow)][string[]]$RemainingArguments = @()
 )
 
 Set-StrictMode -Version Latest
@@ -439,7 +442,9 @@ function Install-PcaiHealthLinux {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-    if ($Help) { Get-Help $PSCommandPath -Detailed; return }
+    $unknown = @($RemainingArguments | Where-Object { $_ -ne '--help' })
+    if ($unknown) { throw "Unknown arguments: $($unknown -join ' '). Use -h or --help." }
+    if ($Help -or $RemainingArguments -contains '--help') { Get-Help $PSCommandPath -Detailed; return }
     if (-not $SourceRoot) { $SourceRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path }
     if ($IsWindows) {
         if ($System) {

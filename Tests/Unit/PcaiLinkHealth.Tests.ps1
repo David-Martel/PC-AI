@@ -216,6 +216,25 @@ Describe 'Linux reconnect monitor' -Tag 'Unit', 'Portable' {
     }
 }
 
+Describe 'Help switches (AGENTS.md: -h and --help)' -Tag 'Unit', 'Portable' {
+    It 'prints the comment-based help for <Flag> on <Script>' -ForEach @(
+        @{ Script = 'Invoke-PcaiLinkHealth.ps1'; Flag = '-h' }, @{ Script = 'Invoke-PcaiLinkHealth.ps1'; Flag = '--help' },
+        @{ Script = 'Install-PcaiLinkHealthTrigger.ps1'; Flag = '-h' }, @{ Script = 'Install-PcaiLinkHealthTrigger.ps1'; Flag = '--help' }
+    ) {
+        # The help block is only found when a blank line separates it from #Requires; without
+        # it, Get-Help prints just the syntax line.
+        $path = Join-Path $repoRoot "Tools/SystemScripts/Networking/$Script"
+        $out = & (Join-Path $PSHOME 'pwsh') -NoProfile -NonInteractive -File $path $Flag 2>&1 | Out-String
+        $LASTEXITCODE | Should -Be 0
+        $out | Should -Match 'SYNOPSIS'
+    }
+    It 'rejects an unknown argument instead of ignoring it' {
+        $path = Join-Path $repoRoot 'Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1'
+        $out = & (Join-Path $PSHOME 'pwsh') -NoProfile -NonInteractive -File $path --bogus 2>&1 | Out-String
+        $out | Should -Match 'Unknown arguments: --bogus'
+    }
+}
+
 Describe 'Service recovery leaves disabled and mutating tasks alone' -Tag 'Unit', 'Portable' {
     It 'restarts only an allow-listed, enabled observer that last failed' {
         $services = @(

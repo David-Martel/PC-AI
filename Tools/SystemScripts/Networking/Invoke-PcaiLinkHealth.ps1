@@ -493,10 +493,11 @@ function Get-PcaiAutoApplyPolicy {
     $policy = [pscustomobject]@{ Path = $Path; Enabled = $false; PlanPath = $null; Reason = 'No auto-apply policy (default off)' }
     if (-not (Test-Path -LiteralPath $Path)) { return $policy }
     if (-not (Test-PcaiAdminOwnedPath -Path $Path)) { $policy.Reason = 'Policy is not admin-owned or is writable by another account; ignored'; return $policy }
-    $raw = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
-    if ($raw.schema -ne $script:PcaiAutoApplySchema) { $policy.Reason = "Policy schema '$($raw.schema)' is not $script:PcaiAutoApplySchema"; return $policy }
-    $policy.PlanPath = [string]$raw.planPath
-    if ($raw.enabled -ne $true) { $policy.Reason = 'Policy present, enabled=false'; return $policy }
+    # A hashtable, so an omitted optional field reads as $null under strict mode instead of throwing.
+    $raw = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -AsHashtable
+    if ($raw['schema'] -ne $script:PcaiAutoApplySchema) { $policy.Reason = "Policy schema '$($raw['schema'])' is not $script:PcaiAutoApplySchema"; return $policy }
+    $policy.PlanPath = [string]$raw['planPath']
+    if ($raw['enabled'] -ne $true) { $policy.Reason = 'Policy present, enabled=false'; return $policy }
     if (-not $policy.PlanPath -or -not (Test-PcaiAdminOwnedPath -Path $policy.PlanPath)) { $policy.Reason = 'Policy planPath is missing or not admin-owned'; return $policy }
     $policy.Enabled = $true
     $policy.Reason = 'Enabled by admin-owned policy'
@@ -649,8 +650,12 @@ function Invoke-PcaiLinkHealth {
         $lastRunPath = Join-Path $Root 'last-run.txt'
         if ($RunTrigger -ne 'Manual' -and $MinInterval -gt 0 -and (Test-Path -LiteralPath $lastRunPath)) {
             $last = [DateTime]::Parse((Get-Content -LiteralPath $lastRunPath -Raw).Trim(), [Globalization.CultureInfo]::InvariantCulture, 'RoundtripKind')
-            if (([DateTime]::UtcNow - $last).TotalSeconds -lt $MinInterval) {
-                $lock.Dispose(); Write-Output "LINK-HEALTH $hostName debounced ($RunTrigger within $MinInterval s)"; return $null
+            $wait = $MinInterval - ([DateTime]::UtcNow - $last).TotalSeconds
+            if ($wait -gt 0) {
+                # Trailing-edge debounce: a reconnect seconds after a disconnect must still be
+                # checked, so wait out the interval (holding the lock; the task's IgnoreNew drops
+                # the duplicates meanwhile) and then observe the settled state, instead of exiting.
+                Start-Sleep -Milliseconds ([int][math]::Ceiling($wait * 1000))
             }
         }
         Set-Content -LiteralPath $lastRunPath -Value ([DateTime]::UtcNow.ToString('o')) -NoNewline

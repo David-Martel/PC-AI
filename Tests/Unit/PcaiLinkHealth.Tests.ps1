@@ -178,6 +178,16 @@ Describe 'Invoke-PcaiLinkHealth side effects' -Tag 'Unit', 'Portable' {
         Test-Path -LiteralPath (Join-Path $root 'apply') | Should -BeFalse
         Should -Invoke Invoke-PcaiBoundedCommand -Times 0 -Exactly
     }
+    It 'waits out the minimum interval and still checks, so a quick reconnect is not dropped' {
+        $root = Join-Path $TestDrive 'debounce'
+        $null = New-Item -ItemType Directory -Path $root
+        Set-Content -LiteralPath (Join-Path $root 'last-run.txt') -Value ([DateTime]::UtcNow.ToString('o')) -NoNewline
+        Mock Start-Sleep { }
+        $status = @(Invoke-PcaiLinkHealth -RunMode Observe -RunTrigger Event -Root $root -Plan $planFile -MinInterval 20 -SkipBus) | Where-Object { $_ -isnot [string] }
+        Should -Invoke Start-Sleep -Times 1 -Exactly -ParameterFilter { $Milliseconds -gt 0 -and $Milliseconds -le 20000 }
+        $status.state | Should -Be 'Drift'
+        Test-Path -LiteralPath (Join-Path $root 'status.json') | Should -BeTrue
+    }
     It 'reads only the policy''s plan in Apply mode, ignoring a -PlanPath override' {
         Mock Get-PcaiAutoApplyPolicy { [pscustomobject]@{ Path = 'p'; Enabled = $true; PlanPath = 'Z:\admin-only\route-plan.json'; Reason = 'Enabled by admin-owned policy' } }
         Mock Read-PcaiRoutePlan { $null }
@@ -188,17 +198,18 @@ Describe 'Invoke-PcaiLinkHealth side effects' -Tag 'Unit', 'Portable' {
 }
 
 Describe 'Linux reconnect monitor' -Tag 'Unit', 'Portable' {
-    It 'starts the link-health unit once after a burst of thunderbolt events goes quiet' -Skip:(-not (Get-Command bash -ErrorAction SilentlyContinue)) {
+    It 'starts the link-health unit once after a thunderbolt burst, even while veth churn continues' -Skip:(-not (Get-Command bash -ErrorAction SilentlyContinue)) {
         $bin = Join-Path $TestDrive 'fakebin'
         $null = New-Item -ItemType Directory -Path $bin
         $log = Join-Path $TestDrive 'systemctl.log'
-        # Fake `ip`: two events for a thunderbolt interface and one for docker veth churn, then idle.
-        [IO.File]::WriteAllText((Join-Path $bin 'ip'), "#!/usr/bin/env bash`nprintf '7: thunderbolt0: <BROADCAST> state UP\n7: thunderbolt0    inet 172.31.255.21/30\n9: veth12ab@if8: <UP>\n'`nsleep 4`n")
+        # Fake `ip`: two events for a thunderbolt interface, then docker veth churn every 0.3 s until
+        # the timeout kills it. Churn must neither start the unit nor postpone the start.
+        [IO.File]::WriteAllText((Join-Path $bin 'ip'), "#!/usr/bin/env bash`nprintf '7: thunderbolt0: <BROADCAST> state UP\n7: thunderbolt0    inet 172.31.255.21/30\n'`nwhile true; do printf '9: veth12ab@if8: <UP>\n'; sleep 0.3; done`n")
         [IO.File]::WriteAllText((Join-Path $bin 'systemctl'), "#!/usr/bin/env bash`necho `"`$*`" >> '$($log -replace '\\', '/')'`n")
         $script = Join-Path $repoRoot 'Tools/SystemScripts/Networking/pcai-link-health-monitor.sh'
         # Git Bash needs /c/... in PATH; cygpath is absent on Linux, where the path is already POSIX.
         $b = $bin -replace '\\', '/'
-        $cmd = "B=`$(cygpath -u '$b' 2>/dev/null || echo '$b'); chmod +x `"`$B`"/*; PATH=`"`$B:`$PATH`" PCAI_LINK_HEALTH_QUIET_SECONDS=1 timeout 6 bash '$($script -replace '\\','/')'; true"
+        $cmd = "B=`$(cygpath -u '$b' 2>/dev/null || echo '$b'); chmod +x `"`$B`"/*; PATH=`"`$B:`$PATH`" PCAI_LINK_HEALTH_QUIET_SECONDS=1 timeout 12 bash '$($script -replace '\\','/')'; true"
         & bash -c $cmd
         $calls = @(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue)
         $calls | Should -Be @('--user start --no-block pcai-link-health.service')

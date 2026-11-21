@@ -413,6 +413,11 @@ function Install-PcaiHealthLinux {
         [IO.File]::WriteAllText($dest, $text, [Text.UTF8Encoding]::new($false))
         if ($dest -like '*.sh') { & chmod 0755 $dest }
     }
+    $commit = $null
+    try { $commit = (& git -C $Root rev-parse HEAD 2>$null) } catch { $commit = $null }
+    [ordered]@{ version = $version; installedAtUtc = [DateTime]::UtcNow.ToString('o'); sourceRoot = $Root; sourceCommit = $commit
+        files = @($files | ForEach-Object { [ordered]@{ name = $_.Name; sha256 = (Get-FileHash -LiteralPath (Join-Path $bin $_.Name)).Hash.ToLowerInvariant() } })
+    } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $bin 'manifest.json')
     $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')
     foreach ($u in $units.Keys) {
         $path = Join-Path $unitDir $u

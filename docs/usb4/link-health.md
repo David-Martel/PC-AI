@@ -41,7 +41,7 @@ the same content is a no-op apart from re-registering identical definitions.
 | Windows, per user (S4U, least privilege) | `\PC-AI\LinkHealth` | logon (+45 s); USB4 adapter arrival and removal; network connect and disconnect; resume; every 30 min |
 | Windows, per user (S4U, least privilege) | `\PC-AI\ToolingHealth` | logon (+2 min); network connect (+1 min); every 4 h |
 | Windows, SYSTEM (owner opt-in, `-System`) | `\PC-AI\LinkHealthSystem` | boot (+1 min) and the same events, in Apply mode |
-| Linux, systemd --user | `pcai-link-health.timer`, `pcai-link-health-monitor.service` | user-manager start (+60 s), every 30 min, and any link or address change on a `thunderbolt-net` interface (`ip -o monitor link address`, 10 s quiet window) |
+| Linux, systemd --user | `pcai-link-health.timer`, `pcai-link-health-monitor.service` | user-manager start (+60 s), every 30 min, and any link or address change on a `thunderbolt-net` interface (`ip -o monitor link address`; one run 10 s after the first event of a burst, not delayed by unrelated veth churn) |
 | Linux, systemd --user | `pcai-tooling-health.timer` | user-manager start (+2 min), every 4 h |
 
 The Windows event sources were checked against real USB4NET plug history on dtm-p1gen9
@@ -57,7 +57,9 @@ The Windows event sources were checked against real USB4NET plug history on dtm-
 `Tcpip` 4201/4202 never appeared for these adapters and are not used. Event XPath cannot filter
 on a substring of the device instance ID, so PnP events for other devices also start the task.
 Three layers keep that cheap: a 15 s trigger delay, `IgnoreNew` for overlapping starts, and a
-20 s minimum interval inside the check (`-MinIntervalSeconds`). A boot trigger needs
+20 s minimum interval inside the check (`-MinIntervalSeconds`). The interval is a trailing-edge
+debounce: a run that starts inside it waits out the rest and then observes, so a reconnect
+seconds after a disconnect is still checked rather than dropped. A boot trigger needs
 elevation, so the per-user task relies on logon; the owner's SYSTEM task adds boot.
 
 The per-user tasks are registered with the S4U logon type: they run with the user's filtered

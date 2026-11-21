@@ -61,7 +61,7 @@ function Get-PcaiToolingHostName {
 function Invoke-PcaiToolingCommand {
     <# Runs a native command with a deadline; never throws for a non-zero exit. #>
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$FilePath, [string[]]$ArgumentList = @(), [ValidateRange(1, 900)][int]$TimeoutSeconds = 30, [string]$WorkingDirectory, [string[]]$UnsetEnvironment = @())
+    param([Parameter(Mandatory)][string]$FilePath, [string[]]$ArgumentList = @(), [ValidateRange(1, 900)][int]$TimeoutSeconds = 30, [string]$WorkingDirectory, [string[]]$UnsetEnvironment = @(), [hashtable]$Environment = @{})
     $psi = [Diagnostics.ProcessStartInfo]::new($FilePath)
     foreach ($a in $ArgumentList) { $psi.ArgumentList.Add($a) }
     $psi.RedirectStandardOutput = $true
@@ -74,6 +74,7 @@ function Invoke-PcaiToolingCommand {
     # takes index.lock, even in -DryRun, and can collide with an interactive git command).
     $psi.Environment['GIT_OPTIONAL_LOCKS'] = '0'
     foreach ($name in $UnsetEnvironment) { [void]$psi.Environment.Remove($name) }
+    foreach ($name in $Environment.Keys) { $psi.Environment[$name] = [string]$Environment[$name] }
     $psi.Environment['GCM_INTERACTIVE'] = 'never'
     if ($WorkingDirectory) { $psi.WorkingDirectory = $WorkingDirectory }
     $sw = [Diagnostics.Stopwatch]::StartNew()
@@ -420,51 +421,61 @@ function Invoke-PcaiFastForward {
     <#
     .SYNOPSIS
     Fast-forwards one checkout to the commit that was sampled, and never leaves a different
-    branch advanced.
+    branch (or a detached HEAD) advanced by this run.
     .DESCRIPTION
     Revalidation and `git merge --ff-only` are separate commands, and merge advances whichever
-    branch is checked out when it runs. If a person switches to another branch inside that window
-    the checks pass and that branch moves. Git offers no way to pin the merge to a branch, so every
-    local branch tip is recorded immediately before the merge and the outcome is compared with it.
-    A branch other than the sampled one is restored only when this invocation provably moved it:
-    it is checked out, it now sits at the target, and it did not sit there before. It then returns
-    to its own recorded tip with `git reset --keep`, which keeps local edits, and the result is
-    RolledBack (FastForwardMisapplied if the restore fails). A branch that already sat at the target
-    saw a no-op merge and is left alone. -BeforeMerge runs inside the window so tests can open it
-    deterministically.
+    branch is checked out when it runs. If a person switches branch, or detaches HEAD, inside that
+    window, the checks pass and that ref moves. Git offers no way to pin the merge to a branch, so
+    the merge runs with GIT_REFLOG_ACTION set to a nonce unique to this run, and its own reflog entry
+    is the proof of what it moved. A recorded tip is not proof: the owner may have moved the branch
+    the same way inside the window, and this run's merge was then a no-op (codex review of PR 345 at
+    f5f39c97). When the checked-out ref is not the sampled branch:
+      - no reflog entry of that branch (or of HEAD, when detached) is this run's: this run moved
+        nothing there, so nothing is reset (Changed);
+      - the newest entry is this run's and HEAD still sits where it put it: the ref is reset with
+        `git reset --keep`, which keeps local edits, to the value that entry replaced, its own
+        previous tip (RolledBack);
+      - this run's entry is there but something moved the ref after it: left alone for its owner
+        (FastForwardMisapplied).
+    -BeforeMerge runs inside the window so tests can open it deterministically.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)]$State, [scriptblock]$BeforeMerge)
-    $git = { param([string[]]$a, [int]$t = 120) Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList (@('-C', $State.Path) + $a) -TimeoutSeconds $t }
+    $nonce = "pcai-tooling-health fast-forward $([guid]::NewGuid().ToString('n'))"
+    $git = { param([string[]]$a, [int]$t = 120, [hashtable]$e = @{}) Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList (@('-C', $State.Path) + $a) -TimeoutSeconds $t -Environment $e }
     $changedSince = Test-PcaiRepoUnchanged -State $State
     if ($changedSince) { return [pscustomobject]@{ Action = 'Changed'; Note = "not fast-forwarded: $changedSince since sampling" } }
-    $tips = @{}
-    foreach ($line in ((& $git @('for-each-ref', '--format=%(refname:lstrip=2) %(objectname)', 'refs/heads') 30).Stdout -split "`n")) {
-        $parts = $line.Trim() -split ' '
-        if ($parts.Count -eq 2) { $tips[$parts[0]] = $parts[1] }
-    }
     if ($BeforeMerge) { & $BeforeMerge }
     # Merge the exact commit that was sampled, not whatever the ref points at now.
-    $m = & $git @('merge', '--ff-only', '--quiet', $State.Target)
+    $m = & $git @('merge', '--ff-only', '--quiet', $State.Target) 120 @{ GIT_REFLOG_ACTION = $nonce }
     $branchNow = (& $git @('branch', '--show-current') 30).Stdout.Trim()
     if ($branchNow -eq $State.Branch) {
         if ($m.ExitCode -eq 0) { return [pscustomobject]@{ Action = 'FastForwarded'; Note = "behind $($State.Behind)" } }
         return [pscustomobject]@{ Action = 'FastForwardFailed'; Note = ($m.Stderr.Trim() -split "`n")[0] }
     }
-    # The checked-out branch is no longer the sampled one.
-    $changedNote = "branch changed to '$branchNow' during fast-forward"
+    # The checked-out ref is no longer the sampled branch.
+    $what = if ($branchNow) { "branch '$branchNow'" } else { 'a detached HEAD' }
+    $changedNote = "checkout changed to $what during fast-forward"
     if ($m.ExitCode -ne 0) { return [pscustomobject]@{ Action = 'Changed'; Note = "$changedNote; the merge was refused and nothing moved" } }
+    $ref = if ($branchNow) { "refs/heads/$branchNow" } else { 'HEAD' }
+    $entries = @((& $git @('reflog', '-20', '--format=%H%x09%gs', $ref) 30).Stdout -split "`n" | ForEach-Object Trim | Where-Object { $_ } | ForEach-Object {
+            $hash, $subject = $_ -split "`t", 2
+            [pscustomobject]@{ Hash = $hash; Subject = [string]$subject }
+        })
+    $mine = -1
+    for ($k = 0; $k -lt $entries.Count; $k++) { if ($entries[$k].Subject.StartsWith($nonce)) { $mine = $k; break } }
+    if ($mine -lt 0) { return [pscustomobject]@{ Action = 'Changed'; Note = "$changedNote; this run's merge moved nothing there, so nothing was restored" } }
     $headNow = (& $git @('rev-parse', 'HEAD') 30).Stdout.Trim()
-    $before = $tips[$branchNow]
-    if (-not $before) { return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "$changedNote; it was created after the merge started, so its previous tip is unknown" } }
-    if ($before -eq $headNow) { return [pscustomobject]@{ Action = 'Changed'; Note = "$changedNote; it already sat at the target, so the merge moved nothing" } }
-    if ($headNow -ne $State.Target) { return [pscustomobject]@{ Action = 'Changed'; Note = "$changedNote; its tip is not the sampled target, so nothing was restored" } }
+    if ($mine -ne 0 -or $entries.Count -lt 2 -or $headNow -ne $entries[0].Hash) {
+        return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "$changedNote; this run advanced it and it has changed again since, so it was left for its owner" }
+    }
+    $before = $entries[1].Hash
     $undo = & $git @('reset', '--keep', '--quiet', $before)
     $restored = (& $git @('rev-parse', 'HEAD') 30).Stdout.Trim()
     if ($undo.ExitCode -eq 0 -and $restored -eq $before) {
-        return [pscustomobject]@{ Action = 'RolledBack'; Note = "$changedNote; restored it to $($before.Substring(0, [Math]::Min(8, $before.Length)))" }
+        return [pscustomobject]@{ Action = 'RolledBack'; Note = "$changedNote; restored it to $($before.Substring(0, [Math]::Min(8, $before.Length))), its tip before this run's merge" }
     }
-    return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "branch '$branchNow' was fast-forwarded by mistake and could not be restored automatically (was $before)" }
+    return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "$what was fast-forwarded by mistake and could not be restored automatically (was $before)" }
 }
 function Format-PcaiToolingSummary {    [CmdletBinding()]
     param([Parameter(Mandatory)]$Status)

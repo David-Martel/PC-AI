@@ -101,7 +101,13 @@ pwsh -NoProfile -File Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1 -
   agent-hub (configurable) are fetched. A checkout is fast-forwarded with `git merge --ff-only`
   only when it is on its default branch, has no tracked changes, no merge, rebase,
   cherry-pick or index lock, and no local commits. Everything else (`OffDefault`, `Detached`,
-  `Dirty`, `Busy`, `Ahead`, `Diverged`, `FetchFailed`) is reported, never changed. Linked
+  `Dirty`, `Busy`, `Ahead`, `Diverged`, `FetchFailed`) is reported, never changed. If
+  someone switches branch or detaches HEAD between the last check and the merge, the merge
+  can move that ref instead. The merge carries a per-run tag in its reflog message
+  (`GIT_REFLOG_ACTION`), so the check undoes only a move whose newest reflog entry is its own,
+  back to the value that entry replaced (`RolledBack`). A ref it did not move is left alone
+  (`Changed`), and one it moved that changed again since is left for its owner
+  (`FastForwardMisapplied`). Linked
   worktrees that are merged, whose upstream is gone, prunable or detached, stale local
   branches and your open pull requests are listed. Nothing is deleted.
 

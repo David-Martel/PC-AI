@@ -120,7 +120,11 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
         Mock Test-PcaiRepoUnchanged { $null }
         $script:revParseCalls = 0
         Mock Invoke-PcaiToolingCommand {
-            $out = if ($ArgumentList -contains 'for-each-ref') { "main aaa`nfeat/x aaa" } elseif ($ArgumentList -contains '--show-current') { 'feat/x' } elseif ($ArgumentList -contains 'rev-parse') { $script:revParseCalls++; if ($script:revParseCalls -eq 1) { 'bbb' } else { 'aaa' } } else { '' }
+            # The merge carries this run's nonce in GIT_REFLOG_ACTION; the fake reflog echoes it back.
+            if ($Environment -and $Environment['GIT_REFLOG_ACTION']) { $global:PcaiTestNonce = $Environment['GIT_REFLOG_ACTION'] }
+            $out = if ($ArgumentList -contains '--show-current') { 'feat/x' }
+            elseif ($ArgumentList -contains 'reflog') { "bbb`t$($global:PcaiTestNonce): Fast-forward`naaa`tbranch: Created from HEAD" }
+            elseif ($ArgumentList -contains 'rev-parse') { $script:revParseCalls++; if ($script:revParseCalls -eq 1) { 'bbb' } else { 'aaa' } } else { '' }
             [pscustomobject]@{ ExitCode = 0; Stdout = $out; Stderr = ''; TimedOut = $false; Seconds = 0 }
         }
         $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'rolled') -SkipBus) | Where-Object { $_ -isnot [string] }
@@ -226,6 +230,28 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
         $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', 'feat') | Out-Null }
         $r.Action | Should -Be 'RolledBack'
         Invoke-TestGit $c.Work @('rev-parse', 'refs/heads/feat') | Should -Be $c.State.Head
+    }
+    # Why: a recorded tip does not prove this run moved a branch. If the owner switched to a branch
+    # and fast-forwarded it inside the window, this run's merge was a no-op, and resetting to the
+    # recorded tip undid the owner's update; a detached HEAD advanced by the merge was left advanced
+    # (codex review of PR 345 at f5f39c97). Only this run's own reflog entry, tagged with its nonce,
+    # authorizes a reset.
+    It 'leaves alone a branch the owner fast-forwarded inside the window' {
+        $c = New-BehindCheckout 'owner-ff'
+        $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge {
+            Invoke-TestGit $c.Work @('switch', '-q', 'feat') | Out-Null
+            Invoke-TestGit $c.Work @('merge', '--ff-only', '-q', $c.State.Target) | Out-Null
+        }
+        $r.Action | Should -Be 'Changed'
+        Invoke-TestGit $c.Work @('rev-parse', 'feat') | Should -Be $c.State.Target -Because "the owner's own fast-forward must survive"
+    }
+    It 'restores a HEAD detached inside the window' {
+        $c = New-BehindCheckout 'detached'
+        $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', '--detach') | Out-Null }
+        $r.Action | Should -Be 'RolledBack'
+        Invoke-TestGit $c.Work @('rev-parse', 'HEAD') | Should -Be $c.State.Head
+        Invoke-TestGit $c.Work @('branch', '--show-current') | Should -BeNullOrEmpty
+        Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Head
     }
     It 'reports a stale branch by its plain name when a tag shares it' {
         $c = New-BehindCheckout 'stale-tagged'

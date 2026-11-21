@@ -859,6 +859,36 @@ Describe 'PC-AI.Reliability' {
             @(Read-TestLedger | Where-Object { $_.kind -eq 'incident-open' -and $_.name -eq 'outbox' }).Count | Should -Be 1
         }
 
+        It 'does not resolve an incident whose task a narrower task_scope no longer covers' {
+            # Detects the false recovery from the fourth review of #346: after a full sweep opened '\a\job', sweeps
+            # with task_scope narrowed to '\b\*' completed the task detector without seeing it and resolved it.
+            $null = Submit-FleetObservation (New-FleetObservation -Source task -Name '\a\job' -Check run -Status failed -Severity medium -Message 'x')
+            $narrow = Join-Path $TestDrive 'narrow.json'
+            '{"task_scope":["\\b\\*"]}' | Set-Content -LiteralPath $narrow
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskObservations { @() }
+            $null = Invoke-FleetHealthSweep -Detector task -NoPlaybooks -PolicyPath $narrow
+            $null = Invoke-FleetHealthSweep -Detector task -NoPlaybooks -PolicyPath $narrow
+            (Get-FleetIncidentState)['testhost|task|\a\job|run'].state | Should -Be 'open'
+        }
+
+        It 'treats a running or queued task as neutral, so a retry in progress does not clear the failure' {
+            # Detects the premature recovery from the fourth review of #346: 0x41301 (running) and 0x41325 (queued)
+            # became ok observations with ResolveAfter 1, so a sweep during the retry resolved the earlier failure.
+            $null = Submit-FleetObservation (New-FleetObservation -Source task -Name '\r\retry' -Check run -Status failed -Severity medium -Message 'x')
+            Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @() }
+            Mock -ModuleName PC-AI.Reliability Get-FleetInteractiveUserData { @() }
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData {
+                [pscustomobject]@{ Tasks = @(
+                        [pscustomobject]@{ TaskPath = '\r\'; TaskName = 'retry'; Owner = 'Local'; State = 'Running'; Status = 'Healthy'; LastResult = 267009; ResultText = 'running'; Reasons = @(); LastRunTime = '2026-11-21T10:00:00Z'; Staleness = 'fresh' },
+                        [pscustomobject]@{ TaskPath = '\r\'; TaskName = 'queued'; Owner = 'Local'; State = 'Ready'; Status = 'Healthy'; LastResult = 267045; ResultText = 'queued'; Reasons = @(); LastRunTime = '2026-11-21T10:00:00Z'; Staleness = 'fresh' }) }
+            }
+            $o = @(Get-FleetTaskObservations -Policy (Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json')) | Where-Object { $_.Check -eq 'run' })
+            ($o | Where-Object Name -EQ '\r\retry').Status | Should -Be 'skipped'
+            ($o | Where-Object Name -EQ '\r\queued').Status | Should -Be 'skipped'
+            $null = Invoke-FleetHealthSweep -Detector task -NoPlaybooks -PolicyPath (Join-Path $TestDrive 'none.json')
+            (Get-FleetIncidentState)['testhost|task|\r\retry|run'].state | Should -Be 'open'
+        }
+
         It 'clears a detector-error only when that detector itself runs successfully' {
             # Detects false recovery: sweeps limited to other detectors used to resolve the error.
             Mock -ModuleName PC-AI.Reliability Get-FleetTaskObservations { throw 'scheduler unavailable' }
@@ -928,6 +958,27 @@ Describe 'PC-AI.Reliability' {
             Invoke-FleetTask -Name '\t\job' -FilePath 'C:\fake\job.exe' -DryRun 6>$null | Should -Be 0
             $script:Calls.Count | Should -Be 0
             Test-Path -LiteralPath $env:FLEET_RELIABILITY_HOME | Should -BeFalse
+        }
+    }
+
+    Describe 'Collection failures (Windows data sources)' {
+        # Detects the false health from the fourth review of #346: a CIM or socket query that failed was read as
+        # "no processes" or "zero connections", so the detector reported ok and resolved open incidents.
+        BeforeEach { $script:Policy = Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json') }
+
+        It 'raises when process enumeration fails instead of reporting no orphans' {
+            if (-not (Get-Command Get-CimInstance -ErrorAction SilentlyContinue)) { Set-ItResult -Skipped -Because 'no CIM'; return }
+            # A real CIM failure is a NON-terminating error, which -ErrorAction SilentlyContinue used to swallow.
+            Mock -ModuleName PC-AI.Reliability Get-CimInstance { Write-Error -Message 'WMI repository is broken' -ErrorId 'HRESULT 0x80041010' -Category InvalidOperation }
+            { InModuleScope PC-AI.Reliability { Get-FleetProcessData } } | Should -Throw '*WMI*'
+        }
+
+        It 'raises when the connection query fails, and still counts a port with no connections as zero' {
+            if (-not (Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue)) { Set-ItResult -Skipped -Because 'no NetTCPIP'; return }
+            Mock -ModuleName PC-AI.Reliability Get-NetTCPConnection { Write-Error -Message 'CIM query failed' -ErrorId 'HRESULT 0x80041003,Get-NetTCPConnection' -Category InvalidOperation }
+            { InModuleScope PC-AI.Reliability { Get-FleetTcpListenerConnectionCount -Port 5300 } } | Should -Throw '*CIM query failed*'
+            Mock -ModuleName PC-AI.Reliability Get-NetTCPConnection { Write-Error -Message 'No matching MSFT_NetTCPConnection objects found' -ErrorId 'CmdletizationQuery_NotFound_LocalPort,Get-NetTCPConnection' -Category ObjectNotFound }
+            InModuleScope PC-AI.Reliability { Get-FleetTcpListenerConnectionCount -Port 5300 } | Should -Be 0
         }
     }
 

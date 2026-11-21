@@ -124,12 +124,24 @@ function Get-FleetDrainState {
 function Get-FleetTcpListenerConnectionCount {
     <# Established server-side connections on a local port (each client connection counted once). #>
     param([int]$Port)
-    return @(Get-NetTCPConnection -LocalPort $Port -State Established -ErrorAction SilentlyContinue).Count
+    # "No matching connections" is a real zero; any other failure must surface as a detector error,
+    # not as an idle server (fourth review of #346).
+    # Errors are collected rather than raised so both kinds are seen however they arrive.
+    $queryErrors = @()
+    $rows = @(Get-NetTCPConnection -LocalPort $Port -State Established -ErrorAction SilentlyContinue -ErrorVariable queryErrors)
+    $real = @($queryErrors | Where-Object { $_.CategoryInfo.Category -ne 'ObjectNotFound' -and $_.FullyQualifiedErrorId -notlike 'CmdletizationQuery_NotFound*' })
+    if ($real.Count -gt 0) { throw "connection query for port $Port failed: $($real[0].Exception.Message)" }
+    return $rows.Count
 }
 
 function Get-FleetProcessData {
     $rows = @()
-    foreach ($p in @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue)) {
+    # A failed enumeration must not read as "no processes, no orphans" (fourth review of #346).
+    $cimErrors = @()
+    $all = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue -ErrorVariable cimErrors)
+    if (@($cimErrors).Count -gt 0) { throw "process enumeration failed: $($cimErrors[0].Exception.Message)" }
+    if ($all.Count -eq 0) { throw 'process enumeration returned nothing' }
+    foreach ($p in $all) {
         $rows += [pscustomobject]@{ ProcessId = [int]$p.ProcessId; ParentProcessId = [int]$p.ParentProcessId; Name = [string]$p.Name; CreationDate = $p.CreationDate }
     }
     return $rows
@@ -161,6 +173,16 @@ function Test-FleetWildcard {
     param([string]$Value, [object[]]$Patterns)
     foreach ($p in @($Patterns)) { if ($p -and $Value -like [string]$p) { return $true } }
     return $false
+}
+
+function Test-FleetTaskInScope {
+    <#
+    Whether the policy's task_scope / task_exclude cover a task. The resolver uses it too: a sweep can
+    vouch only for tasks it was allowed to look at (fourth review of #346).
+    #>
+    param([Parameter(Mandatory)][hashtable]$Policy, [Parameter(Mandatory)][string]$FullName)
+    if (@($Policy.task_scope | Where-Object { $_ }).Count -gt 0 -and -not (Test-FleetWildcard $FullName $Policy.task_scope)) { return $false }
+    return -not (Test-FleetWildcard $FullName $Policy.task_exclude)
 }
 
 function Get-FleetTaskObservations {
@@ -202,6 +224,9 @@ function Get-FleetTaskObservations {
         # Result axis -> check 'run' (the same key Invoke-FleetTask writes, so one incident per task).
         $runStatus = 'ok'
         if ($t.Status -eq 'Failed' -and -not $benign) { $runStatus = 'failed' }
+        # Running (0x41301) or queued (0x41325): no completed result yet, so neither failure nor recovery.
+        # As 'ok' it resolved the previous failure while its retry was still running (fourth review of #346).
+        elseif ($resultHex -in @('0X41301', '0X41325')) { $runStatus = 'skipped' }
         if (@('Disabled', 'Ignored') -notcontains $t.Status) {
             $obs += New-FleetObservation -Source task -Name $full -Check run -Status $runStatus -Severity $sev `
                 -Message ("last result {0} {1}; {2}" -f $t.LastResult, $t.ResultText, $reasons).Trim() -ResolveAfter 1 `

@@ -133,7 +133,7 @@ function Invoke-FleetHealthSweep {
     }
     # 'sweeper' is NOT a completed source: a detector-error clears only when that detector runs and
     # succeeds, never because a sweep was limited to other detectors (codex review, #346).
-    $late = @(Resolve-FleetUnobservedIncidents -ObservedKeys $keys -CompletedSources @($completed))
+    $late = @(Resolve-FleetUnobservedIncidents -ObservedKeys $keys -CompletedSources @($completed) -Policy $policy)
     $resolved += @($late | Where-Object { $_.Transition -eq 'resolved' }).Count
 
     $openNow = @((Get-FleetIncidentState).GetEnumerator() | Where-Object { $_.Value.state -eq 'open' -and $_.Key.StartsWith((Get-FleetHostName) + '|') })

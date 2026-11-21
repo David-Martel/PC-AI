@@ -217,7 +217,7 @@ function Resolve-FleetUnobservedIncidents {
     observed again and would stay open forever. After a sweep, every open incident from a detector
     that completed this sweep, but was not observed in it, receives one good observation.
     #>
-    param([string[]]$ObservedKeys, [string[]]$CompletedSources)
+    param([string[]]$ObservedKeys, [string[]]$CompletedSources, [hashtable]$Policy)
     $hostName = Get-FleetHostName
     $all = Get-FleetIncidentState
     $results = @()
@@ -232,6 +232,8 @@ function Resolve-FleetUnobservedIncidents {
         if ($parts.Count -lt 4 -or $parts[0] -ne $hostName) { continue }
         if ($CompletedSources -notcontains $parts[1]) { continue }
         $name = ($parts[2..($parts.Count - 2)] -join '|')
+        # A task outside this sweep's task_scope (or excluded) was not looked at, so its absence proves nothing.
+        if ($parts[1] -eq 'task' -and $Policy -and -not (Test-FleetTaskInScope -Policy $Policy -FullName $name)) { continue }
         $obs = New-FleetObservation -Source $parts[1] -Name $name -Check $parts[-1] -Status ok -Message 'no longer observed by its detector' -ResolveAfter 2
         $results += Submit-FleetObservation -Observation $obs
     }

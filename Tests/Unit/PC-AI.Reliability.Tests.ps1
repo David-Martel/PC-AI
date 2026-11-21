@@ -894,11 +894,24 @@ Describe 'PC-AI.Reliability' {
             # locked or unreadable log gave no lines and an ok log-rule observation that resolved the incident.
             $log = Join-Path $TestDrive 'job.log'
             Set-Content -LiteralPath $log -Value '[ERROR] still broken'
-            Mock -ModuleName PC-AI.Reliability Get-Content { Write-Error -Message 'The process cannot access the file because it is being used by another process' -Category ReadError -ErrorAction Continue }
+            # Mocked at the module's own read function: how a mocked cmdlet's non-terminating error reaches the
+            # caller differs between hosts (it passed locally and failed in CI), a throw does not.
+            Mock -ModuleName PC-AI.Reliability Read-FleetLogTail { throw 'The process cannot access the file because it is being used by another process' }
             $o = @(InModuleScope PC-AI.Reliability -Parameters @{ L = $log } { param($L) Get-FleetLogRuleObservation -Rule @{ log = $L } -Tasks @{} })
             @($o | Where-Object { $_.Check -eq 'log-rule' -and $_.Status -eq 'ok' }).Count | Should -Be 0
             ($o | Where-Object Check -EQ 'log-rule').Status | Should -Be 'skipped'
             ($o | Where-Object Check -EQ 'log-read').Status | Should -Be 'failed'
+        }
+
+        It 'reads a log another process holds exclusively as a read failure' -Tag 'WindowsOnly' {
+            # Positive control for Read-FleetLogTail against a REAL locked file, not a mock.
+            if (-not (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows)) { Set-ItResult -Skipped -Because 'Windows share modes'; return }
+            $log = Join-Path $TestDrive 'locked.log'
+            Set-Content -LiteralPath $log -Value 'line'
+            $fs = [IO.File]::Open($log, 'Open', 'ReadWrite', 'None')
+            try { { InModuleScope PC-AI.Reliability -Parameters @{ L = $log } { param($L) Read-FleetLogTail -Path $L } } | Should -Throw }
+            finally { $fs.Dispose() }
+            InModuleScope PC-AI.Reliability -Parameters @{ L = $log } { param($L) Read-FleetLogTail -Path $L } | Should -Be 'line'
         }
 
         It 'does not act again when its budget state exists but cannot be read' {

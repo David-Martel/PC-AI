@@ -283,6 +283,12 @@ function Get-FleetTaskObservations {
     return $obs
 }
 
+function Read-FleetLogTail {
+    <# The last Lines lines of a log. Throws on ANY read error (locked, denied, vanished): a failed read must not look like a clean log. #>
+    param([Parameter(Mandatory)][string]$Path, [int]$Lines = 400)
+    return @(Get-Content -LiteralPath $Path -Tail $Lines -ErrorAction Stop)
+}
+
 function Get-FleetLogRuleObservation {
     <#
     One log rule: { task, log (wildcard path), patterns[], tail_lines, severity }. Reads the newest
@@ -307,14 +313,13 @@ function Get-FleetLogRuleObservation {
         }
     }
     $tail = 400; if ($Rule.tail_lines) { $tail = [int]$Rule.tail_lines }
-    $readErrors = @()
-    $lines = @(Get-Content -LiteralPath $log.FullName -Tail $tail -ErrorAction SilentlyContinue -ErrorVariable readErrors)
-    if (@($readErrors).Count -gt 0) {
+    try { $lines = @(Read-FleetLogTail -Path $log.FullName -Lines $tail) }
+    catch {
         # No evidence is not good evidence: the rule stays neutral (an open incident neither resolves nor
         # reopens), and the read failure itself is reported (fifth review of #346).
         return @(
-            (New-FleetObservation -Source task -Name $name -Check log-rule -Status skipped -LogPath $log.FullName -Message ("log unreadable: {0}" -f $readErrors[0].Exception.Message)),
-            (New-FleetObservation -Source task -Name $name -Check log-read -Status failed -Severity low -LogPath $log.FullName -Message ("cannot read {0}: {1}" -f $log.FullName, $readErrors[0].Exception.Message)))
+            (New-FleetObservation -Source task -Name $name -Check log-rule -Status skipped -LogPath $log.FullName -Message ("log unreadable: {0}" -f $_.Exception.Message)),
+            (New-FleetObservation -Source task -Name $name -Check log-read -Status failed -Severity low -LogPath $log.FullName -Message ("cannot read {0}: {1}" -f $log.FullName, $_.Exception.Message)))
     }
     $patterns = @($Rule.patterns | Where-Object { $_ }); if ($patterns.Count -eq 0) { $patterns = @('\bERROR\b', '\bSTALE\b') }
     foreach ($line in $lines) {

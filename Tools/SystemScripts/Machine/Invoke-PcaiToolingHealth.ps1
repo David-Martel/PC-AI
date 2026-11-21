@@ -420,57 +420,83 @@ function Get-PcaiOpenPullRequest {
 function Invoke-PcaiFastForward {
     <#
     .SYNOPSIS
-    Fast-forwards one checkout to the commit that was sampled, and never leaves a different
-    branch (or a detached HEAD) advanced by this run.
+    Fast-forwards one checkout to the commit that was sampled, and reports any ref this run moved
+    other than the sampled branch.
     .DESCRIPTION
     Revalidation and `git merge --ff-only` are separate commands, and merge advances whichever
     branch is checked out when it runs. If a person switches branch, or detaches HEAD, inside that
-    window, the checks pass and that ref moves. Git offers no way to pin the merge to a branch, so
-    the merge runs with GIT_REFLOG_ACTION set to a nonce unique to this run, and its own reflog entry
-    is the proof of what it moved (a recorded tip is not: the owner may have moved the branch the
-    same way inside the window). When the checked-out ref is not the sampled branch:
-      - no reflog entry of that ref (or of HEAD, when detached) is this run's: this run moved nothing
-        there (Changed);
-      - this run advanced it: it is reported as FastForwardMisapplied, with the tip it had before
-        and the commands that undo the move, and severity warn. It is never reset automatically.
-        Any reset acts on whatever is checked out when it runs, and the person who switched may
-        switch again, so an automatic undo could rewind an unrelated branch (codex reviews of
-        PR 345 at f5f39c97 and 7c4e7735). Commits are only added to the advanced ref, never lost.
-    Branch names compare case-sensitively, as Git does. -BeforeMerge runs inside the window so tests
-    can open it deterministically.
+    window, the checks pass and that ref moves; they may even switch back afterwards. Git offers no
+    way to pin the merge to a branch, so the merge leaves its own evidence instead: it runs with
+    GIT_REFLOG_ACTION set to a nonce unique to this run and with core.logAllRefUpdates forced on, so
+    every ref it moves gets a reflog entry carrying the nonce even where the repository disables
+    reflogs. Afterwards one `git log -g --all` lists those entries, and the outcome is decided by
+    what moved, not by what is checked out now:
+      - only refs/heads/<sampled branch>: FastForwarded;
+      - nothing: Changed (the merge was refused, or a no-op because the ref already held the target);
+      - any other branch, or a detached HEAD: FastForwardMisapplied (severity warn), naming each
+        ref, its tip before this run's merge and the command that undoes the move.
+    Nothing is reset automatically: any reset acts on whatever is checked out when it runs, and the
+    person who switched may switch again (codex reviews of PR 345 at f5f39c97 and 7c4e7735).
+    Commits are only added to the advanced ref, never lost. Branch names compare case-sensitively,
+    as Git does. -BeforeMerge and -AfterMerge run on either side of the merge so tests can open the
+    window deterministically.
     #>
     [CmdletBinding()]
-    param([Parameter(Mandatory)]$State, [scriptblock]$BeforeMerge)
+    param([Parameter(Mandatory)]$State, [scriptblock]$BeforeMerge, [scriptblock]$AfterMerge)
     $nonce = "pcai-tooling-health fast-forward $([guid]::NewGuid().ToString('n'))"
     $git = { param([string[]]$a, [int]$t = 120, [hashtable]$e = @{}) Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList (@('-C', $State.Path) + $a) -TimeoutSeconds $t -Environment $e }
     $changedSince = Test-PcaiRepoUnchanged -State $State
     if ($changedSince) { return [pscustomobject]@{ Action = 'Changed'; Note = "not fast-forwarded: $changedSince since sampling" } }
     if ($BeforeMerge) { & $BeforeMerge }
     # Merge the exact commit that was sampled, not whatever the ref points at now.
-    $m = & $git @('merge', '--ff-only', '--quiet', $State.Target) 120 @{ GIT_REFLOG_ACTION = $nonce }
-    $branchNow = (& $git @('branch', '--show-current') 30).Stdout.Trim()
-    if ($branchNow -ceq $State.Branch) {
-        if ($m.ExitCode -eq 0) { return [pscustomobject]@{ Action = 'FastForwarded'; Note = "behind $($State.Behind)" } }
-        return [pscustomobject]@{ Action = 'FastForwardFailed'; Note = ($m.Stderr.Trim() -split "`n")[0] }
+    $m = & $git @('-c', 'core.logAllRefUpdates=true', 'merge', '--ff-only', '--quiet', $State.Target) 120 @{ GIT_REFLOG_ACTION = $nonce }
+    if ($AfterMerge) { & $AfterMerge }
+    $log = & $git @('log', '--walk-reflogs', '--all', '-n', '500', '--format=%gD%x09%H%x09%gs') 60
+    if ($log.ExitCode -ne 0) {
+        return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "the reflog could not be read after the merge (exit $($log.ExitCode)), so what this run moved is unknown; check $($State.Branch) and the checked-out ref" }
     }
-    # The checked-out ref is no longer the sampled branch.
-    $what = if ($branchNow) { "branch '$branchNow'" } else { 'a detached HEAD' }
-    $changedNote = "checkout changed to $what during fast-forward"
-    if ($m.ExitCode -ne 0) { return [pscustomobject]@{ Action = 'Changed'; Note = "$changedNote; the merge was refused and nothing moved" } }
-    $ref = if ($branchNow) { "refs/heads/$branchNow" } else { 'HEAD' }
-    $entries = @((& $git @('reflog', '-20', '--format=%H%x09%gs', $ref) 30).Stdout -split "`n" | ForEach-Object Trim | Where-Object { $_ } | ForEach-Object {
-            $hash, $subject = $_ -split "`t", 2
-            [pscustomobject]@{ Hash = $hash; Subject = [string]$subject }
+    # Each line: <ref>@{<n>} TAB <new value> TAB <subject>. Group by ref, newest first.
+    $byRef = [ordered]@{}
+    foreach ($line in ($log.Stdout -split "`n")) {
+        $parts = $line.TrimEnd("`r") -split "`t", 3
+        if ($parts.Count -ne 3 -or $parts[0] -notmatch '^(?<ref>.+)@\{(?<n>\d+)\}$') { continue }
+        $ref = $Matches.ref
+        if (-not $byRef.Contains($ref)) { $byRef[$ref] = [Collections.Generic.List[object]]::new() }
+        $byRef[$ref].Add([pscustomobject]@{ N = [int]$Matches.n; Hash = $parts[1]; Subject = $parts[2] })
+    }
+    $moved = @(foreach ($ref in $byRef.Keys) {
+            $list = @($byRef[$ref] | Sort-Object N)
+            for ($k = 0; $k -lt $list.Count; $k++) {
+                if ($list[$k].Subject.StartsWith($nonce)) {
+                    $prev = $list | Where-Object N -eq ($list[$k].N + 1) | Select-Object -First 1
+                    [pscustomobject]@{ Ref = $ref; Before = if ($prev) { $prev.Hash } else { $null }; After = $list[$k].Hash }
+                    break
+                }
+            }
         })
-    $mine = -1
-    for ($k = 0; $k -lt $entries.Count; $k++) { if ($entries[$k].Subject.StartsWith($nonce)) { $mine = $k; break } }
-    if ($mine -lt 0) { return [pscustomobject]@{ Action = 'Changed'; Note = "$changedNote; this run's merge moved nothing there" } }
-    $before = if ($mine + 1 -lt $entries.Count) { $entries[$mine + 1].Hash } else { $null }
+    # A merge on an attached HEAD logs both HEAD and the branch; HEAD alone means it was detached.
+    $branches = @($moved | Where-Object { $_.Ref -cne 'HEAD' })
+    if ($branches.Count) { $moved = $branches }
+    $sampled = "refs/heads/$($State.Branch)"
+    if ($moved.Count -eq 0) {
+        $branchNow = (& $git @('branch', '--show-current') 30).Stdout.Trim()
+        if ($m.ExitCode -ne 0) {
+            if ($branchNow -ceq $State.Branch) { return [pscustomobject]@{ Action = 'FastForwardFailed'; Note = ($m.Stderr.Trim() -split "`n")[0] } }
+            return [pscustomobject]@{ Action = 'Changed'; Note = "checkout changed during fast-forward; the merge was refused and nothing moved" }
+        }
+        return [pscustomobject]@{ Action = 'Changed'; Note = 'this run''s merge moved nothing (the checked-out ref already held the target)' }
+    }
+    if ($moved.Count -eq 1 -and $moved[0].Ref -ceq $sampled) { return [pscustomobject]@{ Action = 'FastForwarded'; Note = "behind $($State.Behind)" } }
     $short = { param([string]$x) if ($x) { $x.Substring(0, [Math]::Min(8, $x.Length)) } else { 'unknown' } }
-    $undo = if (-not $before) { 'its previous tip is not in the reflog' }
-    elseif ($branchNow) { "if '$branchNow' is not checked out: git -C `"$($State.Path)`" update-ref refs/heads/$branchNow $before $($State.Target); if it is: git -C `"$($State.Path)`" reset --keep $before" }
-    else { "while detached: git -C `"$($State.Path)`" reset --keep $before" }
-    return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "$changedNote; this run advanced it from $(& $short $before) to $(& $short $State.Target) and did not reset it automatically. To undo: $undo" }
+    $q = "git -C `"$($State.Path)`""
+    $notes = @(foreach ($mv in $moved) {
+            $name = if ($mv.Ref -ceq 'HEAD') { 'a detached HEAD' } else { "branch '$($mv.Ref -replace '^refs/heads/', '')'" }
+            $undo = if (-not $mv.Before) { 'its previous tip is not in the reflog' }
+            elseif ($mv.Ref -ceq 'HEAD') { "while still detached there: $q reset --keep $($mv.Before)" }
+            else { "if it is not checked out: $q update-ref $($mv.Ref) $($mv.Before) $($mv.After); if it is: $q reset --keep $($mv.Before)" }
+            "$name advanced from $(& $short $mv.Before) to $(& $short $mv.After); to undo: $undo"
+        })
+    return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "this run's merge moved a ref other than $($State.Branch) and did not reset it automatically: $($notes -join ' | ')" }
 }
 function Format-PcaiToolingSummary {    [CmdletBinding()]
     param([Parameter(Mandatory)]$Status)

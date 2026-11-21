@@ -103,9 +103,11 @@ pwsh -NoProfile -File Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1 -
   cherry-pick or index lock, and no local commits. Everything else (`OffDefault`, `Detached`,
   `Dirty`, `Busy`, `Ahead`, `Diverged`, `FetchFailed`) is reported, never changed. If
   someone switches branch or detaches HEAD between the last check and the merge, the merge
-  can move that ref instead. The merge carries a per-run tag in its reflog message
-  (`GIT_REFLOG_ACTION`), so the check knows exactly what it moved. A ref it did not move is
-  reported as `Changed`. A ref it moved is reported as `FastForwardMisapplied` (severity warn),
+  can move that ref instead, even if they switch back afterwards. The merge carries a per-run
+  tag in its reflog message (`GIT_REFLOG_ACTION`) and forces `core.logAllRefUpdates` on, so
+  every ref it moves is recorded; the outcome comes from those records, not from what is
+  checked out afterwards. Only the sampled branch moving is `FastForwarded`; nothing moving is
+  `Changed`. Any other ref it moved is reported as `FastForwardMisapplied` (severity warn),
   with that ref's previous tip and the `git update-ref` / `git reset --keep` command that
   undoes it. Nothing is reset automatically: a reset acts on whatever is checked out when it
   runs, and the person may have switched again. Branch names compare case-sensitively. Linked

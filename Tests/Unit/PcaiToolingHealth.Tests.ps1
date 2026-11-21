@@ -110,8 +110,12 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
     }
     It 'fast-forwards to the sampled commit when nothing changed' {
         Mock Test-PcaiRepoUnchanged { $null }
-        # The verification step re-reads the branch after the merge.
-        Mock Invoke-PcaiToolingCommand { [pscustomobject]@{ ExitCode = 0; Stdout = 'main'; Stderr = ''; TimedOut = $false; Seconds = 0 } } -ParameterFilter { $ArgumentList -contains '--show-current' }
+        # The verification step reads which refs carry this run's reflog nonce after the merge.
+        Mock Invoke-PcaiToolingCommand {
+            if ($Environment -and $Environment['GIT_REFLOG_ACTION']) { $global:PcaiTestNonce = $Environment['GIT_REFLOG_ACTION'] }
+            $out = if ($ArgumentList -contains '--walk-reflogs') { "refs/heads/main@{0}`tbbb`t$($global:PcaiTestNonce): Fast-forward`nHEAD@{0}`tbbb`t$($global:PcaiTestNonce): Fast-forward" } else { '' }
+            [pscustomobject]@{ ExitCode = 0; Stdout = $out; Stderr = ''; TimedOut = $false; Seconds = 0 }
+        }
         $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'ff') -SkipBus) | Where-Object { $_ -isnot [string] }
         $status.repos[0].Action | Should -Be 'FastForwarded'
         Should -Invoke Invoke-PcaiToolingCommand -Times 1 -Exactly -ParameterFilter { $ArgumentList -contains 'merge' -and $ArgumentList -contains 'bbb' }
@@ -123,7 +127,7 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
             # The merge carries this run's nonce in GIT_REFLOG_ACTION; the fake reflog echoes it back.
             if ($Environment -and $Environment['GIT_REFLOG_ACTION']) { $global:PcaiTestNonce = $Environment['GIT_REFLOG_ACTION'] }
             $out = if ($ArgumentList -contains '--show-current') { 'feat/x' }
-            elseif ($ArgumentList -contains 'reflog') { "bbb`t$($global:PcaiTestNonce): Fast-forward`naaa`tbranch: Created from HEAD" }
+            elseif ($ArgumentList -contains '--walk-reflogs') { "refs/heads/feat/x@{0}`tbbb`t$($global:PcaiTestNonce): Fast-forward`nHEAD@{0}`tbbb`t$($global:PcaiTestNonce): Fast-forward`nrefs/heads/feat/x@{1}`taaa`tbranch: Created from HEAD" }
             elseif ($ArgumentList -contains 'rev-parse') { $script:revParseCalls++; if ($script:revParseCalls -eq 1) { 'bbb' } else { 'aaa' } } else { '' }
             [pscustomobject]@{ ExitCode = 0; Stdout = $out; Stderr = ''; TimedOut = $false; Seconds = 0 }
         }
@@ -253,7 +257,8 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
         $c = New-BehindCheckout 'detached'
         $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', '--detach') | Out-Null }
         $r.Action | Should -Be 'FastForwardMisapplied'
-        $r.Note | Should -Match ([regex]::Escape("while detached: git -C"))
+        $r.Note | Should -Match ([regex]::Escape("a detached HEAD advanced from"))
+        $r.Note | Should -Match ([regex]::Escape("while still detached there: git -C"))
         $r.Note | Should -Match ([regex]::Escape("reset --keep $($c.State.Head)"))
         Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Head
     }
@@ -262,6 +267,37 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
     It 'treats a branch differing only in case from the default as off-default' {
         $s = [pscustomobject]@{ Branch = 'Main'; DefaultBranch = 'main'; Head = 'a'; Target = 'b'; TrackedChanges = 0; Busy = $false; FetchOk = $true; InspectOk = $true; Ahead = 0; Behind = 1 }
         Get-PcaiRepoAction -State $s | Should -Be 'OffDefault'
+    }
+    # Why: deciding by what is checked out after the merge missed a switch to another branch before
+    # the merge and back afterwards: the feature branch advanced and the run reported FastForwarded
+    # (codex review of PR 345 at 582db040). The outcome is now decided by the refs carrying this
+    # run's nonce.
+    It 'reports a feature branch advanced while the checkout was switched away and back' {
+        $c = New-BehindCheckout 'away-and-back'
+        $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', 'feat') | Out-Null } -AfterMerge { Invoke-TestGit $c.Work @('switch', '-q', 'main') | Out-Null }
+        $r.Action | Should -Be 'FastForwardMisapplied'
+        $r.Note | Should -Match ([regex]::Escape("branch 'feat' advanced from"))
+        Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Head -Because 'the sampled branch never moved'
+        Invoke-TestGit $c.Work @('rev-parse', 'feat') | Should -Be $c.State.Target
+    }
+    # Why: with core.logAllRefUpdates=false and no reflog for the branch, the merge left no evidence,
+    # and the absence of evidence read as "nothing moved" (codex review of PR 345 at 582db040). The
+    # merge forces reflog updates on, so its move is always recorded.
+    It 'still reports the wrong branch when the repository disables reflogs' {
+        $c = New-BehindCheckout 'no-reflog'
+        Invoke-TestGit $c.Work @('config', 'core.logAllRefUpdates', 'false') | Out-Null
+        Remove-Item -LiteralPath (Join-Path $c.Work '.git/logs/refs/heads/feat') -Force
+        $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', 'feat') | Out-Null }
+        $r.Action | Should -Be 'FastForwardMisapplied'
+        $r.Note | Should -Match ([regex]::Escape("branch 'feat' advanced from unknown"))
+        $r.Note | Should -Match 'previous tip is not in the reflog'
+    }
+    It 'fast-forwards the sampled branch when the repository disables reflogs' {
+        $c = New-BehindCheckout 'no-reflog-happy'
+        Invoke-TestGit $c.Work @('config', 'core.logAllRefUpdates', 'false') | Out-Null
+        Remove-Item -LiteralPath (Join-Path $c.Work '.git/logs') -Recurse -Force
+        (Invoke-PcaiFastForward -State $c.State).Action | Should -Be 'FastForwarded'
+        Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Target
     }
     It 'reports a stale branch by its plain name when a tag shares it' {
         $c = New-BehindCheckout 'stale-tagged'

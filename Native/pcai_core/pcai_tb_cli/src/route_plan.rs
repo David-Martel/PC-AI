@@ -264,6 +264,23 @@ fn guard_lines(ends: &BTreeMap<u32, (String, String)>) -> Vec<String> {
         .collect()
 }
 
+fn journal_path(plan_id: &str) -> String {
+    format!("(Join-Path $env:ProgramData 'pcai-usb4\\route-plan\\{plan_id}.journal')")
+}
+
+/// Apply creates state only when it is absent, and journals what it created. State that
+/// existed before apply is reported as not owned and never enters the journal.
+fn owned_apply(journal: &str, key: &str, present: &str, command: &str) -> String {
+    format!(
+        "$j = {journal}; if ({present}) {{ Write-Output 'Present before apply; not owned: {key}' }} else {{ New-Item -ItemType Directory -Force (Split-Path $j) | Out-Null; {command} -ErrorAction Stop | Out-Null; Add-Content -LiteralPath $j -Value '{key}' }}"
+    )
+}
+
+/// Rollback undoes only what this plan's apply journaled on this host.
+fn owned_rollback(journal: &str, key: &str, command: &str) -> String {
+    format!("$j = {journal}; if (@(Get-Content -LiteralPath $j -ErrorAction SilentlyContinue) -contains '{key}') {{ {command} }}")
+}
+
 /// Builds an owner-reviewed route plan from one fresh bilateral USB4 observation.
 ///
 /// # Errors
@@ -347,6 +364,16 @@ pub fn build_route_plan(
         }
     }
     let edge_list: Vec<Edge> = edges.into_values().collect();
+    let plan_id = {
+        use sha2::{Digest, Sha256};
+        let mut hasher = Sha256::new();
+        hasher.update(evaluated_at_utc.to_rfc3339().as_bytes());
+        for edge in &edge_list {
+            hasher.update(edge.edge_id.as_bytes());
+        }
+        hex::encode(hasher.finalize())[..16].to_string()
+    };
+    let journal = journal_path(&plan_id);
     let mut adjacency: BTreeMap<String, BTreeMap<String, usize>> = BTreeMap::new();
     for (index, edge) in edge_list.iter().enumerate() {
         let (a, b) = (&edge.ends[0].host, &edge.ends[1].host);
@@ -412,15 +439,30 @@ pub fn build_route_plan(
                     target: format!("{ip}/30"),
                     already_present: present,
                     apply: (!present).then(|| {
-                        format!("New-NetIPAddress -InterfaceIndex {index} -AddressFamily IPv4 -IPAddress {ip} -PrefixLength 30")
+                        let key = format!("EdgeAddress|{index}|{ip}/30");
+                        // New-NetIPAddress disables DHCP on a DHCP-enabled interface (Microsoft Learn), and
+                        // removing the address would not restore it, so such an interface is refused.
+                        format!(
+                            "if ((Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4).Dhcp -eq 'Enabled') {{ throw 'DHCP is enabled on ifIndex {index}; a static address would disable it' }}; {}",
+                            owned_apply(
+                                &journal,
+                                &key,
+                                &format!("Get-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -ErrorAction SilentlyContinue"),
+                                &format!("New-NetIPAddress -InterfaceIndex {index} -AddressFamily IPv4 -IPAddress {ip} -PrefixLength 30"),
+                            )
+                        )
                     }),
-                    rollback: (!present)
-                        .then(|| format!("Remove-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -Confirm:$false")),
+                    rollback: (!present).then(|| {
+                        owned_rollback(
+                            &journal,
+                            &format!("EdgeAddress|{index}|{ip}/30"),
+                            &format!("Remove-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -Confirm:$false"),
+                        )
+                    }),
                     note: Some(if present {
                         "Observed on this interface; not owned by this plan".to_string()
                     } else {
-                        // New-NetIPAddress disables DHCP on a DHCP-enabled interface (Microsoft Learn).
-                        "Adding a static address disables DHCP if it was enabled; if the preflight showed Dhcp Enabled, also roll back with Set-NetIPInterface -InterfaceIndex <n> -Dhcp Enabled".to_string()
+                        "Apply refuses a DHCP-enabled interface; rollback removes the address only if this plan's apply created it (journal)".to_string()
                     }),
                 },
             );
@@ -506,11 +548,16 @@ pub fn build_route_plan(
                             interface_index: index,
                             target: format!("{target_ip}/32 via {gateway}"),
                             already_present: false,
-                            apply: Some(format!(
-                                "New-NetRoute -InterfaceIndex {index} -AddressFamily IPv4 -DestinationPrefix {target_ip}/32 -NextHop {gateway} -RouteMetric {metric}"
+                            apply: Some(owned_apply(
+                                &journal,
+                                &format!("HostRoute|{index}|{target_ip}/32 via {gateway}"),
+                                &format!("Get-NetRoute -InterfaceIndex {index} -DestinationPrefix {target_ip}/32 -NextHop {gateway} -ErrorAction SilentlyContinue"),
+                                &format!("New-NetRoute -InterfaceIndex {index} -AddressFamily IPv4 -DestinationPrefix {target_ip}/32 -NextHop {gateway} -RouteMetric {metric}"),
                             )),
-                            rollback: Some(format!(
-                                "Remove-NetRoute -InterfaceIndex {index} -DestinationPrefix {target_ip}/32 -NextHop {gateway} -Confirm:$false"
+                            rollback: Some(owned_rollback(
+                                &journal,
+                                &format!("HostRoute|{index}|{target_ip}/32 via {gateway}"),
+                                &format!("Remove-NetRoute -InterfaceIndex {index} -DestinationPrefix {target_ip}/32 -NextHop {gateway} -Confirm:$false"),
                             )),
                             note: Some(note.clone()),
                         },
@@ -529,15 +576,19 @@ pub fn build_route_plan(
                                 interface_index: index,
                                 target: format!("IPv4 forwarding on ifIndex {index}"),
                                 already_present: false,
-                                apply: Some(format!(
-                                    "Set-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -Forwarding Enabled"
+                                apply: Some(owned_apply(
+                                    &journal,
+                                    &format!("Forwarding|{index}"),
+                                    &format!("(Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4).Forwarding -eq 'Enabled'"),
+                                    &format!("Set-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -Forwarding Enabled"),
                                 )),
-                                rollback: Some(format!(
-                                    "Set-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -Forwarding Disabled"
+                                rollback: Some(owned_rollback(
+                                    &journal,
+                                    &format!("Forwarding|{index}"),
+                                    &format!("Set-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -Forwarding Disabled"),
                                 )),
                                 note: Some(
-                                    "Forwarding preimage NotCollected: restore Disabled only if the preflight showed Disabled"
-                                        .into(),
+                                    "Rollback disables forwarding only if this plan's apply enabled it (journal)".into(),
                                 ),
                             },
                         );
@@ -698,8 +749,12 @@ mod tests {
             .rollback
             .as_deref()
             .unwrap()
-            .starts_with("Remove-NetIPAddress -InterfaceIndex 28 "));
-        assert!(missing.note.as_deref().unwrap().contains("-Dhcp Enabled"));
+            .contains("Remove-NetIPAddress -InterfaceIndex 28 "));
+        assert!(missing
+            .apply
+            .as_deref()
+            .unwrap()
+            .contains(".Dhcp -eq 'Enabled') { throw"));
     }
 
     // Protects: transit is explicit. Detects: forwarding inferred from adjacency (the NUC

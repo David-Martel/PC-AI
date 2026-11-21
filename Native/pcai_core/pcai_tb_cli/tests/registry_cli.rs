@@ -710,3 +710,90 @@ fn cli_route_plan_refuses_apply_and_requires_policy() {
     }
     let _ = fs::remove_dir_all(&dir);
 }
+
+// Protects: generated commands are valid PowerShell for the cmdlets they call. Detects:
+// syntax errors, unknown cmdlets and unsupported parameters (for example a review claim that
+// Get-NetAdapter lacks -InterfaceIndex) without executing anything. Needs: Windows with pwsh
+// and the NetAdapter/NetTCPIP modules. Breadcrumb: src/route_plan.rs owned_apply/owned_rollback/guard_lines.
+#[cfg(windows)]
+#[test]
+fn cli_route_plan_commands_parse_and_bind_to_real_cmdlet_parameters() {
+    let (dir, input, policy) = route_plan_inputs("route-plan-pwsh", &["dtm-super-nuc"]);
+    let registry = repo_registry_path();
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
+        .args([
+            "route-plan",
+            "--input",
+            input.to_str().unwrap(),
+            "--policy",
+            policy.to_str().unwrap(),
+            "--registry",
+            registry.to_str().unwrap(),
+            "--compact",
+        ])
+        .output()
+        .expect("run route-plan");
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let plan: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let mut commands = Vec::new();
+    for host in plan["hosts"].as_array().unwrap() {
+        for field in ["guard", "preflight"] {
+            commands.extend(
+                host[field]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .filter_map(|c| c.as_str())
+                    .map(String::from),
+            );
+        }
+        for action in host["actions"].as_array().unwrap() {
+            for field in ["apply", "rollback"] {
+                if let Some(command) = action[field].as_str() {
+                    commands.push(command.to_string());
+                }
+            }
+        }
+    }
+    assert!(commands.len() > 10);
+    let commands_path = dir.join("commands.json");
+    fs::write(&commands_path, serde_json::to_vec(&commands).unwrap()).unwrap();
+    let checker = dir.join("check.ps1");
+    fs::write(
+        &checker,
+        r#"param([string]$Path)
+$failures = @()
+foreach ($text in (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json)) {
+    $tokens = $null; $errors = $null
+    $ast = [Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$errors)
+    if ($errors.Count) { $failures += "PARSE: $text"; continue }
+    foreach ($call in $ast.FindAll({ param($n) $n -is [Management.Automation.Language.CommandAst] }, $true)) {
+        $name = $call.GetCommandName()
+        if (-not $name -or $name -notmatch '^[A-Za-z]+-[A-Za-z]+$') { continue }
+        $cmd = Get-Command -Name $name -ErrorAction SilentlyContinue
+        if (-not $cmd) { $failures += "CMDLET $name"; continue }
+        $known = @($cmd.Parameters.Values | ForEach-Object { $_.Name; $_.Aliases })
+        foreach ($p in $call.CommandElements | Where-Object { $_ -is [Management.Automation.Language.CommandParameterAst] }) {
+            if (@($known | Where-Object { $_ -like "$($p.ParameterName)*" }).Count -eq 0) { $failures += "PARAM $name -$($p.ParameterName)" }
+        }
+    }
+}
+if ($failures.Count) { $failures; exit 1 }
+'OK'
+"#,
+    )
+    .unwrap();
+    let check = hidden_command("pwsh")
+        .args(["-NoLogo", "-NoProfile", "-NonInteractive", "-File"])
+        .arg(&checker)
+        .arg(&commands_path)
+        .output()
+        .expect("run pwsh command checker");
+    let _ = fs::remove_dir_all(&dir);
+    assert!(
+        check.status.success(),
+        "{}{}",
+        String::from_utf8_lossy(&check.stdout),
+        String::from_utf8_lossy(&check.stderr)
+    );
+}

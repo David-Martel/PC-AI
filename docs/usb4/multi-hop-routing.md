@@ -70,12 +70,15 @@ The policy names transit hosts explicitly
 ```
 
 For each host, run `guard`, then `preflight` (read-only; keep the output), then
-each action's `apply`. To undo, run the `rollback` lines in reverse order. A
-forwarding rollback sets `Disabled`; run it only if the preflight showed
-`Disabled`, because the observation does not record the forwarding preimage.
-`New-NetIPAddress` disables DHCP on an interface where it is enabled. The USB4
-interfaces observed on 2026-11-21 already had `Dhcp Disabled`, but the preflight
-records `Dhcp` so the rollback can restore it.
+each action's `apply`. Each apply creates its address, route or forwarding setting
+only if it is absent, and records what it created in a per-plan journal at
+`%ProgramData%\pcai-usb4\route-plan\<plan-id>.journal`. State that existed before
+apply is reported as "not owned". To undo, run the `rollback` lines in reverse
+order; each one acts only if its key is in that host's journal, so rollback never
+removes state that predated the plan. `New-NetIPAddress` disables DHCP on an
+interface where it is enabled, and removing the address would not restore it, so
+apply refuses a DHCP-enabled interface. The USB4 interfaces observed on 2026-11-21
+had `Dhcp Disabled`.
 
 ## Limits
 

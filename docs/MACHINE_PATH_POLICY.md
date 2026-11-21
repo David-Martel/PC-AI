@@ -91,8 +91,10 @@ broadcasts `WM_SETTINGCHANGE` for running Explorer-launched shells.
   4. Reference discovery covers live config, hooks, `.machine`, scheduled tasks (COM-handler actions included), services, running
      processes and every surviving managed wrapper, including `%~dp0`, `$PSScriptRoot`, `dirname "$0"` and any sibling file
      whose full name appears in a wrapper (`Get-MachineReferenceCorpus`). Any unreadable source disables archival (fail closed).
-  5. An extensionless bash shim (`exec "C:/.../name.exe" "$@"`) is archived only when its same-named target still wins in both
-     shells once the shim is gone; otherwise PowerShell would list the shim first and fail to run it.
+  5. An extensionless bash shim (`#!/bin/sh` or `#!/usr/bin/env sh` then `exec "C:/.../name.exe" "$@"`) is archived only when its
+     same-named target still wins in both shells once the shim is gone. A surviving extensionless file blocks archiving the
+     same-named `.cmd`, `.bat` or `.exe`, because PowerShell lists it first and cannot run it
+     (`Get-MachineExtensionlessSibling`, `Get-MachineBashShimTarget`).
   6. Hardlinks (rustup proxies, pdf-tools) and intentional shadows are never archived; versioned variants that a wrapper or config
      names are skipped.
   7. Every move is preceded by the backup and the before/after resolution baseline with a failing exit when a command stops resolving.

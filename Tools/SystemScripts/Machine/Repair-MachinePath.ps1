@@ -179,19 +179,33 @@ if (-not $SkipArchive) {
         foreach ($f in [IO.Directory]::EnumerateFiles($d)) {
             if ([IO.Path]::GetExtension($f) -ne '' -or ([IO.FileInfo]::new($f)).Length -gt 2048) { continue }
             $txt = Get-Content -LiteralPath $f -Raw -ErrorAction SilentlyContinue
-            if ($txt -match '(?s)^#!\S*\s*\r?\n\s*exec\s+"(?<t>[A-Za-z]:/[^"]+?\.exe)"\s+"\$@"\s*$' -and
-                ([IO.Path]::GetFileNameWithoutExtension($Matches['t']).ToLowerInvariant() -eq [IO.Path]::GetFileName($f).ToLowerInvariant()) -and
-                [IO.File]::Exists($Matches['t'].Replace('/', '\'))) {
+            # Any shebang line counts (`#!/bin/sh`, `#!/usr/bin/env sh`, `#!/usr/bin/env bash`).
+            $shimTarget = Get-MachineBashShimTarget -Text $txt
+            if ($shimTarget -and
+                ([IO.Path]::GetFileNameWithoutExtension($shimTarget).ToLowerInvariant() -eq [IO.Path]::GetFileName($f).ToLowerInvariant()) -and
+                [IO.File]::Exists($shimTarget.Replace('/', '\'))) {
                 # The target must stay reachable under the same name: once this shim (and any wrapper already queued for archival) is
                 # gone, the first runnable candidate on PATH has to BE the target. A target outside PATH would lose its command.
                 $shimName = [IO.Path]::GetFileName($f).ToLowerInvariant()
                 $queued = @($archive | ForEach-Object { $_.Path })
                 $shimCands = if ($index.ContainsKey($shimName)) { @($index[$shimName]) } else { @() }
-                if (-not (Test-MachineReplacementWins -Target $Matches['t'] -Candidate $shimCands -ExcludePath $queued)) { continue }
-                $archive.Add([pscustomobject]@{ Path = $f; Why = "bash pass-through to $($Matches['t'])" })
+                if (-not (Test-MachineReplacementWins -Target $shimTarget -Candidate $shimCands -ExcludePath $queued)) { continue }
+                $archive.Add([pscustomobject]@{ Path = $f; Why = "bash pass-through to $shimTarget" })
             }
         }
     }
+    # A surviving extensionless file (a shim that is not itself being archived) is listed first by PowerShell and cannot run there,
+    # so archiving the same-named .cmd, .bat or .exe would expose it. Such candidates are blocked and reported, never listed as eligible.
+    $queuedPaths = @($archive | ForEach-Object { $_.Path })
+    $kept = [System.Collections.Generic.List[object]]::new()
+    foreach ($a in $archive) {
+        $blockers = if ([IO.Path]::GetExtension($a.Path) -eq '') { @() } else {
+            @(Get-MachineExtensionlessSibling -Name ([IO.Path]::GetFileNameWithoutExtension($a.Path)) -Directory $allDirs -ExcludePath $queuedPaths)
+        }
+        if ($blockers.Count -gt 0) { '  archive blocked: {0} (extensionless {1} would be listed first and cannot run in PowerShell)' -f $a.Path.Replace($ctx.UserHome, '~'), $blockers[0].Replace($ctx.UserHome, '~') }
+        else { $kept.Add($a) }
+    }
+    $archive = $kept
 }
 $archive = @($archive | Sort-Object Path -Unique)
 foreach ($a in $archive) {

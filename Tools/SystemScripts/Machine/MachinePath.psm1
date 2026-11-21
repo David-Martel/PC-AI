@@ -548,6 +548,36 @@ function Get-MachineFirstRemainingCandidate {
     if ($ps1.Count -eq 1) { $ps1[0] } else { $inDir[0] }
 }
 
+function Get-MachineExtensionlessSibling {
+    <#
+    .SYNOPSIS
+        Existing extensionless files named Name in the given directories, minus the excluded paths.
+    .DESCRIPTION
+        PowerShell lists an extensionless file as an application and tries it, then fails with "Cannot run a document in the
+        middle of a pipeline" when it is a bash shim. Its presence therefore makes archiving a same-named .cmd, .bat or .exe unsafe.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Name, [Parameter(Mandatory)][string[]]$Directory, [string[]]$ExcludePath = @())
+    $skip = @($ExcludePath | ForEach-Object { ([string]$_).ToLowerInvariant() })
+    foreach ($d in $Directory) {
+        $p = Join-Path $d $Name
+        if ([IO.File]::Exists($p) -and $skip -notcontains $p.ToLowerInvariant()) { $p }
+    }
+}
+
+function Get-MachineBashShimTarget {
+    <#
+    .SYNOPSIS
+        The Windows path a bash pass-through shim forwards to, or $null when the text is not such a shim.
+    .DESCRIPTION
+        Recognises any shebang line (`#!/bin/sh`, `#!/usr/bin/env sh`, `#!/usr/bin/env bash`) followed by a single
+        `exec "C:/path/name.exe" "$@"`.
+    #>
+    [CmdletBinding()]
+    param([AllowEmptyString()][AllowNull()][string]$Text)
+    if ($Text -and $Text -match '(?s)^#![^\r\n]*\r?\n\s*exec\s+"(?<t>[A-Za-z]:/[^"]+?\.exe)"\s+"\$@"\s*$') { $Matches['t'] } else { $null }
+}
+
 function Test-MachineReplacementWins {
     <#
     .SYNOPSIS
@@ -848,7 +878,7 @@ function Compare-MachineResolutionBaseline {
     }
 }
 
-Export-ModuleMember -Function Get-MachineFirstRemainingCandidate, Test-MachineReplacementWins, Get-GitGuardWrapperText, Test-MachineTextReference, Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineEffectivePathDirectories, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
+Export-ModuleMember -Function Get-MachineFirstRemainingCandidate, Test-MachineReplacementWins, Get-MachineExtensionlessSibling, Get-MachineBashShimTarget, Get-GitGuardWrapperText, Test-MachineTextReference, Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineEffectivePathDirectories, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
     Get-MachinePathRegistry, Resolve-MachinePathEntry, Test-MachinePathEntries, Get-MachineCommandIndex, Resolve-MachineCommand,
     Test-MachinePathShadows, Test-MachinePathExtensionless, Get-MachineVariantFile, Test-MachinePathWrappers, Get-MachinePathPlan, Backup-MachinePath,
     Send-MachineEnvironmentChange, Set-MachinePathValue, Get-MachineResolutionBaseline, Compare-MachineResolutionBaseline

@@ -532,3 +532,52 @@ Describe 'Repair-MachinePath.ps1 archival is report-only by default' {
         $script:SyncText2 | Should -Not -Match 'ApplyArchive'
     }
 }
+
+Describe 'Surviving extensionless shims block archival of the same-named command' {
+    # Why: PowerShell lists an extensionless file as an application and fails to run a bash shim, so archiving the .cmd that used to
+    # mask it exposes a broken command. The candidate must be blocked unless the shim is archived too (codex review of PR 343, round 8, P2).
+    BeforeEach {
+        $script:Bin = Join-Path $TestDrive 'bin3'
+        Remove-Item -LiteralPath $script:Bin -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Force -Path $script:Bin | Out-Null
+    }
+    It 'finds a same-named extensionless file on the effective PATH' {
+        Set-Content (Join-Path $script:Bin 'probe.cmd') '@echo off'
+        Set-Content (Join-Path $script:Bin 'probe') '#!/usr/bin/env sh'
+        $found = @(Get-MachineExtensionlessSibling -Name 'probe' -Directory @($script:Bin, (Join-Path $TestDrive 'missing')))
+        $found.Count | Should -Be 1
+        $found[0] | Should -Be (Join-Path $script:Bin 'probe')
+    }
+    It 'ignores the shim when it is itself queued for archival' {
+        Set-Content (Join-Path $script:Bin 'probe') 'x'
+        @(Get-MachineExtensionlessSibling -Name 'probe' -Directory @($script:Bin) -ExcludePath @((Join-Path $script:Bin 'PROBE'))).Count | Should -Be 0
+    }
+    It 'finds nothing when only extension-bearing files exist' {
+        Set-Content (Join-Path $script:Bin 'probe.cmd') 'x'
+        Set-Content (Join-Path $script:Bin 'probe.exe') 'x'
+        @(Get-MachineExtensionlessSibling -Name 'probe' -Directory @($script:Bin)).Count | Should -Be 0
+    }
+    It 'Repair-MachinePath.ps1 blocks and reports such candidates' {
+        $text = Get-Content (Resolve-Path (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Repair-MachinePath.ps1')).Path -Raw
+        $text | Should -Match 'Get-MachineExtensionlessSibling'
+        $text | Should -Match 'archive blocked:'
+    }
+}
+
+Describe 'Get-MachineBashShimTarget' {
+    # Why: the shim cleanup rejected common env-based shebangs, leaving the shim in place (codex review of PR 343, round 8, P2).
+    It 'accepts <Shebang>' -ForEach @(
+        @{ Shebang = '#!/bin/sh' }, @{ Shebang = '#!/usr/bin/env sh' }, @{ Shebang = '#!/usr/bin/env bash' }, @{ Shebang = '#!/bin/bash -e' }
+    ) {
+        $t = "$Shebang`nexec `"C:/x/bin/tool.exe`" `"`$@`"`n"
+        Get-MachineBashShimTarget -Text $t | Should -Be 'C:/x/bin/tool.exe'
+    }
+    It 'accepts CRLF line endings' {
+        Get-MachineBashShimTarget -Text "#!/usr/bin/env sh`r`nexec `"C:/x/bin/tool.exe`" `"`$@`"`r`n" | Should -Be 'C:/x/bin/tool.exe'
+    }
+    It 'rejects text that is not a single pass-through' {
+        Get-MachineBashShimTarget -Text "#!/bin/sh`necho hi`nexec `"C:/x/tool.exe`" `"`$@`"" | Should -BeNullOrEmpty
+        Get-MachineBashShimTarget -Text "exec `"C:/x/tool.exe`" `"`$@`"" | Should -BeNullOrEmpty
+        Get-MachineBashShimTarget -Text $null | Should -BeNullOrEmpty
+    }
+}

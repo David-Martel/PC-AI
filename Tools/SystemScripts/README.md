@@ -632,6 +632,10 @@ How to read the result:
   host's own inventory tailnet address (`tailnet`, plus the one `tailnetV6` address if recorded; another
   peer's IPv6 address is rejected). The connect targets the validated IP literal, not the name. With
   Tailscale down, a foreign resolver answer is skipped as `magicdns-mismatch` and never connected to.
+  Tailnet and MagicDNS candidates are probed only over verified Tailscale egress: the backend is
+  `Running` and `Find-NetRoute` sends the connect from one of this node's own tailnet addresses.
+  With Tailscale stopped on a network that reuses 100.64.0.0/10, the inventory tailnet address can
+  belong to an unrelated machine, so such a candidate is skipped as `tailnet-egress-not-verified`.
 - `Recommended` is the first reachable candidate in the order LAN, tailnet direct,
   tailnet peer-relay, tailnet relay, with the MagicDNS name just behind the tailnet
   address. Each candidate also carries its egress interface and Tailscale path

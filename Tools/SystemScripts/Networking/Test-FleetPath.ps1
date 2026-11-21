@@ -39,6 +39,12 @@ peer). The connect then targets the validated IP literal, never the name, so a s
 lookup cannot send it elsewhere. With Tailscale down, a roaming network's resolver can send
 the name to one of its own hosts; such a candidate is skipped as magicdns-mismatch (an
 empty or failed lookup as magicdns-unresolved) and is never connected to or recommended.
+Tailnet and MagicDNS candidates are probed only over verified Tailscale egress: the
+Tailscale backend must be Running and Find-NetRoute must send the connect from one of this
+node's own tailnet addresses (Self.TailscaleIPs). With Tailscale stopped on a network that
+reuses 100.64.0.0/10, the inventory tailnet address can belong to an unrelated machine, and
+DNS equality proves nothing about where the connect goes. Such a candidate is skipped as
+tailnet-egress-not-verified and is never connected to or recommended.
 
 The tool changes nothing. It calls Get-NetNeighbor, Find-NetRoute and
 `tailscale status --json`, and it opens TCP connections that it closes at once. It
@@ -51,8 +57,8 @@ ranks just behind the tailnet address of the same path state. The first reachabl
 candidate in that ranking is recommended.
 
 Probes run in parallel (ForEach-Object -Parallel) in two waves. Wave A: the gateway
-probes that decide the location, plus every tailnet and MagicDNS candidate. Wave B:
-the LAN candidates, only if wave A proved home. The first Get-NetNeighbor and
+probes that decide the location. Wave B: the tailnet and MagicDNS candidates whose
+Tailscale egress is verified, plus the LAN candidates, only if wave A proved home. The first Get-NetNeighbor and
 Find-NetRoute calls cost about 1.2 s of CIM start-up, so they run while wave A is in
 flight. With the default 1500 ms budget the whole run takes 3 to 4 s on the home LAN
 (one blocked LAN candidate costs one budget) and about the same when away. If no
@@ -617,6 +623,27 @@ function Test-FleetLanEgress {
     if ($null -eq $index) { return $false }
     return (@($VerifiedInterfaces) -contains [int]$index)
 }
+function Test-FleetTailnetEgress {
+    # Pure. A tailnet or MagicDNS candidate is eligible only while the Tailscale backend is
+    # Running and the route Windows would use leaves from one of this node's own tailnet
+    # addresses. With Tailscale stopped, a roaming network that reuses 100.64.0.0/10 routes
+    # the inventory address to one of its own hosts, and a successful connect cannot tell
+    # the two apart. Unknown status, route or source address: not eligible.
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param($Route, $Status)
+    if ($null -eq $Route -or $null -eq $Status) { return $false }
+    if ((Get-FleetProperty $Status 'BackendState' 'Unknown') -ne 'Running') { return $false }
+    $self = Get-FleetProperty $Status 'Self'
+    if (-not $self) { return $false }
+    $source = $null
+    if (-not [Net.IPAddress]::TryParse([string](Get-FleetProperty $Route 'SourceAddress' ''), [ref]$source)) { return $false }
+    foreach ($own in @(Get-FleetProperty $self 'TailscaleIPs' @())) {
+        $ownIp = $null
+        if ([Net.IPAddress]::TryParse([string]$own, [ref]$ownIp) -and $ownIp.Equals($source)) { return $true }
+    }
+    return $false
+}
 function Invoke-FleetNative {
     # Runs one native process with a hard deadline and closed stdin, so a wedged
     # CLI cannot hang the diagnostic. Same approach as ~/.machine/Test-FleetAccess.ps1.
@@ -797,10 +824,10 @@ function Invoke-FleetPathTest {
     }
     & $stage 'magicdns names resolved'
 
-    # Wave A: the gateway probes that decide the location, plus every candidate that
-    # does not depend on it (tailnet and MagicDNS). Each distinct address:port is
+    # Wave A: the gateway probes that decide the location. Each distinct address:port is
     # probed once. While they run, pay the CIM start-up cost of the neighbour and
-    # route cmdlets in this runspace.
+    # route cmdlets in this runspace. Tailnet and MagicDNS candidates wait for wave B,
+    # because their Tailscale egress must be verified (route lookup) before any connect.
     $results = @{}
     $waveA = [ordered]@{}
     # Gateway probes: the ordinary ones plus one per interface on a gateway subnet, bound
@@ -808,11 +835,6 @@ function Invoke-FleetPathTest {
     $interfaces = @(Get-FleetInterface)
     $gatewayProbes = @(New-FleetGatewayProbePlan -Gateways $inventory.Gateways -Interfaces $interfaces)
     foreach ($probe in $gatewayProbes) { $waveA[(Get-FleetProbeKey $probe)] = $probe }
-    foreach ($e in $endpoints) {
-        foreach ($c in $e.Candidates) {
-            if ($c.Kind -ne 'lan' -and -not $c.Skipped) { $waveA["$($c.ProbeAddress):$($c.Port)"] = [pscustomobject]@{ Address = $c.ProbeAddress; Port = $c.Port } }
-        }
-    }
     $warmAddress = if (@($inventory.Gateways).Count -gt 0) { @($inventory.Gateways)[0].Ip } else { $null }
     $physical = @{ Index = @() }
     $warmUp = {
@@ -822,7 +844,7 @@ function Invoke-FleetPathTest {
     foreach ($r in (Invoke-FleetProbeBatch -Probes @($waveA.Values) -BudgetMs $BudgetMs -Connector $Connector -WhileWaiting $warmUp)) {
         $results[(Get-FleetProbeKey $r)] = $r
     }
-    & $stage 'wave A done (gateways and tailnet candidates)'
+    & $stage 'wave A done (gateways)'
     $location = Resolve-FleetLocation -Gateways $inventory.Gateways -ProbeResults @($results.Values) -Interfaces $interfaces -PhysicalIndexes $physical.Index
     # Two kinds of transient stall are retried once. No home verdict at all (seen about
     # once in 40 runs: every gateway probe timing out together) would read as "away from
@@ -849,10 +871,24 @@ function Invoke-FleetPathTest {
         param($Address)
         if ($Address -and -not $routes.ContainsKey($Address)) { $routes[$Address] = Find-FleetRoute -Address $Address }
     }
+    # Tailscale egress gate for tailnet and MagicDNS candidates (see Test-FleetTailnetEgress).
+    # Tailscale is read again after the probes for the path detail.
+    $tailscaleGate = Get-FleetTailscaleStatus
+    & $stage 'tailscale status read (tailnet egress gate)'
     $waveB = [ordered]@{}
     foreach ($e in $endpoints) {
         foreach ($c in $e.Candidates) {
-            if ($c.Kind -ne 'lan') { continue }
+            if ($c.Kind -in 'tailnet', 'magicdns') {
+                if ($c.Skipped) { continue }
+                & $routeFor $c.ProbeAddress
+                $route = $routes[$c.ProbeAddress]
+                if ($route) { $c.Interface = $route.Interface; $c.SourceAddress = $route.SourceAddress; $c.NextHop = $route.NextHop }
+                if (Test-FleetTailnetEgress -Route $route -Status $tailscaleGate.Status) {
+                    $waveB["$($c.ProbeAddress):$($c.Port)"] = [pscustomobject]@{ Address = $c.ProbeAddress; Port = $c.Port }
+                }
+                else { $c.Skipped = 'tailnet-egress-not-verified' }
+                continue
+            }
             if (-not $onHomeLan) { $c.Skipped = 'not on the home LAN'; continue }
             # Home is verified per interface. Resolve this candidate's egress BEFORE probing
             # it: on a multihomed host Ethernet can verify the home gateway while Wi-Fi sits
@@ -876,7 +912,7 @@ function Invoke-FleetPathTest {
         $results[(Get-FleetProbeKey $r)] = $r
     }
 
-    & $stage 'wave B done (LAN candidates and route lookups)'
+    & $stage 'wave B done (tailnet and LAN candidates, route lookups)'
 
     # Egress interface: one Find-NetRoute per distinct IP, in this runspace (it is
     # slower in parallel runspaces). A MagicDNS candidate is probed, and so routed, by its

@@ -584,7 +584,8 @@ Describe 'LAN egress gating on a multihomed host' -Tag 'Unit' {
         Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12; New-TestNeighbor -Mac 'AA-BB-CC-DD-EE-FF' -Alias 'Wi-Fi' -IfIndex 7 }
         Mock Get-FleetInterface { New-TestInterface; New-TestInterface -Index 7 -Ip '192.0.2.77' -Alias 'Wi-Fi' }
         Mock Get-FleetPhysicalInterfaceIndex { @(12, 7) }
-        Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'test'; Status = $null } }
+        # Tailscale runs: the tailnet fallback this test recommends needs verified Tailscale egress.
+        Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $true; Error = $null; Status = $script:TailscaleFixture } }
         Mock Find-FleetRoute {
             switch ($Address) {
                 '198.51.100.20' { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
@@ -744,7 +745,8 @@ Describe 'Dual-NIC host with both NICs on the home subnet' -Tag 'Unit' {
         Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12; New-TestNeighbor -IfIndex 15 -Alias 'Ethernet 2' }
         Mock Get-FleetInterface { New-TestInterface; New-TestInterface -Index 15 -Ip '192.0.2.201' -Alias 'Ethernet 2' }
         Mock Get-FleetPhysicalInterfaceIndex { @(12, 15) }
-        Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'test'; Status = $null } }
+        # Tailscale runs: the tailnet fallback this test recommends needs verified Tailscale egress.
+        Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $true; Error = $null; Status = $script:TailscaleFixture } }
         Mock Find-FleetRoute {
             switch ($Address) {
                 '198.51.100.20' { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
@@ -826,7 +828,8 @@ Describe 'MagicDNS resolution guard' -Tag 'Unit' {
             $index = if ($Address -eq '192.0.2.1') { 12 } else { 3 }
             [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = $index; SourceAddress = '100.64.0.100'; NextHop = 'on-link' }
         }
-        Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'tailscale unavailable'; Status = $null } }
+        # Tailscale runs and the route leaves from this node's tailnet address, so only the DNS rule decides here.
+        Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $true; Error = $null; Status = $script:TailscaleFixture } }
         # Every connect succeeds and leaves one file per address-port, so a skipped candidate is provably not connected
         # to. A connect handed a NAME models the connector's own second lookup, which answers with a foreign address.
         function Invoke-DnsScenario {
@@ -939,6 +942,119 @@ if (`$Address -notmatch '^[0-9.]+`$') { `$null = New-Item -ItemType File -Force 
         @{ Case = 'an answer when the inventory has no tailnet address'; Addresses = @('100.64.0.102'); Tailnet = $null; V6 = $null; Expected = $false }
     ) {
         Test-FleetMagicDnsResolution -Addresses $Addresses -TailnetAddress $Tailnet -TailnetV6Address $V6 | Should -Be $Expected
+    }
+}
+Describe 'Tailnet egress gate' -Tag 'Unit' {
+    BeforeAll {
+        # A tailnet-only host. Every connect succeeds and leaves one file per address-port, so "never connected" is
+        # observable. The scenarios differ only in Tailscale state and in where Windows routes the tailnet address.
+        $script:GateInventory = Write-TestInventory '{"schema":"pcai.fleet-paths/1","gateways":[{"name":"gw","ip":"192.0.2.1","mac":"00-00-5E-00-53-01","probePorts":[443]}],"hosts":{"box":{"tailnet":"100.64.0.102","magicDns":"box.tailnet.example.invalid","services":{"ssh":{"ports":[22],"via":["tailnet","magicdns"]}}}}}'
+        Mock Get-FleetNeighbor { New-TestNeighbor -Mac '00-11-22-33-44-55' -Alias 'Wi-Fi' -IfIndex 7 }
+        Mock Get-FleetInterface { New-TestInterface -Index 7 -Ip '192.0.2.77' -Alias 'Wi-Fi' }
+        Mock Get-FleetPhysicalInterfaceIndex { @(7) }
+        Mock Resolve-FleetDnsNames { @{ 'box.tailnet.example.invalid' = @('100.64.0.102') } }
+        $script:Stopped = $script:TailscaleFixture.PSObject.Copy()
+        $script:Stopped.BackendState = 'Stopped'
+        # The mocks read the scenario from script scope; a closure would hide the mock's own $Address parameter.
+        Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $true; Error = $null; Status = $script:GateStatus } }
+        Mock Find-FleetRoute {
+            if ($Address -eq '100.64.0.102') { [pscustomobject]@{ Interface = 'Wi-Fi'; InterfaceIndex = 7; SourceAddress = $script:GateSource; NextHop = '192.0.2.254' } }
+            else { [pscustomobject]@{ Interface = 'Wi-Fi'; InterfaceIndex = 7; SourceAddress = '192.0.2.77'; NextHop = 'on-link' } }
+        }
+        function Invoke-GateScenario {
+            param([string]$Name, $Status, [string]$TailnetSource)
+            $log = Join-Path $TestDrive "gate-$Name"
+            $null = New-Item -ItemType Directory -Path $log
+            $connector = [scriptblock]::Create(@"
+param(`$Address, `$Port, `$SourceAddress)
+`$null = New-Item -ItemType File -Force -Path (Join-Path '$log' "`$Address-`$Port")
+[pscustomobject]@{ Task = [Threading.Tasks.Task]::CompletedTask; Client = `$null }
+"@)
+            $script:GateStatus = $Status
+            $script:GateSource = $TailnetSource
+            $report = Invoke-FleetPathTest -InventoryPath $script:GateInventory -BudgetMs 500 -Connector $connector -Target 'box'
+            [pscustomobject]@{
+                Log = $log
+                Candidates = @($report.Targets[0].Endpoints[0].Candidates)
+                Recommended = $report.Targets[0].Endpoints[0].Recommended
+            }
+        }
+        # Tailscale stopped on a roaming network that routes 100.64.0.0/10 itself (carrier-grade NAT).
+        $script:Collision = Invoke-GateScenario -Name 'collision' -Status $script:Stopped -TailnetSource '192.0.2.77'
+        # Tailscale running, but another interface owns the route to the tailnet address.
+        $script:Foreign = Invoke-GateScenario -Name 'foreign-route' -Status $script:TailscaleFixture -TailnetSource '192.0.2.77'
+        # Tailscale running and the route leaves from this node's tailnet address (fixture Self: 100.64.0.100).
+        $script:Verified = Invoke-GateScenario -Name 'verified' -Status $script:TailscaleFixture -TailnetSource '100.64.0.100'
+    }
+
+    # Protects: the roaming CGNAT collision. With Tailscale stopped, a network that reuses 100.64.0.0/10 can answer at
+    # the inventory tailnet address, and the validated MagicDNS answer equals that address, so neither DNS nor a
+    # successful connect tells the fleet host from a stranger.
+    # Detects: tailnet or MagicDNS candidates being connected to, reported reachable or recommended without verified
+    # Tailscale egress (codex review of #332 at deaf8340).
+    # Needs: a Stopped backend, a route to 100.64.0.102 out of Wi-Fi, a connector that connects to everything.
+    # Breadcrumb: Invoke-FleetPathTest wave B; Test-FleetTailnetEgress
+    It 'never connects to or recommends tailnet or MagicDNS candidates while Tailscale is stopped' {
+        $script:Collision.Candidates.Count | Should -Be 2
+        foreach ($c in $script:Collision.Candidates) {
+            $c.Skipped | Should -Be 'tailnet-egress-not-verified'
+            $c.Reachable | Should -BeFalse
+        }
+        Test-Path -LiteralPath (Join-Path $script:Collision.Log '100.64.0.102-22') | Should -BeFalse
+        $script:Collision.Recommended | Should -BeNullOrEmpty
+    }
+
+    # Protects: Running alone is not proof; the connect must actually leave through Tailscale.
+    # Detects: a gate on BackendState that ignores where Windows routes the tailnet address.
+    # Needs: a Running backend and a route to 100.64.0.102 whose source is a Wi-Fi address.
+    # Breadcrumb: Test-FleetTailnetEgress
+    It 'skips tailnet candidates whose route does not leave from a tailnet address of this node' {
+        foreach ($c in $script:Foreign.Candidates) { $c.Skipped | Should -Be 'tailnet-egress-not-verified' }
+        Test-Path -LiteralPath (Join-Path $script:Foreign.Log '100.64.0.102-22') | Should -BeFalse
+        $script:Foreign.Recommended | Should -BeNullOrEmpty
+    }
+
+    # Protects: the control for the two tests above; a gate that skips everything would pass them.
+    # Detects: verified Tailscale egress still being skipped, or a connector that never records.
+    # Needs: a Running backend and a route whose source is the fixture's Self tailnet address.
+    # Breadcrumb: Invoke-FleetPathTest wave B
+    It 'positive control: probes and recommends the tailnet address over verified Tailscale egress' {
+        $script:Verified.Candidates.Count | Should -Be 2
+        foreach ($c in $script:Verified.Candidates) {
+            $c.Skipped | Should -BeNullOrEmpty
+            $c.Reachable | Should -BeTrue
+        }
+        Test-Path -LiteralPath (Join-Path $script:Verified.Log '100.64.0.102-22') | Should -BeTrue
+        $script:Verified.Recommended.Kind | Should -Be 'tailnet'
+    }
+
+    # Protects: the eligibility rule itself, independent of the report plumbing.
+    # Detects: acceptance of a non-Running backend or a foreign source address, or rejection of an equal address
+    # written in another form.
+    # Needs: nothing.
+    # Breadcrumb: Test-FleetTailnetEgress
+    It 'treats egress as verified only for a tailnet source while Running: <Case> -> <Expected>' -ForEach @(
+        @{ Case = 'Running with a tailnet source'; Backend = 'Running'; Source = '100.64.0.100'; Own = @('100.64.0.100', 'fd7a:115c:a1e0::64'); Expected = $true }
+        @{ Case = 'Running with the IPv6 tailnet source in another form'; Backend = 'Running'; Source = 'FD7A:115C:A1E0:0:0:0:0:64'; Own = @('100.64.0.100', 'fd7a:115c:a1e0::64'); Expected = $true }
+        @{ Case = 'Running with a LAN source'; Backend = 'Running'; Source = '192.0.2.77'; Own = @('100.64.0.100'); Expected = $false }
+        @{ Case = 'Running with another peer''s tailnet address as source'; Backend = 'Running'; Source = '100.64.0.101'; Own = @('100.64.0.100'); Expected = $false }
+        @{ Case = 'Stopped with a tailnet source'; Backend = 'Stopped'; Source = '100.64.0.100'; Own = @('100.64.0.100'); Expected = $false }
+        @{ Case = 'NeedsLogin'; Backend = 'NeedsLogin'; Source = '100.64.0.100'; Own = @('100.64.0.100'); Expected = $false }
+        @{ Case = 'an empty source'; Backend = 'Running'; Source = ''; Own = @('100.64.0.100'); Expected = $false }
+        @{ Case = 'no own addresses'; Backend = 'Running'; Source = '100.64.0.100'; Own = @(); Expected = $false }
+    ) {
+        $status = [pscustomobject]@{ BackendState = $Backend; Self = [pscustomobject]@{ TailscaleIPs = $Own } }
+        Test-FleetTailnetEgress -Route ([pscustomobject]@{ SourceAddress = $Source }) -Status $status | Should -Be $Expected
+    }
+
+    # Protects: fail closed on missing inputs. Detects: a null route, status or Self passing the gate.
+    # Needs: nothing. Breadcrumb: Test-FleetTailnetEgress
+    It 'treats a missing <Case> as not verified' -ForEach @(
+        @{ Case = 'route'; Route = $null; Status = [pscustomobject]@{ BackendState = 'Running'; Self = [pscustomobject]@{ TailscaleIPs = @('100.64.0.100') } } }
+        @{ Case = 'status'; Route = [pscustomobject]@{ SourceAddress = '100.64.0.100' }; Status = $null }
+        @{ Case = 'Self'; Route = [pscustomobject]@{ SourceAddress = '100.64.0.100' }; Status = [pscustomobject]@{ BackendState = 'Running' } }
+    ) {
+        Test-FleetTailnetEgress -Route $Route -Status $Status | Should -BeFalse
     }
 }
 Describe 'MagicDNS resolver wrapper' -Tag 'Unit' {
@@ -1147,7 +1263,7 @@ Describe 'Whole run on the home LAN' -Tag 'Unit' {
         Mock Get-FleetInterface { New-TestInterface }
         Mock Get-FleetPhysicalInterfaceIndex { @(12) }
         Mock Find-FleetRoute {
-            [pscustomobject]@{ Interface = $(if ($Address -like '100.64.*') { 'Tailscale' } else { 'Ethernet 12' }); InterfaceIndex = $(if ($Address -like '100.64.*') { 3 } else { 12 }); SourceAddress = '192.0.2.200'; NextHop = 'on-link' }
+            [pscustomobject]@{ Interface = $(if ($Address -like '100.64.*') { 'Tailscale' } else { 'Ethernet 12' }); InterfaceIndex = $(if ($Address -like '100.64.*') { 3 } else { 12 }); SourceAddress = $(if ($Address -like '100.64.*') { '100.64.0.100' } else { '192.0.2.200' }); NextHop = 'on-link' }
         }
         Mock Resolve-FleetDnsNames { Get-TestMagicDns -Names $Names }
         Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $true; Error = $null; Status = $script:TailscaleFixture } }
@@ -1258,7 +1374,11 @@ Describe 'Whole run on a colliding network' -Tag 'Unit' {
         Mock Get-FleetNeighbor { New-TestNeighbor -Mac '00-11-22-33-44-55' }
         Mock Get-FleetInterface { New-TestInterface -Index 7 -Ip '192.0.2.77' -Alias 'Wi-Fi' }
         Mock Get-FleetPhysicalInterfaceIndex { @(7) }
-        Mock Find-FleetRoute { [pscustomobject]@{ Interface = 'Wi-Fi'; InterfaceIndex = 7; SourceAddress = '192.0.2.77'; NextHop = '192.0.2.1' } }
+        # Tailscale runs, so tailnet addresses leave through it from this node's tailnet address.
+        Mock Find-FleetRoute {
+            if ($Address -like '100.64.*') { [pscustomobject]@{ Interface = 'Tailscale'; InterfaceIndex = 3; SourceAddress = '100.64.0.100'; NextHop = 'on-link' } }
+            else { [pscustomobject]@{ Interface = 'Wi-Fi'; InterfaceIndex = 7; SourceAddress = '192.0.2.77'; NextHop = '192.0.2.1' } }
+        }
         Mock Resolve-FleetDnsNames { Get-TestMagicDns -Names $Names }
         Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $true; Error = $null; Status = $script:TailscaleFixture } }
         $script:Hotel = Invoke-FleetPathTest -InventoryPath $script:InventoryPath -BudgetMs 500 -Connector $script:ConnectAll
@@ -1305,17 +1425,20 @@ Describe 'Whole run without tailscale' -Tag 'Unit' {
         $script:NoTs = Invoke-FleetPathTest -InventoryPath $script:InventoryPath -BudgetMs 500 -Connector $script:ConnectAll -Target 'workstation'
     }
 
-    # Protects: without tailscale the tool still reports reachability and the home recommendation.
-    # Detects: a null Status crashing path parsing, or tailnet candidates vanishing.
+    # Protects: without tailscale the tool still reports the home recommendation, and tailnet candidates stay listed but
+    # unprobed, because their egress through Tailscale cannot be verified.
+    # Detects: a null Status crashing path parsing, tailnet candidates vanishing, or a tailnet address being connected to
+    # while Tailscale is not running (codex review of #332 at deaf8340).
     # Needs: mocked Get-FleetTailscaleStatus returning Available=false.
-    # Breadcrumb: Get-FleetTailscaleStatus; Resolve-FleetTailscalePath
-    It 'still probes tailnet candidates and marks their path unavailable' {
+    # Breadcrumb: Get-FleetTailscaleStatus; Test-FleetTailnetEgress; Resolve-FleetTailscalePath
+    It 'skips tailnet candidates, marks their path unavailable and still recommends the LAN' {
         $script:NoTs.Tailscale.Available | Should -BeFalse
         $script:NoTs.Tailscale.Error | Should -Match 'not found'
         $script:NoTs.Tailscale.BackendState | Should -BeNullOrEmpty
         $ssh = $script:NoTs.Targets[0].Endpoints | Where-Object { $_.Service -eq 'ssh' -and $_.Port -eq 22 }
         $tailnet = $ssh.Candidates | Where-Object Kind -EQ 'tailnet'
-        $tailnet.Reachable | Should -BeTrue
+        $tailnet.Skipped | Should -Be 'tailnet-egress-not-verified'
+        $tailnet.Reachable | Should -BeFalse
         $tailnet.TailscalePath.State | Should -Be 'unavailable'
         $ssh.Recommended.Kind | Should -Be 'lan'
     }

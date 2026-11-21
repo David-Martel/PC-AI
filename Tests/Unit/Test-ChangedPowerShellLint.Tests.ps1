@@ -22,10 +22,20 @@ BeforeAll {
         git -C $dir config user.email 'fixture@example.invalid' | Out-Null
         git -C $dir config user.name 'fixture' | Out-Null
         git -C $dir config commit.gpgsign false | Out-Null
+        # The fixture is a throwaway repository: host-wide hooks (core.hooksPath in the global config, such as a
+        # credential or Invoke-Expression scanner) must not decide whether its commits land.
+        git -C $dir config core.hooksPath .git/hooks | Out-Null
         [IO.File]::WriteAllText((Join-Path $dir 'base.ps1'), "Write-Output 'base'`n", [Text.UTF8Encoding]::new($false))
         git -C $dir add -A | Out-Null
-        git -C $dir commit -q -m base 2>&1 | Out-Null
+        Invoke-FixtureCommit $dir 'base'
         $dir
+    }
+
+    # A fixture commit that does not land would leave its files staged and change what the tool sees, so fail loudly.
+    function Invoke-FixtureCommit {
+        param([string]$Repo, [string]$Message)
+        $out = git -C $Repo commit -q -m $Message 2>&1
+        if ($LASTEXITCODE -ne 0) { throw "fixture commit '$Message' failed in ${Repo}: $($out | Out-String)" }
     }
 
     function Invoke-Tool {
@@ -58,7 +68,7 @@ Describe 'Test-ChangedPowerShellLint' -Tag 'Unit', 'Portable' -Skip:(-not [bool]
         $repo = New-FixtureRepo 'unchanged'
         [IO.File]::WriteAllText((Join-Path $repo 'old-bad.ps1'), "Invoke-Expression 'Get-Date'`n", [Text.UTF8Encoding]::new($false))
         git -C $repo add -A | Out-Null
-        git -C $repo commit -q -m 'bad but committed on main' 2>&1 | Out-Null
+        Invoke-FixtureCommit $repo 'bad but committed on main'
         $r = Invoke-Tool $repo
         $r.Exit | Should -Be 0
         $r.Text | Should -Match 'no changed PowerShell files'
@@ -69,7 +79,7 @@ Describe 'Test-ChangedPowerShellLint' -Tag 'Unit', 'Portable' -Skip:(-not [bool]
         git -C $repo switch -q -c topic 2>&1 | Out-Null
         [IO.File]::WriteAllText((Join-Path $repo 'committed.ps1'), "Invoke-Expression 'Get-Date'`n", [Text.UTF8Encoding]::new($false))
         git -C $repo add -A | Out-Null
-        git -C $repo commit -q -m topic 2>&1 | Out-Null
+        Invoke-FixtureCommit $repo 'topic'
         [IO.File]::WriteAllText((Join-Path $repo 'untracked.ps1'), "Write-Output 'u'`n", [Text.UTF8Encoding]::new($false))
         $r = Invoke-Tool $repo
         $r.Exit | Should -Be 1

@@ -292,6 +292,7 @@ function Get-PcaiRepoAction {
     [CmdletBinding()]
     param([Parameter(Mandatory)]$State)
     if (-not $State.FetchOk) { return 'FetchFailed' }
+    if ($State.PSObject.Properties['InspectOk'] -and -not $State.InspectOk) { return 'InspectFailed' }
     if ($State.Busy) { return 'Busy' }
     if (-not $State.Branch) { return 'Detached' }
     if ($State.Branch -ne $State.DefaultBranch) { return 'OffDefault' }
@@ -314,12 +315,17 @@ function Get-PcaiRepoState {
     }
     $def = (& $git @('symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD')).Stdout.Trim() -replace '^origin/', ''
     if (-not $def) { $def = if ((& $git @('rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main')).ExitCode -eq 0) { 'main' } else { 'master' } }
+    # Every inspection that feeds the fast-forward decision must succeed: an empty stdout from a
+    # failed or timed-out git call would otherwise read as "clean" or "up to date".
+    $failed = [Collections.Generic.List[string]]::new()
+    $run = { param([string[]]$a) $r = & $git $a; if ($r.ExitCode -ne 0) { $failed.Add("git $($a[0]) exit $($r.ExitCode)") }; $r }
     $branch = (& $git @('branch', '--show-current')).Stdout.Trim()
-    $head = (& $git @('rev-parse', 'HEAD')).Stdout.Trim()
-    $target = (& $git @('rev-parse', "refs/remotes/origin/$def")).Stdout.Trim()
-    $tracked = @((& $git @('status', '--porcelain=v1', '--untracked-files=no')).Stdout -split "`n" | Where-Object { $_.Trim() }).Count
+    $head = (& $run @('rev-parse', 'HEAD')).Stdout.Trim()
+    $target = (& $run @('rev-parse', "refs/remotes/origin/$def")).Stdout.Trim()
+    $tracked = @((& $run @('status', '--porcelain=v1', '--untracked-files=no')).Stdout -split "`n" | Where-Object { $_.Trim() }).Count
     $untracked = @((& $git @('ls-files', '--others', '--exclude-standard', '--directory')).Stdout -split "`n" | Where-Object { $_.Trim() }).Count
-    $counts = (& $git @('rev-list', '--left-right', '--count', "HEAD...refs/remotes/origin/$def")).Stdout.Trim() -split '\s+'
+    $counts = (& $run @('rev-list', '--left-right', '--count', "HEAD...refs/remotes/origin/$def")).Stdout.Trim() -split '\s+'
+    if ($counts.Count -ne 2) { $failed.Add('git rev-list returned no ahead/behind counts') }
     $ahead = if ($counts.Count -eq 2) { [int]$counts[0] } else { 0 }
     $behind = if ($counts.Count -eq 2) { [int]$counts[1] } else { 0 }
     $gitDir = Join-Path $Repo.Path '.git'
@@ -350,7 +356,7 @@ function Get-PcaiRepoState {
     return [pscustomobject]@{
         Path = $Repo.Path; Slug = $Repo.Slug; Name = $Repo.Name; DefaultBranch = $def; Branch = $branch; Head = $head; Target = $target
         TrackedChanges = $tracked; Untracked = $untracked; Ahead = $ahead; Behind = $behind; Busy = $busy
-        FetchOk = $fetchOk; Fetch = $fetchNote; Worktrees = $linked; StaleBranches = $staleBranches
+        FetchOk = $fetchOk; Fetch = $fetchNote; InspectOk = ($failed.Count -eq 0); InspectErrors = $failed.ToArray(); Worktrees = $linked; StaleBranches = $staleBranches
     }
 }
 
@@ -364,9 +370,13 @@ function Test-PcaiRepoUnchanged {
     [CmdletBinding()]
     param([Parameter(Mandatory)]$State)
     $git = { param([string[]]$a) Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList (@('-C', $State.Path) + $a) -TimeoutSeconds 30 }
-    if ((& $git @('branch', '--show-current')).Stdout.Trim() -ne $State.Branch) { return 'branch changed' }
-    if ((& $git @('rev-parse', 'HEAD')).Stdout.Trim() -ne $State.Head) { return 'HEAD moved' }
-    if (@((& $git @('status', '--porcelain=v1', '--untracked-files=no')).Stdout -split "`n" | Where-Object { $_.Trim() }).Count) { return 'tracked changes appeared' }
+    $b = & $git @('branch', '--show-current')
+    $h = & $git @('rev-parse', 'HEAD')
+    $st = & $git @('status', '--porcelain=v1', '--untracked-files=no')
+    if ($b.ExitCode -ne 0 -or $h.ExitCode -ne 0 -or $st.ExitCode -ne 0) { return 'inspection failed' }
+    if ($b.Stdout.Trim() -ne $State.Branch) { return 'branch changed' }
+    if ($h.Stdout.Trim() -ne $State.Head) { return 'HEAD moved' }
+    if (@($st.Stdout -split "`n" | Where-Object { $_.Trim() }).Count) { return 'tracked changes appeared' }
     $gitDir = Join-Path $State.Path '.git'
     if (@('MERGE_HEAD', 'rebase-merge', 'rebase-apply', 'CHERRY_PICK_HEAD', 'REVERT_HEAD', 'index.lock' | Where-Object { Test-Path -LiteralPath (Join-Path $gitDir $_) }).Count) { return 'operation in progress' }
     return $null
@@ -402,7 +412,7 @@ function Format-PcaiToolingSummary {
     $repos = @($Status.repos)
     $ff = @($repos | Where-Object Action -eq 'FastForwarded' | ForEach-Object { "$($_.Name)" })
     $wouldFf = @($repos | Where-Object Action -eq 'FastForward' | ForEach-Object { "$($_.Name) (behind $($_.Behind))" })
-    $off = @($repos | Where-Object Action -in @('OffDefault', 'Detached', 'Dirty', 'Diverged', 'Ahead', 'Busy', 'FetchFailed', 'FastForwardFailed', 'Changed') | ForEach-Object { "$($_.Name)@$($_.Branch)($($_.Action))" })
+    $off = @($repos | Where-Object Action -in @('OffDefault', 'Detached', 'Dirty', 'Diverged', 'Ahead', 'Busy', 'FetchFailed', 'FastForwardFailed', 'Changed', 'InspectFailed') | ForEach-Object { "$($_.Name)@$($_.Branch)($($_.Action))" })
     $wt = @($repos | ForEach-Object { @($_.Worktrees | Where-Object NeedsAction) }).Count
     $stale = @($repos | ForEach-Object { @($_.StaleBranches) }).Count
     $prs = @($Status.pullRequests | ForEach-Object { @($_.Items) }).Count
@@ -438,7 +448,8 @@ function Invoke-PcaiToolingHealth {
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $chain = Get-PcaiProfileChain
     $found = Find-PcaiToolingRepo -Config $cfg
-    $load = if ($IsQuick) { $null } else { Measure-PcaiProfileLoad }
+    # Loading the profile executes it, which a dry run must not do.
+    $load = if ($IsQuick -or $IsDryRun) { $null } else { Measure-PcaiProfileLoad }
     $tools = Test-PcaiToolShim -Name @($cfg.tools) -ResolveOnly:$IsQuick
     # -Quick covers the profile chain and tool shims only, which stay under about 2 s; repository
     # checks need git and the network and run in the full (scheduled) pass.

@@ -21,6 +21,15 @@ Describe 'Get-PcaiRepoAction fast-forwards only clean default-branch checkouts t
     It 'reports local commits instead of merging' { Get-PcaiRepoAction -State (New-RepoState -Ahead 1) | Should -Be 'Ahead' }
     It 'reports divergence instead of merging' { Get-PcaiRepoAction -State (New-RepoState -Ahead 1 -Behind 1) | Should -Be 'Diverged' }
     It 'does not act on stale refs after a failed fetch' { Get-PcaiRepoAction -State (New-RepoState -Behind 3 -FetchOk $false) | Should -Be 'FetchFailed' }
+    It 'does not act when a git inspection failed (empty output must not read as clean)' {
+        $state = New-RepoState -Behind 3
+        $state | Add-Member -NotePropertyName InspectOk -NotePropertyValue $false
+        Get-PcaiRepoAction -State $state | Should -Be 'InspectFailed'
+    }
+    It 'reports a failed re-inspection instead of merging' {
+        Mock Invoke-PcaiToolingCommand { [pscustomobject]@{ ExitCode = 128; Stdout = ''; Stderr = 'fatal'; TimedOut = $false; Seconds = 0 } }
+        Test-PcaiRepoUnchanged -State ([pscustomobject]@{ Path = 'C:ake'; Branch = 'main'; Head = 'aaa' }) | Should -Be 'inspection failed'
+    }
 }
 
 Describe 'Repository discovery helpers' -Tag 'Unit', 'Portable' {
@@ -87,6 +96,8 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
         Should -Invoke Get-PcaiOpenPullRequest -Times 0 -Exactly
         Should -Invoke Invoke-PcaiToolingCommand -Times 0 -Exactly -ParameterFilter { $ArgumentList -contains 'merge' -or $ArgumentList -contains 'send' }
         Should -Invoke Invoke-PcaiParallel -Times 1 -Exactly -ParameterFilter { $Argument.NoFetch -eq $true }
+        # Loading the profile executes it, so a dry run must not start the probe.
+        Should -Invoke Measure-PcaiProfileLoad -Times 0 -Exactly
     }
     It 'does not fast-forward a checkout whose branch changed after sampling' {
         Mock Test-PcaiRepoUnchanged { 'branch changed' }

@@ -1225,6 +1225,13 @@ pub fn unregister_local_thunderbolt_fabric(
         }
     }
     notes.push("MTU is unchanged; USB4NET defaults to 62000, which is also register's default.".into());
+    if actions
+        .iter()
+        .any(|a| a.category == "RemovePairwiseIPv4Subnet30" && !a.already_in_desired_state)
+    {
+        // Adding a static IPv4 address disables DHCP (Microsoft Learn, New-NetIPAddress); removal does not restore it.
+        notes.push("DHCP is unchanged. If the adapter used DHCP before registration, run: Set-NetIPInterface -InterfaceIndex <n> -AddressFamily IPv4 -Dhcp Enabled".into());
+    }
     let failed_action_count = actions
         .iter()
         .filter(|a| a.error.is_some() || (apply && !a.already_in_desired_state && !a.applied))

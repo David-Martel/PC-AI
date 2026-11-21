@@ -553,6 +553,23 @@ Describe 'PC-AI.Reliability' {
             (@(Get-FleetPostgresObservations -Policy $script:Policy))[0].Status | Should -Be 'ok'
         }
 
+        It 'expands {home} in conf_files before checking for a pending restart' {
+            # Detects the false recovery from the twelfth review of #346: conf_files were timestamp-checked with the
+            # literal '{home}' placeholder (expanded only later, for reading), so a pending raise was missed and the
+            # new conf value (100) was trusted while the server still ran 40.
+            $data = Join-Path $TestDrive 'pgdata2'
+            New-Item -ItemType Directory -Force $data | Out-Null
+            Set-Content (Join-Path $data 'postmaster.pid') '1234'
+            (Get-Item (Join-Path $data 'postmaster.pid')).LastWriteTimeUtc = [datetime]::UtcNow.AddHours(-2)
+            New-Item -ItemType Directory -Force (Join-Path $env:FLEET_RELIABILITY_HOME 'pgconf') | Out-Null
+            Set-Content (Join-Path $env:FLEET_RELIABILITY_HOME 'pgconf\postgresql.conf') 'max_connections = 100'
+            $script:Policy.postgres = @(@{ name = 'bus'; port = 5300; data_dir = $data; conf_files = @('{home}\pgconf\postgresql.conf') })
+            Mock -ModuleName PC-AI.Reliability Get-FleetTcpListenerConnectionCount { 36 }
+            $o = @(Get-FleetPostgresObservations -Policy $script:Policy)
+            ($o | Where-Object { $_.Check -eq 'pg-config-pending' }).Status | Should -Be 'degraded'
+            ($o | Where-Object { $_.Check -eq 'pg-connections' }).Status | Should -Be 'skipped'
+        }
+
         It 'flags a postgres conf changed after the server started (restart pending)' {
             # Positive control for a max_connections raise that sat unapplied: the conf said 100, the server ran 40.
             $data = Join-Path $TestDrive 'pgdata'

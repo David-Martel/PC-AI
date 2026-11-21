@@ -518,7 +518,9 @@ function Get-FleetPostgresObservations {
         if ($pg.max_connections) { $max = [int]$pg.max_connections }
         $pending = $false
         $dataDir = Resolve-FleetPolicyPath ([string]$pg.data_dir)
-        $confList = @($pg.conf_files | Where-Object { $_ })   # @($null) has Count 1
+        # Expanded ONCE, here: the pending-restart timestamp check and the max_connections read must look at the
+        # same files. Expanding only for the read missed a pending raise on '{home}\...' paths (twelfth review).
+        $confList = @($pg.conf_files | Where-Object { $_ } | ForEach-Object { Resolve-FleetPolicyPath ([string]$_) })   # @($null) has Count 1
         if ($dataDir -and $confList.Count -eq 0) { $confList = @((Join-Path $dataDir 'postgresql.conf'), (Join-Path $dataDir 'postgresql.auto.conf')) }
         # A conf edited after the server started is not live yet: the configured max_connections may
         # be higher than the running one (a 40 -> 100 raise sat pending a restart), so say so.

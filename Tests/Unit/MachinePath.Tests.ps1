@@ -333,3 +333,50 @@ Describe 'Machine scripts contain no stray control characters' {
         $text | Should -Not -Match "\.dotnet\tools"
     }
 }
+
+
+Describe 'Get-MachineFirstRemainingCandidate' {
+    # Why: the surviving copy of an archived binary must be chosen from ALL remaining candidates, managed directories included.
+    # On dtm-work a preserved order ~/bin;~/.local/bin;C:\Tools with a different build in ~/.local/bin would otherwise let that
+    # build win after the identical ~/bin copy is archived (codex review of PR 343, round 5, P2).
+    BeforeAll {
+        function script:New-Cand($path) { [pscustomobject]@{ Path = $path; Ext = [IO.Path]::GetExtension($path).ToLowerInvariant() } }
+        $script:Cands = @((New-Cand 'C:\Users\t\bin\x.exe'), (New-Cand 'C:\Users\t\.local\bin\x.exe'), (New-Cand 'C:\Users\t\.local\bin\x.ps1'), (New-Cand 'C:\Tools\x.exe'))
+    }
+    It 'returns the next runnable candidate in PATH order, including managed directories' {
+        (Get-MachineFirstRemainingCandidate -Candidate $script:Cands -ExcludePath @('C:\Users\t\bin\x.exe')).Path | Should -Be 'C:\Users\t\.local\bin\x.exe'
+    }
+    It 'skips files that are being archived and non-runnable extensions' {
+        (Get-MachineFirstRemainingCandidate -Candidate $script:Cands -ExcludePath @('C:\Users\t\bin\x.exe', 'C:\Users\t\.local\bin\x.exe')).Path | Should -Be 'C:\Tools\x.exe'
+        Get-MachineFirstRemainingCandidate -Candidate $script:Cands -ExcludePath @($script:Cands.Path) | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Get-MachinePathPlan required entries' {
+    # Why: with keepOrder (dtm-work) the head block is empty, so a newly selected CARGO_HOME bin was never added while the legacy one
+    # was removed; Sync wrote the plan directly (codex review of PR 343, round 5, P2).
+    It 'appends a required entry that exists and is not on the user PATH, without reordering the rest' {
+        $pol = $script:Policy.PSObject.Copy(); $pol.UserPathHead = @()
+        $plan = Get-MachinePathPlan -UserEntries @('C:\Tools', 'C:\Users\tester\.local\bin', 'C:\Users\tester\bin') -Policy $pol -Context $script:Ctx -DirectoryExists $script:AllExist
+        $plan.UserEntries[0] | Should -Be 'C:\Tools'
+        $plan.UserEntries | Should -Contain 'T:\Cargo\bin'
+        $plan.UserEntries[-1] | Should -Be 'T:\Cargo\bin'
+    }
+    It 'does not add a required entry whose directory does not exist, nor a second copy of one already present' {
+        $pol = $script:Policy.PSObject.Copy(); $pol.UserPathHead = @()
+        $noCargo = { param($p) $p -notlike 'T:\Cargo*' }
+        (Get-MachinePathPlan -UserEntries @('C:\Tools') -Policy $pol -Context $script:Ctx -DirectoryExists $noCargo).UserEntries | Should -Not -Contain 'T:\Cargo\bin'
+        $plan = Get-MachinePathPlan -UserEntries @('T:\Cargo\bin', 'C:\Users\tester\.local\bin', 'C:\Users\tester\bin') -Policy $pol -Context $script:Ctx -DirectoryExists $script:AllExist
+        @($plan.UserEntries | Where-Object { $_ -ieq 'T:\Cargo\bin' }).Count | Should -Be 1
+    }
+}
+
+Describe 'Get-GitGuardWrapperText' {
+    # Why: the generated git-guard wrappers read USERPROFILE and HOME at run time, which an agent home redirects, so they fell
+    # through to a checkout that may not exist (codex review of PR 343, round 5, P2).
+    It 'embeds the real profile and never reads USERPROFILE or HOME at run time' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
+        $text = Get-GitGuardWrapperText -Kind $Kind -UserHome 'C:\Users\tester'
+        $text | Should -Not -Match '\$env:USERPROFILE|\$HOME|%USERPROFILE%'
+        $text | Should -Match ([regex]::Escape($(if ($Kind -eq 'ps1') { 'C:\Users\tester\.local\share\git-guard\current\bin\git-guard' } else { 'C:/Users/tester/.local/share/git-guard/current/bin/git-guard' })))
+    }
+}

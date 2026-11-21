@@ -494,6 +494,13 @@ function Get-MachinePathPlan {
     }
     $machine = & $build 'Machine' $MachineEntries @()
     $user = & $build 'User' $UserEntries $Policy.UserPathHead
+    # Required entries that the (possibly empty, e.g. keepOrder) head block did not place are appended, never reordered. Without this a
+    # newly selected CARGO_HOME bin is not added while the legacy one is removed.
+    $userResolved = @($user | ForEach-Object { $_.ToLowerInvariant() })
+    foreach ($req in $Policy.RequiredUserEntries) {
+        $r = Resolve-MachinePathEntry -Entry $req -Context $Context
+        if ((& $DirectoryExists $r) -and $userResolved -notcontains $r.ToLowerInvariant()) { $user.Add($r); $userResolved += $r.ToLowerInvariant() }
+    }
     [pscustomobject]@{ UserEntries = @($user); MachineEntries = @($machine); Removed = @($removed) }
 }
 
@@ -513,6 +520,58 @@ function Backup-MachinePath {
         if (-not (Test-Path -LiteralPath $file)) { [IO.File]::WriteAllText($file, $body, [Text.UTF8Encoding]::new($false)) }
         $file
     }
+}
+
+function Get-MachineFirstRemainingCandidate {
+    <#
+    .SYNOPSIS
+        The runnable candidate (.com .exe .bat .cmd) that wins once the excluded paths are gone, in PATH order, managed directories included.
+    #>
+    [CmdletBinding()]
+    param([AllowEmptyCollection()][object[]]$Candidate = @(), [AllowEmptyCollection()][string[]]$ExcludePath = @())
+    $skip = @($ExcludePath | ForEach-Object { ([string]$_).ToLowerInvariant() })
+    $Candidate | Where-Object { $_.Ext -in '.com', '.exe', '.bat', '.cmd' -and $skip -notcontains ([string]$_.Path).ToLowerInvariant() } | Select-Object -First 1
+}
+
+function Get-GitGuardWrapperText {
+    <#
+    .SYNOPSIS
+        Text of the generated ~/bin git-guard PowerShell or sh wrapper, with the REAL profile embedded.
+    .DESCRIPTION
+        The wrappers must not read USERPROFILE or HOME at run time: an agent home redirects both, so they would look for git-guard
+        in a profile that does not have it and fall through to a checkout that may be absent.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][ValidateSet('ps1', 'sh')][string]$Kind, [Parameter(Mandatory)][string]$UserHome)
+    $win = Join-Path $UserHome '.local\share\git-guard\current\bin\git-guard'
+    $nix = $UserHome.Replace('\', '/').TrimEnd('/') + '/.local/share/git-guard/current/bin/git-guard'
+    if ($Kind -eq 'ps1') {
+        $t = @'
+#!/usr/bin/env pwsh
+$ErrorActionPreference = "Stop"
+$sh = "C:\Program Files\Git\bin\sh.exe"
+$script = "__WIN__"
+if (-not (Test-Path $script)) {
+    $script = "C:\codedev\git-guard\bin\git-guard"
+}
+if ($args.Count -ge 1 -and $args[0] -eq "report") {
+    $rest = if ($args.Count -gt 1) { $args[1..($args.Count - 1)] } else { @() }
+    & $sh $script hygiene report @rest
+    exit $LASTEXITCODE
+}
+& $sh $script @args
+exit $LASTEXITCODE
+'@
+        return $t.Replace('__WIN__', $win)
+    }
+    $s = @'
+#!/usr/bin/env sh
+if [ -x "__NIX__" ]; then
+  exec "__NIX__" "$@"
+fi
+exec "/c/codedev/git-guard/bin/git-guard" "$@"
+'@
+    $s.Replace('__NIX__', $nix)
 }
 
 function Test-MachineShimReplacement {
@@ -706,7 +765,7 @@ function Compare-MachineResolutionBaseline {
     }
 }
 
-Export-ModuleMember -Function Test-MachineTextReference, Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
+Export-ModuleMember -Function Get-MachineFirstRemainingCandidate, Get-GitGuardWrapperText, Test-MachineTextReference, Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
     Get-MachinePathRegistry, Resolve-MachinePathEntry, Test-MachinePathEntries, Get-MachineCommandIndex, Resolve-MachineCommand,
     Test-MachinePathShadows, Test-MachinePathExtensionless, Get-MachineVariantFile, Test-MachinePathWrappers, Get-MachinePathPlan, Backup-MachinePath,
     Send-MachineEnvironmentChange, Set-MachinePathValue, Get-MachineResolutionBaseline, Compare-MachineResolutionBaseline

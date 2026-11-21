@@ -377,22 +377,7 @@ if ((Test-Path -LiteralPath $ggRoot) -or (Test-Path -LiteralPath 'C:\codedev\git
     $ggCmd = Join-Path $UserHomeReal 'bin\git-guard.cmd'
     $ggSh  = Join-Path $UserHomeReal 'bin\git-guard'
     if (-not (Test-Path -LiteralPath $ggPs1)) {
-        @'
-#!/usr/bin/env pwsh
-$ErrorActionPreference = "Stop"
-$sh = "C:\Program Files\Git\bin\sh.exe"
-$script = "$env:USERPROFILE\.local\share\git-guard\current\bin\git-guard"
-if (-not (Test-Path $script)) {
-    $script = "C:\codedev\git-guard\bin\git-guard"
-}
-if ($args.Count -ge 1 -and $args[0] -eq "report") {
-    $rest = if ($args.Count -gt 1) { $args[1..($args.Count - 1)] } else { @() }
-    & $sh $script hygiene report @rest
-    exit $LASTEXITCODE
-}
-& $sh $script @args
-exit $LASTEXITCODE
-'@ | Set-Content -LiteralPath $ggPs1 -Encoding UTF8
+        Get-GitGuardWrapperText -Kind ps1 -UserHome $UserHomeReal | Set-Content -LiteralPath $ggPs1 -Encoding UTF8
         $repairedLinks.Add("Created $ggPs1")
     }
     if (-not (Test-Path -LiteralPath $ggCmd)) {
@@ -403,13 +388,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0git-guard.ps1" %*
         $repairedLinks.Add("Created $ggCmd")
     }
     if (-not (Test-Path -LiteralPath $ggSh)) {
-        @'
-#!/usr/bin/env sh
-if [ -x "$HOME/.local/share/git-guard/current/bin/git-guard" ]; then
-  exec "$HOME/.local/share/git-guard/current/bin/git-guard" "$@"
-fi
-exec "/c/codedev/git-guard/bin/git-guard" "$@"
-'@ -replace "`r`n", "`n" | Set-Content -LiteralPath $ggSh -Encoding UTF8 -NoNewline
+        (Get-GitGuardWrapperText -Kind sh -UserHome $UserHomeReal) -replace "`r`n", "`n" | Set-Content -LiteralPath $ggSh -Encoding UTF8 -NoNewline
         $repairedLinks.Add("Created $ggSh")
     }
 }

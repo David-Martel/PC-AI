@@ -91,10 +91,6 @@ $plan = Get-MachinePathPlan -UserEntries $user.Entries -MachineEntries $machine.
 # Entries added to the MACHINE PATH (tokens allowed, e.g. '{CargoHome}\bin') so services and sshd sessions, which never see the user PATH
 # as a logon would, can find them. Applied only with -IncludeMachine.
 if ($policy.HostOverrideReason) { "host override: $($policy.HostOverrideReason)" }
-# Required entries that the (possibly empty) head block did not place are appended, never reordered.
-foreach ($req in $policy.RequiredUserEntries) {
-    if ((Test-Path -LiteralPath $req -PathType Container) -and -not ($plan.UserEntries | Where-Object { $_ -ieq $req.TrimEnd('\') })) { $plan.UserEntries = @($plan.UserEntries) + $req.TrimEnd('\') }
-}
 foreach ($add in (@($MachineAdditions) + @($policy.MachineAdditions))) {
     $abs = Expand-MachinePathToken -Text $add -Context $ctx
     if ((Test-Path -LiteralPath $abs -PathType Container) -and -not ($plan.MachineEntries | Where-Object { (Resolve-MachinePathEntry -Entry $_ -Context $ctx) -ieq $abs })) {
@@ -145,8 +141,10 @@ if (-not $SkipArchive) {
                 # Repo build output (C:\codedev) and cargo bin directories are not stable enough to be the surviving copy.
                 # The twin must be the copy that WINS once this one is gone: the first runnable candidate on PATH, not merely any identical one
                 # (gen7: an identical Program Files copy sat behind a WindowsApps alias that would have started winning).
-                $firstOther = @($others | Where-Object { $_.Ext -in '.com', '.exe', '.bat', '.cmd' } | Select-Object -First 1)
-                $twin = @($firstOther | Where-Object { $_.Ext -eq '.exe' -and $_.Dir.ToLowerInvariant() -ne $cargoBin -and $_.Dir.ToLowerInvariant() -notlike '*\.cargo\bin' -and $_.Dir -notlike 'C:\codedev\*' -and $_.Dir -notlike ((Join-Path $ctx.UserHome 'AppData') + '\*') })
+                # "Remaining" means ALL candidates, managed directories included, minus this file and everything already queued: a different
+                # build in ~/.local/bin would otherwise start winning when an identical ~/bin copy of a C:\Tools exe is archived (dtm-work order).
+                $firstOther = @(Get-MachineFirstRemainingCandidate -Candidate $cands -ExcludePath (@($archive | ForEach-Object { $_.Path }) + @($m.Path)))
+                $twin = @($firstOther | Where-Object { $managed -notcontains $_.Dir.TrimEnd('\') -and $_.Ext -eq '.exe' -and $_.Dir.ToLowerInvariant() -ne $cargoBin -and $_.Dir.ToLowerInvariant() -notlike '*\.cargo\bin' -and $_.Dir -notlike 'C:\codedev\*' -and $_.Dir -notlike ((Join-Path $ctx.UserHome 'AppData') + '\*') })
                 # A twin under the profile's AppData (WinGet Links, WindowsApps) is not enough: the Codex sandbox users cannot read
                 # %LOCALAPPDATA%, so the ~/bin copy is the one they can run.
                 # Get-MachineFileHash returns $null for an unreadable file (WinGet app-execution aliases are reparse points that cannot be opened); never equal.

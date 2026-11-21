@@ -818,6 +818,17 @@ Describe 'PC-AI.Reliability' {
             $d.Message | Should -Match 'OPEN \[medium\] h2 task/n'
         }
 
+        It 'reports an incident that is still open after the lookback window as open' {
+            # Detects the false healthy digest from the seventh review of #346: open incidents were rebuilt from the
+            # window's events only, so an incident opened 30 h ago with no later event read as "still open 0, ok".
+            $null = Submit-FleetObservation (New-TestObservation -Name 'old')
+            $env:FLEET_NOW = '2026-11-22T18:00:00Z'
+            $d = Send-FleetDigest -NoSend -PolicyPath (Join-Path $TestDrive 'none.json')
+            $d.StillOpen | Should -Be 1
+            $d.Event.status | Should -Be 'degraded'
+            $d.Message | Should -Match 'OPEN .*old'
+        }
+
         It 'summarises opened, resolved and still-open incidents and posts a DIGEST status' {
             $null = Submit-FleetObservation (New-TestObservation -Name 'a')
             $null = Submit-FleetObservation (New-TestObservation -Name 'b')
@@ -1128,6 +1139,37 @@ Describe 'PC-AI.Reliability' {
             Set-FleetHomeAcl -Path $homeDir
             @(Get-FleetSecretDirAclViolation -Path $homeDir).Count | Should -Be 0
             @(Get-FleetSecretDirAclViolation -Path $policy).Count | Should -Be 0
+        }
+
+        It 'takes ownership away from an untrusted owner, and fails closed when it cannot' -Tag 'WindowsOnly' {
+            # Detects the regained access from the seventh review of #346: a foreign owner of the home or policy file
+            # keeps the right to rewrite its ACL after hardening, and the tasks run with Highest privileges.
+            # Owner lookup and change are the module's own seams; making another account the owner needs privileges
+            # a test does not have.
+            if (-not (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows)) { Set-ItResult -Skipped -Because 'Windows ACLs'; return }
+            $homeDir = Join-Path $TestDrive 'owner-home'
+            New-Item -ItemType Directory -Force $homeDir | Out-Null
+            Set-Content -LiteralPath (Join-Path $homeDir 'policy.json') -Value '{}'
+            Mock -ModuleName PC-AI.Reliability Get-FleetItemOwnerSid { 'S-1-5-21-1-2-3-1001' }
+            Mock -ModuleName PC-AI.Reliability Set-FleetItemOwner { 0 }
+            { Set-FleetHomeAcl -Path $homeDir } | Should -Throw '*owned by*'
+            Should -Invoke -ModuleName PC-AI.Reliability Set-FleetItemOwner -Times 2 -Exactly
+
+            $script:Owned = @{}
+            Mock -ModuleName PC-AI.Reliability Get-FleetItemOwnerSid { if ($script:Owned[$Path]) { 'S-1-5-32-544' } else { 'S-1-5-21-1-2-3-1001' } }
+            Mock -ModuleName PC-AI.Reliability Set-FleetItemOwner { $script:Owned[$Path] = $true; 0 }
+            { Set-FleetHomeAcl -Path $homeDir } | Should -Not -Throw
+        }
+
+        It 'accepts a home the installing user owns, with no ownership change' -Tag 'WindowsOnly' {
+            # Positive control on REAL owners: a fresh directory and file are owned by the current user.
+            if (-not (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows)) { Set-ItResult -Skipped -Because 'Windows ACLs'; return }
+            $homeDir = Join-Path $TestDrive 'own-home'
+            New-Item -ItemType Directory -Force $homeDir | Out-Null
+            Set-Content -LiteralPath (Join-Path $homeDir 'policy.json') -Value '{}'
+            Mock -ModuleName PC-AI.Reliability Set-FleetItemOwner { 0 }
+            { Set-FleetHomeAcl -Path $homeDir } | Should -Not -Throw
+            Should -Invoke -ModuleName PC-AI.Reliability Set-FleetItemOwner -Times 0 -Exactly
         }
 
         It 'sends to the recipient of the policy passed with -PolicyPath, not the default policy' {

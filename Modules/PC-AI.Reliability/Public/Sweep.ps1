@@ -252,6 +252,24 @@ function Get-FleetBusLedgerEvents {
     return $events
 }
 
+function Get-FleetOpenIncidentRows {
+    <# This host's open incidents from the durable store, shaped like ledger events for the digest. #>
+    $rows = @()
+    $all = Get-FleetIncidentState
+    foreach ($key in @($all.Keys)) {
+        $s = $all[$key]
+        if ($s.state -ne 'open') { continue }
+        $parts = ([string]$key).Split('|')
+        if ($parts.Count -lt 4) { continue }
+        $rows += [pscustomobject]@{
+            host = $parts[0]; source = $parts[1]; name = ($parts[2..($parts.Count - 2)] -join '|'); check = $parts[-1]
+            severity = $(if ($s.last_severity) { $s.last_severity } else { 'medium' }); ts = $s.opened_at
+            message = [string]$s.message; incident_key = $key; kind = 'incident-open'
+        }
+    }
+    return $rows
+}
+
 function Send-FleetDigest {
     <#
     Short health summary for the last SinceHours: failures, recoveries, escalations, incidents still
@@ -282,7 +300,15 @@ function Send-FleetDigest {
         foreach ($e in (@($ordered | Where-Object { $_.E.incident_key } | Sort-Object T, I) | ForEach-Object { $_.E })) {
             if (@('incident-open', 'incident-reminder', 'incident-flapping', 'escalation', 'incident-resolved') -contains $e.kind) { $latest[[string]$e.incident_key] = $e }
         }
-        $stillOpen = @($latest.Values | Where-Object { $_.kind -ne 'incident-resolved' } | Sort-Object host, name)
+        # "Still open" is current state, not window activity: this host's open incidents come from the durable
+        # incident store, so one opened before the window with no event since still counts (seventh review of
+        # #346). In fleet mode, other hosts are known only from bus events, so their open incidents show while
+        # inside the window or refreshed by a reminder.
+        $self = Get-FleetHostName
+        $durable = @(Get-FleetOpenIncidentRows)
+        $others = @()
+        if ($Fleet) { $others = @($latest.Values | Where-Object { $_.kind -ne 'incident-resolved' -and $_.host -ne $self }) }
+        $stillOpen = @(@($durable) + @($others) | Sort-Object host, name)
         $hosts = @($events | ForEach-Object { $_.host } | Sort-Object -Unique)
         $lines = @()
         $lines += ("{0} {1} h to {2:yyyy-MM-dd HH:mm}Z, hosts [{3}]: opened {4}, resolved {5}, escalations {6}, remediations {7}, still open {8}" -f `

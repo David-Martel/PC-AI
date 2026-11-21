@@ -279,6 +279,19 @@ function Set-FleetSecretDirAcl {
     return $LASTEXITCODE
 }
 
+function Get-FleetItemOwnerSid {
+    <# Owner SID of a file or directory. #>
+    param([Parameter(Mandatory)][string]$Path)
+    return (Get-Acl -LiteralPath $Path).GetOwner([Security.Principal.SecurityIdentifier]).Value
+}
+
+function Set-FleetItemOwner {
+    <# Makes the current user the owner (allowed with WRITE_OWNER, which the restricted ACL grants). Returns the icacls exit code. #>
+    param([Parameter(Mandatory)][string]$Path)
+    & icacls.exe $Path /setowner ([Security.Principal.WindowsIdentity]::GetCurrent().Name) /C /Q | Out-Null
+    return $LASTEXITCODE
+}
+
 function Set-FleetHomeAcl {
     <#
     Makes Path, and everything under it, writable only by SYSTEM, Administrators and the current user,
@@ -303,6 +316,13 @@ function Set-FleetHomeAcl {
     }
     $bad = @()
     foreach ($item in @(Get-Item -LiteralPath $Path -Force) + @(Get-ChildItem -LiteralPath $Path -Recurse -Force)) {
+        # An owner can always rewrite the DACL, so a foreign owner would undo all of the above after the
+        # elevated tasks exist (seventh review of #346). Take ownership for the installing user; fail closed.
+        if ($allowed -notcontains (Get-FleetItemOwnerSid -Path $item.FullName)) {
+            $null = Set-FleetItemOwner -Path $item.FullName
+            $owner = Get-FleetItemOwnerSid -Path $item.FullName
+            if ($allowed -notcontains $owner) { $bad += ('{0}: owned by {1}' -f $item.FullName, $owner) }
+        }
         $extra = @(Get-FleetSecretDirAclViolation -Path $item.FullName)
         if ($extra.Count -gt 0) { $bad += ('{0}: {1}' -f $item.FullName, ($extra -join ', ')) }
     }

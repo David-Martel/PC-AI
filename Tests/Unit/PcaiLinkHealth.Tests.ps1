@@ -236,7 +236,7 @@ Describe 'Trigger definitions' -Tag 'Unit', 'Portable' {
         $xml = [xml]($spec[0].Xml -replace 'encoding="UTF-16"', '')
         $spec[0].Name | Should -Be 'LinkHealth'
         $xml.Task.Principals.Principal.RunLevel | Should -Be 'LeastPrivilege'
-        $xml.Task.Principals.Principal.LogonType | Should -Be 'InteractiveToken'
+        $xml.Task.Principals.Principal.LogonType | Should -Be 'S4U'
         $xml.Task.Settings.MultipleInstancesPolicy | Should -Be 'IgnoreNew'
         $xml.Task.Triggers.LogonTrigger.UserId | Should -Be 'HOST\user'
         $sub = $xml.Task.Triggers.EventTrigger.Subscription
@@ -245,6 +245,10 @@ Describe 'Trigger definitions' -Tag 'Unit', 'Portable' {
         $xml.Task.Triggers.TimeTrigger.Repetition.Interval | Should -Be 'PT30M'
         $xml.Task.Triggers.InnerXml | Should -Not -Match 'BootTrigger'
         $xml.Task.Actions.Exec.Arguments | Should -Not -Match '-Mode Apply'
+    }
+    It 'can build the interactive-token fallback for hosts without the batch logon right' {
+        $spec = Get-PcaiTaskSpec -BinDir 'C:\bin\v1' -Pwsh 'C:\pwsh.exe' -UserId 'HOST\user' -Components @('ToolingHealth') -LogonType InteractiveToken
+        ([xml]($spec[0].Xml -replace 'encoding="UTF-16"', '')).Task.Principals.Principal.LogonType | Should -Be 'InteractiveToken'
     }
     It 'gives only the owner''s SYSTEM task a boot trigger and Apply mode' {
         $spec = Get-PcaiTaskSpec -BinDir 'C:\ProgramData\x' -Pwsh 'C:\pwsh.exe' -UserId 'HOST\user' -Components @('LinkHealth') -SystemTask

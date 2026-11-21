@@ -6,7 +6,10 @@ Installs, updates or removes the startup and reconnect triggers for the PC-AI he
 Copies the checks into a content-addressed directory and points the triggers at that copy, so a
 checkout that changes branch never changes what a trigger runs.
 
-Windows, per user (no elevation needed for the task itself):
+Windows, per user, least privilege. Registered as S4U so it runs at boot-time logon events
+and with nobody logged on (hosts reached only over SSH have no interactive session), in
+session 0 with no console window. S4U needs "Log on as a batch job"; without it the installer
+falls back to an interactive-token task that runs only while the user is logged on.
   \PC-AI\LinkHealth      logon (+45 s), USB4 arrival/removal, network connect/disconnect,
                          resume, and every 30 minutes. Runs Invoke-PcaiLinkHealth.ps1 (Observe).
   \PC-AI\ToolingHealth   logon (+2 min), network connect, and every 4 hours, when
@@ -130,6 +133,7 @@ function New-PcaiTaskXml {
         [Parameter(Mandatory)][string]$Arguments,
         [Parameter(Mandatory)][ValidateSet('User', 'System')][string]$Principal,
         [string]$UserId,
+        [ValidateSet('S4U', 'InteractiveToken')][string]$LogonType = 'S4U',
         [string]$LogonDelay,
         [string]$BootDelay,
         [string]$EventQuery,
@@ -148,7 +152,7 @@ function New-PcaiTaskXml {
     $principalXml = if ($Principal -eq 'System') {
         '<Principal id="Author"><UserId>S-1-5-18</UserId><RunLevel>HighestAvailable</RunLevel></Principal>'
     } else {
-        "<Principal id=`"Author`"><UserId>$(ConvertTo-PcaiXmlText $UserId)</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal>"
+        "<Principal id=`"Author`"><UserId>$(ConvertTo-PcaiXmlText $UserId)</UserId><LogonType>$LogonType</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal>"
     }
     return @"
 <?xml version="1.0" encoding="UTF-16"?>
@@ -182,6 +186,7 @@ function Get-PcaiTaskSpec {
         [Parameter(Mandatory)][string]$Pwsh,
         [Parameter(Mandatory)][string]$UserId,
         [string[]]$Components,
+        [ValidateSet('S4U', 'InteractiveToken')][string]$LogonType = 'S4U',
         [switch]$SystemTask
     )
     $common = "-NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File"
@@ -196,13 +201,13 @@ function Get-PcaiTaskSpec {
         return $specs.ToArray()
     }
     if ('LinkHealth' -in $Components) {
-        $specs.Add([pscustomobject]@{ Name = 'LinkHealth'; Xml = New-PcaiTaskXml -Principal User -UserId $UserId -Command $Pwsh `
+        $specs.Add([pscustomobject]@{ Name = 'LinkHealth'; Xml = New-PcaiTaskXml -Principal User -UserId $UserId -LogonType $LogonType -Command $Pwsh `
                     -Arguments "$common `"$(Join-Path $BinDir 'Invoke-PcaiLinkHealth.ps1')`" -Trigger Event" `
                     -Description 'PC-AI USB4 link health (read-only): logon, USB4 arrival/removal, network change, resume, every 30 minutes.' `
                     -LogonDelay 'PT45S' -EventQuery $script:PcaiLinkEventQuery -RepeatInterval 'PT30M' })
     }
     if ('ToolingHealth' -in $Components) {
-        $specs.Add([pscustomobject]@{ Name = 'ToolingHealth'; Xml = New-PcaiTaskXml -Principal User -UserId $UserId -Command $Pwsh `
+        $specs.Add([pscustomobject]@{ Name = 'ToolingHealth'; Xml = New-PcaiTaskXml -Principal User -UserId $UserId -LogonType $LogonType -Command $Pwsh `
                     -Arguments "$common `"$(Join-Path $BinDir 'Invoke-PcaiToolingHealth.ps1')`" -Trigger Event" `
                     -Description 'PC-AI profile and tooling health: profile chain, tool shims, fast-forward of clean default-branch checkouts, stale worktree and PR report.' `
                     -LogonDelay 'PT2M' -EventQuery $script:PcaiToolingEventQuery -EventDelay 'PT1M' -RepeatInterval 'PT4H' -ExecutionTimeLimit 'PT15M' })
@@ -349,8 +354,18 @@ function Install-PcaiHealthWindows {
             Export-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name |
                 Set-Content -LiteralPath (Join-Path $backupDir ("{0}.{1}.xml" -f $s.Name, [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')))
         }
-        Register-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name -Xml $s.Xml -Force | Out-Null
-        Write-Output "registered $($script:PcaiTaskFolder)$($s.Name) -> $bin"
+        try {
+            Register-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name -Xml $s.Xml -Force -ErrorAction Stop | Out-Null
+            $mode = if ($SystemTask) { 'SYSTEM' } else { 'S4U' }
+        } catch {
+            if ($SystemTask) { throw }
+            # S4U needs the "Log on as a batch job" right, which standard users lack by default.
+            # Fall back to an interactive-token task, which runs only while the user is logged on.
+            $fallback = Get-PcaiTaskSpec -BinDir $bin -Pwsh $pwsh -UserId $userId -Components @($specs | Where-Object Name -eq $s.Name | ForEach-Object { $_.Name }) -LogonType InteractiveToken
+            Register-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name -Xml @($fallback)[0].Xml -Force -ErrorAction Stop | Out-Null
+            $mode = 'InteractiveToken (S4U refused: ' + $_.Exception.Message.Trim() + '; runs only while logged on)'
+        }
+        Write-Output "registered $($script:PcaiTaskFolder)$($s.Name) -> $bin as $mode"
         if ($StartNow) { Start-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name; Write-Output "started $($s.Name)" }
     }
 }

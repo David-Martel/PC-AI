@@ -38,8 +38,8 @@ the same content is a no-op apart from re-registering identical definitions.
 
 | Platform | Unit | Fires on |
 |---|---|---|
-| Windows, per user | `\PC-AI\LinkHealth` | logon (+45 s); USB4 adapter arrival and removal; network connect and disconnect; resume; every 30 min |
-| Windows, per user | `\PC-AI\ToolingHealth` | logon (+2 min); network connect (+1 min); every 4 h |
+| Windows, per user (S4U, least privilege) | `\PC-AI\LinkHealth` | logon (+45 s); USB4 adapter arrival and removal; network connect and disconnect; resume; every 30 min |
+| Windows, per user (S4U, least privilege) | `\PC-AI\ToolingHealth` | logon (+2 min); network connect (+1 min); every 4 h |
 | Windows, SYSTEM (owner opt-in, `-System`) | `\PC-AI\LinkHealthSystem` | boot (+1 min) and the same events, in Apply mode |
 | Linux, systemd --user | `pcai-link-health.timer`, `pcai-link-health-monitor.service` | user-manager start (+60 s), every 30 min, and any link or address change on a `thunderbolt-net` interface (`ip -o monitor link address`, 10 s quiet window) |
 | Linux, systemd --user | `pcai-tooling-health.timer` | user-manager start (+2 min), every 4 h |
@@ -59,6 +59,14 @@ on a substring of the device instance ID, so PnP events for other devices also s
 Three layers keep that cheap: a 15 s trigger delay, `IgnoreNew` for overlapping starts, and a
 20 s minimum interval inside the check (`-MinIntervalSeconds`). A boot trigger needs
 elevation, so the per-user task relies on logon; the owner's SYSTEM task adds boot.
+
+The per-user tasks are registered with the S4U logon type: they run with the user's filtered
+(least-privilege) token whether or not the user is logged on, in session 0 without a console
+window, and without a stored password. That matters on hosts reached only over SSH (dtm-work,
+the NUC, Gen7), which have no interactive session, so an interactive-token task there never
+ran. S4U requires the "Log on as a batch job" right; where it is missing the installer falls
+back to an interactive-token task and says so. An S4U token has no network credentials, which
+these checks do not need (agent-bus, git over HTTPS and SSH keys are unaffected).
 
 On Linux, user units start at boot only when linger is on (`loginctl show-user $USER -p Linger`).
 minisforum-ms01 has linger enabled. Enabling it elsewhere is an owner command:

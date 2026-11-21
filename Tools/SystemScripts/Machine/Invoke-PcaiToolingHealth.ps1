@@ -1,4 +1,5 @@
 #Requires -Version 7.2
+
 <#
 .SYNOPSIS
 Validates the PowerShell profile chain, the ~/bin tool shims and the repositories behind the tooling.
@@ -40,7 +41,9 @@ param(
     [switch]$ForceNotify,
     [switch]$DryRun,
     [switch]$PassThru,
-    [Alias('h')][switch]$Help
+    [Alias('h')][switch]$Help,
+    # PowerShell cannot alias `--help`; it arrives here and is honored below (AGENTS.md: -h, --help).
+    [Parameter(ValueFromRemainingArguments, DontShow)][string[]]$RemainingArguments = @()
 )
 
 Set-StrictMode -Version Latest
@@ -528,7 +531,9 @@ function Invoke-PcaiToolingHealth {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-    if ($Help) { Get-Help $PSCommandPath -Detailed; return }
+    $unknown = @($RemainingArguments | Where-Object { $_ -ne '--help' })
+    if ($unknown) { throw "Unknown arguments: $($unknown -join ' '). Use -h or --help." }
+    if ($Help -or $RemainingArguments -contains '--help') { Get-Help $PSCommandPath -Detailed; return }
     $result = Invoke-PcaiToolingHealth -RunTrigger $Trigger -Root $StatusRoot -Config $ConfigPath -MinInterval $MinIntervalSeconds `
         -IsQuick:$Quick -SkipFastForward:$NoFastForward -SkipBus:$NoBus -Notify:$ForceNotify -IsDryRun:$DryRun
     $statusObject = @($result | Where-Object { $_ -isnot [string] }) | Select-Object -Last 1

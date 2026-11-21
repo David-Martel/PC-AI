@@ -132,6 +132,15 @@ Describe 'Read-only inspection leaves repositories and state untouched' -Tag 'Un
     }
 }
 
+Describe 'Help switches (AGENTS.md: -h and --help)' -Tag 'Unit', 'Portable' {
+    It 'prints the comment-based help for <_>' -ForEach @('-h', '--help') {
+        $path = Join-Path $repoRoot 'Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1'
+        $out = & (Join-Path $PSHOME 'pwsh') -NoProfile -NonInteractive -File $path $_ 2>&1 | Out-String
+        $LASTEXITCODE | Should -Be 0
+        $out | Should -Match 'SYNOPSIS'
+    }
+}
+
 Describe 'Tool shim resolution' -Tag 'Unit', 'Portable' {
     It 'resolves pwsh and reports a missing tool as not ok' {
         $r = Test-PcaiToolShim -Name @('pwsh', 'pcai-no-such-tool-0b9f') -ResolveOnly

@@ -51,3 +51,24 @@ PowerShell documents the console reader extension at
 
 Behavior checks:
 `Invoke-Pester -Path Tests/Boot/ProfileBootstrap.Tests.ps1,Tests/Boot/CrashProfileSafety.Tests.ps1 -Output Detailed`.
+
+## Startup fast paths and the WinGet hook
+
+Measured on 2026-11-21 (median of three `pwsh -NoLogo -Command exit` runs): a Claude agent-home took
+17-31 s and the NUC 1.7 s, because the bootstrap fell through to the PowerToys
+`Import-Module Microsoft.WinGet.CommandNotFound` block that the installer appends after it. That
+module is a cloud-only OneDrive file, and the import throws where winget is not installed.
+
+- The bootstrap now ends every path in `return`, so the appended PowerToys block is unreachable.
+- An interactive console shell gets a one-shot command-not-found hook that imports the WinGet
+  module on the first unresolved command, and only when `winget` is on PATH. Shells started with
+  `-NonInteractive`, redirected input or a non-console host do not get the hook.
+- When `$HOME` contains `\agent-homes\` the bootstrap returns before touching the environment,
+  the disk or the network. `PCAI_PROFILE_FAST=1` is the same opt-out for any other tool.
+- A shell started with `-NonInteractive` still loads the private profile, because tools rely on
+  its PATH ordering. Skipping it for `-NonInteractive` is an owner decision (see the PR).
+
+`Microsoft.PowerShell_profile.minimal.ps1` is a deployable private profile for hosts that need only
+PATH ordering and module roots (it does no imports, network, process or secret work, and keeps the
+vault behind `Connect-MachineVault`). Copy it to `%USERPROFILE%\.config\powershell\`. Tests:
+`Invoke-Pester -Path Tests/Boot/ProfileBootstrap.Tests.ps1,Tests/Boot/MinimalProfile.Tests.ps1`.

@@ -33,6 +33,13 @@ $localProfileRoot = Microsoft.PowerShell.Management\Join-Path $HOME '.config\pow
 $localModulesRoot = Microsoft.PowerShell.Management\Join-Path $HOME 'Documents\PowerShell\Modules'
 $localProfile = Microsoft.PowerShell.Management\Join-Path $localProfileRoot 'Microsoft.PowerShell_profile.ps1'
 
+# Fast paths. A Claude agent-home (...\agent-homes\<id>\home) is an isolated sandbox with no private
+# profile; PCAI_PROFILE_FAST=1 is the explicit opt-out for any other tool that wants a bare shell
+# without passing -NoProfile. Both return before touching the environment, the disk or the network.
+if ($env:PCAI_PROFILE_FAST -eq '1' -or $HOME -match '[\\/]agent-homes[\\/]') {
+    return
+}
+
 $env:POWERSHELL_PROFILE_ROOT = $localProfileRoot
 $env:POWERSHELL_MODULES_PATH = $localModulesRoot
 
@@ -46,6 +53,26 @@ if (-not $env:PS_SKIP_PSMODULEPATH_OPTIMIZE) {
     $env:PS_SKIP_PSMODULEPATH_OPTIMIZE = '1'
 }
 
+# Lazy WinGet "command not found" suggestions, interactive shells only. The PowerToys installer
+# appends an eager `Import-Module Microsoft.WinGet.CommandNotFound` after this bootstrap. That import
+# cost 1.4-31 s (the module is a cloud-only OneDrive file) and throws where winget is missing, so
+# every path below ends in `return` and the appended block is unreachable. This one-shot hook
+# restores the feature: it imports the module on the first unresolved command, and only if winget
+# is on PATH. The imported module registers its own feedback provider.
+if ($Host.Name -eq 'ConsoleHost' -and -not [Console]::IsInputRedirected -and [Environment]::CommandLine -notmatch '(?i)(?:^|\s)-noni') {
+    $ExecutionContext.InvokeCommand.CommandNotFoundAction = {
+        param($CommandName, $CommandLookupEventArgs)
+        $ExecutionContext.InvokeCommand.CommandNotFoundAction = $null
+        try {
+            if (Microsoft.PowerShell.Core\Get-Command -Name winget -CommandType Application -ErrorAction Ignore) {
+                Microsoft.PowerShell.Core\Import-Module -Name Microsoft.WinGet.CommandNotFound -ErrorAction Ignore
+            }
+        } catch {
+            $null = $_
+        }
+    }
+}
+
 if (Microsoft.PowerShell.Management\Test-Path -LiteralPath $localProfile) {
     . $localProfile
     return
@@ -54,3 +81,4 @@ if (Microsoft.PowerShell.Management\Test-Path -LiteralPath $localProfile) {
 # Qualify built-ins: wildcard-export module manifests can otherwise cause
 # command discovery to import unrelated modules during early profile startup.
 Microsoft.PowerShell.Utility\Write-Warning "Canonical local PowerShell profile not found: $localProfile"
+return

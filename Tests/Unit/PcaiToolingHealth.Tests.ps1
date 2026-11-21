@@ -90,8 +90,11 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
     }
     It 'does not fast-forward a checkout whose branch changed after sampling' {
         Mock Test-PcaiRepoUnchanged { 'branch changed' }
-        $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'moved') -SkipBus) | Where-Object { $_ -isnot [string] }
+        $root = Join-Path $TestDrive 'moved'
+        $status = @(Invoke-PcaiToolingHealth -RunTrigger Event -Root $root -SkipBus) | Where-Object { $_ -isnot [string] }
         $status.repos[0].Action | Should -Be 'Changed'
+        # A -NoBus run must not leave a debounce stamp that would hold back the scheduled pass.
+        Test-Path -LiteralPath (Join-Path $root 'last-run.txt') | Should -BeFalse
         Should -Invoke Invoke-PcaiToolingCommand -Times 0 -Exactly -ParameterFilter { $ArgumentList -contains 'merge' }
     }
     It 'fast-forwards to the sampled commit when nothing changed' {
@@ -105,6 +108,27 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
         $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'err') -SkipBus -SkipFastForward) | Where-Object { $_ -isnot [string] }
         $status.severity | Should -Be 'warn'
         $status.summary | Should -Match 'exit=3 \(profile error: Import-Module failed\)'
+    }
+}
+
+Describe 'Read-only inspection leaves repositories and state untouched' -Tag 'Unit', 'Portable' {
+    It 'does not rewrite .git/index when a tracked file''s timestamp changed' -Skip:(-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        $repo = Join-Path $TestDrive 'repo'
+        $null = New-Item -ItemType Directory -Path $repo
+        & git -C $repo init -q -b main 2>$null
+        Set-Content -LiteralPath (Join-Path $repo 'a.txt') -Value 'one'
+        & git -C $repo add a.txt
+        & git -C $repo -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false commit -q -m init 2>$null
+        (Get-Item -LiteralPath (Join-Path $repo 'a.txt')).LastWriteTimeUtc = [DateTime]::UtcNow.AddMinutes(5)
+        $index = Join-Path $repo '.git/index'
+        $before = (Get-FileHash -LiteralPath $index).Hash
+        $null = Get-PcaiRepoState -Repo ([pscustomobject]@{ Path = $repo; Slug = 'x/y'; Name = 'y' }) -NoFetch
+        (Get-FileHash -LiteralPath $index).Hash | Should -Be $before
+    }
+    It 'clears the SSH variables for the profile-load probe so the shim loads the full chain' {
+        Mock Invoke-PcaiToolingCommand { [pscustomobject]@{ ExitCode = 0; Stdout = ''; Stderr = ''; TimedOut = $false; Seconds = 0.1 } }
+        $null = Measure-PcaiProfileLoad
+        Should -Invoke Invoke-PcaiToolingCommand -Times 1 -Exactly -ParameterFilter { $UnsetEnvironment -contains 'SSH_CONNECTION' -and $UnsetEnvironment -contains 'SSH_TTY' }
     }
 }
 

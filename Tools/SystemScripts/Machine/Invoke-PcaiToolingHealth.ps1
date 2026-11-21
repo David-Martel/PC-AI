@@ -58,7 +58,7 @@ function Get-PcaiToolingHostName {
 function Invoke-PcaiToolingCommand {
     <# Runs a native command with a deadline; never throws for a non-zero exit. #>
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$FilePath, [string[]]$ArgumentList = @(), [ValidateRange(1, 900)][int]$TimeoutSeconds = 30, [string]$WorkingDirectory)
+    param([Parameter(Mandatory)][string]$FilePath, [string[]]$ArgumentList = @(), [ValidateRange(1, 900)][int]$TimeoutSeconds = 30, [string]$WorkingDirectory, [string[]]$UnsetEnvironment = @())
     $psi = [Diagnostics.ProcessStartInfo]::new($FilePath)
     foreach ($a in $ArgumentList) { $psi.ArgumentList.Add($a) }
     $psi.RedirectStandardOutput = $true
@@ -67,6 +67,10 @@ function Invoke-PcaiToolingCommand {
     $psi.UseShellExecute = $false
     $psi.CreateNoWindow = $true
     $psi.Environment['GIT_TERMINAL_PROMPT'] = '0'
+    # Read-only inspection must not refresh .git/index (git status otherwise rewrites stat data and
+    # takes index.lock, even in -DryRun, and can collide with an interactive git command).
+    $psi.Environment['GIT_OPTIONAL_LOCKS'] = '0'
+    foreach ($name in $UnsetEnvironment) { [void]$psi.Environment.Remove($name) }
     $psi.Environment['GCM_INTERACTIVE'] = 'never'
     if ($WorkingDirectory) { $psi.WorkingDirectory = $WorkingDirectory }
     $sw = [Diagnostics.Stopwatch]::StartNew()
@@ -148,7 +152,11 @@ function Measure-PcaiProfileLoad {
     # A profile that fails at runtime still lets `exit 0` succeed, so the child reports the errors
     # the chain left in $Error and exits 3 when there are any.
     $probe = 'if ($Error.Count) { $Error | Select-Object -Last 3 | ForEach-Object { [Console]::Error.WriteLine("profile error: " + $_.ToString()) }; exit 3 }; exit 0'
-    $r = Invoke-PcaiToolingCommand -FilePath $pwsh -ArgumentList @('-NoLogo', '-Command', $probe) -TimeoutSeconds $TimeoutSeconds
+    # The profile shim returns early for SSH command sessions (it keeps ssh transfers clean), so a
+    # probe started from an SSH session would never load the private profile. Clear the SSH
+    # variables for the child so it loads the full chain, as a local terminal does.
+    $r = Invoke-PcaiToolingCommand -FilePath $pwsh -ArgumentList @('-NoLogo', '-Command', $probe) -TimeoutSeconds $TimeoutSeconds `
+        -UnsetEnvironment @('SSH_CONNECTION', 'SSH_CLIENT', 'SSH_TTY')
     $firstErr = (@($r.Stderr -split "`n" | Where-Object { $_.Trim() }) | Select-Object -First 1)
     return [pscustomobject]@{ Seconds = $r.Seconds; ExitCode = $r.ExitCode; TimedOut = $r.TimedOut; FirstError = $firstErr }
 }
@@ -415,7 +423,7 @@ function Invoke-PcaiToolingHealth {
     if (-not $Config) { $Config = Join-Path $Root 'config.json' }
     $cfg = Read-PcaiToolingConfig -Path $Config
     $hostName = Get-PcaiToolingHostName
-    if (-not $IsDryRun -and -not $IsQuick) {
+    if (-not $IsDryRun -and -not $IsQuick -and -not $SkipBus) {
         $null = New-Item -ItemType Directory -Force -Path $Root
         $lastRun = Join-Path $Root 'last-run.txt'
         if ($RunTrigger -ne 'Manual' -and $MinInterval -gt 0 -and (Test-Path -LiteralPath $lastRun)) {

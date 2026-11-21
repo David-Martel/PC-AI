@@ -528,9 +528,39 @@ function Get-MachineFirstRemainingCandidate {
         The runnable candidate (.com .exe .bat .cmd) that wins once the excluded paths are gone, in PATH order, managed directories included.
     #>
     [CmdletBinding()]
-    param([AllowEmptyCollection()][object[]]$Candidate = @(), [AllowEmptyCollection()][string[]]$ExcludePath = @())
+    param(
+        [AllowEmptyCollection()][object[]]$Candidate = @(), [AllowEmptyCollection()][string[]]$ExcludePath = @(),
+        # cmd (default): runnable PATHEXT files only. PowerShell: the first directory with any candidate wins and a .ps1 there beats
+        # an .exe, so a surviving script can change what runs even though cmd.exe never sees it.
+        [ValidateSet('Cmd', 'PowerShell')][string]$Shell = 'Cmd'
+    )
     $skip = @($ExcludePath | ForEach-Object { ([string]$_).ToLowerInvariant() })
-    $Candidate | Where-Object { $_.Ext -in '.com', '.exe', '.bat', '.cmd' -and $skip -notcontains ([string]$_.Path).ToLowerInvariant() } | Select-Object -First 1
+    $left = @($Candidate | Where-Object { $skip -notcontains ([string]$_.Path).ToLowerInvariant() })
+    if ($Shell -eq 'Cmd') {
+        $left | Where-Object { $_.Ext -in '.com', '.exe', '.bat', '.cmd' } | Select-Object -First 1
+        return
+    }
+    $left = @($left | Where-Object { $_.Ext -in '.com', '.exe', '.bat', '.cmd', '.ps1' })
+    if ($left.Count -eq 0) { return }
+    $firstDir = ([string]$left[0].Dir).ToLowerInvariant()
+    $inDir = @($left | Where-Object { ([string]$_.Dir).ToLowerInvariant() -eq $firstDir })
+    $ps1 = @($inDir | Where-Object { $_.Ext -eq '.ps1' } | Select-Object -First 1)
+    if ($ps1.Count -eq 1) { $ps1[0] } else { $inDir[0] }
+}
+
+function Test-MachineReplacementWins {
+    <#
+    .SYNOPSIS
+        True when, once the excluded paths are gone, BOTH cmd.exe and PowerShell still resolve the command to the target.
+    #>
+    [CmdletBinding()]
+    param([AllowEmptyCollection()][object[]]$Candidate = @(), [AllowEmptyCollection()][string[]]$ExcludePath = @(), [Parameter(Mandatory)][string]$Target)
+    $norm = { param($p) ([string]$p).Replace('/', '\').TrimEnd('\').ToLowerInvariant() }
+    foreach ($shell in 'Cmd', 'PowerShell') {
+        $w = @(Get-MachineFirstRemainingCandidate -Candidate $Candidate -ExcludePath $ExcludePath -Shell $shell)
+        if ($w.Count -ne 1 -or (& $norm $w[0].Path) -ne (& $norm $Target)) { return $false }
+    }
+    $true
 }
 
 function Get-GitGuardWrapperText {
@@ -682,6 +712,7 @@ function Get-MachineReferenceCorpus {
     foreach ($d in $ManagedWrapperDirectory) {
         if (-not [IO.Directory]::Exists($d)) { continue }
         $dirText = $d.TrimEnd('\', '/')
+        $siblings = @([IO.Directory]::EnumerateFiles($d) | ForEach-Object { [IO.Path]::GetFileName($_) })
         foreach ($f in [IO.Directory]::EnumerateFiles($d)) {
             $ext = [IO.Path]::GetExtension($f).ToLowerInvariant()
             if ($ext -notin '.cmd', '.bat', '.ps1', '') { continue }
@@ -695,7 +726,13 @@ function Get-MachineReferenceCorpus {
                 $text = $text -replace '(?i)%~dp0\\?', $rep
                 $text = $text -replace '(?i)\$\{?PSScriptRoot\}?[\\/]?', $rep
                 $text = $text -replace '(?i)\$\(\s*dirname\s+"?\$0"?\s*\)/?', $rep
-                [void]$sb.AppendLine($text); $sources++
+                [void]$sb.AppendLine($text)
+                # Paths assembled at run time (Join-Path $PSScriptRoot 'tool-<sha>.exe', "$dir\tool.exe") never appear whole in the text.
+                # Conservative rule: a sibling file whose complete name appears anywhere in the wrapper counts as referenced.
+                foreach ($sib in $siblings) {
+                    if ($sib.Length -ge 4 -and $sib -ine [IO.Path]::GetFileName($f) -and $text.IndexOf($sib, [StringComparison]::OrdinalIgnoreCase) -ge 0) { [void]$sb.AppendLine($dirText + '\' + $sib) }
+                }
+                $sources++
             } catch { $failures.Add("wrapper ${f}: $($_.Exception.Message)") }
         }
     }
@@ -811,7 +848,7 @@ function Compare-MachineResolutionBaseline {
     }
 }
 
-Export-ModuleMember -Function Get-MachineFirstRemainingCandidate, Get-GitGuardWrapperText, Test-MachineTextReference, Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineEffectivePathDirectories, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
+Export-ModuleMember -Function Get-MachineFirstRemainingCandidate, Test-MachineReplacementWins, Get-GitGuardWrapperText, Test-MachineTextReference, Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineEffectivePathDirectories, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
     Get-MachinePathRegistry, Resolve-MachinePathEntry, Test-MachinePathEntries, Get-MachineCommandIndex, Resolve-MachineCommand,
     Test-MachinePathShadows, Test-MachinePathExtensionless, Get-MachineVariantFile, Test-MachinePathWrappers, Get-MachinePathPlan, Backup-MachinePath,
     Send-MachineEnvironmentChange, Set-MachinePathValue, Get-MachineResolutionBaseline, Compare-MachineResolutionBaseline

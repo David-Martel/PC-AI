@@ -129,9 +129,9 @@ if (-not $SkipArchive) {
                 $lines = @(Get-Content -LiteralPath $m.Path | Where-Object { $_ -and $_ -notmatch '^\s*(@echo off|rem\b|::)' })
                 if ($lines.Count -eq 1 -and ($lines -join ' ') -match '^\s*(?:call\s+)?"?(?<t>[A-Za-z]:\\[^"]+?\.(?:exe|cmd|bat))"?\s+%\*\s*$' -and
                     ([IO.Path]::GetFileNameWithoutExtension($Matches['t']).ToLowerInvariant() -eq $name) -and (Test-Path -LiteralPath $Matches['t']) -and
-                    # The target must WIN once this wrapper (and any wrapper already queued) is gone; merely being on PATH is not enough,
-                    # another same-named executable ahead of it would change what runs.
-                    (Test-MachineShimReplacement -Target $Matches['t'] -Candidate @($cands | Where-Object { $_.Ext -in '.com', '.exe', '.bat', '.cmd' -and $_.Path -ne $m.Path -and @($archive | ForEach-Object { $_.Path }) -notcontains $_.Path } | ForEach-Object { $_.Path })) -and
+                    # The target must WIN once this wrapper (and any wrapper already queued) is gone, in cmd.exe AND in PowerShell (a
+                    # surviving .ps1 wins there); merely being on PATH is not enough, another same-named file ahead of it would change what runs.
+                    (Test-MachineReplacementWins -Target $Matches['t'] -Candidate $cands -ExcludePath (@($archive | ForEach-Object { $_.Path }) + @($m.Path))) -and
                     $Matches['t'] -notlike ((Join-Path $ctx.UserHome 'AppData') + '\*') -and
                     ($procDirs -contains (Split-Path $Matches['t'] -Parent).TrimEnd('\').ToLowerInvariant())) {   # the target's directory must be on THIS process's PATH too: a service started before a PATH change keeps the old one
                     $archive.Add([pscustomobject]@{ Path = $m.Path; Why = "pass-through to $($Matches['t'])" })
@@ -149,7 +149,9 @@ if (-not $SkipArchive) {
                 # %LOCALAPPDATA%, so the ~/bin copy is the one they can run.
                 # Get-MachineFileHash returns $null for an unreadable file (WinGet app-execution aliases are reparse points that cannot be opened); never equal.
                 $hm = if ($twin) { Get-MachineFileHash $m.Path } else { $null }
-                if ($twin -and $hm -and $hm -eq (Get-MachineFileHash $twin[0].Path)) {
+                # PowerShell must agree as well: a surviving .ps1 earlier on PATH would win there once this exe is gone.
+                if ($twin -and $hm -and $hm -eq (Get-MachineFileHash $twin[0].Path) -and
+                    (Test-MachineReplacementWins -Candidate $cands -ExcludePath (@($archive | ForEach-Object { $_.Path }) + @($m.Path)) -Target $twin[0].Path)) {
                     $archive.Add([pscustomobject]@{ Path = $m.Path; Why = "identical to $($twin[0].Path)" })
                 }
             }
@@ -173,8 +175,8 @@ if (-not $SkipArchive) {
                 # gone, the first runnable candidate on PATH has to BE the target. A target outside PATH would lose its command.
                 $shimName = [IO.Path]::GetFileName($f).ToLowerInvariant()
                 $queued = @($archive | ForEach-Object { $_.Path })
-                $remaining = if ($index.ContainsKey($shimName)) { @($index[$shimName] | Where-Object { $_.Ext -in '.com', '.exe', '.bat', '.cmd' -and $queued -notcontains $_.Path } | ForEach-Object { $_.Path }) } else { @() }
-                if (-not (Test-MachineShimReplacement -Target $Matches['t'] -Candidate $remaining)) { continue }
+                $shimCands = if ($index.ContainsKey($shimName)) { @($index[$shimName]) } else { @() }
+                if (-not (Test-MachineReplacementWins -Target $Matches['t'] -Candidate $shimCands -ExcludePath $queued)) { continue }
                 $archive.Add([pscustomobject]@{ Path = $f; Why = "bash pass-through to $($Matches['t'])" })
             }
         }

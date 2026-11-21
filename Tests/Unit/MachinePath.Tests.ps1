@@ -444,3 +444,55 @@ Describe 'Get-MachineEffectivePathDirectories' {
         @($d | Where-Object { $_ -ieq 'C:\Users\tester\bin' }).Count | Should -Be 1
     }
 }
+
+Describe 'Archive replacement must win in both cmd.exe and PowerShell' {
+    # Why: with the order ~/bin;~/.local/bin;C:\Tools a surviving ~/.local/bin/tool.ps1 wins in PowerShell once ~/bin/tool.exe is archived,
+    # even though cmd.exe would reach the identical C:\Tools copy (codex review of PR 343, round 7, P2).
+    BeforeAll {
+        function script:New-DirCand($path) { [pscustomobject]@{ Path = $path; Dir = (Split-Path $path -Parent); Ext = [IO.Path]::GetExtension($path).ToLowerInvariant() } }
+        $script:Exe1 = New-DirCand 'C:\Users\t\bin\tool.exe'
+        $script:Ps1 = New-DirCand 'C:\Users\t\.local\bin\tool.ps1'
+        $script:Exe3 = New-DirCand 'C:\Tools\tool.exe'
+    }
+    It 'PowerShell picks a surviving .ps1 from an earlier directory' {
+        (Get-MachineFirstRemainingCandidate -Candidate @($script:Exe1, $script:Ps1, $script:Exe3) -ExcludePath @($script:Exe1.Path) -Shell PowerShell).Path | Should -Be $script:Ps1.Path
+        (Get-MachineFirstRemainingCandidate -Candidate @($script:Exe1, $script:Ps1, $script:Exe3) -ExcludePath @($script:Exe1.Path) -Shell Cmd).Path | Should -Be $script:Exe3.Path
+    }
+    It 'prefers a .ps1 over an .exe inside the same directory' {
+        $exe = New-DirCand 'C:\Tools\tool.exe'; $ps = New-DirCand 'C:\Tools\tool.ps1'
+        (Get-MachineFirstRemainingCandidate -Candidate @($exe, $ps) -Shell PowerShell).Path | Should -Be $ps.Path
+    }
+    It 'refuses the replacement when a surviving script would win in PowerShell' {
+        Test-MachineReplacementWins -Candidate @($script:Exe1, $script:Ps1, $script:Exe3) -ExcludePath @($script:Exe1.Path) -Target $script:Exe3.Path | Should -BeFalse
+    }
+    It 'accepts the replacement when both shells reach the target' {
+        Test-MachineReplacementWins -Candidate @($script:Exe1, $script:Exe3) -ExcludePath @($script:Exe1.Path) -Target $script:Exe3.Path | Should -BeTrue
+    }
+    It 'refuses when nothing remains' {
+        Test-MachineReplacementWins -Candidate @($script:Exe1) -ExcludePath @($script:Exe1.Path) -Target $script:Exe3.Path | Should -BeFalse
+    }
+}
+
+Describe 'Reference corpus keeps runtime-assembled wrapper references' {
+    # Why: & (Join-Path $PSScriptRoot 'tool-<sha>.exe') never contains the whole path, so the sibling must be matched by file name
+    # (codex review of PR 343, round 7, P2).
+    BeforeEach {
+        $script:Bin = Join-Path $TestDrive 'bin2'
+        Remove-Item -LiteralPath $script:Bin -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Force -Path $script:Bin | Out-Null
+        $script:Ok = { @('') }
+    }
+    It 'treats a sibling named inside a Join-Path call as referenced' {
+        Set-Content (Join-Path $script:Bin 'run.ps1') "& (Join-Path `$PSScriptRoot 'tool-abc1234.exe') @args"
+        Set-Content (Join-Path $script:Bin 'tool-abc1234.exe') 'MZ'
+        Set-Content (Join-Path $script:Bin 'unrelated-9999999.exe') 'MZ'
+        $c = Get-MachineReferenceCorpus -Files @() -Directories @() -ManagedWrapperDirectory @($script:Bin) -TaskProvider $script:Ok -ServiceProvider $script:Ok -ProcessProvider $script:Ok
+        Test-MachineTextReference -CorpusText $c.Text -Path (Join-Path $script:Bin 'tool-abc1234.exe') -UserHome 'C:\Users\tester' | Should -BeTrue
+        Test-MachineTextReference -CorpusText $c.Text -Path (Join-Path $script:Bin 'unrelated-9999999.exe') -UserHome 'C:\Users\tester' | Should -BeFalse
+    }
+    It 'does not count a wrapper as referencing itself' {
+        Set-Content (Join-Path $script:Bin 'self.cmd') '@echo off', 'rem usage: self.cmd'
+        $c = Get-MachineReferenceCorpus -Files @() -Directories @() -ManagedWrapperDirectory @($script:Bin) -TaskProvider $script:Ok -ServiceProvider $script:Ok -ProcessProvider $script:Ok
+        Test-MachineTextReference -CorpusText $c.Text -Path (Join-Path $script:Bin 'self.cmd') -UserHome 'C:\Users\tester' | Should -BeFalse
+    }
+}

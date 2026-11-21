@@ -780,6 +780,18 @@ Describe 'PC-AI.Reliability' {
             { InModuleScope PC-AI.Reliability -Parameters @{ P = $script:Policy } { param($P) Get-FleetTaskHealthData -Policy $P } } | Should -Throw '*report written=False*'
         }
 
+        It 'does not let a sweep resolve an incident that only the wrapper observes' {
+            # Detects a false RESOLVED: a wrapped task outside task_scope (or with a -Name that is not the exact
+            # task path) is never seen by the task detector, which used to count it as "no longer observed".
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = '[ERROR] still broken' }
+            $null = Invoke-FleetTask -Name '\outside\scope' -FilePath 'C:\fake\job.exe'
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskObservations { @() }
+            $none = Join-Path $TestDrive 'none.json'
+            $null = Invoke-FleetHealthSweep -Detector task -NoPlaybooks -PolicyPath $none
+            $null = Invoke-FleetHealthSweep -Detector task -NoPlaybooks -PolicyPath $none
+            (Get-FleetIncidentState)['testhost|task|\outside\scope|run'].state | Should -Be 'open'
+        }
+
         It 'clears a detector-error only when that detector itself runs successfully' {
             # Detects false recovery: sweeps limited to other detectors used to resolve the error.
             Mock -ModuleName PC-AI.Reliability Get-FleetTaskObservations { throw 'scheduler unavailable' }
@@ -990,6 +1002,18 @@ Describe 'PC-AI.Reliability CLIs: help and dry-run' {
                 $r.Out | Should -Match 'SYNOPSIS' -Because "$cli $flag"
             }
         }
+    }
+
+    It 'binds comma lists passed through pwsh -File, and refuses a quoted -ArgumentList' -Tag 'Portable' {
+        # Detects the -File array trap found by a real run: "-Detector disk,cert" matched no detector, and
+        # "-ArgumentList '/c','x'" reached the job as one literal string.
+        $r = Invoke-Cli 'Invoke-FleetHealthSweep.ps1' @('--DryRun', '-Detector', 'cert,disk')
+        $r.Code | Should -Be 0
+        $r.Out | Should -Match 'DRY RUN: [1-9]\d* observations'
+        $r = Invoke-Cli 'Invoke-FleetTask.ps1' @('-Name', '\t\job', '-FilePath', 'no-such-job', '-ArgumentList', "'/c','echo x'")
+        $r.Code | Should -Be 2
+        $r.Out | Should -Match 'cannot pass arrays'
+        Test-Path -LiteralPath $env:FLEET_RELIABILITY_HOME | Should -BeFalse
     }
 
     It 'sweep --DryRun writes nothing under the home' -Tag 'Portable' {

@@ -48,6 +48,8 @@ if ($Help) {
     exit 0
 }
 if ($CliArgs.Count -gt 0) { Write-Error "Unknown argument(s): $($CliArgs -join ', ')"; exit 2 }
+# `pwsh -File` passes "disk,cert" as ONE string (it does not build arrays); split it, or no detector matches.
+$Detector = @($Detector | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 
 $ErrorActionPreference = 'Stop'
 try {

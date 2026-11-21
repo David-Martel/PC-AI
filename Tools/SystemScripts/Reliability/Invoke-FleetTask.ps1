@@ -25,7 +25,8 @@
     Print this help and exit. `-h`, `-?` and `--help` also work.
 
 .EXAMPLE
-    pwsh -NoProfile -File Invoke-FleetTask.ps1 -Name '\backups\pull' -FilePath pwsh.exe -ArgumentList '-NoProfile','-File','C:\jobs\pull.ps1' -LogPath C:\logs\pull.log
+    pwsh -NoProfile -Command "& 'Invoke-FleetTask.ps1' -Name '\backups\pull' -FilePath pwsh.exe -ArgumentList '-NoProfile','-File','C:\jobs\pull.ps1' -LogPath C:\logs\pull.log; exit $LASTEXITCODE"
+    Use -Command, not -File: `pwsh -File` cannot pass an array to -ArgumentList (a quoted list is refused).
 #>
 [CmdletBinding()]
 param(
@@ -53,6 +54,12 @@ if ($Help) {
 }
 if ($CliArgs.Count -gt 0) { Write-Error "Unknown argument(s): $($CliArgs -join ', ')"; exit 2 }
 if (-not $Name -or -not $FilePath) { Write-Error '-Name and -FilePath are required (see --help)'; exit 2 }
+# `pwsh -File` does not build arrays: -ArgumentList '/c','x' arrives as the single string "'/c','x'" and the job
+# would run with garbage arguments. Refuse it loudly; use the -Command form shown in the help.
+if (@($ArgumentList).Count -eq 1 -and $ArgumentList[0] -match "^'.*','.*'$") {
+    Write-Error "-ArgumentList arrived as one string ($($ArgumentList[0])): pwsh -File cannot pass arrays. Use: pwsh -Command `"& '<this script>' -Name ... -FilePath ... -ArgumentList 'a','b'; exit `$LASTEXITCODE`""
+    exit 2
+}
 
 $ErrorActionPreference = 'Stop'
 try {

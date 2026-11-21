@@ -11,7 +11,11 @@ Example policy: [`fleet-reliability.policy.example.json`](../../Modules/PC-AI.Re
 # Test (PowerShell 7 and Windows PowerShell 5.1 both pass; nothing touches the network or the scheduler)
 Invoke-Pester -Path Tests/Unit/PC-AI.Reliability.Tests.ps1
 
-# Run once, observe only
+# Help, and a dry run that writes, sends and remediates nothing (all four CLIs accept -h/--help and -DryRun/--DryRun)
+pwsh -NoProfile -File Tools/SystemScripts/Reliability/Invoke-FleetHealthSweep.ps1 --help
+pwsh -NoProfile -File Tools/SystemScripts/Reliability/Invoke-FleetHealthSweep.ps1 -DryRun
+
+# Run once, observe and record only (no playbooks)
 pwsh -NoProfile -File Tools/SystemScripts/Reliability/Invoke-FleetHealthSweep.ps1 -NoPlaybooks
 
 # Install on a host (S4U tasks: sweep every 15 min, optional daily digest); preview first
@@ -19,8 +23,8 @@ pwsh -NoProfile -File Tools/SystemScripts/Reliability/Install-FleetReliabilityTa
 pwsh -NoProfile -File Tools/SystemScripts/Reliability/Install-FleetReliabilityTasks.ps1 [-Digest | -FleetDigest]
 
 # Wrap a task so its runs are recorded semantically (exit 0 + "[ERROR]" in the log = failed)
-pwsh -NoProfile -File Tools/SystemScripts/Reliability/Invoke-FleetTask.ps1 -Name '\backups\pull' `
-    -FilePath pwsh.exe -ArgumentList '-NoProfile','-File','C:\jobs\pull.ps1' -LogPath C:\logs\pull.log
+# Use -Command: `pwsh -File` cannot pass an array to -ArgumentList (the wrapper refuses a quoted list).
+pwsh -NoProfile -Command "& 'Tools/SystemScripts/Reliability/Invoke-FleetTask.ps1' -Name '\backups\pull' -FilePath pwsh.exe -ArgumentList '-NoProfile','-File','C:\jobs\pull.ps1' -LogPath C:\logs\pull.log; exit `$LASTEXITCODE"
 
 # Provision the Discord token once per host (interactive; never printed)
 Import-Module ./Modules/PC-AI.Reliability/PC-AI.Reliability.psd1
@@ -101,7 +105,9 @@ that does not parse is quarantined.
   not forwarded for 6 h.
 - **`skipped` is neutral:** for example, runners down during a planned DRAIN that is still inside its time budget.
 - **Vanished subjects:** an open incident whose subject disappeared (task deleted, orphan reaped) is resolved when
-  its detector completes a sweep without seeing it.
+  its detector completes a sweep without seeing it. Keys that only the wrapper reports (a task outside
+  `task_scope`) are exempt; they resolve only on the wrapper's next clean run. A `detector-error` clears only when
+  that detector runs successfully.
 
 ## Detectors
 
@@ -165,7 +171,8 @@ The token is never logged. It lives only in the process that sends.
 
 ## Operations
 
-- **State:** `state\incidents.json` (incidents), `state\playbooks.json` (budgets), `state\disk-samples.json` (48 h of
+- **State:** `state\incidents.json` (incidents), `state\playbooks\<hash>.json` (one budget file per playbook and
+  incident), `state\disk-samples.json` (48 h of
   samples) and `state\last-sweep.json` (summary).
 - **Logs:** wrapped tasks write to `logs\<task>.log`. If a job leaves a background process holding its output
   pipe, the wrapper stops waiting after `FLEET_PIPE_DRAIN_MS` (10 s) and notes that the output was not fully

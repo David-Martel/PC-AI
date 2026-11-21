@@ -72,7 +72,7 @@ function Invoke-FleetTask {
         -Message $msg -Start $start -End $end -ExitCode $exitForEvent -LogPath $logForEvent -IncidentKey ('{0}|task|{1}|run' -f (Get-FleetHostName), $Name)
     $null = Write-FleetLedgerEvent -LedgerEvent $run
     $obs = New-FleetObservation -Source task -Name $Name -Check run -Status $status -Severity $Severity -Message $msg -LogPath $logForEvent `
-        -ExitCode $exitForEvent -Start $start -End $end -OpenAfter 1 -ResolveAfter 1
+        -ExitCode $exitForEvent -Start $start -End $end -OpenAfter 1 -ResolveAfter 1 -Origin wrapper
     $null = Submit-FleetObservation -Observation $obs
     $script:FleetEffectivePolicy = $null
     return $code

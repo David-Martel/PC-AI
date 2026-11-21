@@ -26,9 +26,11 @@ function New-FleetObservation {
         [int]$OpenAfter = 1,
         [int]$ResolveAfter = 2,
         [string]$Playbook,
-        [hashtable]$PlaybookArgs = @{}
+        [hashtable]$PlaybookArgs = @{},
+        [ValidateSet('sweeper', 'wrapper')][string]$Origin = 'sweeper'
     )
     return [pscustomobject]@{
+        Origin = $Origin
         Source = $Source; Name = $Name; Check = $Check; Status = $Status; Severity = $Severity
         Message = $Message; LogPath = $LogPath; ExitCode = $ExitCode; Start = $Start; End = $End
         Details = $Details; OpenAfter = $OpenAfter; ResolveAfter = $ResolveAfter
@@ -82,6 +84,9 @@ function Submit-FleetObservation {
             $flapUntil = ConvertFrom-FleetIso $s.flapping_until
             $flapping = ($null -ne $flapUntil -and $now -lt $flapUntil)
             $s.last_seen = ConvertTo-FleetIso $now
+            # Who last saw this key: the sweeper may auto-resolve only keys it observes itself.
+            $s.last_origin = [string]$Observation.Origin
+            if (-not $s.last_origin) { $s.last_origin = 'sweeper' }
 
             if ($bad) {
                 $s.consecutive_bad = [int]$s.consecutive_bad + 1
@@ -186,6 +191,9 @@ function Resolve-FleetUnobservedIncidents {
         $s = $all[$key]
         if ($s.state -ne 'open') { continue }
         if ($ObservedKeys -contains $key) { continue }
+        # Only the wrapper reports this key (task outside task_scope, or a -Name that is not the task path):
+        # the sweeper's silence about it proves nothing, so leave it to the wrapper's next run.
+        if ($s.last_origin -eq 'wrapper') { continue }
         $parts = $key.Split('|')
         if ($parts.Count -lt 4 -or $parts[0] -ne $hostName) { continue }
         if ($CompletedSources -notcontains $parts[1]) { continue }

@@ -604,3 +604,10 @@ receipts. It does not grant authenticated data-edge readiness.
 - Before enabling Task Scheduler usage for a migrated script, check whether it
   needs `-h`/`--help`, `-DryRun`, idempotency, structured logs, and nonzero exit
   codes for failure.
+
+## Machine PATH policy
+
+`Machine/Test-MachinePath.ps1` audits a host's PATH and the `~/bin` and `~/.local/bin` wrappers against
+`Machine/machine-path.policy.json` (read only, exit 0/1/2). `Machine/Repair-MachinePath.ps1` plans and applies the policy with
+backups and a before/after resolution diff, and `Machine/Sync-MachineEnvironment.ps1` (now version controlled here) builds the
+user PATH from the same policy. Details, measurements and deferred items: [MACHINE_PATH_POLICY.md](../../docs/MACHINE_PATH_POLICY.md).

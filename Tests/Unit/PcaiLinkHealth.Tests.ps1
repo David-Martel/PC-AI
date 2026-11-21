@@ -216,6 +216,27 @@ Describe 'Linux reconnect monitor' -Tag 'Unit', 'Portable' {
     }
 }
 
+Describe 'Uninstall -Restore returns the pre-install definition' -Tag 'Unit' {
+    It 'restores the baseline captured by the first install, not a later copy of the health task' -Skip:(-not $IsWindows) {
+        # Mock bodies do not share this test's script scope, so the fake task store is global. Get-ScheduledTask
+        # binds -TaskName as string[], hence the [string] casts.
+        $global:PcaiTestTasks = @{ LinkHealth = '<Task>owner original</Task>' }
+        try {
+            Mock Get-ScheduledTask { if ($global:PcaiTestTasks.ContainsKey([string]$TaskName)) { [pscustomobject]@{ TaskName = [string]$TaskName } } }
+            Mock Export-ScheduledTask { $global:PcaiTestTasks[[string]$TaskName] }
+            Mock Register-ScheduledTask { $global:PcaiTestTasks[$TaskName] = $Xml }
+            Mock Unregister-ScheduledTask { $global:PcaiTestTasks.Remove([string]$TaskName) }
+            Mock Start-ScheduledTask { }
+            $target = Join-Path $TestDrive 'health-bin'
+            Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') | Out-Null
+            Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') | Out-Null
+            $global:PcaiTestTasks['LinkHealth'] | Should -Match 'PC-AI USB4 link health'
+            Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -Remove -RestoreSaved | Out-Null
+            $global:PcaiTestTasks['LinkHealth'].Trim() | Should -Be '<Task>owner original</Task>'
+        } finally { Remove-Variable -Name PcaiTestTasks -Scope Global -ErrorAction SilentlyContinue }
+    }
+}
+
 Describe 'Help switches (AGENTS.md: -h and --help)' -Tag 'Unit', 'Portable' {
     It 'prints the comment-based help for <Flag> on <Script>' -ForEach @(
         @{ Script = 'Invoke-PcaiLinkHealth.ps1'; Flag = '-h' }, @{ Script = 'Invoke-PcaiLinkHealth.ps1'; Flag = '--help' },

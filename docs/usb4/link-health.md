@@ -31,7 +31,8 @@ The installer copies the scripts to a directory named after the SHA-256 of their
 (`%LOCALAPPDATA%\PC-AI\health-bin\<version>` or `~/.local/share/pcai/health-bin/<version>`) and
 points the triggers there, with a `manifest.json` that records the source commit and file
 hashes. A checkout that changes branch therefore never changes what a trigger runs. Replaced
-task definitions and unit files are saved under `backup/` first. Re-running the installer with
+task definitions and unit files are saved under `backup/` first; the first install also records
+a `baseline` (the pre-install definition, or a `.none` marker), and `-Restore` uses only that. Re-running the installer with
 the same content is a no-op apart from re-registering identical definitions.
 
 ## Triggers

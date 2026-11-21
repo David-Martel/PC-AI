@@ -309,7 +309,8 @@ function Install-PcaiHealthWindows {
             Unregister-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $n -Confirm:$false
             Write-Output "removed: $($script:PcaiTaskFolder)$n"
             if ($RestoreSaved) {
-                $saved = Get-ChildItem -LiteralPath $backupDir -Filter "$n.*.xml" -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
+                $saved = Get-Item -LiteralPath (Join-Path $backupDir "$n.baseline.xml") -ErrorAction SilentlyContinue
+                if (-not $saved) { Write-Output "no pre-install definition of $n to restore (baseline: none)" }
                 if ($saved) {
                     Register-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $n -Xml (Get-Content -LiteralPath $saved.FullName -Raw) | Out-Null
                     Write-Output "restored: $($script:PcaiTaskFolder)$n from $($saved.Name)"
@@ -356,6 +357,12 @@ function Install-PcaiHealthWindows {
     } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $bin 'manifest.json')
     foreach ($s in $specs) {
         $existing = Get-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name -ErrorAction SilentlyContinue
+        # The first install records the pre-install baseline once (a definition, or a marker that
+        # there was none); -Restore uses only the baseline, never a later copy of our own task.
+        if (-not (Get-ChildItem -LiteralPath $backupDir -Filter "$($s.Name).baseline.*" -ErrorAction SilentlyContinue)) {
+            if ($existing) { Export-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name | Set-Content -LiteralPath (Join-Path $backupDir "$($s.Name).baseline.xml") }
+            else { Set-Content -LiteralPath (Join-Path $backupDir "$($s.Name).baseline.none") -Value 'no task existed before the first install' }
+        }
         if ($existing) {
             Export-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name |
                 Set-Content -LiteralPath (Join-Path $backupDir ("{0}.{1}.xml" -f $s.Name, [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')))
@@ -390,7 +397,7 @@ function Install-PcaiHealthLinux {
             Remove-Item -LiteralPath (Join-Path $unitDir $u) -Force -ErrorAction SilentlyContinue
             Write-Output "removed $u"
             if ($RestoreSaved) {
-                $saved = Get-ChildItem -LiteralPath $backupDir -Filter "$u.*" -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
+                $saved = Get-Item -LiteralPath (Join-Path $backupDir "$u.baseline") -ErrorAction SilentlyContinue
                 if ($saved) { Copy-Item -LiteralPath $saved.FullName -Destination (Join-Path $unitDir $u); Write-Output "restored $u from $($saved.Name)" }
             }
         }
@@ -424,6 +431,11 @@ function Install-PcaiHealthLinux {
     $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')
     foreach ($u in $units.Keys) {
         $path = Join-Path $unitDir $u
+        $baseline = Join-Path $backupDir "$u.baseline"
+        if (-not (Test-Path -LiteralPath $baseline) -and -not (Test-Path -LiteralPath "$baseline.none")) {
+            if (Test-Path -LiteralPath $path) { Copy-Item -LiteralPath $path -Destination $baseline }
+            else { Set-Content -LiteralPath "$baseline.none" -Value 'no unit existed before the first install' }
+        }
         if (Test-Path -LiteralPath $path) { Copy-Item -LiteralPath $path -Destination (Join-Path $backupDir "$u.$stamp") }
         [IO.File]::WriteAllText($path, ($units[$u] -replace "`r`n", "`n") + "`n", [Text.UTF8Encoding]::new($false))
         Write-Output "wrote $path"

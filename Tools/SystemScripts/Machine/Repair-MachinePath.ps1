@@ -172,6 +172,12 @@ if (-not $SkipArchive) {
             if ($txt -match '(?s)^#!\S*\s*\r?\n\s*exec\s+"(?<t>[A-Za-z]:/[^"]+?\.exe)"\s+"\$@"\s*$' -and
                 ([IO.Path]::GetFileNameWithoutExtension($Matches['t']).ToLowerInvariant() -eq [IO.Path]::GetFileName($f).ToLowerInvariant()) -and
                 [IO.File]::Exists($Matches['t'].Replace('/', '\'))) {
+                # The target must stay reachable under the same name: once this shim (and any wrapper already queued for archival) is
+                # gone, the first runnable candidate on PATH has to BE the target. A target outside PATH would lose its command.
+                $shimName = [IO.Path]::GetFileName($f).ToLowerInvariant()
+                $queued = @($archive | ForEach-Object { $_.Path })
+                $remaining = if ($index.ContainsKey($shimName)) { @($index[$shimName] | Where-Object { $_.Ext -in '.com', '.exe', '.bat', '.cmd' -and $queued -notcontains $_.Path } | ForEach-Object { $_.Path }) } else { @() }
+                if (-not (Test-MachineShimReplacement -Target $Matches['t'] -Candidate $remaining)) { continue }
                 $archive.Add([pscustomobject]@{ Path = $f; Why = "bash pass-through to $($Matches['t'])" })
             }
         }

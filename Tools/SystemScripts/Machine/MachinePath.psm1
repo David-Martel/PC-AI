@@ -550,6 +550,88 @@ function Backup-MachineModuleDirectory {
     }
 }
 
+function Test-MachineModuleReplacement {
+    <#
+    .SYNOPSIS
+        True when one of the roots holds a loadable <Name>\<Name>.psd1, i.e. removing another copy cannot uninstall the module.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Name, [Parameter(Mandatory)][string[]]$ReplacementRoot)
+    foreach ($root in $ReplacementRoot) {
+        $manifest = Join-Path (Join-Path $root $Name) "$Name.psd1"
+        # A script module without a manifest (PC-AI.Common) is loadable by its .psm1.
+        if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
+            if (Test-Path -LiteralPath (Join-Path (Join-Path $root $Name) "$Name.psm1") -PathType Leaf) { return $true }
+            continue
+        }
+        try { [void](Import-PowerShellDataFile -LiteralPath $manifest -ErrorAction Stop); return $true } catch { continue }
+    }
+    $false
+}
+
+function Publish-MachineModuleDirectory {
+    <#
+    .SYNOPSIS
+        Replaces a live module directory from a source tree without ever leaving it half written. Returns $true on success.
+    .DESCRIPTION
+        The source is staged beside the destination (top-level names in ExcludeName are skipped), compared by file count and size
+        and checked for a manifest. The current installation is backed up with Backup-MachineModuleDirectory, then swapped in with
+        two renames; if the swap fails the old directory is put back. Any failure leaves the live module as it was.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Source, [Parameter(Mandatory)][string]$Destination,
+        [Parameter(Mandatory)][string]$BackupRoot, [Parameter(Mandatory)][string]$RootId, [string[]]$ExcludeName = @('.git')
+    )
+    $stage = "$Destination.staging"; $old = "$Destination.old"
+    $name = Split-Path $Destination -Leaf
+    $measure = {
+        param($p, $skipExcluded)
+        $f = foreach ($file in @(Get-ChildItem -LiteralPath $p -Recurse -File -Force -ErrorAction Stop)) {
+            $top = $file.FullName.Substring($p.Length).TrimStart('\').Split('\')[0]
+            if (-not $skipExcluded -or $ExcludeName -notcontains $top) { $file }
+        }
+        $f = @($f)
+        [pscustomobject]@{ Count = $f.Count; Bytes = [long](($f | Measure-Object Length -Sum).Sum) }
+    }
+    $moved = $false
+    try {
+        foreach ($leftover in $stage, $old) { if (Test-Path -LiteralPath $leftover) { Remove-Item -LiteralPath $leftover -Recurse -Force -ErrorAction Stop } }
+        New-Item -ItemType Directory -Force -Path $stage -ErrorAction Stop | Out-Null
+        foreach ($child in (Get-ChildItem -LiteralPath $Source -Force -ErrorAction Stop | Where-Object { $ExcludeName -notcontains $_.Name })) {
+            Copy-Item -LiteralPath $child.FullName -Destination $stage -Recurse -Force -ErrorAction Stop
+        }
+        $a = & $measure $Source $true; $b = & $measure $stage $false
+        if ($a.Count -ne $b.Count -or $a.Bytes -ne $b.Bytes) { throw "staged copy differs from source ($($b.Count) of $($a.Count) files)" }
+        if (-not (Test-Path -LiteralPath (Join-Path $stage "$name.psd1") -PathType Leaf)) { throw "replacement has no $name.psd1" }
+        if (Test-Path -LiteralPath $Destination) {
+            if (-not (Backup-MachineModuleDirectory -Source $Destination -BackupRoot $BackupRoot -RootId $RootId)) { throw 'backup of the current installation failed' }
+            Move-Item -LiteralPath $Destination -Destination $old -ErrorAction Stop
+            $moved = $true
+        }
+        Move-Item -LiteralPath $stage -Destination $Destination -ErrorAction Stop
+        if ($moved) { Remove-Item -LiteralPath $old -Recurse -Force -ErrorAction SilentlyContinue }
+        $true
+    } catch {
+        Write-Warning "Publishing $name failed, the previous installation is kept: $($_.Exception.Message)"
+        if ($moved -and -not (Test-Path -LiteralPath $Destination) -and (Test-Path -LiteralPath $old)) { Move-Item -LiteralPath $old -Destination $Destination -ErrorAction SilentlyContinue }
+        Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
+        $false
+    }
+}
+
+function Test-MachineShimReplacement {
+    <#
+    .SYNOPSIS
+        True when, with the shim gone, the command still resolves to the shim's target: the first remaining candidate IS the target.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Target, [AllowEmptyCollection()][string[]]$Candidate = @())
+    $norm = { param($p) ([string]$p).Replace('/', '\').TrimEnd('\').ToLowerInvariant() }
+    $first = @($Candidate | Select-Object -First 1)
+    ($first.Count -eq 1) -and ((& $norm $first[0]) -eq (& $norm $Target))
+}
+
 function Get-MachineBuildJobCap {
     <#
     .SYNOPSIS
@@ -708,7 +790,7 @@ function Compare-MachineResolutionBaseline {
     }
 }
 
-Export-ModuleMember -Function Get-MachineTaskActionText, Backup-MachineModuleDirectory, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
+Export-ModuleMember -Function Test-MachineModuleReplacement, Publish-MachineModuleDirectory, Test-MachineShimReplacement, Get-MachineTaskActionText, Backup-MachineModuleDirectory, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
     Get-MachinePathRegistry, Resolve-MachinePathEntry, Test-MachinePathEntries, Get-MachineCommandIndex, Resolve-MachineCommand,
     Test-MachinePathShadows, Test-MachinePathExtensionless, Get-MachineVariantFile, Test-MachinePathWrappers, Get-MachinePathPlan, Backup-MachinePath,
     Send-MachineEnvironmentChange, Set-MachinePathValue, Get-MachineResolutionBaseline, Compare-MachineResolutionBaseline

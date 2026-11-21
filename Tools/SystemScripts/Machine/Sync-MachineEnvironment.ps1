@@ -217,9 +217,9 @@ New-Item -ItemType Directory -Force -Path $localAppModules, $localShareModules, 
 
 # Sync authoritative CargoTools from C:\codedev\CargoTools into localAppModules
 if (Test-Path -LiteralPath 'C:\codedev\CargoTools\CargoTools.psd1') {
+    # Staged, size-verified and swapped in; the previous installation is backed up and restored if anything fails.
     $ctDest = Join-Path $localAppModules 'CargoTools'
-    New-Item -ItemType Directory -Force -Path $ctDest | Out-Null
-    Copy-Item -Path 'C:\codedev\CargoTools\*' -Destination $ctDest -Recurse -Force -Exclude '.git'
+    [void](Publish-MachineModuleDirectory -Source 'C:\codedev\CargoTools' -Destination $ctDest -BackupRoot (Join-Path $backupRoot 'module-publish') -RootId 'live')
 }
 
 # Sync PcaiNativeBridge into localAppModules so sanitized PSModulePath (which excludes OneDrive)
@@ -250,7 +250,14 @@ foreach ($dupRoot in @($oneDriveModules, $docsModules, $localShareModules)) {
                     # only after a staged, size-verified backup was published; on failure it stays and a warning is shown.
                     $rootId = '{0}-{1}' -f (Split-Path (Split-Path (Split-Path $dupRoot -Parent) -Parent) -Leaf), ([BitConverter]::ToString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($dupRoot.ToLowerInvariant()))).Replace('-', '').Substring(0, 8).ToLowerInvariant())
                     if (Backup-MachineModuleDirectory -Source $modDir.FullName -BackupRoot $staleBackupDir -RootId $rootId) {
-                        Remove-Item -LiteralPath $modDir.FullName -Recurse -Force -ErrorAction SilentlyContinue
+                        # Never uninstall the only copy: a validated replacement must exist in a kept root first. When none does,
+                        # this copy is consolidated into the host-local root (staged and verified) and only then removed from here.
+                        $hasReplacement = Test-MachineModuleReplacement -Name $modDir.Name -ReplacementRoot @($localAppModules, $pcaiRepoModules)
+                        if (-not $hasReplacement -and (Publish-MachineModuleDirectory -Source $modDir.FullName -Destination (Join-Path $localAppModules $modDir.Name) -BackupRoot (Join-Path $backupRoot 'module-publish') -RootId 'consolidate')) {
+                            $hasReplacement = Test-MachineModuleReplacement -Name $modDir.Name -ReplacementRoot @($localAppModules)
+                        }
+                        if ($hasReplacement) { Remove-Item -LiteralPath $modDir.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+                        else { Write-Warning "Kept $($modDir.FullName): no validated replacement for $($modDir.Name) exists in a kept module root." }
                     }
                 }
             }
@@ -259,7 +266,7 @@ foreach ($dupRoot in @($oneDriveModules, $docsModules, $localShareModules)) {
 # If PC_AI repo exists at C:\codedev\PC_AI\Modules, remove duplicate PC-AI.* copies from localAppModules that exist in C:\codedev\PC_AI\Modules
 if (Test-Path -LiteralPath $pcaiRepoModules) {
     Get-ChildItem -LiteralPath $localAppModules -Directory -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -like 'PC-AI.*' -and (Test-Path -LiteralPath (Join-Path $pcaiRepoModules $_.Name)) } |
+        Where-Object { $_.Name -like 'PC-AI.*' -and (Test-MachineModuleReplacement -Name $_.Name -ReplacementRoot @($pcaiRepoModules)) } |
         ForEach-Object {
             Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
         }

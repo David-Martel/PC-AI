@@ -314,3 +314,69 @@ Describe 'Sync-MachineEnvironment.ps1 safety contract' {
         $script:SyncText | Should -Not -Match "'MAKEFLAGS'\s*=\s*'-j8'"
     }
 }
+
+
+Describe 'Test-MachineModuleReplacement' {
+    # Why: Sync removed CargoTools and PC-AI copies from legacy roots whether or not a working replacement existed, so a host without
+    # the development checkouts lost its installed commands (codex review of PR 343, round 2, P1).
+    BeforeEach {
+        $script:R1 = Join-Path $TestDrive 'r1'; $script:R2 = Join-Path $TestDrive 'r2'
+        Remove-Item -LiteralPath $script:R1, $script:R2 -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Force -Path (Join-Path $script:R1 'CargoTools'), (Join-Path $script:R2 'CargoTools') | Out-Null
+    }
+    It 'accepts a root that holds a loadable manifest for the module' {
+        Set-Content (Join-Path $script:R1 'CargoTools\CargoTools.psd1') "@{ ModuleVersion = '1.0.0' }"
+        Test-MachineModuleReplacement -Name 'CargoTools' -ReplacementRoot @($script:R2, $script:R1) | Should -BeTrue
+    }
+    It 'rejects missing roots, empty module directories and manifests that do not parse' {
+        Test-MachineModuleReplacement -Name 'CargoTools' -ReplacementRoot @($script:R1, (Join-Path $TestDrive 'nope')) | Should -BeFalse
+        Set-Content (Join-Path $script:R2 'CargoTools\CargoTools.psd1') '@{ broken'
+        Test-MachineModuleReplacement -Name 'CargoTools' -ReplacementRoot @($script:R2) | Should -BeFalse
+    }
+}
+
+Describe 'Publish-MachineModuleDirectory' {
+    # Why: Sync copied CargoTools straight over the live module, so a failed copy left mixed versions and nothing to restore from
+    # (codex review of PR 343, round 2, P2).
+    BeforeEach {
+        $script:Src = Join-Path $TestDrive 'src'; $script:Live = Join-Path $TestDrive 'mods\CargoTools'; $script:Bk2 = Join-Path $TestDrive 'bk2'
+        Remove-Item -LiteralPath $script:Src, (Join-Path $TestDrive 'mods'), $script:Bk2 -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Force -Path $script:Src, (Join-Path $script:Src '.git'), $script:Live, $script:Bk2 | Out-Null
+        Set-Content (Join-Path $script:Src 'CargoTools.psd1') "@{ ModuleVersion = '2.0.0' }"; Set-Content (Join-Path $script:Src 'new.ps1') 'new'
+        Set-Content (Join-Path $script:Src '.git\HEAD') 'ref'
+        Set-Content (Join-Path $script:Live 'CargoTools.psd1') "@{ ModuleVersion = '1.0.0' }"; Set-Content (Join-Path $script:Live 'old-only.ps1') 'old'
+    }
+    It 'replaces the live module completely, excludes .git, and keeps the previous installation as a backup' {
+        Publish-MachineModuleDirectory -Source $script:Src -Destination $script:Live -BackupRoot $script:Bk2 -RootId 'live' | Should -BeTrue
+        Get-Content (Join-Path $script:Live 'new.ps1') | Should -Be 'new'
+        Test-Path (Join-Path $script:Live 'old-only.ps1') | Should -BeFalse
+        Test-Path (Join-Path $script:Live '.git') | Should -BeFalse
+        Get-Content (Join-Path $script:Bk2 'live_CargoTools\old-only.ps1') | Should -Be 'old'
+        Test-Path "$($script:Live).staging" | Should -BeFalse
+    }
+    It 'leaves the live module untouched when the staged copy fails' {
+        $locked = [IO.File]::Open((Join-Path $script:Src 'new.ps1'), 'Open', 'ReadWrite', 'None')
+        try { Publish-MachineModuleDirectory -Source $script:Src -Destination $script:Live -BackupRoot $script:Bk2 -RootId 'live' -WarningAction SilentlyContinue | Should -BeFalse }
+        finally { $locked.Dispose() }
+        Get-Content (Join-Path $script:Live 'old-only.ps1') | Should -Be 'old'
+        Get-Content (Join-Path $script:Live 'CargoTools.psd1') | Should -Match '1\.0\.0'
+        Test-Path "$($script:Live).staging" | Should -BeFalse
+    }
+    It 'refuses a replacement that has no manifest' {
+        Remove-Item (Join-Path $script:Src 'CargoTools.psd1')
+        Publish-MachineModuleDirectory -Source $script:Src -Destination $script:Live -BackupRoot $script:Bk2 -RootId 'live' -WarningAction SilentlyContinue | Should -BeFalse
+        Get-Content (Join-Path $script:Live 'old-only.ps1') | Should -Be 'old'
+    }
+}
+
+Describe 'Test-MachineShimReplacement' {
+    # Why: a bash shim whose target exists is only redundant if the command still resolves to that target once the shim is gone;
+    # the target need not be on PATH (codex review of PR 343, round 2, P2).
+    It 'accepts a shim when the first remaining candidate is its target, whatever the slash style or case' {
+        Test-MachineShimReplacement -Target 'C:/Program Files/GnuPG/bin/gpg.exe' -Candidate @('C:\program files\gnupg\bin\gpg.exe', 'C:\other\gpg.exe') | Should -BeTrue
+    }
+    It 'rejects a shim whose target is not on PATH or loses to another command' {
+        Test-MachineShimReplacement -Target 'D:/tools/jq.exe' -Candidate @() | Should -BeFalse
+        Test-MachineShimReplacement -Target 'D:/tools/jq.exe' -Candidate @('C:\elsewhere\jq.exe', 'D:\tools\jq.exe') | Should -BeFalse
+    }
+}

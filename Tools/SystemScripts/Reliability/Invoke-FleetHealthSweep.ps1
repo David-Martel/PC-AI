@@ -30,6 +30,7 @@ param(
 $ErrorActionPreference = 'Stop'
 try {
     Import-Module (Join-Path $PSScriptRoot '..\..\..\Modules\PC-AI.Reliability\PC-AI.Reliability.psd1') -Force
+    $null = Set-FleetNormalPriority   # tasks start BelowNormal; a starved monitor goes quiet under load
     $p = @{ NoPlaybooks = $NoPlaybooks }
     if ($PolicyPath) { $p.PolicyPath = $PolicyPath }
     if ($Detector) { $p.Detector = $Detector }

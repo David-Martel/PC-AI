@@ -78,7 +78,10 @@ foreach ($t in $tasks) {
     }
     $action = New-ScheduledTaskAction -Execute $pwsh -Argument $t.Args
     $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType S4U -RunLevel Highest
-    $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit $t.Limit -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+    # Priority 4 = normal. Task Scheduler's default 7 is BelowNormal: on a host pegged at 100% CPU an S4U
+    # sweep was starved (86 s just to start pwsh, 4 s of CPU in 4 min), so the monitor went quiet exactly
+    # when the host was in trouble. The sweep itself is light.
+    $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit $t.Limit -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -Priority 4
     if ($PSCmdlet.ShouldProcess("$TaskFolder$($t.Name)", "register S4U task as $user")) {
         Register-ScheduledTask -TaskPath $TaskFolder -TaskName $t.Name -Action $action -Trigger $t.Trigger -Principal $principal -Settings $settings -Force | Out-Null
     }

@@ -15,6 +15,7 @@ param([string]$PolicyPath, [int]$SinceHours = 24, [switch]$Fleet, [switch]$NoSen
 $ErrorActionPreference = 'Stop'
 try {
     Import-Module (Join-Path $PSScriptRoot '..\..\..\Modules\PC-AI.Reliability\PC-AI.Reliability.psd1') -Force
+    $null = Set-FleetNormalPriority   # tasks start BelowNormal; a starved monitor goes quiet under load
     $p = @{ SinceHours = $SinceHours; Fleet = $Fleet; NoSend = $NoSend }
     if ($PolicyPath) { $p.PolicyPath = $PolicyPath }
     $d = Send-FleetDigest @p

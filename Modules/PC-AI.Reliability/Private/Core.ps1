@@ -254,6 +254,20 @@ function Get-FleetShortHash {
     finally { $sha.Dispose() }
 }
 
+function Set-FleetNormalPriority {
+    <#
+    Raises this process from BelowNormal/Idle to Normal and returns the previous class. Task Scheduler
+    starts tasks at priority 7 (BelowNormal) unless told otherwise, and a starved monitor goes quiet
+    precisely when its host is overloaded. Never lowers a priority and never goes above Normal.
+    #>
+    $p = Get-Process -Id $PID
+    $before = [string]$p.PriorityClass
+    if (@('BelowNormal', 'Idle') -contains $before) {
+        try { $p.PriorityClass = 'Normal' } catch { Write-Verbose "could not raise priority: $($_.Exception.Message)" }
+    }
+    return $before
+}
+
 function Get-FleetAgentBusPath {
     if (-not [string]::IsNullOrWhiteSpace($env:AGENT_BUS_EXE)) { return $env:AGENT_BUS_EXE }
     return (Join-Path (Get-FleetRealProfile) 'bin\agent-bus.exe')

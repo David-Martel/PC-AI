@@ -711,6 +711,32 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
+    Describe 'Scheduling priority' {
+        It 'registers the sweeper at normal priority and the CLIs raise themselves from BelowNormal' {
+            # Detects starvation: at the default priority 7 an S4U sweep needed 86 s just to start pwsh on a
+            # host at 100% CPU, so the monitor went quiet exactly when the host was in trouble.
+            $tools = Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Reliability'
+            Get-Content -Raw (Join-Path $tools 'Install-FleetReliabilityTasks.ps1') | Should -Match 'New-ScheduledTaskSettingsSet[^\r\n]*-Priority 4'
+            foreach ($cli in 'Invoke-FleetHealthSweep.ps1', 'Send-FleetDigest.ps1') {
+                Get-Content -Raw (Join-Path $tools $cli) | Should -Match 'Set-FleetNormalPriority'
+            }
+        }
+
+        It 'raises BelowNormal to Normal and never lowers a priority' {
+            $p = Get-Process -Id $PID
+            $saved = $p.PriorityClass
+            try {
+                $p.PriorityClass = 'BelowNormal'
+                Set-FleetNormalPriority | Should -Be 'BelowNormal'
+                (Get-Process -Id $PID).PriorityClass | Should -Be 'Normal'
+                $p.PriorityClass = 'AboveNormal'
+                Set-FleetNormalPriority | Should -Be 'AboveNormal'
+                (Get-Process -Id $PID).PriorityClass | Should -Be 'AboveNormal'
+            }
+            finally { (Get-Process -Id $PID).PriorityClass = $saved }
+        }
+    }
+
     Describe 'Profile resolution' {
         It 'resolves the real profile even when USERPROFILE is redirected' {
             # Detects audit finding #15: agent sessions redirect USERPROFILE and scripts scanned nothing.

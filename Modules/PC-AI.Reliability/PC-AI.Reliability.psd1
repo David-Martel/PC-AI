@@ -8,7 +8,7 @@
     Description       = 'Fleet failure ledger (fleet-ledger/1 JSONL + agent-bus), semantic health sweeper, incident dedup, bounded reconciliation playbooks and daily digest.'
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
-        'Get-FleetPolicy', 'Get-FleetReliabilityHome', 'Get-FleetRealProfile',
+        'Get-FleetPolicy', 'Get-FleetReliabilityHome', 'Get-FleetRealProfile', 'Set-FleetNormalPriority',
         'New-FleetLedgerEvent', 'Write-FleetLedgerEvent', 'Send-FleetBusEvent', 'Invoke-FleetSpoolReplay',
         'Get-FleetDiscordToken', 'Set-FleetDiscordToken', 'Send-FleetDiscordEvent',
         'New-FleetObservation', 'Submit-FleetObservation', 'Get-FleetIncidentState', 'Resolve-FleetUnobservedIncidents',

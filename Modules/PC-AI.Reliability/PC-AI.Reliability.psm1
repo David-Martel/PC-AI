@@ -18,7 +18,7 @@ foreach ($dir in @('Private', 'Public')) {
 }
 
 Export-ModuleMember -Function @(
-    'Get-FleetPolicy', 'Get-FleetReliabilityHome', 'Get-FleetRealProfile',
+    'Get-FleetPolicy', 'Get-FleetReliabilityHome', 'Get-FleetRealProfile', 'Set-FleetNormalPriority',
     'New-FleetLedgerEvent', 'Write-FleetLedgerEvent', 'Send-FleetBusEvent', 'Invoke-FleetSpoolReplay',
     'Get-FleetDiscordToken', 'Set-FleetDiscordToken', 'Send-FleetDiscordEvent',
     'New-FleetObservation', 'Submit-FleetObservation', 'Get-FleetIncidentState', 'Resolve-FleetUnobservedIncidents',

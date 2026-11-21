@@ -110,4 +110,29 @@ Describe 'Invoke-PcaiCi execution' -Tag 'Unit', 'Portable' {
         $LASTEXITCODE | Should -Be 1
         ($out | Out-String) | Should -Match 'FAIL'
     }
+
+    # Protects: a relative -ResultsDir names one directory, relative to the caller. Detects: the
+    # directory being created against one working directory while step logs are written after
+    # Push-Location into the step's directory, which made Tee-Object throw, the catch repeat the bad
+    # write and the runner stop without a summary (codex review of #337).
+    It 'writes logs and the summary under a relative -ResultsDir resolved from the caller' {
+        $fixture = Join-Path $TestDrive 'relative-repo'
+        $caller = Join-Path $TestDrive 'caller'
+        foreach ($dir in (Join-Path $fixture 'Tests'), (Join-Path $fixture 'Tools'), $caller) {
+            [IO.Directory]::CreateDirectory($dir) | Out-Null
+        }
+        Copy-Item $script:Runner (Join-Path $fixture 'Tests/Invoke-PcaiCi.ps1')
+        [IO.File]::WriteAllText((Join-Path $fixture 'Tools/Test-WorkflowSyntax.ps1'), "'workflow syntax ok'; exit 0", [Text.UTF8Encoding]::new($false))
+        Push-Location $caller
+        try {
+            $out = pwsh -NoProfile -File (Join-Path $fixture 'Tests/Invoke-PcaiCi.ps1') -Only WorkflowSyntax -ResultsDir 'ci-results' 2>&1
+            $exit = $LASTEXITCODE
+        } finally {
+            Pop-Location
+        }
+        $exit | Should -Be 0 -Because ($out | Out-String)
+        Test-Path (Join-Path $caller 'ci-results/pcai-ci-WorkflowSyntax.log') | Should -BeTrue
+        (Get-Content (Join-Path $caller 'ci-results/pcai-ci-last.json') -Raw | ConvertFrom-Json).Results[0].Status | Should -Be 'PASS'
+        Test-Path (Join-Path $fixture 'ci-results') | Should -BeFalse
+    }
 }

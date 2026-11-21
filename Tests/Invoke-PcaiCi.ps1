@@ -202,6 +202,10 @@ if ($Plan) {
 }
 
 if (-not $ResultsDir) { $ResultsDir = Join-Path $repoRoot '.pcai/build/logs/pcai-ci' }
+# Each step runs under Push-Location, and .NET resolves relative paths against the process
+# directory, not $PWD. Resolve once against the caller's location so the directory created here
+# is the one every step log and the summary are written to.
+$ResultsDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ResultsDir)
 [IO.Directory]::CreateDirectory($ResultsDir) | Out-Null
 
 $results = [System.Collections.Generic.List[object]]::new()

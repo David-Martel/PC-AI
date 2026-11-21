@@ -200,6 +200,16 @@ function Submit-FleetObservation {
                 $pending += Add-FleetIncidentOutbox -LedgerEvent $ev -Forward ([bool]$e.forward) -Pending
                 $ids += [string]$ev.event_id
             }
+            # Events this key committed earlier but that an interrupted run left staged are promoted HERE, under the
+            # lock, before their marker is replaced: overwriting committed_events first made recovery treat them as
+            # uncommitted and set them aside unsent (review of b5f31a5c).
+            $outboxDir = Join-Path (Get-FleetPath -Kind state) 'outbox'
+            foreach ($prior in @($s.committed_events)) {
+                if ([string]::IsNullOrWhiteSpace([string]$prior)) { continue }
+                foreach ($pf in @(Get-ChildItem -LiteralPath $outboxDir -Filter ('*-{0}.pending' -f $prior) -File -ErrorAction SilentlyContinue)) {
+                    Move-Item -LiteralPath $pf.FullName -Destination ($pf.FullName -replace '\.pending$', '.json') -Force -ErrorAction Stop
+                }
+            }
             $s.committed_events = @($ids)
             $all[$key] = $s
             try { Write-FleetJsonFile -Path $statePath -Value $all }

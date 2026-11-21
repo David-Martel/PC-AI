@@ -57,7 +57,7 @@ Sweep and wrapper:
 
 - [ ] #89 The wrapper's effective policy leaked after a throw. Fixed in #346 (try/finally); verify and close.
 - [ ] #15/#33 Overlapping sweeps share the report and samples. Add a non-blocking sweep lock; a second sweep exits "already running".
-- [ ] #94 A descendant holding the output pipe gives truncated output that reads ok. Report output not fully captured (`OutputComplete`) as its own check.
+- [x] #94 A descendant holding the output pipe gives truncated output that reads ok. Fixed in #346 (review of `b5f31a5c`): the run is neutral and `output-capture` is its own incident.
 - [ ] #29 A fresh zero-byte log after the run reads clean. Report it as an empty log.
 - [ ] #50 An orphan check with no creation dates. Make it neutral instead of "no orphans".
 

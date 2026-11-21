@@ -139,15 +139,23 @@ function Invoke-FleetTaskCore {
     elseif ($r.ExitCode -ne 0) { $status = 'failed'; $code = $r.ExitCode; $msg = "exit $($r.ExitCode)" + $(if ($hit) { ": $hit" } else { '' }) }
     elseif ($hit) { $status = 'failed'; $code = 1; $msg = "exit 0 but the output says it failed: $hit" }
     if ($r.ExitCode -eq -1 -and -not $r.TimedOut -and $r.StdErr -like 'failed to start*') { $msg = $r.StdErr }
+    # A descendant held the output pipes past the drain deadline, so a failure line may be missing. Exit 0 is then
+    # no verified recovery: the run is neutral and the incomplete capture is its own incident (review of b5f31a5c).
+    $partial = ($r.PSObject.Properties.Name -contains 'OutputComplete') -and ($r.OutputComplete -eq $false)
+    $obsStatus = $status
+    if ($partial -and $status -eq 'ok') { $obsStatus = 'skipped'; $msg = 'exit 0, but the output was not fully captured (a descendant kept the pipes open)' }
 
     $logForEvent = $ownLog; if ($LogPath) { $logForEvent = $LogPath }
     $exitForEvent = $null; if (-not $r.TimedOut) { $exitForEvent = $r.ExitCode }
     $run = New-FleetLedgerEvent -Source task -Name $Name -Check run -Kind run -Status $status -Severity $(if ($status -eq 'ok') { 'info' } else { $Severity }) `
         -Message $msg -Start $start -End $end -ExitCode $exitForEvent -LogPath $logForEvent -IncidentKey ('{0}|task|{1}|run' -f (Get-FleetHostName), $Name)
     $null = Write-FleetLedgerEvent -LedgerEvent $run
-    $obs = New-FleetObservation -Source task -Name $Name -Check run -Status $status -Severity $Severity -Message $msg -LogPath $logForEvent `
+    $obs = New-FleetObservation -Source task -Name $Name -Check run -Status $obsStatus -Severity $Severity -Message $msg -LogPath $logForEvent `
         -ExitCode $exitForEvent -Start $start -End $end -OpenAfter 1 -ResolveAfter 1 -Origin wrapper
     $null = Submit-FleetObservation -Observation $obs
+    $cst = 'ok'; $cmsg = 'output fully captured'
+    if ($partial) { $cst = 'degraded'; $cmsg = 'output not fully captured: a descendant process kept the pipes open past the drain deadline' }
+    $null = Submit-FleetObservation -Observation (New-FleetObservation -Source task -Name $Name -Check output-capture -Status $cst -Severity low -Message $cmsg -OpenAfter 1 -ResolveAfter 1 -Origin wrapper)
     if ($LogPath) {
         $lst = 'ok'; $lmsg = "read $LogPath"
         if ($logError) { $lst = 'failed'; $lmsg = $logError }

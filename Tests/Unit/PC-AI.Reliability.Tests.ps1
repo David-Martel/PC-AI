@@ -66,7 +66,9 @@ Describe 'PC-AI.Reliability' {
             $verb = @($ArgumentList)[0]
             $r = [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = ''; TimedOut = $false }
             if ($script:Fake.Task -and $FilePath -eq $script:Fake.Task.FilePath) {
-                $r.ExitCode = $script:Fake.Task.ExitCode; $r.StdOut = $script:Fake.Task.StdOut; return $r
+                $r.ExitCode = $script:Fake.Task.ExitCode; $r.StdOut = $script:Fake.Task.StdOut
+                if ($script:Fake.Task.ContainsKey('OutputComplete')) { $r | Add-Member -NotePropertyName OutputComplete -NotePropertyValue $script:Fake.Task.OutputComplete }
+                return $r
             }
             switch ($verb) {
                 'send' { $r.ExitCode = $script:Fake.Send }
@@ -179,6 +181,37 @@ Describe 'PC-AI.Reliability' {
             $lines = @(Get-Content -LiteralPath $ledger)
             $lines.Count | Should -Be 2
             ($lines[1] | ConvertFrom-Json).event_id | Should -Be $ev.event_id
+        }
+
+        It 'review of b5f31a5c: a committed event left staged by an interrupted run survives the next observation' {
+            # The process stopped after committing incident state but before promoting its .pending event; the next
+            # observation for the key overwrote the commit marker, and the event was later set aside unsent.
+            InModuleScope PC-AI.Reliability { $null = Invoke-FleetWithLock -LockName 'incident-outbox' -TimeoutSeconds 5 -ScriptBlock { Submit-FleetObservation (New-FleetObservation -Source task -Name 'interrupted' -Check run -Status failed -Message 'boom' -ResolveAfter 1) } }
+            $outbox = Join-Path $env:FLEET_RELIABILITY_HOME 'state\outbox'
+            $ready = @(Get-ChildItem -LiteralPath $outbox -Filter '*.json' -File)
+            $ready.Count | Should -Be 1
+            Rename-Item -LiteralPath $ready[0].FullName -NewName ($ready[0].Name -replace '\.json$', '.pending')
+            @(Read-TestLedger | Where-Object { $_.kind -eq 'incident-open' -and $_.name -eq 'interrupted' }).Count | Should -Be 0
+            $null = Submit-FleetObservation (New-FleetObservation -Source task -Name 'interrupted' -Check run -Status failed -Message 'boom again' -ResolveAfter 1)
+            @(Read-TestLedger | Where-Object { $_.kind -eq 'incident-open' -and $_.name -eq 'interrupted' }).Count | Should -Be 1
+            @(Get-ChildItem -LiteralPath $outbox -Filter '*.pending' -File).Count | Should -Be 0
+        }
+
+        It 'review of b5f31a5c: output that was not fully captured never verifies a recovery' {
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 3; StdOut = 'failed' }
+            $null = Invoke-FleetTask -Name '\t\partial' -FilePath 'C:\fake\job.exe'
+            $key = { param($c) $pat = '*|task|\t\partial|' + $c; ((Get-FleetIncidentState).GetEnumerator() | Where-Object { $_.Key -like $pat }).Value.state }
+            & $key 'run' | Should -Be 'open'
+            # Exit 0, but a descendant held the pipes past the drain deadline: no verified recovery.
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = 'partial'; OutputComplete = $false }
+            Invoke-FleetTask -Name '\t\partial' -FilePath 'C:\fake\job.exe' | Should -Be 0
+            & $key 'run' | Should -Be 'open'
+            & $key 'output-capture' | Should -Be 'open'
+            # Positive control: complete output resolves both.
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = 'all fine'; OutputComplete = $true }
+            $null = Invoke-FleetTask -Name '\t\partial' -FilePath 'C:\fake\job.exe'
+            & $key 'run' | Should -Be 'resolved'
+            & $key 'output-capture' | Should -Be 'resolved'
         }
 
         It 'row 1: refuses a task report without tasks while in-scope tasks are registered' {

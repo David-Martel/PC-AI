@@ -294,3 +294,42 @@ Describe 'Test-MachineShimReplacement' {
         Test-MachineShimReplacement -Target 'D:/tools/jq.exe' -Candidate @('C:\elsewhere\jq.exe', 'D:\tools\jq.exe') | Should -BeFalse
     }
 }
+
+
+Describe 'Test-MachineTextReference' {
+    # Why: a hook that names a binary as $env:USERPROFILE\bin\x.exe, $env:HOME\... or %HOME%\... was not seen as a reference, so the
+    # binary could be archived while still in use (codex review of PR 343, round 4, P2).
+    BeforeAll {
+        $script:UH = 'C:\Users\tester'
+        $script:Exe = 'C:\Users\tester\bin\agent-bus-mcp-abc1234.exe'
+    }
+    It 'recognises every spelling of the profile-relative path, with either slash' -ForEach @(
+        @{ Text = 'C:\Users\tester\bin\agent-bus-mcp-abc1234.exe' }, @{ Text = 'C:/Users/tester/bin/agent-bus-mcp-abc1234.exe' },
+        @{ Text = '~/bin/agent-bus-mcp-abc1234.exe' }, @{ Text = '%USERPROFILE%\bin\agent-bus-mcp-abc1234.exe' },
+        @{ Text = '%HOME%\bin\agent-bus-mcp-abc1234.exe' }, @{ Text = '$HOME/bin/agent-bus-mcp-abc1234.exe' },
+        @{ Text = '$env:USERPROFILE\bin\agent-bus-mcp-abc1234.exe' }, @{ Text = '"$env:HOME/bin/agent-bus-mcp-abc1234.exe"' }
+    ) {
+        $corpus = $Text.Replace('\\', '\').Replace('/', '\').ToLowerInvariant()
+        Test-MachineTextReference -CorpusText $corpus -Path $script:Exe -UserHome $script:UH | Should -BeTrue
+    }
+    It 'does not report an unrelated or merely similar path' {
+        $corpus = '$env:userprofile\bin\agent-bus-mcp-other.exe c:\users\tester\bin\agent-bus.exe'
+        Test-MachineTextReference -CorpusText $corpus -Path $script:Exe -UserHome $script:UH | Should -BeFalse
+    }
+}
+
+Describe 'Machine scripts contain no stray control characters' {
+    # Why: a Python-side escape slip put literal backspace and tab characters into directory names in Sync-MachineEnvironment.ps1,
+    # so a normal run would have stopped after writing the environment variables. The dry-run tests return before that block.
+    It 'has no control characters other than tab, CR and LF in <_.Name>' -ForEach @(
+        Get-ChildItem (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine') -Include *.ps1, *.psm1, *.json -File -Recurse
+    ) {
+        $bad = @(Get-Content -LiteralPath $_.FullName | ForEach-Object { $i = 0 } { $i++; if ($_ -match '[\x00-\x08\x0B\x0C\x0E-\x1F]') { $i } })
+        $bad | Should -BeNullOrEmpty
+    }
+    It 'has no tab or control character inside a quoted path argument in the synchronizer' {
+        $text = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Sync-MachineEnvironment.ps1') -Raw
+        [regex]::Matches($text, "Join-Path\s+\S+\s+'[^'\r\n]*[\t\x00-\x1F][^'\r\n]*'").Count | Should -Be 0
+        $text | Should -Not -Match "\.dotnet\tools"
+    }
+}

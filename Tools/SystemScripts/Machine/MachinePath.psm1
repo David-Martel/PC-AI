@@ -562,6 +562,27 @@ function Get-MachineTaskActionText {
     }
 }
 
+function Test-MachineTextReference {
+    <#
+    .SYNOPSIS
+        True when the (lower-cased, slash-normalised) corpus names the path in any spelling a config, hook or script can use.
+    .DESCRIPTION
+        Recognised: the absolute path, ~\rest, %USERPROFILE%\rest, %HOME%\rest, $HOME\rest, $env:USERPROFILE\rest and $env:HOME\rest,
+        where rest is the path below the profile. A path outside the profile is matched absolutely only.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$CorpusText, [Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][string]$UserHome)
+    $needle = $Path.Replace('/', '\').ToLowerInvariant()
+    if ($CorpusText.Contains($needle)) { return $true }
+    $profileRoot = $UserHome.Replace('/', '\').TrimEnd('\').ToLowerInvariant()
+    if (-not $needle.StartsWith($profileRoot + '\')) { return $false }
+    $rel = $needle.Substring($profileRoot.Length)
+    foreach ($prefix in '~', '%userprofile%', '%home%', '$home', '$env:userprofile', '$env:home') {
+        if ($CorpusText.Contains($prefix + $rel)) { return $true }
+    }
+    $false
+}
+
 function Get-MachineReferenceCorpus {
     <#
     .SYNOPSIS
@@ -685,7 +706,7 @@ function Compare-MachineResolutionBaseline {
     }
 }
 
-Export-ModuleMember -Function Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
+Export-ModuleMember -Function Test-MachineTextReference, Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
     Get-MachinePathRegistry, Resolve-MachinePathEntry, Test-MachinePathEntries, Get-MachineCommandIndex, Resolve-MachineCommand,
     Test-MachinePathShadows, Test-MachinePathExtensionless, Get-MachineVariantFile, Test-MachinePathWrappers, Get-MachinePathPlan, Backup-MachinePath,
     Send-MachineEnvironmentChange, Set-MachinePathValue, Get-MachineResolutionBaseline, Compare-MachineResolutionBaseline

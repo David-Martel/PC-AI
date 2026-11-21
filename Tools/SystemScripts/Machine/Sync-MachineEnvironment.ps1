@@ -172,7 +172,7 @@ $canonicalEnv = [ordered]@{
     'AST_GREP_GLOBAL_CONFIG'             = (Join-Path $UserHomeReal '.config\ast-grep\sgconfig.yml')
     'PATHEXT'                            = '.COM;.EXE;.BAT;.CMD;.MSC;.PY;.PYW;.CPL'
     'DOTNET_CLI_TELEMETRY_OPTOUT'        = 'true'
-    'DOTNET_ADD_GLOBAL_TOOLS_TO_PATH'    = 'false'   # the SDK otherwise appends an agent home's .dotnet	ools to the user PATH on first run
+    'DOTNET_ADD_GLOBAL_TOOLS_TO_PATH'    = 'false'   # the SDK otherwise appends an agent home's .dotnet\tools to the user PATH on first run
     'CLAUDE_CODE_DISABLE_TERMINAL_TITLE' = '1'
     'CLAUDE_EXE'                         = (Join-Path $UserHomeReal '.local\bin\claude.exe')
     'UVX_PATH'                           = (Join-Path $UserHomeReal '.local\bin\uvx.exe')
@@ -214,14 +214,14 @@ $pathContext = Get-MachinePathContext -CargoHome $cargoHome
 # ---------------------------------------------------------------------------
 # 6. User PATH from machine-path.policy.json
 # ---------------------------------------------------------------------------
-# Absolute entries only, dead and duplicate entries removed, policy head block first ({UserHome}\.localin, {UserHome}in,
-# CARGO_HOMEin, ...), %USERPROFILE% never written. ~/.cargo/bin is a forbidden entry: CARGO_HOMEin is the canonical
+# Absolute entries only, dead and duplicate entries removed, policy head block first ({UserHome}\.local\bin, {UserHome}\bin,
+# CARGO_HOME\bin, ...), %USERPROFILE% never written. ~/.cargo/bin is a forbidden entry: CARGO_HOME\bin is the canonical
 # cargo bin directory (~/.agents/RUST_TOOLING.md).
 foreach ($ensureDir in @(
-    (Join-Path $UserHomeReal '.localin'),
+    (Join-Path $UserHomeReal '.local\bin'),
     (Join-Path $UserHomeReal 'bin'),
-    (Join-Path $UserHomeReal '.dotnet	ools'),
-    (Join-Path $UserHomeReal 'goin')
+    (Join-Path $UserHomeReal '.dotnet\tools'),
+    (Join-Path $UserHomeReal 'go\bin')
 )) {
     New-Item -ItemType Directory -Force -Path $ensureDir | Out-Null
 }

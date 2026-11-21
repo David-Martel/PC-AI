@@ -81,10 +81,7 @@ if (-not $SkipArchive) {
 function Test-Referenced {
     param([string]$Path)
     if ($null -eq $script:refCorpus) { return $true }   # no corpus means no evidence: treat as referenced
-    $c = $script:refCorpus.Text
-    $needle = $Path.ToLowerInvariant()
-    $rel = $needle.Replace($ctx.UserHome.ToLowerInvariant(), '')
-    $c.Contains($needle) -or $c.Contains('~' + $rel) -or $c.Contains('%userprofile%' + $rel) -or $c.Contains('$home' + $rel)
+    Test-MachineTextReference -CorpusText $script:refCorpus.Text -Path $Path -UserHome $ctx.UserHome
 }
 
 # ---- 1. PATH plan -----------------------------------------------------------------------------------------------

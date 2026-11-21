@@ -8,8 +8,10 @@ if($errors.Count){throw 'Production lifecycle source does not parse'}
 $loops=@($ast.FindAll({param($n) $n -is [Management.Automation.Language.ForEachStatementAst] -and $n.Variable.VariablePath.UserPath -eq 'route' -and $n.Extent.Text.Contains('WithdrawStaleOwnedRoute')},$true))
 if($loops.Count -ne 1){throw "Expected one production withdrawal loop; found $($loops.Count)"}
 $script:productionLoop=[scriptblock]::Create($loops[0].Extent.Text)
+# The fixture never calls ShouldProcess itself: the cases below pass -WhatIf and -Confirm:$false to prove the planner under test honours them.
 function Invoke-OwnershipFixture {
     [CmdletBinding(SupportsShouldProcess)]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSShouldProcess', '', Justification = 'Fixture forwards -WhatIf/-Confirm semantics to the planner under test.')]
     param([int[]]$EvaluatedInterfaces,[string]$Prefix='fd00:7462:7032:d700::99/128',[int]$RouteInterface=999)
     $netRoutes=@([pscustomobject]@{DestinationPrefix=$Prefix;InterfaceIndex=$RouteInterface})
     $evaluatedUsb4IfIndices=@($EvaluatedInterfaces);$prefixToPeer=@{};$preservedEndpoints=@{};$activeReadyPeers=@{};$linkReports=@();$canonicalLocalHost='fixture'

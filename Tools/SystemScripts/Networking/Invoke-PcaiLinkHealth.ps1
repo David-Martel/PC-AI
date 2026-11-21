@@ -637,6 +637,7 @@ function Invoke-PcaiLinkHealth {
     if (-not $Root) { $Root = Get-PcaiLinkHealthDefaultRoot -RunMode $RunMode }
     if (-not $Config) { $Config = Join-Path $Root 'config.json' }
     $rootTrusted = $false
+    $untrustedRoot = $false
     if ($RunMode -eq 'Apply' -and $IsWindows -and -not $IsDryRun) {
         # The SYSTEM task writes and runs apply scripts under this root, so it must not inherit
         # %ProgramData%'s "Users may create" right. Create it protected; never adopt a root that
@@ -650,6 +651,7 @@ function Invoke-PcaiLinkHealth {
         if (-not $rootTrusted -and (Test-PcaiElevated)) {
             Write-Output "LINK-HEALTH status root $Root is not admin-owned and protected; this elevated run writes nothing there and applies nothing"
             $IsDryRun = $true
+            $untrustedRoot = $true
         }
     }
     $cfg = Read-PcaiLinkHealthConfig -Path $Config -Root $Root
@@ -728,6 +730,9 @@ function Invoke-PcaiLinkHealth {
         } elseif ($comparison.State -eq 'LinkDown') {
             $guidance.Add('A planned USB4 link is down: check the cable and the peer; nothing to apply')
         }
+        # Writing nothing must not look like a healthy run: the task's result and the printed summary
+        # carry a warning even when the link itself is fine.
+        if ($untrustedRoot) { $guidance.Add("Status root $Root is not admin-owned and protected; rerun Install-PcaiLinkHealthTrigger.ps1 -System or remove it, then rerun") }
 
         $status = [ordered]@{
             schema       = $script:PcaiLinkHealthSchema
@@ -737,7 +742,7 @@ function Invoke-PcaiLinkHealth {
             mode         = $RunMode
             dryRun       = [bool]$IsDryRun
             state        = $comparison.State
-            severity     = if ($planError) { 'warn' } else { Get-PcaiLinkHealthSeverity -State $comparison.State -Reachability $reach }
+            severity     = if ($planError -or $untrustedRoot) { 'warn' } else { Get-PcaiLinkHealthSeverity -State $comparison.State -Reachability $reach }
             adapters     = $adapters
             plan         = [ordered]@{ path = $cfg.planPath; planId = $planId; expiresAtUtc = if ($planObj) { $planObj.expires_at_utc } else { $null } }
             comparison   = [ordered]@{ GuardsMatch = $comparison.GuardsMatch; Findings = $comparison.Findings }

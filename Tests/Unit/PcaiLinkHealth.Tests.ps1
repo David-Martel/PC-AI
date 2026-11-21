@@ -284,6 +284,10 @@ Describe 'Invoke-PcaiLinkHealth side effects' -Tag 'Unit', 'Portable' {
         $out = @(Invoke-PcaiLinkHealth -RunMode Apply -RunTrigger Manual -Root $root -Plan $planFile -SkipBus)
         ($out | Where-Object { $_ -is [string] }) -join ' ' | Should -Match 'writes nothing there'
         @(Get-ChildItem -LiteralPath $root -Force).Count | Should -Be 0
+        # Writing nothing must still surface: the run reports a warning, so the task exits 2, not 0.
+        $status = @($out | Where-Object { $_ -isnot [string] }) | Select-Object -Last 1
+        $status.severity | Should -Be 'warn'
+        @($status.guidance) -join ' ' | Should -Match 'not admin-owned and protected'
         Should -Invoke Invoke-PcaiBoundedCommand -Times 0 -Exactly
     }
     It 'reads only the policy''s plan in Apply mode, ignoring a -PlanPath override' {

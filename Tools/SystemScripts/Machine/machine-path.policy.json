@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "description": "Canonical PATH and binary-location policy for the Windows fleet. Tokens: {UserHome} is the real profile (never the redirected agent home), {CargoHome} is CARGO_HOME from the registry, {LocalAppData} is the real local app data.",
+  "userPathHead": [
+    "{UserHome}\\.local\\bin",
+    "{UserHome}\\bin",
+    "{CargoHome}\\bin",
+    "{UserHome}\\.dotnet",
+    "{UserHome}\\.dotnet\\tools",
+    "{UserHome}\\go\\bin",
+    "{LocalAppData}\\agy\\bin",
+    "C:\\Windows\\System32\\OpenSSH",
+    "C:\\codedev\\tools\\PowerShell\\7",
+    "C:\\codedev\\PC_AI\\bin",
+    "{LocalAppData}\\Microsoft\\WinGet\\Links"
+  ],
+  "requiredUserEntries": [
+    "{UserHome}\\.local\\bin",
+    "{UserHome}\\bin",
+    "{CargoHome}\\bin"
+  ],
+  "forbiddenEntries": [
+    "C:\\Program Files\\Git\\usr\\bin",
+    "{UserHome}\\.cargo\\bin"
+  ],
+  "forbiddenReasons": {
+    "C:\\Program Files\\Git\\usr\\bin": "MSYS ssh.exe and scp.exe would shadow Windows OpenSSH.",
+    "{UserHome}\\.cargo\\bin": "Legacy cargo home. CARGO_HOME is the canonical home (see ~/.agents/RUST_TOOLING.md) and its bin directory is on PATH instead."
+  },
+  "forbiddenPatterns": [
+    "\\\\ClaudeCode\\\\agent-homes\\\\"
+  ],
+  "forbiddenPatternReason": "Agent homes are per-session and deleted later. The dotnet SDK appends the .dotnet tools directory of the profile to the user PATH on first run, which in an agent session is a path inside an agent home.",
+  "requiredUserEnv": {
+    "DOTNET_ADD_GLOBAL_TOOLS_TO_PATH": "false"
+  },
+  "managedBinDirs": [
+    "{UserHome}\\bin",
+    "{UserHome}\\.local\\bin"
+  ],
+  "hostOverrides": {
+    "DTM-WORK": {
+      "keepOrder": true,
+      "machineAdditions": [ "{CargoHome}\\bin" ],
+      "reason": "dtm-work keeps ~/bin and ~/.local/bin in the machine PATH for services and sshd, and its ~/bin wrappers (python.cmd, npm.cmd) are deliberate; only dedupe, remove dead entries and add the cargo bin to the machine PATH."
+    }
+  },
+  "lengthWarn": 2047,
+  "lengthError": 30000,
+  "requiredPathExt": [ ".EXE", ".CMD", ".BAT", ".COM" ],
+  "intentionalShadows": {
+    "bash": "Git bash must win over the WSL launcher in System32 and the WindowsApps stub.",
+    "cmd": "Rust launcher that hands off to Microsoft cmd.exe.",
+    "where": "Rust where with JSON output and PATHEXT handling.",
+    "whoami": "Rust coreutils replacement.",
+    "hostname": "Rust coreutils replacement.",
+    "sort": "uutils sort from the coreutils manifest in ~/bin.",
+    "more": "uutils more from the coreutils manifest in ~/bin.",
+    "expand": "uutils expand from the coreutils manifest in ~/bin.",
+    "tree": "Rust tree with junction and long path support.",
+    "python": "uv-managed shim so that python never resolves to the WindowsApps stub.",
+    "python3": "uv-managed shim so that python3 never resolves to the WindowsApps stub.",
+    "docker": "docker.cmd adds MCP modes and passes everything else to docker.exe.",
+    "npm": "pkgx runner wrapper.",
+    "npx": "pkgx runner wrapper.",
+    "codex": "Wrapper for the npm codex shim.",
+    "gemini": "Superseded by the Antigravity CLI; forwards to agy.",
+    "copilot": "Alias for gh copilot.",
+    "gcloud": "Wrapper sets DisableDelayedExpansion before calling the Cloud SDK.",
+    "gswin64c": "Finds the newest Ghostscript under Program Files, so the versioned install path never goes stale.",
+    "usbipd": "A 170 KB shim in ~/bin, not a copy of the usbipd-win binary.",
+    "claude": "Launcher that sets up agent homes. claude.exe is the real binary.",
+    "cargo": "Rustup proxy in ~/bin; cargo.ps1 is the CargoTools-aware wrapper for PowerShell."
+  },
+  "baselineCommands": [
+    "git", "gh", "pwsh", "powershell", "python", "python3", "uv", "uvx", "cargo", "rustc", "rustup", "rustfmt", "clippy-driver",
+    "rust-analyzer", "sccache", "cargo-nextest", "node", "npm", "npx", "rg", "fd", "sg", "ast-grep", "jq", "yq", "docker", "wsl",
+    "ssh", "scp", "ssh-keygen", "tailscale", "cloudflared", "restic", "rclone", "agent-bus", "agent-bus-http", "agent-bus-mcp",
+    "bw", "claude", "codex", "gemini", "agy", "copilot", "curl", "7z", "gpg", "gcloud", "az", "go", "dotnet", "cmake", "ninja",
+    "just", "lefthook", "git-guard", "code", "ollama", "tar", "where", "whoami", "hostname", "sort", "more", "expand", "tree",
+    "cmd", "bash", "ls", "cat", "cp", "mv", "rm", "mkdir", "head", "tail", "wc", "grep", "sed", "awk", "find", "du", "df",
+    "env", "printenv", "sha256sum", "md5sum", "uniq", "tr", "cut", "tee", "touch", "date", "sleep", "basename", "dirname",
+    "realpath", "diff", "xargs", "nvidia-smi", "usbipd", "pdftotext", "magick", "ffmpeg", "gh-copilot", "hyperfine", "tokei"
+  ]
+}

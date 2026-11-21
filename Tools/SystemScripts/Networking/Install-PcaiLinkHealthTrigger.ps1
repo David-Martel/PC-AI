@@ -369,7 +369,9 @@ function Install-PcaiHealthWindows {
         # The first install records the pre-install baseline once (a definition, or a marker that
         # there was none); -Restore uses only the baseline, never a later copy of our own task.
         if (-not (Get-ChildItem -LiteralPath $backupDir -Filter "$($s.Name).baseline.*" -ErrorAction SilentlyContinue)) {
-            if ($existing) { Export-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name | Set-Content -LiteralPath (Join-Path $backupDir "$($s.Name).baseline.xml") }
+            # A task this installer registered earlier (before baselines existed) is not a baseline.
+            $existingDescription = if ($existing -and $existing.PSObject.Properties['Description']) { [string]$existing.Description } else { '' }
+            if ($existing -and $existingDescription -notmatch '^PC-AI (USB4 link health|profile and tooling health)') { Export-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name | Set-Content -LiteralPath (Join-Path $backupDir "$($s.Name).baseline.xml") }
             else { Set-Content -LiteralPath (Join-Path $backupDir "$($s.Name).baseline.none") -Value 'no task existed before the first install' }
         }
         if ($existing) {
@@ -442,7 +444,7 @@ function Install-PcaiHealthLinux {
         $path = Join-Path $unitDir $u
         $baseline = Join-Path $backupDir "$u.baseline"
         if (-not (Test-Path -LiteralPath $baseline) -and -not (Test-Path -LiteralPath "$baseline.none")) {
-            if (Test-Path -LiteralPath $path) { Copy-Item -LiteralPath $path -Destination $baseline }
+            if ((Test-Path -LiteralPath $path) -and -not (Select-String -LiteralPath $path -Pattern '^Description=.*PC-AI' -Quiet)) { Copy-Item -LiteralPath $path -Destination $baseline }
             else { Set-Content -LiteralPath "$baseline.none" -Value 'no unit existed before the first install' }
         }
         if (Test-Path -LiteralPath $path) { Copy-Item -LiteralPath $path -Destination (Join-Path $backupDir "$u.$stamp") }

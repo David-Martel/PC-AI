@@ -265,6 +265,19 @@ Describe 'Uninstall -Restore returns the pre-install definition' -Tag 'Unit' {
     }
 }
 
+Describe 'A health task registered before baselines existed is not a baseline' -Tag 'Unit' {
+    It 'records .none when the existing task is this installer''s own' -Skip:(-not $IsWindows) {
+        Mock Get-ScheduledTask { [pscustomobject]@{ TaskName = 'LinkHealth'; Description = 'PC-AI USB4 link health (read-only): logon' } }
+        Mock Export-ScheduledTask { '<Task>ours</Task>' }
+        Mock Register-ScheduledTask { }
+        Mock Start-ScheduledTask { }
+        $target = Join-Path $TestDrive 'own'
+        Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') | Out-Null
+        Test-Path -LiteralPath (Join-Path $target 'backup/LinkHealth.baseline.xml') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $target 'backup/LinkHealth.baseline.none') | Should -BeTrue
+    }
+}
+
 Describe 'Help switches (AGENTS.md: -h and --help)' -Tag 'Unit', 'Portable' {
     It 'prints the comment-based help for <Flag> on <Script>' -ForEach @(
         @{ Script = 'Invoke-PcaiLinkHealth.ps1'; Flag = '-h' }, @{ Script = 'Invoke-PcaiLinkHealth.ps1'; Flag = '--help' },

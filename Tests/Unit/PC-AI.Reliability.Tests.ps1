@@ -133,6 +133,18 @@ Describe 'PC-AI.Reliability' {
             $body | Should -Match 'SEVERITY: INFO'
         }
 
+        It 'records each forward with its per-transport delivery outcome' {
+            # Detects silent alert loss: before this, a failed delivery was only a line in a text log.
+            $null = Write-FleetLedgerEvent -LedgerEvent (New-FleetLedgerEvent -Source task -Name demo -Kind incident-open -Status failed -Severity high)
+            $d = @(Read-TestLedger | Where-Object { $_.source -eq 'alert' -and $_.check -eq 'delivery' })
+            $d.Count | Should -Be 1
+            $d[0].message | Should -Be 'bus=sent discord=skipped(no recipient)'
+            $d[0].status | Should -Be 'ok'
+            $script:Fake.Send = 1; $script:Fake.Spool = 1
+            $null = Write-FleetLedgerEvent -LedgerEvent (New-FleetLedgerEvent -Source task -Name demo2 -Kind incident-open -Status failed -Severity high) -WarningAction SilentlyContinue
+            (@(Read-TestLedger | Where-Object { $_.source -eq 'alert' }))[-1].status | Should -Be 'failed'
+        }
+
         It 'spools the message when the bus send fails' {
             # Protects alert delivery across a hub outage: the spool is replayed by the next sweep.
             $script:Fake.Send = 1
@@ -147,7 +159,7 @@ Describe 'PC-AI.Reliability' {
         It 'still records the local line when both bus and spool fail' {
             $script:Fake.Send = 1; $script:Fake.Spool = 1
             $null = Write-FleetLedgerEvent -LedgerEvent (New-FleetLedgerEvent -Source task -Name demo -Kind incident-open -Status failed) -WarningAction SilentlyContinue
-            @(Read-TestLedger).Count | Should -Be 1
+            @(Read-TestLedger | Where-Object { $_.kind -eq 'incident-open' }).Count | Should -Be 1
         }
 
         It 'quotes argv so JSON metadata survives CreateProcess' {

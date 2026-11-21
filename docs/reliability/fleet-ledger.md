@@ -77,6 +77,9 @@ emitter in sentinel-utils (`scripts/fleet/linux/fleet-ledger.sh`) writes the sam
   `FINDING: [<status>] <host> <source>/<name> (<check>): <message>` followed by `SEVERITY: <LEVEL>`.
 - **Schema `status`** is used for `RESOLVED:`, `REMEDIATION:` and `DIGEST:`.
 
+Each forward also writes a local `alert`/`delivery` line (`bus=sent discord=sent`, `bus=spooled ...`, or
+`failed` when nothing delivered), so an alert that never arrived is visible in the ledger.
+
 If a send fails, the same request goes to the agent-bus offline spool (`spool\bus-spool.ndjson`). Each sweep
 renames the spool under a lock, then replays it, so new lines are never deleted with the replayed file. A spool
 that does not parse is quarantined.

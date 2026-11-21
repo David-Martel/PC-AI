@@ -81,8 +81,17 @@ function Write-FleetLedgerEvent {
     if (-not $acquired) { throw "fleet ledger: could not lock $ledger within 30 s; event not recorded: $($LedgerEvent.event_id)" }
 
     if (-not $NoForward -and ($script:FleetForwardKinds -contains $LedgerEvent.kind)) {
-        $null = Send-FleetBusEvent -LedgerEvent $LedgerEvent
-        $null = Send-FleetDiscordEvent -LedgerEvent $LedgerEvent
+        $bus = Send-FleetBusEvent -LedgerEvent $LedgerEvent
+        $discord = Send-FleetDiscordEvent -LedgerEvent $LedgerEvent
+        # Record what each transport did. "Alerts that never arrive" was invisible until someone read a
+        # text log; this line makes a lost or skipped delivery queryable from the ledger and the digest.
+        $deliveryStatus = 'ok'
+        if ($bus -eq 'lost' -and $discord -notlike 'sent*') { $deliveryStatus = 'failed' }
+        elseif ($bus -ne 'sent' -or $discord -like 'failed*') { $deliveryStatus = 'degraded' }
+        $delivery = New-FleetLedgerEvent -Source alert -Name ([string]$LedgerEvent.event_id) -Check delivery -Kind observation `
+            -Status $deliveryStatus -Severity info -Message ("bus={0} discord={1}" -f $bus, $discord) -IncidentKey $LedgerEvent.incident_key `
+            -Details @{ for_kind = [string]$LedgerEvent.kind; bus = [string]$bus; discord = [string]$discord }
+        $null = Write-FleetLedgerEvent -LedgerEvent $delivery -NoForward
     }
     return $LedgerEvent
 }

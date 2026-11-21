@@ -144,6 +144,9 @@ function Invoke-FleetTaskCore {
     $partial = ($r.PSObject.Properties.Name -contains 'OutputComplete') -and ($r.OutputComplete -eq $false)
     $obsStatus = $status
     if ($partial -and $status -eq 'ok') { $obsStatus = 'skipped'; $msg = 'exit 0, but the output was not fully captured (a descendant kept the pipes open)' }
+    # The same for a configured log that is missing or unreadable: the failure patterns could not be checked, so
+    # exit 0 verifies nothing; "ok" resolved a log-detected failure behind a low-severity log-read (review of a8570e8c).
+    elseif ($logError -and $status -eq 'ok') { $obsStatus = 'skipped'; $msg = "exit 0, but its log could not be checked: $logError" }
 
     $logForEvent = $ownLog; if ($LogPath) { $logForEvent = $LogPath }
     $exitForEvent = $null; if (-not $r.TimedOut) { $exitForEvent = $r.ExitCode }

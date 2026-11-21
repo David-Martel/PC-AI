@@ -247,6 +247,32 @@ Describe 'PC-AI.Reliability' {
             (@(Get-FleetTaskObservations -Policy $script:Policy | Where-Object { $_.Name -eq '\t\partial' -and $_.Check -eq 'run' })[0]).Status | Should -Be 'ok'
         }
 
+        It 'review of a8570e8c: a run whose configured log cannot be read never verifies a recovery' {
+            # A log-detected failure, then exit 0 with the log missing: the run observation was "ok" and resolved the
+            # failure, while the low-severity log-read incident sat below the Discord floor. Neutral until readable.
+            $log = Join-Path $TestDrive 'job-log.log'
+            Set-Content -LiteralPath $log -Value 'earlier'
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = '[ERROR] integrity check did not pass' }
+            $null = Invoke-FleetTask -Name '\t\logged' -FilePath 'C:\fake\job.exe' -LogPath $log
+            $state = { param($c) $pat = '*|task|\t\logged|' + $c; ((Get-FleetIncidentState).GetEnumerator() | Where-Object { $_.Key -like $pat }).Value.state }
+            & $state 'run' | Should -Be 'open'
+            Remove-Item -LiteralPath $log
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = 'done' }
+            $null = Invoke-FleetTask -Name '\t\logged' -FilePath 'C:\fake\job.exe' -LogPath $log
+            & $state 'run' | Should -Be 'open'
+            & $state 'log-read' | Should -Be 'open'
+            # Across sweeps too: a clean Task Scheduler result is not evidence while the log is unreadable.
+            Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @() }
+            Mock -ModuleName PC-AI.Reliability Get-FleetInteractiveUserData { @() }
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData { @{ Tasks = @(@{ TaskPath = '\t\'; TaskName = 'logged'; Owner = 'Local'; State = 'Ready'; Status = 'Healthy'; LastResult = 0; ResultText = 'Success'; Reasons = @(); LastRunTime = '2026-11-21T11:59:00Z'; Staleness = 'fresh' }) } }
+            (@(Get-FleetTaskObservations -Policy $script:Policy | Where-Object { $_.Name -eq '\t\logged' -and $_.Check -eq 'run' })[0]).Status | Should -Be 'skipped'
+            # Positive control: a readable clean log resolves both.
+            Set-Content -LiteralPath $log -Value 'all fine'
+            $null = Invoke-FleetTask -Name '\t\logged' -FilePath 'C:\fake\job.exe' -LogPath $log
+            & $state 'run' | Should -Be 'resolved'
+            & $state 'log-read' | Should -Be 'resolved'
+        }
+
         It 'row 1: refuses a task report without tasks while in-scope tasks are registered' {
             Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @([pscustomobject]@{ FullName = '\job'; TaskPath = '\'; TaskName = 'job'; State = 'Ready'; LogonType = 'S4U'; UserId = 'x' }) }
             Mock -ModuleName PC-AI.Reliability Get-FleetInteractiveUserData { @() }

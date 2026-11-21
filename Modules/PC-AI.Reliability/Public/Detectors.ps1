@@ -317,10 +317,14 @@ function Get-FleetTaskObservations {
         elseif ($resultHex -in @('0X41301', '0X41325')) { $runStatus = 'skipped' }
         # The wrapper's last capture of this task was incomplete (its output-capture incident is open): a clean Task
         # Scheduler result is not evidence of recovery until a run is captured in full (review of bcae775f).
+        # Likewise while its configured log cannot be read (log-read open): the failure patterns were never checked
+        # (review of a8570e8c).
         $captureNote = ''
         if ($runStatus -eq 'ok') {
             $cap = $incidentState[('{0}|task|{1}|output-capture' -f $hostName, $full)]
+            $lr = $incidentState[('{0}|task|{1}|log-read' -f $hostName, $full)]
             if ($cap -and $cap.state -eq 'open') { $runStatus = 'skipped'; $captureNote = ' (not verified: the last wrapped run''s output was not fully captured)' }
+            elseif ($lr -and $lr.state -eq 'open') { $runStatus = 'skipped'; $captureNote = ' (not verified: its configured log cannot be read)' }
         }
         $obs += New-FleetObservation -Source task -Name $full -Check run -Status $runStatus -Severity $sev `
             -Message (("last result {0} {1}; {2}" -f $t.LastResult, $t.ResultText, $reasons).Trim() + $captureNote) -ResolveAfter 1 `

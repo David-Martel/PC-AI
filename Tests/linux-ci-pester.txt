@@ -50,3 +50,6 @@ RustGuidelines.Compliance.Tests.ps1
 Set-LLMProviderOrder.Tests.ps1
 ToolingBenchmarks.Tests.ps1
 Validate-ToolParameters.Tests.ps1
+
+# The required ci-gate runs on a hosted runner; it must stay free of repository code and need every other job.
+LinuxCiGate.Tests.ps1

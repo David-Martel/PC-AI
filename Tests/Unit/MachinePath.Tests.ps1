@@ -650,3 +650,46 @@ Describe 'Sync-MachineEnvironment.ps1 does not delete command files' {
         }
     }
 }
+
+
+Describe 'Get-MachinePathRevertCommand' {
+    # Why: the printed rollback command put $l inside a double-quoted -Command argument, so the calling PowerShell expanded it before the
+    # child started and the restore failed (codex review of PR 343, round 10, P2). The test pastes the printed line into PowerShell
+    # exactly as an operator would, against a scratch registry key instead of HKCU:\Environment.
+    BeforeAll {
+        $script:Key = 'HKCU:\Software\PcaiMachinePathTest-' + [guid]::NewGuid().ToString('N')
+        New-Item -Path $script:Key -Force | Out-Null
+        Set-ItemProperty -LiteralPath $script:Key -Name Path -Value 'C:\before' -Type String
+    }
+    AfterAll { Remove-Item -LiteralPath $script:Key -Recurse -Force -ErrorAction SilentlyContinue }
+    It 'restores the value when the printed line is pasted into PowerShell' -ForEach @(
+        @{ Dir = 'plain' }, @{ Dir = "it's here" }
+    ) {
+        $d = Join-Path $TestDrive $Dir
+        New-Item -ItemType Directory -Force -Path $d | Out-Null
+        $bak = Join-Path $d 'host.user.path.bak-abc'
+        Set-Content -LiteralPath $bak -Value @('kind=ExpandString', '%USERPROFILE%\bin;C:\Tools') -Encoding utf8NoBOM
+        Set-ItemProperty -LiteralPath $script:Key -Name Path -Value 'C:\changed' -Type String
+        $line = Get-MachinePathRevertCommand -BackupFile $bak -RegistryPath $script:Key
+        $line | Should -Match '^pwsh -NoProfile -Command '''
+        $line | Should -Not -Match '-Command "'
+        Invoke-Expression $line
+        $LASTEXITCODE | Should -Be 0
+        (Get-Item -LiteralPath $script:Key).GetValue('Path', $null, 'DoNotExpandEnvironmentNames') | Should -Be '%USERPROFILE%\bin;C:\Tools'
+    }
+    It 'is what Repair-MachinePath.ps1 prints, in both places' {
+        $text = Get-Content (Resolve-Path (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Repair-MachinePath.ps1')).Path -Raw
+        ([regex]::Matches($text, 'Get-MachinePathRevertCommand')).Count | Should -Be 2
+        $text | Should -Not -Match 'Command "\$l='
+    }
+}
+
+Describe 'Sync-MachineEnvironment.ps1 links cargo binaries from the selected CARGO_HOME only' {
+    # Why: hardlinking from a legacy ~/.cargo\bin into ~/bin, which precedes the canonical cargo bin on PATH, would let an older copy
+    # override the current install when another CARGO_HOME was selected (codex review of PR 343, round 10, P2).
+    It 'derives the link source from $cargoHome, not a hard-coded ~/.cargo' {
+        $text = Get-Content (Resolve-Path (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Sync-MachineEnvironment.ps1')).Path -Raw
+        $text | Should -Match '\$cargoBinDir\s*=\s*Join-Path\s+\$cargoHome\s+''bin'''
+        $text | Should -Not -Match '\$cargoBinDir\s*=\s*Join-Path\s+\$UserHomeReal\s+''\.cargo\\bin'''
+    }
+}

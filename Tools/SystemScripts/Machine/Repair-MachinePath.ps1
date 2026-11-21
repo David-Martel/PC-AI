@@ -263,7 +263,7 @@ if (-not $Apply) { 'Dry run. Re-run with -Apply to execute.'; return }
 # ---- apply --------------------------------------------------------------------------------------------------------
 $backups = Backup-MachinePath -Directory $BackupDir -HostName $hostName
 'backups: ' + ($backups -join '; ')
-'revert user PATH:    pwsh -NoProfile -Command "$l=(Get-Content ''{0}'')[1]; Set-ItemProperty HKCU:\Environment Path $l -Type ExpandString"' -f ($backups | Where-Object { $_ -like '*.user.*' })
+'revert user PATH:    ' + (Get-MachinePathRevertCommand -BackupFile @($backups | Where-Object { $_ -like '*.user.*' })[0])
 $baselineDirs = @(@($user.Entries + $machine.Entries) | ForEach-Object { Resolve-MachinePathEntry -Entry $_ -Context $ctx } | Where-Object { [IO.Directory]::Exists($_) } | Select-Object -Unique)
 $before = @(Get-MachineResolutionBaseline -Commands $policy.BaselineCommands -Directories $baselineDirs)
 $before | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $BackupDir "$hostName.baseline.before.json") -Encoding utf8NoBOM
@@ -354,5 +354,5 @@ $actions | Group-Object Action | ForEach-Object { 'applied {0}: {1}' -f $_.Name,
 'baseline diff ({0} of {1} commands changed):' -f $diff.Count, $before.Count
 $diff | ForEach-Object { '  {0} {1}: {2} -> {3}' -f $_.Status, $_.Command, $_.Before, $_.After }
 'backups: ' + ($backups -join '; ')
-'revert user PATH:    pwsh -NoProfile -Command "$l=(Get-Content ''{0}'')[1]; Set-ItemProperty HKCU:\Environment Path $l -Type ExpandString"' -f ($backups | Where-Object { $_ -like '*.user.*' })
+'revert user PATH:    ' + (Get-MachinePathRevertCommand -BackupFile @($backups | Where-Object { $_ -like '*.user.*' })[0])
 if ($diff | Where-Object Status -eq 'LOST') { Write-Error 'A baseline command no longer resolves. Revert with the command above.'; exit 2 }

@@ -332,8 +332,9 @@ if ($rustupSource) {
     }
 }
 
-# Ensure ~/.cargo/bin executables on the same volume are hardlinked in ~/bin
-$cargoBinDir = Join-Path $UserHomeReal '.cargo\bin'
+# Ensure the SELECTED CARGO_HOME's bin executables on the same volume are hardlinked in ~/bin. Linking from a legacy ~/.cargo\bin when
+# another CARGO_HOME was selected would let an older copy in ~/bin (ahead of the canonical cargo bin on PATH) override the current install.
+$cargoBinDir = Join-Path $cargoHome 'bin'
 $homeBinDir  = Join-Path $UserHomeReal 'bin'
 if ((Test-Path -LiteralPath $cargoBinDir) -and ([IO.Path]::GetPathRoot((Get-Item -LiteralPath $cargoBinDir -Force).FullName) -eq [IO.Path]::GetPathRoot($homeBinDir)) -and ((Get-Item -LiteralPath $cargoBinDir -Force).LinkType -notin 'SymbolicLink', 'Junction')) {
     Get-ChildItem -LiteralPath $cargoBinDir -Filter '*.exe' -File -ErrorAction SilentlyContinue | ForEach-Object {

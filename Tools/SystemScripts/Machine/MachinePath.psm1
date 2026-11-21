@@ -795,6 +795,21 @@ function Get-MachineEffectivePathDirectories {
     }
 }
 
+function Get-MachinePathRevertCommand {
+    <#
+    .SYNOPSIS
+        A command line that restores a PATH value from a backup file, safe to paste into PowerShell.
+    .DESCRIPTION
+        The backup's second line is the raw value (first line is `kind=...`). The inner script sits in SINGLE quotes so the calling
+        shell does not expand `$l` before the child starts; apostrophes in the path are doubled for each quoting level.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$BackupFile, [string]$RegistryPath = 'HKCU:\Environment')
+    $lit = { param($s) "'" + $s.Replace("'", "''") + "'" }
+    $inner = '$l=(Get-Content -LiteralPath {0})[1]; Set-ItemProperty -LiteralPath {1} -Name Path -Value $l -Type ExpandString' -f (& $lit $BackupFile), (& $lit $RegistryPath)
+    'pwsh -NoProfile -Command ' + (& $lit $inner)
+}
+
 function Send-MachineEnvironmentChange {
     [CmdletBinding()]
     param()
@@ -878,7 +893,7 @@ function Compare-MachineResolutionBaseline {
     }
 }
 
-Export-ModuleMember -Function Get-MachineFirstRemainingCandidate, Test-MachineReplacementWins, Get-MachineExtensionlessSibling, Get-MachineBashShimTarget, Get-GitGuardWrapperText, Test-MachineTextReference, Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineEffectivePathDirectories, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
+Export-ModuleMember -Function Get-MachineFirstRemainingCandidate, Test-MachineReplacementWins, Get-MachineExtensionlessSibling, Get-MachineBashShimTarget, Get-GitGuardWrapperText, Test-MachineTextReference, Test-MachineShimReplacement, Get-MachineTaskActionText, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineEffectivePathDirectories, Get-MachinePathRevertCommand, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
     Get-MachinePathRegistry, Resolve-MachinePathEntry, Test-MachinePathEntries, Get-MachineCommandIndex, Resolve-MachineCommand,
     Test-MachinePathShadows, Test-MachinePathExtensionless, Get-MachineVariantFile, Test-MachinePathWrappers, Get-MachinePathPlan, Backup-MachinePath,
     Send-MachineEnvironmentChange, Set-MachinePathValue, Get-MachineResolutionBaseline, Compare-MachineResolutionBaseline

@@ -21,8 +21,17 @@ function Invoke-FleetTask {
         [string[]]$FailurePattern = @('\[ERROR\]', '\bERROR:', '\bSTALE\b', 'integrity check did not pass', 'ALERT not sent'),
         [int]$TimeoutMinutes = 120,
         [string]$Severity = 'medium',
-        [string]$WorkingDirectory
+        [string]$WorkingDirectory,
+        [string]$PolicyPath,
+        [switch]$DryRun
     )
+    if ($DryRun) {
+        # Host stream, not output: the caller captures the return value as the exit code.
+        Write-Host ("DRY RUN: would run {0} {1} as task '{2}' (timeout {3} min), scan its output{4} for /{5}/, record a run event and update the incident" -f `
+                $FilePath, ($ArgumentList -join ' '), $Name, $TimeoutMinutes, $(if ($LogPath) { " and $LogPath" } else { '' }), ($FailurePattern -join '|'))
+        return 0
+    }
+    if ($PolicyPath) { $script:FleetEffectivePolicy = Get-FleetPolicy -Path $PolicyPath }
     $start = Get-FleetNow
     $logOffset = [int64]0
     if ($LogPath -and (Test-Path -LiteralPath $LogPath)) { $logOffset = (Get-Item -LiteralPath $LogPath).Length }
@@ -65,6 +74,7 @@ function Invoke-FleetTask {
     $obs = New-FleetObservation -Source task -Name $Name -Check run -Status $status -Severity $Severity -Message $msg -LogPath $logForEvent `
         -ExitCode $exitForEvent -Start $start -End $end -OpenAfter 1 -ResolveAfter 1
     $null = Submit-FleetObservation -Observation $obs
+    $script:FleetEffectivePolicy = $null
     return $code
 }
 
@@ -79,23 +89,16 @@ function Invoke-FleetHealthSweep {
     param(
         [string]$PolicyPath,
         [string[]]$Detector,
-        [switch]$NoPlaybooks
+        [switch]$NoPlaybooks,
+        [switch]$DryRun
     )
     $policy = Get-FleetPolicy -Path $PolicyPath
+    if ($DryRun) { return (Invoke-FleetDryRunSweep -Policy $policy -Detector $Detector) }
+    $script:FleetEffectivePolicy = $policy
     $started = Get-FleetNow
     $spool = Invoke-FleetSpoolReplay
 
-    $detectors = [ordered]@{
-        task     = { param($p) Get-FleetTaskObservations -Policy $p }
-        disk     = { param($p) Get-FleetDiskObservations -Policy $p }
-        postgres = { param($p) Get-FleetPostgresObservations -Policy $p }
-        process  = { param($p) Get-FleetOrphanProcessObservations -Policy $p }
-        cert     = { param($p) Get-FleetCertObservations -Policy $p }
-    }
-    if ($policy.fleet_checks) {
-        $detectors['runner'] = { param($p) Get-FleetRunnerObservations -Policy $p }
-        $detectors['workflow'] = { param($p) Get-FleetWorkflowObservations -Policy $p }
-    }
+    $detectors = Get-FleetDetectorTable -Policy $policy
     $all = @(); $completed = @(); $errors = @()
     foreach ($name in @($detectors.Keys)) {
         if ($Detector -and $Detector -notcontains $name) { continue }
@@ -124,7 +127,9 @@ function Invoke-FleetHealthSweep {
             }
         }
     }
-    $late = @(Resolve-FleetUnobservedIncidents -ObservedKeys $keys -CompletedSources @($completed + 'sweeper'))
+    # 'sweeper' is NOT a completed source: a detector-error clears only when that detector runs and
+    # succeeds, never because a sweep was limited to other detectors (codex review, #346).
+    $late = @(Resolve-FleetUnobservedIncidents -ObservedKeys $keys -CompletedSources @($completed))
     $resolved += @($late | Where-Object { $_.Transition -eq 'resolved' }).Count
 
     $openNow = @((Get-FleetIncidentState).GetEnumerator() | Where-Object { $_.Value.state -eq 'open' -and $_.Key.StartsWith((Get-FleetHostName) + '|') })
@@ -141,13 +146,59 @@ function Invoke-FleetHealthSweep {
         -Message ("{0} observations, {1} bad, {2} opened, {3} resolved, {4} open, playbooks [{5}]" -f $summary.observations, $summary.bad, $opened, $resolved, $openNow.Count, ($playbooks -join ', ')) `
         -Start $started -End (Get-FleetNow) -Details @{ detector_errors = $errors }
     $null = Write-FleetLedgerEvent -LedgerEvent $ev
+    $script:FleetEffectivePolicy = $null
     return [pscustomobject]$summary
+}
+
+function Get-FleetDetectorTable {
+    param([hashtable]$Policy)
+    $detectors = [ordered]@{
+        task     = { param($p) Get-FleetTaskObservations -Policy $p }
+        disk     = { param($p) Get-FleetDiskObservations -Policy $p }
+        postgres = { param($p) Get-FleetPostgresObservations -Policy $p }
+        process  = { param($p) Get-FleetOrphanProcessObservations -Policy $p }
+        cert     = { param($p) Get-FleetCertObservations -Policy $p }
+    }
+    if ($Policy.fleet_checks) {
+        $detectors['runner'] = { param($p) Get-FleetRunnerObservations -Policy $p }
+        $detectors['workflow'] = { param($p) Get-FleetWorkflowObservations -Policy $p }
+    }
+    return $detectors
+}
+
+function Invoke-FleetDryRunSweep {
+    <#
+    Runs the detectors and returns their observations without any side effect on this host: every file a
+    detector would write (task-health report, disk samples) goes to a throwaway home that is deleted
+    afterwards, nothing is submitted, forwarded, replayed or remediated.
+    #>
+    param([hashtable]$Policy, [string[]]$Detector)
+    $savedHome = $env:FLEET_RELIABILITY_HOME
+    $realSamples = Join-Path (Join-Path (Get-FleetReliabilityHome) 'state') 'disk-samples.json'
+    $scratch = Join-Path ([IO.Path]::GetTempPath()) ('fleet-dryrun-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
+    $results = @()
+    try {
+        New-Item -ItemType Directory -Path (Join-Path $scratch 'state') -Force | Out-Null
+        if (Test-Path -LiteralPath $realSamples) { Copy-Item -LiteralPath $realSamples -Destination (Join-Path $scratch 'state') }
+        $env:FLEET_RELIABILITY_HOME = $scratch
+        $table = Get-FleetDetectorTable -Policy $Policy
+        foreach ($name in @($table.Keys)) {
+            if ($Detector -and $Detector -notcontains $name) { continue }
+            try { $results += @(& $table[$name] $Policy) }
+            catch { $results += New-FleetObservation -Source sweeper -Name $name -Check detector-error -Status failed -Severity low -Message $_.Exception.Message }
+        }
+    }
+    finally {
+        $env:FLEET_RELIABILITY_HOME = $savedHome
+        Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    return $results
 }
 
 function Read-FleetLedger {
     <# Ledger events since a time, newest files included across one rotation. #>
     param([datetime]$Since)
-    $dir = Get-FleetPath -Kind ledger
+    $dir = Get-FleetPath -Kind ledger -NoCreate
     $events = @()
     foreach ($f in @('ledger.1.jsonl', 'ledger.jsonl')) {
         $p = Join-Path $dir $f
@@ -183,7 +234,7 @@ function Send-FleetDigest {
     otherwise this host from its own ledger. Posted as a 'digest' event (agent-bus status + Discord).
     #>
     [CmdletBinding()]
-    param([string]$PolicyPath, [int]$SinceHours, [switch]$Fleet, [switch]$NoSend)
+    param([string]$PolicyPath, [int]$SinceHours, [switch]$Fleet, [switch]$NoSend, [switch]$DryRun)
     $policy = Get-FleetPolicy -Path $PolicyPath
     if (-not $SinceHours) { $SinceHours = 24; if ($policy.digest.since_hours) { $SinceHours = [int]$policy.digest.since_hours } }
     if (-not $Fleet -and $policy.digest.fleet) { $Fleet = [switch]$true }
@@ -212,11 +263,15 @@ function Send-FleetDigest {
         $lines += ("- OPEN [{0}] {1} {2}/{3} ({4}) since {5}: {6}" -f $o.severity, $o.host, $o.source, $o.name, $o.check, (ConvertTo-FleetIso (ConvertFrom-FleetIso $o.ts)).Substring(0, 16), ([string]$o.message).Substring(0, [Math]::Min(120, ([string]$o.message).Length)))
     }
     if ($stillOpen.Count -gt 12) { $lines += ("- ... and {0} more" -f ($stillOpen.Count - 12)) }
-    $last = Read-FleetJsonFile -Path (Join-Path (Get-FleetPath -Kind state) 'last-sweep.json') -Default @{}
+    $last = Read-FleetJsonFile -Path (Join-Path (Get-FleetPath -Kind state -NoCreate) 'last-sweep.json') -Default @{}
     foreach ($d in @($last.disks)) { if ($d) { $lines += ("- disk {0} {1}" -f (Get-FleetHostName), $d) } }
     $msg = ($lines -join "`n")
     $ev = New-FleetLedgerEvent -Source digest -Name $(if ($Fleet) { 'fleet' } else { Get-FleetHostName }) -Check daily -Kind digest -Status $(if ($stillOpen.Count) { 'degraded' } else { 'ok' }) -Severity info -Message $msg `
         -Details @{ opened = [int]$byKind['incident-open']; resolved = [int]$byKind['incident-resolved']; escalations = [int]$byKind['escalation']; still_open = $stillOpen.Count; hosts = $hosts }
-    $null = Write-FleetLedgerEvent -LedgerEvent $ev -NoForward:$NoSend
+    if (-not $DryRun) {
+        $script:FleetEffectivePolicy = $policy
+        try { $null = Write-FleetLedgerEvent -LedgerEvent $ev -NoForward:$NoSend }
+        finally { $script:FleetEffectivePolicy = $null }
+    }
     return [pscustomobject]@{ Message = $msg; StillOpen = $stillOpen.Count; Event = $ev }
 }

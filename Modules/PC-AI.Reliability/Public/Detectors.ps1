@@ -18,13 +18,19 @@ function Get-FleetTaskHealthData {
     $script = [IO.Path]::GetFullPath([string]$Policy.task_health_script)
     if (-not (Test-Path -LiteralPath $script)) { throw "task health script not found: $script" }
     $out = Join-Path (Get-FleetPath -Kind state) 'scheduled-task-health.json'
+    # Delete the previous report first: a child that fails after a good sweep must not leave the old
+    # report looking current (codex review, #346).
+    if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Force }
     $pwsh = (Get-Process -Id $PID).Path
     if ($pwsh -notmatch '(?i)pwsh(\.exe)?$') {
         $cmd = Get-Command pwsh -ErrorAction SilentlyContinue
         if ($cmd) { $pwsh = $cmd.Source } else { throw 'Test-ScheduledTaskHealth.ps1 needs PowerShell 7 (pwsh) and none was found' }
     }
     $r = Invoke-FleetProcess -FilePath $pwsh -ArgumentList @('-NoProfile', '-NonInteractive', '-File', $script, '-OutputJson', $out, '-StaleFactor', [string]$Policy.task_stale_factor) -TimeoutSeconds 180
-    if ($r.TimedOut -or -not (Test-Path -LiteralPath $out)) { throw "task health script failed (exit $($r.ExitCode), timed out=$($r.TimedOut))" }
+    # Exit 0 = report written (no -FailOnIssue is passed); anything else, or no fresh report, is a failure.
+    if ($r.TimedOut -or $r.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $out)) {
+        throw "task health script failed (exit $($r.ExitCode), timed out=$($r.TimedOut), report written=$(Test-Path -LiteralPath $out))"
+    }
     return (ConvertTo-FleetHashtable ([IO.File]::ReadAllText($out) | ConvertFrom-Json))
 }
 

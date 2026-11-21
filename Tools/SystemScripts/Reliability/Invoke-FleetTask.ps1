@@ -15,25 +15,52 @@
     The task's full path, e.g. '\fleet-reliability-test\demo'. It is the incident key, and the
     sweeper's task-result check uses the same key, so one failure opens one incident.
 
+.PARAMETER PolicyPath
+    Host policy (Discord recipients and floor). Default: the fleet-reliability home's policy.json.
+
+.PARAMETER DryRun
+    Print what would run and be recorded; run nothing and write nothing. `--DryRun` also works.
+
+.PARAMETER Help
+    Print this help and exit. `-h`, `-?` and `--help` also work.
+
 .EXAMPLE
     pwsh -NoProfile -File Invoke-FleetTask.ps1 -Name '\backups\pull' -FilePath pwsh.exe -ArgumentList '-NoProfile','-File','C:\jobs\pull.ps1' -LogPath C:\logs\pull.log
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][string]$Name,
-    [Parameter(Mandatory)][string]$FilePath,
+    [string]$Name,
+    [string]$FilePath,
     [string[]]$ArgumentList = @(),
     [string]$LogPath,
     [string[]]$FailurePattern,
     [int]$TimeoutMinutes = 120,
-    [ValidateSet('low', 'medium', 'high', 'critical')][string]$Severity = 'medium'
+    [ValidateSet('low', 'medium', 'high', 'critical')][string]$Severity = 'medium',
+    [string]$PolicyPath,
+    [switch]$DryRun,
+    [Alias('h', '?')]
+    [switch]$Help,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$CliArgs
 )
+$CliArgs = @($CliArgs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if ($CliArgs -contains '--help') { $Help = $true; $CliArgs = @($CliArgs | Where-Object { $_ -ne '--help' }) }
+if ($CliArgs -contains '--DryRun') { $DryRun = $true; $CliArgs = @($CliArgs | Where-Object { $_ -ne '--DryRun' }) }
+if ($Help) {
+    $m = [regex]::Match((Get-Content -LiteralPath $PSCommandPath -Raw), '(?s)<#\s*(.*?)\s*#>')
+    Write-Output $m.Groups[1].Value.Trim()
+    exit 0
+}
+if ($CliArgs.Count -gt 0) { Write-Error "Unknown argument(s): $($CliArgs -join ', ')"; exit 2 }
+if (-not $Name -or -not $FilePath) { Write-Error '-Name and -FilePath are required (see --help)'; exit 2 }
+
 $ErrorActionPreference = 'Stop'
 try {
     Import-Module (Join-Path $PSScriptRoot '..\..\..\Modules\PC-AI.Reliability\PC-AI.Reliability.psd1') -Force
-    $p = @{ Name = $Name; FilePath = $FilePath; ArgumentList = $ArgumentList; TimeoutMinutes = $TimeoutMinutes; Severity = $Severity }
+    $p = @{ Name = $Name; FilePath = $FilePath; ArgumentList = $ArgumentList; TimeoutMinutes = $TimeoutMinutes; Severity = $Severity; DryRun = $DryRun }
     if ($LogPath) { $p.LogPath = $LogPath }
     if ($FailurePattern) { $p.FailurePattern = $FailurePattern }
+    if ($PolicyPath) { $p.PolicyPath = $PolicyPath }
     $code = Invoke-FleetTask @p
     exit $code
 }

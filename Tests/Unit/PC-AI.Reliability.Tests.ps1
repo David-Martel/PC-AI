@@ -748,6 +748,93 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
+    Describe 'Review fixes and dry-run side effects' -Tag 'Portable' {
+        # Each test pins one finding of the independent review of #346, or the AGENTS.md rule that a
+        # write-capable script's -DryRun must provably write nothing.
+        BeforeEach { $script:Policy = Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json') }
+
+        It 'keeps attempt history per incident when several incidents remediate' {
+            # Protects playbook budgets: one shared state file under per-incident locks lost attempts.
+            $act = { param($x) @{ outcome = 'triggered'; detail = 'x' } }
+            Invoke-FleetPlaybook -Playbook p -IncidentKey 'k1' -Policy $script:Policy -Action $act | Should -Be 'triggered'
+            Invoke-FleetPlaybook -Playbook p -IncidentKey 'k2' -Policy $script:Policy -Action $act | Should -Be 'triggered'
+            Invoke-FleetPlaybook -Playbook p -IncidentKey 'k1' -Policy $script:Policy -Action $act | Should -Be 'budget-exhausted'
+            Invoke-FleetPlaybook -Playbook p -IncidentKey 'k2' -Policy $script:Policy -Action $act | Should -Be 'budget-exhausted'
+            @(Get-ChildItem (Join-Path (Join-Path $env:FLEET_RELIABILITY_HOME 'state') 'playbooks') -Filter '*.json').Count | Should -Be 2
+        }
+
+        It 'never reuses a previous task-health report when the child fails' {
+            # Detects false recovery: a failed child left the last good report looking current.
+            $tsh = Join-Path $TestDrive 'tsh.ps1'; Set-Content -LiteralPath $tsh -Value '# stub'
+            $script:Policy.task_health_script = $tsh
+            $stateDir = Join-Path $env:FLEET_RELIABILITY_HOME 'state'
+            New-Item -ItemType Directory -Force $stateDir | Out-Null
+            $report = Join-Path $stateDir 'scheduled-task-health.json'
+            Set-Content -LiteralPath $report -Value '{"Tasks":[]}'
+            $pw = (Get-Process -Id $PID).Path
+            if ($pw -notmatch '(?i)pwsh(\.exe)?$') { $pw = (Get-Command pwsh).Source }
+            $script:Fake.Task = @{ FilePath = $pw; ExitCode = 2; StdOut = '' }
+            { InModuleScope PC-AI.Reliability -Parameters @{ P = $script:Policy } { param($P) Get-FleetTaskHealthData -Policy $P } } | Should -Throw '*exit 2*'
+            Test-Path -LiteralPath $report | Should -BeFalse
+            $script:Fake.Task.ExitCode = 0
+            { InModuleScope PC-AI.Reliability -Parameters @{ P = $script:Policy } { param($P) Get-FleetTaskHealthData -Policy $P } } | Should -Throw '*report written=False*'
+        }
+
+        It 'clears a detector-error only when that detector itself runs successfully' {
+            # Detects false recovery: sweeps limited to other detectors used to resolve the error.
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskObservations { throw 'scheduler unavailable' }
+            Mock -ModuleName PC-AI.Reliability Get-FleetDiskObservations { @() }
+            $none = Join-Path $TestDrive 'none.json'
+            $null = Invoke-FleetHealthSweep -Detector task, disk -NoPlaybooks -PolicyPath $none
+            $null = Invoke-FleetHealthSweep -Detector disk -NoPlaybooks -PolicyPath $none
+            $null = Invoke-FleetHealthSweep -Detector disk -NoPlaybooks -PolicyPath $none
+            (Get-FleetIncidentState)['testhost|sweeper|task|detector-error'].state | Should -Be 'open'
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskObservations { @() }
+            $null = Invoke-FleetHealthSweep -Detector task -NoPlaybooks -PolicyPath $none
+            (Get-FleetIncidentState)['testhost|sweeper|task|detector-error'].state | Should -Be 'resolved'
+        }
+
+        It 'dry-run sweep returns observations and writes, sends and remediates nothing' {
+            Mock -ModuleName PC-AI.Reliability Get-FleetDiskObservations { @(New-FleetObservation -Source disk -Name 'T:' -Check disk-free -Status degraded -Severity high -Playbook 'disk-low' -PlaybookArgs @{ Drive = 'T' }) }
+            Mock -ModuleName PC-AI.Reliability Invoke-FleetPlaybookForObservation { 'requested' }
+            $o = @(Invoke-FleetHealthSweep -DryRun -Detector disk -PolicyPath (Join-Path $TestDrive 'none.json'))
+            $o.Count | Should -Be 1
+            $o[0].Status | Should -Be 'degraded'
+            Test-Path -LiteralPath $env:FLEET_RELIABILITY_HOME | Should -BeFalse
+            $script:Calls.Count | Should -Be 0
+            Should -Invoke -ModuleName PC-AI.Reliability Invoke-FleetPlaybookForObservation -Times 0 -Exactly
+        }
+
+        It 'dry-run sweep leaves the real disk samples untouched' {
+            Mock -ModuleName PC-AI.Reliability Get-FleetDriveData { @([pscustomobject]@{ Name = 'T'; FreeBytes = 10GB; TotalBytes = 500GB }) }
+            $stateDir = Join-Path $env:FLEET_RELIABILITY_HOME 'state'
+            New-Item -ItemType Directory -Force $stateDir | Out-Null
+            $samples = Join-Path $stateDir 'disk-samples.json'
+            Set-Content -LiteralPath $samples -Value '{"T":[]}'
+            $before = (Get-FileHash -LiteralPath $samples).Hash
+            $o = @(Invoke-FleetHealthSweep -DryRun -Detector disk -PolicyPath (Join-Path $TestDrive 'none.json'))
+            @($o | Where-Object { $_.Check -eq 'disk-free' }).Count | Should -Be 1
+            (Get-FileHash -LiteralPath $samples).Hash | Should -Be $before
+            @(Get-ChildItem -LiteralPath $env:FLEET_RELIABILITY_HOME -Recurse -File).Count | Should -Be 1
+        }
+
+        It 'dry-run digest builds the message and records or sends nothing' {
+            $null = Submit-FleetObservation (New-TestObservation -Name 'a')
+            $lines = @(Read-TestLedger).Count
+            $sends = @(Get-BusCall 'send').Count
+            $d = Send-FleetDigest -DryRun -PolicyPath (Join-Path $TestDrive 'none.json')
+            $d.Message | Should -Match 'opened 1'
+            @(Read-TestLedger).Count | Should -Be $lines
+            @(Get-BusCall 'send').Count | Should -Be $sends
+        }
+
+        It 'dry-run wrapper runs nothing and writes nothing' {
+            Invoke-FleetTask -Name '\t\job' -FilePath 'C:\fake\job.exe' -DryRun 6>$null | Should -Be 0
+            $script:Calls.Count | Should -Be 0
+            Test-Path -LiteralPath $env:FLEET_RELIABILITY_HOME | Should -BeFalse
+        }
+    }
+
     Describe 'Discord transport' {
         BeforeEach {
             $script:PolicyPath = Join-Path $env:FLEET_RELIABILITY_HOME 'policy.json'
@@ -766,6 +853,25 @@ Describe 'PC-AI.Reliability' {
             Send-FleetDiscordEvent -LedgerEvent $ev -Policy (Get-FleetPolicy -Path $script:PolicyPath) | Should -Be 'sent'
             $script:Posted[0].Auth | Should -Be 'Bot dummy-token-value'
             $script:Posted[0].Uri | Should -Match '/channels/123/messages$'
+        }
+
+        It 'refuses to write the token when the directory ACL cannot be restricted' {
+            # Protects the secret: the ACL is the only boundary of a LocalMachine-DPAPI blob.
+            Mock -ModuleName PC-AI.Reliability Set-FleetSecretDirAcl { 5 }
+            $secure = New-Object System.Security.SecureString
+            foreach ($ch in 'dummy-token-value'.ToCharArray()) { $secure.AppendChar($ch) }
+            { Set-FleetDiscordToken -Token $secure } | Should -Throw '*NOT written*'
+            Test-Path (Join-Path $env:FLEET_RELIABILITY_HOME 'secrets\discord-bot-token.dpapi') | Should -BeFalse
+        }
+
+        It 'sends to the recipient of the policy passed with -PolicyPath, not the default policy' {
+            # Detects the dropped-policy bug: forwarding reloaded the default policy.
+            Remove-Item -LiteralPath $script:PolicyPath -Force
+            $other = Join-Path $TestDrive 'other-policy.json'
+            '{"alerts":{"discord_min_severity":"medium","discord_channel_id":"456"}}' | Set-Content -LiteralPath $other
+            $env:DISCORD_BOT_TOKEN = 'dummy'
+            $null = Send-FleetDigest -PolicyPath $other
+            @($script:Posted | Where-Object { $_.Uri -match '/channels/456/messages$' }).Count | Should -Be 1
         }
 
         It 'skips without a token and below the severity floor, without throwing' {
@@ -853,6 +959,62 @@ Describe 'PC-AI.Reliability child processes (unmocked)' -Tag 'Portable' {
         $r = InModuleScope PC-AI.Reliability -Parameters @{ E = $exe; A = $argv } { param($E, $A) Invoke-FleetProcess -FilePath $E -ArgumentList $A -TimeoutSeconds 30 }
         $r.ExitCode | Should -Be 3
         $r.StdOut | Should -Match 'hello'
+    }
+}
+
+Describe 'PC-AI.Reliability CLIs: help and dry-run' {
+    # AGENTS.md: write-capable scripts expose -h, --help and a non-mutating -DryRun whose side effects
+    # are proven absent. These run the real scripts in a child pwsh with a throwaway home.
+    BeforeAll {
+        $script:Tools = Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Reliability'
+        $script:Pwsh = (Get-Process -Id $PID).Path
+        if ($script:Pwsh -notmatch '(?i)pwsh(\.exe)?$') { $script:Pwsh = (Get-Command pwsh).Source }
+        function script:Invoke-Cli([string]$Script, [string[]]$CliArgs) {
+            $out = & $script:Pwsh -NoProfile -NonInteractive -File (Join-Path $script:Tools $Script) @CliArgs 2>&1 | Out-String
+            return [pscustomobject]@{ Code = $LASTEXITCODE; Out = $out }
+        }
+    }
+    BeforeEach {
+        $script:SavedHome = $env:FLEET_RELIABILITY_HOME
+        $script:SavedBus = $env:AGENT_BUS_EXE
+        $env:FLEET_RELIABILITY_HOME = Join-Path $TestDrive ('cli-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
+        $env:AGENT_BUS_EXE = Join-Path $TestDrive 'no-such-agent-bus.exe'
+    }
+    AfterEach { $env:FLEET_RELIABILITY_HOME = $script:SavedHome; $env:AGENT_BUS_EXE = $script:SavedBus }
+
+    It 'prints help for -h and --help on every CLI' -Tag 'Portable' {
+        foreach ($cli in 'Invoke-FleetHealthSweep.ps1', 'Invoke-FleetTask.ps1', 'Send-FleetDigest.ps1', 'Install-FleetReliabilityTasks.ps1') {
+            foreach ($flag in '--help', '-h') {
+                $r = Invoke-Cli $cli @($flag)
+                $r.Code | Should -Be 0 -Because "$cli $flag"
+                $r.Out | Should -Match 'SYNOPSIS' -Because "$cli $flag"
+            }
+        }
+    }
+
+    It 'sweep --DryRun writes nothing under the home' -Tag 'Portable' {
+        $r = Invoke-Cli 'Invoke-FleetHealthSweep.ps1' @('--DryRun', '-Detector', 'cert')
+        $r.Code | Should -Be 0
+        $r.Out | Should -Match 'DRY RUN'
+        Test-Path -LiteralPath $env:FLEET_RELIABILITY_HOME | Should -BeFalse
+    }
+
+    It 'wrapper and digest --DryRun write nothing under the home' -Tag 'Portable' {
+        $r = Invoke-Cli 'Invoke-FleetTask.ps1' @('--DryRun', '-Name', '\t\job', '-FilePath', 'no-such-job')
+        $r.Code | Should -Be 0
+        $r = Invoke-Cli 'Send-FleetDigest.ps1' @('--DryRun')
+        $r.Code | Should -Be 0
+        $r.Out | Should -Match 'DRY RUN'
+        Test-Path -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'ledger') | Should -BeFalse
+    }
+
+    It 'installer --DryRun registers no task and changes no ACL' -Tag 'WindowsOnly' {
+        $folder = '\fleet-reliability-dryrun-test-' + [guid]::NewGuid().ToString('N').Substring(0, 6) + '\'
+        $r = Invoke-Cli 'Install-FleetReliabilityTasks.ps1' @('--DryRun', '-Digest', '-TaskFolder', $folder)
+        $r.Code | Should -Be 0
+        $r.Out | Should -Match 'What if'
+        @(Get-ScheduledTask -TaskPath $folder -ErrorAction SilentlyContinue).Count | Should -Be 0
+        Test-Path -LiteralPath $env:FLEET_RELIABILITY_HOME | Should -BeFalse
     }
 }
 

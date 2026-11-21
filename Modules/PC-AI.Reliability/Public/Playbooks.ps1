@@ -43,14 +43,16 @@ function Invoke-FleetPlaybook {
     if (-not $settings.enabled) { return 'disabled' }
     if (-not $SubjectName) { $SubjectName = $IncidentKey }
     $stateKey = '{0}|{1}' -f $Playbook, $IncidentKey
-    $statePath = Join-Path (Get-FleetPath -Kind state) 'playbooks.json'
+    # One state file per playbook+incident, covered by that pair's own lock. A single shared file under
+    # per-incident locks let concurrent sweeps overwrite each other's attempt history (codex review, #346).
+    $stateDir = Join-Path (Get-FleetPath -Kind state) 'playbooks'
+    $statePath = Join-Path $stateDir ('{0}.json' -f (Get-FleetShortHash $stateKey))
     $now = Get-FleetNow
     $ctx = @{ outcome = 'locked' }
     $acquired = $false
     $null = Invoke-FleetWithLock -LockName ('playbook-{0}' -f (Get-FleetShortHash $stateKey)) -NoWait -Acquired ([ref]$acquired) -ScriptBlock {
-        $all = Read-FleetJsonFile -Path $statePath -Default @{}
-        $st = $all[$stateKey]
-        if ($null -eq $st) { $st = @{ attempts = @(); escalated_at = $null; last_outcome = $null } }
+        $st = Read-FleetJsonFile -Path $statePath -Default $null
+        if ($null -eq $st) { $st = @{ key = $stateKey; attempts = @(); escalated_at = $null; last_outcome = $null } }
         $window = $now.AddHours(-[double]$settings.window_hours)
         $attempts = @(@($st.attempts) | Where-Object { $_ -and (ConvertFrom-FleetIso $_) -gt $window })
         if ($attempts.Count -ge [int]$settings.budget) {
@@ -85,8 +87,7 @@ function Invoke-FleetPlaybook {
                 $ctx.outcome = [string]$res.outcome
             }
         }
-        $all[$stateKey] = $st
-        Write-FleetJsonFile -Path $statePath -Value $all
+        Write-FleetJsonFile -Path $statePath -Value $st
     }
     if (-not $acquired) { return 'locked' }
     return $ctx.outcome

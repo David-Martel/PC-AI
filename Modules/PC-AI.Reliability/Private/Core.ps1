@@ -71,14 +71,15 @@ function Get-FleetReliabilityHome {
 }
 
 function Get-FleetPath {
-    param([Parameter(Mandatory)][ValidateSet('ledger', 'state', 'spool', 'quarantine', 'locks', 'secrets', 'logs')][string]$Kind)
+    # -NoCreate for read paths: a reader (digest, dry-run) must not create directories as a side effect.
+    param([Parameter(Mandatory)][ValidateSet('ledger', 'state', 'spool', 'quarantine', 'locks', 'secrets', 'logs')][string]$Kind, [switch]$NoCreate)
     $homeDir = Get-FleetReliabilityHome
     $rel = switch ($Kind) {
         'quarantine' { Join-Path 'spool' 'quarantine' }
         default { $Kind }
     }
     $dir = Join-Path $homeDir $rel
-    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    if (-not $NoCreate -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     return $dir
 }
 

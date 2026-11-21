@@ -19,8 +19,15 @@
 .PARAMETER Digest
     Also register the daily digest at -DigestTime (local time). Use -FleetDigest on exactly one host.
 
+.PARAMETER DryRun
+    Same as -WhatIf: print every change (directory ACL, task registration, backups) and make none.
+    `--DryRun` also works.
+
+.PARAMETER Help
+    Print this help and exit. `-h`, `-?` and `--help` also work.
+
 .EXAMPLE
-    pwsh -NoProfile -File Install-FleetReliabilityTasks.ps1 -WhatIf
+    pwsh -NoProfile -File Install-FleetReliabilityTasks.ps1 -DryRun
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
@@ -28,8 +35,23 @@ param(
     [switch]$Digest,
     [switch]$FleetDigest,
     [string]$DigestTime = '07:30',
-    [string]$TaskFolder = '\fleet-reliability\'
+    [string]$TaskFolder = '\fleet-reliability\',
+    [switch]$DryRun,
+    [Alias('h', '?')]
+    [switch]$Help,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$CliArgs
 )
+$CliArgs = @($CliArgs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if ($CliArgs -contains '--help') { $Help = $true; $CliArgs = @($CliArgs | Where-Object { $_ -ne '--help' }) }
+if ($CliArgs -contains '--DryRun') { $DryRun = $true; $CliArgs = @($CliArgs | Where-Object { $_ -ne '--DryRun' }) }
+if ($Help) {
+    $m = [regex]::Match((Get-Content -LiteralPath $PSCommandPath -Raw), '(?s)<#\s*(.*?)\s*#>')
+    Write-Output $m.Groups[1].Value.Trim()
+    exit 0
+}
+if ($CliArgs.Count -gt 0) { Write-Error "Unknown argument(s): $($CliArgs -join ', ')"; exit 2 }
+if ($DryRun) { $WhatIfPreference = $true }
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot '..\..\..\Modules\PC-AI.Reliability\PC-AI.Reliability.psd1') -Force
 

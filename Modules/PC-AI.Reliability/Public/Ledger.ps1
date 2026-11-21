@@ -245,14 +245,39 @@ function Set-FleetDiscordToken {
     $file = Join-Path $dir 'discord-bot-token.dpapi'
     if (-not $PSCmdlet.ShouldProcess($file, 'write LocalMachine-DPAPI Discord token')) { return }
     if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $user = [Security.Principal.WindowsIdentity]::GetCurrent().Name
-    & icacls.exe $dir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' "${user}:(OI)(CI)F" | Out-Null
+    # The ACL is the only boundary for a LocalMachine-DPAPI blob, so it must be in place and verified
+    # BEFORE the secret is written; a failed icacls aborts (codex review, #346).
+    $aclExit = Set-FleetSecretDirAcl -Path $dir
+    if ($aclExit -ne 0) { throw "could not restrict $dir (icacls exit $aclExit); token NOT written" }
+    $extra = @(Get-FleetSecretDirAclViolation -Path $dir)
+    if ($extra.Count -gt 0) { throw "$dir still grants access to: $($extra -join ', '); token NOT written" }
     Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue
     $entropy = [Text.Encoding]::UTF8.GetBytes('fleet-reliability/discord-bot-token/v1')
     $blob = [Security.Cryptography.ProtectedData]::Protect([Text.Encoding]::UTF8.GetBytes($plain), $entropy, 'LocalMachine')
     [IO.File]::WriteAllBytes($file, $blob)
     $plain = $null
     return [pscustomobject]@{ Path = $file; Bytes = $blob.Length }
+}
+
+function Set-FleetSecretDirAcl {
+    <# Restricts a directory to SYSTEM, Administrators and the current user (inheritance removed). Returns the icacls exit code. #>
+    param([Parameter(Mandatory)][string]$Path)
+    $user = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    & icacls.exe $Path /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' "${user}:(OI)(CI)F" | Out-Null
+    return $LASTEXITCODE
+}
+
+function Get-FleetSecretDirAclViolation {
+    <# Identities other than SYSTEM, Administrators and the current user that have any access to Path. #>
+    param([Parameter(Mandatory)][string]$Path)
+    $allowed = @('S-1-5-18', 'S-1-5-32-544', [Security.Principal.WindowsIdentity]::GetCurrent().User.Value)
+    $bad = @()
+    foreach ($rule in (Get-Acl -LiteralPath $Path).Access) {
+        if ($rule.AccessControlType -ne 'Allow') { continue }
+        try { $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value } catch { $sid = [string]$rule.IdentityReference }
+        if ($allowed -notcontains $sid) { $bad += [string]$rule.IdentityReference }
+    }
+    return $bad
 }
 
 function Invoke-FleetDiscordPost {
@@ -268,6 +293,9 @@ function Send-FleetDiscordEvent {
     Returns 'sent', 'skipped(<why>)' or 'failed(<type>)'; never throws.
     #>
     param([Parameter(Mandatory)][System.Collections.IDictionary]$LedgerEvent, [hashtable]$Policy)
+    # The entry points (sweep, digest, wrapper) set the policy they loaded from -PolicyPath, so forwarding
+    # deep inside the incident code uses the same recipients and floor (codex review, #346).
+    if (-not $Policy) { $Policy = $script:FleetEffectivePolicy }
     if (-not $Policy) { $Policy = Get-FleetPolicy }
     $alerts = $Policy.alerts
     $min = 'medium'

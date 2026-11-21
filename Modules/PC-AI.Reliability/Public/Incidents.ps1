@@ -42,7 +42,7 @@ function Get-FleetIncidentKey {
 }
 
 function Get-FleetIncidentState {
-    $path = Join-Path (Get-FleetPath -Kind state) 'incidents.json'
+    $path = Join-Path (Get-FleetPath -Kind state -NoCreate) 'incidents.json'
     return (Read-FleetJsonFile -Path $path -Default @{})
 }
 

@@ -318,6 +318,15 @@ Describe 'PC-AI.Reliability' {
             @(Get-FleetTaskObservations -Policy $script:Policy | Where-Object { $_.Name -eq '\Vendor\noise' }).Count | Should -BeGreaterThan 0
         }
 
+        It 'limits a staged rollout to task_scope when it is set' {
+            # Protects a staged install: only the named tasks may open incidents until the owner widens it.
+            $script:Policy.task_scope = @('\healthy')
+            $names = @(Get-FleetTaskObservations -Policy $script:Policy | ForEach-Object { $_.Name } | Sort-Object -Unique)
+            $names | Should -Be @('\healthy')
+            $script:Policy.task_scope = @()
+            @(Get-FleetTaskObservations -Policy $script:Policy | Where-Object { $_.Name -eq '\broken' }).Count | Should -BeGreaterThan 0
+        }
+
         It 'flags a task that must be enabled but is Disabled and never ran' {
             # Positive control for an offsite backup task found Disabled and never run.
             $script:Policy.expect_enabled = @('\off')

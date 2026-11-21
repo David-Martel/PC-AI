@@ -271,6 +271,7 @@ function Get-FleetPolicy {
         task_health_script    = (Join-Path $PSScriptRoot '..\..\..\Tools\Test-ScheduledTaskHealth.ps1')
         task_stale_factor     = 2
         task_include          = @()
+        task_scope            = @()
         task_exclude          = @('\Microsoft\*')
         task_ok_codes         = @('0x0', '0x41301', '0x41325', '0x800710E0')
         task_severity         = @{}

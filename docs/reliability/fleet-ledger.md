@@ -98,6 +98,9 @@ that does not parse is quarantined.
 
 ## Detectors
 
+Policy `task_scope` (a list of task-path wildcards) limits the task detectors to those tasks only, for a
+staged rollout; empty means every local task.
+
 | detector | fires on | resolves on |
 |---|---|---|
 | task result (`run`) | non-zero last result from [`Test-ScheduledTaskHealth.ps1`](../../Tools/Test-ScheduledTaskHealth.ps1), which is reused rather than re-derived; benign codes in `task_ok_codes` (IgnoreNew `0x800710E0`) do not count, and never mask a launcher failure | next good result |

@@ -153,6 +153,8 @@ function Get-FleetTaskObservations {
         $full = '{0}{1}' -f $t.TaskPath, $t.TaskName
         $byName[$full] = $t
         $included = ($t.Owner -eq 'Local') -or (Test-FleetWildcard $full $Policy.task_include)
+        # task_scope narrows a staged rollout to the named tasks only (empty = no narrowing).
+        if (@($Policy.task_scope | Where-Object { $_ }).Count -gt 0) { $included = Test-FleetWildcard $full $Policy.task_scope }
         if (-not $included -or (Test-FleetWildcard $full $Policy.task_exclude)) { continue }
         $sev = 'medium'
         foreach ($k in @($sevMap.Keys)) { if ($full -like $k) { $sev = [string]$sevMap[$k] } }
@@ -212,6 +214,7 @@ function Get-FleetTaskObservations {
         if ($p.State -eq 'Disabled' -or $p.LogonType -notmatch '^Interactive') { continue }
         $t = $byName[$p.FullName]
         $included = ($t -and $t.Owner -eq 'Local') -or (Test-FleetWildcard $p.FullName $Policy.task_include)
+        if (@($Policy.task_scope | Where-Object { $_ }).Count -gt 0) { $included = Test-FleetWildcard $p.FullName $Policy.task_scope }
         if (-not $included -or (Test-FleetWildcard $p.FullName $Policy.task_exclude)) { continue }
         $uid = ([string]$p.UserId).ToLowerInvariant()
         $present = $false

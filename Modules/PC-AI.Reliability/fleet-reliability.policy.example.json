@@ -2,6 +2,7 @@
   "_comment": "Copy to %ProgramData%\\fleet-reliability\\policy.json and edit. Every key is optional; see docs/reliability/fleet-ledger.md. Paths may use {profile} (real user profile) and {home} (fleet-reliability home).",
   "task_stale_factor": 2,
   "task_include": ["\\backups\\*"],
+  "task_scope": [],
   "task_exclude": ["\\Microsoft\\*"],
   "task_ok_codes": ["0x0", "0x41301", "0x41325", "0x800710E0"],
   "task_severity": { "\\backups\\*": "high" },

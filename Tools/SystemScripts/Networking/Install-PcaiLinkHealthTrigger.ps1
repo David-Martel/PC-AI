@@ -228,6 +228,8 @@ Documentation=https://github.com/David-Martel/PC-AI/blob/main/docs/usb4/link-hea
 
 [Service]
 Type=oneshot
+# The user manager's PATH lacks ~/.local/bin and ~/bin, where agent-bus and pcai-tb live.
+Environment=PATH=%h/.local/bin:%h/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=$Pwsh -NoLogo -NoProfile -NonInteractive -File $BinDir/Invoke-PcaiLinkHealth.ps1 -Trigger Systemd
 TimeoutStartSec=300
 # Exit 2 means the check ran and found something to report; it is not a unit failure.
@@ -266,6 +268,7 @@ Description=PC-AI profile and tooling health
 
 [Service]
 Type=oneshot
+Environment=PATH=%h/.local/bin:%h/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=$Pwsh -NoLogo -NoProfile -NonInteractive -File $BinDir/Invoke-PcaiToolingHealth.ps1 -Trigger Systemd
 TimeoutStartSec=900
 SuccessExitStatus=2

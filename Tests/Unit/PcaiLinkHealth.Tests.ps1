@@ -262,6 +262,7 @@ Describe 'Trigger definitions' -Tag 'Unit', 'Portable' {
         $units = Get-PcaiSystemdUnit -BinDir '/opt/x' -Pwsh '/usr/bin/pwsh' -Components @('LinkHealth', 'ToolingHealth')
         $units.Keys | Should -Contain 'pcai-link-health-monitor.service'
         $units['pcai-link-health.service'] | Should -Match 'SuccessExitStatus=2'
+        $units['pcai-tooling-health.service'] | Should -Match 'Environment=PATH=%h/.local/bin:%h/bin:'
         $units['pcai-link-health.timer'] | Should -Match 'OnUnitActiveSec=30min'
         $units['pcai-tooling-health.timer'] | Should -Match 'OnUnitActiveSec=4h'
     }

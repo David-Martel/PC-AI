@@ -145,7 +145,10 @@ function Measure-PcaiProfileLoad {
     [CmdletBinding()]
     param([int]$TimeoutSeconds = 60)
     $pwsh = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
-    $r = Invoke-PcaiToolingCommand -FilePath $pwsh -ArgumentList @('-NoLogo', '-Command', 'exit 0') -TimeoutSeconds $TimeoutSeconds
+    # A profile that fails at runtime still lets `exit 0` succeed, so the child reports the errors
+    # the chain left in $Error and exits 3 when there are any.
+    $probe = 'if ($Error.Count) { $Error | Select-Object -Last 3 | ForEach-Object { [Console]::Error.WriteLine("profile error: " + $_.ToString()) }; exit 3 }; exit 0'
+    $r = Invoke-PcaiToolingCommand -FilePath $pwsh -ArgumentList @('-NoLogo', '-Command', $probe) -TimeoutSeconds $TimeoutSeconds
     $firstErr = (@($r.Stderr -split "`n" | Where-Object { $_.Trim() }) | Select-Object -First 1)
     return [pscustomobject]@{ Seconds = $r.Seconds; ExitCode = $r.ExitCode; TimedOut = $r.TimedOut; FirstError = $firstErr }
 }
@@ -301,6 +304,8 @@ function Get-PcaiRepoState {
     $def = (& $git @('symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD')).Stdout.Trim() -replace '^origin/', ''
     if (-not $def) { $def = if ((& $git @('rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main')).ExitCode -eq 0) { 'main' } else { 'master' } }
     $branch = (& $git @('branch', '--show-current')).Stdout.Trim()
+    $head = (& $git @('rev-parse', 'HEAD')).Stdout.Trim()
+    $target = (& $git @('rev-parse', "refs/remotes/origin/$def")).Stdout.Trim()
     $tracked = @((& $git @('status', '--porcelain=v1', '--untracked-files=no')).Stdout -split "`n" | Where-Object { $_.Trim() }).Count
     $untracked = @((& $git @('ls-files', '--others', '--exclude-standard', '--directory')).Stdout -split "`n" | Where-Object { $_.Trim() }).Count
     $counts = (& $git @('rev-list', '--left-right', '--count', "HEAD...refs/remotes/origin/$def")).Stdout.Trim() -split '\s+'
@@ -332,10 +337,28 @@ function Get-PcaiRepoState {
             [pscustomobject]@{ Path = $_.Path; Branch = $_.Branch; Locked = $_.Locked; NeedsAction = [bool]$why; Why = ($why -join ', ') }
         })
     return [pscustomobject]@{
-        Path = $Repo.Path; Slug = $Repo.Slug; Name = $Repo.Name; DefaultBranch = $def; Branch = $branch
+        Path = $Repo.Path; Slug = $Repo.Slug; Name = $Repo.Name; DefaultBranch = $def; Branch = $branch; Head = $head; Target = $target
         TrackedChanges = $tracked; Untracked = $untracked; Ahead = $ahead; Behind = $behind; Busy = $busy
         FetchOk = $fetchOk; Fetch = $fetchNote; Worktrees = $linked; StaleBranches = $staleBranches
     }
+}
+
+function Test-PcaiRepoUnchanged {
+    <#
+    .SYNOPSIS
+    Re-reads a checkout immediately before a fast-forward and confirms it still matches the
+    sampled state: same branch, same HEAD, no tracked changes and no operation in progress.
+    `git merge --ff-only` only refuses a non-fast-forward; it does not check the branch.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$State)
+    $git = { param([string[]]$a) Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList (@('-C', $State.Path) + $a) -TimeoutSeconds 30 }
+    if ((& $git @('branch', '--show-current')).Stdout.Trim() -ne $State.Branch) { return 'branch changed' }
+    if ((& $git @('rev-parse', 'HEAD')).Stdout.Trim() -ne $State.Head) { return 'HEAD moved' }
+    if (@((& $git @('status', '--porcelain=v1', '--untracked-files=no')).Stdout -split "`n" | Where-Object { $_.Trim() }).Count) { return 'tracked changes appeared' }
+    $gitDir = Join-Path $State.Path '.git'
+    if (@('MERGE_HEAD', 'rebase-merge', 'rebase-apply', 'CHERRY_PICK_HEAD', 'REVERT_HEAD', 'index.lock' | Where-Object { Test-Path -LiteralPath (Join-Path $gitDir $_) }).Count) { return 'operation in progress' }
+    return $null
 }
 
 function Get-PcaiOpenPullRequest {
@@ -357,7 +380,10 @@ function Format-PcaiToolingSummary {
     $missing = @($p.Chain | Where-Object { $_.Required -and -not $_.Exists } | ForEach-Object Path)
     $profileText = if (@($p.Chain | Where-Object { $_.Exists -and $_.ParseErrors }).Count) { 'PARSE ERRORS' } else { 'parses' }
     if ($missing) { $profileText += " MISSING $($missing -join ', ')" }
-    if ($p.Load) { $profileText += " load=$($p.Load.Seconds)s" + $(if ($p.Load.ExitCode -ne 0) { " exit=$($p.Load.ExitCode)" } else { '' }) }
+    if ($p.Load) {
+        $profileText += " load=$($p.Load.Seconds)s"
+        if ($p.Load.ExitCode -ne 0) { $profileText += " exit=$($p.Load.ExitCode)" + $(if ($p.Load.FirstError) { " ($($p.Load.FirstError))" } else { '' }) }
+    }
     if ($null -ne $p.ShimMatchesSource) { $profileText += " shim=$(if ($p.ShimMatchesSource) { 'matches PC-AI source' } else { 'DRIFT in ' + (@($p.ShimDrift) -join ', ') })" }
     $tools = @($Status.tools)
     $bad = @($tools | Where-Object { -not $_.Ok } | ForEach-Object Name)
@@ -365,7 +391,7 @@ function Format-PcaiToolingSummary {
     $repos = @($Status.repos)
     $ff = @($repos | Where-Object Action -eq 'FastForwarded' | ForEach-Object { "$($_.Name)" })
     $wouldFf = @($repos | Where-Object Action -eq 'FastForward' | ForEach-Object { "$($_.Name) (behind $($_.Behind))" })
-    $off = @($repos | Where-Object Action -in @('OffDefault', 'Detached', 'Dirty', 'Diverged', 'Ahead', 'Busy', 'FetchFailed', 'FastForwardFailed') | ForEach-Object { "$($_.Name)@$($_.Branch)($($_.Action))" })
+    $off = @($repos | Where-Object Action -in @('OffDefault', 'Detached', 'Dirty', 'Diverged', 'Ahead', 'Busy', 'FetchFailed', 'FastForwardFailed', 'Changed') | ForEach-Object { "$($_.Name)@$($_.Branch)($($_.Action))" })
     $wt = @($repos | ForEach-Object { @($_.Worktrees | Where-Object NeedsAction) }).Count
     $stale = @($repos | ForEach-Object { @($_.StaleBranches) }).Count
     $prs = @($Status.pullRequests | ForEach-Object { @($_.Items) }).Count
@@ -413,7 +439,12 @@ function Invoke-PcaiToolingHealth {
             $action = Get-PcaiRepoAction -State $state
             $note = $null
             if ($action -eq 'FastForward' -and -not $SkipFastForward -and -not $IsDryRun) {
-                $m = Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList @('-C', $repo.Path, 'merge', '--ff-only', '--quiet', "refs/remotes/origin/$($state.DefaultBranch)") -TimeoutSeconds 120
+                $changedSince = Test-PcaiRepoUnchanged -State $state
+                if ($changedSince) { $action = 'Changed'; $note = "not fast-forwarded: $changedSince since sampling" }
+            }
+            if ($action -eq 'FastForward' -and -not $SkipFastForward -and -not $IsDryRun) {
+                # Merge the exact commit that was sampled, not whatever the ref points at now.
+                $m = Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList @('-C', $repo.Path, 'merge', '--ff-only', '--quiet', $state.Target) -TimeoutSeconds 120
                 if ($m.ExitCode -eq 0) { $action = 'FastForwarded'; $note = "behind $($state.Behind)" } else { $action = 'FastForwardFailed'; $note = ($m.Stderr.Trim() -split "`n")[0] }
             }
             $state | Add-Member -NotePropertyName Action -NotePropertyValue $action -PassThru | Add-Member -NotePropertyName Note -NotePropertyValue $note -PassThru

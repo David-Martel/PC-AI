@@ -65,6 +65,49 @@ Describe 'Summary reports every repository outcome and missing profile files' -T
     }
 }
 
+Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
+    BeforeEach {
+        $script:behind = [pscustomobject]@{
+            Path = 'C:\fake\PC-AI'; Slug = 'David-Martel/PC-AI'; Name = 'PC-AI'; DefaultBranch = 'main'; Branch = 'main'; Head = 'aaa'; Target = 'bbb'
+            TrackedChanges = 0; Untracked = 0; Ahead = 0; Behind = 2; Busy = $false; FetchOk = $true; Fetch = 'ok'; Worktrees = @(); StaleBranches = @()
+        }
+        Mock Find-PcaiToolingRepo { , @([pscustomobject]@{ Path = 'C:\fake\PC-AI'; Slug = 'David-Martel/PC-AI'; Name = 'PC-AI' }) }
+        Mock Invoke-PcaiParallel { , @($script:behind) }
+        Mock Get-PcaiProfileChain { , @() }
+        Mock Measure-PcaiProfileLoad { [pscustomobject]@{ Seconds = 0.5; ExitCode = 0; TimedOut = $false; FirstError = $null } }
+        Mock Test-PcaiToolShim { , @([pscustomobject]@{ Name = 'git'; Path = 'git'; Length = 1; Ok = $true; Help = 'usage'; Shadowed = @() }) }
+        Mock Get-PcaiOpenPullRequest { , @() }
+        Mock Invoke-PcaiToolingCommand { [pscustomobject]@{ ExitCode = 0; Stdout = ''; Stderr = ''; TimedOut = $false; Seconds = 0 } }
+    }
+    It 'writes no file, merges nothing, queries no PR and posts nothing with -IsDryRun' {
+        $root = Join-Path $TestDrive 'dry'
+        $status = @(Invoke-PcaiToolingHealth -RunTrigger Event -Root $root -IsDryRun) | Where-Object { $_ -isnot [string] }
+        Test-Path -LiteralPath $root | Should -BeFalse
+        $status.repos[0].Action | Should -Be 'FastForward'
+        Should -Invoke Get-PcaiOpenPullRequest -Times 0 -Exactly
+        Should -Invoke Invoke-PcaiToolingCommand -Times 0 -Exactly -ParameterFilter { $ArgumentList -contains 'merge' -or $ArgumentList -contains 'send' }
+        Should -Invoke Invoke-PcaiParallel -Times 1 -Exactly -ParameterFilter { $Argument.NoFetch -eq $true }
+    }
+    It 'does not fast-forward a checkout whose branch changed after sampling' {
+        Mock Test-PcaiRepoUnchanged { 'branch changed' }
+        $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'moved') -SkipBus) | Where-Object { $_ -isnot [string] }
+        $status.repos[0].Action | Should -Be 'Changed'
+        Should -Invoke Invoke-PcaiToolingCommand -Times 0 -Exactly -ParameterFilter { $ArgumentList -contains 'merge' }
+    }
+    It 'fast-forwards to the sampled commit when nothing changed' {
+        Mock Test-PcaiRepoUnchanged { $null }
+        $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'ff') -SkipBus) | Where-Object { $_ -isnot [string] }
+        $status.repos[0].Action | Should -Be 'FastForwarded'
+        Should -Invoke Invoke-PcaiToolingCommand -Times 1 -Exactly -ParameterFilter { $ArgumentList -contains 'merge' -and $ArgumentList -contains 'bbb' }
+    }
+    It 'raises the severity when the profile load reports runtime errors' {
+        Mock Measure-PcaiProfileLoad { [pscustomobject]@{ Seconds = 0.5; ExitCode = 3; TimedOut = $false; FirstError = 'profile error: Import-Module failed' } }
+        $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'err') -SkipBus -SkipFastForward) | Where-Object { $_ -isnot [string] }
+        $status.severity | Should -Be 'warn'
+        $status.summary | Should -Match 'exit=3 \(profile error: Import-Module failed\)'
+    }
+}
+
 Describe 'Tool shim resolution' -Tag 'Unit', 'Portable' {
     It 'resolves pwsh and reports a missing tool as not ok' {
         $r = Test-PcaiToolShim -Name @('pwsh', 'pcai-no-such-tool-0b9f') -ResolveOnly

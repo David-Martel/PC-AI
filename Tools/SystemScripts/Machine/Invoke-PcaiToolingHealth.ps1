@@ -114,12 +114,17 @@ function Get-PcaiProfileChain {
     [CmdletBinding()]
     param()
     $paths = [Collections.Generic.List[string]]::new()
+    # $PROFILE.CurrentUserCurrentHost: the shim pwsh actually loads (OneDrive Documents when
+    # Known Folder Move is on). The other Documents copy is reported but optional.
+    $active = $PROFILE.CurrentUserCurrentHost
+    if ($active) { $paths.Add($active) }
     if ($IsWindows) {
         $docs = [Environment]::GetFolderPath('MyDocuments')
         foreach ($p in @((Join-Path $docs 'PowerShell\Microsoft.PowerShell_profile.ps1'), (Join-Path $HOME 'Documents\PowerShell\Microsoft.PowerShell_profile.ps1'),
                 (Join-Path $HOME 'OneDrive\Documents\PowerShell\Microsoft.PowerShell_profile.ps1'))) { if ($p -notin $paths) { $paths.Add($p) } }
     }
-    $paths.Add((Join-Path $HOME '.config/powershell/Microsoft.PowerShell_profile.ps1'))
+    $private = Join-Path $HOME '.config/powershell/Microsoft.PowerShell_profile.ps1'
+    if ($private -ne $active) { $paths.Add($private) }
     return , @(foreach ($p in $paths) {
             $exists = Test-Path -LiteralPath $p -PathType Leaf
             $errors = $null
@@ -130,6 +135,7 @@ function Get-PcaiProfileChain {
                 ParseErrors = if ($exists) { @($errors).Count } else { $null }
                 Sha256      = if ($exists) { (Get-FileHash -LiteralPath $p).Hash.ToLowerInvariant() } else { $null }
                 Role        = if ($p -like '*.config*') { 'private' } else { 'shim' }
+                Required    = ($p -eq $active) -or ($p -like '*.config*')
             }
         })
 }
@@ -348,7 +354,9 @@ function Format-PcaiToolingSummary {
     [CmdletBinding()]
     param([Parameter(Mandatory)]$Status)
     $p = $Status.profile
+    $missing = @($p.Chain | Where-Object { $_.Required -and -not $_.Exists } | ForEach-Object Path)
     $profileText = if (@($p.Chain | Where-Object { $_.Exists -and $_.ParseErrors }).Count) { 'PARSE ERRORS' } else { 'parses' }
+    if ($missing) { $profileText += " MISSING $($missing -join ', ')" }
     if ($p.Load) { $profileText += " load=$($p.Load.Seconds)s" + $(if ($p.Load.ExitCode -ne 0) { " exit=$($p.Load.ExitCode)" } else { '' }) }
     if ($null -ne $p.ShimMatchesSource) { $profileText += " shim=$(if ($p.ShimMatchesSource) { 'matches PC-AI source' } else { 'DRIFT in ' + (@($p.ShimDrift) -join ', ') })" }
     $tools = @($Status.tools)
@@ -356,14 +364,18 @@ function Format-PcaiToolingSummary {
     $shadow = @($tools | Where-Object { @($_.Shadowed | Where-Object { -not $_.SameAsFirst }).Count } | ForEach-Object Name)
     $repos = @($Status.repos)
     $ff = @($repos | Where-Object Action -eq 'FastForwarded' | ForEach-Object { "$($_.Name)" })
-    $off = @($repos | Where-Object Action -in @('OffDefault', 'Detached', 'Dirty', 'Diverged', 'Ahead', 'Busy', 'FetchFailed') | ForEach-Object { "$($_.Name)@$($_.Branch)($($_.Action))" })
+    $wouldFf = @($repos | Where-Object Action -eq 'FastForward' | ForEach-Object { "$($_.Name) (behind $($_.Behind))" })
+    $off = @($repos | Where-Object Action -in @('OffDefault', 'Detached', 'Dirty', 'Diverged', 'Ahead', 'Busy', 'FetchFailed', 'FastForwardFailed') | ForEach-Object { "$($_.Name)@$($_.Branch)($($_.Action))" })
     $wt = @($repos | ForEach-Object { @($_.Worktrees | Where-Object NeedsAction) }).Count
     $stale = @($repos | ForEach-Object { @($_.StaleBranches) }).Count
     $prs = @($Status.pullRequests | ForEach-Object { @($_.Items) }).Count
     $text = "TOOLING-HEALTH $($Status.host) [$($Status.trigger)] severity=$($Status.severity) profile: $profileText; tools ok $(@($tools | Where-Object Ok).Count)/$($tools.Count)"
     if ($bad) { $text += " (failing: $($bad -join ', '))" }
     if ($shadow) { $text += " (shadowed by a different binary: $($shadow -join ', '))" }
-    $text += "; repos $($repos.Count): fast-forwarded [$($ff -join ', ')], needs owner [$($off -join ', ')]; worktrees needing action $wt; stale branches $stale; my open PRs $prs"
+    $text += "; repos $($repos.Count): fast-forwarded [$($ff -join ', ')]"
+    if ($wouldFf) { $text += ", would fast-forward [$($wouldFf -join ', ')]" }
+    $text += ", needs owner [$($off -join ', ')]; worktrees needing action $wt; stale branches $stale; my open PRs $prs"
+    if ($Status.quick) { $text += ' (quick: repositories not checked)' }
     return $text
 }
 
@@ -377,7 +389,7 @@ function Invoke-PcaiToolingHealth {
     if (-not $Config) { $Config = Join-Path $Root 'config.json' }
     $cfg = Read-PcaiToolingConfig -Path $Config
     $hostName = Get-PcaiToolingHostName
-    if (-not $IsDryRun) {
+    if (-not $IsDryRun -and -not $IsQuick) {
         $null = New-Item -ItemType Directory -Force -Path $Root
         $lastRun = Join-Path $Root 'last-run.txt'
         if ($RunTrigger -ne 'Manual' -and $MinInterval -gt 0 -and (Test-Path -LiteralPath $lastRun)) {
@@ -389,19 +401,6 @@ function Invoke-PcaiToolingHealth {
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $chain = Get-PcaiProfileChain
     $found = Find-PcaiToolingRepo -Config $cfg
-    $shimMatches = $null
-    $shimDrift = @()
-    $pcai = @($found | Where-Object Name -eq 'PC-AI') | Select-Object -First 1
-    if ($pcai) {
-        $src = Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList @('-C', $pcai.Path, 'show', 'refs/remotes/origin/HEAD:Config/PowerShell/Profile/Microsoft.PowerShell_profile.ps1') -TimeoutSeconds 10
-        if ($src.ExitCode -eq 0) {
-            $norm = { param([string]$t) ($t -replace "`r`n", "`n").TrimEnd() }
-            $srcText = & $norm $src.Stdout
-            $shims = @($chain | Where-Object { $_.Role -eq 'shim' -and $_.Exists })
-            $shimDrift = @($shims | Where-Object { (& $norm (Get-Content -LiteralPath $_.Path -Raw)) -ne $srcText } | ForEach-Object Path)
-            if ($shims) { $shimMatches = -not $shimDrift.Count }
-        }
-    }
     $load = if ($IsQuick) { $null } else { Measure-PcaiProfileLoad }
     $tools = Test-PcaiToolShim -Name @($cfg.tools) -ResolveOnly:$IsQuick
     # -Quick covers the profile chain and tool shims only, which stay under about 2 s; repository
@@ -421,9 +420,31 @@ function Invoke-PcaiToolingHealth {
         })
     $prs = if ($IsQuick -or $IsDryRun) { @() } else { Get-PcaiOpenPullRequest -Slug @($found | ForEach-Object Slug) }
 
+    # Compare the deployed shims with the PC-AI source after the fetch above, at the same default
+    # branch the repository check resolved (origin/HEAD, else main, else master).
+    $shimMatches = $null
+    $shimDrift = @()
+    $pcai = @($found | Where-Object Name -eq 'PC-AI') | Select-Object -First 1
+    if ($pcai) {
+        $pcaiState = @($repos | Where-Object Path -eq $pcai.Path) | Select-Object -First 1
+        $ref = if ($pcaiState) { "refs/remotes/origin/$($pcaiState.DefaultBranch)" } else { 'refs/remotes/origin/HEAD' }
+        $src = Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList @('-C', $pcai.Path, 'show', "${ref}:Config/PowerShell/Profile/Microsoft.PowerShell_profile.ps1") -TimeoutSeconds 10
+        if ($src.ExitCode -ne 0 -and -not $pcaiState) {
+            $src = Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList @('-C', $pcai.Path, 'show', 'refs/remotes/origin/main:Config/PowerShell/Profile/Microsoft.PowerShell_profile.ps1') -TimeoutSeconds 10
+        }
+        if ($src.ExitCode -eq 0) {
+            $norm = { param([string]$t) ($t -replace "`r`n", "`n").TrimEnd() }
+            $srcText = & $norm $src.Stdout
+            $shims = @($chain | Where-Object { $_.Role -eq 'shim' -and $_.Exists })
+            $shimDrift = @($shims | Where-Object { (& $norm (Get-Content -LiteralPath $_.Path -Raw)) -ne $srcText } | ForEach-Object Path)
+            if ($shims) { $shimMatches = -not $shimDrift.Count }
+        }
+    }
+
     $severity = 'ok'
     if (@($chain | Where-Object { $_.Exists -and $_.ParseErrors }).Count -or @($tools | Where-Object { -not $_.Ok -and $_.Name -in @('git', 'pwsh') }).Count) { $severity = 'fail' }
     elseif (($load -and ($load.ExitCode -ne 0 -or $load.Seconds -gt $cfg.profileLoadBudgetSec)) -or $shimMatches -eq $false -or
+        @($chain | Where-Object { $_.Required -and -not $_.Exists }).Count -or
         @($tools | Where-Object { -not $_.Ok }).Count -or @($repos | Where-Object Action -in @('FastForwardFailed', 'FetchFailed', 'Diverged')).Count) { $severity = 'warn' }
 
     $status = [ordered]@{
@@ -442,11 +463,13 @@ function Invoke-PcaiToolingHealth {
     }
     $status.fingerprint = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($facts | ConvertTo-Json -Compress -Depth 4)))).ToLowerInvariant()
     $status.bus = 'not posted'
-    if (-not $IsDryRun) {
+    # A quick or no-bus run reports only: it must not overwrite the scheduled pass's status,
+    # debounce stamp or notification fingerprint.
+    if (-not $IsDryRun -and -not $IsQuick -and -not $SkipBus) {
         $fp = Join-Path $Root 'last-fingerprint.txt'
         $prev = if (Test-Path -LiteralPath $fp) { (Get-Content -LiteralPath $fp -Raw).Trim() } else { '' }
         $changed = $prev -ne $status.fingerprint
-        if (($changed -or $Notify -or @($repos | Where-Object Action -eq 'FastForwarded').Count) -and -not $SkipBus -and $cfg.busEnabled -and -not $IsQuick) {
+        if (($changed -or $Notify -or @($repos | Where-Object Action -eq 'FastForwarded').Count) -and $cfg.busEnabled) {
             $exe = if ($IsWindows) { 'agent-bus.exe' } else { 'agent-bus' }
             $bus = @((Get-Command agent-bus -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 | ForEach-Object Source), (Join-Path $HOME "bin/$exe"), (Join-Path $HOME ".local/bin/$exe")) |
                 Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) } | Select-Object -First 1
@@ -459,7 +482,7 @@ function Invoke-PcaiToolingHealth {
         $tmp = Join-Path $Root "status.json.tmp-$PID"
         [IO.File]::WriteAllText($tmp, ([pscustomobject]$status | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
         Move-Item -LiteralPath $tmp -Destination (Join-Path $Root 'status.json') -Force
-        if ($status.bus -in @('posted', 'unchanged') -or $SkipBus -or -not $cfg.busEnabled -or $IsQuick) { Set-Content -LiteralPath $fp -Value $status.fingerprint -NoNewline }
+        if ($status.bus -in @('posted', 'unchanged') -or -not $cfg.busEnabled) { Set-Content -LiteralPath $fp -Value $status.fingerprint -NoNewline }
     }
     Write-Output $summary
     return [pscustomobject]$status

@@ -36,6 +36,35 @@ Describe 'Repository discovery helpers' -Tag 'Unit', 'Portable' {
     }
 }
 
+Describe 'Summary reports every repository outcome and missing profile files' -Tag 'Unit', 'Portable' {
+    BeforeAll {
+        function New-Status {
+            param([object[]]$Repos = @(), [object[]]$Chain = @())
+            [pscustomobject]@{
+                host = 'h'; trigger = 'Manual'; severity = 'warn'; quick = $false
+                profile = [pscustomobject]@{ Chain = $Chain; ShimMatchesSource = $null; ShimDrift = @(); Load = $null }
+                tools = @(); repos = $Repos; pullRequests = @()
+            }
+        }
+        function New-Repo { param([string]$Name, [string]$Action) [pscustomobject]@{ Name = $Name; Branch = 'main'; Action = $Action; Behind = 2; Worktrees = @(); StaleBranches = @() } }
+    }
+    It 'lists a checkout that would be fast-forwarded (-NoFastForward, -DryRun)' {
+        Format-PcaiToolingSummary -Status (New-Status -Repos @(New-Repo 'PC-AI' 'FastForward')) | Should -Match 'would fast-forward \[PC-AI \(behind 2\)\]'
+    }
+    It 'lists a failed fast-forward under needs owner' {
+        Format-PcaiToolingSummary -Status (New-Status -Repos @(New-Repo 'PC-AI' 'FastForwardFailed')) | Should -Match 'needs owner \[PC-AI@main\(FastForwardFailed\)\]'
+    }
+    It 'names a missing required profile file' {
+        $chain = @([pscustomobject]@{ Path = 'C:\x\private.ps1'; Exists = $false; ParseErrors = $null; Required = $true; Role = 'private' })
+        Format-PcaiToolingSummary -Status (New-Status -Chain $chain) | Should -Match 'MISSING C:\\x\\private.ps1'
+    }
+    It 'marks the active profile and the private profile as required' {
+        $chain = Get-PcaiProfileChain
+        ($chain | Where-Object Path -eq $PROFILE.CurrentUserCurrentHost).Required | Should -BeTrue
+        @($chain | Where-Object Role -eq 'private').Required | Should -Not -Contain $false
+    }
+}
+
 Describe 'Tool shim resolution' -Tag 'Unit', 'Portable' {
     It 'resolves pwsh and reports a missing tool as not ok' {
         $r = Test-PcaiToolShim -Name @('pwsh', 'pcai-no-such-tool-0b9f') -ResolveOnly

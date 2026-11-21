@@ -104,10 +104,11 @@ pwsh -NoProfile -File Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1 -
   `Dirty`, `Busy`, `Ahead`, `Diverged`, `FetchFailed`) is reported, never changed. If
   someone switches branch or detaches HEAD between the last check and the merge, the merge
   can move that ref instead. The merge carries a per-run tag in its reflog message
-  (`GIT_REFLOG_ACTION`), so the check undoes only a move whose newest reflog entry is its own,
-  back to the value that entry replaced (`RolledBack`). A ref it did not move is left alone
-  (`Changed`), and one it moved that changed again since is left for its owner
-  (`FastForwardMisapplied`). Linked
+  (`GIT_REFLOG_ACTION`), so the check knows exactly what it moved. A ref it did not move is
+  reported as `Changed`. A ref it moved is reported as `FastForwardMisapplied` (severity warn),
+  with that ref's previous tip and the `git update-ref` / `git reset --keep` command that
+  undoes it. Nothing is reset automatically: a reset acts on whatever is checked out when it
+  runs, and the person may have switched again. Branch names compare case-sensitively. Linked
   worktrees that are merged, whose upstream is gone, prunable or detached, stale local
   branches and your open pull requests are listed. Nothing is deleted.
 

@@ -318,7 +318,7 @@ function Get-PcaiRepoAction {
     if ($State.PSObject.Properties['InspectOk'] -and -not $State.InspectOk) { return 'InspectFailed' }
     if ($State.Busy) { return 'Busy' }
     if (-not $State.Branch) { return 'Detached' }
-    if ($State.Branch -ne $State.DefaultBranch) { return 'OffDefault' }
+    if ($State.Branch -cne $State.DefaultBranch) { return 'OffDefault' }
     if ($State.TrackedChanges -gt 0) { return 'Dirty' }
     if ($State.Ahead -gt 0 -and $State.Behind -gt 0) { return 'Diverged' }
     if ($State.Ahead -gt 0) { return 'Ahead' }
@@ -367,12 +367,12 @@ function Get-PcaiRepoState {
     $merged = @((& $git @('branch', '--format=%(refname:lstrip=2)', '--merged', "refs/remotes/origin/$def")).Stdout -split "`n" | ForEach-Object Trim | Where-Object { $_ })
     $gone = @((& $git @('for-each-ref', '--format=%(refname:lstrip=2)|%(upstream:track)', 'refs/heads')).Stdout -split "`n" |
             Where-Object { $_ -like '*|`[gone`]*' } | ForEach-Object { ($_ -split '\|')[0] })
-    $staleBranches = @(@($merged + $gone) | Sort-Object -Unique | Where-Object { $_ -and $_ -ne $def -and $_ -ne $branch })
+    $staleBranches = @(@($merged + $gone) | Sort-Object -Unique -CaseSensitive | Where-Object { $_ -and $_ -cne $def -and $_ -cne $branch })
     $linked = @($worktrees | Select-Object -Skip 1 | ForEach-Object {
             $why = @()
             if ($_.Prunable) { $why += 'prunable' }
-            if ($_.Branch -and $_.Branch -in $merged) { $why += 'merged' }
-            if ($_.Branch -and $_.Branch -in $gone) { $why += 'upstream gone' }
+            if ($_.Branch -and $_.Branch -cin $merged) { $why += 'merged' }
+            if ($_.Branch -and $_.Branch -cin $gone) { $why += 'upstream gone' }
             if ($_.Detached) { $why += 'detached' }
             [pscustomobject]@{ Path = $_.Path; Branch = $_.Branch; Locked = $_.Locked; NeedsAction = [bool]$why; Why = ($why -join ', ') }
         })
@@ -397,7 +397,7 @@ function Test-PcaiRepoUnchanged {
     $h = & $git @('rev-parse', 'HEAD')
     $st = & $git @('status', '--porcelain=v1', '--untracked-files=no')
     if ($b.ExitCode -ne 0 -or $h.ExitCode -ne 0 -or $st.ExitCode -ne 0) { return 'inspection failed' }
-    if ($b.Stdout.Trim() -ne $State.Branch) { return 'branch changed' }
+    if ($b.Stdout.Trim() -cne $State.Branch) { return 'branch changed' }
     if ($h.Stdout.Trim() -ne $State.Head) { return 'HEAD moved' }
     if (@($st.Stdout -split "`n" | Where-Object { $_.Trim() }).Count) { return 'tracked changes appeared' }
     $gitDir = Join-Path $State.Path '.git'
@@ -427,17 +427,17 @@ function Invoke-PcaiFastForward {
     branch is checked out when it runs. If a person switches branch, or detaches HEAD, inside that
     window, the checks pass and that ref moves. Git offers no way to pin the merge to a branch, so
     the merge runs with GIT_REFLOG_ACTION set to a nonce unique to this run, and its own reflog entry
-    is the proof of what it moved. A recorded tip is not proof: the owner may have moved the branch
-    the same way inside the window, and this run's merge was then a no-op (codex review of PR 345 at
-    f5f39c97). When the checked-out ref is not the sampled branch:
-      - no reflog entry of that branch (or of HEAD, when detached) is this run's: this run moved
-        nothing there, so nothing is reset (Changed);
-      - the newest entry is this run's and HEAD still sits where it put it: the ref is reset with
-        `git reset --keep`, which keeps local edits, to the value that entry replaced, its own
-        previous tip (RolledBack);
-      - this run's entry is there but something moved the ref after it: left alone for its owner
-        (FastForwardMisapplied).
-    -BeforeMerge runs inside the window so tests can open it deterministically.
+    is the proof of what it moved (a recorded tip is not: the owner may have moved the branch the
+    same way inside the window). When the checked-out ref is not the sampled branch:
+      - no reflog entry of that ref (or of HEAD, when detached) is this run's: this run moved nothing
+        there (Changed);
+      - this run advanced it: it is reported as FastForwardMisapplied, with the tip it had before
+        and the commands that undo the move, and severity warn. It is never reset automatically.
+        Any reset acts on whatever is checked out when it runs, and the person who switched may
+        switch again, so an automatic undo could rewind an unrelated branch (codex reviews of
+        PR 345 at f5f39c97 and 7c4e7735). Commits are only added to the advanced ref, never lost.
+    Branch names compare case-sensitively, as Git does. -BeforeMerge runs inside the window so tests
+    can open it deterministically.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)]$State, [scriptblock]$BeforeMerge)
@@ -449,7 +449,7 @@ function Invoke-PcaiFastForward {
     # Merge the exact commit that was sampled, not whatever the ref points at now.
     $m = & $git @('merge', '--ff-only', '--quiet', $State.Target) 120 @{ GIT_REFLOG_ACTION = $nonce }
     $branchNow = (& $git @('branch', '--show-current') 30).Stdout.Trim()
-    if ($branchNow -eq $State.Branch) {
+    if ($branchNow -ceq $State.Branch) {
         if ($m.ExitCode -eq 0) { return [pscustomobject]@{ Action = 'FastForwarded'; Note = "behind $($State.Behind)" } }
         return [pscustomobject]@{ Action = 'FastForwardFailed'; Note = ($m.Stderr.Trim() -split "`n")[0] }
     }
@@ -464,18 +464,13 @@ function Invoke-PcaiFastForward {
         })
     $mine = -1
     for ($k = 0; $k -lt $entries.Count; $k++) { if ($entries[$k].Subject.StartsWith($nonce)) { $mine = $k; break } }
-    if ($mine -lt 0) { return [pscustomobject]@{ Action = 'Changed'; Note = "$changedNote; this run's merge moved nothing there, so nothing was restored" } }
-    $headNow = (& $git @('rev-parse', 'HEAD') 30).Stdout.Trim()
-    if ($mine -ne 0 -or $entries.Count -lt 2 -or $headNow -ne $entries[0].Hash) {
-        return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "$changedNote; this run advanced it and it has changed again since, so it was left for its owner" }
-    }
-    $before = $entries[1].Hash
-    $undo = & $git @('reset', '--keep', '--quiet', $before)
-    $restored = (& $git @('rev-parse', 'HEAD') 30).Stdout.Trim()
-    if ($undo.ExitCode -eq 0 -and $restored -eq $before) {
-        return [pscustomobject]@{ Action = 'RolledBack'; Note = "$changedNote; restored it to $($before.Substring(0, [Math]::Min(8, $before.Length))), its tip before this run's merge" }
-    }
-    return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "$what was fast-forwarded by mistake and could not be restored automatically (was $before)" }
+    if ($mine -lt 0) { return [pscustomobject]@{ Action = 'Changed'; Note = "$changedNote; this run's merge moved nothing there" } }
+    $before = if ($mine + 1 -lt $entries.Count) { $entries[$mine + 1].Hash } else { $null }
+    $short = { param([string]$x) if ($x) { $x.Substring(0, [Math]::Min(8, $x.Length)) } else { 'unknown' } }
+    $undo = if (-not $before) { 'its previous tip is not in the reflog' }
+    elseif ($branchNow) { "if '$branchNow' is not checked out: git -C `"$($State.Path)`" update-ref refs/heads/$branchNow $before $($State.Target); if it is: git -C `"$($State.Path)`" reset --keep $before" }
+    else { "while detached: git -C `"$($State.Path)`" reset --keep $before" }
+    return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "$changedNote; this run advanced it from $(& $short $before) to $(& $short $State.Target) and did not reset it automatically. To undo: $undo" }
 }
 function Format-PcaiToolingSummary {    [CmdletBinding()]
     param([Parameter(Mandatory)]$Status)

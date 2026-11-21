@@ -116,7 +116,7 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
         $status.repos[0].Action | Should -Be 'FastForwarded'
         Should -Invoke Invoke-PcaiToolingCommand -Times 1 -Exactly -ParameterFilter { $ArgumentList -contains 'merge' -and $ArgumentList -contains 'bbb' }
     }
-    It 'reports a rolled-back fast-forward as a warning needing its owner' {
+    It 'reports a fast-forward of the wrong ref as a warning needing its owner, and resets nothing' {
         Mock Test-PcaiRepoUnchanged { $null }
         $script:revParseCalls = 0
         Mock Invoke-PcaiToolingCommand {
@@ -128,10 +128,11 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
             [pscustomobject]@{ ExitCode = 0; Stdout = $out; Stderr = ''; TimedOut = $false; Seconds = 0 }
         }
         $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'rolled') -SkipBus) | Where-Object { $_ -isnot [string] }
-        $status.repos[0].Action | Should -Be 'RolledBack'
+        $status.repos[0].Action | Should -Be 'FastForwardMisapplied'
         $status.severity | Should -Be 'warn'
-        $status.summary | Should -Match 'needs owner \[PC-AI@main\(RolledBack\)\]'
-        Should -Invoke Invoke-PcaiToolingCommand -Times 1 -Exactly -ParameterFilter { $ArgumentList -contains 'reset' -and $ArgumentList -contains '--keep' -and $ArgumentList -contains 'aaa' }
+        $status.summary | Should -Match 'needs owner \[PC-AI@main\(FastForwardMisapplied\)\]'
+        $status.repos[0].Note | Should -Match 'reset --keep aaa'
+        Should -Invoke Invoke-PcaiToolingCommand -Times 0 -Exactly -ParameterFilter { $ArgumentList -contains 'reset' -or $ArgumentList -contains 'update-ref' }
     }
     It 'raises the severity when a git inspection failed' {
         $script:behind | Add-Member -NotePropertyName InspectOk -NotePropertyValue $false
@@ -150,10 +151,11 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
 Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 'Unit', 'Portable' -Skip:(-not [bool](Get-Command git -ErrorAction SilentlyContinue)) {
     # Why: revalidation and `git merge --ff-only` are separate commands, and merge advances whichever
     # branch is checked out when it runs. A switch inside that window used to fast-forward the wrong
-    # branch (codex review of PR 345 at 93d54db7). The restore must use the affected branch's own
-    # previous tip and touch only a branch this invocation moved (review at 43e4f72f): a branch that
-    # already sat at the target is a no-op and must keep its commits, and a branch that sat on an
-    # older commit must return to that commit, not to the default branch's sampled HEAD.
+    # branch silently (codex review of PR 345 at 93d54db7). Automatic undo was tried and dropped: any
+    # reset acts on whatever is checked out when it runs, so a second switch could rewind an unrelated
+    # branch (reviews at 43e4f72f, f5f39c97, 7c4e7735). Now only this run's own reflog entry (tagged
+    # with its nonce) attributes a move, the ref is never reset, and the report names the ref's own
+    # previous tip and the undo commands.
     # -BeforeMerge is the seam that opens the window deterministically.
     BeforeAll {
         function Invoke-TestGit {
@@ -195,23 +197,25 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
         Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Target
         (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'three'
     }
-    It 'restores a feature branch at the same HEAD that was checked out inside the revalidation window' {
+    It 'reports, and does not reset, a feature branch at the same HEAD checked out inside the window' {
         $c = New-BehindCheckout 'window'
         $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', 'feat') | Out-Null }
-        $r.Action | Should -Be 'RolledBack'
-        Invoke-TestGit $c.Work @('rev-parse', 'feat') | Should -Be $c.State.Head -Because 'the feature branch must not advance'
+        $r.Action | Should -Be 'FastForwardMisapplied'
+        $r.Note | Should -Match ([regex]::Escape("reset --keep $($c.State.Head)"))
+        Invoke-TestGit $c.Work @('rev-parse', 'feat') | Should -Be $c.State.Target -Because 'nothing is reset automatically'
         Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Head
-        Invoke-TestGit $c.Work @('branch', '--show-current') | Should -Be 'feat'
+        # The reported undo works: on the branch, reset --keep returns it to its own previous tip.
+        Invoke-TestGit $c.Work @('reset', '--keep', '-q', $c.State.Head) | Out-Null
+        Invoke-TestGit $c.Work @('rev-parse', 'feat') | Should -Be $c.State.Head
         (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'two'
-        Invoke-TestGit $c.Work @('status', '--porcelain=v1', '--untracked-files=no') | Should -BeNullOrEmpty
     }
-    It 'restores a feature branch that sat on an older commit to that commit, not to the sampled HEAD' {
+    It 'reports the older tip of a feature branch that sat on an older commit, not the sampled HEAD' {
         $c = New-BehindCheckout 'older'
         $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', 'featOld') | Out-Null }
-        $r.Action | Should -Be 'RolledBack'
-        Invoke-TestGit $c.Work @('rev-parse', 'featOld') | Should -Be $c.Old
-        Invoke-TestGit $c.Work @('branch', '--show-current') | Should -Be 'featOld'
-        (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'one'
+        $r.Action | Should -Be 'FastForwardMisapplied'
+        $r.Note | Should -Match ([regex]::Escape("reset --keep $($c.Old)"))
+        $r.Note | Should -Match ([regex]::Escape("update-ref refs/heads/featOld $($c.Old) $($c.State.Target)"))
+        Invoke-TestGit $c.Work @('rev-parse', 'featOld') | Should -Be $c.State.Target
     }
     It 'leaves a feature branch that already sits at the target untouched' {
         $c = New-BehindCheckout 'atTarget'
@@ -224,18 +228,18 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
     # Why: with a tag of the same name, `%(refname:short)` prints the branch as `heads/feat`, so the
     # recorded tip was never found under `feat` and the branch stayed advanced (codex review of PR 345
     # at 849375e2, reproduced offline). Branch names are recorded with `%(refname:lstrip=2)`.
-    It 'restores a feature branch whose name a tag shares' {
+    It 'reports a feature branch whose name a tag shares under its plain name' {
         $c = New-BehindCheckout 'tagged'
         Invoke-TestGit $c.Work @('-c', 'tag.gpgSign=false', 'tag', 'feat', 'HEAD~1') | Out-Null
         $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', 'feat') | Out-Null }
-        $r.Action | Should -Be 'RolledBack'
-        Invoke-TestGit $c.Work @('rev-parse', 'refs/heads/feat') | Should -Be $c.State.Head
+        $r.Action | Should -Be 'FastForwardMisapplied'
+        $r.Note | Should -Match ([regex]::Escape("update-ref refs/heads/feat $($c.State.Head)"))
     }
     # Why: a recorded tip does not prove this run moved a branch. If the owner switched to a branch
     # and fast-forwarded it inside the window, this run's merge was a no-op, and resetting to the
     # recorded tip undid the owner's update; a detached HEAD advanced by the merge was left advanced
     # (codex review of PR 345 at f5f39c97). Only this run's own reflog entry, tagged with its nonce,
-    # authorizes a reset.
+    # attributes a move to it.
     It 'leaves alone a branch the owner fast-forwarded inside the window' {
         $c = New-BehindCheckout 'owner-ff'
         $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge {
@@ -245,13 +249,19 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
         $r.Action | Should -Be 'Changed'
         Invoke-TestGit $c.Work @('rev-parse', 'feat') | Should -Be $c.State.Target -Because "the owner's own fast-forward must survive"
     }
-    It 'restores a HEAD detached inside the window' {
+    It 'reports a HEAD detached inside the window and advanced by this run' {
         $c = New-BehindCheckout 'detached'
         $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', '--detach') | Out-Null }
-        $r.Action | Should -Be 'RolledBack'
-        Invoke-TestGit $c.Work @('rev-parse', 'HEAD') | Should -Be $c.State.Head
-        Invoke-TestGit $c.Work @('branch', '--show-current') | Should -BeNullOrEmpty
+        $r.Action | Should -Be 'FastForwardMisapplied'
+        $r.Note | Should -Match ([regex]::Escape("while detached: git -C"))
+        $r.Note | Should -Match ([regex]::Escape("reset --keep $($c.State.Head)"))
         Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Head
+    }
+    # Why: Git branch names are case-sensitive; PowerShell's -ne is not, so a branch `Main` passed as
+    # the default `main` and could be fast-forwarded (codex review of PR 345 at 7c4e7735).
+    It 'treats a branch differing only in case from the default as off-default' {
+        $s = [pscustomobject]@{ Branch = 'Main'; DefaultBranch = 'main'; Head = 'a'; Target = 'b'; TrackedChanges = 0; Busy = $false; FetchOk = $true; InspectOk = $true; Ahead = 0; Behind = 1 }
+        Get-PcaiRepoAction -State $s | Should -Be 'OffDefault'
     }
     It 'reports a stale branch by its plain name when a tag shares it' {
         $c = New-BehindCheckout 'stale-tagged'

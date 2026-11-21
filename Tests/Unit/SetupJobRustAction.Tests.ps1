@@ -13,11 +13,72 @@ BeforeAll {
 }
 
 Describe 'Job-local Rust keeps sccache keys stable across jobs' -Tag 'Unit', 'Portable' {
-    # Protects: sccache can hit across jobs although every job builds from a fresh $RUNNER_TEMP/pcai-rust-<guid> home.
-    # Detects: a missing SCCACHE_BASEDIRS. Without it, the dependency sources under the per-job CARGO_HOME give every
-    # compile a new absolute path, and the rust-linux job on dtm-super-nuc showed 0 hits in 690 compiles.
+    BeforeAll {
+        # Runs the prepare step with RUNNER_TEMP and the GITHUB_* files in TestDrive and returns its GITHUB_ENV lines.
+        function Invoke-PrepareStep {
+            param([string]$RunnerTemp)
+            $saved = @{}
+            foreach ($name in 'RUNNER_TEMP', 'GITHUB_ENV', 'GITHUB_PATH', 'GITHUB_OUTPUT', 'GITHUB_WORKSPACE') {
+                $saved[$name] = [Environment]::GetEnvironmentVariable($name)
+            }
+            try {
+                $env:RUNNER_TEMP = $RunnerTemp
+                if (-not (Test-Path -LiteralPath $RunnerTemp)) { New-Item -ItemType Directory -Path $RunnerTemp | Out-Null }
+                $env:GITHUB_WORKSPACE = Join-Path $TestDrive 'work'
+                foreach ($name in 'GITHUB_ENV', 'GITHUB_PATH', 'GITHUB_OUTPUT') {
+                    $file = Join-Path $TestDrive $name
+                    Set-Content -LiteralPath $file -Value ''
+                    [Environment]::SetEnvironmentVariable($name, $file)
+                }
+                & (Get-ActionStep 'Prepare job-local self-hosted Rust homes')
+                Get-Content -LiteralPath $env:GITHUB_ENV
+            }
+            finally {
+                foreach ($name in $saved.Keys) { [Environment]::SetEnvironmentVariable($name, $saved[$name]) }
+            }
+        }
+        function Get-Export {
+            param([string[]]$Lines, [string]$Name)
+            ($Lines | Where-Object { $_ -like "$Name=*" }).Substring($Name.Length + 1)
+        }
+    }
+
+    # Protects: sccache hits across jobs on one runner. The runner empties RUNNER_TEMP between jobs, so two jobs see
+    # the same RUNNER_TEMP path, and the Rust homes under it must get the same absolute path too.
+    # Detects: a per-job name such as pcai-rust-<guid>. sccache 0.19.0 keys Rust compiles on the absolute CARGO_HOME
+    # path even when SCCACHE_BASEDIRS names it: rust-linux on dtm-super-nuc had 0 Rust hits in 640 compiles (run
+    # 44893813238), and minisforum-ms01 reproduced 0/7 with a random root against 7/7 with a fixed one.
     # Needs: PowerShell 7 and Pester 5; the step runs against TestDrive files, nothing is installed.
     # Breadcrumb: .github/actions/setup-job-rust/action.yml "Prepare job-local self-hosted Rust homes".
+    It 'gives two jobs with the same RUNNER_TEMP the same CARGO_HOME and RUSTUP_HOME' {
+        $runnerTemp = Join-Path $TestDrive 'job-temp'
+        $first = Invoke-PrepareStep -RunnerTemp $runnerTemp
+        Remove-Item -LiteralPath $runnerTemp -Recurse -Force   # what the runner does between jobs
+        $second = Invoke-PrepareStep -RunnerTemp $runnerTemp
+        (Get-Export $second 'CARGO_HOME') | Should -Be (Get-Export $first 'CARGO_HOME')
+        (Get-Export $second 'RUSTUP_HOME') | Should -Be (Get-Export $first 'RUSTUP_HOME')
+        (Get-Export $first 'CARGO_HOME') | Should -BeLike "$runnerTemp*" -Because 'the homes stay job-local'
+    }
+
+    # Protects: every use starts from empty Rust homes although the root name is fixed.
+    # Detects: a stale toolchain or registry left by an earlier use in the same job leaking into the next one, or the
+    # step failing because the fixed directory already exists.
+    # Needs: PowerShell 7 and Pester 5. Breadcrumb: .github/actions/setup-job-rust/action.yml.
+    It 'replaces Rust homes left by an earlier use in the same job' {
+        $runnerTemp = Join-Path $TestDrive 'reuse-temp'
+        $first = Invoke-PrepareStep -RunnerTemp $runnerTemp
+        $stale = Join-Path (Get-Export $first 'CARGO_HOME') 'stale.txt'
+        Set-Content -LiteralPath $stale -Value 'left by an earlier use'
+        $second = Invoke-PrepareStep -RunnerTemp $runnerTemp
+        (Get-Export $second 'CARGO_HOME') | Should -Be (Get-Export $first 'CARGO_HOME')
+        Test-Path -LiteralPath $stale | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path (Get-Export $second 'CARGO_HOME') 'bin') | Should -BeTrue
+    }
+
+    # Protects: keys still repeat on a runner whose RUNNER_TEMP or workspace path differs from the one that filled the
+    # cache, where sccache strips the base directories it supports.
+    # Detects: SCCACHE_BASEDIRS missing the Rust root or the workspace, or naming a relative directory.
+    # Needs: PowerShell 7 and Pester 5. Breadcrumb: .github/actions/setup-job-rust/action.yml.
     It 'exports SCCACHE_BASEDIRS naming the job Rust root and the workspace' {
         $saved = @{}
         foreach ($name in 'RUNNER_TEMP', 'GITHUB_ENV', 'GITHUB_PATH', 'GITHUB_OUTPUT', 'GITHUB_WORKSPACE') {

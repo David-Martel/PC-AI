@@ -129,7 +129,9 @@ function Test-PcaiSystemTrustedPath {
     applies the same rule to the policy and plan at run time.
     #>
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$Path)
+    param([Parameter(Mandatory)][string]$Path, [switch]$AncestorOnly)
+    # -AncestorOnly judges $Path itself as an ancestor too (it may let others create entries, as
+    # %ProgramData% does), for checking the chain above a directory before anything is created in it.
     if (-not $IsWindows -or -not (Test-Path -LiteralPath $Path)) { return $false }
     $trustedOwners = $script:PcaiAdminSids + @($script:PcaiTrustedInstallerSid)
     $chain = [Collections.Generic.List[string]]::new()
@@ -140,9 +142,9 @@ function Test-PcaiSystemTrustedPath {
         if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { return $false }
         $acl = Get-Acl -LiteralPath $chain[$i]
         $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
-        if ($i -le 1 -and $owner -notin $script:PcaiAdminSids) { return $false }
+        if (-not $AncestorOnly -and $i -le 1 -and $owner -notin $script:PcaiAdminSids) { return $false }
         if ($owner -notin $trustedOwners) { return $false }
-        $mask = if ($i -eq 0) { $script:PcaiWriteRightsMask } else { $script:PcaiAncestorRightsMask }
+        $mask = if ($i -eq 0 -and -not $AncestorOnly) { $script:PcaiWriteRightsMask } else { $script:PcaiAncestorRightsMask }
         foreach ($rule in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) {
             if ($rule.AccessControlType -ne 'Allow' -or $rule.IdentityReference.Value -in $trustedOwners) { continue }
             if ($rule.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly) { continue }
@@ -413,6 +415,13 @@ function Install-PcaiHealthWindows {
         # account created first (it could otherwise swap the scripts the task runs).
         $linkRoot = Split-Path -Parent $Target
         $usb4Root = Split-Path -Parent $linkRoot
+        # Everything above pcai-usb4 is checked before any directory is created or re-permissioned: a
+        # junction or replaceable ancestor there would point the ACL changes below into another tree
+        # (codex review of #344 at 77bcc55c).
+        $anchor = Split-Path -Parent $usb4Root
+        if (-not $anchor -or -not (Test-PcaiSystemTrustedPath -Path $anchor -AncestorOnly)) {
+            throw "$Target is not trusted for a SYSTEM task: an ancestor up to the volume root ($anchor) is missing, has an untrusted owner, is a reparse point or lets another account replace it. Use the default %ProgramData% root or fix the ACLs."
+        }
         foreach ($dir in @($usb4Root, $linkRoot, $Target)) {
             if (-not (Test-Path -LiteralPath $dir)) { continue }
             $item = Get-Item -LiteralPath $dir -Force
@@ -500,6 +509,40 @@ function Install-PcaiHealthWindows {
     }
 }
 
+function Invoke-PcaiSystemdActivation {
+    <#
+    .SYNOPSIS
+    Reloads the user manager, then enables and starts the timers and the monitor (and, with
+    -StartNow, the health services), checking every systemctl exit status.
+    .DESCRIPTION
+    An unavailable user manager or a unit that fails to start used to be followed by "enabled"
+    and a successful install while nothing was monitoring (codex review of #344 at 77bcc55c).
+    Each step's failure is recorded, the remaining steps still run, and the function throws
+    with every failure named, so the installer exits nonzero.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string[]]$Unit, [switch]$StartNow)
+    $failed = [Collections.Generic.List[string]]::new()
+    $run = {
+        param([string[]]$Argument)
+        # Out-Host keeps systemctl's own messages visible without turning them into this block's result.
+        & systemctl --user @Argument 2>&1 | Out-Host
+        if ($LASTEXITCODE -ne 0) { $failed.Add("systemctl --user $($Argument -join ' ') exited $LASTEXITCODE"); return $false }
+        return $true
+    }
+    if (& $run @('daemon-reload')) {
+        foreach ($u in @($Unit | Where-Object { $_ -like '*.timer' -or $_ -eq 'pcai-link-health-monitor.service' })) {
+            $ok = & $run @('enable', '--now', $u)
+            if ($ok -and $u -like '*.service') { $ok = & $run @('restart', $u) }
+            if ($ok) { Write-Output "enabled $u" }
+        }
+        if ($StartNow) {
+            foreach ($u in @($Unit | Where-Object { $_ -like '*health.service' })) { if (& $run @('start', '--no-block', $u)) { Write-Output "started $u" } }
+        }
+    }
+    if ($failed.Count) { throw "systemd activation failed: $($failed -join '; ')" }
+}
+
 function Install-PcaiHealthLinux {
     [CmdletBinding()]
     param([string]$Root, [string]$Target, [string[]]$Components, [switch]$Remove, [switch]$RestoreSaved, [switch]$StartNow, [switch]$IsDryRun)
@@ -518,7 +561,10 @@ function Install-PcaiHealthLinux {
                 if ($saved) { Copy-Item -LiteralPath $saved.FullName -Destination (Join-Path $unitDir $u); Write-Output "restored $u from $($saved.Name)" }
             }
         }
-        if (-not $IsDryRun) { & systemctl --user daemon-reload }
+        if (-not $IsDryRun) {
+            & systemctl --user daemon-reload
+            if ($LASTEXITCODE -ne 0) { throw "systemctl --user daemon-reload failed (exit $LASTEXITCODE) after removing the units" }
+        }
         return
     }
     $files = @(Get-PcaiHealthFile -Root $Root -Components $Components | Where-Object { Test-Path -LiteralPath $_.Source })
@@ -557,15 +603,7 @@ function Install-PcaiHealthLinux {
         [IO.File]::WriteAllText($path, ($units[$u] -replace "`r`n", "`n") + "`n", [Text.UTF8Encoding]::new($false))
         Write-Output "wrote $path"
     }
-    & systemctl --user daemon-reload
-    foreach ($u in @($units.Keys | Where-Object { $_ -like '*.timer' -or $_ -eq 'pcai-link-health-monitor.service' })) {
-        & systemctl --user enable --now $u
-        if ($u -like '*.service') { & systemctl --user restart $u }
-        Write-Output "enabled $u"
-    }
-    if ($StartNow) {
-        foreach ($u in @($units.Keys | Where-Object { $_ -like '*health.service' })) { & systemctl --user start --no-block $u; Write-Output "started $u" }
-    }
+    Invoke-PcaiSystemdActivation -Unit @($units.Keys) -StartNow:$StartNow
     $linger = (& loginctl show-user $env:USER -p Linger 2>$null)
     if ($linger -ne 'Linger=yes') { Write-Output "NOTE: linger is off, so units start at login, not boot. Owner: sudo loginctl enable-linger $env:USER" }
 }

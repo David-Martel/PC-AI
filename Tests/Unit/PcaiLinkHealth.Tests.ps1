@@ -378,6 +378,8 @@ Describe 'SYSTEM install and restore trust the whole ancestor chain' -Tag 'Unit'
         $target = Join-Path $TestDrive 'staging/pcai-usb4/link-health/bin'
         { Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask } | Should -Throw '*not trusted for a SYSTEM task*'
         Should -Invoke Register-ScheduledTask -Times 0 -Exactly
+        # The ancestor check runs before any directory is created or re-permissioned (codex review of #344 at 77bcc55c).
+        Should -Invoke New-PcaiProtectedDirectory -Times 0 -Exactly
     }
     # Protects: the SYSTEM task never runs an interpreter a standard user can replace. Detects: the
     # task registered with $PSHOME\pwsh.exe from a per-user or portable install (codex review of
@@ -605,5 +607,34 @@ Describe 'Trigger definitions' -Tag 'Unit', 'Portable' {
         $script = Join-Path $repoRoot 'Tools/SystemScripts/Networking/pcai-link-health-monitor.sh'
         & bash -n $script
         $LASTEXITCODE | Should -Be 0
+    }
+}
+
+# Protects: a Linux install that could not activate its units fails. Detects: systemctl failures
+# (no user manager, a unit that will not start) followed by "enabled" and a successful install
+# (codex review of #344 at 77bcc55c). Needs: systemctl replaced by a function that sets the exit
+# code, so it runs on any host and touches no real user manager.
+Describe 'systemd activation checks every systemctl exit status' -Tag 'Unit', 'Portable' {
+    BeforeAll {
+        if (-not (Get-Command systemctl -CommandType Function -ErrorAction SilentlyContinue)) {
+            function global:systemctl { $global:LASTEXITCODE = 0 }
+        }
+        $script:Units = @('pcai-link-health.service', 'pcai-link-health.timer', 'pcai-link-health-monitor.service')
+    }
+    AfterAll { Remove-Item -LiteralPath Function:\systemctl -ErrorAction SilentlyContinue }
+    It 'enables the timer and the monitor when every call succeeds' {
+        Mock systemctl { $global:LASTEXITCODE = 0 }
+        $out = @(Invoke-PcaiSystemdActivation -Unit $Units)
+        $out | Should -Be @('enabled pcai-link-health.timer', 'enabled pcai-link-health-monitor.service')
+    }
+    It 'throws, naming the failed call, when <Name>' -ForEach @(
+        @{ Name = 'the user manager is unavailable'; Fail = 'daemon-reload'; Expect = '*daemon-reload exited 1*' }
+        @{ Name = 'a unit does not start'; Fail = 'pcai-link-health.timer'; Expect = '*enable --now pcai-link-health.timer exited 1*' }
+    ) {
+        $global:PcaiTestFail = $Fail
+        try {
+            Mock systemctl { $global:LASTEXITCODE = if ($args -contains $global:PcaiTestFail) { 1 } else { 0 } }
+            { Invoke-PcaiSystemdActivation -Unit $Units } | Should -Throw $Expect
+        } finally { Remove-Variable -Name PcaiTestFail -Scope Global -ErrorAction SilentlyContinue }
     }
 }

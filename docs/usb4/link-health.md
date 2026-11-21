@@ -74,6 +74,9 @@ these checks do not need (agent-bus, git over HTTPS and SSH keys are unaffected)
 On Linux, user units start at boot only when linger is on (`loginctl show-user $USER -p Linger`).
 minisforum-ms01 has linger enabled. Enabling it elsewhere is an owner command:
 `sudo loginctl enable-linger <user>`.
+The installer checks every `systemctl --user` call. If the user manager is unavailable or a
+unit does not enable or start, it names the failed call and exits nonzero instead of reporting
+the units as enabled.
 
 ## What the link check does
 
@@ -131,7 +134,8 @@ Apply mode runs only in the SYSTEM task, and only when all of these hold:
   (no lock, status or review script, which a planted link could redirect), only prints, and
   reports a warning (exit 2). A root that passes but holds an entry that does not (a file
   planted before it was protected) counts as failing; `-System` refuses to install over such
-  an entry and names it. Every ancestor of a trusted path, the volume root included, must be owned by
+  an entry and names it. `-System` checks the ancestors above `pcai-usb4` before it creates or
+  re-permissions any directory, so a junction there cannot redirect those ACL changes. Every ancestor of a trusted path, the volume root included, must be owned by
   Administrators, SYSTEM or TrustedInstaller, must not be a reparse point, and must not let
   another account delete, rename or re-permission it (letting Users create entries, as C:\
   and `%ProgramData%` do, is allowed);

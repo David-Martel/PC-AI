@@ -1,0 +1,164 @@
+# Fleet failure ledger, health sweeper and bounded reconciliation
+
+Code: [`Modules/PC-AI.Reliability`](../../Modules/PC-AI.Reliability/PC-AI.Reliability.psm1).
+CLIs: [`Tools/SystemScripts/Reliability`](../../Tools/SystemScripts/Reliability/Invoke-FleetHealthSweep.ps1).
+Tests: [`Tests/Unit/PC-AI.Reliability.Tests.ps1`](../../Tests/Unit/PC-AI.Reliability.Tests.ps1).
+Example policy: [`fleet-reliability.policy.example.json`](../../Modules/PC-AI.Reliability/fleet-reliability.policy.example.json).
+
+## Install, test, run
+
+```powershell
+# Test (PowerShell 7 and Windows PowerShell 5.1 both pass; nothing touches the network or the scheduler)
+Invoke-Pester -Path Tests/Unit/PC-AI.Reliability.Tests.ps1
+
+# Run once, observe only
+pwsh -NoProfile -File Tools/SystemScripts/Reliability/Invoke-FleetHealthSweep.ps1 -NoPlaybooks
+
+# Install on a host (S4U tasks: sweep every 15 min, optional daily digest); preview first
+pwsh -NoProfile -File Tools/SystemScripts/Reliability/Install-FleetReliabilityTasks.ps1 -WhatIf
+pwsh -NoProfile -File Tools/SystemScripts/Reliability/Install-FleetReliabilityTasks.ps1 [-Digest | -FleetDigest]
+
+# Wrap a task so its runs are recorded semantically (exit 0 + "[ERROR]" in the log = failed)
+pwsh -NoProfile -File Tools/SystemScripts/Reliability/Invoke-FleetTask.ps1 -Name '\backups\pull' `
+    -FilePath pwsh.exe -ArgumentList '-NoProfile','-File','C:\jobs\pull.ps1' -LogPath C:\logs\pull.log
+
+# Provision the Discord token once per host (interactive; never printed)
+Import-Module ./Modules/PC-AI.Reliability/PC-AI.Reliability.psd1
+Set-FleetDiscordToken -Token (Read-Host -AsSecureString 'bot token')
+```
+
+The installer prints its revert commands. It exports any task it replaces to
+`%ProgramData%\fleet-reliability\backups\` first.
+
+## Why
+
+A fleet audit found failures that nobody was told about:
+
+- Tasks reported success while failing. A pull logged `integrity check did not pass` and returned `0x0`, an export
+  exited 0 with `STALE`, and a logger exited 0 for ten days while doing nothing.
+- Tasks never ran. Interactive tasks sat on a host with nobody logged on, and one required task was Disabled.
+- Alerts never arrived. Every path logged `ALERT not sent: no bot token`, because the only transport needed an
+  unlocked password vault, which unattended (S4U and boot) tasks never have.
+- Runners and workflows went silent for days.
+- Resources ran out: disk, Postgres connections, leaked MCP processes. One disk watchdog read a missing drive as
+  0 GB and stopped every runner.
+
+This module records each of those systematically, alerts once per incident through a transport that works
+unattended, and fixes the few cases that are safe to fix automatically.
+
+## The ledger (`fleet-ledger/1`)
+
+There is one JSON object per line, UTF-8 without a BOM, in `%ProgramData%\fleet-reliability\ledger\ledger.jsonl`
+(override with `FLEET_RELIABILITY_HOME`). The file rotates at 5 MiB (`FLEET_LEDGER_MAX_BYTES`) and keeps five old
+files. Appends and rotation take one file lock, which works across SYSTEM, S4U and interactive sessions. The bash
+emitter in sentinel-utils (`scripts/fleet/linux/fleet-ledger.sh`) writes the same shape.
+
+| field | meaning |
+|---|---|
+| `schema` | `fleet-ledger/1` |
+| `event_id` | `<host>-<yyyyMMddTHHmmssfffZ>-<8 hex>` |
+| `ts`, `start`, `end` | ISO-8601 UTC |
+| `host` | lowercase short host name |
+| `source` | `task` `timer` `service` `runner` `job` `workflow` `disk` `postgres` `process` `cert` `sweeper` `playbook` `digest` `alert` |
+| `name`, `check` | the subject (task path, drive, runner) and the detector (`run`, `task-stale`, `log-rule`, `disk-trend`, ...) |
+| `kind` | `run` `observation` `incident-open` `incident-resolved` `incident-flapping` `incident-reminder` `remediation` `escalation` `digest` |
+| `status` | semantic: `ok` `failed` `stale` `skipped` `never-ran` `degraded` `unknown` |
+| `severity` | `info` `low` `medium` `high` `critical` |
+| `exit_code`, `message`, `log_path` | what happened; messages never carry secrets |
+| `incident_key` | `<host>\|<source>\|<name>\|<check>` |
+| `remediation` | `{playbook, attempt, budget, outcome, detail}` or null |
+| `details` | free-form |
+
+`run` and `observation` events stay local. The other kinds go to agent-bus as
+`--topic fleet-failures --thread-id fleet-failures --from-agent fleet-ledger-<host>`, with tags `host:`, `source:` and
+`incident:<sha256(key)[0:12]>`. The full event rides in `--metadata`, so the bus is queryable fleet-wide.
+
+- **Schema `finding`** is used for open, reminder, flapping and escalation. The body is
+  `FINDING: [<status>] <host> <source>/<name> (<check>): <message>` followed by `SEVERITY: <LEVEL>`.
+- **Schema `status`** is used for `RESOLVED:`, `REMEDIATION:` and `DIGEST:`.
+
+If a send fails, the same request goes to the agent-bus offline spool (`spool\bus-spool.ndjson`). Each sweep
+renames the spool under a lock, then replays it, so new lines are never deleted with the replayed file. A spool
+that does not parse is quarantined.
+
+## Incident state
+
+`state\incidents.json` is shared by the wrapper and the sweeper, so a failure both of them see opens one incident.
+
+- **Open:** a bad observation opens the incident once it has repeated `OpenAfter` times (default 1) and sends one
+  alert.
+- **While open:** nothing more is sent, except a reminder every 24 h, or at once if the severity rises.
+- **Resolve:** after `ResolveAfter` consecutive good observations (1 for task runs, 2 for most sweeper checks),
+  the incident sends one `RESOLVED` event.
+- **Flapping:** three opens within 6 h send one `incident-flapping` alert. After that, transitions are recorded but
+  not forwarded for 6 h.
+- **`skipped` is neutral:** for example, runners down during a planned DRAIN that is still inside its time budget.
+- **Vanished subjects:** an open incident whose subject disappeared (task deleted, orphan reaped) is resolved when
+  its detector completes a sweep without seeing it.
+
+## Detectors
+
+| detector | fires on | resolves on |
+|---|---|---|
+| task result (`run`) | non-zero last result from [`Test-ScheduledTaskHealth.ps1`](../../Tools/Test-ScheduledTaskHealth.ps1), which is reused rather than re-derived; benign codes in `task_ok_codes` (IgnoreNew `0x800710E0`) do not count, and never mask a launcher failure | next good result |
+| `task-stale` | no run within `task_stale_factor` (2) times its interval, or never ran | a run |
+| `task-expected` | a task in `expect_enabled` that is Disabled, missing or never ran | enabled and ran |
+| `task-interactive-no-session` | LogonType Interactive while its user has no desktop (it will not fire; convert to S4U) | a session, or S4U |
+| `log-rule` | exit 0, but the newest log written since the last run matches a pattern (`[ERROR]`, `STALE`, `integrity check did not pass`) | a clean log |
+| `disk-free` | below `min_free_gb`/`min_free_pct`; a missing **required** drive is a failure, never 0 GB | above floor |
+| `disk-trend` | a least-squares slope over 6 h projects the floor within 24 h ("T: hits 15 GB in 7.5 h") | trend flattens |
+| `runner-offline` | a self-hosted runner offline (gh API; run on one host with `fleet_checks`) | online |
+| `drain-overrun` | a DRAIN announced on agent-bus that has lasted longer than `drain.max_minutes` | DRAIN ended |
+| `workflow-no-runs` | an expected workflow's newest run is older than `max_age_days` | a new run |
+| `pg-connections` | established connections reach `warn_pct` of `max_connections`; no database credentials needed | below |
+| `orphan-process` | a process matching a pattern whose parent died or whose parent PID was reused | none left |
+| `cert-expiry` | under 21 days (medium), under 7 days (high), or a chain error (critical) | renewed |
+| `detector-error` | a detector that threw; it is reported, never read as healthy | the detector runs |
+
+## Playbooks: bounded, and narrow on purpose
+
+Each playbook:
+
+- runs under a non-blocking lock;
+- has a budget per incident per window, default 1 per 24 h;
+- backs off exponentially, starting at 30 min;
+- writes a `remediation` event for every attempt;
+- once the budget is spent, sends **one** `escalation` (finding, high severity) and stops acting.
+
+| playbook | does | never does |
+|---|---|---|
+| `rerun-task` | `Start-ScheduledTask` once, only for tasks on the `rerun_tasks` allowlist (idempotent ones) | run a Running task, re-enable a Disabled one |
+| `reap-orphans` | runs the configured reaper with `-Apply` (it kills only processes whose parent is dead, re-checking identity) | kill anything itself |
+| `disk-low` | prunes files older than N days in policy-listed directories that pass `Test-FleetCacheDirAllowed`; runs `uv cache prune`; **requests** compaction from the storage lane over agent-bus | stop runners, set DRAIN, delete outside cache directories |
+
+`Test-FleetCacheDirAllowed` accepts only an absolute path at least three levels deep that has a `cache` segment. It
+rejects anything under Documents, Desktop, source trees, `.git`, `.ssh` or secrets. Nothing in this module reboots,
+DRAINs, changes network configuration or deletes user data.
+
+## Alert transport and its security tradeoff
+
+agent-bus is the primary sink. It needs no secret beyond the bus client configuration that S4U tasks already
+read.
+
+Discord is the second transport. Its token is read, in order, from `DISCORD_BOT_TOKEN` and then from
+`%ProgramData%\fleet-reliability\secrets\discord-bot-token.dpapi`. That file is **LocalMachine**-scope DPAPI with
+fixed entropy, and its ACL allows only SYSTEM, Administrators and the owner.
+
+- **Why LocalMachine:** CurrentUser DPAPI `Protect` fails with "Access is denied" in a passwordless logon. This was
+  measured over an SSH key logon on a host with no interactive session. S4U is also passwordless.
+- **Tradeoff:** any administrator or SYSTEM process on that host can decrypt the token. The file ACL is the real
+  boundary.
+- **Narrower alternative (not implemented):** a single-channel Discord webhook in place of the bot token. A webhook
+  can only post to one channel, so a stolen one cannot read messages or act as the bot.
+
+The token is never logged. It lives only in the process that sends.
+
+## Operations
+
+- **State:** `state\incidents.json` (incidents), `state\playbooks.json` (budgets), `state\disk-samples.json` (48 h of
+  samples) and `state\last-sweep.json` (summary).
+- **Logs:** wrapped tasks write to `logs\<task>.log`.
+- **Profiles:** paths that use `{profile}` resolve through the known folder, never through `USERPROFILE`, which
+  agent sessions redirect.
+- **Revert:** run the printed revert commands, or `Unregister-ScheduledTask -TaskPath '\fleet-reliability\'`. Then,
+  optionally, remove `%ProgramData%\fleet-reliability`. The ledger is the only record there, so archive it first.

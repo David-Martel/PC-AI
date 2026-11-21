@@ -88,6 +88,52 @@ Describe 'Compare-PcaiLinkPlan classifies the live USB4 state against the plan' 
     }
 }
 
+# Protects: the watcher reads what the real planner writes. Detects: the hand-built $Plan above
+# drifting from `pcai-tb route-plan` output (codex review of #344: "the hand-built test fixture
+# masks the missing integration"). Needs: Tests/Fixtures/LinkHealth/usb4-route-plan-hub-chain.json,
+# printed by pcai-tb built from main 9310df20 (#335) for the sanitized hub-chain observation in
+# Native/pcai_core/pcai_tb_cli/tests/fixtures with transit dtm-super-nuc. Regenerate it with
+# `pcai-tb route-plan` (docs/usb4/multi-hop-routing.md) when the plan schema changes.
+Describe 'The watcher reads a plan printed by pcai-tb route-plan' -Tag 'Unit', 'Portable' {
+    BeforeAll {
+        $script:RealPlan = Read-PcaiRoutePlan -Path (Join-Path $repoRoot 'Tests/Fixtures/LinkHealth/usb4-route-plan-hub-chain.json')
+        function New-PlannedAdapter {
+            param($Plan, [string]$HostName, [switch]$NoAddress)
+            foreach ($e in @($Plan.edges)) {
+                foreach ($ep in @($e.endpoints | Where-Object host -eq $HostName)) {
+                    $ipv4 = if ($NoAddress) { @() } else { @("$($ep.ipv4_address)/30") }
+                    [pscustomobject]@{ InterfaceIndex = [int]$ep.interface_index; Name = $ep.interface_alias; Description = 'USB4(TM) P2P Network Adapter'
+                        Guid = ([string]$ep.interface_guid).Trim('{}').ToLowerInvariant(); Mac = ([string]$ep.mac).ToUpperInvariant(); Status = 'Up'
+                        LinkSpeed = '40 Gbps'; Ipv4 = $ipv4; Forwarding = 'Enabled' }
+                }
+            }
+        }
+        function Get-PlannedRoute {
+            param($Plan, [string]$HostName)
+            foreach ($a in @(($Plan.hosts | Where-Object host -eq $HostName).actions | Where-Object kind -eq 'HostRoute')) {
+                if ([string]$a.target -match '^(?<dst>\S+)\s+via\s+(?<hop>\S+)$') {
+                    [pscustomobject]@{ InterfaceIndex = [int]$a.interface_index; DestinationPrefix = $Matches.dst; NextHop = $Matches.hop }
+                }
+            }
+        }
+    }
+    It 'accepts the schema and finds the plan ID in the journal paths' {
+        $RealPlan.schema | Should -Be 'pcai.usb4-route-plan/v1'
+        Get-PcaiRoutePlanId -Plan $RealPlan | Should -Match '^[0-9a-f]{16}$'
+    }
+    It 'reports InSync on <HostName> when every planned address and route is live' -ForEach @(
+        @{ HostName = 'dtm-p1gen7' }, @{ HostName = 'dtm-super-nuc' }, @{ HostName = 'dtm-p1gen9' }
+    ) {
+        $r = Compare-PcaiLinkPlan -Plan $RealPlan -HostName $HostName -Adapter @(New-PlannedAdapter -Plan $RealPlan -HostName $HostName) -Route @(Get-PlannedRoute -Plan $RealPlan -HostName $HostName)
+        $r.GuardsMatch | Should -BeTrue
+        $r.State | Should -Be 'InSync'
+    }
+    It 'reports Drift on the transit host when its addresses are gone' {
+        $r = Compare-PcaiLinkPlan -Plan $RealPlan -HostName 'dtm-super-nuc' -Adapter @(New-PlannedAdapter -Plan $RealPlan -HostName 'dtm-super-nuc' -NoAddress) -Route @()
+        $r.State | Should -Be 'Drift'
+    }
+}
+
 Describe 'Plan helpers' -Tag 'Unit', 'Portable' {
     It 'extracts the plan ID from the journal path embedded in the apply lines' {
         Get-PcaiRoutePlanId -Plan $Plan | Should -Be '0123456789abcdef'
@@ -298,6 +344,7 @@ Describe 'SYSTEM install and restore trust the whole ancestor chain' -Tag 'Unit'
             [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = 'S-1-5-32-544' } } -PassThru |
                 Add-Member -MemberType ScriptMethod -Name GetAccessRules -Value { @() } -PassThru
         } -ParameterFilter { $LiteralPath -like '*pcai-usb4*' }
+        Mock Resolve-PcaiSystemPwsh { Join-Path $env:ProgramFiles 'PowerShell/7/pwsh.exe' }
         $target = Join-Path $TestDrive 'staging/pcai-usb4/link-health/bin'
         { Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask } | Should -Throw '*not trusted for a SYSTEM task*'
         Should -Invoke Register-ScheduledTask -Times 0 -Exactly
@@ -317,6 +364,14 @@ Describe 'SYSTEM install and restore trust the whole ancestor chain' -Tag 'Unit'
         { Install-PcaiHealthWindows -Root $repoRoot -Target (Join-Path $TestDrive 'dry/bin') -Components @('LinkHealth') -SystemTask -IsDryRun } |
             Should -Throw '*No PowerShell 7 is trusted*'
         Should -Invoke Register-ScheduledTask -Times 0 -Exactly
+        # A real install refuses before it creates, protects or rebuilds any directory, so an
+        # existing install (and a task pointing into it) is left as it was.
+        Mock New-PcaiProtectedDirectory { }
+        $target = Join-Path $TestDrive 'real/pcai-usb4/link-health/bin'
+        { Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask } |
+            Should -Throw '*No PowerShell 7 is trusted*'
+        Should -Invoke New-PcaiProtectedDirectory -Times 0 -Exactly
+        Test-Path -LiteralPath (Join-Path $TestDrive 'real') | Should -BeFalse
     }
     It 'uses the first candidate whose executable and directory are trusted' -Skip:(-not $IsWindows) {
         $first = Join-Path $TestDrive 'a/pwsh.exe'

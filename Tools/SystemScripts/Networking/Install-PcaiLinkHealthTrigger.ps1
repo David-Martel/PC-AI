@@ -404,6 +404,10 @@ function Install-PcaiHealthWindows {
         return
     }
     if ($SystemTask) {
+        # The interpreter runs as SYSTEM before any script check, so it needs the same custody.
+        # Resolved before anything below creates, protects or rebuilds a directory, so a refusal
+        # leaves the existing install (and any task pointing into it) untouched.
+        $pwsh = Resolve-PcaiSystemPwsh
         # The SYSTEM task trusts everything under %ProgramData%\pcai-usb4\link-health. Protect that
         # directory itself, not only bin\, and refuse a pcai-usb4 or link-health that another
         # account created first (it could otherwise swap the scripts the task runs).
@@ -434,8 +438,6 @@ function Install-PcaiHealthWindows {
         if (-not (Test-PcaiSystemTrustedPath -Path $bin)) {
             throw "$bin is not trusted for a SYSTEM task: it or an ancestor up to the volume root has an untrusted owner, is a reparse point or lets another account replace it. Use the default %ProgramData% root or fix the ACLs."
         }
-        # The interpreter runs as SYSTEM before any script check, so it needs the same custody.
-        $pwsh = Resolve-PcaiSystemPwsh
         # A baseline a user planted while the tree was writable would later be restored elevated.
         foreach ($f in @(Get-ChildItem -LiteralPath $backupDir -File -Force -ErrorAction SilentlyContinue)) {
             if (-not (Test-PcaiSystemTrustedPath -Path $f.FullName)) {

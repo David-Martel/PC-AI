@@ -9,11 +9,28 @@
     5. Deduplicates, removes dead paths, and deterministically orders HKCU:\Environment\Path with user shim directories first (~/.local/bin, ~/bin, ~/.cargo/bin, ~/.dotnet/tools, ~/go/bin, %LOCALAPPDATA%\agy\bin).
     6. Sanitizes PSModulePath (removing dead C:\codedev\PC_AI\relative and OneDrive duplicate shadowing) and syncs CargoTools & PC-AI modules to host-local module roots.
     7. Repairs broken symlinks in ~/bin and ~/.local/bin and ensures git-guard shims exist in ~/bin.
+.PARAMETER DryRun
+    Print what the PATH step would do and exit before any write: no backup, registry, module, link or file change.
+.PARAMETER PassThru
+    Return the summary object instead of formatting it.
+.PARAMETER Help
+    Print this usage (also -h and --help) and exit.
 #>
 [CmdletBinding()]
 param(
-    [switch]$PassThru
+    [switch]$PassThru,
+    [switch]$DryRun,
+    [switch]$Help,
+    [Parameter(ValueFromRemainingArguments)][string[]]$RemainingArgs = @()
 )
+
+if ($Help -or $RemainingArgs -contains '--help' -or $RemainingArgs -contains '-h') {
+    'Usage: Sync-MachineEnvironment.ps1 [-DryRun] [-PassThru] [-h | --help | -Help]'
+    '  -DryRun   print the planned PATH change and exit before any write (no backups, registry, modules, links or files)'
+    '  -PassThru return the summary object'
+    'Writes: HKCU environment and PATH, PSModulePath, host-local module copies, ~/bin and ~/.local/bin shims, ~/.machine/backups.'
+    return
+}
 
 $ErrorActionPreference = 'Stop'
 
@@ -24,6 +41,24 @@ if (-not $machinePathDir) { throw 'MachinePath.psm1 not found next to this scrip
 Import-Module (Join-Path $machinePathDir 'MachinePath.psm1') -Force
 $pathContext = Get-MachinePathContext
 $UserHomeReal = $pathContext.UserHome
+
+# Build concurrency honours the host's machine profile (Config/machine-profiles/<host>.json buildPolicy.maxNativeBuildJobs);
+# the NUC and dtm-work cap native builds at two jobs, and a fleet-wide constant would override that.
+$profileDirs = @((Join-Path $machinePathDir '..\..\..\Config\machine-profiles'), 'C:\codedev\PC-AI\Config\machine-profiles') | Where-Object { Test-Path -LiteralPath $_ -PathType Container } | ForEach-Object { (Resolve-Path -LiteralPath $_).Path }
+$buildJobs = Get-MachineBuildJobCap -HostName $env:COMPUTERNAME -ProfileDirectories $profileDirs -Default 8
+
+if ($DryRun) {
+    $plannedCargoHome = if (Test-Path -LiteralPath 'T:\RustCache') { 'T:\RustCache\cargo-home' } else { Join-Path $UserHomeReal '.cargo' }
+    $dryContext = Get-MachinePathContext -CargoHome $plannedCargoHome
+    $dryPolicy = Read-MachinePathPolicy -Path (Join-Path $machinePathDir 'machine-path.policy.json') -Context $dryContext
+    $dryPlan = Get-MachinePathPlan -UserEntries (Get-MachinePathRegistry -Scope User).Entries -MachineEntries (Get-MachinePathRegistry -Scope Machine).Entries -Policy $dryPolicy -Context $dryContext
+    "Dry run for $($env:COMPUTERNAME): nothing is written."
+    "  CARGO_HOME would be $plannedCargoHome; build jobs would be $buildJobs"
+    "  user PATH: $((Get-MachinePathRegistry -Scope User).Entries.Count) -> $($dryPlan.UserEntries.Count) entries"
+    foreach ($r in ($dryPlan.Removed | Where-Object Scope -eq 'User')) { "    remove $($r.Entry) ($($r.Reason))" }
+    '  not evaluated in a dry run: HKCU backup and environment values, PowerToys keys, PSModulePath, module copies, link and shim repair.'
+    return
+}
 
 $backupRoot = Join-Path $UserHomeReal '.machine\backups'
 New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
@@ -107,7 +142,7 @@ $canonicalEnv = [ordered]@{
     'SCCACHE_DIR'                        = $sccacheDir
     'RUSTC_WRAPPER'                      = 'sccache'
     'CARGO_BUILD_RUSTC_WRAPPER'          = 'sccache'
-    'CARGO_BUILD_JOBS'                   = '8'
+    'CARGO_BUILD_JOBS'                   = "$buildJobs"
     'CARGO_INCREMENTAL'                  = '0'
     'RUST_BACKTRACE'                     = '1'
     'CARGO_LLD_PATH'                     = 'C:\Program Files\LLVM\bin\lld-link.exe'
@@ -130,8 +165,8 @@ $canonicalEnv = [ordered]@{
     'SCCACHE_IDLE_TIMEOUT'               = '1800'
     'SCCACHE_SERVER_PORT'                = '4810'
     'CMAKE_GENERATOR'                    = 'Ninja'
-    'CMAKE_BUILD_PARALLEL_LEVEL'         = '8'
-    'MAKEFLAGS'                          = '-j8'
+    'CMAKE_BUILD_PARALLEL_LEVEL'         = "$buildJobs"
+    'MAKEFLAGS'                          = "-j$buildJobs"
     'GIT_GUARD_ROOT'                     = 'C:/Users/david/.local/share/git-guard/current'
     'RIPGREP_CONFIG_PATH'                = (Join-Path $UserHomeReal '.config\ripgrep\config')
     'AST_GREP_GLOBAL_CONFIG'             = (Join-Path $UserHomeReal '.config\ast-grep\sgconfig.yml')
@@ -166,6 +201,8 @@ foreach ($kv in $canonicalEnv.GetEnumerator()) {
     [Environment]::SetEnvironmentVariable($kv.Key, $kv.Value, 'User')
     Set-Item -Path "Env:\$($kv.Key)" -Value $kv.Value
 }
+# CARGO_HOME may just have changed: plan the PATH from the home selected above, not the one captured at startup.
+$pathContext = Get-MachinePathContext -CargoHome $cargoHome
 
 # ---------------------------------------------------------------------------
 # 5. Sanitize PSModulePath & eliminate duplicate OneDrive module shadowing
@@ -208,12 +245,13 @@ foreach ($dupRoot in @($oneDriveModules, $docsModules, $localShareModules)) {
                 if ($modDir.LinkType) {
                     try { [IO.Directory]::Delete($modDir.FullName) } catch { Remove-Item -LiteralPath $modDir.FullName -Force -ErrorAction SilentlyContinue }
                 } else {
-                    $leafBackup = Join-Path $staleBackupDir ("{0}_{1}" -f (Split-Path (Split-Path $dupRoot -Parent) -Leaf), $modDir.Name)
-                    try {
-                        Remove-Item -LiteralPath $leafBackup -Recurse -Force -ErrorAction SilentlyContinue
-                        Copy-Item -LiteralPath $modDir.FullName -Destination $leafBackup -Recurse -Force -ErrorAction SilentlyContinue
-                    } catch {}
-                    Remove-Item -LiteralPath $modDir.FullName -Recurse -Force -ErrorAction SilentlyContinue
+                    # The backup identity is unique per source root (the full root path, hashed): the OneDrive and Documents roots
+                    # both sit under a folder named PowerShell and used to share one destination. The live directory is removed
+                    # only after a staged, size-verified backup was published; on failure it stays and a warning is shown.
+                    $rootId = '{0}-{1}' -f (Split-Path (Split-Path (Split-Path $dupRoot -Parent) -Parent) -Leaf), ([BitConverter]::ToString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($dupRoot.ToLowerInvariant()))).Replace('-', '').Substring(0, 8).ToLowerInvariant())
+                    if (Backup-MachineModuleDirectory -Source $modDir.FullName -BackupRoot $staleBackupDir -RootId $rootId) {
+                        Remove-Item -LiteralPath $modDir.FullName -Recurse -Force -ErrorAction SilentlyContinue
+                    }
                 }
             }
     }

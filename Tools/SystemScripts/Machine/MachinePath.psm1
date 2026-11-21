@@ -515,6 +515,116 @@ function Backup-MachinePath {
     }
 }
 
+function Backup-MachineModuleDirectory {
+    <#
+    .SYNOPSIS
+        Stages, verifies and publishes a backup of one module directory. Returns $true only when the backup is complete.
+    .DESCRIPTION
+        The caller removes the live directory only on $true. The backup lands in <BackupRoot>\<RootId>_<Module>; RootId must be
+        unique per source root so two roots holding the same module never share a destination. An existing backup is kept as
+        <name>.prev (one generation). The copy is staged beside the destination and compared by file count and total size first,
+        so a failed or partial copy never replaces a good backup.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Source, [Parameter(Mandatory)][string]$BackupRoot, [Parameter(Mandatory)][string]$RootId)
+    $dest = Join-Path $BackupRoot ('{0}_{1}' -f $RootId, (Split-Path $Source -Leaf))
+    $stage = "$dest.staging"
+    $measure = { param($p) $f = @(Get-ChildItem -LiteralPath $p -Recurse -File -Force -ErrorAction Stop); [pscustomobject]@{ Count = $f.Count; Bytes = [long](($f | Measure-Object Length -Sum).Sum) } }
+    try {
+        if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction Stop }
+        New-Item -ItemType Directory -Force -Path $BackupRoot -ErrorAction Stop | Out-Null
+        Copy-Item -LiteralPath $Source -Destination $stage -Recurse -Force -ErrorAction Stop
+        $a = & $measure $Source; $b = & $measure $stage
+        if ($a.Count -ne $b.Count -or $a.Bytes -ne $b.Bytes) { throw "backup differs from source ($($b.Count) of $($a.Count) files, $($b.Bytes) of $($a.Bytes) bytes)" }
+        if (Test-Path -LiteralPath $dest) {
+            $prev = "$dest.prev"
+            if (Test-Path -LiteralPath $prev) { Remove-Item -LiteralPath $prev -Recurse -Force -ErrorAction Stop }
+            Move-Item -LiteralPath $dest -Destination $prev -ErrorAction Stop
+        }
+        Move-Item -LiteralPath $stage -Destination $dest -ErrorAction Stop
+        $true
+    } catch {
+        Write-Warning "Backup of $Source failed, the live directory is left in place: $($_.Exception.Message)"
+        Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
+        $false
+    }
+}
+
+function Get-MachineBuildJobCap {
+    <#
+    .SYNOPSIS
+        Build-job count for a host: the default, lowered to buildPolicy.maxNativeBuildJobs of that host's machine profile.
+    #>
+    [CmdletBinding()]
+    param([string]$HostName = $env:COMPUTERNAME, [string[]]$ProfileDirectories = @(), [int]$Default = 8)
+    foreach ($d in $ProfileDirectories) {
+        if (-not (Test-Path -LiteralPath $d -PathType Container)) { continue }
+        foreach ($f in (Get-ChildItem -LiteralPath $d -Filter '*.json' -File -ErrorAction SilentlyContinue)) {
+            try { $p = Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json -ErrorAction Stop } catch { continue }
+            if ($p.PSObject.Properties['hostName'] -and $p.hostName -ieq $HostName -and $p.PSObject.Properties['buildPolicy'] -and $p.buildPolicy.PSObject.Properties['maxNativeBuildJobs']) {
+                return [Math]::Min($Default, [int]$p.buildPolicy.maxNativeBuildJobs)
+            }
+        }
+    }
+    $Default
+}
+
+function Get-MachineTaskActionText {
+    <#
+    .SYNOPSIS
+        "Execute Arguments" for every action of the given scheduled tasks. COM-handler and other actions have no Execute property.
+    #>
+    [CmdletBinding()]
+    param([object[]]$Task = @())
+    foreach ($tk in $Task) {
+        foreach ($a in @($tk.Actions)) {
+            $exe = if ($a.PSObject.Properties['Execute']) { $a.Execute } else { '' }
+            $arg = if ($a.PSObject.Properties['Arguments']) { $a.Arguments } else { '' }
+            if ($exe -or $arg) { "$exe $arg" }
+        }
+    }
+}
+
+function Get-MachineReferenceCorpus {
+    <#
+    .SYNOPSIS
+        Lower-cased text of everything that can name a binary by path, plus a list of every source that could not be read.
+    .DESCRIPTION
+        Callers must treat a non-empty Failures list as "the search is incomplete": an unread source may reference the file,
+        so archiving on that basis fails open. Optional files that do not exist are not failures. The providers are injectable
+        for tests and default to scheduled tasks, services and running processes.
+    #>
+    [CmdletBinding()]
+    param(
+        [string[]]$Files = @(), [string[]]$Directories = @(),
+        [string[]]$ExcludePattern = @('\\(backups|archive|logs|imports|migration|\.superseded|node_modules|path-tool)\\'),
+        [scriptblock]$TaskProvider = { Get-MachineTaskActionText -Task @(Get-ScheduledTask -ErrorAction Stop) },
+        [scriptblock]$ServiceProvider = { Get-CimInstance Win32_Service -ErrorAction Stop | ForEach-Object { $_.PathName } },
+        [scriptblock]$ProcessProvider = { Get-CimInstance Win32_Process -ErrorAction Stop | ForEach-Object { "$($_.ExecutablePath) $($_.CommandLine)" } }
+    )
+    $sb = [System.Text.StringBuilder]::new()
+    $failures = [System.Collections.Generic.List[string]]::new()
+    $sources = 0
+    foreach ($f in $Files) {
+        if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { continue }
+        try { [void]$sb.AppendLine((Get-Content -LiteralPath $f -Raw -ErrorAction Stop)); $sources++ } catch { $failures.Add("file ${f}: $($_.Exception.Message)") }
+    }
+    foreach ($d in $Directories) {
+        if (-not (Test-Path -LiteralPath $d -PathType Container)) { continue }
+        $err = @()
+        $found = Get-ChildItem -LiteralPath $d -File -Force -Recurse -Depth 4 -Include *.ps1, *.psm1, *.cmd, *.bat, *.json, *.toml, *.yml, *.xml, *.lua, *.sh, *.conf -ErrorAction SilentlyContinue -ErrorVariable +err
+        foreach ($e in $err) { $failures.Add("enumerate ${d}: $($e.Exception.Message)") }
+        foreach ($item in $found) {
+            if ($item.Length -ge 1MB -or ($ExcludePattern | Where-Object { $item.FullName -match $_ })) { continue }
+            try { [void]$sb.AppendLine((Get-Content -LiteralPath $item.FullName -Raw -ErrorAction Stop)); $sources++ } catch { $failures.Add("file $($item.FullName): $($_.Exception.Message)") }
+        }
+    }
+    foreach ($p in @(@{ Name = 'scheduled tasks'; Block = $TaskProvider }, @{ Name = 'services'; Block = $ServiceProvider }, @{ Name = 'processes'; Block = $ProcessProvider })) {
+        try { foreach ($line in @(& $p.Block)) { [void]$sb.AppendLine([string]$line) }; $sources++ } catch { $failures.Add("$($p.Name): $($_.Exception.Message)") }
+    }
+    [pscustomobject]@{ Text = $sb.ToString().Replace('\\', '\').Replace('/', '\').ToLowerInvariant(); Sources = $sources; Failures = @($failures) }
+}
+
 function Send-MachineEnvironmentChange {
     [CmdletBinding()]
     param()
@@ -598,7 +708,7 @@ function Compare-MachineResolutionBaseline {
     }
 }
 
-Export-ModuleMember -Function Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
+Export-ModuleMember -Function Get-MachineTaskActionText, Backup-MachineModuleDirectory, Get-MachineBuildJobCap, Get-MachineReferenceCorpus, Get-MachineFileHash, ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
     Get-MachinePathRegistry, Resolve-MachinePathEntry, Test-MachinePathEntries, Get-MachineCommandIndex, Resolve-MachineCommand,
     Test-MachinePathShadows, Test-MachinePathExtensionless, Get-MachineVariantFile, Test-MachinePathWrappers, Get-MachinePathPlan, Backup-MachinePath,
     Send-MachineEnvironmentChange, Set-MachinePathValue, Get-MachineResolutionBaseline, Compare-MachineResolutionBaseline

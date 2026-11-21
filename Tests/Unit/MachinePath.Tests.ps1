@@ -190,3 +190,127 @@ Describe 'Resolution baseline' {
         Resolve-MachineCommand -Name 'nonexistent-zz' -Directories @($one, $two) | Should -BeNullOrEmpty
     }
 }
+
+Describe 'Backup-MachineModuleDirectory' {
+    # Why: Sync-MachineEnvironment used to delete a live module after a copy that could fail silently, and gave the OneDrive and
+    # Documents roots the same backup name, so one backup overwrote the other (codex review of PR 343, P1 and P2).
+    BeforeEach {
+        $script:Bk = Join-Path $TestDrive 'bk'; $script:Src1 = Join-Path $TestDrive 'root1\CargoTools'; $script:Src2 = Join-Path $TestDrive 'root2\CargoTools'
+        Remove-Item -LiteralPath $script:Bk, (Join-Path $TestDrive 'root1'), (Join-Path $TestDrive 'root2') -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Force -Path $script:Bk, $script:Src1, $script:Src2 | Out-Null
+        Set-Content (Join-Path $script:Src1 'a.psd1') 'one'; Set-Content (Join-Path $script:Src2 'a.psd1') 'two'
+    }
+    It 'keeps a verified, distinct backup per source root so neither overwrites the other' {
+        Backup-MachineModuleDirectory -Source $script:Src1 -BackupRoot $script:Bk -RootId 'rootA' | Should -BeTrue
+        Backup-MachineModuleDirectory -Source $script:Src2 -BackupRoot $script:Bk -RootId 'rootB' | Should -BeTrue
+        Get-Content (Join-Path $script:Bk 'rootA_CargoTools\a.psd1') | Should -Be 'one'
+        Get-Content (Join-Path $script:Bk 'rootB_CargoTools\a.psd1') | Should -Be 'two'
+    }
+    It 'retains the previous backup when the same source is backed up again' {
+        Backup-MachineModuleDirectory -Source $script:Src1 -BackupRoot $script:Bk -RootId 'rootA' | Out-Null
+        Set-Content (Join-Path $script:Src1 'a.psd1') 'newer'
+        Backup-MachineModuleDirectory -Source $script:Src1 -BackupRoot $script:Bk -RootId 'rootA' | Should -BeTrue
+        Get-Content (Join-Path $script:Bk 'rootA_CargoTools\a.psd1') | Should -Be 'newer'
+        Get-Content (Join-Path $script:Bk 'rootA_CargoTools.prev\a.psd1') | Should -Be 'one'
+    }
+    It 'returns false and leaves the existing backup untouched when the copy fails' {
+        Backup-MachineModuleDirectory -Source $script:Src1 -BackupRoot $script:Bk -RootId 'rootA' | Out-Null
+        $locked = [IO.File]::Open((Join-Path $script:Src1 'a.psd1'), 'Open', 'ReadWrite', 'None')   # an exclusive lock makes Copy-Item fail
+        try {
+            Backup-MachineModuleDirectory -Source $script:Src1 -BackupRoot $script:Bk -RootId 'rootA' -WarningAction SilentlyContinue | Should -BeFalse
+        } finally { $locked.Dispose() }
+        Get-Content (Join-Path $script:Bk 'rootA_CargoTools\a.psd1') | Should -Be 'one'
+        Test-Path (Join-Path $script:Bk 'rootA_CargoTools.staging') | Should -BeFalse
+    }
+}
+
+Describe 'Get-MachineBuildJobCap' {
+    # Why: the synchronizer persisted eight build jobs everywhere, overriding the NUC and dtm-work profiles that cap native builds at two.
+    BeforeAll {
+        $script:Prof = Join-Path $TestDrive 'profiles'; New-Item -ItemType Directory -Force -Path $script:Prof | Out-Null
+        '{ "hostName": "capped-host", "buildPolicy": { "maxNativeBuildJobs": 2 } }' | Set-Content (Join-Path $script:Prof 'capped-host.json')
+        '{ "hostName": "free-host" }' | Set-Content (Join-Path $script:Prof 'free-host.json')
+        'not json' | Set-Content (Join-Path $script:Prof 'broken.json')
+    }
+    It 'honours the cap of the matching host profile only' {
+        Get-MachineBuildJobCap -HostName 'CAPPED-HOST' -ProfileDirectories @($script:Prof) | Should -Be 2
+        Get-MachineBuildJobCap -HostName 'free-host' -ProfileDirectories @($script:Prof) | Should -Be 8
+        Get-MachineBuildJobCap -HostName 'unknown-host' -ProfileDirectories @($script:Prof) | Should -Be 8
+    }
+    It 'never raises the default and ignores unreadable profiles' {
+        Get-MachineBuildJobCap -HostName 'capped-host' -ProfileDirectories @($script:Prof) -Default 1 | Should -Be 1
+        Get-MachineBuildJobCap -HostName 'x' -ProfileDirectories @((Join-Path $TestDrive 'missing')) | Should -Be 8
+    }
+}
+
+Describe 'Get-MachineReferenceCorpus' {
+    # Why: an incomplete reference search must not look like "nothing references this file" (codex review of PR 343, P1).
+    BeforeEach {
+        $script:Cfg = Join-Path $TestDrive 'cfg.json'; Set-Content $script:Cfg 'C:\Users\x\bin\tool.exe'
+        $script:Ok = { @('') }
+    }
+    It 'collects text from files and providers and reports no failures when everything is readable' {
+        $c = Get-MachineReferenceCorpus -Files @($script:Cfg, (Join-Path $TestDrive 'optional-missing.json')) -Directories @() -TaskProvider { @('task C:\a\b.exe') } -ServiceProvider $script:Ok -ProcessProvider $script:Ok
+        $c.Failures.Count | Should -Be 0
+        $c.Text | Should -Match 'c:\\users\\x\\bin\\tool\.exe'
+        $c.Text | Should -Match 'task c:\\a\\b\.exe'
+    }
+    It 'reads task actions that have no Execute property (COM handlers) instead of failing the whole search' {
+        # Why: found on dtm-p1gen9 the first time the search ran fail-closed; strict mode made a handler action throw.
+        $tasks = @(
+            [pscustomobject]@{ Actions = @([pscustomobject]@{ Execute = 'C:\a\b.exe'; Arguments = '-x' }) },
+            [pscustomobject]@{ Actions = @([pscustomobject]@{ ClassId = '{abc}' }) }
+        )
+        @(Get-MachineTaskActionText -Task $tasks) | Should -Be @('C:\a\b.exe -x')
+    }
+    It 'reports a failure for each provider that throws' {
+        $c = Get-MachineReferenceCorpus -Files @() -Directories @() -TaskProvider { throw 'access denied' } -ServiceProvider { throw 'rpc unavailable' } -ProcessProvider $script:Ok
+        $c.Failures.Count | Should -Be 2
+        ($c.Failures -join ' ') | Should -Match 'access denied'
+    }
+    It 'reports a failure for a file that exists but cannot be read' {
+        $locked = [IO.File]::Open($script:Cfg, 'Open', 'ReadWrite', 'None')
+        try { $c = Get-MachineReferenceCorpus -Files @($script:Cfg) -Directories @() -TaskProvider $script:Ok -ServiceProvider $script:Ok -ProcessProvider $script:Ok }
+        finally { $locked.Dispose() }
+        $c.Failures.Count | Should -Be 1
+    }
+}
+
+Describe 'Sync-MachineEnvironment.ps1 safety contract' {
+    # Why: write-capable session scripts must offer -DryRun and --help that prove no side effects (AGENTS.md), and PATH must be
+    # planned from the CARGO_HOME the script selects, not the one it started with.
+    BeforeAll {
+        $script:Sync = (Resolve-Path (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Sync-MachineEnvironment.ps1')).Path
+        $script:SyncText = Get-Content $script:Sync -Raw
+    }
+    It '-DryRun leaves HKCU environment, PATH and the backup directory untouched' {
+        $snap = { $k = Get-Item -LiteralPath 'HKCU:\Environment'; ($k.GetValueNames() | Sort-Object | ForEach-Object { "$_=$($k.GetValue($_, $null, 'DoNotExpandEnvironmentNames'))" }) -join "`n" }
+        $before = & $snap
+        $bk = Join-Path (Get-MachinePathContext).UserHome '.machine\backups'
+        $stamp = { if (Test-Path $bk) { [string](Get-ChildItem $bk -Force -Recurse -ErrorAction SilentlyContinue | Measure-Object LastWriteTimeUtc -Maximum).Maximum + '|' + @(Get-ChildItem $bk -Force -Recurse -ErrorAction SilentlyContinue).Count } else { 'absent' } }
+        $bkBefore = & $stamp
+        $out = & (Get-Command pwsh).Source -NoProfile -File $script:Sync -DryRun 2>&1 | Out-String
+        $LASTEXITCODE | Should -Be 0
+        $out | Should -Match 'Dry run'
+        & $snap | Should -Be $before
+        & $stamp | Should -Be $bkBefore
+    }
+    It '-h and --help print usage and exit 0 without side effects' {
+        foreach ($flag in '-h', '--help') {
+            $out = & (Get-Command pwsh).Source -NoProfile -File $script:Sync $flag 2>&1 | Out-String
+            $LASTEXITCODE | Should -Be 0
+            $out | Should -Match '-DryRun'
+        }
+    }
+    It 'rebuilds the PATH context after CARGO_HOME is selected' {
+        $envLoop = $script:SyncText.IndexOf('$canonicalEnv.GetEnumerator()')
+        $rebuild = $script:SyncText.IndexOf('Get-MachinePathContext -CargoHome $cargoHome')
+        $envLoop | Should -BeGreaterThan 0
+        $rebuild | Should -BeGreaterThan $envLoop
+        $script:SyncText.LastIndexOf('Read-MachinePathPolicy') | Should -BeGreaterThan $rebuild
+    }
+    It 'does not hard-code the build job count' {
+        $script:SyncText | Should -Not -Match "'CARGO_BUILD_JOBS'\s*=\s*'8'"
+        $script:SyncText | Should -Not -Match "'MAKEFLAGS'\s*=\s*'-j8'"
+    }
+}

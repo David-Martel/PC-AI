@@ -59,37 +59,32 @@ $actions = [System.Collections.Generic.List[object]]::new()
 $sha12 = { param($p) ((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash).Substring(0, 12).ToLowerInvariant() }
 
 # ---- reference search -------------------------------------------------------------------------------------------
-function Get-ReferenceCorpus {
-    $files = @(
-        '.claude.json', '.claude\settings.json', '.codex\config.toml', '.mcp.json', '.gemini\settings.json',
-        '.gemini\antigravity-cli\mcp_config.json', '.copilot\mcp-config.json', '.config\agent-bus\config.json',
-        'AppData\Roaming\Code\User\settings.json', 'AppData\Roaming\Code\User\mcp.json'
-    ) | ForEach-Object { Join-Path $ctx.UserHome $_ }
-    $files += @('.gitconfig', '.ssh\config', '.wezterm.lua', '.config\wezterm\wezterm.lua') | ForEach-Object { Join-Path $ctx.UserHome $_ }
-    $dirs = @('.machine', 'Documents\PowerShell', 'OneDrive\Documents\PowerShell', '.config\powershell', '.config\git', '.config\wezterm', '.agents',
-        '.codex\hooks', '.claude\hooks', '.local\share\agent-hooks', '.local\share\git-guard\current\bin') | ForEach-Object { Join-Path $ctx.UserHome $_ }
-    $sb = [System.Text.StringBuilder]::new()
-    $script:corpusSources = 0
-    foreach ($f in $files) { if (Test-Path -LiteralPath $f) { $script:corpusSources++; [void]$sb.AppendLine((Get-Content -LiteralPath $f -Raw -ErrorAction SilentlyContinue)) } }
-    foreach ($d in $dirs) {
-        if (-not (Test-Path -LiteralPath $d)) { continue }
-        Get-ChildItem -LiteralPath $d -File -Force -Recurse -Depth 4 -Include *.ps1, *.psm1, *.cmd, *.bat, *.json, *.toml, *.yml, *.xml, *.lua, *.sh, *.conf -ErrorAction SilentlyContinue |
-            Where-Object { $_.Length -lt 1MB -and $_.FullName -notmatch '\\(backups|archive|logs|imports|migration|\.superseded|node_modules|path-tool)\\' } |
-            ForEach-Object { $script:corpusSources++; [void]$sb.AppendLine((Get-Content -LiteralPath $_.FullName -Raw -ErrorAction SilentlyContinue)) }
+# Archival fails CLOSED: if any source that could name a binary (a config file, a scheduled task, a service, a running process)
+# cannot be read, "nothing references this file" is not a safe conclusion, so no file is archived in this run.
+$referenceFiles = @(
+    '.claude.json', '.claude\settings.json', '.codex\config.toml', '.mcp.json', '.gemini\settings.json',
+    '.gemini\antigravity-cli\mcp_config.json', '.copilot\mcp-config.json', '.config\agent-bus\config.json',
+    'AppData\Roaming\Code\User\settings.json', 'AppData\Roaming\Code\User\mcp.json',
+    '.gitconfig', '.ssh\config', '.wezterm.lua', '.config\wezterm\wezterm.lua'
+) | ForEach-Object { Join-Path $ctx.UserHome $_ }
+$referenceDirs = @('.machine', 'Documents\PowerShell', 'OneDrive\Documents\PowerShell', '.config\powershell', '.config\git', '.config\wezterm', '.agents',
+    '.codex\hooks', '.claude\hooks', '.local\share\agent-hooks', '.local\share\git-guard\current\bin') | ForEach-Object { Join-Path $ctx.UserHome $_ }
+$script:refCorpus = $null
+if (-not $SkipArchive) {
+    $script:refCorpus = Get-MachineReferenceCorpus -Files $referenceFiles -Directories $referenceDirs
+    if ($script:refCorpus.Failures.Count -gt 0) {
+        "reference discovery INCOMPLETE ($($script:refCorpus.Failures.Count) sources unreadable); archival is disabled for this run:"
+        $script:refCorpus.Failures | Select-Object -First 10 | ForEach-Object { "  $_" }
+        $SkipArchive = $true
     }
-    Get-ScheduledTask -ErrorAction SilentlyContinue | ForEach-Object { foreach ($a in $_.Actions) { [void]$sb.AppendLine("$($a.Execute) $($a.Arguments)") } }
-    Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | ForEach-Object { [void]$sb.AppendLine($_.PathName) }
-    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | ForEach-Object { [void]$sb.AppendLine("$($_.ExecutablePath) $($_.CommandLine)") }
-    $sb.ToString().Replace('\\', '\').Replace('/', '\').ToLowerInvariant()
 }
-$corpus = $null
 function Test-Referenced {
     param([string]$Path)
-    if ($null -eq $script:corpus) { $script:corpus = Get-ReferenceCorpus }
+    if ($null -eq $script:refCorpus) { return $true }   # no corpus means no evidence: treat as referenced
+    $c = $script:refCorpus.Text
     $needle = $Path.ToLowerInvariant()
     $rel = $needle.Replace($ctx.UserHome.ToLowerInvariant(), '')
-    $needle2 = '~' + $rel
-    $script:corpus.Contains($needle) -or $script:corpus.Contains($needle2) -or $script:corpus.Contains('%userprofile%' + $rel) -or $script:corpus.Contains('$home' + $rel)
+    $c.Contains($needle) -or $c.Contains('~' + $rel) -or $c.Contains('%userprofile%' + $rel) -or $c.Contains('$home' + $rel)
 }
 
 # ---- 1. PATH plan -----------------------------------------------------------------------------------------------
@@ -219,8 +214,7 @@ if (-not $SkipWrappers) {
     }
 }
 if (-not $SkipArchive) {
-    if ($null -eq $script:corpus) { $script:corpus = Get-ReferenceCorpus }
-    "reference corpus: $($script:corpusSources) sources, $($script:corpus.Length) chars" + $(if (-not $script:corpusSources) { ' (EMPTY: every reference check is blind, do not apply)' } else { '' })
+    if ($script:refCorpus) { "reference corpus: $($script:refCorpus.Sources) sources, $($script:refCorpus.Text.Length) chars, $($script:refCorpus.Failures.Count) unreadable" }
     # Positive control: the live Claude config always names the canonical agent-bus binary.
     "reference control (agent-bus-mcp.exe is referenced): $(Test-Referenced -Path (Join-Path $ctx.UserHome 'bin\agent-bus-mcp.exe'))"
 }

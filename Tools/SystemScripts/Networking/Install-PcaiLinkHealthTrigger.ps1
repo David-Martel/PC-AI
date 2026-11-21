@@ -284,7 +284,9 @@ WantedBy=timers.target
 function Install-PcaiHealthWindows {
     [CmdletBinding()]
     param([string]$Root, [string]$Target, [string[]]$Components, [switch]$SystemTask, [switch]$Remove, [switch]$RestoreSaved, [switch]$StartNow, [switch]$IsDryRun)
-    $userId = "$env:USERDOMAIN\$env:USERNAME"
+    # Not "$env:USERDOMAIN\$env:USERNAME": an OpenSSH session on a workgroup host reports
+    # USERDOMAIN=WORKGROUP, which Task Scheduler cannot map to an account (seen on dtm-p1gen7).
+    $userId = [Security.Principal.WindowsIdentity]::GetCurrent().Name
     $pwsh = Join-Path $PSHOME 'pwsh.exe'
     $backupDir = Join-Path $Target 'backup'
     if ($Remove) {

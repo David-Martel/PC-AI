@@ -587,6 +587,65 @@ and no remaining newly owned fixture roots; source/test pins were unchanged.
 | Selector/group | Selector SHA256 | Disposition | Reviewer | Review type | Date (UTC) |
 | --- | --- | --- | --- | --- | --- |
 | Isolated Windows credential custody fixtures / Owned process custody and passive configuration / Canonical credential source and passive machine configuration / imports in a fresh host with <EnvironmentState> COMPUTERNAME while preserving explicit selectors | `AD17C8CBBADF0E63DC7CB0E94A02CE45C1599C62C45ECFF566C5A4B62C5EC9A6` | KEEP | codex-gen9-fleet-resume (/root) | independent Codex static source/test review | 2026-10-22 |
+## Fleet path diagnostic
+
+[`Networking/Test-FleetPath.ps1`](Networking/Test-FleetPath.ps1) answers "which
+address reaches this host and service from here?" for the fleet inventory described below. It is read-only: it
+runs `Get-NetNeighbor`, `Find-NetRoute` and `tailscale status --json`, and opens TCP
+connections that it closes at once. It never changes routes, DNS, Tailscale, SMB
+mappings or credentials.
+
+- **Install:** copy [`Networking/fleet-paths.example.json`](Networking/fleet-paths.example.json)
+  to `~/.machine/fleet-paths.json` (or point `PCAI_FLEET_PATHS` at your copy) and replace
+  the example values with your own. The real inventory holds private addresses and the
+  home gateway MAC, so it stays outside the repository and is never committed; the
+  example uses reserved documentation values only and is illustrative. A missing
+  inventory is an error that names the example. It needs PowerShell 7 on Windows and, for the
+  Tailscale column, the `tailscale` CLI on PATH (without it the column reads
+  `unavailable` and the probes still run).
+- **Run:** from a PowerShell 7 session, `& .\Tools\SystemScripts\Networking\Test-FleetPath.ps1 | Select-Object -ExpandProperty Summary | Format-Table`.
+  Do not pipe `pwsh -File ...`: a child process hands back text, not objects. From another
+  shell use `pwsh -NoProfile -Command "& .\Tools\SystemScripts\Networking\Test-FleetPath.ps1 | Select-Object -ExpandProperty Summary | Format-Table"`.
+  Narrow with `-Target nas -Service smb`; change the per-probe deadline with
+  `-BudgetMs` (default 1500). `-AsJson` emits one `pcai.fleet-path/1` document for
+  `~/.machine/logs`.
+- **Test:** `Invoke-Pester ./Tests/Unit/FleetPath.Tests.ps1`. The suite is hermetic: the TCP
+  connect is an injected connector and the neighbour, route and tailscale reads are
+  mocked. The tailscale parsing uses a [redacted capture](../../Tests/Fixtures/FleetPath/tailscale-status.redacted.json).
+  The controls are in [`Tests/Unit/FleetPath.Tests.ps1`](../../Tests/Unit/FleetPath.Tests.ps1).
+
+How to read the result:
+
+- `Location` is `home-lan` only when an inventory gateway answers **and** its on-link
+  MAC equals the inventory MAC. A hotel LAN can also be 192.168.1.0/24, so the subnet
+  never decides. Off the home LAN, LAN candidates are not probed or recommended, because a
+  connect to a LAN address on a hotel network would reach someone else's machine.
+  Home is verified per interface, with evidence specific to that interface: for every physical, Up
+  interface whose IPv4 subnet contains an inventory gateway, the script connects to the gateway with a
+  TCP socket bound to that interface's own source address, and the interface counts only if that
+  bound probe succeeds and its own neighbour row for the gateway matches the inventory MAC. A
+  dual-NIC host with both NICs on the home subnet therefore verifies both. Each LAN candidate's
+  egress interface (`Find-NetRoute`) is then resolved before it is probed, and it is probed only if
+  that interface is verified; otherwise it is skipped as `egress-not-verified`. An interface whose
+  row disagrees with the inventory is recorded as colliding and is never trusted.
+  A MagicDNS name is resolved before it is probed and is probed only when every answer is the
+  host's own inventory tailnet address (`tailnet`, plus the one `tailnetV6` address if recorded; another
+  peer's IPv6 address is rejected). The connect targets the validated IP literal, not the name. With
+  Tailscale down, a foreign resolver answer is skipped as `magicdns-mismatch` and never connected to.
+  Tailnet and MagicDNS candidates are probed only over verified Tailscale egress: the backend is
+  `Running` and `Find-NetRoute` sends the connect from one of this node's own tailnet addresses.
+  With Tailscale stopped on a network that reuses 100.64.0.0/10, the inventory tailnet address can
+  belong to an unrelated machine, so such a candidate is skipped as `tailnet-egress-not-verified`.
+- `Recommended` is the first reachable candidate in the order LAN, tailnet direct,
+  tailnet peer-relay, tailnet relay, with the MagicDNS name just behind the tailnet
+  address. Each candidate also carries its egress interface and Tailscale path
+  (`direct`, `relay "home"`, `peer-relay`, `offline`). A peer relayed through the home DERP region shows `relay "home"`.
+- A run takes 3 to 4 s on the home LAN; one blocked LAN candidate costs one budget.
+- Edit your private inventory when an address or port changes and re-run to prove the
+  new value. Read a gateway MAC on a host where that gateway is on-link
+  (`Get-NetNeighbor -IPAddress <gateway>`); a host that reaches it by routing has no row.
+  Use `-InventoryPath` to test with another file.
+
 ## Safety Rules
 
 The [Windows USB4 startup policy](../../docs/usb4/windows-boot.md) is an observer.

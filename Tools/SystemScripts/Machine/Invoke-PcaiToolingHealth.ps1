@@ -328,9 +328,28 @@ function Find-PcaiToolingRepo {
         $slug = Get-PcaiRemoteSlug -Url (Get-PcaiGitOriginUrl -ConfigText (Get-Content -LiteralPath $configPath -Raw))
         if (-not $slug) { continue }
         $name = ($slug -split '/')[1]
-        if ($name -in @($Config.repoNames)) { $found.Add([pscustomobject]@{ Path = $c; Slug = $slug; Name = $name }) }
+        if ($name -in @($Config.repoNames)) { $found.Add([pscustomobject]@{ Path = (Resolve-PcaiCheckoutPath -Path $c); Slug = $slug; Name = $name }) }
     }
-    return , $found.ToArray()
+    # A junction or symlink to a checkout (C:\codedev\PC_AI -> PC-AI, ~\.claude -> dtm-claude) is the
+    # same repository. Reported twice it was fetched from two runspaces at once (ref lock failure,
+    # FetchFailed) and fast-forwarded from one path while the other saw "HEAD moved" (Changed).
+    $comparer = if ($IsWindows) { [StringComparer]::OrdinalIgnoreCase } else { [StringComparer]::Ordinal }
+    $seen = [Collections.Generic.HashSet[string]]::new($comparer)
+    $unique = [Collections.Generic.List[object]]::new()
+    foreach ($entry in $found) { if ($seen.Add($entry.Path)) { $unique.Add($entry) } }
+    return , $unique.ToArray()
+}
+
+function Resolve-PcaiCheckoutPath {
+    <# The directory a checkout path really is: the final target of a junction or symlink, else the path itself. #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+    $full = [IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
+    try {
+        $target = (Get-Item -LiteralPath $full -Force -ErrorAction Stop).ResolveLinkTarget($true)
+        if ($target) { return $target.FullName.TrimEnd('\', '/') }
+    } catch { Write-Verbose "link resolution failed for ${full}: $_" }
+    return $full
 }
 
 function Get-PcaiRepoAction {

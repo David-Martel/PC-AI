@@ -540,3 +540,65 @@ Describe 'Debounce delays a run instead of dropping it' -Tag 'Unit', 'Portable' 
         $attr.MaxRange | Should -BeLessOrEqual 300
     }
 }
+
+Describe 'A checkout reached through a junction or symlink is one checkout' -Tag 'Unit', 'Portable' {
+    # Why: on dtm-p1gen9 `C:\codedev\PC_AI` is a junction to `C:\codedev\PC-AI` and
+    # `~\.claude` is a junction to `C:\codedev\dtm-claude`. Discovery listed each twice, and the
+    # parallel pass then fetched one repository from two runspaces ("cannot lock ref
+    # 'refs/remotes/origin/main'": FetchFailed) and fast-forwarded it from one path while the other
+    # saw "HEAD moved since sampling" (Changed). Both read as problems that did not exist.
+    BeforeAll {
+        $script:linkRoot = Join-Path $TestDrive 'links'
+        $null = New-Item -ItemType Directory -Path $script:linkRoot
+        function New-ConfigRepo {
+            param([string]$Path, [string]$Url)
+            $null = New-Item -ItemType Directory -Path (Join-Path $Path '.git') -Force
+            [IO.File]::WriteAllText((Join-Path $Path '.git/config'), "[remote `"origin`"]`n`turl = $Url`n")
+        }
+        function New-DirectoryLink {
+            param([string]$Link, [string]$Target)
+            $null = New-Item -ItemType $(if ($IsWindows) { 'Junction' } else { 'SymbolicLink' }) -Path $Link -Target $Target
+        }
+        function New-FindConfig {
+            param([string[]]$Paths = @(), [string[]]$Roots = @())
+            [pscustomobject]@{ repoNames = @('PC-AI', 'dtm-claude'); repoRoots = $Roots; repoPaths = $Paths }
+        }
+    }
+    It 'reports a root-level junction once, as the real directory' {
+        $root = Join-Path $script:linkRoot 'root1'
+        $null = New-Item -ItemType Directory -Path $root
+        New-ConfigRepo -Path (Join-Path $root 'PC-AI') -Url 'https://github.com/David-Martel/PC-AI.git'
+        New-DirectoryLink -Link (Join-Path $root 'PC_AI') -Target (Join-Path $root 'PC-AI')
+        $found = Find-PcaiToolingRepo -Config (New-FindConfig -Roots @($root))
+        $found.Count | Should -Be 1
+        $found[0].Path | Should -Be (Join-Path $root 'PC-AI')
+    }
+    It 'keeps the real directory even when the junction is listed first (repoPaths)' {
+        $root = Join-Path $script:linkRoot 'root2'
+        $home2 = Join-Path $script:linkRoot 'home2'
+        $null = New-Item -ItemType Directory -Path $root, $home2
+        New-ConfigRepo -Path (Join-Path $root 'dtm-claude') -Url 'git@github.com:David-Martel/dtm-claude.git'
+        New-DirectoryLink -Link (Join-Path $home2 '.claude') -Target (Join-Path $root 'dtm-claude')
+        $found = Find-PcaiToolingRepo -Config (New-FindConfig -Paths @((Join-Path $home2 '.claude')) -Roots @($root))
+        $found.Count | Should -Be 1
+        $found[0].Path | Should -Be (Join-Path $root 'dtm-claude')
+        $found[0].Name | Should -Be 'dtm-claude'
+    }
+    It 'keeps two separate clones of the same repository' {
+        $root = Join-Path $script:linkRoot 'root3'
+        $null = New-Item -ItemType Directory -Path $root
+        New-ConfigRepo -Path (Join-Path $root 'PC-AI') -Url 'https://github.com/David-Martel/PC-AI.git'
+        New-ConfigRepo -Path (Join-Path $root 'PC-AI-second') -Url 'https://github.com/David-Martel/PC-AI.git'
+        (Find-PcaiToolingRepo -Config (New-FindConfig -Roots @($root))).Count | Should -Be 2
+    }
+    It 'keeps a linked repository that has no separate real path in the list' {
+        $root = Join-Path $script:linkRoot 'root4'
+        $elsewhere = Join-Path $script:linkRoot 'elsewhere4'
+        $null = New-Item -ItemType Directory -Path $root, $elsewhere
+        New-ConfigRepo -Path (Join-Path $elsewhere 'checkout') -Url 'https://github.com/David-Martel/PC-AI.git'
+        New-DirectoryLink -Link (Join-Path $root 'PC-AI') -Target (Join-Path $elsewhere 'checkout')
+        $found = Find-PcaiToolingRepo -Config (New-FindConfig -Roots @($root))
+        $found.Count | Should -Be 1
+        $found[0].Path | Should -Be (Join-Path $elsewhere 'checkout')
+    }
+}

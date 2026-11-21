@@ -119,8 +119,9 @@ that does not parse is quarantined.
   and the digest reports an unreadable store instead of "still open 0".
 - **Redaction:** every observation and event message is redacted before it is stored or forwarded (`key=value` and
   quoted values with secret-like keys, `Authorization` schemes, `user:password@` in URLs, `sk-`, AWS key ids, GitHub,
-  Slack, JWT and Discord token shapes). If redaction fails, the excerpt is withheld and only its hash is kept. The raw
-  output stays in the local log under `<home>\logs\`.
+  Slack, JWT and Discord token shapes). If redaction fails, the excerpt is withheld and only its hash is kept. The wrapper's
+  own copy under `<home>\logs\` is redacted the same way (that directory inherits the ProgramData ACL while ACL
+  hardening is deferred); raw output stays only in the tool's own `-LogPath` log, which the module never copies.
 
 ## Policy
 

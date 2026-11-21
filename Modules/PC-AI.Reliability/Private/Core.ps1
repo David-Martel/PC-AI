@@ -344,7 +344,7 @@ function Protect-FleetText {
 function ConvertTo-FleetSafeMessage {
     <#
     The redacted text, or, when redaction fails, a placeholder carrying only a hash of the withheld excerpt:
-    redaction fails CLOSED. The raw text stays in the local log it came from.
+    redaction fails CLOSED. Raw text stays only in the tool's own log (-LogPath), which this module never copies.
     #>
     param([string]$Text)
     if ([string]::IsNullOrEmpty($Text)) { return $Text }

@@ -273,6 +273,22 @@ Describe 'PC-AI.Reliability' {
             & $state 'log-read' | Should -Be 'resolved'
         }
 
+        It 'review of c06b58c1 (P1): the wrapper''s own log copy is redacted, and withheld if redaction fails' {
+            # The wrapper saved raw stdout/stderr under the fleet home's logs\, whose inherited ProgramData ACL lets local
+            # users read it while ACL hardening is deferred: a credential copy despite the ledger redaction.
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = "step one done`n$($script:SecretText)`n" }
+            $null = Invoke-FleetTask -Name '\t\leaky' -FilePath 'C:\fake\job.exe'
+            $own = Get-Content -Raw -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'logs\t_leaky.log')
+            foreach ($x in $script:Secrets) { $own.Contains($x) | Should -BeFalse -Because 'the wrapper log is readable by local users' }
+            $own | Should -Match 'step one done'
+            # Fail closed: if redaction breaks, the output is withheld from the copy, not written raw.
+            Mock -ModuleName PC-AI.Reliability Protect-FleetText { throw 'redactor broke' }
+            $null = Invoke-FleetTask -Name '\t\leaky' -FilePath 'C:\fake\job.exe'
+            $own = Get-Content -Raw -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'logs\t_leaky.log')
+            foreach ($x in $script:Secrets) { $own.Contains($x) | Should -BeFalse }
+            $own | Should -Match 'withheld'
+        }
+
         It 'row 1: refuses a task report without tasks while in-scope tasks are registered' {
             Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @([pscustomobject]@{ FullName = '\job'; TaskPath = '\'; TaskName = 'job'; State = 'Ready'; LogonType = 'S4U'; UserId = 'x' }) }
             Mock -ModuleName PC-AI.Reliability Get-FleetInteractiveUserData { @() }

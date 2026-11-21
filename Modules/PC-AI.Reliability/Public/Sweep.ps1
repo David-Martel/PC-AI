@@ -36,7 +36,7 @@ function Invoke-FleetTask {
     Runs a scheduled task's real command and records what actually happened. A task that exits 0
     while its log says it failed ("integrity check did not pass", "STALE", "[ERROR]") is recorded
     as failed and the wrapper exits non-zero, so Task Scheduler stops showing 0x0 for it.
-    Output goes to <home>\logs\<task>.log; -LogPath names the tool's own log, whose bytes written
+    Output goes, redacted, to <home>\logs\<task>.log; -LogPath names the tool's own log, whose bytes written
     during this run are scanned too. Returns the exit code the task should report.
     #>
     [CmdletBinding()]
@@ -94,7 +94,13 @@ function Invoke-FleetTaskCore {
     $safe = ($Name -replace '[\\/:*?"<>|]+', '_').Trim('_')
     $ownLog = Join-Path (Get-FleetPath -Kind logs) ("{0}.log" -f $safe)
     $header = "=== {0} {1} exit={2} timedout={3}`n" -f (ConvertTo-FleetIso $start), $Name, $r.ExitCode, $r.TimedOut
-    [IO.File]::AppendAllText($ownLog, $header + $r.StdOut + $(if ($r.StdErr) { "`n--- stderr ---`n" + $r.StdErr } else { '' }) + "`n", (New-Object System.Text.UTF8Encoding($false)))
+    # The wrapper's own copy is redacted too: logs\ inherits the ProgramData ACL (local users can read it) while ACL
+    # hardening is deferred, so a raw copy was a readable credential leak despite the ledger redaction (P1, review of
+    # c06b58c1). Fails closed: a redaction error withholds the output and keeps only its hash. Failure patterns are
+    # still matched against the raw output, in memory, below.
+    $outCopy = ConvertTo-FleetSafeMessage ([string]$r.StdOut)
+    $errCopy = $null; if ($r.StdErr) { $errCopy = ConvertTo-FleetSafeMessage ([string]$r.StdErr) }
+    [IO.File]::AppendAllText($ownLog, $header + $outCopy + $(if ($errCopy) { "`n--- stderr ---`n" + $errCopy } else { '' }) + "`n", (New-Object System.Text.UTF8Encoding($false)))
 
     $scan = $r.StdOut + "`n" + $r.StdErr
     if ($LogPath -and -not (Test-Path -LiteralPath $LogPath)) {

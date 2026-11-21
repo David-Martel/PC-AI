@@ -1,0 +1,86 @@
+{
+  "schema": "pcai.fleet-paths/1",
+  "measured": "YYYY-MM-DD",
+  "measuredFrom": "example-host",
+  "notes": "ILLUSTRATIVE EXAMPLE. Every address, MAC and name here is a reserved documentation value (RFC 5737 addresses, an RFC 7042 MAC, example.invalid names) and matches no real network. Copy this file to ~/.machine/fleet-paths.json (or point PCAI_FLEET_PATHS at your copy) and replace the values with your own. Keep the real file out of the repository. Test-FleetPath.ps1 reads it and never writes it. Candidate order is lan (listed order), then tailnet, then magicDns. A service's via list narrows that set.",
+  "gateways": [
+    {
+      "name": "router-subnet-a",
+      "ip": "198.51.100.1",
+      "mac": "00-00-5E-00-53-01",
+      "probePorts": [443],
+      "notes": "Read the MAC on a host where this address is the on-link default gateway (Get-NetNeighbor -IPAddress <ip>). A host that reaches the gateway by routing holds no neighbour row for it and cannot verify the entry."
+    },
+    {
+      "name": "router-subnet-b",
+      "ip": "192.0.2.1",
+      "mac": "00-00-5E-00-53-01",
+      "probePorts": [443, 80],
+      "notes": "A router with an interface on a second subnet can show the same MAC on both. A foreign network that reuses your subnet answers at the same gateway address with a different MAC, so the MAC, not the subnet, proves you are home."
+    }
+  ],
+  "hosts": {
+    "nas": {
+      "tailnet": "100.64.0.101",
+      "magicDns": "nas.tailnet.example.invalid",
+      "lan": ["198.51.100.20"],
+      "services": {
+        "ssh": { "ports": [22] },
+        "smb": { "ports": [445] },
+        "https": { "ports": [443, 8080] }
+      },
+      "notes": "The tailnet peer name can differ from this key; peers are matched by tailnet address."
+    },
+    "workstation": {
+      "tailnet": "100.64.0.102",
+      "magicDns": "workstation.tailnet.example.invalid",
+      "lan": ["192.0.2.33", "198.51.100.34"],
+      "services": {
+        "ssh": { "ports": [2222, 22] },
+        "smb": { "ports": [445] },
+        "rdp": { "ports": [3389] },
+        "agentbus": { "ports": [8400], "via": ["tailnet"] }
+      },
+      "notes": "ssh 2222 is the Windows sshd, ssh 22 is WSL. The message-bus hub listens on the tailnet only."
+    },
+    "nuc": {
+      "tailnet": "100.64.0.103",
+      "magicDns": null,
+      "lan": ["192.0.2.69"],
+      "services": {
+        "ssh": { "ports": [22] },
+        "rdp": { "ports": [3389] }
+      }
+    },
+    "minipc": {
+      "tailnet": "100.64.0.104",
+      "magicDns": null,
+      "lan": ["203.0.113.75"],
+      "services": {
+        "ssh": { "ports": [22] },
+        "rdp": { "ports": [3389] }
+      },
+      "notes": "Example of a LAN address that is blocked from one subnet, so the LAN candidate times out there and the tailnet carries the traffic."
+    },
+    "laptop2": {
+      "tailnet": "100.64.0.105",
+      "magicDns": null,
+      "lan": ["198.51.100.38"],
+      "services": {
+        "ssh": { "ports": [22] },
+        "smb": { "ports": [445] },
+        "rdp": { "ports": [3389] }
+      }
+    },
+    "router": {
+      "tailnet": null,
+      "magicDns": null,
+      "lan": ["198.51.100.1"],
+      "services": {
+        "ssh": { "ports": [22] },
+        "https": { "ports": [443] }
+      },
+      "notes": "LAN only. It has no tailnet address, so it is unreachable off the home LAN."
+    }
+  }
+}

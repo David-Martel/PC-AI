@@ -21,6 +21,11 @@ inventory gateway that answers a TCP connect AND whose on-link MAC address match
 the value recorded in the inventory. A missing, incomplete or all-zero MAC fails
 closed to off-LAN. While off the home LAN, LAN candidates are neither probed nor
 recommended: a connect to a LAN address on a hotel's 192.168.1.0/24 would reach a stranger's machine.
+Home is verified per interface: each LAN candidate's egress interface is resolved with
+Find-NetRoute before it is probed, and it is probed only if that interface is one that
+verified a gateway MAC. On a host with Ethernet on the home LAN and Wi-Fi on a network
+that reuses the subnet, a LAN address routed out of Wi-Fi is skipped with the reason
+egress-not-verified, as is one whose route cannot be resolved.
 
 The tool changes nothing. It calls Get-NetNeighbor, Find-NetRoute and
 `tailscale status --json`, and it opens TCP connections that it closes at once. It
@@ -66,9 +71,11 @@ Emit one JSON document (schema pcai.fleet-path/1) instead of an object, suitable
 ~/.machine/logs. The tailnet path may include a peer's public endpoint address.
 
 .EXAMPLE
-pwsh -NoProfile -File .\Tools\SystemScripts\Networking\Test-FleetPath.ps1 | Select-Object -ExpandProperty Summary | Format-Table
+# Run in a PowerShell 7 session so the result is objects, not text:
+& .\Tools\SystemScripts\Networking\Test-FleetPath.ps1 | Select-Object -ExpandProperty Summary | Format-Table
 
 .EXAMPLE
+# -AsJson emits text, so a child process is fine here:
 pwsh -NoProfile -File .\Tools\SystemScripts\Networking\Test-FleetPath.ps1 -Target nas -Service smb -AsJson
 
 .EXAMPLE
@@ -318,6 +325,7 @@ function Get-FleetNeighbor {
             [pscustomobject]@{
                 IPAddress = [string]$_.IPAddress; LinkLayerAddress = [string]$_.LinkLayerAddress
                 State = [string]$_.State; InterfaceAlias = [string]$_.InterfaceAlias
+                InterfaceIndex = $_.InterfaceIndex
             }
         }
     }
@@ -332,10 +340,12 @@ function Find-FleetRoute {
         $source = $found | Where-Object { $_.PSObject.Properties['IPAddress'] } | Select-Object -First 1
         $route = $found | Where-Object { $_.PSObject.Properties['NextHop'] } | Select-Object -First 1
         $alias = if ($route) { $route.InterfaceAlias } elseif ($source) { $source.InterfaceAlias }
+        $index = if ($route) { $route.InterfaceIndex } elseif ($source) { $source.InterfaceIndex }
         if (-not $alias) { return $null }
         $nextHop = if ($route) { [string]$route.NextHop } else { '' }
         [pscustomobject]@{
             Interface = [string]$alias
+            InterfaceIndex = if ($null -ne $index) { [int]$index } else { $null }
             SourceAddress = if ($source) { [string]$source.IPAddress } else { $null }
             NextHop = if ($nextHop -in '', '0.0.0.0', '::') { 'on-link' } else { $nextHop }
         }
@@ -366,8 +376,15 @@ function Resolve-FleetLocation {
                 $_.IPAddress -eq $g.Ip -and $_.State -notin 'Unreachable', 'Incomplete' -and (ConvertTo-FleetMac $_.LinkLayerAddress)
             })
         $observed = @($rows | ForEach-Object { ConvertTo-FleetMac $_.LinkLayerAddress } | Sort-Object -Unique)
+        # Verification is per interface: a row proves "home" only for the interface it was
+        # read on. A row without an interface index cannot be matched to an egress, so it
+        # verifies nothing.
+        $verified = @($rows | Where-Object { $g.Mac -and (ConvertTo-FleetMac $_.LinkLayerAddress) -eq $g.Mac -and $null -ne $_.InterfaceIndex } |
+                ForEach-Object { [int]$_.InterfaceIndex } | Sort-Object -Unique)
+        $colliding = @($rows | Where-Object { $g.Mac -and (ConvertTo-FleetMac $_.LinkLayerAddress) -ne $g.Mac -and $null -ne $_.InterfaceIndex } |
+                ForEach-Object { [int]$_.InterfaceIndex } | Sort-Object -Unique)
         $mismatching = @($observed | Where-Object { $_ -ne $g.Mac })
-        $match = $reachable -and [bool]$g.Mac -and $observed.Count -gt 0 -and $mismatching.Count -eq 0
+        $match = $reachable -and $verified.Count -gt 0
         $collision = $reachable -and [bool]$g.Mac -and $mismatching.Count -gt 0
         [pscustomobject]@{
             Name = $g.Name; Ip = $g.Ip; ExpectedMac = $g.Mac
@@ -375,17 +392,26 @@ function Resolve-FleetLocation {
             Reachable = $reachable
             LatencyMs = if ($reachable) { ($reached | Measure-Object -Property LatencyMs -Minimum).Minimum } else { $null }
             MacMatch = $match; Collision = $collision
+            VerifiedInterfaces = $(if ($reachable) { $verified } else { @() })
+            CollidingInterfaces = $(if ($collision) { $colliding } else { @() })
             Interface = (@($rows | ForEach-Object { $_.InterfaceAlias } | Sort-Object -Unique) -join ',')
         }
     }
     $entries = @($entries)
+    # An interface that disagrees with the inventory for any gateway is not trusted, even
+    # if another gateway row matched on it.
+    $collidingInterfaces = @($entries | ForEach-Object { $_.CollidingInterfaces } | Where-Object { $null -ne $_ } | Sort-Object -Unique)
+    $verifiedInterfaces = @($entries | ForEach-Object { $_.VerifiedInterfaces } | Where-Object { $null -ne $_ -and $_ -notin $collidingInterfaces } | Sort-Object -Unique)
     $homeGateways = @($entries | Where-Object { $_.MacMatch })
     $collided = @($entries | Where-Object { $_.Collision })
     $unverified = @($entries | Where-Object { $_.Reachable -and -not $_.MacMatch -and -not $_.Collision })
 
-    if ($homeGateways.Count -gt 0) {
+    if ($verifiedInterfaces.Count -gt 0 -and $homeGateways.Count -gt 0) {
         $state = 'home-lan'
-        $reason = "Gateway $($homeGateways[0].Ip) answered and its MAC $($homeGateways[0].ObservedMac) matches the inventory."
+        $reason = "Gateway $($homeGateways[0].Ip) answered and its MAC $($homeGateways[0].ObservedMac) matches the inventory on interface $($verifiedInterfaces -join ', ')."
+        if ($collidingInterfaces.Count -gt 0) {
+            $reason += " Interface $($collidingInterfaces -join ', ') holds a different MAC for a gateway address and is not trusted; LAN addresses routed through it are skipped."
+        }
     }
     elseif ($collided.Count -gt 0) {
         $state = 'off-lan'
@@ -399,9 +425,25 @@ function Resolve-FleetLocation {
         $state = 'off-lan'
         $reason = 'No inventory gateway answered.'
     }
-    [pscustomobject]@{ State = $state; Reason = $reason; Collision = ($collided.Count -gt 0); Gateways = $entries }
+    [pscustomobject]@{
+        State = $state; Reason = $reason; Collision = ($collided.Count -gt 0)
+        VerifiedInterfaces = $(if ($state -eq 'home-lan') { $verifiedInterfaces } else { @() })
+        CollidingInterfaces = $collidingInterfaces
+        Gateways = $entries
+    }
 }
 
+function Test-FleetLanEgress {
+    # Pure. A LAN candidate is eligible only when the interface Windows would send it out
+    # of is one that verified a home gateway. Unknown route or ifIndex: not eligible.
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param($Route, [AllowEmptyCollection()][object[]]$VerifiedInterfaces = @())
+    if ($null -eq $Route) { return $false }
+    $index = Get-FleetProperty $Route 'InterfaceIndex'
+    if ($null -eq $index) { return $false }
+    return (@($VerifiedInterfaces) -contains [int]$index)
+}
 function Invoke-FleetNative {
     # Runs one native process with a hard deadline and closed stdin, so a wedged
     # CLI cannot hang the diagnostic. Same approach as ~/.machine/Test-FleetAccess.ps1.
@@ -608,8 +650,18 @@ function Invoke-FleetPathTest {
     foreach ($e in $endpoints) {
         foreach ($c in $e.Candidates) {
             if ($c.Kind -ne 'lan') { continue }
-            if ($onHomeLan) { $waveB["$($c.Address):$($c.Port)"] = [pscustomobject]@{ Address = $c.Address; Port = $c.Port } }
-            else { $c.Skipped = 'not on the home LAN' }
+            if (-not $onHomeLan) { $c.Skipped = 'not on the home LAN'; continue }
+            # Home is verified per interface. Resolve this candidate's egress BEFORE probing
+            # it: on a multihomed host Ethernet can verify the home gateway while Wi-Fi sits
+            # on an unrelated network that reuses the subnet, and a connect routed out of
+            # Wi-Fi would reach a stranger's machine.
+            & $routeFor $c.Address
+            $route = $routes[$c.Address]
+            if ($route) { $c.Interface = $route.Interface; $c.SourceAddress = $route.SourceAddress; $c.NextHop = $route.NextHop }
+            if (Test-FleetLanEgress -Route $route -VerifiedInterfaces $location.VerifiedInterfaces) {
+                $waveB["$($c.Address):$($c.Port)"] = [pscustomobject]@{ Address = $c.Address; Port = $c.Port }
+            }
+            else { $c.Skipped = 'egress-not-verified' }
         }
     }
     $routeLookups = {

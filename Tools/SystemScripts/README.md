@@ -603,7 +603,9 @@ mappings or credentials.
   inventory is an error that names the example. It needs PowerShell 7 on Windows and, for the
   Tailscale column, the `tailscale` CLI on PATH (without it the column reads
   `unavailable` and the probes still run).
-- **Run:** `pwsh -NoProfile -File .\Tools\SystemScripts\Networking\Test-FleetPath.ps1 | Select-Object -ExpandProperty Summary | Format-Table`.
+- **Run:** from a PowerShell 7 session, `& .\Tools\SystemScripts\Networking\Test-FleetPath.ps1 | Select-Object -ExpandProperty Summary | Format-Table`.
+  Do not pipe `pwsh -File ...`: a child process hands back text, not objects. From another
+  shell use `pwsh -NoProfile -Command "& .\Tools\SystemScripts\Networking\Test-FleetPath.ps1 | Select-Object -ExpandProperty Summary | Format-Table"`.
   Narrow with `-Target nas -Service smb`; change the per-probe deadline with
   `-BudgetMs` (default 1500). `-AsJson` emits one `pcai.fleet-path/1` document for
   `~/.machine/logs`.
@@ -618,6 +620,10 @@ How to read the result:
   MAC equals the inventory MAC. A hotel LAN can also be 192.168.1.0/24, so the subnet
   never decides. Off the home LAN, LAN candidates are not probed or recommended, because a
   connect to a LAN address on a hotel network would reach someone else's machine.
+  Home is verified per interface: each LAN candidate's egress interface (Find-NetRoute) is
+  resolved before it is probed, and it is probed only if that interface verified a
+  gateway MAC. On a host with Ethernet at home and Wi-Fi on a network that reuses the subnet,
+  a LAN address routed out of Wi-Fi is skipped with gress-not-verified.
 - `Recommended` is the first reachable candidate in the order LAN, tailnet direct,
   tailnet peer-relay, tailnet relay, with the MagicDNS name just behind the tailnet
   address. Each candidate also carries its egress interface and Tailscale path

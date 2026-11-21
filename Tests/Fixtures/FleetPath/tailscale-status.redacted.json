@@ -1,0 +1,142 @@
+{
+  "_fixture": "Shape captured from tailscale 1.104.4 on 2026-11-21, then rewritten by hand: every name and address is a reserved documentation value (example.invalid names, 100.64.0.x tailnet-style addresses, 198.51.100.x endpoints) and matches no real network. Node keys, the user map, PeerAPI URLs and byte counters are not kept. Peers named synthetic-* cover peer-relay and omitted-field shapes that the live capture did not show.",
+  "Version": "1.104.4",
+  "BackendState": "Running",
+  "Self": {
+    "HostName": "this-host",
+    "DNSName": "this-host.tailnet.example.invalid.",
+    "TailscaleIPs": [
+      "100.64.0.100"
+    ],
+    "Online": true
+  },
+  "Peer": {
+    "nodekey:REDACTED-1": {
+      "ID": "n1",
+      "HostName": "workstation",
+      "DNSName": "workstation.tailnet.example.invalid.",
+      "OS": "windows",
+      "TailscaleIPs": [
+        "100.64.0.102"
+      ],
+      "CurAddr": "198.51.100.10:41641",
+      "Relay": "home",
+      "PeerRelay": "",
+      "Online": true,
+      "Active": true,
+      "ExitNode": false
+    },
+    "nodekey:REDACTED-2": {
+      "ID": "n2",
+      "HostName": "minipc",
+      "DNSName": "minipc.tailnet.example.invalid.",
+      "OS": "windows",
+      "TailscaleIPs": [
+        "100.64.0.104"
+      ],
+      "CurAddr": "198.51.100.11:41641",
+      "Relay": "home",
+      "PeerRelay": "",
+      "Online": true,
+      "Active": true,
+      "ExitNode": false
+    },
+    "nodekey:REDACTED-3": {
+      "ID": "n3",
+      "HostName": "nuc",
+      "DNSName": "nuc.tailnet.example.invalid.",
+      "OS": "windows",
+      "TailscaleIPs": [
+        "100.64.0.103"
+      ],
+      "CurAddr": "[2001:db8::12]:41641",
+      "Relay": "home",
+      "PeerRelay": "",
+      "Online": true,
+      "Active": true,
+      "ExitNode": false
+    },
+    "nodekey:REDACTED-4": {
+      "ID": "n4",
+      "HostName": "spare-laptop",
+      "DNSName": "spare-laptop.tailnet.example.invalid.",
+      "OS": "windows",
+      "TailscaleIPs": [
+        "100.64.0.106"
+      ],
+      "CurAddr": "",
+      "Relay": "home",
+      "PeerRelay": "",
+      "Online": true,
+      "Active": false,
+      "ExitNode": false
+    },
+    "nodekey:REDACTED-5": {
+      "ID": "n5",
+      "HostName": "offline-peer",
+      "DNSName": "offline-peer.tailnet.example.invalid.",
+      "OS": "windows",
+      "TailscaleIPs": [
+        "100.64.0.107"
+      ],
+      "CurAddr": "",
+      "Relay": "home",
+      "PeerRelay": "",
+      "Online": false,
+      "Active": false,
+      "ExitNode": false
+    },
+    "nodekey:REDACTED-6": {
+      "ID": "n6",
+      "HostName": "nas-3f9a1c",
+      "DNSName": "nas-3f9a1c.tailnet.example.invalid.",
+      "OS": "windows",
+      "TailscaleIPs": [
+        "100.64.0.101"
+      ],
+      "CurAddr": "",
+      "Relay": "home",
+      "PeerRelay": "",
+      "Online": true,
+      "Active": false,
+      "ExitNode": false
+    },
+    "nodekey:REDACTED-7": {
+      "ID": "n7",
+      "HostName": "laptop2",
+      "DNSName": "laptop2.tailnet.example.invalid.",
+      "OS": "windows",
+      "TailscaleIPs": [
+        "100.64.0.105"
+      ],
+      "CurAddr": "198.51.100.13:41641",
+      "Relay": "home",
+      "PeerRelay": "",
+      "Online": true,
+      "Active": true,
+      "ExitNode": false
+    },
+    "nodekey:REDACTED-synthetic-peer-relay": {
+      "ID": "synthetic1",
+      "HostName": "synthetic-peer-relay",
+      "DNSName": "synthetic-peer-relay.tailnet.example.invalid.",
+      "OS": "linux",
+      "TailscaleIPs": [
+        "100.64.0.201"
+      ],
+      "CurAddr": "",
+      "Relay": "home",
+      "PeerRelay": "198.51.100.77:40000:7",
+      "Online": true,
+      "Active": true,
+      "ExitNode": false
+    },
+    "nodekey:REDACTED-synthetic-sparse": {
+      "HostName": "synthetic-sparse",
+      "TailscaleIPs": [
+        "100.64.0.202"
+      ],
+      "Online": true
+    }
+  }
+}

@@ -264,21 +264,60 @@ fn guard_lines(ends: &BTreeMap<u32, (String, String)>) -> Vec<String> {
         .collect()
 }
 
-fn journal_path(plan_id: &str) -> String {
-    format!("(Join-Path $env:ProgramData 'pcai-usb4\\route-plan\\{plan_id}.journal')")
+/// Proves the journal storage is writable only by Administrators and SYSTEM, then leaves the
+/// journal path in `$j`. Rollback treats journal keys as authority to remove state, so a
+/// directory a standard user could create, redirect or write first must never be read.
+///
+/// `%ProgramData%` lets every user create subdirectories. The leaf `route-plan` directory must
+/// be owned by Administrators or SYSTEM, must not be a reparse point and must grant no write,
+/// delete or permission right to any other SID. Its parent `pcai-usb4` may keep the inherited
+/// right of Users to add entries, because they cannot remove or rename an admin-owned child,
+/// but it must still be admin-owned, not a reparse point and grant no other SID delete or
+/// permission rights over itself. Apply creates a missing directory with a protected ACL and
+/// refuses a new leaf that is not empty. Rollback creates nothing and skips the check when the
+/// leaf is absent, since no journal can then exist.
+fn journal_guard(plan_id: &str, create: bool) -> String {
+    const VERIFY: &str = "$i = Get-Item -LiteralPath $p -Force -ErrorAction Stop; if ($i.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw \"Journal storage $p is a reparse point; review and remove it\" }; $acl = Get-Acl -LiteralPath $p -ErrorAction Stop; if ($acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -notin $ok) { throw \"Journal storage $p is not owned by Administrators or SYSTEM; review and remove it\" }; foreach ($r in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) { if ($r.AccessControlType -eq 'Allow' -and $r.IdentityReference.Value -notin $ok -and ($p -eq $d -or -not ($r.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly)) -and ([int64]$r.FileSystemRights -band $(if ($p -eq $d) { 0x500D0156 } else { 0x100D0040 }))) { throw \"Journal storage $p lets $($r.IdentityReference.Value) change it; review and remove it\" } }";
+    const CREATE: &str = "$s = [Security.AccessControl.DirectorySecurity]::new(); $s.SetAccessRuleProtection($true, $false); $s.SetOwner([Security.Principal.SecurityIdentifier]'S-1-5-32-544'); foreach ($id in $ok) { $s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]$id, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow')) }; if ($p -ne $d) { $s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]'S-1-5-32-545', 'ReadAndExecute', 'ContainerInherit, ObjectInherit', 'None', 'Allow')) }; New-Item -ItemType Directory -Path $p -ErrorAction Stop | Out-Null; Set-Acl -LiteralPath $p -AclObject $s -ErrorAction Stop";
+    let head = format!(
+        "$ok = 'S-1-5-32-544', 'S-1-5-18'; $d = Join-Path $env:ProgramData 'pcai-usb4\\route-plan'; $j = Join-Path $d '{plan_id}.journal'"
+    );
+    if create {
+        format!(
+            "{head}; foreach ($p in (Split-Path $d), $d) {{ $new = -not (Test-Path -LiteralPath $p); if ($new) {{ {CREATE} }}; {VERIFY}; if ($new -and $p -eq $d -and @(Get-ChildItem -LiteralPath $p -Force).Count) {{ throw \"New journal storage $p is not empty\" }} }}"
+        )
+    } else {
+        format!("{head}; if (Test-Path -LiteralPath $d) {{ foreach ($p in (Split-Path $d), $d) {{ {VERIFY} }} }}")
+    }
 }
 
-/// Apply creates state only when it is absent, and journals what it created. State that
-/// existed before apply is reported as not owned and never enters the journal.
-fn owned_apply(journal: &str, key: &str, present: &str, command: &str) -> String {
+/// Rewrites the journal without `key`.
+fn retire_key(key: &str) -> String {
     format!(
-        "$j = {journal}; if ({present}) {{ Write-Output 'Present before apply; not owned: {key}' }} else {{ New-Item -ItemType Directory -Force (Split-Path $j) | Out-Null; {command} -ErrorAction Stop | Out-Null; Add-Content -LiteralPath $j -Value '{key}' }}"
+        "Set-Content -LiteralPath $j -Value @(Get-Content -LiteralPath $j -ErrorAction Stop | Where-Object {{ $_ -ne '{key}' }}) -ErrorAction Stop"
     )
 }
 
-/// Rollback undoes only what this plan's apply journaled on this host.
-fn owned_rollback(journal: &str, key: &str, command: &str) -> String {
-    format!("$j = {journal}; if (@(Get-Content -LiteralPath $j -ErrorAction SilentlyContinue) -contains '{key}') {{ {command} }}")
+/// Apply creates state only when it is absent. The key is journaled before the change, so no
+/// change can exist without a record; a failed change whose state is still absent retires the
+/// key again. State that existed before apply is reported as not owned and never journaled.
+fn owned_apply(plan_id: &str, key: &str, present: &str, command: &str) -> String {
+    let guard = journal_guard(plan_id, true);
+    let retire = retire_key(key);
+    format!(
+        "{guard}; $owned = @(Get-Content -LiteralPath $j -ErrorAction SilentlyContinue) -contains '{key}'; if ({present}) {{ if ($owned) {{ Write-Output 'Already applied by this plan: {key}' }} else {{ Write-Output 'Present before apply; not owned: {key}' }} }} else {{ if (-not $owned) {{ Add-Content -LiteralPath $j -Value '{key}' -ErrorAction Stop }}; try {{ {command} -ErrorAction Stop | Out-Null }} catch {{ if (-not ({present})) {{ {retire} }}; throw }} }}"
+    )
+}
+
+/// Rollback acts only on keys this plan's apply journaled on this host. It removes the state
+/// only while it is present, then retires the key, so a later rollback cannot remove state that
+/// someone else recreates.
+fn owned_rollback(plan_id: &str, key: &str, present: &str, command: &str) -> String {
+    let guard = journal_guard(plan_id, false);
+    let retire = retire_key(key);
+    format!(
+        "{guard}; if (@(Get-Content -LiteralPath $j -ErrorAction SilentlyContinue) -contains '{key}') {{ if ({present}) {{ {command} -ErrorAction Stop }}; {retire} }}"
+    )
 }
 
 /// Builds an owner-reviewed route plan from one fresh bilateral USB4 observation.
@@ -373,7 +412,6 @@ pub fn build_route_plan(
         }
         hex::encode(hasher.finalize())[..16].to_string()
     };
-    let journal = journal_path(&plan_id);
     let mut adjacency: BTreeMap<String, BTreeMap<String, usize>> = BTreeMap::new();
     for (index, edge) in edge_list.iter().enumerate() {
         let (a, b) = (&edge.ends[0].host, &edge.ends[1].host);
@@ -432,6 +470,9 @@ pub fn build_route_plan(
             }
             let present = end.observed_v4.contains(&end.address);
             let (index, ip) = (end.interface_index, end.address);
+            let address_present = format!(
+                "Get-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -ErrorAction SilentlyContinue | Where-Object PrefixLength -eq 30"
+            );
             if present {
                 // The observation records addresses without prefix lengths; an address the plan
                 // relies on but does not own must really be the /30 before anything is applied.
@@ -453,17 +494,18 @@ pub fn build_route_plan(
                         format!(
                             "if ((Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4).Dhcp -eq 'Enabled') {{ throw 'DHCP is enabled on ifIndex {index}; a static address would disable it' }}; {}",
                             owned_apply(
-                                &journal,
+                                &plan_id,
                                 &key,
-                                &format!("Get-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -ErrorAction SilentlyContinue | Where-Object PrefixLength -eq 30"),
+                                &address_present,
                                 &format!("New-NetIPAddress -InterfaceIndex {index} -AddressFamily IPv4 -IPAddress {ip} -PrefixLength 30"),
                             )
                         )
                     }),
                     rollback: (!present).then(|| {
                         owned_rollback(
-                            &journal,
+                            &plan_id,
                             &format!("EdgeAddress|{index}|{ip}/30"),
+                            &address_present,
                             &format!("Remove-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -Confirm:$false"),
                         )
                     }),
@@ -549,6 +591,7 @@ pub fn build_route_plan(
                     }
                     let index = out.interface_index;
                     let gateway = next.address;
+                    let route_present = format!("Get-NetRoute -InterfaceIndex {index} -DestinationPrefix {target_ip}/32 -NextHop {gateway} -ErrorAction SilentlyContinue");
                     push(
                         node,
                         RouteAction {
@@ -557,14 +600,15 @@ pub fn build_route_plan(
                             target: format!("{target_ip}/32 via {gateway}"),
                             already_present: false,
                             apply: Some(owned_apply(
-                                &journal,
+                                &plan_id,
                                 &format!("HostRoute|{index}|{target_ip}/32 via {gateway}"),
-                                &format!("Get-NetRoute -InterfaceIndex {index} -DestinationPrefix {target_ip}/32 -NextHop {gateway} -ErrorAction SilentlyContinue"),
+                                &route_present,
                                 &format!("New-NetRoute -InterfaceIndex {index} -AddressFamily IPv4 -DestinationPrefix {target_ip}/32 -NextHop {gateway} -RouteMetric {metric}"),
                             )),
                             rollback: Some(owned_rollback(
-                                &journal,
+                                &plan_id,
                                 &format!("HostRoute|{index}|{target_ip}/32 via {gateway}"),
+                                &route_present,
                                 &format!("Remove-NetRoute -InterfaceIndex {index} -DestinationPrefix {target_ip}/32 -NextHop {gateway} -Confirm:$false"),
                             )),
                             note: Some(note.clone()),
@@ -577,6 +621,9 @@ pub fn build_route_plan(
                 for edge in [hop_edge(i - 1), hop_edge(i)] {
                     if let Some(end) = edge.end(node) {
                         let index = end.interface_index;
+                        let forwarding_enabled = format!(
+                            "(Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4).Forwarding -eq 'Enabled'"
+                        );
                         push(
                             node,
                             RouteAction {
@@ -585,14 +632,15 @@ pub fn build_route_plan(
                                 target: format!("IPv4 forwarding on ifIndex {index}"),
                                 already_present: false,
                                 apply: Some(owned_apply(
-                                    &journal,
+                                    &plan_id,
                                     &format!("Forwarding|{index}"),
-                                    &format!("(Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4).Forwarding -eq 'Enabled'"),
+                                    &forwarding_enabled,
                                     &format!("Set-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -Forwarding Enabled"),
                                 )),
                                 rollback: Some(owned_rollback(
-                                    &journal,
+                                    &plan_id,
                                     &format!("Forwarding|{index}"),
+                                    &forwarding_enabled,
                                     &format!("Set-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -Forwarding Disabled"),
                                 )),
                                 note: Some(
@@ -770,6 +818,55 @@ mod tests {
             .as_deref()
             .unwrap()
             .contains(".Dhcp -eq 'Enabled') { throw"));
+    }
+
+    // Protects: the order that makes the journal trustworthy in every owned command. Detects:
+    // reading or writing the journal before its storage is checked, a change made before its key
+    // is journaled, and a rollback that undoes state without retiring the key or removes state
+    // that is no longer present. Needs: the recorded hub chain. Breadcrumb: journal_guard.
+    #[test]
+    fn owned_commands_check_storage_journal_first_and_retire_keys() {
+        let plan = build_route_plan(&observation(), &policy(&["dtm-super-nuc"]), &fleet(), now()).unwrap();
+        let owned: Vec<&RouteAction> = plan
+            .hosts
+            .iter()
+            .flat_map(|h| h.actions.iter())
+            .filter(|a| a.apply.is_some())
+            .collect();
+        assert!(owned.iter().any(|a| a.kind == RouteActionKind::HostRoute));
+        assert!(owned.iter().any(|a| a.kind == RouteActionKind::Forwarding));
+        for action in owned {
+            let apply = action.apply.as_deref().unwrap();
+            let rollback = action.rollback.as_deref().unwrap();
+            for line in [apply, rollback] {
+                let check = line.find("GetOwner(").expect("owner check");
+                assert!(line.find("ReparsePoint").unwrap() < check);
+                assert!(check < line.find("Get-Content -LiteralPath $j").unwrap(), "{line}");
+                assert!(line.contains("S-1-5-32-544', 'S-1-5-18'"));
+            }
+            let journaled = apply.find("Add-Content -LiteralPath $j").unwrap();
+            let change = ["New-NetIPAddress", "New-NetRoute", "-Forwarding Enabled"]
+                .iter()
+                .filter_map(|c| apply.find(c))
+                .min()
+                .unwrap();
+            assert!(journaled < change, "change before journal: {apply}");
+            assert!(apply.contains("SetAccessRuleProtection($true, $false)"));
+            assert!(
+                !rollback.contains("New-Item"),
+                "rollback must create nothing: {rollback}"
+            );
+            let undo = ["Remove-NetIPAddress", "Remove-NetRoute", "-Forwarding Disabled"]
+                .iter()
+                .filter_map(|c| rollback.find(c))
+                .min()
+                .unwrap();
+            let retire = rollback.find("Set-Content -LiteralPath $j").unwrap();
+            assert!(undo < retire, "key retired before undo: {rollback}");
+            assert!(rollback[..undo]
+                .rfind("if (")
+                .is_some_and(|i| rollback[i..undo].contains("Get-Net")));
+        }
     }
 
     // Protects: transit is explicit. Detects: forwarding inferred from adjacency (the NUC

@@ -75,7 +75,21 @@ only if it is absent, and records what it created in a per-plan journal at
 `%ProgramData%\pcai-usb4\route-plan\<plan-id>.journal`. State that existed before
 apply is reported as "not owned". To undo, run the `rollback` lines in reverse
 order; each one acts only if its key is in that host's journal, so rollback never
-removes state that predated the plan. `New-NetIPAddress` disables DHCP on an
+removes state that predated the plan.
+
+The journal is what authorizes rollback, so every apply and rollback line first
+checks where it lives. `route-plan` must be owned by Administrators or SYSTEM, must
+not be a junction or symbolic link, and must grant no other account write, delete or
+permission rights. Its parent `pcai-usb4` must be admin-owned and not a reparse
+point; it may keep the inherited right of Users to add files. Apply creates missing
+directories with a protected ACL; a line that finds anything else stops with
+"Journal storage ... review and remove it" before it reads the journal or changes
+the network. Apply writes the key before it makes the change, and removes the key
+again if the change fails and the state is still absent. Rollback undoes the state
+only while it is present and then removes the key, so a second rollback cannot
+remove an address, route or forwarding setting that someone else recreated.
+
+`New-NetIPAddress` disables DHCP on an
 interface where it is enabled, and removing the address would not restore it, so
 apply refuses a DHCP-enabled interface. The USB4 interfaces observed on 2026-11-21
 had `Dhcp Disabled`.

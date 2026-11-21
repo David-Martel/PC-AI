@@ -797,3 +797,142 @@ if ($failures.Count) { $failures; exit 1 }
         String::from_utf8_lossy(&check.stderr)
     );
 }
+
+// Protects: rollback authority comes only from a journal in admin-only storage, every change is
+// journaled before it is made, and rollback retires what it undid. Detects: reading a journal from
+// a directory a standard user created (forged keys would authorize removals), a network change
+// made after a failed journal write, a key left behind by a failed apply, and a retained key that
+// lets a second rollback remove state someone else recreated. Needs: Windows with pwsh; the
+// network cmdlets, Get-Acl and Set-Acl are replaced by functions, so nothing is changed and no
+// elevation is needed. Breadcrumb: src/route_plan.rs journal_guard/owned_apply/owned_rollback.
+#[cfg(windows)]
+#[test]
+fn cli_route_plan_journal_is_protected_write_ahead_and_retired() {
+    let (dir, input, policy) = route_plan_inputs("route-plan-journal", &["dtm-super-nuc"]);
+    let registry = repo_registry_path();
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
+        .args([
+            "route-plan",
+            "--input",
+            input.to_str().unwrap(),
+            "--policy",
+            policy.to_str().unwrap(),
+            "--registry",
+            registry.to_str().unwrap(),
+            "--compact",
+        ])
+        .output()
+        .expect("run route-plan");
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let plan: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let action = plan["hosts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|h| h["host"] == "dtm-p1gen9")
+        .and_then(|h| {
+            h["actions"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|a| a["kind"] == "EdgeAddress" && a["apply"].is_string())
+                .cloned()
+        })
+        .expect("an owned Gen9 edge address");
+    let lines = dir.join("lines.json");
+    fs::write(
+        &lines,
+        serde_json::to_vec(&serde_json::json!({ "apply": action["apply"], "rollback": action["rollback"] })).unwrap(),
+    )
+    .unwrap();
+    let script = dir.join("journal.ps1");
+    fs::write(&script, JOURNAL_CHECKER).unwrap();
+    let run = hidden_command("pwsh")
+        .args(["-NoLogo", "-NoProfile", "-NonInteractive", "-File"])
+        .arg(&script)
+        .arg(&lines)
+        .arg(dir.join("root"))
+        .output()
+        .expect("run pwsh journal checker");
+    let _ = fs::remove_dir_all(&dir);
+    assert!(
+        run.status.success(),
+        "{}{}",
+        String::from_utf8_lossy(&run.stdout),
+        String::from_utf8_lossy(&run.stderr)
+    );
+}
+
+/// Runs one apply/rollback pair against stub cmdlets under a temporary `$env:ProgramData`.
+#[cfg(windows)]
+const JOURNAL_CHECKER: &str = r#"param([string]$Lines, [string]$Root)
+$cmd = Get-Content -Raw -LiteralPath $Lines | ConvertFrom-Json
+$failures = [Collections.Generic.List[string]]::new()
+$script:calls = [Collections.Generic.List[string]]::new()
+$script:present = $false
+$script:failNew = $false
+function Get-NetIPInterface { [pscustomobject]@{ Dhcp = 'Disabled'; Forwarding = 'Disabled' } }
+function Get-NetIPAddress { if ($script:present) { [pscustomobject]@{ PrefixLength = 30 } } }
+function New-NetIPAddress { $script:calls.Add('New'); if ($script:failNew) { throw 'stub New-NetIPAddress failure' }; $script:present = $true }
+function Remove-NetIPAddress { $script:calls.Add('Remove'); $script:present = $false }
+function Invoke-Line([string]$Text) { try { & ([scriptblock]::Create($Text)) | Out-Null; $null } catch { $_.Exception.Message } }
+function Get-Journal { @(Get-ChildItem -LiteralPath (Join-Path $env:ProgramData 'pcai-usb4\route-plan') -Filter *.journal -ErrorAction SilentlyContinue | Get-Content) }
+$key = [regex]::Match($cmd.apply, "Value '(EdgeAddress\|[^']+)'").Groups[1].Value
+$journalName = [regex]::Match($cmd.apply, "([0-9a-f]{16}\.journal)").Groups[1].Value
+if (-not $key -or -not $journalName) { 'no journal key or name in the apply line'; exit 1 }
+
+# A directory a standard user made: the journal in it must be neither trusted nor written.
+$env:ProgramData = Join-Path $Root 'forged'
+$forged = New-Item -ItemType Directory -Path (Join-Path $env:ProgramData 'pcai-usb4\route-plan') -Force
+Set-Content -LiteralPath (Join-Path $forged.FullName $journalName) -Value $key
+$script:present = $true
+$m = Invoke-Line $cmd.rollback
+if ($m -notlike 'Journal storage*') { $failures.Add("forged rollback was not refused: $m") }
+$script:present = $false
+$m = Invoke-Line $cmd.apply
+if ($m -notlike 'Journal storage*') { $failures.Add("forged apply was not refused: $m") }
+if ($script:calls.Count) { $failures.Add("forged storage reached the network cmdlets: $($script:calls -join ',')") }
+
+# Trusted storage: ownership and ACL reads report Administrators and SYSTEM only.
+function Get-Acl {
+    $s = [Security.AccessControl.DirectorySecurity]::new()
+    $s.SetOwner([Security.Principal.SecurityIdentifier]'S-1-5-32-544')
+    foreach ($id in 'S-1-5-32-544', 'S-1-5-18') {
+        $s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]$id, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow'))
+    }
+    $s
+}
+function Set-Acl { }
+
+$env:ProgramData = Join-Path $Root 'trusted'
+New-Item -ItemType Directory -Path $env:ProgramData | Out-Null
+$script:present = $false; $script:calls.Clear()
+$m = Invoke-Line $cmd.apply
+if ($m) { $failures.Add("apply failed: $m") }
+if ((Get-Journal) -notcontains $key -or ($script:calls -join ',') -ne 'New') { $failures.Add("apply did not journal and create: $((Get-Journal) -join ';') / $($script:calls -join ',')") }
+$m = Invoke-Line $cmd.rollback
+if ($m) { $failures.Add("rollback failed: $m") }
+if ((Get-Journal) -contains $key -or $script:present) { $failures.Add('rollback did not remove the address and retire its key') }
+$script:present = $true; $script:calls.Clear()   # someone else recreates the address
+$m = Invoke-Line $cmd.rollback
+if ($m -or $script:calls.Count -or -not $script:present) { $failures.Add("second rollback touched recreated state: $m / $($script:calls -join ',')") }
+
+# A failed journal write must stop apply before any change.
+$env:ProgramData = Join-Path $Root 'nowrite'
+New-Item -ItemType Directory -Path $env:ProgramData | Out-Null
+function Add-Content { throw 'stub journal write failure' }
+$script:present = $false; $script:calls.Clear()
+$m = Invoke-Line $cmd.apply
+if ($m -notlike '*journal write failure*' -or $script:calls.Count) { $failures.Add("apply changed state without a journal record: $m / $($script:calls -join ',')") }
+Remove-Item function:Add-Content
+
+# A failed change whose state is still absent retires its key.
+$env:ProgramData = Join-Path $Root 'failnew'
+New-Item -ItemType Directory -Path $env:ProgramData | Out-Null
+$script:failNew = $true; $script:present = $false; $script:calls.Clear()
+$m = Invoke-Line $cmd.apply
+if ($m -notlike '*New-NetIPAddress failure*' -or (Get-Journal) -contains $key) { $failures.Add("failed apply left its key: $m / $((Get-Journal) -join ';')") }
+
+if ($failures.Count) { $failures; exit 1 }
+'OK'
+"#;

@@ -2,7 +2,7 @@
   "schema": "pcai.fleet-paths/1",
   "measured": "YYYY-MM-DD",
   "measuredFrom": "example-host",
-  "notes": "ILLUSTRATIVE EXAMPLE. Every address, MAC and name here is a reserved documentation value (RFC 5737 addresses, an RFC 7042 MAC, example.invalid names) and matches no real network. Copy this file to ~/.machine/fleet-paths.json (or point PCAI_FLEET_PATHS at your copy) and replace the values with your own. Keep the real file out of the repository. Test-FleetPath.ps1 reads it and never writes it. Candidate order is lan (listed order), then tailnet, then magicDns. A service's via list narrows that set.",
+  "notes": "ILLUSTRATIVE EXAMPLE. Every address, MAC and name here is a reserved documentation value (RFC 5737 addresses, an RFC 7042 MAC, example.invalid names) and matches no real network. Copy this file to ~/.machine/fleet-paths.json (or point PCAI_FLEET_PATHS at your copy) and replace the values with your own. Keep the real file out of the repository. tailnetV6 is optional: when a host records it, a MagicDNS name may also resolve to that one IPv6 address; without it, any IPv6 answer for the name is rejected. Test-FleetPath.ps1 reads it and never writes it. Candidate order is lan (listed order), then tailnet, then magicDns. A service's via list narrows that set.",
   "gateways": [
     {
       "name": "router-subnet-a",
@@ -22,6 +22,7 @@
   "hosts": {
     "nas": {
       "tailnet": "100.64.0.101",
+      "tailnetV6": "fd7a:115c:a1e0::65",
       "magicDns": "nas.tailnet.example.invalid",
       "lan": ["198.51.100.20"],
       "services": {
@@ -33,6 +34,7 @@
     },
     "workstation": {
       "tailnet": "100.64.0.102",
+      "tailnetV6": "fd7a:115c:a1e0::66",
       "magicDns": "workstation.tailnet.example.invalid",
       "lan": ["192.0.2.33", "198.51.100.34"],
       "services": {
@@ -45,6 +47,7 @@
     },
     "nuc": {
       "tailnet": "100.64.0.103",
+      "tailnetV6": "fd7a:115c:a1e0::67",
       "magicDns": null,
       "lan": ["192.0.2.69"],
       "services": {
@@ -54,6 +57,7 @@
     },
     "minipc": {
       "tailnet": "100.64.0.104",
+      "tailnetV6": "fd7a:115c:a1e0::68",
       "magicDns": null,
       "lan": ["203.0.113.75"],
       "services": {
@@ -64,6 +68,7 @@
     },
     "laptop2": {
       "tailnet": "100.64.0.105",
+      "tailnetV6": "fd7a:115c:a1e0::69",
       "magicDns": null,
       "lan": ["198.51.100.38"],
       "services": {

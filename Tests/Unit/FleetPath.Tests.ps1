@@ -88,6 +88,8 @@ Describe 'Fleet inventory' -Tag 'Unit' {
         ($nas.Services | Where-Object Service -EQ 'https').Ports | Should -Be @(443, 8080)
         $bus = (($inventory.Hosts | Where-Object Name -EQ 'workstation').Services | Where-Object Service -EQ 'agentbus')
         $bus.Via | Should -Be @('tailnet')
+        # Every example host with a tailnet address also records its tailnet IPv6 address, which MagicDNS validation needs.
+        foreach ($tailnetHost in ($inventory.Hosts | Where-Object { $_.Tailnet })) { $tailnetHost.TailnetV6 | Should -Match '^fd7a:115c:a1e0:' }
     }
 
     # Protects: a malformed inventory fails loudly instead of silently probing the wrong thing.
@@ -99,6 +101,7 @@ Describe 'Fleet inventory' -Tag 'Unit' {
         @{ Case = 'an out-of-range port'; Pattern = 'invalid port'; Json = '{"schema":"pcai.fleet-paths/1","hosts":{"h":{"lan":["10.0.0.1"],"services":{"ssh":{"ports":[70000]}}}}}' }
         @{ Case = 'an unknown service'; Pattern = 'unknown service'; Json = '{"schema":"pcai.fleet-paths/1","hosts":{"h":{"lan":["10.0.0.1"],"services":{"telnet":{"ports":[23]}}}}}' }
         @{ Case = 'an unknown via kind'; Pattern = 'unknown via'; Json = '{"schema":"pcai.fleet-paths/1","hosts":{"h":{"lan":["10.0.0.1"],"services":{"ssh":{"ports":[22],"via":["wifi"]}}}}}' }
+        @{ Case = 'a malformed tailnetV6 address'; Pattern = 'invalid tailnetV6'; Json = '{"schema":"pcai.fleet-paths/1","hosts":{"h":{"tailnetV6":"not-an-ip","lan":["192.0.2.9"],"services":{"ssh":{"ports":[22]}}}}}' }
         @{ Case = 'a wrong schema'; Pattern = 'schema must be'; Json = '{"schema":"other/9","hosts":{}}' }
         @{ Case = 'invalid JSON'; Pattern = 'not valid JSON'; Json = '{ nope' }
     ) {
@@ -245,6 +248,10 @@ Describe 'Probe budget' -Tag 'Unit' {
 }
 
 Describe 'Location: home LAN versus a colliding subnet' -Tag 'Unit' {
+    BeforeEach {
+        # By default the gateway probe egresses interface 12, the interface the neighbour rows below sit on.
+        Mock Find-FleetRoute { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
+    }
     # Protects: the home verdict gates every LAN recommendation, so it needs two independent facts.
     # Detects: a verdict that trusts the subnet or the TCP connect alone.
     # Needs: mocked neighbour table.
@@ -327,6 +334,42 @@ Describe 'Location: home LAN versus a colliding subnet' -Tag 'Unit' {
         @($location.VerifiedInterfaces) | Should -Be @(12)
         @($location.CollidingInterfaces) | Should -Be @(7)
         $location.Reason | Should -Match 'interface 7'
+    }
+
+    # Protects: interface-specific evidence. The gateway answered over interface 12, but the only matching MAC row is on
+    # interface 7, which the probe never used; that row is not proof the probe's network is home.
+    # Detects: a reachable gateway plus a matching row anywhere authorizing that row's interface.
+    # Needs: mocked route (egress ifIndex 12) and a neighbour table holding the matching MAC only on ifIndex 7.
+    # Breadcrumb: Resolve-FleetLocation (verified interfaces require the probe's egress ifIndex)
+    It 'does not verify an interface the gateway probe did not egress' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -Alias 'Wi-Fi' -IfIndex 7 }
+        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)
+        $location.State | Should -Be 'off-lan'
+        @($location.VerifiedInterfaces).Count | Should -Be 0
+        $location.Reason | Should -Match 'cannot be verified'
+    }
+
+    # Protects: the control for the test above; the same table with the row on the probe's egress interface verifies it.
+    # Detects: a harness that can never verify anything.
+    # Needs: the same mocks with the row on ifIndex 12.
+    # Breadcrumb: Resolve-FleetLocation
+    It 'positive control: verifies the interface the gateway probe egressed when its row matches' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12 }
+        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)
+        $location.State | Should -Be 'home-lan'
+        @($location.VerifiedInterfaces) | Should -Be @(12)
+    }
+
+    # Protects: fail closed when the probe's egress cannot be determined.
+    # Detects: an unresolved gateway route being treated as matching any row.
+    # Needs: Find-FleetRoute returning nothing.
+    # Breadcrumb: Resolve-FleetLocation
+    It 'verifies nothing when the gateway route cannot be resolved' {
+        Mock Get-FleetNeighbor { New-TestNeighbor -IfIndex 12 }
+        Mock Find-FleetRoute { $null }
+        $location = Resolve-FleetLocation -Gateways @(New-TestGateway) -ProbeResults @(New-TestProbeResult)
+        $location.State | Should -Be 'off-lan'
+        @($location.VerifiedInterfaces).Count | Should -Be 0
     }
 
     # Protects: when every interface that holds a row disagrees with the inventory there is no verified interface.
@@ -437,6 +480,7 @@ Describe 'LAN egress gating on a multihomed host' -Tag 'Unit' {
                 '198.51.100.20' { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
                 '198.51.100.30' { [pscustomobject]@{ Interface = 'Wi-Fi'; InterfaceIndex = 7; SourceAddress = '192.0.2.77'; NextHop = '192.0.2.254' } }
                 '198.51.100.40' { $null }
+                '192.0.2.1' { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
                 default { [pscustomobject]@{ Interface = 'Tailscale'; InterfaceIndex = 3; SourceAddress = '100.64.0.100'; NextHop = 'on-link' } }
             }
         }
@@ -509,18 +553,25 @@ param(`$Address, `$Port)
 Describe 'MagicDNS resolution guard' -Tag 'Unit' {
     BeforeAll {
         # Roaming: the system resolver, not Tailscale, may answer for the MagicDNS name, and a foreign network can
-        # point it at one of its own hosts. The name must resolve to this host's tailnet address before any connect.
-        $script:DnsInventory = Write-TestInventory '{"schema":"pcai.fleet-paths/1","gateways":[{"name":"gw","ip":"192.0.2.1","mac":"00-00-5E-00-53-01","probePorts":[443]}],"hosts":{"box":{"tailnet":"100.64.0.102","magicDns":"box.tailnet.example.invalid","services":{"ssh":{"ports":[22]}}},"untracked":{"tailnet":null,"magicDns":"untracked.tailnet.example.invalid","services":{"ssh":{"ports":[22]}}}}}'
+        # point it at one of its own hosts. The name must resolve to this host's tailnet address before any connect,
+        # and the connect must then target that validated address, never the name (a second lookup could differ).
+        # ssh is offered over MagicDNS only, so a probe of the tailnet address cannot stand in for a probe of the name.
+        $script:DnsInventory = Write-TestInventory '{"schema":"pcai.fleet-paths/1","gateways":[{"name":"gw","ip":"192.0.2.1","mac":"00-00-5E-00-53-01","probePorts":[443]}],"hosts":{"box":{"tailnet":"100.64.0.102","tailnetV6":"fd7a:115c:a1e0::66","magicDns":"box.tailnet.example.invalid","services":{"ssh":{"ports":[22],"via":["magicdns"]}}}}}'
         Mock Get-FleetNeighbor { New-TestNeighbor }
-        Mock Find-FleetRoute { [pscustomobject]@{ Interface = 'Tailscale'; InterfaceIndex = 3; SourceAddress = '100.64.0.100'; NextHop = 'on-link' } }
+        Mock Find-FleetRoute {
+            $index = if ($Address -eq '192.0.2.1') { 12 } else { 3 }
+            [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = $index; SourceAddress = '100.64.0.100'; NextHop = 'on-link' }
+        }
         Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'tailscale unavailable'; Status = $null } }
-        # Every connect succeeds and leaves one file per address-port, so a skipped candidate is provably not connected to.
+        # Every connect succeeds and leaves one file per address-port, so a skipped candidate is provably not connected
+        # to. A connect handed a NAME models the connector's own second lookup, which answers with a foreign address.
         function Invoke-DnsScenario {
             param([string]$Name, [scriptblock]$Resolver)
             $log = Join-Path $TestDrive "dns-$Name"
             $null = New-Item -ItemType Directory -Path $log
             $connector = [scriptblock]::Create(@"
 param(`$Address, `$Port)
+if (`$Address -notmatch '^[0-9.]+`$') { `$null = New-Item -ItemType File -Force -Path (Join-Path '$log' 'second-lookup-203.0.113.9') }
 `$null = New-Item -ItemType File -Force -Path (Join-Path '$log' "`$Address-`$Port")
 [pscustomobject]@{ Task = [Threading.Tasks.Task]::CompletedTask; Client = `$null }
 "@)
@@ -529,7 +580,6 @@ param(`$Address, `$Port)
             [pscustomobject]@{
                 Log = $log
                 Dns = @($report.Targets[0].Endpoints[0].Candidates | Where-Object Kind -EQ 'magicdns')[0]
-                Tailnet = @($report.Targets[0].Endpoints[0].Candidates | Where-Object Kind -EQ 'tailnet')[0]
                 Recommended = $report.Targets[0].Endpoints[0].Recommended
             }
         }
@@ -537,22 +587,36 @@ param(`$Address, `$Port)
         $script:Matching = Invoke-DnsScenario -Name 'matching' -Resolver { @{ 'box.tailnet.example.invalid' = @('100.64.0.102') } }
         $script:Failed = Invoke-DnsScenario -Name 'failed' -Resolver { @{} }
         $script:Mixed = Invoke-DnsScenario -Name 'mixed' -Resolver { @{ 'box.tailnet.example.invalid' = @('100.64.0.102', '203.0.113.9') } }
+        $script:OtherPeerV6 = Invoke-DnsScenario -Name 'otherv6' -Resolver { @{ 'box.tailnet.example.invalid' = @('100.64.0.102', 'fd7a:115c:a1e0::67') } }
     }
 
     # Protects: the off-LAN guard. If tailscale is unavailable and a roaming network's resolver sends the MagicDNS
     # name to a foreign host, a successful connect must not be probed, reported reachable or recommended.
     # Detects: MagicDNS candidates being connected to before checking where the name resolved.
-    # Needs: mocked resolver answering an RFC 5737 address; the connector's probe log proves no connect happened.
+    # Needs: mocked resolver answering an RFC 5737 address; the connector's probe log (apart from the gateway probe) proves no connect happened.
     # Breadcrumb: Invoke-FleetPathTest MagicDNS resolution; Resolve-FleetDnsNames
     It 'skips a MagicDNS name that resolves to a foreign address and never connects to it' {
         $script:Foreign.Dns.Skipped | Should -Be 'magicdns-mismatch'
         $script:Foreign.Dns.Reachable | Should -BeFalse
         @($script:Foreign.Dns.Resolved) | Should -Be @('203.0.113.9')
-        Test-Path -LiteralPath (Join-Path $script:Foreign.Log 'box.tailnet.example.invalid-22') | Should -BeFalse
-        $script:Foreign.Recommended.Kind | Should -Be 'tailnet'
+        @(Get-ChildItem -LiteralPath $script:Foreign.Log | Where-Object Name -NE '192.0.2.1-443') | Should -BeNullOrEmpty
+        $script:Foreign.Recommended | Should -BeNullOrEmpty
     }
 
-    # Protects: the control for the test above; a harness that probes nothing would pass it.
+    # Protects: validation and connect must use the same address. Validating the name and then connecting by name lets a
+    # second lookup (a TTL expiry, a different resolver) send the connect to a foreign host after validation passed.
+    # Detects: the probe being handed the hostname instead of the validated IP literal.
+    # Needs: mocked resolver answering the inventory address at validation; the connector treats any name it receives
+    # as a second lookup that would answer a foreign address, and records what it was asked to connect to.
+    # Breadcrumb: Invoke-FleetPathTest ProbeAddress
+    It 'connects to the validated IP literal, never to the name' {
+        $script:Matching.Dns.ProbeAddress | Should -Be '100.64.0.102'
+        Test-Path -LiteralPath (Join-Path $script:Matching.Log '100.64.0.102-22') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:Matching.Log 'box.tailnet.example.invalid-22') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $script:Matching.Log 'second-lookup-203.0.113.9') | Should -BeFalse
+    }
+
+    # Protects: the control for the tests above; a harness that probes nothing would pass them.
     # Detects: the guard skipping a correct resolution, or a connector that never records.
     # Needs: mocked resolver answering the inventory tailnet address.
     # Breadcrumb: Invoke-FleetPathTest MagicDNS resolution
@@ -560,7 +624,7 @@ param(`$Address, `$Port)
         $script:Matching.Dns.Skipped | Should -BeNullOrEmpty
         $script:Matching.Dns.Reachable | Should -BeTrue
         @($script:Matching.Dns.Resolved) | Should -Be @('100.64.0.102')
-        Test-Path -LiteralPath (Join-Path $script:Matching.Log 'box.tailnet.example.invalid-22') | Should -BeTrue
+        $script:Matching.Recommended.Kind | Should -Be 'magicdns'
     }
 
     # Protects: fail closed when the name does not resolve.
@@ -570,7 +634,7 @@ param(`$Address, `$Port)
     It 'skips a MagicDNS name that does not resolve and never connects to it' {
         $script:Failed.Dns.Skipped | Should -Be 'magicdns-unresolved'
         $script:Failed.Dns.Reachable | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path $script:Failed.Log 'box.tailnet.example.invalid-22') | Should -BeFalse
+        @(Get-ChildItem -LiteralPath $script:Failed.Log | Where-Object Name -NE '192.0.2.1-443') | Should -BeNullOrEmpty
     }
 
     # Protects: DNS answers are a set; one foreign address among correct ones can still be the one the connect uses.
@@ -579,30 +643,40 @@ param(`$Address, `$Port)
     # Breadcrumb: Test-FleetMagicDnsResolution
     It 'skips a MagicDNS name when any resolved address is foreign' {
         $script:Mixed.Dns.Skipped | Should -Be 'magicdns-mismatch'
-        Test-Path -LiteralPath (Join-Path $script:Mixed.Log 'box.tailnet.example.invalid-22') | Should -BeFalse
+        @(Get-ChildItem -LiteralPath $script:Mixed.Log | Where-Object Name -NE '192.0.2.1-443') | Should -BeNullOrEmpty
+    }
+
+    # Protects: an IPv6 address inside the tailnet range can belong to ANOTHER tailnet peer, which a foreign resolver
+    # could answer with; only this host's own tailnet IPv6 address is acceptable.
+    # Detects: acceptance of any address in fd7a:115c:a1e0::/48.
+    # Needs: mocked resolver answering the right IPv4 plus another peer's tailnet IPv6.
+    # Breadcrumb: Test-FleetMagicDnsResolution
+    It 'skips a MagicDNS name that also resolves to another peer''s tailnet IPv6 address' {
+        $script:OtherPeerV6.Dns.Skipped | Should -Be 'magicdns-mismatch'
+        @(Get-ChildItem -LiteralPath $script:OtherPeerV6.Log | Where-Object Name -NE '192.0.2.1-443') | Should -BeNullOrEmpty
     }
 
     # Protects: the resolution rule itself, independent of the report plumbing.
-    # Detects: acceptance of an empty answer, a host with no recorded tailnet address, a foreign IPv4 or IPv6
-    # address, or a different tailnet address.
-    # Needs: nothing. The tailnet IPv6 range fd7a:115c:a1e0::/48 is allowed beside the inventory IPv4 because MagicDNS
-    # answers both families.
+    # Detects: acceptance of an empty answer, a host with no recorded tailnet address, a foreign address, another peer's
+    # tailnet IPv6 address, or any IPv6 answer when the inventory records no IPv6 address.
+    # Needs: nothing.
     # Breadcrumb: Test-FleetMagicDnsResolution
     It 'accepts <Case>: <Expected>' -ForEach @(
-        @{ Case = 'the inventory address'; Addresses = @('100.64.0.102'); Tailnet = '100.64.0.102'; Expected = $true }
-        @{ Case = 'the inventory address plus a tailnet IPv6 address'; Addresses = @('100.64.0.102', 'fd7a:115c:a1e0::66'); Tailnet = '100.64.0.102'; Expected = $true }
-        @{ Case = 'a tailnet IPv6 address alone'; Addresses = @('fd7a:115c:a1e0::66'); Tailnet = '100.64.0.102'; Expected = $false }
-        @{ Case = 'a different tailnet address'; Addresses = @('100.64.0.103'); Tailnet = '100.64.0.102'; Expected = $false }
-        @{ Case = 'a documentation address'; Addresses = @('203.0.113.9'); Tailnet = '100.64.0.102'; Expected = $false }
-        @{ Case = 'a foreign IPv6 address beside the right one'; Addresses = @('100.64.0.102', '2001:db8::1'); Tailnet = '100.64.0.102'; Expected = $false }
-        @{ Case = 'an empty answer'; Addresses = @(); Tailnet = '100.64.0.102'; Expected = $false }
-        @{ Case = 'an answer when the inventory has no tailnet address'; Addresses = @('100.64.0.102'); Tailnet = $null; Expected = $false }
+        @{ Case = 'the inventory address'; Addresses = @('100.64.0.102'); Tailnet = '100.64.0.102'; V6 = $null; Expected = $true }
+        @{ Case = 'the inventory IPv4 and IPv6 addresses'; Addresses = @('100.64.0.102', 'fd7a:115c:a1e0::66'); Tailnet = '100.64.0.102'; V6 = 'fd7a:115c:a1e0::66'; Expected = $true }
+        @{ Case = 'the IPv6 address written in another form'; Addresses = @('100.64.0.102', 'FD7A:115C:A1E0:0:0:0:0:66'); Tailnet = '100.64.0.102'; V6 = 'fd7a:115c:a1e0::66'; Expected = $true }
+        @{ Case = 'another peer''s tailnet IPv6 address'; Addresses = @('100.64.0.102', 'fd7a:115c:a1e0::67'); Tailnet = '100.64.0.102'; V6 = 'fd7a:115c:a1e0::66'; Expected = $false }
+        @{ Case = 'a tailnet IPv6 address when the inventory records none'; Addresses = @('100.64.0.102', 'fd7a:115c:a1e0::66'); Tailnet = '100.64.0.102'; V6 = $null; Expected = $false }
+        @{ Case = 'a tailnet IPv6 address alone'; Addresses = @('fd7a:115c:a1e0::66'); Tailnet = '100.64.0.102'; V6 = 'fd7a:115c:a1e0::66'; Expected = $false }
+        @{ Case = 'a different tailnet address'; Addresses = @('100.64.0.103'); Tailnet = '100.64.0.102'; V6 = $null; Expected = $false }
+        @{ Case = 'a documentation address'; Addresses = @('203.0.113.9'); Tailnet = '100.64.0.102'; V6 = $null; Expected = $false }
+        @{ Case = 'a foreign IPv6 address beside the right one'; Addresses = @('100.64.0.102', '2001:db8::1'); Tailnet = '100.64.0.102'; V6 = 'fd7a:115c:a1e0::66'; Expected = $false }
+        @{ Case = 'an empty answer'; Addresses = @(); Tailnet = '100.64.0.102'; V6 = $null; Expected = $false }
+        @{ Case = 'an answer when the inventory has no tailnet address'; Addresses = @('100.64.0.102'); Tailnet = $null; V6 = $null; Expected = $false }
     ) {
-        Test-FleetMagicDnsResolution -Addresses $Addresses -TailnetAddress $Tailnet | Should -Be $Expected
+        Test-FleetMagicDnsResolution -Addresses $Addresses -TailnetAddress $Tailnet -TailnetV6Address $V6 | Should -Be $Expected
     }
-
 }
-
 Describe 'MagicDNS resolver wrapper' -Tag 'Unit' {
     # Protects: the real resolver wrapper is bounded and never throws, so a hung or failing lookup becomes "unresolved".
     # Detects: an unbounded wait or an exception escaping for an unresolvable name.
@@ -842,7 +916,7 @@ Describe 'Whole run on the home LAN' -Tag 'Unit' {
         $nas.Endpoints.Count | Should -Be 4
         $candidate = $nas.Endpoints[0].Candidates[0]
         $candidate.PSObject.Properties.Name | Should -Be @(
-            'Kind', 'Address', 'Port', 'Order', 'Reachable', 'LatencyMs', 'Skipped', 'Error', 'RemoteAddress', 'Resolved',
+            'Kind', 'Address', 'Port', 'Order', 'Reachable', 'LatencyMs', 'Skipped', 'Error', 'RemoteAddress', 'Resolved', 'ProbeAddress',
             'Interface', 'SourceAddress', 'NextHop', 'TailscalePath')
         $candidate.Kind | Should -Be 'lan'
         $candidate.Reachable | Should -BeTrue
@@ -993,11 +1067,12 @@ Describe 'Script entry point' -Tag 'Unit' {
 
     # Protects: running the script directly fails loudly on bad input, before any network I/O.
     # Detects: a wrong -InventoryPath or unknown -Target exiting 0.
-    # Needs: a child pwsh; both cases throw before any probe, so no network is used.
+    # Needs: a child pwsh; both cases throw before any probe, so no network is used. The unknown-target case passes the
+    # committed example inventory explicitly: the live inventory is private and absent on a clean CI runner.
     # Breadcrumb: Test-FleetPath.ps1 main block
     It 'exits nonzero for <Case>' -ForEach @(
         @{ Case = 'a missing inventory'; Extra = @('-InventoryPath', 'does-not-exist.json'); Pattern = 'not found' }
-        @{ Case = 'an unknown target'; Extra = @('-Target', 'no-such-host'); Pattern = 'Unknown target' }
+        @{ Case = 'an unknown target'; Extra = @('-InventoryPath', (Join-Path $PSScriptRoot '../../Tools/SystemScripts/Networking/fleet-paths.example.json'), '-Target', 'no-such-host'); Pattern = 'Unknown target' }
     ) {
         $output = & ([Environment]::ProcessPath) -NoProfile -File $script:ScriptPath @Extra 2>&1 | Out-String
         $LASTEXITCODE | Should -Not -Be 0

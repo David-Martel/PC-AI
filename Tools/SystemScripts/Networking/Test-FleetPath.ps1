@@ -21,15 +21,21 @@ inventory gateway that answers a TCP connect AND whose on-link MAC address match
 the value recorded in the inventory. A missing, incomplete or all-zero MAC fails
 closed to off-LAN. While off the home LAN, LAN candidates are neither probed nor
 recommended: a connect to a LAN address on a hotel's 192.168.1.0/24 would reach a stranger's machine.
-Home is verified per interface: each LAN candidate's egress interface is resolved with
-Find-NetRoute before it is probed, and it is probed only if that interface is one that
-verified a gateway MAC. On a host with Ethernet on the home LAN and Wi-Fi on a network
-that reuses the subnet, a LAN address routed out of Wi-Fi is skipped with the reason
-egress-not-verified, as is one whose route cannot be resolved.
-A MagicDNS name is resolved before it is probed and is probed only if every answer is
-the host's inventory tailnet address (plus, optionally, tailnet IPv6 addresses in
-fd7a:115c:a1e0::/48). With Tailscale down, a roaming network's resolver can send the
-name to one of its own hosts; such a candidate is skipped as magicdns-mismatch (an
+Home is verified per interface, and only with interface-specific evidence: an interface
+counts as verified when its own neighbour row for a gateway matches the inventory MAC AND
+it is the interface the gateway probe egressed (Find-NetRoute for the gateway address). A
+matching row on some other interface verifies nothing. Each LAN candidate's egress
+interface is then resolved with Find-NetRoute before it is probed, and it is probed only
+if that interface is verified. On a host with Ethernet on the home LAN and Wi-Fi on a
+network that reuses the subnet, a LAN address routed out of Wi-Fi is skipped with the
+reason egress-not-verified, as is one whose route cannot be resolved (and, on a host with
+two NICs on the home subnet, one routed out of the NIC the gateway probe did not use).
+A MagicDNS name is resolved before it is probed and is probed only if every answer is the
+host's own inventory tailnet address (plus, if the inventory records tailnetV6, that one
+IPv6 address; any other IPv6 answer, even inside fd7a:115c:a1e0::/48, can belong to another
+peer). The connect then targets the validated IP literal, never the name, so a second
+lookup cannot send it elsewhere. With Tailscale down, a roaming network's resolver can send
+the name to one of its own hosts; such a candidate is skipped as magicdns-mismatch (an
 empty or failed lookup as magicdns-unresolved) and is never connected to or recommended.
 
 The tool changes nothing. It calls Get-NetNeighbor, Find-NetRoute and
@@ -164,6 +170,9 @@ function Import-FleetInventory {
         $h = $entry.Value
         $tailnet = Get-FleetProperty $h 'tailnet'
         if ($tailnet -and -not (& $testIpv4 $tailnet)) { throw "Host '$name' has an invalid tailnet address '$tailnet' ($Path)." }
+        $tailnetV6 = Get-FleetProperty $h 'tailnetV6'
+        $parsedV6 = $null
+        if ($tailnetV6 -and (-not [ipaddress]::TryParse([string]$tailnetV6, [ref]$parsedV6) -or $parsedV6.AddressFamily -ne 'InterNetworkV6')) { throw "Host '$name' has an invalid tailnetV6 address '$tailnetV6' ($Path)." }
         $lan = @(Get-FleetProperty $h 'lan' @())
         foreach ($a in $lan) { if (-not (& $testIpv4 $a)) { throw "Host '$name' has an invalid LAN address '$a' ($Path)." } }
         $services = foreach ($svc in (Get-FleetProperty $h 'services').PSObject.Properties) {
@@ -176,7 +185,7 @@ function Import-FleetInventory {
             [pscustomobject]@{ Service = $svc.Name; Ports = [int[]]$ports; Via = [string[]]($via | ForEach-Object { $_.ToLowerInvariant() }) }
         }
         [pscustomobject]@{
-            Name = $name; Tailnet = $tailnet; MagicDns = Get-FleetProperty $h 'magicDns'
+            Name = $name; Tailnet = $tailnet; TailnetV6 = $tailnetV6; MagicDns = Get-FleetProperty $h 'magicDns'
             Lan = [string[]]$lan; Services = @($services)
         }
     }
@@ -384,7 +393,11 @@ function Resolve-FleetLocation {
         # Verification is per interface: a row proves "home" only for the interface it was
         # read on. A row without an interface index cannot be matched to an egress, so it
         # verifies nothing.
-        $verified = @($rows | Where-Object { $g.Mac -and (ConvertTo-FleetMac $_.LinkLayerAddress) -eq $g.Mac -and $null -ne $_.InterfaceIndex } |
+        # ...and only for the interface the gateway probe actually used: a matching row on
+        # some other interface says nothing about the network the TCP connect crossed.
+        $gatewayRoute = if ($reachable) { Find-FleetRoute -Address $g.Ip } else { $null }
+        $egressIndex = if ($gatewayRoute) { Get-FleetProperty $gatewayRoute 'InterfaceIndex' } else { $null }
+        $verified = @($rows | Where-Object { $g.Mac -and (ConvertTo-FleetMac $_.LinkLayerAddress) -eq $g.Mac -and $null -ne $_.InterfaceIndex -and $null -ne $egressIndex -and [int]$_.InterfaceIndex -eq [int]$egressIndex } |
                 ForEach-Object { [int]$_.InterfaceIndex } | Sort-Object -Unique)
         $colliding = @($rows | Where-Object { $g.Mac -and (ConvertTo-FleetMac $_.LinkLayerAddress) -ne $g.Mac -and $null -ne $_.InterfaceIndex } |
                 ForEach-Object { [int]$_.InterfaceIndex } | Sort-Object -Unique)
@@ -466,18 +479,25 @@ function Resolve-FleetDnsNames {
 }
 
 function Test-FleetMagicDnsResolution {
-    # Pure. A MagicDNS name is trusted only when it resolves to this host's tailnet
-    # address: every answer must be that IPv4 address or an address in the tailnet IPv6
-    # range fd7a:115c:a1e0::/48 (MagicDNS answers both families), and the IPv4 address
-    # must be present. Anything else, including an empty answer, a host with no recorded
-    # tailnet address, or one foreign address among correct ones, fails.
+    # Pure. A MagicDNS name is trusted only when it resolves to this host's own tailnet
+    # addresses: every IPv4 answer must equal the inventory tailnet IPv4 address, every
+    # IPv6 answer must equal the inventory tailnetV6 address (any other IPv6 address, even
+    # inside fd7a:115c:a1e0::/48, can belong to another peer; with no tailnetV6 recorded
+    # every IPv6 answer is rejected), and the IPv4 address must be present. An empty
+    # answer or a host with no recorded tailnet address fails.
     [CmdletBinding()]
     [OutputType([bool])]
     param(
         [AllowEmptyCollection()][string[]]$Addresses = @(),
-        [AllowNull()][AllowEmptyString()][string]$TailnetAddress
+        [AllowNull()][AllowEmptyString()][string]$TailnetAddress,
+        [AllowNull()][AllowEmptyString()][string]$TailnetV6Address
     )
     if ([string]::IsNullOrWhiteSpace($TailnetAddress) -or @($Addresses).Count -eq 0) { return $false }
+    $expectedV6 = $null
+    if (-not [string]::IsNullOrWhiteSpace($TailnetV6Address)) {
+        $expectedV6 = $null
+        if (-not [ipaddress]::TryParse($TailnetV6Address, [ref]$expectedV6)) { return $false }
+    }
     $sawTailnetAddress = $false
     foreach ($text in $Addresses) {
         $ip = $null
@@ -487,15 +507,10 @@ function Test-FleetMagicDnsResolution {
             if ($ip.ToString() -ne $TailnetAddress) { return $false }
             $sawTailnetAddress = $true
         }
-        else {
-            $bytes = $ip.GetAddressBytes()
-            $inTailnetRange = $bytes[0] -eq 0xFD -and $bytes[1] -eq 0x7A -and $bytes[2] -eq 0x11 -and $bytes[3] -eq 0x5C -and $bytes[4] -eq 0xA1 -and $bytes[5] -eq 0xE0
-            if (-not $inTailnetRange) { return $false }
-        }
+        elseif ($null -eq $expectedV6 -or -not $ip.Equals($expectedV6)) { return $false }
     }
     return $sawTailnetAddress
 }
-
 function Test-FleetLanEgress {
     # Pure. A LAN candidate is eligible only when the interface Windows would send it out
     # of is one that verified a home gateway. Unknown route or ifIndex: not eligible.
@@ -659,7 +674,7 @@ function Invoke-FleetPathTest {
                     [pscustomobject]([ordered]@{
                             Kind = $c.Kind; Address = $c.Address; Port = $c.Port; Order = $c.Order
                             Reachable = $false; LatencyMs = $null; Skipped = $null
-                            Error = $null; RemoteAddress = $null; Resolved = $null
+                            Error = $null; RemoteAddress = $null; Resolved = $null; ProbeAddress = $c.Address
                             Interface = $null; SourceAddress = $null; NextHop = $null; TailscalePath = $null
                         })
                 }
@@ -679,7 +694,10 @@ function Invoke-FleetPathTest {
             $answer = @($dnsAnswers[$c.Address] | Where-Object { $_ })
             $c.Resolved = $answer
             if ($answer.Count -eq 0) { $c.Skipped = 'magicdns-unresolved' }
-            elseif (-not (Test-FleetMagicDnsResolution -Addresses $answer -TailnetAddress $e.FleetHost.Tailnet)) { $c.Skipped = 'magicdns-mismatch' }
+            elseif (-not (Test-FleetMagicDnsResolution -Addresses $answer -TailnetAddress $e.FleetHost.Tailnet -TailnetV6Address $e.FleetHost.TailnetV6)) { $c.Skipped = 'magicdns-mismatch' }
+            # Connect to the address that was validated, never to the name: a second lookup
+            # at connect time could answer differently from the one just checked.
+            else { $c.ProbeAddress = $e.FleetHost.Tailnet }
         }
     }
     & $stage 'magicdns names resolved'
@@ -694,7 +712,7 @@ function Invoke-FleetPathTest {
     foreach ($probe in $gatewayProbes) { $waveA["$($probe.Address):$($probe.Port)"] = $probe }
     foreach ($e in $endpoints) {
         foreach ($c in $e.Candidates) {
-            if ($c.Kind -ne 'lan' -and -not $c.Skipped) { $waveA["$($c.Address):$($c.Port)"] = [pscustomobject]@{ Address = $c.Address; Port = $c.Port } }
+            if ($c.Kind -ne 'lan' -and -not $c.Skipped) { $waveA["$($c.ProbeAddress):$($c.Port)"] = [pscustomobject]@{ Address = $c.ProbeAddress; Port = $c.Port } }
         }
     }
     $warmAddress = if (@($inventory.Gateways).Count -gt 0) { @($inventory.Gateways)[0].Ip } else { $null }
@@ -745,7 +763,7 @@ function Invoke-FleetPathTest {
     }
     $routeLookups = {
         foreach ($e in $endpoints) {
-            foreach ($c in $e.Candidates) { if (-not $c.Skipped -and $c.Kind -ne 'magicdns') { & $routeFor $c.Address } }
+            foreach ($c in $e.Candidates) { if (-not $c.Skipped) { & $routeFor $c.ProbeAddress } }
         }
     }
     foreach ($r in (Invoke-FleetProbeBatch -Probes @($waveB.Values) -BudgetMs $BudgetMs -Connector $Connector -WhileWaiting $routeLookups)) {
@@ -755,14 +773,14 @@ function Invoke-FleetPathTest {
     & $stage 'wave B done (LAN candidates and route lookups)'
 
     # Egress interface: one Find-NetRoute per distinct IP, in this runspace (it is
-    # slower in parallel runspaces). A MagicDNS name is routed by the address it
-    # actually connected to, so it is looked up after the probes.
+    # slower in parallel runspaces). A MagicDNS candidate is probed, and so routed, by its
+    # validated IP literal.
     foreach ($e in $endpoints) {
         foreach ($c in $e.Candidates) {
             if ($c.Skipped) { continue }
-            $r = $results["$($c.Address):$($c.Port)"]
+            $r = $results["$($c.ProbeAddress):$($c.Port)"]
             $c.Reachable = [bool]$r.Reachable; $c.LatencyMs = $r.LatencyMs; $c.Error = $r.Error; $c.RemoteAddress = $r.RemoteAddress
-            $ip = if ($c.Kind -eq 'magicdns') { $c.RemoteAddress } else { $c.Address }
+            $ip = $c.ProbeAddress
             if (-not $ip) { continue }
             & $routeFor $ip
             $route = $routes[$ip]

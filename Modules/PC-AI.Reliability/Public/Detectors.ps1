@@ -427,6 +427,7 @@ function Get-FleetPostgresObservations {
         $name = [string]$pg.name
         $max = $null
         if ($pg.max_connections) { $max = [int]$pg.max_connections }
+        $pending = $false
         $dataDir = Resolve-FleetPolicyPath ([string]$pg.data_dir)
         $confList = @($pg.conf_files | Where-Object { $_ })   # @($null) has Count 1
         if ($dataDir -and $confList.Count -eq 0) { $confList = @((Join-Path $dataDir 'postgresql.conf'), (Join-Path $dataDir 'postgresql.auto.conf')) }
@@ -436,10 +437,18 @@ function Get-FleetPostgresObservations {
             $started = (Get-Item -LiteralPath (Join-Path $dataDir 'postmaster.pid')).LastWriteTimeUtc
             $changed = @($confList | Where-Object { $_ -and (Test-Path -LiteralPath $_) -and (Get-Item -LiteralPath $_).LastWriteTimeUtc -gt $started })
             $pst = 'ok'; $pmsg = 'configuration matches the running server'
-            if ($changed.Count -gt 0) { $pst = 'degraded'; $pmsg = ('{0} changed after the server started; a restart is pending and live settings may differ' -f (($changed | ForEach-Object { Split-Path -Leaf $_ }) -join ', ')) }
+            if ($changed.Count -gt 0) { $pending = $true; $pst = 'degraded'; $pmsg = ('{0} changed after the server started; a restart is pending and live settings may differ' -f (($changed | ForEach-Object { Split-Path -Leaf $_ }) -join ', ')) }
             $obs += New-FleetObservation -Source postgres -Name $name -Check pg-config-pending -Status $pst -Severity low -Message $pmsg -ResolveAfter 1
         }
-        foreach ($confRaw in $confList) {
+        # An explicit policy value is the live limit the owner vouches for; otherwise read the conf files,
+        # but never trust them while a restart is pending (the conf said 100 while the server ran 40).
+        if (-not $max -and $pending) {
+            $used = Get-FleetTcpListenerConnectionCount -Port ([int]$pg.port)
+            $obs += New-FleetObservation -Source postgres -Name $name -Check pg-connections -Status skipped -Severity low `
+                -Message ("{0} connections on port {1}; live max_connections unknown while a restart is pending (set max_connections in policy)" -f $used, $pg.port)
+            continue
+        }
+        foreach ($confRaw in @($(if ($max) { @() } else { $confList }))) {
             $conf = Resolve-FleetPolicyPath ([string]$confRaw)
             if ($conf -and (Test-Path -LiteralPath $conf)) {
                 foreach ($line in @(Get-Content -LiteralPath $conf)) { if ($line -match '^\s*max_connections\s*=\s*(\d+)') { $max = [int]$Matches[1] } }

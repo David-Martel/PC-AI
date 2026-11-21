@@ -139,8 +139,8 @@ function Test-FleetCacheDirAllowed {
     #>
     param([string]$Path)
     if ([string]::IsNullOrWhiteSpace($Path) -or -not [IO.Path]::IsPathRooted($Path)) { return $false }
-    $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
-    $segments = @($full.Split('\') | Where-Object { $_ })
+    $full = [IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
+    $segments = @($full.Split([char[]]@('\', '/')) | Where-Object { $_ })
     if ($segments.Count -lt 3) { return $false }
     if (-not (@($segments | Where-Object { $_ -match '(?i)cache' }).Count)) { return $false }
     foreach ($bad in @('Documents', 'Desktop', 'Pictures', 'Videos', 'Music', 'OneDrive', 'Dropbox', 'codedev', 'projects', '.git', '.ssh', '.gnupg', 'secrets')) {

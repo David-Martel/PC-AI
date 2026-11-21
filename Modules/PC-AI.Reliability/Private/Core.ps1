@@ -74,7 +74,7 @@ function Get-FleetPath {
     param([Parameter(Mandatory)][ValidateSet('ledger', 'state', 'spool', 'quarantine', 'locks', 'secrets', 'logs')][string]$Kind)
     $homeDir = Get-FleetReliabilityHome
     $rel = switch ($Kind) {
-        'quarantine' { 'spool\quarantine' }
+        'quarantine' { Join-Path 'spool' 'quarantine' }
         default { $Kind }
     }
     $dir = Join-Path $homeDir $rel
@@ -145,6 +145,17 @@ function ConvertTo-FleetCommandLine {
     return ($parts -join ' ')
 }
 
+function Stop-FleetProcessTree {
+    <# Kills a process and all its descendants: Kill(entireProcessTree) on .NET Core, taskkill /T on 5.1. #>
+    param([Parameter(Mandatory)][System.Diagnostics.Process]$Process)
+    try {
+        $killTree = $Process.GetType().GetMethod('Kill', [type[]]@([bool]))
+        if ($null -ne $killTree) { $Process.Kill($true); return }
+        & taskkill.exe /T /F /PID $Process.Id 2>&1 | Out-Null
+    }
+    catch { Write-Verbose "process tree kill failed: $($_.Exception.Message)" }
+}
+
 function Invoke-FleetProcess {
     <#
     Runs an executable with a hard timeout and captured output. Never hangs a scheduled task: on
@@ -177,15 +188,21 @@ function Invoke-FleetProcess {
     $errTask = $proc.StandardError.ReadToEndAsync()
     if (-not $proc.WaitForExit([Math]::Max(1, $TimeoutSeconds) * 1000)) {
         $result.TimedOut = $true
-        try { $proc.Kill() } catch { Write-Verbose "kill after timeout failed: $($_.Exception.Message)" }
+        Stop-FleetProcessTree -Process $proc
         [void]$proc.WaitForExit(5000)
     }
     else {
-        $proc.WaitForExit()
         $result.ExitCode = $proc.ExitCode
     }
-    try { $result.StdOut = $outTask.Result } catch { $result.StdOut = '' }
-    try { $result.StdErr = $errTask.Result } catch { $result.StdErr = '' }
+    # A descendant that outlives the child (a daemon, `start /b`, `cmd &`) keeps the output pipes open,
+    # and an unbounded read would hang the caller for as long as it lives (measured: a 2 s timeout took
+    # 26 s, and a job that exited at once took 25 s). Wait a bounded time, then return what we have.
+    $drainMs = 10000
+    if ($env:FLEET_PIPE_DRAIN_MS) { $drainMs = [int]$env:FLEET_PIPE_DRAIN_MS }
+    $drained = [System.Threading.Tasks.Task]::WaitAll([System.Threading.Tasks.Task[]]@($outTask, $errTask), $drainMs)
+    if ($outTask.IsCompleted -and -not $outTask.IsFaulted) { $result.StdOut = $outTask.Result }
+    if ($errTask.IsCompleted -and -not $errTask.IsFaulted) { $result.StdErr = $errTask.Result }
+    if (-not $drained) { $result.StdErr += "`n[fleet] output not fully captured: a descendant process still holds the output pipe" }
     $proc.Dispose()
     return $result
 }

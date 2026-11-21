@@ -27,6 +27,10 @@ Import-Module ./Modules/PC-AI.Reliability/PC-AI.Reliability.psd1
 Set-FleetDiscordToken -Token (Read-Host -AsSecureString 'bot token')
 ```
 
+CI: PC-AI's Windows `CI` workflow is disabled, so pull requests run only `linux-ci.yml` (`pester-lint`). It runs
+the `Portable`-tagged blocks of this suite on Linux; the DPAPI, scheduler-priority and Windows-path cases run
+locally on Windows (PowerShell 7 and 5.1).
+
 The installer prints its revert commands. It exports any task it replaces to
 `%ProgramData%\fleet-reliability\backups\` first.
 
@@ -163,7 +167,9 @@ The token is never logged. It lives only in the process that sends.
 
 - **State:** `state\incidents.json` (incidents), `state\playbooks.json` (budgets), `state\disk-samples.json` (48 h of
   samples) and `state\last-sweep.json` (summary).
-- **Logs:** wrapped tasks write to `logs\<task>.log`.
+- **Logs:** wrapped tasks write to `logs\<task>.log`. If a job leaves a background process holding its output
+  pipe, the wrapper stops waiting after `FLEET_PIPE_DRAIN_MS` (10 s) and notes that the output was not fully
+  captured. The tool's own `-LogPath` is still scanned.
 - **Profiles:** paths that use `{profile}` resolve through the known folder, never through `USERPROFILE`, which
   agent sessions redirect.
 - **Revert:** run the printed revert commands, or `Unregister-ScheduledTask -TaskPath '\fleet-reliability\'`. Then,

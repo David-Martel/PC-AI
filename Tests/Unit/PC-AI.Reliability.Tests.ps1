@@ -72,7 +72,7 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
-    Describe 'Ledger events (fleet-ledger/1)' {
+    Describe 'Ledger events (fleet-ledger/1)' -Tag 'Portable' {
         It 'writes one line carrying every contract field, with nulls instead of missing keys' {
             # Protects the cross-host contract: the bash emitter and the digest read the same fields.
             $ev = New-FleetLedgerEvent -Source task -Name '\x\demo' -Check run -Kind run -Status failed -Severity medium -Message 'boom' -ExitCode 3
@@ -152,7 +152,7 @@ Describe 'PC-AI.Reliability' {
             $r | Should -Be 'spooled'
             $spool = @(Get-BusCall 'spool-send')
             $spool.Count | Should -Be 1
-            (Get-ArgValue $spool[0] '--spool') | Should -BeLike '*\spool\bus-spool.ndjson'
+            (Split-Path -Leaf (Get-ArgValue $spool[0] '--spool')) | Should -Be 'bus-spool.ndjson'
             (Get-ArgValue $spool[0] '--topic') | Should -Be 'fleet-failures'
         }
 
@@ -172,7 +172,7 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
-    Describe 'Spool replay' {
+    Describe 'Spool replay' -Tag 'Portable' {
         It 'renames the live spool before replaying and removes it after success' {
             # Protects messages appended during a replay: spool-replay deletes the whole file it read.
             $dir = Join-Path $env:FLEET_RELIABILITY_HOME 'spool'
@@ -204,7 +204,7 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
-    Describe 'Incident state' {
+    Describe 'Incident state' -Tag 'Portable' {
         It 'opens once and does not re-alert while the failure persists' {
             # Detects the repeat-every-run noise pattern; one incident, one alert.
             (Submit-FleetObservation (New-TestObservation)).Transition | Should -Be 'opened'
@@ -274,7 +274,7 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
-    Describe 'Scheduled task detector' {
+    Describe 'Scheduled task detector' -Tag 'Portable' {
         BeforeEach {
             $script:Report = @{
                 Tasks = @(
@@ -390,7 +390,7 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
-    Describe 'Disk detector' {
+    Describe 'Disk detector' -Tag 'Portable' {
         BeforeEach { $script:Policy = Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json') }
 
         It 'reports a drive below its floor as degraded/high' {
@@ -448,7 +448,7 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
-    Describe 'Runner and workflow detectors' {
+    Describe 'Runner and workflow detectors' -Tag 'Portable' {
         BeforeEach {
             $script:Policy = Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json')
             $script:Policy.runner_scopes = @('repos/o/r')
@@ -488,7 +488,7 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
-    Describe 'Postgres, orphan process and certificate detectors' {
+    Describe 'Postgres, orphan process and certificate detectors' -Tag 'Portable' {
         BeforeEach { $script:Policy = Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json') }
 
         It 'reports connections at or above warn_pct of max_connections from the conf file' {
@@ -516,7 +516,13 @@ Describe 'PC-AI.Reliability' {
             Mock -ModuleName PC-AI.Reliability Get-FleetTcpListenerConnectionCount { 32 }
             $o = @(Get-FleetPostgresObservations -Policy $script:Policy)
             ($o | Where-Object { $_.Check -eq 'pg-config-pending' }).Status | Should -Be 'degraded'
-            ($o | Where-Object { $_.Check -eq 'pg-connections' }).Message | Should -Match '^32/100'
+            # Never a false "32/100 ok" while the live limit may still be 40.
+            ($o | Where-Object { $_.Check -eq 'pg-connections' }).Status | Should -Be 'skipped'
+            $script:Policy.postgres = @(@{ name = 'bus'; port = 5300; data_dir = $data; max_connections = 40 })
+            $o = @(Get-FleetPostgresObservations -Policy $script:Policy)
+            ($o | Where-Object { $_.Check -eq 'pg-connections' }).Message | Should -Match '^32/40'
+            ($o | Where-Object { $_.Check -eq 'pg-connections' }).Status | Should -Be 'degraded'
+            $script:Policy.postgres = @(@{ name = 'bus'; port = 5300; data_dir = $data })
             (Get-Item (Join-Path $data 'postmaster.pid')).LastWriteTimeUtc = [datetime]::UtcNow
             (@(Get-FleetPostgresObservations -Policy $script:Policy) | Where-Object { $_.Check -eq 'pg-config-pending' }).Status | Should -Be 'ok'
         }
@@ -553,7 +559,7 @@ Describe 'PC-AI.Reliability' {
     Describe 'Bounded playbooks' {
         BeforeEach { $script:Policy = Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json'); $script:Ran = 0 }
 
-        It 'acts once, then escalates exactly once when the budget is spent' {
+        It 'acts once, then escalates exactly once when the budget is spent' -Tag 'Portable' {
             # Detects runaway remediation: a broken fix must not loop, and a human must hear about it.
             $action = { param($a) $script:Ran++; @{ outcome = 'triggered'; detail = 'x' } }
             Invoke-FleetPlaybook -Playbook rerun-task -IncidentKey 'k' -Policy $script:Policy -Action $action | Should -Be 'triggered'
@@ -564,7 +570,7 @@ Describe 'PC-AI.Reliability' {
             @(Read-TestLedger | Where-Object { $_.kind -eq 'remediation' }).Count | Should -Be 1
         }
 
-        It 'backs off between attempts and acts again after the backoff' {
+        It 'backs off between attempts and acts again after the backoff' -Tag 'Portable' {
             $script:Policy.playbooks = @{ budget = 3; window_hours = 24; backoff_minutes = 30 }
             $action = { param($a) $script:Ran++; @{ outcome = 'triggered'; detail = 'x' } }
             $null = Invoke-FleetPlaybook -Playbook p -IncidentKey 'k' -Policy $script:Policy -Action $action
@@ -575,7 +581,7 @@ Describe 'PC-AI.Reliability' {
             $script:Ran | Should -Be 2
         }
 
-        It 'does nothing while another sweep holds the playbook lock' {
+        It 'does nothing while another sweep holds the playbook lock' -Tag 'Portable' {
             $lockDir = Join-Path $env:FLEET_RELIABILITY_HOME 'locks'
             New-Item -ItemType Directory -Force $lockDir | Out-Null
             $hash = InModuleScope PC-AI.Reliability { Get-FleetShortHash 'p|k' }
@@ -584,7 +590,7 @@ Describe 'PC-AI.Reliability' {
             finally { $fs.Dispose() }
         }
 
-        It 're-runs an allowlisted task only when it is not running or disabled' {
+        It 're-runs an allowlisted task only when it is not running or disabled' -Tag 'Portable' {
             Mock -ModuleName PC-AI.Reliability Start-FleetScheduledTask { }
             Mock -ModuleName PC-AI.Reliability Get-FleetTaskStateData { 'Running' }
             (InModuleScope PC-AI.Reliability { Invoke-FleetRerunTaskAction -Arguments @{ TaskPath = '\'; TaskName = 't' } }).outcome | Should -Be 'skipped'
@@ -593,7 +599,14 @@ Describe 'PC-AI.Reliability' {
             Should -Invoke -ModuleName PC-AI.Reliability Start-FleetScheduledTask -Times 1 -Exactly
         }
 
-        It 'allows only cache directories for pruning' {
+        It 'allows only cache directories for pruning (any OS)' -Tag 'Portable' {
+            # Protects user data on Linux too: the same rule must hold with / separators.
+            Test-FleetCacheDirAllowed (Join-Path $TestDrive 'a/b/pipcache') | Should -BeTrue
+            Test-FleetCacheDirAllowed (Join-Path $TestDrive 'a/Documents/cache') | Should -BeFalse
+            Test-FleetCacheDirAllowed (Join-Path $TestDrive 'a/b/plain') | Should -BeFalse
+        }
+
+        It 'allows only cache directories for pruning' -Tag 'WindowsOnly' {
             # Protects user data: a policy typo must not turn disk-low into a delete of real files.
             Test-FleetCacheDirAllowed 'C:\Users\x\AppData\Local\uv\cache' | Should -BeTrue
             Test-FleetCacheDirAllowed 'C:\' | Should -BeFalse
@@ -603,7 +616,7 @@ Describe 'PC-AI.Reliability' {
             Test-FleetCacheDirAllowed 'relative\cache\dir' | Should -BeFalse
         }
 
-        It 'prunes only files older than the age limit' {
+        It 'prunes only files older than the age limit' -Tag 'Portable' {
             $dir = Join-Path $TestDrive 'a\b\pipcache'
             New-Item -ItemType Directory -Force $dir | Out-Null
             $old = Join-Path $dir 'old.bin'; $new = Join-Path $dir 'new.bin'
@@ -615,7 +628,7 @@ Describe 'PC-AI.Reliability' {
             Test-Path $new | Should -BeTrue
         }
 
-        It 'requests compaction from the storage lane instead of stopping anything' {
+        It 'requests compaction from the storage lane instead of stopping anything' -Tag 'Portable' {
             $script:Policy.compaction = @{ request_agent = 'storage-lane'; drives = @('T'); task = $null }
             $r = InModuleScope PC-AI.Reliability -Parameters @{ P = $script:Policy } { param($P) Invoke-FleetDiskLowAction -Arguments @{ Drive = 'T'; FreeGb = 12; MinGb = 15 } -Policy $P }
             $r.outcome | Should -Be 'requested'
@@ -625,7 +638,7 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
-    Describe 'Task wrapper (Invoke-FleetTask)' {
+    Describe 'Task wrapper (Invoke-FleetTask)' -Tag 'Portable' {
         It 'records exit 0 with "integrity check did not pass" as a failure and exits non-zero' {
             # Positive control for a pull job and a logger that exited 0 while failing.
             $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = "pulling`n[ERROR] integrity check did not pass`n" }
@@ -658,7 +671,7 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
-    Describe 'Sweep orchestration' {
+    Describe 'Sweep orchestration' -Tag 'Portable' {
         It 'turns a throwing detector into a visible detector-error and keeps sweeping' {
             # Detects the silent-pass failure mode: a detector that cannot run must not read as healthy.
             Mock -ModuleName PC-AI.Reliability Get-FleetTaskObservations { throw 'scheduler unavailable' }
@@ -679,7 +692,7 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
-    Describe 'Digest' {
+    Describe 'Digest' -Tag 'Portable' {
         It 'summarises opened, resolved and still-open incidents and posts a DIGEST status' {
             $null = Submit-FleetObservation (New-TestObservation -Name 'a')
             $null = Submit-FleetObservation (New-TestObservation -Name 'b')
@@ -724,7 +737,7 @@ Describe 'PC-AI.Reliability' {
     }
 
     Describe 'Scheduling priority' {
-        It 'registers the sweeper at normal priority and the CLIs raise themselves from BelowNormal' {
+        It 'registers the sweeper at normal priority and the CLIs raise themselves from BelowNormal' -Tag 'Portable' {
             # Detects starvation: at the default priority 7 an S4U sweep needed 86 s just to start pwsh on a
             # host at 100% CPU, so the monitor went quiet exactly when the host was in trouble.
             $tools = Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Reliability'
@@ -760,6 +773,44 @@ Describe 'PC-AI.Reliability' {
             }
             finally { $env:USERPROFILE = $saved }
         }
+    }
+}
+
+Describe 'PC-AI.Reliability child processes (unmocked)' -Tag 'Portable' {
+    # Detects the hang found on 2026-11-21: Kill() left a grandchild holding the output pipe, so a 2 s timeout
+    # took 26 s, and a job that exited at once but left a background process blocked for as long as it lived.
+    # Real processes, no mocks; the 20 s bound separates "bounded" (about 5 s) from "hung" (30 s sleeper).
+    BeforeAll {
+        $env:FLEET_PIPE_DRAIN_MS = '3000'
+        $script:OnWindows = ($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows
+    }
+    AfterAll { Remove-Item Env:FLEET_PIPE_DRAIN_MS -ErrorAction SilentlyContinue }
+
+    It 'returns promptly on timeout even when a descendant holds the pipe' {
+        if ($script:OnWindows) { $exe = Join-Path $env:SystemRoot 'System32\cmd.exe'; $argv = @('/c', 'ping -n 30 127.0.0.1') }
+        else { $exe = '/bin/sh'; $argv = @('-c', 'sleep 30; echo late') }
+        $sw = [Diagnostics.Stopwatch]::StartNew()
+        $r = InModuleScope PC-AI.Reliability -Parameters @{ E = $exe; A = $argv } { param($E, $A) Invoke-FleetProcess -FilePath $E -ArgumentList $A -TimeoutSeconds 2 }
+        $r.TimedOut | Should -BeTrue
+        $sw.Elapsed.TotalSeconds | Should -BeLessThan 20
+    }
+
+    It 'returns promptly when the job exits but leaves a background process holding the pipe' {
+        if ($script:OnWindows) { $exe = Join-Path $env:SystemRoot 'System32\cmd.exe'; $argv = @('/c', 'start /b ping -n 30 127.0.0.1 & echo parent-done') }
+        else { $exe = '/bin/sh'; $argv = @('-c', 'sleep 30 & echo parent-done') }
+        $sw = [Diagnostics.Stopwatch]::StartNew()
+        $r = InModuleScope PC-AI.Reliability -Parameters @{ E = $exe; A = $argv } { param($E, $A) Invoke-FleetProcess -FilePath $E -ArgumentList $A -TimeoutSeconds 60 }
+        $r.ExitCode | Should -Be 0
+        $r.TimedOut | Should -BeFalse
+        $sw.Elapsed.TotalSeconds | Should -BeLessThan 20
+    }
+
+    It 'captures output and the exit code of a normal job' {
+        if ($script:OnWindows) { $exe = Join-Path $env:SystemRoot 'System32\cmd.exe'; $argv = @('/c', 'echo hello & exit 3') }
+        else { $exe = '/bin/sh'; $argv = @('-c', 'echo hello; exit 3') }
+        $r = InModuleScope PC-AI.Reliability -Parameters @{ E = $exe; A = $argv } { param($E, $A) Invoke-FleetProcess -FilePath $E -ArgumentList $A -TimeoutSeconds 30 }
+        $r.ExitCode | Should -Be 3
+        $r.StdOut | Should -Match 'hello'
     }
 }
 

@@ -394,8 +394,46 @@ function Get-PcaiOpenPullRequest {
         })
 }
 
-function Format-PcaiToolingSummary {
+function Invoke-PcaiFastForward {
+    <#
+    .SYNOPSIS
+    Fast-forwards one checkout to the commit that was sampled, and never leaves a different
+    branch advanced.
+    .DESCRIPTION
+    Revalidation and `git merge --ff-only` are separate commands, and merge advances whichever
+    branch is checked out when it runs. If a person switches to a feature branch that sits at the
+    same HEAD inside that window, the checks pass and the feature branch moves. Git offers no way to
+    pin the merge to a branch, so the outcome is verified afterwards: when the branch that moved is
+    not the sampled one it is restored to its sampled HEAD with `git reset --keep`, which keeps any
+    local edits, and the result is reported as RolledBack. -BeforeMerge runs in the window so tests
+    can open it deterministically.
+    #>
     [CmdletBinding()]
+    param([Parameter(Mandatory)]$State, [scriptblock]$BeforeMerge)
+    $git = { param([string[]]$a, [int]$t = 120) Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList (@('-C', $State.Path) + $a) -TimeoutSeconds $t }
+    $changedSince = Test-PcaiRepoUnchanged -State $State
+    if ($changedSince) { return [pscustomobject]@{ Action = 'Changed'; Note = "not fast-forwarded: $changedSince since sampling" } }
+    if ($BeforeMerge) { & $BeforeMerge }
+    # Merge the exact commit that was sampled, not whatever the ref points at now.
+    $m = & $git @('merge', '--ff-only', '--quiet', $State.Target)
+    $branchNow = (& $git @('branch', '--show-current') 30).Stdout.Trim()
+    if ($branchNow -eq $State.Branch) {
+        if ($m.ExitCode -eq 0) { return [pscustomobject]@{ Action = 'FastForwarded'; Note = "behind $($State.Behind)" } }
+        return [pscustomobject]@{ Action = 'FastForwardFailed'; Note = ($m.Stderr.Trim() -split "`n")[0] }
+    }
+    # The checked-out branch is no longer the sampled one.
+    if ($m.ExitCode -ne 0) { return [pscustomobject]@{ Action = 'Changed'; Note = "branch changed to '$branchNow' during fast-forward; the merge was refused and nothing moved" } }
+    $headNow = (& $git @('rev-parse', 'HEAD') 30).Stdout.Trim()
+    if ($headNow -ne $State.Target) { return [pscustomobject]@{ Action = 'Changed'; Note = "branch changed to '$branchNow' during fast-forward" } }
+    $undo = & $git @('reset', '--keep', '--quiet', $State.Head)
+    $restored = (& $git @('rev-parse', 'HEAD') 30).Stdout.Trim()
+    if ($undo.ExitCode -eq 0 -and $restored -eq $State.Head) {
+        return [pscustomobject]@{ Action = 'RolledBack'; Note = "branch changed to '$branchNow' during fast-forward; restored it to $($State.Head.Substring(0, [Math]::Min(8, $State.Head.Length)))" }
+    }
+    return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "branch '$branchNow' was fast-forwarded by mistake and could not be restored automatically (was $($State.Head))" }
+}
+
+function Format-PcaiToolingSummary {    [CmdletBinding()]
     param([Parameter(Mandatory)]$Status)
     $p = $Status.profile
     $missing = @($p.Chain | Where-Object { $_.Required -and -not $_.Exists } | ForEach-Object Path)
@@ -412,7 +450,7 @@ function Format-PcaiToolingSummary {
     $repos = @($Status.repos)
     $ff = @($repos | Where-Object Action -eq 'FastForwarded' | ForEach-Object { "$($_.Name)" })
     $wouldFf = @($repos | Where-Object Action -eq 'FastForward' | ForEach-Object { "$($_.Name) (behind $($_.Behind))" })
-    $off = @($repos | Where-Object Action -in @('OffDefault', 'Detached', 'Dirty', 'Diverged', 'Ahead', 'Busy', 'FetchFailed', 'FastForwardFailed', 'Changed', 'InspectFailed') | ForEach-Object { "$($_.Name)@$($_.Branch)($($_.Action))" })
+    $off = @($repos | Where-Object Action -in @('OffDefault', 'Detached', 'Dirty', 'Diverged', 'Ahead', 'Busy', 'FetchFailed', 'FastForwardFailed', 'Changed', 'InspectFailed', 'RolledBack', 'FastForwardMisapplied') | ForEach-Object { "$($_.Name)@$($_.Branch)($($_.Action))" })
     $wt = @($repos | ForEach-Object { @($_.Worktrees | Where-Object NeedsAction) }).Count
     $stale = @($repos | ForEach-Object { @($_.StaleBranches) }).Count
     $prs = @($Status.pullRequests | ForEach-Object { @($_.Items) }).Count
@@ -461,13 +499,9 @@ function Invoke-PcaiToolingHealth {
             $action = Get-PcaiRepoAction -State $state
             $note = $null
             if ($action -eq 'FastForward' -and -not $SkipFastForward -and -not $IsDryRun) {
-                $changedSince = Test-PcaiRepoUnchanged -State $state
-                if ($changedSince) { $action = 'Changed'; $note = "not fast-forwarded: $changedSince since sampling" }
-            }
-            if ($action -eq 'FastForward' -and -not $SkipFastForward -and -not $IsDryRun) {
-                # Merge the exact commit that was sampled, not whatever the ref points at now.
-                $m = Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList @('-C', $repo.Path, 'merge', '--ff-only', '--quiet', $state.Target) -TimeoutSeconds 120
-                if ($m.ExitCode -eq 0) { $action = 'FastForwarded'; $note = "behind $($state.Behind)" } else { $action = 'FastForwardFailed'; $note = ($m.Stderr.Trim() -split "`n")[0] }
+                $ff = Invoke-PcaiFastForward -State $state
+                $action = $ff.Action
+                $note = $ff.Note
             }
             $state | Add-Member -NotePropertyName Action -NotePropertyValue $action -PassThru | Add-Member -NotePropertyName Note -NotePropertyValue $note -PassThru
         })
@@ -498,7 +532,7 @@ function Invoke-PcaiToolingHealth {
     if (@($chain | Where-Object { $_.Exists -and $_.ParseErrors }).Count -or @($tools | Where-Object { -not $_.Ok -and $_.Name -in @('git', 'pwsh') }).Count) { $severity = 'fail' }
     elseif (($load -and ($load.ExitCode -ne 0 -or $load.Seconds -gt $cfg.profileLoadBudgetSec)) -or $shimMatches -eq $false -or
         @($chain | Where-Object { $_.Required -and -not $_.Exists }).Count -or
-        @($tools | Where-Object { -not $_.Ok }).Count -or @($repos | Where-Object Action -in @('FastForwardFailed', 'FetchFailed', 'InspectFailed', 'Diverged')).Count) { $severity = 'warn' }
+        @($tools | Where-Object { -not $_.Ok }).Count -or @($repos | Where-Object Action -in @('FastForwardFailed', 'FetchFailed', 'InspectFailed', 'Diverged', 'RolledBack', 'FastForwardMisapplied')).Count) { $severity = 'warn' }
 
     $status = [ordered]@{
         schema = $script:PcaiToolingSchema; host = $hostName; evaluatedAtUtc = [DateTime]::UtcNow.ToString('o'); trigger = $RunTrigger

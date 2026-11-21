@@ -110,9 +110,24 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
     }
     It 'fast-forwards to the sampled commit when nothing changed' {
         Mock Test-PcaiRepoUnchanged { $null }
+        # The verification step re-reads the branch after the merge.
+        Mock Invoke-PcaiToolingCommand { [pscustomobject]@{ ExitCode = 0; Stdout = 'main'; Stderr = ''; TimedOut = $false; Seconds = 0 } } -ParameterFilter { $ArgumentList -contains '--show-current' }
         $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'ff') -SkipBus) | Where-Object { $_ -isnot [string] }
         $status.repos[0].Action | Should -Be 'FastForwarded'
         Should -Invoke Invoke-PcaiToolingCommand -Times 1 -Exactly -ParameterFilter { $ArgumentList -contains 'merge' -and $ArgumentList -contains 'bbb' }
+    }
+    It 'reports a rolled-back fast-forward as a warning needing its owner' {
+        Mock Test-PcaiRepoUnchanged { $null }
+        $script:revParseCalls = 0
+        Mock Invoke-PcaiToolingCommand {
+            $out = if ($ArgumentList -contains '--show-current') { 'feat/x' } elseif ($ArgumentList -contains 'rev-parse') { $script:revParseCalls++; if ($script:revParseCalls -eq 1) { 'bbb' } else { 'aaa' } } else { '' }
+            [pscustomobject]@{ ExitCode = 0; Stdout = $out; Stderr = ''; TimedOut = $false; Seconds = 0 }
+        }
+        $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'rolled') -SkipBus) | Where-Object { $_ -isnot [string] }
+        $status.repos[0].Action | Should -Be 'RolledBack'
+        $status.severity | Should -Be 'warn'
+        $status.summary | Should -Match 'needs owner \[PC-AI@main\(RolledBack\)\]'
+        Should -Invoke Invoke-PcaiToolingCommand -Times 1 -Exactly -ParameterFilter { $ArgumentList -contains 'reset' -and $ArgumentList -contains '--keep' -and $ArgumentList -contains 'aaa' }
     }
     It 'raises the severity when a git inspection failed' {
         $script:behind | Add-Member -NotePropertyName InspectOk -NotePropertyValue $false
@@ -128,6 +143,63 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
     }
 }
 
+Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 'Unit', 'Portable' -Skip:(-not [bool](Get-Command git -ErrorAction SilentlyContinue)) {
+    # Why: revalidation and `git merge --ff-only` are separate commands, and merge advances whichever
+    # branch is checked out when it runs. A switch to a feature branch at the same HEAD inside that
+    # window used to pass the checks and then fast-forward the feature branch (codex review of
+    # PR 345 at 93d54db7). -BeforeMerge is the seam that opens the window deterministically.
+    BeforeAll {
+        function Invoke-TestGit {
+            param([string]$Path, [string[]]$Argument)
+            $out = & git -C $Path -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false -c core.hooksPath=.git/hooks @Argument 2>&1
+            if ($LASTEXITCODE -ne 0) { throw "git $($Argument -join ' ') failed: $out" }
+            ($out | Out-String).Trim()
+        }
+        function New-BehindCheckout {
+            param([string]$Name)
+            $root = Join-Path $TestDrive $Name
+            $src = Join-Path $root 'src'
+            $work = Join-Path $root 'work'
+            $null = New-Item -ItemType Directory -Path $src
+            Invoke-TestGit $src @('init', '-q', '-b', 'main') | Out-Null
+            Set-Content -LiteralPath (Join-Path $src 'a.txt') -Value 'one'
+            Invoke-TestGit $src @('add', 'a.txt') | Out-Null
+            Invoke-TestGit $src @('commit', '-q', '-m', 'one') | Out-Null
+            Invoke-TestGit $root @('clone', '-q', $src, $work) | Out-Null
+            Invoke-TestGit $work @('branch', 'feat') | Out-Null
+            Set-Content -LiteralPath (Join-Path $src 'a.txt') -Value 'two'
+            Invoke-TestGit $src @('commit', '-qam', 'two') | Out-Null
+            Invoke-TestGit $work @('fetch', '-q', 'origin') | Out-Null
+            $state = Get-PcaiRepoState -Repo ([pscustomobject]@{ Path = $work; Slug = 'x/y'; Name = 'y' }) -NoFetch
+            [pscustomobject]@{ Work = $work; State = $state }
+        }
+    }
+    It 'fast-forwards the sampled branch when nothing changes' {
+        $c = New-BehindCheckout 'happy'
+        (Get-PcaiRepoAction -State $c.State) | Should -Be 'FastForward'
+        $r = Invoke-PcaiFastForward -State $c.State
+        $r.Action | Should -Be 'FastForwarded'
+        Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Target
+        (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'two'
+    }
+    It 'restores a feature branch at the same HEAD that was checked out inside the revalidation window' {
+        $c = New-BehindCheckout 'window'
+        $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', 'feat') | Out-Null }
+        $r.Action | Should -Be 'RolledBack'
+        Invoke-TestGit $c.Work @('rev-parse', 'feat') | Should -Be $c.State.Head -Because 'the feature branch must not advance'
+        Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Head
+        Invoke-TestGit $c.Work @('branch', '--show-current') | Should -Be 'feat'
+        (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'one'
+        Invoke-TestGit $c.Work @('status', '--porcelain=v1', '--untracked-files=no') | Should -BeNullOrEmpty
+    }
+    It 'reports Changed and moves nothing when the branch differs before the merge starts' {
+        $c = New-BehindCheckout 'early'
+        Invoke-TestGit $c.Work @('switch', '-q', 'feat') | Out-Null
+        $r = Invoke-PcaiFastForward -State $c.State
+        $r.Action | Should -Be 'Changed'
+        Invoke-TestGit $c.Work @('rev-parse', 'feat') | Should -Be $c.State.Head
+    }
+}
 Describe 'Read-only inspection leaves repositories and state untouched' -Tag 'Unit', 'Portable' {
     It 'does not rewrite .git/index when a tracked file''s timestamp changed' -Skip:(-not (Get-Command git -ErrorAction SilentlyContinue)) {
         $repo = Join-Path $TestDrive 'repo'

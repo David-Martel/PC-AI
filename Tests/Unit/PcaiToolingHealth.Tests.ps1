@@ -120,7 +120,7 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
         Mock Test-PcaiRepoUnchanged { $null }
         $script:revParseCalls = 0
         Mock Invoke-PcaiToolingCommand {
-            $out = if ($ArgumentList -contains '--show-current') { 'feat/x' } elseif ($ArgumentList -contains 'rev-parse') { $script:revParseCalls++; if ($script:revParseCalls -eq 1) { 'bbb' } else { 'aaa' } } else { '' }
+            $out = if ($ArgumentList -contains 'for-each-ref') { "main aaa`nfeat/x aaa" } elseif ($ArgumentList -contains '--show-current') { 'feat/x' } elseif ($ArgumentList -contains 'rev-parse') { $script:revParseCalls++; if ($script:revParseCalls -eq 1) { 'bbb' } else { 'aaa' } } else { '' }
             [pscustomobject]@{ ExitCode = 0; Stdout = $out; Stderr = ''; TimedOut = $false; Seconds = 0 }
         }
         $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root (Join-Path $TestDrive 'rolled') -SkipBus) | Where-Object { $_ -isnot [string] }
@@ -145,9 +145,12 @@ Describe 'Invoke-PcaiToolingHealth side effects' -Tag 'Unit', 'Portable' {
 
 Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 'Unit', 'Portable' -Skip:(-not [bool](Get-Command git -ErrorAction SilentlyContinue)) {
     # Why: revalidation and `git merge --ff-only` are separate commands, and merge advances whichever
-    # branch is checked out when it runs. A switch to a feature branch at the same HEAD inside that
-    # window used to pass the checks and then fast-forward the feature branch (codex review of
-    # PR 345 at 93d54db7). -BeforeMerge is the seam that opens the window deterministically.
+    # branch is checked out when it runs. A switch inside that window used to fast-forward the wrong
+    # branch (codex review of PR 345 at 93d54db7). The restore must use the affected branch's own
+    # previous tip and touch only a branch this invocation moved (review at 43e4f72f): a branch that
+    # already sat at the target is a no-op and must keep its commits, and a branch that sat on an
+    # older commit must return to that commit, not to the default branch's sampled HEAD.
+    # -BeforeMerge is the seam that opens the window deterministically.
     BeforeAll {
         function Invoke-TestGit {
             param([string]$Path, [string[]]$Argument)
@@ -155,6 +158,8 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
             if ($LASTEXITCODE -ne 0) { throw "git $($Argument -join ' ') failed: $out" }
             ($out | Out-String).Trim()
         }
+        # origin: c1 one, c2 two (the clone's main), c3 three (the target, fetched but not merged).
+        # feat sits at c2 (same HEAD as main), featOld at c1 (an older ancestor), featNew at c3 (the target).
         function New-BehindCheckout {
             param([string]$Name)
             $root = Join-Path $TestDrive $Name
@@ -162,16 +167,20 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
             $work = Join-Path $root 'work'
             $null = New-Item -ItemType Directory -Path $src
             Invoke-TestGit $src @('init', '-q', '-b', 'main') | Out-Null
-            Set-Content -LiteralPath (Join-Path $src 'a.txt') -Value 'one'
-            Invoke-TestGit $src @('add', 'a.txt') | Out-Null
-            Invoke-TestGit $src @('commit', '-q', '-m', 'one') | Out-Null
+            foreach ($word in 'one', 'two') {
+                Set-Content -LiteralPath (Join-Path $src 'a.txt') -Value $word
+                Invoke-TestGit $src @('add', 'a.txt') | Out-Null
+                Invoke-TestGit $src @('commit', '-q', '-m', $word) | Out-Null
+            }
             Invoke-TestGit $root @('clone', '-q', $src, $work) | Out-Null
             Invoke-TestGit $work @('branch', 'feat') | Out-Null
-            Set-Content -LiteralPath (Join-Path $src 'a.txt') -Value 'two'
-            Invoke-TestGit $src @('commit', '-qam', 'two') | Out-Null
+            Invoke-TestGit $work @('branch', 'featOld', 'HEAD~1') | Out-Null
+            Set-Content -LiteralPath (Join-Path $src 'a.txt') -Value 'three'
+            Invoke-TestGit $src @('commit', '-qam', 'three') | Out-Null
             Invoke-TestGit $work @('fetch', '-q', 'origin') | Out-Null
+            Invoke-TestGit $work @('branch', 'featNew', 'origin/main') | Out-Null
             $state = Get-PcaiRepoState -Repo ([pscustomobject]@{ Path = $work; Slug = 'x/y'; Name = 'y' }) -NoFetch
-            [pscustomobject]@{ Work = $work; State = $state }
+            [pscustomobject]@{ Work = $work; State = $state; Old = (Invoke-TestGit $work @('rev-parse', 'featOld')) }
         }
     }
     It 'fast-forwards the sampled branch when nothing changes' {
@@ -180,7 +189,7 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
         $r = Invoke-PcaiFastForward -State $c.State
         $r.Action | Should -Be 'FastForwarded'
         Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Target
-        (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'two'
+        (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'three'
     }
     It 'restores a feature branch at the same HEAD that was checked out inside the revalidation window' {
         $c = New-BehindCheckout 'window'
@@ -189,8 +198,24 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
         Invoke-TestGit $c.Work @('rev-parse', 'feat') | Should -Be $c.State.Head -Because 'the feature branch must not advance'
         Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Head
         Invoke-TestGit $c.Work @('branch', '--show-current') | Should -Be 'feat'
-        (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'one'
+        (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'two'
         Invoke-TestGit $c.Work @('status', '--porcelain=v1', '--untracked-files=no') | Should -BeNullOrEmpty
+    }
+    It 'restores a feature branch that sat on an older commit to that commit, not to the sampled HEAD' {
+        $c = New-BehindCheckout 'older'
+        $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', 'featOld') | Out-Null }
+        $r.Action | Should -Be 'RolledBack'
+        Invoke-TestGit $c.Work @('rev-parse', 'featOld') | Should -Be $c.Old
+        Invoke-TestGit $c.Work @('branch', '--show-current') | Should -Be 'featOld'
+        (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'one'
+    }
+    It 'leaves a feature branch that already sits at the target untouched' {
+        $c = New-BehindCheckout 'atTarget'
+        $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', 'featNew') | Out-Null }
+        $r.Action | Should -Be 'Changed'
+        Invoke-TestGit $c.Work @('rev-parse', 'featNew') | Should -Be $c.State.Target -Because 'a no-op merge moved nothing, so nothing may be reset'
+        Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Head
+        (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'three'
     }
     It 'reports Changed and moves nothing when the branch differs before the merge starts' {
         $c = New-BehindCheckout 'early'

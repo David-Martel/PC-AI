@@ -423,18 +423,26 @@ function Invoke-PcaiFastForward {
     branch advanced.
     .DESCRIPTION
     Revalidation and `git merge --ff-only` are separate commands, and merge advances whichever
-    branch is checked out when it runs. If a person switches to a feature branch that sits at the
-    same HEAD inside that window, the checks pass and the feature branch moves. Git offers no way to
-    pin the merge to a branch, so the outcome is verified afterwards: when the branch that moved is
-    not the sampled one it is restored to its sampled HEAD with `git reset --keep`, which keeps any
-    local edits, and the result is reported as RolledBack. -BeforeMerge runs in the window so tests
-    can open it deterministically.
+    branch is checked out when it runs. If a person switches to another branch inside that window
+    the checks pass and that branch moves. Git offers no way to pin the merge to a branch, so every
+    local branch tip is recorded immediately before the merge and the outcome is compared with it.
+    A branch other than the sampled one is restored only when this invocation provably moved it:
+    it is checked out, it now sits at the target, and it did not sit there before. It then returns
+    to its own recorded tip with `git reset --keep`, which keeps local edits, and the result is
+    RolledBack (FastForwardMisapplied if the restore fails). A branch that already sat at the target
+    saw a no-op merge and is left alone. -BeforeMerge runs inside the window so tests can open it
+    deterministically.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)]$State, [scriptblock]$BeforeMerge)
     $git = { param([string[]]$a, [int]$t = 120) Invoke-PcaiToolingCommand -FilePath 'git' -ArgumentList (@('-C', $State.Path) + $a) -TimeoutSeconds $t }
     $changedSince = Test-PcaiRepoUnchanged -State $State
     if ($changedSince) { return [pscustomobject]@{ Action = 'Changed'; Note = "not fast-forwarded: $changedSince since sampling" } }
+    $tips = @{}
+    foreach ($line in ((& $git @('for-each-ref', '--format=%(refname:short) %(objectname)', 'refs/heads') 30).Stdout -split "`n")) {
+        $parts = $line.Trim() -split ' '
+        if ($parts.Count -eq 2) { $tips[$parts[0]] = $parts[1] }
+    }
     if ($BeforeMerge) { & $BeforeMerge }
     # Merge the exact commit that was sampled, not whatever the ref points at now.
     $m = & $git @('merge', '--ff-only', '--quiet', $State.Target)
@@ -444,17 +452,20 @@ function Invoke-PcaiFastForward {
         return [pscustomobject]@{ Action = 'FastForwardFailed'; Note = ($m.Stderr.Trim() -split "`n")[0] }
     }
     # The checked-out branch is no longer the sampled one.
-    if ($m.ExitCode -ne 0) { return [pscustomobject]@{ Action = 'Changed'; Note = "branch changed to '$branchNow' during fast-forward; the merge was refused and nothing moved" } }
+    $changedNote = "branch changed to '$branchNow' during fast-forward"
+    if ($m.ExitCode -ne 0) { return [pscustomobject]@{ Action = 'Changed'; Note = "$changedNote; the merge was refused and nothing moved" } }
     $headNow = (& $git @('rev-parse', 'HEAD') 30).Stdout.Trim()
-    if ($headNow -ne $State.Target) { return [pscustomobject]@{ Action = 'Changed'; Note = "branch changed to '$branchNow' during fast-forward" } }
-    $undo = & $git @('reset', '--keep', '--quiet', $State.Head)
+    $before = $tips[$branchNow]
+    if (-not $before) { return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "$changedNote; it was created after the merge started, so its previous tip is unknown" } }
+    if ($before -eq $headNow) { return [pscustomobject]@{ Action = 'Changed'; Note = "$changedNote; it already sat at the target, so the merge moved nothing" } }
+    if ($headNow -ne $State.Target) { return [pscustomobject]@{ Action = 'Changed'; Note = "$changedNote; its tip is not the sampled target, so nothing was restored" } }
+    $undo = & $git @('reset', '--keep', '--quiet', $before)
     $restored = (& $git @('rev-parse', 'HEAD') 30).Stdout.Trim()
-    if ($undo.ExitCode -eq 0 -and $restored -eq $State.Head) {
-        return [pscustomobject]@{ Action = 'RolledBack'; Note = "branch changed to '$branchNow' during fast-forward; restored it to $($State.Head.Substring(0, [Math]::Min(8, $State.Head.Length)))" }
+    if ($undo.ExitCode -eq 0 -and $restored -eq $before) {
+        return [pscustomobject]@{ Action = 'RolledBack'; Note = "$changedNote; restored it to $($before.Substring(0, [Math]::Min(8, $before.Length)))" }
     }
-    return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "branch '$branchNow' was fast-forwarded by mistake and could not be restored automatically (was $($State.Head))" }
+    return [pscustomobject]@{ Action = 'FastForwardMisapplied'; Note = "branch '$branchNow' was fast-forwarded by mistake and could not be restored automatically (was $before)" }
 }
-
 function Format-PcaiToolingSummary {    [CmdletBinding()]
     param([Parameter(Mandatory)]$Status)
     $p = $Status.profile

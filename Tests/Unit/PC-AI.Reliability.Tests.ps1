@@ -214,6 +214,26 @@ Describe 'PC-AI.Reliability' {
             & $key 'output-capture' | Should -Be 'resolved'
         }
 
+        It 'review of bcae775f: the sweeper does not resolve a run whose last wrapper capture was incomplete' {
+            # The wrapper kept a partial-output run neutral but returned 0, so the next sweep read a clean Task Scheduler
+            # result and resolved the failure anyway. The uncertainty now carries over until a complete capture.
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 3; StdOut = 'failed' }
+            $null = Invoke-FleetTask -Name '\t\partial' -FilePath 'C:\fake\job.exe'
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = 'partial'; OutputComplete = $false }
+            $null = Invoke-FleetTask -Name '\t\partial' -FilePath 'C:\fake\job.exe'
+            Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @() }
+            Mock -ModuleName PC-AI.Reliability Get-FleetInteractiveUserData { @() }
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData { @{ Tasks = @(@{ TaskPath = '\t\'; TaskName = 'partial'; Owner = 'Local'; State = 'Ready'; Status = 'Healthy'; LastResult = 0; ResultText = 'Success'; Reasons = @(); LastRunTime = '2026-11-21T11:59:00Z'; Staleness = 'fresh' }) } }
+            $run = @(Get-FleetTaskObservations -Policy $script:Policy | Where-Object { $_.Name -eq '\t\partial' -and $_.Check -eq 'run' })[0]
+            $run.Status | Should -Be 'skipped'
+            $null = Submit-FleetObservation -Observation $run
+            ((Get-FleetIncidentState).GetEnumerator() | Where-Object { $_.Key -like '*|task|\t\partial|run' }).Value.state | Should -Be 'open'
+            # Positive control: a complete capture clears output-capture, and the sweeper may then report ok.
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = 'all fine'; OutputComplete = $true }
+            $null = Invoke-FleetTask -Name '\t\partial' -FilePath 'C:\fake\job.exe'
+            (@(Get-FleetTaskObservations -Policy $script:Policy | Where-Object { $_.Name -eq '\t\partial' -and $_.Check -eq 'run' })[0]).Status | Should -Be 'ok'
+        }
+
         It 'row 1: refuses a task report without tasks while in-scope tasks are registered' {
             Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @([pscustomobject]@{ FullName = '\job'; TaskPath = '\'; TaskName = 'job'; State = 'Ready'; LogonType = 'S4U'; UserId = 'x' }) }
             Mock -ModuleName PC-AI.Reliability Get-FleetInteractiveUserData { @() }

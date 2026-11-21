@@ -259,6 +259,9 @@ function Get-FleetTaskObservations {
     $okCodes = @($Policy.task_ok_codes | ForEach-Object { ([string]$_).ToUpperInvariant() })
     $sevMap = $Policy.task_severity
     $principals = @(Get-FleetScheduledTaskData)
+    # Read once: an unreadable store throws (detector error) rather than reading as "no incidents".
+    $incidentState = Get-FleetIncidentState
+    $hostName = Get-FleetHostName
     # A report without tasks while in-scope tasks are registered is a broken report, not "every task gone":
     # producing no task observations let the stale-key resolver resolve every open task incident (sweep row 1).
     $hasTasks = ($report -is [System.Collections.IDictionary] -and $report.Contains('Tasks')) -or ($null -ne $report -and $report.PSObject.Properties.Name -contains 'Tasks')
@@ -312,8 +315,15 @@ function Get-FleetTaskObservations {
         # Running (0x41301) or queued (0x41325): no completed result yet, so neither failure nor recovery.
         # As 'ok' it resolved the previous failure while its retry was still running (fourth review of #346).
         elseif ($resultHex -in @('0X41301', '0X41325')) { $runStatus = 'skipped' }
+        # The wrapper's last capture of this task was incomplete (its output-capture incident is open): a clean Task
+        # Scheduler result is not evidence of recovery until a run is captured in full (review of bcae775f).
+        $captureNote = ''
+        if ($runStatus -eq 'ok') {
+            $cap = $incidentState[('{0}|task|{1}|output-capture' -f $hostName, $full)]
+            if ($cap -and $cap.state -eq 'open') { $runStatus = 'skipped'; $captureNote = ' (not verified: the last wrapped run''s output was not fully captured)' }
+        }
         $obs += New-FleetObservation -Source task -Name $full -Check run -Status $runStatus -Severity $sev `
-            -Message ("last result {0} {1}; {2}" -f $t.LastResult, $t.ResultText, $reasons).Trim() -ResolveAfter 1 `
+            -Message (("last result {0} {1}; {2}" -f $t.LastResult, $t.ResultText, $reasons).Trim() + $captureNote) -ResolveAfter 1 `
             -Details @{ last_run = $t.LastRunTime; next_run = $t.NextRunTime; missed_runs = $t.MissedRuns } `
             -Playbook $rerun -PlaybookArgs @{ TaskPath = $t.TaskPath; TaskName = $t.TaskName }
 

@@ -53,6 +53,8 @@ Describe 'PC-AI.Reliability' {
         $env:AGENT_BUS_EXE = 'C:\fake\agent-bus.exe'
         $env:FLEET_NOW = '2026-11-21T12:00:00Z'
         Remove-Item Env:FLEET_LEDGER_MAX_BYTES -ErrorAction SilentlyContinue
+        # An explicit -PolicyPath that does not exist is refused (sweep row 12), so 'defaults' is an empty policy file.
+        Set-Content -LiteralPath (Join-Path $TestDrive 'none.json') -Value '{}'
         Remove-Item Env:DISCORD_BOT_TOKEN -ErrorAction SilentlyContinue
         Reset-FleetFake
         # Auto-remediation and privileged setup ship DEFERRED (refused) in this PR; see docs/reliability/fleet-ledger.md
@@ -102,6 +104,286 @@ Describe 'PC-AI.Reliability' {
             InModuleScope PC-AI.Reliability { Invoke-FleetIncidentOutboxFlush }
             Test-Path -LiteralPath $bad | Should -BeFalse
             @(Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object { $_.Name -like '0000000000000000001-bad.json*' }).Count | Should -Be 1
+        }
+    }
+
+    Describe 'Fail-closed sweep of #346 (failed, empty, stale or malformed input)' -Tag 'Portable' {
+        # One Describe for the class sweep posted on #346: each It names its sweep row and failed before the fix.
+        BeforeEach {
+            $script:Policy = Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json')
+            # Fake credentials are assembled from pieces at run time, so no secret-shaped literal sits in the diff.
+            $script:Pw = 'hun' + 'ter' + '22x'
+            $script:Sk = 's' + 'k-' + ('a1b2' * 6)
+            $script:Aws = 'AK' + 'IA' + ('Q7' * 8)
+            $script:Bearer = ('t0k' * 5) + 'Z9'
+            $script:Quoted = 'q u' + 'o t e'
+            $script:SecretText = 'login failed: pass' + 'word=' + $script:Pw + '; api_key="' + $script:Quoted + '"; Authorization: Bea' + 'rer ' + $script:Bearer + '; via https://bob:' + $script:Pw + '@example.invalid/x; key ' + $script:Sk + '; id ' + $script:Aws
+            $script:Secrets = @($script:Pw, $script:Quoted, $script:Bearer, $script:Sk, $script:Aws)
+        }
+
+        It 'row 18 (P1): redacts credentials from ledger events and observations in every common shape' {
+            $ev = New-FleetLedgerEvent -Source task -Name n -Kind incident-open -Status failed -Severity high -Message $script:SecretText
+            $o = New-FleetObservation -Source task -Name n -Check run -Status failed -Message $script:SecretText
+            foreach ($m in @([string]$ev.message, [string]$o.Message)) {
+                foreach ($x in $script:Secrets) { $m.Contains($x) | Should -BeFalse -Because "a credential piece reached a message: $m" }
+                $m | Should -Match 'example\.invalid'
+                $m | Should -Match 'login failed'
+            }
+        }
+
+        It 'row 18 (P1): a failing job''s credential output never reaches the ledger, incident state or agent-bus' {
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = "[ERROR] $($script:SecretText)`n" }
+            Invoke-FleetTask -Name '\t\job' -FilePath 'C:\fake\job.exe' | Should -Be 1
+            $ledgerText = Get-Content -Raw -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'ledger\ledger.jsonl')
+            $stateText = Get-Content -Raw -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'state\incidents.json')
+            $busText = (@(Get-BusCall 'send') | ForEach-Object { @($_.Args) -join ' ' }) -join "`n"
+            $busText | Should -Not -BeNullOrEmpty
+            foreach ($x in $script:Secrets) {
+                $ledgerText.Contains($x) | Should -BeFalse -Because 'the ledger is forwarded and digested'
+                $stateText.Contains($x) | Should -BeFalse -Because 'incident state feeds reminders'
+                $busText.Contains($x) | Should -BeFalse -Because 'agent-bus is fleet-wide'
+            }
+        }
+
+        It 'row 18 (P1): when redaction fails, the excerpt is withheld and only metadata is kept' {
+            Mock -ModuleName PC-AI.Reliability Protect-FleetText { throw 'redactor broke' }
+            $ev = New-FleetLedgerEvent -Source task -Name '\t\job' -Kind incident-open -Status failed -Severity high -ExitCode 3 -Message $script:SecretText
+            $ev.message | Should -Match '^\[excerpt withheld'
+            $ev.message | Should -Match 'sha256 [0-9a-f]{12}'
+            foreach ($x in $script:Secrets) { ([string]$ev.message).Contains($x) | Should -BeFalse }
+            $ev.exit_code | Should -Be 3
+            $ev.name | Should -Be '\t\job'
+            (New-FleetObservation -Source task -Name n -Check run -Status failed -Message $script:SecretText).Message | Should -Match '^\[excerpt withheld'
+        }
+
+        It 'data loss (i): an alert nobody received stays queued and is retried as a forward only' {
+            # Bus send and its spool both fail, and no Discord recipient: the event is in the ledger but nobody was told.
+            $script:Fake.Send = 1; $script:Fake.Spool = 1
+            $null = Submit-FleetObservation (New-TestObservation -Name 'undelivered')
+            $outbox = Join-Path $env:FLEET_RELIABILITY_HOME 'state\outbox'
+            @(Get-ChildItem -LiteralPath $outbox -Filter '*.json' -File).Count | Should -Be 1
+            @(Read-TestLedger | Where-Object { $_.kind -eq 'incident-open' -and $_.name -eq 'undelivered' }).Count | Should -Be 1
+            # The bus comes back: the next flush forwards it once, without appending it to the ledger again.
+            $script:Fake.Send = 0; $script:Fake.Spool = 0
+            $sendsBefore = @(Get-BusCall 'send').Count
+            InModuleScope PC-AI.Reliability { Invoke-FleetIncidentOutboxFlush }
+            @(Get-ChildItem -LiteralPath $outbox -Filter '*.json' -File).Count | Should -Be 0
+            @(Get-BusCall 'send').Count | Should -Be ($sendsBefore + 1)
+            @(Read-TestLedger | Where-Object { $_.kind -eq 'incident-open' -and $_.name -eq 'undelivered' }).Count | Should -Be 1
+        }
+
+        It 'data loss (ii): a torn last ledger line does not swallow the next event' {
+            $ledger = Join-Path (InModuleScope PC-AI.Reliability { Get-FleetPath -Kind ledger }) 'ledger.jsonl'
+            [IO.File]::WriteAllText($ledger, '{"schema":"fleet-ledger/1","torn":')
+            $ev = Write-FleetLedgerEvent -LedgerEvent (New-FleetLedgerEvent -Source task -Name 'after-tear' -Kind run -Status ok)
+            $lines = @(Get-Content -LiteralPath $ledger)
+            $lines.Count | Should -Be 2
+            ($lines[1] | ConvertFrom-Json).event_id | Should -Be $ev.event_id
+        }
+
+        It 'row 1: refuses a task report without tasks while in-scope tasks are registered' {
+            Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @([pscustomobject]@{ FullName = '\job'; TaskPath = '\'; TaskName = 'job'; State = 'Ready'; LogonType = 'S4U'; UserId = 'x' }) }
+            Mock -ModuleName PC-AI.Reliability Get-FleetInteractiveUserData { @() }
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData { @{ Tasks = @() } }
+            { Get-FleetTaskObservations -Policy $script:Policy } | Should -Throw '*lists no tasks*'
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData { @{ Summary = @{} } }
+            { Get-FleetTaskObservations -Policy $script:Policy } | Should -Throw '*has no Tasks*'
+            # Positive control: nothing in scope is registered, so an empty report is believable.
+            Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @([pscustomobject]@{ FullName = '\Microsoft\x'; TaskPath = '\Microsoft\'; TaskName = 'x'; State = 'Ready'; LogonType = 'S4U'; UserId = 'x' }) }
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData { @{ Tasks = @() } }
+            { Get-FleetTaskObservations -Policy $script:Policy } | Should -Not -Throw
+        }
+
+        It 'rows 2 and 4: an unrecognised status, or a failed task whose staleness is unknown, never reads as healthy' {
+            Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @() }
+            Mock -ModuleName PC-AI.Reliability Get-FleetInteractiveUserData { @() }
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData { @{ Tasks = @(
+                        @{ TaskPath = '\'; TaskName = 'weird'; Owner = 'Local'; State = 'Ready'; Status = 'Exploded'; LastResult = 0; Reasons = @(); LastRunTime = '2026-11-21T10:00:00Z'; Staleness = 'x' }
+                        @{ TaskPath = '\'; TaskName = 'blank'; Owner = 'Local'; State = 'Ready'; Status = $null; LastResult = 0; Reasons = @(); LastRunTime = '2026-11-21T10:00:00Z'; Staleness = 'x' }
+                        @{ TaskPath = '\'; TaskName = 'failed-stale'; Owner = 'Local'; State = 'Ready'; Status = 'Failed'; LastResult = 1; Reasons = @('Last run 0x1', 'Last ran 30.0 h ago but its cadence is 1.0 h (allowed 2x = 2.0 h)'); LastRunTime = '2026-11-20T06:00:00Z'; Staleness = '30.0 h since last run' }
+                        @{ TaskPath = '\'; TaskName = 'failed-fresh'; Owner = 'Local'; State = 'Ready'; Status = 'Failed'; LastResult = 1; Reasons = @('Last run 0x1'); LastRunTime = '2026-11-21T11:00:00Z'; Staleness = 'n/a' }
+                        @{ TaskPath = '\'; TaskName = 'fine'; Owner = 'Local'; State = 'Ready'; Status = 'Healthy'; LastResult = 0; Reasons = @(); LastRunTime = '2026-11-21T11:00:00Z'; Staleness = '1.0 h since last run' }
+                    ) } }
+            $o = @(Get-FleetTaskObservations -Policy $script:Policy)
+            $get = { param($n, $c) ($o | Where-Object { $_.Name -eq $n -and $_.Check -eq $c }).Status }
+            foreach ($n in '\weird', '\blank') {
+                & $get $n 'run' | Should -Be 'skipped'
+                & $get $n 'task-stale' | Should -Be 'skipped'
+                & $get $n 'task-report' | Should -Be 'failed'
+            }
+            & $get '\failed-stale' 'task-stale' | Should -Be 'stale'
+            & $get '\failed-fresh' 'task-stale' | Should -Be 'skipped'
+            & $get '\fine' 'task-stale' | Should -Be 'ok'
+            & $get '\fine' 'run' | Should -Be 'ok'
+            & $get '\fine' 'task-report' | Should -Be 'ok'
+        }
+
+        It 'row 3: a disk trend with too few samples is neutral, and a monitoring gap never resolves a trend incident' {
+            Mock -ModuleName PC-AI.Reliability Get-FleetDriveData { @([pscustomobject]@{ Name = 'T'; FreeBytes = 100GB; TotalBytes = 500GB }) }
+            $null = Submit-FleetObservation (New-FleetObservation -Source disk -Name 'T:' -Check disk-trend -Status degraded -Severity medium -Message 'falling' -ResolveAfter 2)
+            ((Get-FleetIncidentState).GetEnumerator() | Where-Object { $_.Key -like '*|disk|T:|disk-trend' }).Value.state | Should -Be 'open'
+            foreach ($i in 1..2) { $null = Invoke-FleetHealthSweep -Detector disk -NoPlaybooks -PolicyPath (Join-Path $TestDrive 'none.json') }
+            ((Get-FleetIncidentState).GetEnumerator() | Where-Object { $_.Key -like '*|disk|T:|disk-trend' }).Value.state | Should -Be 'open'
+            (@(Get-FleetDiskObservations -Policy $script:Policy) | Where-Object { $_.Check -eq 'disk-trend' }).Status | Should -Be 'skipped'
+        }
+
+        It 'row 8: a blank drain agent turns the DRAIN check off but still polls the runners' {
+            $script:Policy.drain = @{ bus_agent = ''; max_minutes = 90; runner_patterns = @() }
+            $script:Policy.runner_scopes = @('repos/o/r')
+            Mock -ModuleName PC-AI.Reliability Invoke-FleetGhApi { @(@{ total_count = 1; runners = @(@{ name = 'r1'; status = 'offline'; busy = $false; labels = @() }) }) }
+            $o = @(Get-FleetRunnerObservations -Policy $script:Policy)
+            ($o | Where-Object { $_.Check -eq 'runner-offline' }).Status | Should -Be 'failed'
+            @($o | Where-Object { $_.Check -like 'drain-*' }).Count | Should -Be 0
+        }
+
+        It 'row 9: an interactive session for another account with the same name does not count' {
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData { @{ Tasks = @() } }
+            Mock -ModuleName PC-AI.Reliability Get-FleetInteractiveUserData { @('workstation\build') }
+            Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @(
+                    [pscustomobject]@{ FullName = '\other-domain'; TaskPath = '\'; TaskName = 'other-domain'; State = 'Ready'; LogonType = 'Interactive'; UserId = 'CONTOSO\build' }
+                    [pscustomobject]@{ FullName = '\same'; TaskPath = '\'; TaskName = 'same'; State = 'Ready'; LogonType = 'Interactive'; UserId = 'WORKSTATION\build' }
+                    [pscustomobject]@{ FullName = '\bare'; TaskPath = '\'; TaskName = 'bare'; State = 'Ready'; LogonType = 'Interactive'; UserId = 'build' }
+                ) }
+            $script:Policy.task_include = @('\*')
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData { @{ Tasks = @(@{ TaskPath = '\'; TaskName = 'same'; Owner = 'Local'; State = 'Ready'; Status = 'Healthy'; LastResult = 0; Reasons = @(); LastRunTime = '2026-11-21T11:00:00Z'; Staleness = 'ok' }) } }
+            $o = @(Get-FleetTaskObservations -Policy $script:Policy | Where-Object { $_.Check -eq 'task-interactive-no-session' })
+            ($o | Where-Object { $_.Name -eq '\other-domain' }).Status | Should -Be 'degraded'
+            ($o | Where-Object { $_.Name -eq '\same' }).Status | Should -Be 'ok'
+            ($o | Where-Object { $_.Name -eq '\bare' }).Status | Should -Be 'ok'
+        }
+
+        It 'row 10: a configured runner scope that lists no runners is a detector error, not "all runners gone"' {
+            $script:Policy.drain = @{ bus_agent = ''; max_minutes = 90; runner_patterns = @() }
+            $script:Policy.runner_scopes = @('repos/o/r')
+            Mock -ModuleName PC-AI.Reliability Invoke-FleetGhApi { @(@{ total_count = 0; runners = @() }) }
+            { Get-FleetRunnerObservations -Policy $script:Policy } | Should -Throw '*lists no runners*'
+        }
+
+        It 'row 11: policy numbers are validated at load and an invalid value refuses the run' {
+            $bad = @(
+                '{"disk_default_min_free_gb": null}', '{"disk_default_min_free_gb": -5}', '{"disk_default_min_free_pct": "10%"}',
+                '{"disk_default_min_free_pct": 150}', '{"drain": {"max_minutes": 0}}', '{"disks": [{"name": "T", "min_free_gb": "lots"}]}',
+                '{"postgres": [{"name": "bus", "port": 0, "max_connections": 40}]}', '{"postgres": [{"name": "bus", "port": 5300}]}',
+                '{"workflow_expectations": [{"repo": "o/r", "workflow": "q.yml", "max_age_days": -1}]}', '{"playbooks": {"budget": 1.5}}')
+            $i = 0
+            foreach ($json in $bad) {
+                $f = Join-Path $TestDrive ("bad-policy-{0}.json" -f $i++)
+                Set-Content -LiteralPath $f -Value $json
+                { Get-FleetPolicy -Path $f } | Should -Throw '*policy*invalid*' -Because $json
+            }
+            # Positive control: a valid policy loads, with numbers given as numbers or plain numeric strings.
+            $ok = Join-Path $TestDrive 'good-policy.json'
+            Set-Content -LiteralPath $ok -Value '{"disk_default_min_free_gb": "15", "disks": [{"name": "T", "min_free_gb": 20}], "postgres": [{"name": "bus", "port": 5300, "max_connections": 40, "warn_pct": 80}]}'
+            (Get-FleetPolicy -Path $ok).disk_default_min_free_gb | Should -Be '15'
+        }
+
+        It 'row 12: a missing policy file is refused when it was named, or when incident state already exists' {
+            { Get-FleetPolicy -Path (Join-Path $TestDrive 'no-such-policy.json') } | Should -Throw '*not found*'
+            # No state yet: a fresh install runs on defaults.
+            (Get-FleetPolicy).disk_default_min_free_gb | Should -Be 10
+            $null = Submit-FleetObservation (New-TestObservation)
+            { Get-FleetPolicy } | Should -Throw '*not found*'
+        }
+
+        It 'row 12: the wrapper still runs the job and records a policy that cannot be loaded' {
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 7; StdOut = 'done' }
+            Invoke-FleetTask -Name '\t\job' -FilePath 'C:\fake\job.exe' -PolicyPath (Join-Path $TestDrive 'no-such-policy.json') | Should -Be 7
+            @($script:Calls | Where-Object { $_.FilePath -eq 'C:\fake\job.exe' }).Count | Should -Be 1
+            @(Read-TestLedger | Where-Object { $_.kind -eq 'run' -and $_.exit_code -eq 7 }).Count | Should -Be 1
+            ((Get-FleetIncidentState).GetEnumerator() | Where-Object { $_.Key -like '*|sweeper|policy|policy-load' }).Value.state | Should -Be 'open'
+        }
+
+        It 'row 13: a partial drain/playbooks/alerts/digest object keeps the defaults for the keys it omits' {
+            $f = Join-Path $TestDrive 'partial.json'
+            Set-Content -LiteralPath $f -Value '{"drain": {"max_minutes": 120}, "alerts": {"discord_channel_id": "C1"}}'
+            $p = Get-FleetPolicy -Path $f
+            $p.drain.bus_agent | Should -Be 'vct-nightly'
+            $p.drain.max_minutes | Should -Be 120
+            $p.alerts.discord_min_severity | Should -Be 'medium'
+            $p.alerts.discord_channel_id | Should -Be 'C1'
+        }
+
+        It 'row 14: a corrupt incident store is quarantined and announced, never silently reset' {
+            $null = Submit-FleetObservation (New-TestObservation -Name 'before')
+            $store = Join-Path $env:FLEET_RELIABILITY_HOME 'state\incidents.json'
+            Set-Content -LiteralPath $store -Value '{ not json'
+            $null = Submit-FleetObservation (New-TestObservation -Name 'after')
+            @(Get-ChildItem -LiteralPath (Split-Path $store) -Filter 'incidents.json.corrupt-*').Count | Should -Be 1
+            $reset = @(Read-TestLedger | Where-Object { $_.name -eq 'incident-store' -and $_.kind -eq 'incident-open' })
+            $reset.Count | Should -Be 1
+            $reset[0].severity | Should -Be 'high'
+            @(Get-BusCall 'send' | Where-Object { (@($_.Args) -join ' ') -match 'incident-store' }).Count | Should -BeGreaterThan 0
+        }
+
+        It 'row 14: the digest says the incident store is unreadable instead of "still open 0"' {
+            New-Item -ItemType Directory -Force (Join-Path $env:FLEET_RELIABILITY_HOME 'state') | Out-Null
+            Set-Content -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'state\incidents.json') -Value '{ not json'
+            $d = Send-FleetDigest -NoSend -DryRun -PolicyPath (Join-Path $TestDrive 'none.json')
+            $d.Message | Should -Match 'incident store unreadable'
+            $d.Event.status | Should -Be 'degraded'
+            Test-Path -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'state\incidents.json') | Should -BeTrue
+        }
+
+        It 'row 15: a transition whose state write failed is never sent' {
+            Mock -ModuleName PC-AI.Reliability Write-FleetJsonFile -ParameterFilter { $Path -like '*incidents.json' } { throw 'disk full' }
+            { Submit-FleetObservation (New-TestObservation -Name 'uncommitted') } | Should -Throw '*disk full*'
+            InModuleScope PC-AI.Reliability { Invoke-FleetIncidentOutboxFlush }
+            @(Read-TestLedger | Where-Object { $_.kind -eq 'incident-open' -and $_.name -eq 'uncommitted' }).Count | Should -Be 0
+            @(Get-BusCall 'send').Count | Should -Be 0
+        }
+
+        It 'row 16: a spool replay already in progress is not started a second time' {
+            $dir = InModuleScope PC-AI.Reliability { Get-FleetPath -Kind spool }
+            Set-Content -LiteralPath (Join-Path $dir 'bus-spool.20261121T000000000Z.replaying.ndjson') -Value '{}'
+            InModuleScope PC-AI.Reliability { $null = Invoke-FleetWithLock -LockName 'spool-replay' -TimeoutSeconds 5 -ScriptBlock { Invoke-FleetSpoolReplay } }
+            @(Get-BusCall 'spool-replay').Count | Should -Be 0
+            $null = Invoke-FleetSpoolReplay
+            @(Get-BusCall 'spool-replay').Count | Should -Be 1
+        }
+
+        It 'row 19: a configured log that is missing after the run is reported, and the exit code is kept' {
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = 'done' }
+            Invoke-FleetTask -Name '\t\job' -FilePath 'C:\fake\job.exe' -LogPath (Join-Path $TestDrive 'never-written.log') | Should -Be 0
+            ((Get-FleetIncidentState).GetEnumerator() | Where-Object { $_.Key -like '*|task|\t\job|log-read' }).Value.state | Should -Be 'open'
+            # Positive control: the log appears on the next run, and the incident resolves.
+            Set-Content -LiteralPath (Join-Path $TestDrive 'never-written.log') -Value 'fine'
+            Invoke-FleetTask -Name '\t\job' -FilePath 'C:\fake\job.exe' -LogPath (Join-Path $TestDrive 'never-written.log') | Should -Be 0
+            ((Get-FleetIncidentState).GetEnumerator() | Where-Object { $_.Key -like '*|task|\t\job|log-read' }).Value.state | Should -Be 'resolved'
+        }
+
+        It 'row 21: the digest flags a missing or stale last sweep' {
+            $d = Send-FleetDigest -NoSend -PolicyPath (Join-Path $TestDrive 'none.json')
+            $d.Message | Should -Match 'no sweep recorded'
+            $d.Event.status | Should -Be 'degraded'
+            New-Item -ItemType Directory -Force (Join-Path $env:FLEET_RELIABILITY_HOME 'state') | Out-Null
+            @{ ended = '2026-11-21T07:00:00.000Z'; disks = @('T: 100 GB free') } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'state\last-sweep.json')
+            $d = Send-FleetDigest -NoSend -PolicyPath (Join-Path $TestDrive 'none.json')
+            $d.Message | Should -Match 'last sweep 5(\.0)? h ago \(stale\)'
+            $d.Event.status | Should -Be 'degraded'
+            @{ ended = '2026-11-21T11:45:00.000Z'; disks = @('T: 100 GB free') } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'state\last-sweep.json')
+            $d = Send-FleetDigest -NoSend -PolicyPath (Join-Path $TestDrive 'none.json')
+            $d.Message | Should -Not -Match 'stale|no sweep'
+            $d.Event.status | Should -Be 'ok'
+        }
+
+        It 'row 22: the digest counts unreadable ledger lines instead of dropping them' {
+            @{ ended = '2026-11-21T11:45:00.000Z'; disks = @() } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path (InModuleScope PC-AI.Reliability { Get-FleetPath -Kind state }) 'last-sweep.json')
+            $ledger = Join-Path (InModuleScope PC-AI.Reliability { Get-FleetPath -Kind ledger }) 'ledger.jsonl'
+            Add-Content -LiteralPath $ledger -Value '{ torn line'
+            $d = Send-FleetDigest -NoSend -PolicyPath (Join-Path $TestDrive 'none.json')
+            $d.Message | Should -Match '1 unreadable ledger line'
+            $d.Event.status | Should -Be 'degraded'
+        }
+
+        It 'row 23: a dry-run sweep writes nothing, not even to a temporary home' {
+            Mock -ModuleName PC-AI.Reliability Get-FleetDriveData { @([pscustomobject]@{ Name = 'T'; FreeBytes = 100GB; TotalBytes = 500GB }) }
+            $before = @(Get-ChildItem -LiteralPath ([IO.Path]::GetTempPath()) -Filter 'fleet-*' -ErrorAction SilentlyContinue).Count
+            Mock -ModuleName PC-AI.Reliability New-Item { throw "dry run tried to create $Path" } -ParameterFilter { $ItemType -eq 'Directory' }
+            $r = @(Invoke-FleetHealthSweep -DryRun -Detector disk -PolicyPath (Join-Path $TestDrive 'none.json'))
+            ($r | Where-Object { $_.Check -eq 'disk-free' }).Status | Should -Be 'ok'
+            @($r | Where-Object { $_.Check -eq 'detector-error' }).Count | Should -Be 0
+            Test-Path -LiteralPath $env:FLEET_RELIABILITY_HOME | Should -BeFalse
+            @(Get-ChildItem -LiteralPath ([IO.Path]::GetTempPath()) -Filter 'fleet-*' -ErrorAction SilentlyContinue).Count | Should -Be $before
         }
     }
 
@@ -637,57 +919,46 @@ Describe 'PC-AI.Reliability' {
     Describe 'Postgres, orphan process and certificate detectors' -Tag 'Portable' {
         BeforeEach { $script:Policy = Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json') }
 
-        It 'reports connections at or above warn_pct of max_connections from the conf file' {
-            # Positive control for the agent-bus Postgres exhausted by leaked MCP processes.
-            $conf = Join-Path $TestDrive 'postgresql.conf'
-            Set-Content -LiteralPath $conf -Value @('#max_connections = 10', 'max_connections = 40')
-            $script:Policy.postgres = @(@{ name = 'bus'; port = 5300; conf_files = @($conf); reaper = '{profile}\reaper.ps1' })
+        It 'grades connections against the policy max_connections, with no conf-file inference' {
+            # Positive control for the agent-bus Postgres exhausted by leaked MCP processes. max_connections comes
+            # from validated policy only: inferring it from conf files drew three review rounds (sweep rows 5-7).
+            $script:Policy.postgres = @(@{ name = 'bus'; port = 5300; max_connections = 40; reaper = '{profile}\reaper.ps1' })
+            Mock -ModuleName PC-AI.Reliability Test-FleetTcpListening { $true }
+            Mock -ModuleName PC-AI.Reliability Get-FleetPostgresLiveMaxConnections { $null }
             Mock -ModuleName PC-AI.Reliability Get-FleetTcpListenerConnectionCount { 36 }
-            $o = (@(Get-FleetPostgresObservations -Policy $script:Policy))[0]
+            $o = @(Get-FleetPostgresObservations -Policy $script:Policy | Where-Object { $_.Check -eq 'pg-connections' })[0]
             $o.Status | Should -Be 'degraded'
             $o.Message | Should -Match '^36/40'
             $o.Playbook | Should -Be 'reap-orphans'
             Mock -ModuleName PC-AI.Reliability Get-FleetTcpListenerConnectionCount { 10 }
-            (@(Get-FleetPostgresObservations -Policy $script:Policy))[0].Status | Should -Be 'ok'
+            (@(Get-FleetPostgresObservations -Policy $script:Policy | Where-Object { $_.Check -eq 'pg-connections' }))[0].Status | Should -Be 'ok'
         }
 
-        It 'expands {home} in conf_files before checking for a pending restart' {
-            # Detects the false recovery from the twelfth review of #346: conf_files were timestamp-checked with the
-            # literal '{home}' placeholder (expanded only later, for reading), so a pending raise was missed and the
-            # new conf value (100) was trusted while the server still ran 40.
-            $data = Join-Path $TestDrive 'pgdata2'
-            New-Item -ItemType Directory -Force $data | Out-Null
-            Set-Content (Join-Path $data 'postmaster.pid') '1234'
-            (Get-Item (Join-Path $data 'postmaster.pid')).LastWriteTimeUtc = [datetime]::UtcNow.AddHours(-2)
-            New-Item -ItemType Directory -Force (Join-Path $env:FLEET_RELIABILITY_HOME 'pgconf') | Out-Null
-            Set-Content (Join-Path $env:FLEET_RELIABILITY_HOME 'pgconf\postgresql.conf') 'max_connections = 100'
-            $script:Policy.postgres = @(@{ name = 'bus'; port = 5300; data_dir = $data; conf_files = @('{home}\pgconf\postgresql.conf') })
+        It 'never reads a stopped server as idle' {
+            # Sweep row 7: nothing listening gave 0 connections, "ok", and resolved a saturation incident.
+            $script:Policy.postgres = @(@{ name = 'bus'; port = 5300; max_connections = 40 })
+            Mock -ModuleName PC-AI.Reliability Test-FleetTcpListening { $false }
+            Mock -ModuleName PC-AI.Reliability Get-FleetTcpListenerConnectionCount { 0 }
+            $o = @(Get-FleetPostgresObservations -Policy $script:Policy)
+            ($o | Where-Object { $_.Check -eq 'pg-connections' }).Status | Should -Be 'skipped'
+            ($o | Where-Object { $_.Check -eq 'pg-server' }).Status | Should -Be 'failed'
+        }
+
+        It 'reports policy drift when the live max_connections disagrees, trusting neither' {
+            $script:Policy.postgres = @(@{ name = 'bus'; port = 5300; max_connections = 100 })
+            Mock -ModuleName PC-AI.Reliability Test-FleetTcpListening { $true }
             Mock -ModuleName PC-AI.Reliability Get-FleetTcpListenerConnectionCount { 36 }
+            Mock -ModuleName PC-AI.Reliability Get-FleetPostgresLiveMaxConnections { 40 }
             $o = @(Get-FleetPostgresObservations -Policy $script:Policy)
-            ($o | Where-Object { $_.Check -eq 'pg-config-pending' }).Status | Should -Be 'degraded'
+            ($o | Where-Object { $_.Check -eq 'postgres-policy-drift' }).Status | Should -Be 'degraded'
             ($o | Where-Object { $_.Check -eq 'pg-connections' }).Status | Should -Be 'skipped'
-        }
-
-        It 'flags a postgres conf changed after the server started (restart pending)' {
-            # Positive control for a max_connections raise that sat unapplied: the conf said 100, the server ran 40.
-            $data = Join-Path $TestDrive 'pgdata'
-            New-Item -ItemType Directory -Force $data | Out-Null
-            Set-Content (Join-Path $data 'postmaster.pid') '1234'
-            Set-Content (Join-Path $data 'postgresql.conf') 'max_connections = 100'
-            (Get-Item (Join-Path $data 'postmaster.pid')).LastWriteTimeUtc = [datetime]::UtcNow.AddHours(-2)
-            $script:Policy.postgres = @(@{ name = 'bus'; port = 5300; data_dir = $data })
-            Mock -ModuleName PC-AI.Reliability Get-FleetTcpListenerConnectionCount { 32 }
+            # Positive controls: agreement is ok; an unreadable live value is neutral, and the policy value is used.
+            Mock -ModuleName PC-AI.Reliability Get-FleetPostgresLiveMaxConnections { 100 }
+            (@(Get-FleetPostgresObservations -Policy $script:Policy) | Where-Object { $_.Check -eq 'postgres-policy-drift' }).Status | Should -Be 'ok'
+            Mock -ModuleName PC-AI.Reliability Get-FleetPostgresLiveMaxConnections { $null }
             $o = @(Get-FleetPostgresObservations -Policy $script:Policy)
-            ($o | Where-Object { $_.Check -eq 'pg-config-pending' }).Status | Should -Be 'degraded'
-            # Never a false "32/100 ok" while the live limit may still be 40.
-            ($o | Where-Object { $_.Check -eq 'pg-connections' }).Status | Should -Be 'skipped'
-            $script:Policy.postgres = @(@{ name = 'bus'; port = 5300; data_dir = $data; max_connections = 40 })
-            $o = @(Get-FleetPostgresObservations -Policy $script:Policy)
-            ($o | Where-Object { $_.Check -eq 'pg-connections' }).Message | Should -Match '^32/40'
-            ($o | Where-Object { $_.Check -eq 'pg-connections' }).Status | Should -Be 'degraded'
-            $script:Policy.postgres = @(@{ name = 'bus'; port = 5300; data_dir = $data })
-            (Get-Item (Join-Path $data 'postmaster.pid')).LastWriteTimeUtc = [datetime]::UtcNow
-            (@(Get-FleetPostgresObservations -Policy $script:Policy) | Where-Object { $_.Check -eq 'pg-config-pending' }).Status | Should -Be 'ok'
+            ($o | Where-Object { $_.Check -eq 'postgres-policy-drift' }).Status | Should -Be 'skipped'
+            ($o | Where-Object { $_.Check -eq 'pg-connections' }).Message | Should -Match '^36/100'
         }
 
         It 'finds orphans whose parent died or whose parent PID was reused' {
@@ -1220,7 +1491,8 @@ Describe 'PC-AI.Reliability' {
             { Get-FleetPolicy -Path $policy } | Should -Throw '*policy*'
             { $null = Invoke-FleetHealthSweep -Detector disk -NoPlaybooks -PolicyPath $policy } | Should -Throw '*policy*'
             Test-Path -LiteralPath $policy | Should -BeTrue
-            (Get-FleetPolicy -Path (Join-Path $TestDrive 'absent.json')).Count | Should -BeGreaterThan 0
+            # No file at the default path on a fresh host is still "defaults"; a NAMED missing file is refused (row 12).
+            (Get-FleetPolicy).Count | Should -BeGreaterThan 0
         }
 
         It 'dry-run digest builds the message and records or sends nothing' {
@@ -1285,6 +1557,18 @@ Describe 'PC-AI.Reliability' {
             Send-FleetDiscordEvent -LedgerEvent $ev -Policy (Get-FleetPolicy -Path $script:PolicyPath) | Should -Be 'sent'
             $script:Posted[0].Auth | Should -Be 'Bot dummy-token-value'
             $script:Posted[0].Uri | Should -Match '/channels/123/messages$'
+        }
+
+        It 'row 17: an unreadable token, or none with a recipient configured, is a failed delivery, not "ok"' {
+            $ev = New-FleetLedgerEvent -Source task -Name demo -Kind incident-open -Status failed -Severity high
+            $pol = Get-FleetPolicy -Path $script:PolicyPath
+            Send-FleetDiscordEvent -LedgerEvent $ev -Policy $pol | Should -Be 'failed(no token)'
+            $sec = Join-Path $env:FLEET_RELIABILITY_HOME 'secrets'
+            New-Item -ItemType Directory -Force $sec | Out-Null
+            [IO.File]::WriteAllBytes((Join-Path $sec 'discord-bot-token.dpapi'), [byte[]](1, 2, 3, 4, 5))
+            Send-FleetDiscordEvent -LedgerEvent $ev -Policy $pol | Should -Be 'failed(token-unreadable)'
+            # Positive control: with no recipient there is nothing to deliver.
+            Send-FleetDiscordEvent -LedgerEvent $ev -Policy @{ alerts = @{ discord_min_severity = 'medium' } } | Should -Be 'skipped(no recipient)'
         }
 
         It 'refuses to write the token when the directory ACL cannot be restricted' {
@@ -1407,13 +1691,29 @@ Describe 'PC-AI.Reliability' {
             @($script:Posted | Where-Object { $_.Uri -match '/channels/456/messages$' }).Count | Should -Be 1
         }
 
-        It 'skips without a token and below the severity floor, without throwing' {
+        It 'fails without a token when a recipient is set, skips below the severity floor, and never throws' {
+            # A configured recipient with no token is a failed delivery (sweep row 17), not a skip that reads as "ok".
             $ev = New-FleetLedgerEvent -Source task -Name demo -Kind incident-open -Status failed -Severity high
-            Send-FleetDiscordEvent -LedgerEvent $ev -Policy (Get-FleetPolicy -Path $script:PolicyPath) | Should -Be 'skipped(no token)'
+            Send-FleetDiscordEvent -LedgerEvent $ev -Policy (Get-FleetPolicy -Path $script:PolicyPath) | Should -Be 'failed(no token)'
             $env:DISCORD_BOT_TOKEN = 'x'
             $low = New-FleetLedgerEvent -Source task -Name demo -Kind incident-open -Status failed -Severity low
             Send-FleetDiscordEvent -LedgerEvent $low -Policy (Get-FleetPolicy -Path $script:PolicyPath) | Should -Be 'skipped(severity)'
             $script:Posted.Count | Should -Be 0
+        }
+    }
+
+    Describe 'Task wrapper log locking (Windows file sharing)' -Tag 'WindowsOnly' {
+        It 'row 20: a locked log neither stops the job nor loses its run record' {
+            $log = Join-Path $TestDrive 'locked.log'
+            Set-Content -LiteralPath $log -Value 'earlier'
+            $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = 'done' }
+            $fs = [IO.File]::Open($log, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+            try { $code = Invoke-FleetTask -Name '\t\locked' -FilePath 'C:\fake\job.exe' -LogPath $log }
+            finally { $fs.Dispose() }
+            $code | Should -Be 0
+            @($script:Calls | Where-Object { $_.FilePath -eq 'C:\fake\job.exe' }).Count | Should -Be 1
+            @(Read-TestLedger | Where-Object { $_.kind -eq 'run' -and $_.name -eq '\t\locked' }).Count | Should -Be 1
+            ((Get-FleetIncidentState).GetEnumerator() | Where-Object { $_.Key -like '*|task|\t\locked|log-read' }).Value.state | Should -Be 'open'
         }
     }
 

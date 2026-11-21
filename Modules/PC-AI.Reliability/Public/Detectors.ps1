@@ -10,6 +10,10 @@ with nobody logged on, exit 0 with ERROR/STALE in the log, tasks that must be en
 known-benign result codes.
 #>
 
+# The staleness reasons Test-ScheduledTaskHealth.ps1 adds (its Axis 2 and launcher-status checks). A failed
+# task's overall status hides them, so the staleness axis reads them directly (sweep row 4).
+$script:FleetStaleReasonPattern = '^(Last ran .* but its cadence|Has a .* cadence, has never run|Triggers on boot or logon but|Launcher status is .* old|Launcher status predates|Task Scheduler last ran it)'
+
 # ---------------------------------------------------------------- data sources (mocked in tests)
 
 function Get-FleetTaskHealthData {
@@ -17,7 +21,10 @@ function Get-FleetTaskHealthData {
     param([hashtable]$Policy)
     $script = [IO.Path]::GetFullPath([string]$Policy.task_health_script)
     if (-not (Test-Path -LiteralPath $script)) { throw "task health script not found: $script" }
-    $out = Join-Path (Get-FleetPath -Kind state) 'scheduled-task-health.json'
+    # A dry run writes nothing under the home: the child's report goes to a uniquely named temp file that is
+    # removed afterwards (sweep row 23; the child can only report to a file).
+    if ($script:FleetReadOnly) { $out = Join-Path ([IO.Path]::GetTempPath()) ('fleet-tsh-{0}.json' -f [guid]::NewGuid().ToString('N')) }
+    else { $out = Join-Path (Get-FleetPath -Kind state) 'scheduled-task-health.json' }
     # Delete the previous report first: a child that fails after a good sweep must not leave the old
     # report looking current (codex review, #346).
     if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Force }
@@ -26,12 +33,15 @@ function Get-FleetTaskHealthData {
         $cmd = Get-Command pwsh -ErrorAction SilentlyContinue
         if ($cmd) { $pwsh = $cmd.Source } else { throw 'Test-ScheduledTaskHealth.ps1 needs PowerShell 7 (pwsh) and none was found' }
     }
-    $r = Invoke-FleetProcess -FilePath $pwsh -ArgumentList @('-NoProfile', '-NonInteractive', '-File', $script, '-OutputJson', $out, '-StaleFactor', [string]$Policy.task_stale_factor) -TimeoutSeconds 180
-    # Exit 0 = report written (no -FailOnIssue is passed); anything else, or no fresh report, is a failure.
-    if ($r.TimedOut -or $r.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $out)) {
-        throw "task health script failed (exit $($r.ExitCode), timed out=$($r.TimedOut), report written=$(Test-Path -LiteralPath $out))"
+    try {
+        $r = Invoke-FleetProcess -FilePath $pwsh -ArgumentList @('-NoProfile', '-NonInteractive', '-File', $script, '-OutputJson', $out, '-StaleFactor', [string]$Policy.task_stale_factor) -TimeoutSeconds 180
+        # Exit 0 = report written (no -FailOnIssue is passed); anything else, or no fresh report, is a failure.
+        if ($r.TimedOut -or $r.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $out)) {
+            throw "task health script failed (exit $($r.ExitCode), timed out=$($r.TimedOut), report written=$(Test-Path -LiteralPath $out))"
+        }
+        return (ConvertTo-FleetHashtable ([IO.File]::ReadAllText($out) | ConvertFrom-Json))
     }
-    return (ConvertTo-FleetHashtable ([IO.File]::ReadAllText($out) | ConvertFrom-Json))
+    finally { if ($script:FleetReadOnly) { Remove-Item -LiteralPath $out -Force -ErrorAction SilentlyContinue } }
 }
 
 function Get-FleetScheduledTaskData {
@@ -121,7 +131,7 @@ function Get-FleetDrainState {
     # The read window is bounded (600 min), so the newest lifecycle state is remembered per agent: an empty
     # window after a START is "still running", not "no DRAIN". Forgetting it resolved an overrun once its
     # START aged past ten hours, with no end message (fourteenth review of #346).
-    $statePath = Join-Path (Get-FleetPath -Kind state) ('drain-{0}.json' -f ($agent -replace '[^A-Za-z0-9_.-]', '_'))
+    $statePath = Join-Path (Get-FleetPath -Kind state -NoCreate) ('drain-{0}.json' -f ($agent -replace '[^A-Za-z0-9_.-]', '_'))
     if ($life.Count -eq 0) {
         try { $known = Read-FleetJsonFile -Path $statePath -Default $null -ThrowOnError }
         catch { return (& $unknown ("remembered DRAIN state unreadable: {0}" -f $_.Exception.Message)) }
@@ -161,6 +171,33 @@ function Get-FleetTcpListenerConnectionCount {
     $real = @($queryErrors | Where-Object { $_.CategoryInfo.Category -ne 'ObjectNotFound' -and $_.FullyQualifiedErrorId -notlike 'CmdletizationQuery_NotFound*' })
     if ($real.Count -gt 0) { throw "connection query for port $Port failed: $($real[0].Exception.Message)" }
     return $rows.Count
+}
+
+function Test-FleetTcpListening {
+    <# Whether anything listens on a local TCP port. "No listener" is a real answer; any other query failure throws. #>
+    param([int]$Port)
+    $queryErrors = @()
+    $rows = @(Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue -ErrorVariable queryErrors)
+    $real = @($queryErrors | Where-Object { $_.CategoryInfo.Category -ne 'ObjectNotFound' -and $_.FullyQualifiedErrorId -notlike 'CmdletizationQuery_NotFound*' })
+    if ($real.Count -gt 0) { throw "listener query for port $Port failed: $($real[0].Exception.Message)" }
+    return ($rows.Count -gt 0)
+}
+
+function Get-FleetPostgresLiveMaxConnections {
+    <#
+    The server's live max_connections via psql (SHOW max_connections), when it can be read without a password
+    prompt (-w) within 10 s; $null when it cannot. Only used to report drift from the policy value.
+    #>
+    param([Parameter(Mandatory)][hashtable]$Pg)
+    $psql = [string]$Pg.psql
+    if (-not $psql) { $cmd = Get-Command psql -ErrorAction SilentlyContinue; if ($cmd) { $psql = $cmd.Source } }
+    if (-not $psql) { return $null }
+    $user = 'postgres'; if ($Pg.user) { $user = [string]$Pg.user }
+    $r = Invoke-FleetProcess -FilePath $psql -ArgumentList @('-w', '-X', '-A', '-t', '-h', '127.0.0.1', '-p', [string]$Pg.port, '-U', $user, '-d', 'postgres', '-c', 'SHOW max_connections') -TimeoutSeconds 10
+    if ($r.TimedOut -or $r.ExitCode -ne 0) { return $null }
+    $v = ([string]$r.StdOut).Trim()
+    if ($v -notmatch '^\d+$') { return $null }
+    return [int]$v
 }
 
 function Get-FleetProcessData {
@@ -221,7 +258,16 @@ function Get-FleetTaskObservations {
     $report = Get-FleetTaskHealthData -Policy $Policy
     $okCodes = @($Policy.task_ok_codes | ForEach-Object { ([string]$_).ToUpperInvariant() })
     $sevMap = $Policy.task_severity
-    $tasks = @($report.Tasks)
+    $principals = @(Get-FleetScheduledTaskData)
+    # A report without tasks while in-scope tasks are registered is a broken report, not "every task gone":
+    # producing no task observations let the stale-key resolver resolve every open task incident (sweep row 1).
+    $hasTasks = ($report -is [System.Collections.IDictionary] -and $report.Contains('Tasks')) -or ($null -ne $report -and $report.PSObject.Properties.Name -contains 'Tasks')
+    if (-not $hasTasks) { throw 'task health report has no Tasks list' }
+    $tasks = @($report.Tasks | Where-Object { $null -ne $_ })
+    if ($tasks.Count -eq 0) {
+        $registered = @($principals | Where-Object { Test-FleetTaskInScope -Policy $Policy -FullName ([string]$_.FullName) })
+        if ($registered.Count -gt 0) { throw ("task health report lists no tasks, but {0} in-scope task(s) are registered (e.g. {1})" -f $registered.Count, $registered[0].FullName) }
+    }
     $byName = @{}
     foreach ($t in $tasks) {
         $full = '{0}{1}' -f $t.TaskPath, $t.TaskName
@@ -250,25 +296,38 @@ function Get-FleetTaskObservations {
         $rerun = $null
         if (Test-FleetWildcard $full $Policy.rerun_tasks) { $rerun = 'rerun-task' }
 
+        $status = [string]$t.Status
+        if (@('Disabled', 'Ignored') -contains $status) { continue }
+        # Test-ScheduledTaskHealth.ps1 reports exactly Healthy / Failed / Stalled / Disabled / Ignored. Anything
+        # else (a newer or broken report) used to fall through to "ok" on both axes and resolve open incidents:
+        # it is neutral now, and the unreadable row is reported (sweep row 2).
+        $known = @('Healthy', 'Failed', 'Stalled') -contains $status
+        $obs += New-FleetObservation -Source task -Name $full -Check task-report -Severity low -ResolveAfter 1 `
+            -Status $(if ($known) { 'ok' } else { 'failed' }) -Message $(if ($known) { "status $status" } else { "unrecognised task status '$status' in the task health report" })
+
         # Result axis -> check 'run' (the same key Invoke-FleetTask writes, so one incident per task).
         $runStatus = 'ok'
-        if ($t.Status -eq 'Failed' -and -not $benign) { $runStatus = 'failed' }
+        if (-not $known) { $runStatus = 'skipped' }
+        elseif ($status -eq 'Failed' -and -not $benign) { $runStatus = 'failed' }
         # Running (0x41301) or queued (0x41325): no completed result yet, so neither failure nor recovery.
         # As 'ok' it resolved the previous failure while its retry was still running (fourth review of #346).
         elseif ($resultHex -in @('0X41301', '0X41325')) { $runStatus = 'skipped' }
-        if (@('Disabled', 'Ignored') -notcontains $t.Status) {
-            $obs += New-FleetObservation -Source task -Name $full -Check run -Status $runStatus -Severity $sev `
-                -Message ("last result {0} {1}; {2}" -f $t.LastResult, $t.ResultText, $reasons).Trim() -ResolveAfter 1 `
-                -Details @{ last_run = $t.LastRunTime; next_run = $t.NextRunTime; missed_runs = $t.MissedRuns } `
-                -Playbook $rerun -PlaybookArgs @{ TaskPath = $t.TaskPath; TaskName = $t.TaskName }
+        $obs += New-FleetObservation -Source task -Name $full -Check run -Status $runStatus -Severity $sev `
+            -Message ("last result {0} {1}; {2}" -f $t.LastResult, $t.ResultText, $reasons).Trim() -ResolveAfter 1 `
+            -Details @{ last_run = $t.LastRunTime; next_run = $t.NextRunTime; missed_runs = $t.MissedRuns } `
+            -Playbook $rerun -PlaybookArgs @{ TaskPath = $t.TaskPath; TaskName = $t.TaskName }
+
+        # Staleness axis. 'Failed' wins over 'Stalled' in the report's overall status, so a failed task's
+        # staleness is read from its own reasons; without one, there is no evidence either way. It used to read
+        # "ok" whenever the status was not Stalled, resolving a stale incident on a failed run (sweep row 4).
+        $staleStatus = 'skipped'
+        if ($status -eq 'Healthy') { $staleStatus = 'ok' }
+        elseif ($status -eq 'Stalled') { $staleStatus = 'stale'; if ([string]$t.Staleness -like 'never run*') { $staleStatus = 'never-ran' } }
+        elseif ($status -eq 'Failed' -and @(@($t.Reasons) | Where-Object { [string]$_ -match $script:FleetStaleReasonPattern }).Count -gt 0) {
+            $staleStatus = 'stale'; if ([string]$t.Staleness -like 'never run*') { $staleStatus = 'never-ran' }
         }
-        # Staleness axis.
-        if (@('Disabled', 'Ignored') -notcontains $t.Status) {
-            $staleStatus = 'ok'
-            if ($t.Status -eq 'Stalled') { $staleStatus = 'stale'; if ([string]$t.Staleness -like 'never run*') { $staleStatus = 'never-ran' } }
-            $obs += New-FleetObservation -Source task -Name $full -Check task-stale -Status $staleStatus -Severity $sev `
-                -Message ("{0}; {1}" -f $t.Staleness, $reasons).Trim('; ') -ResolveAfter 1
-        }
+        $obs += New-FleetObservation -Source task -Name $full -Check task-stale -Status $staleStatus -Severity $sev `
+            -Message ("{0}; {1}" -f $t.Staleness, $reasons).Trim('; ') -ResolveAfter 1
     }
 
     # Tasks that must be enabled (an offsite backup task sat Disabled and never ran).
@@ -296,7 +355,6 @@ function Get-FleetTaskObservations {
     }
 
     # Interactive tasks with no interactive session never fire (about 25 tasks on one host stopped for 11 days).
-    $principals = @(Get-FleetScheduledTaskData)
     $users = @(Get-FleetInteractiveUserData)
     foreach ($p in $principals) {
         if ($p.State -eq 'Disabled' -or $p.LogonType -notmatch '^Interactive') { continue }
@@ -305,8 +363,11 @@ function Get-FleetTaskObservations {
         if (@($Policy.task_scope | Where-Object { $_ }).Count -gt 0) { $included = Test-FleetWildcard $p.FullName $Policy.task_scope }
         if (-not $included -or (Test-FleetWildcard $p.FullName $Policy.task_exclude)) { continue }
         $uid = ([string]$p.UserId).ToLowerInvariant()
+        # Full identities when the task names a domain: 'WORKSTATION\build' at the desktop is not 'CONTOSO\build',
+        # and matching on the user part alone cleared the no-session alert for a task that cannot run (sweep row 9).
         $present = $false
-        foreach ($u in $users) { if ($u -eq $uid -or $u.EndsWith('\' + $uid) -or $uid.EndsWith('\' + $u.Split('\')[-1])) { $present = $true } }
+        if ($uid.Contains('\')) { $present = $users -contains $uid }
+        else { foreach ($u in $users) { if ($u -eq $uid -or $u.EndsWith('\' + $uid)) { $present = $true } } }
         $st = 'ok'; $msg = 'interactive session present'
         if (-not $present) { $st = 'degraded'; $msg = ('LogonType Interactive and {0} has no interactive session: the task will not run (convert to S4U)' -f $p.UserId) }
         $obs += New-FleetObservation -Source task -Name $p.FullName -Check task-interactive-no-session -Status $st -Severity medium -Message $msg -ResolveAfter 1
@@ -392,7 +453,7 @@ function Get-FleetDiskObservations {
     foreach ($r in @($Policy.disks)) { $rules[([string]$r.name).Substring(0, 1).ToUpperInvariant()] = $r }
     foreach ($n in @($drives.Keys)) { if (-not $rules.ContainsKey($n)) { $rules[$n] = @{ name = $n } } }
 
-    $samplesPath = Join-Path (Get-FleetPath -Kind state) 'disk-samples.json'
+    $samplesPath = Join-Path (Get-FleetPath -Kind state -NoCreate) 'disk-samples.json'
     $samples = Read-FleetJsonFile -Path $samplesPath -Default @{}
     foreach ($n in @($rules.Keys | Sort-Object)) {
         $r = $rules[$n]
@@ -428,8 +489,14 @@ function Get-FleetDiskObservations {
                 -Details @{ eta_hours = $trend.EtaHours; slope_gb_per_hour = [math]::Round($trend.SlopeBytesPerHour / 1GB, 3) } `
                 -Playbook $(if ($tst -ne 'ok') { 'disk-low' } else { $null }) -PlaybookArgs @{ Drive = $n; FreeGb = $freeGb; MinGb = $minGb; EtaHours = $trend.EtaHours }
         }
+        else {
+            # Too few samples (after a monitoring gap or a lost samples file) is no evidence: neutral, and the key
+            # still counts as observed. Emitting nothing let the stale-key resolver "recover" an open trend
+            # incident after two sweeps (sweep row 3; fifteenth review of #346).
+            $obs += New-FleetObservation -Source disk -Name "${n}:" -Check disk-trend -Status skipped -Message ("{0}: not enough samples yet for a trend" -f $n)
+        }
     }
-    Write-FleetJsonFile -Path $samplesPath -Value $samples
+    if (-not $script:FleetReadOnly) { Write-FleetJsonFile -Path $samplesPath -Value $samples }
     return $obs
 }
 
@@ -479,7 +546,11 @@ function Get-FleetRunnerObservations {
         if ($drain.Unknown) { $rs = 'failed'; $rm = "DRAIN state unknown: $($drain.Error)" }
         $obs += New-FleetObservation -Source runner -Name $drainAgent -Check drain-state-read -Status $rs -Severity low -Message $rm -ResolveAfter 1
     }
-    if ($drain.Unknown) {
+    if (-not $drainAgent) {
+        # No drain agent configured: the DRAIN check is off, but the runners are still polled. The empty name
+        # used to fail observation validation and abort the whole detector before GitHub was asked (sweep row 8).
+    }
+    elseif ($drain.Unknown) {
         # No evidence is not good evidence: 'skipped' is neutral, so an open overrun neither resolves nor
         # reopens, and the stale-key resolver sees the key as observed. Offline runners are still reported
         # below, because an unknown DRAIN cannot excuse them.
@@ -503,6 +574,10 @@ function Get-FleetRunnerObservations {
         $pages = @(Invoke-FleetGhApi -Path ("{0}/actions/runners?per_page=100" -f $scope))
         $runners = @()
         foreach ($p in $pages) { if ($p.runners) { $runners += @($p.runners) } }
+        # A configured scope that lists no runners is a broken query or a scope to remove from policy, not
+        # "every runner is gone": resolving all of the scope's runner incidents by absence was the old outcome
+        # (sweep row 10). The detector error stays open until the scope lists runners or leaves the policy.
+        if ($runners.Count -eq 0) { throw ("runner scope {0} lists no runners (remove it from runner_scopes if that is intended)" -f $scope) }
         foreach ($r in $runners) {
             $name = '{0}/{1}' -f ($scope -replace '^(repos|orgs)/', ''), $r.name
             $st = 'ok'; $msg = "online (busy=$($r.busy))"
@@ -543,58 +618,53 @@ function Get-FleetWorkflowObservations {
 
 function Get-FleetPostgresObservations {
     <#
-    Connections near max_connections, counted from the server's established TCP sockets so the
-    check needs no database credentials (the agent-bus Postgres hit its 40-connection limit through
-    leaked qmd MCP processes). max_connections comes from policy or the conf files.
+    Connections near max_connections, counted from the server's established TCP sockets so the check
+    needs no database credentials (the agent-bus Postgres hit its 40-connection limit through leaked qmd
+    MCP processes). max_connections and port come from validated policy ONLY: inferring the limit from
+    conf files and a pending-restart timestamp drew three review rounds and is gone (coordinator-approved
+    scope cut). When the live value is readable without a password it is compared with the policy, and a
+    disagreement is reported as drift rather than trusting either.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][hashtable]$Policy)
     $obs = @()
     foreach ($pg in @($Policy.postgres)) {
         $name = [string]$pg.name
-        $max = $null
-        if ($pg.max_connections) { $max = [int]$pg.max_connections }
-        $pending = $false
-        $dataDir = Resolve-FleetPolicyPath ([string]$pg.data_dir)
-        # Expanded ONCE, here: the pending-restart timestamp check and the max_connections read must look at the
-        # same files. Expanding only for the read missed a pending raise on '{home}\...' paths (twelfth review).
-        $confList = @($pg.conf_files | Where-Object { $_ } | ForEach-Object { Resolve-FleetPolicyPath ([string]$_) })   # @($null) has Count 1
-        if ($dataDir -and $confList.Count -eq 0) { $confList = @((Join-Path $dataDir 'postgresql.conf'), (Join-Path $dataDir 'postgresql.auto.conf')) }
-        # A conf edited after the server started is not live yet: the configured max_connections may
-        # be higher than the running one (a 40 -> 100 raise sat pending a restart), so say so.
-        if ($dataDir -and (Test-Path -LiteralPath (Join-Path $dataDir 'postmaster.pid'))) {
-            $started = (Get-Item -LiteralPath (Join-Path $dataDir 'postmaster.pid')).LastWriteTimeUtc
-            $changed = @($confList | Where-Object { $_ -and (Test-Path -LiteralPath $_) -and (Get-Item -LiteralPath $_).LastWriteTimeUtc -gt $started })
-            $pst = 'ok'; $pmsg = 'configuration matches the running server'
-            if ($changed.Count -gt 0) { $pending = $true; $pst = 'degraded'; $pmsg = ('{0} changed after the server started; a restart is pending and live settings may differ' -f (($changed | ForEach-Object { Split-Path -Leaf $_ }) -join ', ')) }
-            $obs += New-FleetObservation -Source postgres -Name $name -Check pg-config-pending -Status $pst -Severity low -Message $pmsg -ResolveAfter 1
+        if (-not (Test-FleetPolicyNumber -Value $pg.port -Min 1 -Max 65535 -Integer) -or -not (Test-FleetPolicyNumber -Value $pg.max_connections -Min 1 -Integer)) {
+            throw ("postgres entry '{0}' needs an integer port (1-65535) and max_connections (>= 1) in policy" -f $name)
         }
-        # An explicit policy value is the live limit the owner vouches for; otherwise read the conf files,
-        # but never trust them while a restart is pending (the conf said 100 while the server ran 40).
-        if (-not $max -and $pending) {
-            $used = Get-FleetTcpListenerConnectionCount -Port ([int]$pg.port)
-            $obs += New-FleetObservation -Source postgres -Name $name -Check pg-connections -Status skipped -Severity low `
-                -Message ("{0} connections on port {1}; live max_connections unknown while a restart is pending (set max_connections in policy)" -f $used, $pg.port)
+        $port = [int]$pg.port
+        $max = [int]$pg.max_connections
+        # Nothing listening is a stopped server (or a wrong port), never an idle one: 0 connections read as
+        # "ok" and resolved a saturation incident (sweep row 7).
+        if (-not (Test-FleetTcpListening -Port $port)) {
+            $obs += New-FleetObservation -Source postgres -Name $name -Check pg-server -Status failed -Severity high -ResolveAfter 1 -Message ("nothing is listening on port {0}" -f $port)
+            $obs += New-FleetObservation -Source postgres -Name $name -Check pg-connections -Status skipped -Message ("server not listening on port {0}" -f $port)
             continue
         }
-        foreach ($confRaw in @($(if ($max) { @() } else { $confList }))) {
-            $conf = Resolve-FleetPolicyPath ([string]$confRaw)
-            if ($conf -and (Test-Path -LiteralPath $conf)) {
-                foreach ($line in @(Get-Content -LiteralPath $conf)) { if ($line -match '^\s*max_connections\s*=\s*(\d+)') { $max = [int]$Matches[1] } }
-            }
+        $obs += New-FleetObservation -Source postgres -Name $name -Check pg-server -Status ok -ResolveAfter 1 -Message ("listening on port {0}" -f $port)
+        $used = Get-FleetTcpListenerConnectionCount -Port $port
+        $live = Get-FleetPostgresLiveMaxConnections -Pg $pg
+        if ($null -eq $live) {
+            $obs += New-FleetObservation -Source postgres -Name $name -Check postgres-policy-drift -Status skipped -Message 'live max_connections not readable without a password; using the policy value'
         }
-        if (-not $max) {
-            $obs += New-FleetObservation -Source postgres -Name $name -Check pg-connections -Status unknown -Severity low -Message 'max_connections unknown (set max_connections or conf_files in policy)'
+        elseif ([int]$live -ne $max) {
+            $obs += New-FleetObservation -Source postgres -Name $name -Check postgres-policy-drift -Status degraded -Severity low -ResolveAfter 1 `
+                -Message ("live max_connections is {0} but policy says {1}: update the policy (or restart the server if a change is pending)" -f $live, $max)
+            $obs += New-FleetObservation -Source postgres -Name $name -Check pg-connections -Status skipped `
+                -Message ("{0} connections on port {1}; limit uncertain (live {2}, policy {3})" -f $used, $port, $live, $max)
             continue
         }
-        $used = Get-FleetTcpListenerConnectionCount -Port ([int]$pg.port)
+        else {
+            $obs += New-FleetObservation -Source postgres -Name $name -Check postgres-policy-drift -Status ok -ResolveAfter 1 -Message ("live max_connections matches policy ({0})" -f $max)
+        }
         $pct = [math]::Round(100.0 * $used / $max, 0)
         $warn = 80; if ($pg.warn_pct) { $warn = [int]$pg.warn_pct }
         $st = 'ok'; $sev = 'info'
         if ($pct -ge $warn) { $st = 'degraded'; $sev = 'medium' }
         if ($pct -ge 95) { $sev = 'high' }
         $obs += New-FleetObservation -Source postgres -Name $name -Check pg-connections -Status $st -Severity $sev -ResolveAfter 2 `
-            -Message ("{0}/{1} connections ({2}%) on port {3}" -f $used, $max, $pct, $pg.port) `
+            -Message ("{0}/{1} connections ({2}%) on port {3}" -f $used, $max, $pct, $port) `
             -Playbook $(if ($st -ne 'ok' -and $pg.reaper) { 'reap-orphans' } else { $null }) -PlaybookArgs @{ Reaper = [string]$pg.reaper }
     }
     return $obs

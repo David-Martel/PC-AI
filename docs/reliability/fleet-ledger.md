@@ -110,7 +110,29 @@ that does not parse is quarantined.
 - **Outbox:** events are queued in `state\outbox\` before the state that implies them is committed, and flushed in
   order. Each entry carries the alert settings (`alerts`) that were in effect when it was queued, so a retry under
   another `-PolicyPath` cannot send it to another Discord recipient or drop it. An entry that cannot be read is moved
-  to `state\outbox\corrupt\` (left in place in a dry run), never deleted.
+  to `state\outbox\corrupt\` (left in place in a dry run), never deleted. Events are staged as `.pending` and become
+  sendable only after the incident state that records them is committed, so a transition whose state write failed is
+  never sent. An event that reached the ledger but nobody (bus send and its spool both failed, Discord did not send)
+  stays queued and is retried as a forward only, never appended twice.
+- **Unreadable store:** a corrupt `incidents.json` is never silently replaced. It is preserved as
+  `incidents.json.corrupt-<time>-<id>`, a forwarded high-severity `incident-store` event says incidents were reset,
+  and the digest reports an unreadable store instead of "still open 0".
+- **Redaction:** every observation and event message is redacted before it is stored or forwarded (`key=value` and
+  quoted values with secret-like keys, `Authorization` schemes, `user:password@` in URLs, `sk-`, AWS key ids, GitHub,
+  Slack, JWT and Discord token shapes). If redaction fails, the excerpt is withheld and only its hash is kept. The raw
+  output stays in the local log under `<home>\logs\`.
+
+## Policy
+
+`<home>\policy.json` (or `-PolicyPath`). Missing keys take the defaults; the `drain`, `playbooks`, `alerts`, `digest`
+and `compaction` objects merge key by key. The run is refused, never downgraded to defaults, when:
+
+- the named `-PolicyPath` does not exist, or `<home>\policy.json` is missing on a host that already has incident state;
+- the file exists but cannot be read or parsed;
+- a number is invalid: null, negative, out of range, or not a plain number (`"10%"`). Every threshold, window,
+  budget and postgres `port` / `max_connections` is checked at load.
+
+The task wrapper still runs its job when its policy cannot be loaded, and records that as a `policy-load` incident.
 
 ## Detectors
 
@@ -120,20 +142,28 @@ staged rollout; empty means every local task.
 | detector | fires on | resolves on |
 |---|---|---|
 | task result (`run`) | non-zero last result from [`Test-ScheduledTaskHealth.ps1`](../../Tools/Test-ScheduledTaskHealth.ps1), which is reused rather than re-derived; benign codes in `task_ok_codes` (IgnoreNew `0x800710E0`) do not count, and never mask a launcher failure | next good result |
-| `task-stale` | no run within `task_stale_factor` (2) times its interval, or never ran | a run |
+| `task-stale` | no run within `task_stale_factor` (2) times its interval, or never ran; a failed task is judged from its staleness reasons, and is neutral without one | a run |
+| `task-report` | a task row whose status is not Healthy/Failed/Stalled/Disabled/Ignored (its `run` and `task-stale` are then neutral); a report with no task list, or an empty one while in-scope tasks are registered, is a detector error | a readable row |
 | `task-expected` | a task in `expect_enabled` that is Disabled, missing or never ran | enabled and ran |
 | `task-interactive-no-session` | LogonType Interactive while its user has no desktop (it will not fire; convert to S4U) | a session, or S4U |
 | `log-rule` | exit 0, but the newest log written since the last run matches a pattern (`[ERROR]`, `STALE`, `integrity check did not pass`) | a clean log |
 | `disk-free` | below `min_free_gb`/`min_free_pct`; a missing **required** drive is a failure, never 0 GB | above floor |
-| `disk-trend` | a least-squares slope over 6 h projects the floor within 24 h ("T: hits 15 GB in 7.5 h") | trend flattens |
-| `runner-offline` | a self-hosted runner offline (gh API; run on one host with `fleet_checks`) | online |
+| `disk-trend` | a least-squares slope over 6 h projects the floor within 24 h ("T: hits 15 GB in 7.5 h"); with too few samples (after a gap) it is `skipped`, so a gap never resolves it | trend flattens |
+| `runner-offline` | a self-hosted runner offline (gh API; run on one host with `fleet_checks`); a configured scope that lists no runners is a detector error, not "all gone" | online |
 | `drain-overrun` | a DRAIN announced on agent-bus that has lasted longer than `drain.max_minutes`. The newest lifecycle state is remembered in `state\drain-<agent>.json`, so a START older than the 600-minute bus read window still counts as running. While the state cannot be read it is `skipped` (neutral), so an open overrun is never resolved by a bus outage | a lifecycle message showing the DRAIN ended |
 | `drain-state-read` | the agent-bus read of the DRAIN lifecycle failed, timed out or returned unparseable output (offline runners are then reported, not excused) | a successful read |
 | `workflow-no-runs` | an expected workflow's newest run is older than `max_age_days` | a new run |
-| `pg-connections` | established connections reach `warn_pct` of `max_connections`; no database credentials needed | below |
+| `pg-connections` | established connections reach `warn_pct` of the policy `max_connections` (no database credentials needed); `skipped` while the server is not listening or the limit is in doubt | below |
+| `pg-server` | nothing listening on the policy `port` (a stopped server is never read as idle) | listening |
+| `postgres-policy-drift` | the live `SHOW max_connections` (read with `psql -w` only when no password is needed) differs from the policy. **Update `max_connections` in policy whenever Postgres is reconfigured**; while they differ, `pg-connections` is neutral | they agree |
 | `orphan-process` | a process matching a pattern whose parent died or whose parent PID was reused | none left |
 | `cert-expiry` | under 21 days (medium), under 7 days (high), or a chain error (critical) | renewed |
 | `detector-error` | a detector that threw; it is reported, never read as healthy | the detector runs |
+| `log-read`, `policy-load` (wrapper) | the wrapper's `-LogPath` is missing after the run or cannot be read; its `-PolicyPath` cannot be loaded. The job still runs and its exit code is kept | a readable log / policy |
+
+The digest states the age of the last sweep (degraded when older than `digest.max_sweep_age_hours`, default 2, or
+missing) and counts ledger lines it could not read. The class sweep behind these rules, and the follow-up items it
+left, are tracked in the PR #346 reply and in [fleet-ledger-follow-up.md](fleet-ledger-follow-up.md).
 
 ## Deferred to a follow-up PR
 

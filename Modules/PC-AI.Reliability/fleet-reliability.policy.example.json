@@ -23,7 +23,7 @@
   "runner_scopes": ["repos/<owner>/<repo>", "orgs/<org>"],
   "workflow_expectations": [ { "repo": "<owner>/<repo>", "workflow": "qa.yml", "max_age_days": 3 } ],
   "drain": { "bus_agent": "vct-nightly", "max_minutes": 90, "runner_patterns": ["<host>-*"] },
-  "postgres": [ { "name": "agent-bus", "port": 5300, "data_dir": "<data dir>", "warn_pct": 80, "reaper": "{profile}\\.machine\\qmd\\Stop-OrphanQmdMcp.ps1" } ],
+  "postgres": [ { "name": "agent-bus", "port": 5300, "max_connections": 100, "warn_pct": 80, "reaper": "{profile}\\.machine\\qmd\\Stop-OrphanQmdMcp.ps1" } ],
   "orphan_processes": [ { "pattern": "litho-qmd-mcp*", "reaper": "{profile}\\.machine\\qmd\\Stop-OrphanQmdMcp.ps1" } ],
   "cert_endpoints": ["<name>.<domain>:443"],
   "cert_warn_days": 21,

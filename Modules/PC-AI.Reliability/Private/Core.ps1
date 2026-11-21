@@ -87,7 +87,8 @@ function Get-FleetPath {
         default { $Kind }
     }
     $dir = Join-Path $homeDir $rel
-    if (-not $NoCreate -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    # A dry run (read-only) never creates a directory, whichever caller asks (sweep row 23).
+    if (-not $NoCreate -and -not $script:FleetReadOnly -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     return $dir
 }
 
@@ -315,6 +316,40 @@ function Get-FleetShortHash {
     finally { $sha.Dispose() }
 }
 
+function Protect-FleetText {
+    <#
+    Redacts credentials from a text that may leave the host (ledger, incident state, agent-bus, Discord):
+    key=value / key: value pairs with secret-like keys (quoted values too), Authorization schemes,
+    user:password@ in URLs, and well-known token shapes. Throws on any internal error; callers use
+    ConvertTo-FleetSafeMessage, which then withholds the text (codex P1 on #346).
+    #>
+    param([string]$Text)
+    if ([string]::IsNullOrEmpty($Text)) { return $Text }
+    $t = $Text
+    $t = [regex]::Replace($t, '(?i)\b([a-z][a-z0-9+.\-]*://)[^\s/:@]+:[^\s/@]+@', '$1***@')
+    $t = [regex]::Replace($t, '(?i)\b(bearer|basic|token|digest)\s+[A-Za-z0-9._~+/=\-]{6,}', '$1 ***')
+    $keys = 'password|passwd|pwd|passphrase|secret|token|api[_\-]?key|apikey|access[_\-]?key|private[_\-]?key|client[_\-]?secret|authorization|auth|credential|cookie|session[_\-]?id|sig|signature'
+    $t = [regex]::Replace($t, ('(?i)\b([A-Za-z0-9_.\-]*(?:{0})[A-Za-z0-9_.\-]*)(\s*[:=]\s*)("[^"]*"?|''[^'']*''?|[^\s;,&]+)' -f $keys), '$1$2***')
+    $t = [regex]::Replace($t, '\bsk-[A-Za-z0-9_\-]{12,}', 'sk-***')
+    $t = [regex]::Replace($t, '\b(?:AKIA|ASIA|AGPA|AIDA|AROA)[A-Z0-9]{16}\b', 'AWS-KEY-***')
+    $t = [regex]::Replace($t, '\bgh[pousr]_[A-Za-z0-9]{20,}', 'gh_***')
+    $t = [regex]::Replace($t, '\bxox[abprs]-[A-Za-z0-9\-]{10,}', 'xox-***')
+    $t = [regex]::Replace($t, '\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{4,}', 'jwt-***')
+    $t = [regex]::Replace($t, '\b[MN][A-Za-z0-9]{23,27}\.[A-Za-z0-9_\-]{6}\.[A-Za-z0-9_\-]{27,}', 'discord-token-***')
+    return $t
+}
+
+function ConvertTo-FleetSafeMessage {
+    <#
+    The redacted text, or, when redaction fails, a placeholder carrying only a hash of the withheld excerpt:
+    redaction fails CLOSED. The raw text stays in the local log it came from.
+    #>
+    param([string]$Text)
+    if ([string]::IsNullOrEmpty($Text)) { return $Text }
+    try { return [string](Protect-FleetText -Text $Text) }
+    catch { return ('[excerpt withheld: redaction failed; sha256 {0}]' -f (Get-FleetShortHash $Text)) }
+}
+
 function Set-FleetNormalPriority {
     <#
     Raises this process from BelowNormal/Idle to Normal and returns the previous class. Task Scheduler
@@ -341,7 +376,8 @@ function Get-FleetPolicy {
     the generic detectors. An example lives next to the module manifest.
     #>
     param([string]$Path)
-    if (-not $Path) { $Path = Join-Path (Get-FleetReliabilityHome) 'policy.json' }
+    $named = -not [string]::IsNullOrWhiteSpace($Path)
+    if (-not $named) { $Path = Join-Path (Get-FleetReliabilityHome) 'policy.json' }
     $defaults = @{
         task_health_script    = (Join-Path $PSScriptRoot '..\..\..\Tools\Test-ScheduledTaskHealth.ps1')
         task_stale_factor     = 2
@@ -377,8 +413,102 @@ function Get-FleetPolicy {
     # A policy that exists but cannot be read must fail the run: the defaults have no required drives,
     # fleet checks or recipients, so falling back silently stopped monitoring and let two sweeps resolve
     # a still-missing required drive (eighth review of #346). The file is left in place. No file = defaults.
+    # A missing file is "defaults" only on a fresh host. Named by -PolicyPath, or missing where incident state
+    # already exists, it means the policy was lost or mistyped, and defaults would drop required drives and
+    # recipients and let absence resolve their incidents (sweep row 12).
+    if (-not (Test-Path -LiteralPath $Path)) {
+        if ($named) { throw "fleet policy not found: $Path (named by -PolicyPath); refusing to run on defaults" }
+        $store = Join-Path (Join-Path (Get-FleetReliabilityHome) 'state') 'incidents.json'
+        if (Test-Path -LiteralPath $store) { throw "fleet policy not found: $Path, but this host already has incident state; refusing to run on defaults" }
+        return $defaults
+    }
     try { $loaded = Read-FleetJsonFile -Path $Path -Default @{} -ThrowOnError }
     catch { throw "fleet policy is unreadable, refusing to run on defaults: $($_.Exception.Message)" }
-    foreach ($k in @($loaded.Keys)) { $defaults[$k] = $loaded[$k] }
+    # Sub-objects merge key by key: '"drain": {"max_minutes": 120}' replaced the whole object and silently
+    # dropped bus_agent, turning the DRAIN check off (sweep row 13).
+    foreach ($k in @($loaded.Keys)) {
+        if (@('drain', 'playbooks', 'alerts', 'digest', 'compaction') -contains $k -and $loaded[$k] -is [System.Collections.IDictionary] -and $defaults[$k] -is [System.Collections.IDictionary]) {
+            foreach ($sub in @($loaded[$k].Keys)) { $defaults[$k][$sub] = $loaded[$k][$sub] }
+        }
+        else { $defaults[$k] = $loaded[$k] }
+    }
+    Assert-FleetPolicy -Policy $defaults -Path $Path
     return $defaults
+}
+
+function Test-FleetPolicyNumber {
+    <# A JSON number or a plain numeric string ('15', '1.5'), finite and in range. Null, '', '10%', '-5' and booleans are not. #>
+    param($Value, [double]$Min, [double]$Max = [double]::MaxValue, [switch]$Integer, [switch]$ExclusiveMin)
+    if ($null -eq $Value -or $Value -is [bool]) { return $false }
+    if ($Value -is [int] -or $Value -is [long] -or $Value -is [double] -or $Value -is [decimal] -or $Value -is [single]) { $num = [double]$Value }
+    elseif ($Value -is [string] -and $Value -match '^\s*\d+(\.\d+)?\s*$') { $num = [double]::Parse($Value.Trim(), [Globalization.CultureInfo]::InvariantCulture) }
+    else { return $false }
+    if ([double]::IsNaN($num) -or [double]::IsInfinity($num)) { return $false }
+    if ($Integer -and $num -ne [math]::Floor($num)) { return $false }
+    if ($ExclusiveMin) { if ($num -le $Min) { return $false } } elseif ($num -lt $Min) { return $false }
+    return ($num -le $Max)
+}
+
+function Assert-FleetPolicy {
+    <#
+    Every number the detectors and playbooks compute with is checked once, at load. An explicit null used to
+    replace the default and cast to 0 (a free-space floor of 0 GB is always "ok"), and a negative or '10%'
+    value either passed or failed deep inside one detector (sweep row 11). Any invalid value refuses the run.
+    #>
+    param([Parameter(Mandatory)][hashtable]$Policy, [string]$Path)
+    $errs = New-Object System.Collections.ArrayList
+    $chk = {
+        param([string]$Label, $Value, [double]$Min, [double]$Max, [bool]$Int, [bool]$Excl)
+        if (-not (Test-FleetPolicyNumber -Value $Value -Min $Min -Max $Max -Integer:$Int -ExclusiveMin:$Excl)) {
+            [void]$errs.Add(('{0} = {1}' -f $Label, $(if ($null -eq $Value) { 'null' } else { "'$Value'" })))
+        }
+    }
+    $big = [double]::MaxValue
+    & $chk 'task_stale_factor' $Policy.task_stale_factor 0 $big $false $true
+    & $chk 'disk_default_min_free_gb' $Policy.disk_default_min_free_gb 0 $big $false $false
+    & $chk 'disk_default_min_free_pct' $Policy.disk_default_min_free_pct 0 100 $false $false
+    & $chk 'disk_trend_window_hours' $Policy.disk_trend_window_hours 0 $big $false $true
+    & $chk 'disk_trend_alert_hours' $Policy.disk_trend_alert_hours 0 $big $false $true
+    & $chk 'cert_warn_days' $Policy.cert_warn_days 0 $big $false $false
+    & $chk 'cert_high_days' $Policy.cert_high_days 0 $big $false $false
+    if ($Policy.drain -is [System.Collections.IDictionary]) { & $chk 'drain.max_minutes' $Policy.drain.max_minutes 0 $big $false $true }
+    if ($Policy.playbooks -is [System.Collections.IDictionary]) {
+        & $chk 'playbooks.budget' $Policy.playbooks.budget 0 1000 $true $false
+        & $chk 'playbooks.window_hours' $Policy.playbooks.window_hours 0 $big $false $true
+        & $chk 'playbooks.backoff_minutes' $Policy.playbooks.backoff_minutes 0 $big $false $false
+    }
+    if ($Policy.digest -is [System.Collections.IDictionary]) {
+        & $chk 'digest.since_hours' $Policy.digest.since_hours 0 8760 $true $true
+        if ($Policy.digest.Contains('max_sweep_age_hours')) { & $chk 'digest.max_sweep_age_hours' $Policy.digest.max_sweep_age_hours 0 $big $false $true }
+    }
+    $i = 0
+    foreach ($d in @($Policy.disks)) {
+        if ($d -is [System.Collections.IDictionary]) {
+            if ($d.Contains('min_free_gb')) { & $chk "disks[$i].min_free_gb" $d.min_free_gb 0 $big $false $false }
+            if ($d.Contains('min_free_pct')) { & $chk "disks[$i].min_free_pct" $d.min_free_pct 0 100 $false $false }
+        }
+        $i++
+    }
+    $i = 0
+    foreach ($pg in @($Policy.postgres)) {
+        if ($pg -isnot [System.Collections.IDictionary] -or [string]::IsNullOrWhiteSpace([string]$pg.name)) { [void]$errs.Add("postgres[$i].name is missing") }
+        else {
+            # max_connections and port come from policy only: inferring them from conf files drew three review rounds.
+            & $chk "postgres[$i].port" $pg.port 1 65535 $true $false
+            & $chk "postgres[$i].max_connections" $pg.max_connections 1 $big $true $false
+            if ($pg.Contains('warn_pct')) { & $chk "postgres[$i].warn_pct" $pg.warn_pct 1 100 $false $false }
+        }
+        $i++
+    }
+    $i = 0
+    foreach ($w in @($Policy.workflow_expectations)) {
+        if ($w -is [System.Collections.IDictionary] -and $w.Contains('max_age_days')) { & $chk "workflow_expectations[$i].max_age_days" $w.max_age_days 0 $big $false $true }
+        $i++
+    }
+    $i = 0
+    foreach ($r in @($Policy.log_rules)) {
+        if ($r -is [System.Collections.IDictionary] -and $r.Contains('tail_lines')) { & $chk "log_rules[$i].tail_lines" $r.tail_lines 1 1000000 $true $false }
+        $i++
+    }
+    if ($errs.Count -gt 0) { throw ("fleet policy {0} is invalid, refusing to run: {1}" -f $Path, ($errs -join '; ')) }
 }

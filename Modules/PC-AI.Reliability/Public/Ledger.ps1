@@ -26,6 +26,8 @@ function New-FleetLedgerEvent {
     )
     $now = Get-FleetNow
     $hostName = Get-FleetHostName
+    # Every event message is redacted before it is written or forwarded; a redaction failure withholds it (P1).
+    $Message = [string](ConvertTo-FleetSafeMessage $Message)
     if ($Message.Length -gt 2000) { $Message = $Message.Substring(0, 1997) + '...' }
     $rand = -join ((1..8) | ForEach-Object { '{0:x}' -f (Get-Random -Maximum 16) })
     return [ordered]@{
@@ -79,24 +81,43 @@ function Write-FleetLedgerEvent {
             }
             Move-Item -LiteralPath $ledger -Destination (Join-Path $ledgerDir 'ledger.1.jsonl') -Force
         }
+        # A torn last line (an append interrupted mid-write) must not swallow this event: the two would read as
+        # one malformed record (coordinator-added data-loss item on #346). Start on a fresh line.
+        if ((Test-Path -LiteralPath $ledger) -and (Get-Item -LiteralPath $ledger).Length -gt 0) {
+            $fs = [IO.File]::Open($ledger, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+            try { [void]$fs.Seek(-1, [IO.SeekOrigin]::End); $lastByte = $fs.ReadByte() } finally { $fs.Dispose() }
+            if ($lastByte -ne 10) { $line = "`n" + $line }
+        }
         [IO.File]::AppendAllText($ledger, $line, (New-Object System.Text.UTF8Encoding($false)))
     }
     if (-not $acquired) { throw "fleet ledger: could not lock $ledger within 30 s; event not recorded: $($LedgerEvent.event_id)" }
 
+    $script:FleetLastDelivery = 'not-forwarded'
     if (-not $NoForward -and ($script:FleetForwardKinds -contains $LedgerEvent.kind)) {
-        $bus = Send-FleetBusEvent -LedgerEvent $LedgerEvent
-        $discord = Send-FleetDiscordEvent -LedgerEvent $LedgerEvent -Policy $AlertPolicy
-        # Record what each transport did. "Alerts that never arrive" was invisible until someone read a
-        # text log; this line makes a lost or skipped delivery queryable from the ledger and the digest.
-        $deliveryStatus = 'ok'
-        if ($bus -eq 'lost' -and $discord -notlike 'sent*') { $deliveryStatus = 'failed' }
-        elseif ($bus -ne 'sent' -or $discord -like 'failed*') { $deliveryStatus = 'degraded' }
-        $delivery = New-FleetLedgerEvent -Source alert -Name ([string]$LedgerEvent.event_id) -Check delivery -Kind observation `
-            -Status $deliveryStatus -Severity info -Message ("bus={0} discord={1}" -f $bus, $discord) -IncidentKey $LedgerEvent.incident_key `
-            -Details @{ for_kind = [string]$LedgerEvent.kind; bus = [string]$bus; discord = [string]$discord }
-        $null = Write-FleetLedgerEvent -LedgerEvent $delivery -NoForward
+        $script:FleetLastDelivery = Invoke-FleetEventForward -LedgerEvent $LedgerEvent -AlertPolicy $AlertPolicy
     }
     return $LedgerEvent
+}
+
+function Invoke-FleetEventForward {
+    <#
+    Sends an already-written event to agent-bus and Discord and records a delivery line. Returns 'ok',
+    'degraded' or 'failed' (failed = the bus send AND its spool failed AND Discord did not send: nobody
+    was told). The outbox keeps a failed event and retries this forward only, never the append.
+    #>
+    param([Parameter(Mandatory)][System.Collections.IDictionary]$LedgerEvent, [hashtable]$AlertPolicy)
+    $bus = Send-FleetBusEvent -LedgerEvent $LedgerEvent
+    $discord = Send-FleetDiscordEvent -LedgerEvent $LedgerEvent -Policy $AlertPolicy
+    # Record what each transport did. "Alerts that never arrive" was invisible until someone read a
+    # text log; this line makes a lost or skipped delivery queryable from the ledger and the digest.
+    $deliveryStatus = 'ok'
+    if ($bus -eq 'lost' -and $discord -notlike 'sent*') { $deliveryStatus = 'failed' }
+    elseif ($bus -ne 'sent' -or $discord -like 'failed*') { $deliveryStatus = 'degraded' }
+    $delivery = New-FleetLedgerEvent -Source alert -Name ([string]$LedgerEvent.event_id) -Check delivery -Kind observation `
+        -Status $deliveryStatus -Severity info -Message ("bus={0} discord={1}" -f $bus, $discord) -IncidentKey $LedgerEvent.incident_key `
+        -Details @{ for_kind = [string]$LedgerEvent.kind; bus = [string]$bus; discord = [string]$discord }
+    $null = Write-FleetLedgerEvent -LedgerEvent $delivery -NoForward
+    return $deliveryStatus
 }
 
 function Format-FleetBusBody {
@@ -181,17 +202,22 @@ function Invoke-FleetSpoolReplay {
             Move-Item -LiteralPath $live -Destination (Join-Path $dir ("bus-spool.{0}.replaying.ndjson" -f $stamp)) -Force
         }
     }
-    foreach ($f in @(Get-ChildItem -LiteralPath $dir -Filter 'bus-spool.*.replaying.ndjson' -File | Sort-Object Name)) {
-        $r = Invoke-FleetProcess -FilePath $exe -ArgumentList @('spool-replay', '--spool', $f.FullName, '--delete-on-success', '--encoding', 'compact') -TimeoutSeconds 60
-        if (-not $r.TimedOut -and $r.ExitCode -eq 0) {
-            if (Test-Path -LiteralPath $f.FullName) { Remove-Item -LiteralPath $f.FullName -Force }
-            $summary.Replayed++
+    # One replayer at a time, from enumeration through cleanup: two overlapping sweeps each replayed the same
+    # snapshot before either deleted it, so every spooled alert went out twice (sweep row 16). A busy replay
+    # lock means another process is already doing this work; this one skips it.
+    $null = Invoke-FleetWithLock -LockName 'spool-replay' -NoWait -ScriptBlock {
+        foreach ($f in @(Get-ChildItem -LiteralPath $dir -Filter 'bus-spool.*.replaying.ndjson' -File | Sort-Object Name)) {
+            $r = Invoke-FleetProcess -FilePath $exe -ArgumentList @('spool-replay', '--spool', $f.FullName, '--delete-on-success', '--encoding', 'compact') -TimeoutSeconds 60
+            if (-not $r.TimedOut -and $r.ExitCode -eq 0) {
+                if (Test-Path -LiteralPath $f.FullName) { Remove-Item -LiteralPath $f.FullName -Force }
+                $summary.Replayed++
+            }
+            elseif (($r.StdErr + $r.StdOut) -match 'JSON parse error') {
+                Move-Item -LiteralPath $f.FullName -Destination (Join-Path (Get-FleetPath -Kind quarantine) $f.Name) -Force
+                $summary.Quarantined++
+            }
+            else { $summary.Pending++ }
         }
-        elseif (($r.StdErr + $r.StdOut) -match 'JSON parse error') {
-            Move-Item -LiteralPath $f.FullName -Destination (Join-Path (Get-FleetPath -Kind quarantine) $f.Name) -Force
-            $summary.Quarantined++
-        }
-        else { $summary.Pending++ }
     }
     return $summary
 }
@@ -215,8 +241,8 @@ function Get-FleetDiscordToken {
         return [Text.Encoding]::UTF8.GetString($plain)
     }
     catch {
-        Write-Warning "fleet alerts: the Discord token file exists but could not be decrypted: $($_.Exception.GetType().Name)"
-        return $null
+        # Unreadable is not "no token": the caller must report a failed delivery, not a skipped one (sweep row 17).
+        throw "the Discord token file exists but could not be decrypted ($($_.Exception.GetType().Name))"
     }
 }
 
@@ -399,7 +425,7 @@ function Send-FleetDiscordEvent {
     # The entry points (sweep, digest, wrapper) set the policy they loaded from -PolicyPath, so forwarding
     # deep inside the incident code uses the same recipients and floor (codex review, #346).
     if (-not $Policy) { $Policy = $script:FleetEffectivePolicy }
-    if (-not $Policy) { $Policy = Get-FleetPolicy }
+    if (-not $Policy) { try { $Policy = Get-FleetPolicy } catch { return 'failed(policy)' } }
     $alerts = $Policy.alerts
     $min = 'medium'
     if ($alerts -and $alerts.discord_min_severity) { $min = $alerts.discord_min_severity }
@@ -409,8 +435,10 @@ function Send-FleetDiscordEvent {
     $channel = $null; $dm = $null
     if ($alerts) { $channel = $alerts.discord_channel_id; $dm = $alerts.discord_dm_user_id }
     if (-not $channel -and -not $dm) { return 'skipped(no recipient)' }
-    $token = Get-FleetDiscordToken
-    if (-not $token) { return 'skipped(no token)' }
+    # A recipient is configured, so a missing or unreadable token is a FAILED delivery: recorded as skipped,
+    # the delivery line read "ok" while nobody was told (sweep row 17).
+    try { $token = Get-FleetDiscordToken } catch { return 'failed(token-unreadable)' }
+    if (-not $token) { return 'failed(no token)' }
     $headers = @{ Authorization = "Bot $token"; 'User-Agent' = 'fleet-reliability (PC-AI, 1.0)' }
     try {
         if (-not $channel) {

@@ -416,7 +416,12 @@ pub fn build_route_plan(
                     }),
                     rollback: (!present)
                         .then(|| format!("Remove-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -Confirm:$false")),
-                    note: present.then(|| "Observed on this interface; not owned by this plan".to_string()),
+                    note: Some(if present {
+                        "Observed on this interface; not owned by this plan".to_string()
+                    } else {
+                        // New-NetIPAddress disables DHCP on a DHCP-enabled interface (Microsoft Learn).
+                        "Adding a static address disables DHCP if it was enabled; if the preflight showed Dhcp Enabled, also roll back with Set-NetIPInterface -InterfaceIndex <n> -Dhcp Enabled".to_string()
+                    }),
                 },
             );
         }
@@ -558,7 +563,7 @@ pub fn build_route_plan(
             .keys()
             .flat_map(|index| {
                 [
-                    format!("Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 | Select-Object InterfaceIndex, Forwarding, InterfaceMetric, NlMtu"),
+                    format!("Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 | Select-Object InterfaceIndex, Dhcp, Forwarding, InterfaceMetric, NlMtu"),
                     format!("Get-NetIPAddress -InterfaceIndex {index} -AddressFamily IPv4 | Select-Object InterfaceIndex, IPAddress, PrefixLength, PrefixOrigin"),
                     format!("Get-NetRoute -InterfaceIndex {index} -AddressFamily IPv4 | Select-Object InterfaceIndex, DestinationPrefix, NextHop, RouteMetric"),
                 ]

@@ -91,7 +91,8 @@ Describe 'Invoke-PcaiCi nextest accelerator' -Tag 'Unit', 'Portable' {
 Describe 'Invoke-PcaiCi execution' -Tag 'Unit', 'Portable' {
     # Positive control: a real step runs, logs and reports PASS. A runner that cannot fail would
     # pass every other test, so the second case proves a failing step exits non-zero.
-    It 'runs a step, writes its log and result JSON' {
+    # Needs powershell-yaml: without it the runner (correctly) refuses to report this step PASS.
+    It 'runs a step, writes its log and result JSON' -Skip:(-not (Get-Module -ListAvailable -Name 'powershell-yaml')) {
         $resultsDir = Join-Path $TestDrive 'run'
         $results = @(& $script:Runner -Only WorkflowSyntax -PassThru -ResultsDir $resultsDir 6>$null)
         $results.Count | Should -Be 1
@@ -105,8 +106,8 @@ Describe 'Invoke-PcaiCi execution' -Tag 'Unit', 'Portable' {
         [IO.Directory]::CreateDirectory((Join-Path $fixture 'Tests')) | Out-Null
         [IO.Directory]::CreateDirectory((Join-Path $fixture 'Tools')) | Out-Null
         Copy-Item $script:Runner (Join-Path $fixture 'Tests/Invoke-PcaiCi.ps1')
-        [IO.File]::WriteAllText((Join-Path $fixture 'Tools/Test-WorkflowSyntax.ps1'), 'exit 3', [Text.UTF8Encoding]::new($false))
-        $out = pwsh -NoProfile -File (Join-Path $fixture 'Tests/Invoke-PcaiCi.ps1') -Only WorkflowSyntax -ResultsDir (Join-Path $fixture 'r') 2>&1
+        [IO.File]::WriteAllText((Join-Path $fixture 'Tools/Test-CredentialScan.ps1'), 'exit 3', [Text.UTF8Encoding]::new($false))
+        $out = pwsh -NoProfile -File (Join-Path $fixture 'Tests/Invoke-PcaiCi.ps1') -Only CredentialScan -ResultsDir (Join-Path $fixture 'r') 2>&1
         $LASTEXITCODE | Should -Be 1
         ($out | Out-String) | Should -Match 'FAIL'
     }
@@ -122,16 +123,16 @@ Describe 'Invoke-PcaiCi execution' -Tag 'Unit', 'Portable' {
             [IO.Directory]::CreateDirectory($dir) | Out-Null
         }
         Copy-Item $script:Runner (Join-Path $fixture 'Tests/Invoke-PcaiCi.ps1')
-        [IO.File]::WriteAllText((Join-Path $fixture 'Tools/Test-WorkflowSyntax.ps1'), "'workflow syntax ok'; exit 0", [Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText((Join-Path $fixture 'Tools/Test-CredentialScan.ps1'), "'credential scan ok'; exit 0", [Text.UTF8Encoding]::new($false))
         Push-Location $caller
         try {
-            $out = pwsh -NoProfile -File (Join-Path $fixture 'Tests/Invoke-PcaiCi.ps1') -Only WorkflowSyntax -ResultsDir 'ci-results' 2>&1
+            $out = pwsh -NoProfile -File (Join-Path $fixture 'Tests/Invoke-PcaiCi.ps1') -Only CredentialScan -ResultsDir 'ci-results' 2>&1
             $exit = $LASTEXITCODE
         } finally {
             Pop-Location
         }
         $exit | Should -Be 0 -Because ($out | Out-String)
-        Test-Path (Join-Path $caller 'ci-results/pcai-ci-WorkflowSyntax.log') | Should -BeTrue
+        Test-Path (Join-Path $caller 'ci-results/pcai-ci-CredentialScan.log') | Should -BeTrue
         (Get-Content (Join-Path $caller 'ci-results/pcai-ci-last.json') -Raw | ConvertFrom-Json).Results[0].Status | Should -Be 'PASS'
         Test-Path (Join-Path $fixture 'ci-results') | Should -BeFalse
     }

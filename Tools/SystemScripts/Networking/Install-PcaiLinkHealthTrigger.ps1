@@ -347,6 +347,15 @@ function Install-PcaiHealthWindows {
         if (-not (Test-Path -LiteralPath $usb4Root)) { New-PcaiProtectedDirectory -Path $usb4Root }
         New-PcaiProtectedDirectory -Path $linkRoot
         New-PcaiProtectedDirectory -Path $Target
+        # A version directory that already exists may predate the protection (or hold files a user
+        # planted while it was writable), and a content hash names only what we meant to copy. The
+        # SYSTEM task never runs a directory it did not just create: rebuild it from scratch.
+        if (Test-Path -LiteralPath $bin) {
+            if ((Get-Item -LiteralPath $bin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$bin is a reparse point; review and remove it" }
+            Remove-Item -LiteralPath $bin -Recurse -Force
+        }
+        New-PcaiProtectedDirectory -Path $bin
+        New-PcaiProtectedDirectory -Path $backupDir
     }
     $null = New-Item -ItemType Directory -Force -Path $bin, $backupDir
     foreach ($f in $files) { Copy-Item -LiteralPath $f.Source -Destination (Join-Path $bin $f.Name) -Force }

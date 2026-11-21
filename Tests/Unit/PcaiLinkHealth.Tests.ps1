@@ -225,6 +225,25 @@ Describe 'Linux reconnect monitor' -Tag 'Unit', 'Portable' {
     }
 }
 
+Describe 'SYSTEM install never trusts a pre-existing version directory' -Tag 'Unit' {
+    It 'rebuilds the version directory so a planted file does not survive' -Skip:(-not $IsWindows) {
+        Mock Get-ScheduledTask { }
+        Mock Register-ScheduledTask { }
+        Mock Start-ScheduledTask { }
+        Mock Get-Acl { [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = 'S-1-5-32-544' } } -PassThru }
+        Mock New-PcaiProtectedDirectory { $null = New-Item -ItemType Directory -Force -Path $Path }
+        $target = Join-Path $TestDrive 'pcai-usb4/link-health/bin'
+        $files = @(Get-PcaiHealthFile -Root $repoRoot -Components @('LinkHealth') | Where-Object { Test-Path -LiteralPath $_.Source })
+        $bin = Join-Path $target (Get-PcaiContentVersion -File $files)
+        $null = New-Item -ItemType Directory -Force -Path $bin
+        Set-Content -LiteralPath (Join-Path $bin 'planted.ps1') -Value 'evil'
+        Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask | Out-Null
+        Test-Path -LiteralPath (Join-Path $bin 'planted.ps1') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $bin 'Invoke-PcaiLinkHealth.ps1') | Should -BeTrue
+        Should -Invoke New-PcaiProtectedDirectory -ParameterFilter { $Path -eq $bin }
+    }
+}
+
 Describe 'Uninstall -Restore returns the pre-install definition' -Tag 'Unit' {
     It 'restores the baseline captured by the first install, not a later copy of the health task' -Skip:(-not $IsWindows) {
         # Mock bodies do not share this test's script scope, so the fake task store is global. Get-ScheduledTask

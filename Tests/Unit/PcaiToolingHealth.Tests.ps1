@@ -217,6 +217,23 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
         Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Head
         (Get-Content -LiteralPath (Join-Path $c.Work 'a.txt')) | Should -Be 'three'
     }
+    # Why: with a tag of the same name, `%(refname:short)` prints the branch as `heads/feat`, so the
+    # recorded tip was never found under `feat` and the branch stayed advanced (codex review of PR 345
+    # at 849375e2, reproduced offline). Branch names are recorded with `%(refname:lstrip=2)`.
+    It 'restores a feature branch whose name a tag shares' {
+        $c = New-BehindCheckout 'tagged'
+        Invoke-TestGit $c.Work @('-c', 'tag.gpgSign=false', 'tag', 'feat', 'HEAD~1') | Out-Null
+        $r = Invoke-PcaiFastForward -State $c.State -BeforeMerge { Invoke-TestGit $c.Work @('switch', '-q', 'feat') | Out-Null }
+        $r.Action | Should -Be 'RolledBack'
+        Invoke-TestGit $c.Work @('rev-parse', 'refs/heads/feat') | Should -Be $c.State.Head
+    }
+    It 'reports a stale branch by its plain name when a tag shares it' {
+        $c = New-BehindCheckout 'stale-tagged'
+        Invoke-TestGit $c.Work @('-c', 'tag.gpgSign=false', 'tag', 'featOld', 'HEAD') | Out-Null
+        $state = Get-PcaiRepoState -Repo ([pscustomobject]@{ Path = $c.Work; Slug = 'x/y'; Name = 'y' }) -NoFetch
+        $state.StaleBranches | Should -Contain 'featOld'
+        $state.StaleBranches | Should -Not -Contain 'heads/featOld'
+    }
     It 'reports Changed and moves nothing when the branch differs before the merge starts' {
         $c = New-BehindCheckout 'early'
         Invoke-TestGit $c.Work @('switch', '-q', 'feat') | Out-Null

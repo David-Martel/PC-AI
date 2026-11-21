@@ -363,8 +363,8 @@ function Get-PcaiRepoState {
         elseif ($line -like 'prunable*' -and $current) { $current.Prunable = $true }
     }
     if ($current) { $worktrees.Add([pscustomobject]$current) }
-    $merged = @((& $git @('branch', '--format=%(refname:short)', '--merged', "refs/remotes/origin/$def")).Stdout -split "`n" | ForEach-Object Trim | Where-Object { $_ })
-    $gone = @((& $git @('for-each-ref', '--format=%(refname:short)|%(upstream:track)', 'refs/heads')).Stdout -split "`n" |
+    $merged = @((& $git @('branch', '--format=%(refname:lstrip=2)', '--merged', "refs/remotes/origin/$def")).Stdout -split "`n" | ForEach-Object Trim | Where-Object { $_ })
+    $gone = @((& $git @('for-each-ref', '--format=%(refname:lstrip=2)|%(upstream:track)', 'refs/heads')).Stdout -split "`n" |
             Where-Object { $_ -like '*|`[gone`]*' } | ForEach-Object { ($_ -split '\|')[0] })
     $staleBranches = @(@($merged + $gone) | Sort-Object -Unique | Where-Object { $_ -and $_ -ne $def -and $_ -ne $branch })
     $linked = @($worktrees | Select-Object -Skip 1 | ForEach-Object {
@@ -439,7 +439,7 @@ function Invoke-PcaiFastForward {
     $changedSince = Test-PcaiRepoUnchanged -State $State
     if ($changedSince) { return [pscustomobject]@{ Action = 'Changed'; Note = "not fast-forwarded: $changedSince since sampling" } }
     $tips = @{}
-    foreach ($line in ((& $git @('for-each-ref', '--format=%(refname:short) %(objectname)', 'refs/heads') 30).Stdout -split "`n")) {
+    foreach ($line in ((& $git @('for-each-ref', '--format=%(refname:lstrip=2) %(objectname)', 'refs/heads') 30).Stdout -split "`n")) {
         $parts = $line.Trim() -split ' '
         if ($parts.Count -eq 2) { $tips[$parts[0]] = $parts[1] }
     }

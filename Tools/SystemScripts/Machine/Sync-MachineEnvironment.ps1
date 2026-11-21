@@ -242,6 +242,7 @@ $env:Path = [Environment]::ExpandEnvironmentVariables((@($cleanUserPath) + @((Ge
 # 7. Repair broken links & shims in ~/bin and ~/.local/bin
 # ---------------------------------------------------------------------------
 $repairedLinks = [System.Collections.Generic.List[string]]::new()
+$brokenLinks = [System.Collections.Generic.List[string]]::new()
 $binRustup = Join-Path $UserHomeReal 'bin\rustup.exe'
 $cargoRustup = Join-Path $UserHomeReal '.cargo\bin\rustup.exe'
 # `rustup self update` rewrites only $CARGO_HOME\bin, so that copy is the freshest; ~/.cargo/bin is the legacy fallback.
@@ -290,8 +291,9 @@ foreach ($bdir in @((Join-Path $UserHomeReal 'bin'), (Join-Path $UserHomeReal '.
                     New-Item -ItemType HardLink -Path $item.FullName -Target $rustupSource | Out-Null
                     $repairedLinks.Add("Repaired rustup proxy: $($item.FullName) -> $rustupSource")
                 } else {
-                    Remove-Item -LiteralPath $item.FullName -Force
-                    $repairedLinks.Add("Removed broken link: $($item.FullName) (target: $t)")
+                    # Reported, not deleted: the target may live on a drive that is offline right now, and a file delete is not
+                    # covered by the registry backup. Cleanup is deferred (docs/MACHINE_PATH_POLICY.md).
+                    $brokenLinks.Add("$($item.FullName) (target: $t)")
                 }
             } elseif (-not [IO.Path]::IsPathRooted($t) -and ($rustupProxies -contains $item.Name) -and $rustupSource) {
                 Remove-Item -LiteralPath $item.FullName -Force
@@ -361,13 +363,13 @@ foreach ($u in @('uv.exe','uvx.exe','uvw.exe')) {
     }
 }
 
-# Remove stale shadow wrappers in ~/.local/bin that shadow ~/bin (cargo.bat, cargo.cmd, sg.cmd)
+# Stale shadow wrappers in ~/.local/bin that shadow ~/bin (cargo.bat, cargo.cmd, sg.cmd) are REPORTED, not deleted: this unattended
+# sync cannot prove a working replacement exists, and a file delete is not covered by the registry backup. Removal is deferred to the
+# follow-up PR on applied archival (docs/MACHINE_PATH_POLICY.md); Test-MachinePath.ps1 reports the shadowing itself.
+$staleShims = [System.Collections.Generic.List[string]]::new()
 foreach ($staleShim in @('cargo.bat','cargo.cmd','sg.cmd')) {
     $stalePath = Join-Path $UserHomeReal ".local\bin\$staleShim"
-    if (Test-Path -LiteralPath $stalePath) {
-        Remove-Item -LiteralPath $stalePath -Force
-        $repairedLinks.Add("Removed stale shadow shim: $stalePath")
-    }
+    if (Test-Path -LiteralPath $stalePath) { $staleShims.Add($stalePath) }
 }
 
 # Ensure git-guard wrappers exist in ~/bin
@@ -409,6 +411,8 @@ $summary = [pscustomobject]@{
     UserPathEntries       = $cleanUserPath.Count
     RemovedUserPaths      = $removedUserPaths
     RepairedLinks         = $repairedLinks
+    BrokenLinksNotRemoved = $brokenLinks
+    StaleShimsNotRemoved  = $staleShims
     PathAudit             = $pathAudit
 }
 

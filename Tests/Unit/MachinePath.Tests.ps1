@@ -625,3 +625,28 @@ Describe 'Repair-MachinePath.ps1 refuses -ApplyArchive' {
         Test-Path -LiteralPath $script:Candidate | Should -BeTrue
     }
 }
+
+
+Describe 'Sync-MachineEnvironment.ps1 does not delete command files' {
+    # Why: an unattended sync cannot prove a replacement exists and a file delete is not covered by the registry backup, so stale
+    # shadow shims and dangling links are reported, not removed (codex review of PR 343, round 9, P2).
+    BeforeAll {
+        $script:SyncText3 = Get-Content (Resolve-Path (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Sync-MachineEnvironment.ps1')).Path -Raw
+    }
+    It 'reports stale ~/.local/bin shims instead of deleting them' {
+        $script:SyncText3 | Should -Not -Match 'Remove-Item\s+-LiteralPath\s+\$stalePath'
+        $script:SyncText3 | Should -Not -Match 'Removed stale shadow shim'
+        $script:SyncText3 | Should -Match 'StaleShimsNotRemoved'
+    }
+    It 'reports dangling links instead of deleting them' {
+        $script:SyncText3 | Should -Not -Match 'Removed broken link'
+        $script:SyncText3 | Should -Match 'BrokenLinksNotRemoved'
+    }
+    It 'only removes files it immediately replaces (rustup proxy hardlinks)' {
+        # Every remaining Remove-Item on a file path must be followed by the hardlink that replaces it.
+        $lines = $script:SyncText3 -split "`r?`n"
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match 'Remove-Item\s+-LiteralPath\s+\$item\.FullName') { $lines[$i + 1] | Should -Match 'New-Item\s+-ItemType\s+HardLink' }
+        }
+    }
+}

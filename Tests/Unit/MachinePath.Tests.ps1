@@ -23,6 +23,17 @@ Describe 'Resolve-MachinePathEntry' {
             Resolve-MachinePathEntry -Entry '%USERPROFILE%\bin' -Context $script:Ctx | Should -Be 'C:\Users\tester\bin'
         } finally { $env:USERPROFILE = $old }
     }
+    It 'expands 8.3 short names and parent segments so two spellings of one directory are duplicates' {
+        # Why: dtm-work lists C:\PROGRA~1\CMake\bin and C:\Program Files\CMake\bin side by side; they are one directory.
+        (Resolve-MachinePathEntry -Entry 'C:\PROGRA~1' -Context $script:Ctx) | Should -Be 'C:\Program Files'
+        (Resolve-MachinePathEntry -Entry 'C:\Windows\System32\..\System32' -Context $script:Ctx) | Should -Be 'C:\Windows\System32'
+    }
+    It 'does not forbid the bin directory of the CARGO_HOME in use' {
+        # Why: when CARGO_HOME is unset the canonical home is ~/.cargo, so ~/.cargo/bin is required, not forbidden.
+        $ctx = [pscustomobject]@{ UserHome = 'C:\Users\tester'; CargoHome = 'C:\Users\tester\.cargo'; LocalAppData = 'C:\Users\tester\AppData\Local'; SystemRoot = 'C:\Windows' }
+        $pol = Read-MachinePathPolicy -Path (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\machine-path.policy.json') -Context $ctx
+        $pol.ForbiddenEntries | Should -Not -Contain 'C:\Users\tester\.cargo\bin'
+    }
     It 'strips quotes and a trailing backslash but keeps a drive root' {
         Resolve-MachinePathEntry -Entry '"C:\Tools\"' -Context $script:Ctx | Should -Be 'C:\Tools'
         Resolve-MachinePathEntry -Entry 'C:\' -Context $script:Ctx | Should -Be 'C:\'
@@ -37,7 +48,7 @@ Describe 'Test-MachinePathEntries' {
         $codes = $f.Code
         $codes | Should -Contain 'PATH-DEAD'
         $codes | Should -Contain 'PATH-DUP'
-        $codes | Should -Contain 'PATH-DUP-CROSS'
+        ($f | Where-Object Code -eq 'PATH-DUP-CROSS').Severity | Should -Be 'Info'
         $codes | Should -Contain 'PATH-ENVREL'
         $codes | Should -Contain 'PATH-RELATIVE'
         $codes | Should -Contain 'PATH-FORBIDDEN'
@@ -85,10 +96,12 @@ Describe 'Get-MachinePathPlan' {
         $f = Test-MachinePathEntries -UserEntries @($agent) -Policy $script:Policy -Context $script:Ctx -DirectoryExists $script:AllExist
         $f.Code | Should -Contain 'PATH-AGENTHOME'
     }
-    It 'drops a user entry that duplicates a machine entry and keeps the machine text untouched' {
-        $plan = Get-MachinePathPlan -UserEntries @('C:\Windows\System32\OpenSSH') -MachineEntries @('%SystemRoot%\System32\OpenSSH\') -Policy $script:Policy -Context $script:Ctx -DirectoryExists $script:AllExist
+    It 'keeps a directory that is in both scopes and leaves the machine text untouched' {
+        # Why: dtm-work keeps ~/bin in the machine PATH on purpose (services and sshd never see the user PATH); only same-scope duplicates go.
+        $plan = Get-MachinePathPlan -UserEntries @('C:\Windows\System32\OpenSSH', 'C:\Tools', 'C:\Tools') -MachineEntries @('%SystemRoot%\System32\OpenSSH\') -Policy $script:Policy -Context $script:Ctx -DirectoryExists $script:AllExist
         $plan.MachineEntries | Should -Contain '%SystemRoot%\System32\OpenSSH\'
-        ($plan.Removed | Where-Object { $_.Scope -eq 'User' }).Reason | Should -Contain 'duplicate'
+        $plan.UserEntries | Should -Contain 'C:\Windows\System32\OpenSSH'
+        ($plan.Removed | Where-Object { $_.Scope -eq 'User' }).Entry | Should -Be @('C:\Tools')
     }
 }
 

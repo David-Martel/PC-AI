@@ -40,6 +40,7 @@
 param(
     [switch]$Apply,
     [switch]$IncludeMachine,
+    [string[]]$MachineAdditions = @(),
     [string]$PolicyPath = (Join-Path $PSScriptRoot 'machine-path.policy.json'),
     [string]$UserHome,
     [string]$BackupDir,
@@ -73,7 +74,7 @@ function Get-ReferenceCorpus {
     foreach ($d in $dirs) {
         if (-not (Test-Path -LiteralPath $d)) { continue }
         Get-ChildItem -LiteralPath $d -File -Force -Recurse -Depth 4 -Include *.ps1, *.psm1, *.cmd, *.bat, *.json, *.toml, *.yml, *.xml, *.lua, *.sh, *.conf -ErrorAction SilentlyContinue |
-            Where-Object { $_.Length -lt 1MB -and $_.FullName -notmatch '\\(backups|archive|logs|imports|migration|\.superseded|node_modules)\\' } |
+            Where-Object { $_.Length -lt 1MB -and $_.FullName -notmatch '\\(backups|archive|logs|imports|migration|\.superseded|node_modules|path-tool)\\' } |
             ForEach-Object { $script:corpusSources++; [void]$sb.AppendLine((Get-Content -LiteralPath $_.FullName -Raw -ErrorAction SilentlyContinue)) }
     }
     Get-ScheduledTask -ErrorAction SilentlyContinue | ForEach-Object { foreach ($a in $_.Actions) { [void]$sb.AppendLine("$($a.Execute) $($a.Arguments)") } }
@@ -95,6 +96,19 @@ function Test-Referenced {
 $user = Get-MachinePathRegistry -Scope User
 $machine = Get-MachinePathRegistry -Scope Machine
 $plan = Get-MachinePathPlan -UserEntries $user.Entries -MachineEntries $machine.Entries -Policy $policy -Context $ctx
+# Entries added to the MACHINE PATH (tokens allowed, e.g. '{CargoHome}\bin') so services and sshd sessions, which never see the user PATH
+# as a logon would, can find them. Applied only with -IncludeMachine.
+if ($policy.HostOverrideReason) { "host override: $($policy.HostOverrideReason)" }
+# Required entries that the (possibly empty) head block did not place are appended, never reordered.
+foreach ($req in $policy.RequiredUserEntries) {
+    if ((Test-Path -LiteralPath $req -PathType Container) -and -not ($plan.UserEntries | Where-Object { $_ -ieq $req.TrimEnd('\') })) { $plan.UserEntries = @($plan.UserEntries) + $req.TrimEnd('\') }
+}
+foreach ($add in (@($MachineAdditions) + @($policy.MachineAdditions))) {
+    $abs = Expand-MachinePathToken -Text $add -Context $ctx
+    if ((Test-Path -LiteralPath $abs -PathType Container) -and -not ($plan.MachineEntries | Where-Object { (Resolve-MachinePathEntry -Entry $_ -Context $ctx) -ieq $abs })) {
+        $plan.MachineEntries = @($plan.MachineEntries) + $abs
+    }
+}
 $userChanged = ($plan.UserEntries -join ';') -ne $user.Raw
 $machineChanged = $IncludeMachine -and (($plan.MachineEntries -join ';') -ne $machine.Raw)
 "PATH plan: user {0} -> {1} entries ({2} -> {3} chars); machine {4} -> {5}{6}" -f $user.Entries.Count, $plan.UserEntries.Count, $user.Raw.Length, ($plan.UserEntries -join ';').Length, $machine.Entries.Count, $plan.MachineEntries.Count, $(if (-not $IncludeMachine) { ' (not applied without -IncludeMachine)' } else { '' })
@@ -113,6 +127,7 @@ if (-not $SkipArchive) {
     $allDirs = @($userDirs + $machineDirs | Select-Object -Unique)
     $index = Get-MachineCommandIndex -Directories $allDirs
     $cargoBin = (Join-Path $ctx.CargoHome 'bin').ToLowerInvariant()
+    $procDirs = @($env:Path -split ';' | Where-Object { $_ } | ForEach-Object { (Resolve-MachinePathEntry -Entry $_ -Context $ctx).TrimEnd('\').ToLowerInvariant() })
     foreach ($name in $index.Keys) {
         $cands = $index[$name]
         $mine = @($cands | Where-Object { $managed -contains $_.Dir.TrimEnd('\') })
@@ -126,7 +141,8 @@ if (-not $SkipArchive) {
                 $lines = @(Get-Content -LiteralPath $m.Path | Where-Object { $_ -and $_ -notmatch '^\s*(@echo off|rem\b|::)' })
                 if ($lines.Count -eq 1 -and ($lines -join ' ') -match '^\s*(?:call\s+)?"?(?<t>[A-Za-z]:\\[^"]+?\.(?:exe|cmd|bat))"?\s+%\*\s*$' -and
                     ([IO.Path]::GetFileNameWithoutExtension($Matches['t']).ToLowerInvariant() -eq $name) -and (Test-Path -LiteralPath $Matches['t']) -and
-                    ($others | Where-Object { $_.Path -eq $Matches['t'] })) {
+                    ($others | Where-Object { $_.Path -eq $Matches['t'] }) -and
+                    ($procDirs -contains (Split-Path $Matches['t'] -Parent).TrimEnd('\').ToLowerInvariant())) {   # the target's directory must be on THIS process's PATH too: a service started before a PATH change keeps the old one
                     $archive.Add([pscustomobject]@{ Path = $m.Path; Why = "pass-through to $($Matches['t'])" })
                 }
             } elseif ($m.Ext -eq '.exe' -and $m.Dir.TrimEnd('\') -eq (Join-Path $ctx.UserHome 'bin')) {

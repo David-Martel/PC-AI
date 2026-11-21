@@ -38,6 +38,13 @@
     "{UserHome}\\bin",
     "{UserHome}\\.local\\bin"
   ],
+  "hostOverrides": {
+    "DTM-WORK": {
+      "keepOrder": true,
+      "machineAdditions": [ "{CargoHome}\\bin" ],
+      "reason": "dtm-work keeps ~/bin and ~/.local/bin in the machine PATH for services and sshd, and its ~/bin wrappers (python.cmd, npm.cmd) are deliberate; only dedupe, remove dead entries and add the cargo bin to the machine PATH."
+    }
+  },
   "lengthWarn": 2047,
   "lengthError": 30000,
   "requiredPathExt": [ ".EXE", ".CMD", ".BAT", ".COM" ],

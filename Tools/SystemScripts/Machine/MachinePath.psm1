@@ -70,8 +70,14 @@ function Expand-MachinePathToken {
 
 function Read-MachinePathPolicy {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)]$Context)
+    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)]$Context, [string]$HostName = $env:COMPUTERNAME)
     $raw = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+    # hostOverrides.<COMPUTERNAME>: keepOrder drops the head block (the host's own order is deliberate) and machineAdditions lists
+    # directories that must also be on the MACHINE PATH, for hosts whose services and sshd sessions never see the user PATH.
+    $override = $null
+    if ($raw.PSObject.Properties['hostOverrides'] -and $HostName -and $raw.hostOverrides.PSObject.Properties[$HostName.ToUpperInvariant()]) {
+        $override = $raw.hostOverrides.PSObject.Properties[$HostName.ToUpperInvariant()].Value
+    }
     $expandList = { param($list) @($list | ForEach-Object { Expand-MachinePathToken -Text $_ -Context $Context }) }
     $reasons = @{}
     if ($raw.PSObject.Properties['forbiddenReasons']) {
@@ -80,9 +86,12 @@ function Read-MachinePathPolicy {
     $shadows = @{}
     foreach ($p in $raw.intentionalShadows.PSObject.Properties) { $shadows[$p.Name.ToLowerInvariant()] = $p.Value }
     [pscustomobject]@{
-        UserPathHead        = & $expandList $raw.userPathHead
+        UserPathHead        = $(if ($override -and $override.PSObject.Properties['keepOrder'] -and $override.keepOrder) { @() } else { & $expandList $raw.userPathHead })
+        MachineAdditions    = $(if ($override -and $override.PSObject.Properties['machineAdditions']) { & $expandList $override.machineAdditions } else { @() })
+        HostOverrideReason  = $(if ($override -and $override.PSObject.Properties['reason']) { [string]$override.reason } else { '' })
         RequiredUserEntries = & $expandList $raw.requiredUserEntries
-        ForbiddenEntries    = & $expandList $raw.forbiddenEntries
+        # When CARGO_HOME is the default ~/.cargo, its bin directory is the canonical one and must not be forbidden.
+        ForbiddenEntries    = @(& $expandList $raw.forbiddenEntries | Where-Object { $_.TrimEnd('\') -ine (Join-Path $Context.CargoHome 'bin') })
         ForbiddenReasons    = $reasons
         ForbiddenPatterns   = @($(if ($raw.PSObject.Properties['forbiddenPatterns']) { $raw.forbiddenPatterns }))
         ForbiddenPatternReason = $(if ($raw.PSObject.Properties['forbiddenPatternReason']) { [string]$raw.forbiddenPatternReason } else { 'Matches a forbidden pattern.' })
@@ -113,6 +122,25 @@ function Get-MachinePathRegistry {
     [pscustomobject]@{ Scope = $Scope; Raw = $raw; Kind = $kind; Entries = @($raw -split ';' | Where-Object { $_ -ne '' }) }
 }
 
+function ConvertTo-MachineLongPath {
+    <#
+    .SYNOPSIS
+        Expands 8.3 short names (C:\PROGRA~1) so two spellings of one directory compare equal. Unchanged if the path does not exist.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+    if ($Path -notmatch '~\d') { return $Path }
+    if (-not ('MachinePath.LongPath' -as [type])) {
+        Add-Type -Namespace MachinePath -Name LongPath -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+public static extern uint GetLongPathName(string lpszShortPath, System.Text.StringBuilder lpszLongPath, uint cchBuffer);
+'@
+    }
+    $sb = [System.Text.StringBuilder]::new(1024)
+    $n = [MachinePath.LongPath]::GetLongPathName($Path, $sb, 1024)
+    if ($n -gt 0 -and $n -lt 1024) { $sb.ToString() } else { $Path }
+}
+
 function Resolve-MachinePathEntry {
     <#
     .SYNOPSIS
@@ -127,7 +155,8 @@ function Resolve-MachinePathEntry {
     $e = [Environment]::ExpandEnvironmentVariables($e)
     $e = $e.Replace('/', '\')
     if ($e.Length -gt 3) { $e = $e.TrimEnd('\') }
-    $e
+    if ($e -match '\\\.\.(\\|$)') { $e = [IO.Path]::GetFullPath($e) }   # C:\Program Files\Gpg4win\..\GnuPG\bin
+    ConvertTo-MachineLongPath -Path $e
 }
 
 function Test-MachinePathEntries {
@@ -187,8 +216,8 @@ function Test-MachinePathEntries {
             }
             if ($seen.ContainsKey($resolved.ToLowerInvariant())) {
                 $first = $seen[$resolved.ToLowerInvariant()]
-                $code = if ($first -like "$($s.Name)#*") { 'PATH-DUP' } else { 'PATH-DUP-CROSS' }
-                $findings.Add((New-MachinePathFinding Warn $code $s.Name $entry "Duplicate of an earlier entry ($first)."))
+                if ($first -like "$($s.Name)#*") { $findings.Add((New-MachinePathFinding Warn 'PATH-DUP' $s.Name $entry "Duplicate of an earlier entry ($first).")) }
+                else { $findings.Add((New-MachinePathFinding Info 'PATH-DUP-CROSS' $s.Name $entry "Also present in the other scope ($first); harmless and sometimes deliberate for services.")) }
             } else {
                 $seen[$resolved.ToLowerInvariant()] = "$($s.Name)#$($s.Entries.IndexOf($entry))"
             }
@@ -435,12 +464,14 @@ function Get-MachinePathPlan {
     )
     $cmp = [StringComparer]::OrdinalIgnoreCase
     $removed = [System.Collections.Generic.List[object]]::new()
-    $seen = [System.Collections.Generic.HashSet[string]]::new($cmp)
     $forbidden = [System.Collections.Generic.HashSet[string]]::new($cmp)
     foreach ($f in $Policy.ForbiddenEntries) { [void]$forbidden.Add($f.TrimEnd('\')) }
 
     $build = {
         param($scope, $entries, $head)
+        # Duplicates are removed within one scope only. A directory in both scopes is deliberate on hosts whose services and sshd
+        # sessions never see the user PATH (dtm-work keeps ~/bin in the machine PATH), and it costs nothing.
+        $seen = [System.Collections.Generic.HashSet[string]]::new($cmp)
         $out = [System.Collections.Generic.List[string]]::new()
         $headResolved = [System.Collections.Generic.HashSet[string]]::new($cmp)
         foreach ($h in @($head)) {
@@ -461,7 +492,6 @@ function Get-MachinePathPlan {
         }
         , $out
     }
-    # Machine is processed first so a user duplicate of a machine entry is dropped from the user list.
     $machine = & $build 'Machine' $MachineEntries @()
     $user = & $build 'User' $UserEntries $Policy.UserPathHead
     [pscustomobject]@{ UserEntries = @($user); MachineEntries = @($machine); Removed = @($removed) }
@@ -568,7 +598,7 @@ function Compare-MachineResolutionBaseline {
     }
 }
 
-Export-ModuleMember -Function New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
+Export-ModuleMember -Function ConvertTo-MachineLongPath, New-MachinePathFinding, Get-MachinePathContext, Expand-MachinePathToken, Read-MachinePathPolicy,
     Get-MachinePathRegistry, Resolve-MachinePathEntry, Test-MachinePathEntries, Get-MachineCommandIndex, Resolve-MachineCommand,
     Test-MachinePathShadows, Test-MachinePathExtensionless, Get-MachineVariantFile, Test-MachinePathWrappers, Get-MachinePathPlan, Backup-MachinePath,
     Send-MachineEnvironmentChange, Set-MachinePathValue, Get-MachineResolutionBaseline, Compare-MachineResolutionBaseline

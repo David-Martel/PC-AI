@@ -177,6 +177,32 @@ function Resolve-PcaiSystemPwsh {
     throw "No PowerShell 7 is trusted to run as SYSTEM: $($tried -join '; '). Install PowerShell 7 machine-wide (the MSI, under Program Files), then rerun -System."
 }
 
+function Protect-PcaiSystemFile {
+    <#
+    .SYNOPSIS
+    Makes Administrators the owner of every file in the given directories, then verifies each one
+    with Test-PcaiSystemTrustedPath; throws naming any file that still fails.
+    .DESCRIPTION
+    On client Windows a file an elevated administrator creates is owned by that user, not by
+    Administrators, and a directory's owner does not pass to its files. The scripts, manifest and
+    baselines the SYSTEM task runs or restores would stay user-owned, so the user could re-permission
+    and replace them, and the watcher's own scan of its root would refuse them (codex review of #344
+    at 61707f9e). Run elevated; an elevated token may assign Administrators as owner.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string[]]$Directory)
+    foreach ($d in $Directory) {
+        foreach ($f in @(Get-ChildItem -LiteralPath $d -File -Force -ErrorAction Stop)) {
+            $acl = Get-Acl -LiteralPath $f.FullName
+            $acl.SetOwner([Security.Principal.SecurityIdentifier]'S-1-5-32-544')
+            Set-Acl -LiteralPath $f.FullName -AclObject $acl
+            if (-not (Test-PcaiSystemTrustedPath -Path $f.FullName)) {
+                throw "$($f.FullName) is not admin-owned and protected after the install set its owner; review its ACL before registering a SYSTEM task"
+            }
+        }
+    }
+}
+
 function New-PcaiProtectedDirectory {
     <# Admin-owned directory: Administrators and SYSTEM full control, Users read and execute. #>
     [CmdletBinding()]
@@ -479,6 +505,7 @@ function Install-PcaiHealthWindows {
     [ordered]@{ version = $version; installedAtUtc = [DateTime]::UtcNow.ToString('o'); sourceRoot = $Root; sourceCommit = $commit
         files = @($files | ForEach-Object { [ordered]@{ name = $_.Name; sha256 = (Get-FileHash -LiteralPath (Join-Path $bin $_.Name)).Hash.ToLowerInvariant() } })
     } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $bin 'manifest.json')
+    if ($SystemTask) { Protect-PcaiSystemFile -Directory $bin }
     foreach ($s in $specs) {
         $existing = Get-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name -ErrorAction SilentlyContinue
         # The first install records the pre-install baseline once (a definition, or a marker that
@@ -493,6 +520,7 @@ function Install-PcaiHealthWindows {
             Export-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name |
                 Set-Content -LiteralPath (Join-Path $backupDir ("{0}.{1}.xml" -f $s.Name, [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')))
         }
+        if ($SystemTask) { Protect-PcaiSystemFile -Directory $backupDir }
         try {
             Register-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name -Xml $s.Xml -Force -ErrorAction Stop | Out-Null
             $mode = if ($SystemTask) { 'SYSTEM' } else { 'S4U' }

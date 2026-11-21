@@ -135,7 +135,9 @@ Apply mode runs only in the SYSTEM task, and only when all of these hold:
   reports a warning (exit 2). A root that passes but holds an entry that does not (a file
   planted before it was protected) counts as failing; `-System` refuses to install over such
   an entry and names it. `-System` checks the ancestors above `pcai-usb4` before it creates or
-  re-permissions any directory, so a junction there cannot redirect those ACL changes. Every ancestor of a trusted path, the volume root included, must be owned by
+  re-permissions any directory, so a junction there cannot redirect those ACL changes. It makes
+  Administrators the owner of every file it writes (client Windows otherwise leaves them owned by
+  the installing user) and verifies each before it registers the task. Every ancestor of a trusted path, the volume root included, must be owned by
   Administrators, SYSTEM or TrustedInstaller, must not be a reparse point, and must not let
   another account delete, rename or re-permission it (letting Users create entries, as C:\
   and `%ProgramData%` do, is allowed);

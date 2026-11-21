@@ -352,6 +352,7 @@ Describe 'SYSTEM install never trusts a pre-existing version directory' -Tag 'Un
         Mock Get-Acl { [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = 'S-1-5-32-544' } } -PassThru }
         Mock New-PcaiProtectedDirectory { $null = New-Item -ItemType Directory -Force -Path $Path }
         Mock Test-PcaiSystemTrustedPath { $true }
+        Mock Protect-PcaiSystemFile { }
         $target = Join-Path $TestDrive 'pcai-usb4/link-health/bin'
         $files = @(Get-PcaiHealthFile -Root $repoRoot -Components @('LinkHealth') | Where-Object { Test-Path -LiteralPath $_.Source })
         $bin = Join-Path $target (Get-PcaiContentVersion -File $files)
@@ -361,6 +362,8 @@ Describe 'SYSTEM install never trusts a pre-existing version directory' -Tag 'Un
         Test-Path -LiteralPath (Join-Path $bin 'planted.ps1') | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $bin 'Invoke-PcaiLinkHealth.ps1') | Should -BeTrue
         Should -Invoke New-PcaiProtectedDirectory -ParameterFilter { $Path -eq $bin }
+        # Copied scripts and the manifest get Administrators as owner before the task is registered.
+        Should -Invoke Protect-PcaiSystemFile -ParameterFilter { $Directory -contains $bin }
     }
 }
 
@@ -636,5 +639,33 @@ Describe 'systemd activation checks every systemctl exit status' -Tag 'Unit', 'P
             Mock systemctl { $global:LASTEXITCODE = if ($args -contains $global:PcaiTestFail) { 1 } else { 0 } }
             { Invoke-PcaiSystemdActivation -Unit $Units } | Should -Throw $Expect
         } finally { Remove-Variable -Name PcaiTestFail -Scope Global -ErrorAction SilentlyContinue }
+    }
+}
+
+# Protects: files the SYSTEM task runs or restores are owned by Administrators. Detects: scripts,
+# manifest and baselines left owned by the installing user, because client Windows makes an elevated
+# administrator the owner of what it creates (codex review of #344 at 61707f9e). Needs: Get-Acl and
+# Set-Acl mocked, since assigning Administrators as owner needs elevation.
+Describe 'SYSTEM task files get Administrators as owner' -Tag 'Unit' {
+    BeforeEach {
+        $script:dir = Join-Path $TestDrive ([guid]::NewGuid().ToString('n'))
+        $null = New-Item -ItemType Directory -Path $dir
+        Set-Content -LiteralPath (Join-Path $dir 'Invoke-PcaiLinkHealth.ps1') -Value 'x'
+        Set-Content -LiteralPath (Join-Path $dir 'manifest.json') -Value '{}'
+        $global:PcaiTestOwners = [Collections.Generic.List[string]]::new()
+        Mock Get-Acl { [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name SetOwner -Value { param($sid) $global:PcaiTestOwners.Add($sid.Value) } -PassThru }
+        Mock Set-Acl { }
+    }
+    AfterEach { Remove-Variable -Name PcaiTestOwners -Scope Global -ErrorAction SilentlyContinue }
+    It 'sets the owner of every file and verifies it' -Skip:(-not $IsWindows) {
+        Mock Test-PcaiSystemTrustedPath { $true }
+        Protect-PcaiSystemFile -Directory $dir
+        @($global:PcaiTestOwners) | Should -Be @('S-1-5-32-544', 'S-1-5-32-544')
+        Should -Invoke Set-Acl -Times 2 -Exactly
+        Should -Invoke Test-PcaiSystemTrustedPath -Times 2 -Exactly
+    }
+    It 'throws when a file still fails the trust check' -Skip:(-not $IsWindows) {
+        Mock Test-PcaiSystemTrustedPath { $Path -notlike '*manifest.json' }
+        { Protect-PcaiSystemFile -Directory $dir } | Should -Throw '*manifest.json is not admin-owned and protected*'
     }
 }

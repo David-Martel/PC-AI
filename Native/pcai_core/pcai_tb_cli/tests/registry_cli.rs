@@ -621,3 +621,92 @@ fn cli_lifecycle_empty_topology_is_valid_without_route_actions() {
     assert!(value["StaleRouteWithdrawals"].as_array().unwrap().is_empty());
     assert!(value["PeerLinkStates"].as_array().unwrap().is_empty());
 }
+
+fn route_plan_inputs(name: &str, transit: &[&str]) -> (PathBuf, PathBuf, PathBuf) {
+    let dir = temp_dir(name);
+    let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/usb4-hub-chain-observation.json");
+    let mut observation: serde_json::Value = serde_json::from_str(&fs::read_to_string(fixture).unwrap()).unwrap();
+    let fresh = chrono::Utc::now().to_rfc3339();
+    for host in observation["hosts"].as_array_mut().unwrap() {
+        host["observed_at_utc"] = serde_json::Value::String(fresh.clone());
+    }
+    let input = dir.join("observation.json");
+    fs::write(&input, serde_json::to_vec(&observation).unwrap()).unwrap();
+    let policy = dir.join("policy.json");
+    fs::write(
+        &policy,
+        serde_json::to_vec(&serde_json::json!({ "schema": "pcai.usb4-route-policy/v1", "transit_hosts": transit }))
+            .unwrap(),
+    )
+    .unwrap();
+    (dir, input, policy)
+}
+
+// Protects: the actual route-plan entrypoint plans the recorded Gen7 -> NUC -> Gen9 hub
+// chain from files, with the repository registry. Detects: dispatch, option parsing or
+// registry wiring regressions. Needs: fixture rewritten to a fresh time; no adapters.
+// Breadcrumb: src/main.rs route-plan dispatch and src/route_plan.rs.
+#[test]
+fn cli_route_plan_routes_recorded_hub_chain_through_named_transit() {
+    let (dir, input, policy) = route_plan_inputs("route-plan-chain", &["dtm-super-nuc"]);
+    let registry = repo_registry_path();
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
+        .args([
+            "route-plan",
+            "--input",
+            input.to_str().unwrap(),
+            "--policy",
+            policy.to_str().unwrap(),
+            "--registry",
+            registry.to_str().unwrap(),
+            "--compact",
+        ])
+        .output()
+        .expect("run route-plan");
+    let _ = fs::remove_dir_all(&dir);
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let plan: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(plan["schema"], "pcai.usb4-route-plan/v1");
+    assert_eq!(plan["apply_supported"], false);
+    let routed = plan["paths"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["from"] == "dtm-p1gen7" && p["to"] == "dtm-p1gen9")
+        .unwrap();
+    assert_eq!(routed["status"], "Routed");
+    assert_eq!(routed["hops"][1], "dtm-super-nuc");
+}
+
+// Protects: route-plan stays a planner. Detects: accepting --apply, other mutation flags or
+// a missing policy. Needs: fixture files only. Breadcrumb: src/main.rs route-plan option gate.
+#[test]
+fn cli_route_plan_refuses_apply_and_requires_policy() {
+    let (dir, input, policy) = route_plan_inputs("route-plan-refusals", &[]);
+    let run = |args: &[&str]| {
+        hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
+            .args(args)
+            .output()
+            .expect("run route-plan refusal")
+    };
+    let (input, policy) = (input.to_str().unwrap(), policy.to_str().unwrap());
+    for args in [
+        vec!["route-plan", "--input", input, "--policy", policy, "--apply"],
+        vec![
+            "route-plan",
+            "--input",
+            input,
+            "--policy",
+            policy,
+            "--assign-pairwise-ipv4",
+        ],
+        vec!["route-plan", "--input", input],
+        vec!["topology-plan", "--input", input, "--policy", policy],
+        vec!["status", "--policy", policy],
+    ] {
+        let output = run(&args);
+        assert!(!output.status.success(), "{args:?} succeeded");
+        assert!(output.stdout.is_empty(), "{args:?} emitted output");
+    }
+    let _ = fs::remove_dir_all(&dir);
+}

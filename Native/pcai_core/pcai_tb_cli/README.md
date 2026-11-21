@@ -49,7 +49,10 @@ pcai-tb switch --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb verify-custody --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb observe --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb vnv --registry ../../../Config/thunderbolt-peers.json --output vnv-evidence.json --compact
+pcai-tb route-plan --input observation.json --policy route-policy.json --registry ../../../Config/thunderbolt-peers.json
 ```
+
+`route-plan` plans /30 addressing, host routes and transit forwarding for hosts joined through hubs or an intermediate host. It only prints commands; see [multi-hop routing](../../../docs/usb4/multi-hop-routing.md).
 
 `status`, `switch`, `verify-custody`, `observe`, and `vnv` are strictly read-only by default. Route mutation (`--apply-routes`) additionally requires `PC_AI_ALLOW_ROUTE_MUTATION=1` and fails closed on pre-existing conflicting routes.
 

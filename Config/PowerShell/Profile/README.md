@@ -98,9 +98,10 @@ pwsh -NoProfile -File Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1 -
   comparison. A tool is identified by path and `--help`, never by `--version` alone, because
   `~/bin` and `~/.local/bin` shadow system commands at different versions.
 - **Repositories.** Checkouts whose `origin` is dtm-claude, dtm-codex, PC-AI, google-access or
-  agent-hub (configurable) are fetched. A checkout is fast-forwarded with `git merge --ff-only`
+  agent-hub (configurable) are fetched. A checkout is fast-forwarded with `git merge --ff-only --no-overwrite-ignore`
   only when it is on its default branch, has no tracked changes, no merge, rebase,
-  cherry-pick or index lock, and no local commits. Everything else (`OffDefault`, `Detached`,
+  cherry-pick or index lock, and no local commits. A merge that would overwrite an ignored local file is refused
+  (`FastForwardFailed`), since that file was never committed. Everything else (`OffDefault`, `Detached`,
   `Dirty`, `Busy`, `Ahead`, `Diverged`, `FetchFailed`) is reported, never changed. If
   someone switches branch or detaches HEAD between the last check and the merge, the merge
   can move that ref instead, even if they switch back afterwards. The merge carries a per-run

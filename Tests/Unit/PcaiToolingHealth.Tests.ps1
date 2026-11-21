@@ -299,6 +299,32 @@ Describe 'Fast-forward cannot advance a branch other than the sampled one' -Tag 
         (Invoke-PcaiFastForward -State $c.State).Action | Should -Be 'FastForwarded'
         Invoke-TestGit $c.Work @('rev-parse', 'main') | Should -Be $c.State.Target
     }
+    # Why: an ignored local file passes every clean-checkout check (status ignores it), and a
+    # fast-forward to a commit that starts tracking the same path replaced its contents, which were
+    # never committed and so could not be recovered (codex review of PR 345 at 57f35770).
+    It 'refuses a fast-forward that would overwrite an ignored local file' {
+        $root = Join-Path $TestDrive 'ignored'
+        $src = Join-Path $root 'src'
+        $work = Join-Path $root 'work'
+        $null = New-Item -ItemType Directory -Path $src
+        Invoke-TestGit $src @('init', '-q', '-b', 'main') | Out-Null
+        Set-Content -LiteralPath (Join-Path $src 'a.txt') -Value 'one'
+        Invoke-TestGit $src @('add', 'a.txt') | Out-Null
+        Invoke-TestGit $src @('commit', '-q', '-m', 'one') | Out-Null
+        Invoke-TestGit $root @('clone', '-q', $src, $work) | Out-Null
+        Set-Content -LiteralPath (Join-Path $src 'local.cfg') -Value 'upstream'
+        Invoke-TestGit $src @('add', 'local.cfg') | Out-Null
+        Invoke-TestGit $src @('commit', '-q', '-m', 'track local.cfg') | Out-Null
+        Invoke-TestGit $work @('fetch', '-q', 'origin') | Out-Null
+        Add-Content -LiteralPath (Join-Path $work '.git/info/exclude') -Value 'local.cfg'
+        Set-Content -LiteralPath (Join-Path $work 'local.cfg') -Value 'my uncommitted settings'
+        $state = Get-PcaiRepoState -Repo ([pscustomobject]@{ Path = $work; Slug = 'x/y'; Name = 'y' }) -NoFetch
+        Get-PcaiRepoAction -State $state | Should -Be 'FastForward' -Because 'an ignored file does not make the checkout dirty'
+        $r = Invoke-PcaiFastForward -State $state
+        $r.Action | Should -Be 'FastForwardFailed'
+        Get-Content -LiteralPath (Join-Path $work 'local.cfg') | Should -Be 'my uncommitted settings'
+        Invoke-TestGit $work @('rev-parse', 'main') | Should -Be $state.Head
+    }
     It 'reports a stale branch by its plain name when a tag shares it' {
         $c = New-BehindCheckout 'stale-tagged'
         Invoke-TestGit $c.Work @('-c', 'tag.gpgSign=false', 'tag', 'featOld', 'HEAD') | Out-Null

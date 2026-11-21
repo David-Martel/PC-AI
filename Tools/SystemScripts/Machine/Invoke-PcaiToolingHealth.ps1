@@ -448,8 +448,10 @@ function Invoke-PcaiFastForward {
     $changedSince = Test-PcaiRepoUnchanged -State $State
     if ($changedSince) { return [pscustomobject]@{ Action = 'Changed'; Note = "not fast-forwarded: $changedSince since sampling" } }
     if ($BeforeMerge) { & $BeforeMerge }
-    # Merge the exact commit that was sampled, not whatever the ref points at now.
-    $m = & $git @('-c', 'core.logAllRefUpdates=true', 'merge', '--ff-only', '--quiet', $State.Target) 120 @{ GIT_REFLOG_ACTION = $nonce }
+    # Merge the exact commit that was sampled, not whatever the ref points at now. An ignored local
+    # file that the target starts tracking is never overwritten: its contents were never committed,
+    # so nothing could recover them (codex review of PR 345 at 57f35770).
+    $m = & $git @('-c', 'core.logAllRefUpdates=true', 'merge', '--ff-only', '--no-overwrite-ignore', '--quiet', $State.Target) 120 @{ GIT_REFLOG_ACTION = $nonce }
     if ($AfterMerge) { & $AfterMerge }
     $log = & $git @('log', '--walk-reflogs', '--all', '-n', '500', '--format=%gD%x09%H%x09%gs') 60
     if ($log.ExitCode -ne 0) {

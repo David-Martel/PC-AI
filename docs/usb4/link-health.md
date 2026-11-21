@@ -124,7 +124,8 @@ Apply mode runs only in the SYSTEM task, and only when all of these hold:
   `%ProgramData%` otherwise inherits "Users may create files", which would let a standard user
   plant `config.json` or pre-create `apply\`. The installer refuses an existing `pcai-usb4` or
   `link-health` that another account owns. Apply mode ignores a `config.json` that is not
-  admin-owned. Every ancestor of a trusted path, the volume root included, must be owned by
+  admin-owned. An elevated Apply run whose status root fails the check writes nothing there
+  (no lock, status or review script, which a planted link could redirect) and only prints. Every ancestor of a trusted path, the volume root included, must be owned by
   Administrators, SYSTEM or TrustedInstaller, must not be a reparse point, and must not let
   another account delete, rename or re-permission it (letting Users create entries, as C:\
   and `%ProgramData%` do, is allowed);

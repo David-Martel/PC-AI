@@ -226,6 +226,20 @@ Describe 'Invoke-PcaiLinkHealth side effects' -Tag 'Unit', 'Portable' {
         $status.state | Should -Be 'Drift'
         Test-Path -LiteralPath (Join-Path $root 'status.json') | Should -BeTrue
     }
+    # Protects: an elevated run never writes into a status root another account can change.
+    # Detects: run.lock, last-run.txt, status.json and the review script written through links a
+    # user planted in an untrusted root (gemini review of #344 at 45700340 and 2b45b3db). Needs:
+    # elevation and the trust check mocked; the root is a TestDrive directory. Breadcrumb: $rootTrusted.
+    It 'writes nothing into an untrusted status root when elevated in Apply mode' -Skip:(-not $IsWindows) {
+        $root = Join-Path $TestDrive 'untrusted-root'
+        $null = New-Item -ItemType Directory -Path $root
+        Mock Test-PcaiElevated { $true }
+        Mock Test-PcaiAdminOwnedPath { $false }
+        $out = @(Invoke-PcaiLinkHealth -RunMode Apply -RunTrigger Manual -Root $root -Plan $planFile -SkipBus)
+        ($out | Where-Object { $_ -is [string] }) -join ' ' | Should -Match 'writes nothing there'
+        @(Get-ChildItem -LiteralPath $root -Force).Count | Should -Be 0
+        Should -Invoke Invoke-PcaiBoundedCommand -Times 0 -Exactly
+    }
     It 'reads only the policy''s plan in Apply mode, ignoring a -PlanPath override' {
         Mock Get-PcaiAutoApplyPolicy { [pscustomobject]@{ Path = 'p'; Enabled = $true; PlanPath = 'Z:\admin-only\route-plan.json'; Reason = 'Enabled by admin-owned policy' } }
         Mock Read-PcaiRoutePlan { $null }

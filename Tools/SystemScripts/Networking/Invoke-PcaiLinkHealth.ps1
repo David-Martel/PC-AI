@@ -644,6 +644,13 @@ function Invoke-PcaiLinkHealth {
         if (-not (Test-Path -LiteralPath $Root) -and (Test-PcaiElevated)) { New-PcaiProtectedStatusRoot -Path $Root }
         $rootTrusted = Test-PcaiAdminOwnedPath -Path $Root
         if ((Test-Path -LiteralPath $Config) -and -not ($rootTrusted -and (Test-PcaiAdminOwnedPath -Path $Config))) { $Config = $null }
+        # An elevated process writing run.lock, status.json or a review script into a directory
+        # another account can change could be redirected through a link that account planted, so
+        # it reports to the console only and writes nothing there (the dry-run path).
+        if (-not $rootTrusted -and (Test-PcaiElevated)) {
+            Write-Output "LINK-HEALTH status root $Root is not admin-owned and protected; this elevated run writes nothing there and applies nothing"
+            $IsDryRun = $true
+        }
     }
     $cfg = Read-PcaiLinkHealthConfig -Path $Config -Root $Root
     if ($Plan) { $cfg.planPath = $Plan }

@@ -683,6 +683,34 @@ Describe 'PC-AI.Reliability' {
             Test-Path $new | Should -BeTrue
         }
 
+        It 'never follows a junction or symlink out of the cache, at the root or below it' -Tag 'Portable' {
+            # Detects the deletion of user data found by the third review of #346: a cache root (or a directory
+            # under it) that is a junction to Documents passed the lexical checks and its targets were pruned.
+            $onWin = ($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows
+            $linkType = $(if ($onWin) { 'Junction' } else { 'SymbolicLink' })
+            $docs = Join-Path $TestDrive 'userdocs'
+            New-Item -ItemType Directory -Force $docs | Out-Null
+            $precious = Join-Path $docs 'thesis.docx'
+            Set-Content $precious 'keep me'
+            (Get-Item $precious).LastWriteTimeUtc = [datetime]::Parse('2026-01-01T00:00:00Z').ToUniversalTime()
+
+            $linkedRoot = Join-Path $TestDrive 'a\b\linkcache'
+            New-Item -ItemType Directory -Force (Split-Path $linkedRoot) | Out-Null
+            New-Item -ItemType $linkType -Path $linkedRoot -Target $docs | Out-Null
+            { Invoke-FleetCachePrune -Path $linkedRoot -MinAgeDays 7 } | Should -Throw '*reparse*'
+            Test-Path $precious | Should -BeTrue
+
+            $realRoot = Join-Path $TestDrive 'a\b\realcache'
+            New-Item -ItemType Directory -Force $realRoot | Out-Null
+            $stale = Join-Path $realRoot 'stale.bin'
+            Set-Content $stale 'old'
+            (Get-Item $stale).LastWriteTimeUtc = [datetime]::Parse('2026-01-01T00:00:00Z').ToUniversalTime()
+            New-Item -ItemType $linkType -Path (Join-Path $realRoot 'escape') -Target $docs | Out-Null
+            $null = Invoke-FleetCachePrune -Path $realRoot -MinAgeDays 7
+            Test-Path $stale | Should -BeFalse
+            Test-Path $precious | Should -BeTrue
+        }
+
         It 'requests compaction from the storage lane instead of stopping anything' -Tag 'Portable' {
             $script:Policy.compaction = @{ request_agent = 'storage-lane'; drives = @('T'); task = $null }
             $r = InModuleScope PC-AI.Reliability -Parameters @{ P = $script:Policy } { param($P) Invoke-FleetDiskLowAction -Arguments @{ Drive = 'T'; FreeGb = 12; MinGb = 15 } -Policy $P }
@@ -816,6 +844,21 @@ Describe 'PC-AI.Reliability' {
             (Get-FleetIncidentState)['testhost|task|\outside\scope|run'].state | Should -Be 'open'
         }
 
+        It 'keeps an incident event that could not be written and writes it on the next submission' {
+            # Detects the lost alert from the third review of #346: incident state was committed before its event
+            # was appended, so a failed append left the incident open with no opening alert until the 24 h
+            # reminder (and a resolution could vanish for good).
+            # Fault injection without mocks: a directory where ledger.jsonl should be makes the real append throw.
+            $ledgerFile = Join-Path (Join-Path $env:FLEET_RELIABILITY_HOME 'ledger') 'ledger.jsonl'
+            New-Item -ItemType Directory -Force $ledgerFile | Out-Null
+            { $null = Submit-FleetObservation (New-TestObservation -Name 'outbox') } | Should -Not -Throw
+            Remove-Item -LiteralPath $ledgerFile -Recurse -Force
+            $null = Submit-FleetObservation (New-TestObservation -Name 'other' -Status ok)
+            @(Read-TestLedger | Where-Object { $_.kind -eq 'incident-open' -and $_.name -eq 'outbox' }).Count | Should -Be 1
+            $null = Submit-FleetObservation (New-TestObservation -Name 'other' -Status ok)
+            @(Read-TestLedger | Where-Object { $_.kind -eq 'incident-open' -and $_.name -eq 'outbox' }).Count | Should -Be 1
+        }
+
         It 'clears a detector-error only when that detector itself runs successfully' {
             # Detects false recovery: sweeps limited to other detectors used to resolve the error.
             Mock -ModuleName PC-AI.Reliability Get-FleetTaskObservations { throw 'scheduler unavailable' }
@@ -915,6 +958,24 @@ Describe 'PC-AI.Reliability' {
             foreach ($ch in 'dummy-token-value'.ToCharArray()) { $secure.AppendChar($ch) }
             { Set-FleetDiscordToken -Token $secure } | Should -Throw '*NOT written*'
             Test-Path (Join-Path $env:FLEET_RELIABILITY_HOME 'secrets\discord-bot-token.dpapi') | Should -BeFalse
+        }
+
+        It 'replaces an existing token file together with its permissive ACL' -Tag 'WindowsOnly' {
+            # Detects the readable secret from the third review of #346: rotating the token overwrote the file in
+            # place, so an explicit Everyone:R on the old file survived next to the restricted directory.
+            if (-not (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows)) { Set-ItResult -Skipped -Because 'Windows ACLs'; return }
+            $dir = Join-Path $env:FLEET_RELIABILITY_HOME 'secrets'
+            New-Item -ItemType Directory -Force $dir | Out-Null
+            $file = Join-Path $dir 'discord-bot-token.dpapi'
+            [IO.File]::WriteAllBytes($file, [byte[]](1, 2, 3))
+            & icacls.exe $file /grant '*S-1-1-0:R' | Out-Null
+            $LASTEXITCODE | Should -Be 0
+            $secure = New-Object System.Security.SecureString
+            foreach ($ch in 'dummy-token-value'.ToCharArray()) { $secure.AppendChar($ch) }
+            $null = Set-FleetDiscordToken -Token $secure
+            $everyone = @((Get-Acl -LiteralPath $file).Access | Where-Object { $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value -eq 'S-1-1-0' })
+            $everyone.Count | Should -Be 0
+            (Get-Item $file).Length | Should -BeGreaterThan 3
         }
 
         It 'sends to the recipient of the policy passed with -PolicyPath, not the default policy' {

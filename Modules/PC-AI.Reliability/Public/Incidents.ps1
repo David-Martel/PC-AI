@@ -156,24 +156,58 @@ function Submit-FleetObservation {
                 elseif ($s.state -eq 'open') { $ctx.transition = 'still-open' }
                 else { $ctx.transition = 'quiet' }
             }
+            # The events go into the durable outbox BEFORE the state that implies them is committed. Written
+            # after the commit, a failed ledger append lost the opening alert until the 24 h reminder, and a
+            # resolution for good (third review of #346). The outbox is flushed below and on every later call.
+            foreach ($e in $events) {
+                $status = $Observation.Status
+                $severity = $Observation.Severity
+                if ($e.kind -eq 'incident-resolved') { $status = 'ok'; $severity = 'info' }
+                $msg = $Observation.Message
+                if ($e.kind -eq 'incident-resolved' -and [string]::IsNullOrWhiteSpace($msg)) { $msg = 'recovered' }
+                $ev = New-FleetLedgerEvent -Source $Observation.Source -Name $Observation.Name -Check $Observation.Check `
+                    -Kind $e.kind -Status $status -Severity $severity -Message $msg -LogPath $Observation.LogPath `
+                    -ExitCode $Observation.ExitCode -Start $Observation.Start -End $Observation.End -IncidentKey $key -Details $Observation.Details
+                Add-FleetIncidentOutbox -LedgerEvent $ev -Forward ([bool]$e.forward)
+            }
             $all[$key] = $s
             Write-FleetJsonFile -Path $statePath -Value $all
         }
         if (-not $acquired) { throw "fleet incidents: could not lock the incident store; observation for $key not applied" }
         $transition = $ctx.transition
-
-        foreach ($e in $events) {
-            $status = $Observation.Status
-            $severity = $Observation.Severity
-            if ($e.kind -eq 'incident-resolved') { $status = 'ok'; $severity = 'info' }
-            $msg = $Observation.Message
-            if ($e.kind -eq 'incident-resolved' -and [string]::IsNullOrWhiteSpace($msg)) { $msg = 'recovered' }
-            $ev = New-FleetLedgerEvent -Source $Observation.Source -Name $Observation.Name -Check $Observation.Check `
-                -Kind $e.kind -Status $status -Severity $severity -Message $msg -LogPath $Observation.LogPath `
-                -ExitCode $Observation.ExitCode -Start $Observation.Start -End $Observation.End -IncidentKey $key -Details $Observation.Details
-            $null = Write-FleetLedgerEvent -LedgerEvent $ev -NoForward:(-not $e.forward)
-        }
+        Invoke-FleetIncidentOutboxFlush
         return [pscustomobject]@{ Key = $key; Transition = $transition; Bad = $bad }
+    }
+}
+
+function Add-FleetIncidentOutbox {
+    <# One file per event, named so that a sorted listing is the order the events happened in. #>
+    param([Parameter(Mandatory)][System.Collections.IDictionary]$LedgerEvent, [bool]$Forward)
+    $dir = Join-Path (Get-FleetPath -Kind state) 'outbox'
+    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    $name = '{0:D19}-{1}.json' -f [datetime]::UtcNow.Ticks, $LedgerEvent.event_id
+    Write-FleetJsonFile -Path (Join-Path $dir $name) -Value @{ forward = $Forward; event = $LedgerEvent }
+}
+
+function Invoke-FleetIncidentOutboxFlush {
+    <#
+    Writes pending incident events to the ledger (and forwards them) in order, deleting each one only
+    after it was written. Stops at the first failure so later events wait behind it; never throws.
+    One flusher at a time: a concurrent caller skips instead of waiting.
+    #>
+    $dir = Join-Path (Get-FleetPath -Kind state -NoCreate) 'outbox'
+    if (-not (Test-Path -LiteralPath $dir)) { return }
+    $order = @((New-FleetLedgerEvent -Source sweeper -Name order -Check order -Kind observation -Status ok -Severity info -Message order).Keys)
+    $null = Invoke-FleetWithLock -LockName 'incident-outbox' -NoWait -ScriptBlock {
+        foreach ($f in @(Get-ChildItem -LiteralPath $dir -Filter '*.json' -File | Sort-Object Name)) {
+            $item = Read-FleetJsonFile -Path $f.FullName -Default $null
+            if ($null -eq $item -or $null -eq $item.event) { Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue; continue }
+            $ev = [ordered]@{}
+            foreach ($k in $order) { $ev[$k] = $item.event[$k] }
+            try { $null = Write-FleetLedgerEvent -LedgerEvent $ev -NoForward:(-not $item.forward) }
+            catch { Write-Warning ("fleet incidents: event {0} kept for retry: {1}" -f $ev.event_id, $_.Exception.Message); break }
+            Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 

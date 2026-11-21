@@ -254,8 +254,20 @@ function Set-FleetDiscordToken {
     Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue
     $entropy = [Text.Encoding]::UTF8.GetBytes('fleet-reliability/discord-bot-token/v1')
     $blob = [Security.Cryptography.ProtectedData]::Protect([Text.Encoding]::UTF8.GetBytes($plain), $entropy, 'LocalMachine')
-    [IO.File]::WriteAllBytes($file, $blob)
     $plain = $null
+    # Never overwrite in place: an existing file keeps its own ACL, and an explicit grant on it would
+    # survive the restricted directory (third review of #346). Write a new file, which inherits only the
+    # directory's restricted ACL, check it, then move it over the old one, so the old ACL goes with it.
+    $tmp = Join-Path $dir ('.discord-bot-token.{0}.tmp' -f [guid]::NewGuid().ToString('N').Substring(0, 8))
+    try {
+        [IO.File]::WriteAllBytes($tmp, $blob)
+        $extra = @(Get-FleetSecretDirAclViolation -Path $tmp)
+        if ($extra.Count -gt 0) { throw "new token file would grant access to: $($extra -join ', '); token NOT written" }
+        Move-Item -LiteralPath $tmp -Destination $file -Force
+    }
+    finally { if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue } }
+    $extra = @(Get-FleetSecretDirAclViolation -Path $file)
+    if ($extra.Count -gt 0) { Remove-Item -LiteralPath $file -Force; throw "$file granted access to: $($extra -join ', '); token removed" }
     return [pscustomobject]@{ Path = $file; Bytes = $blob.Length }
 }
 

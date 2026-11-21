@@ -155,14 +155,51 @@ function Test-FleetCacheDirAllowed {
     return $true
 }
 
+function Get-FleetReparseAncestor {
+    <# The first of Path and its ancestors that is a reparse point (junction, symlink, mount point), or $null. #>
+    param([Parameter(Mandatory)][string]$Path)
+    $p = [IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
+    while ($p) {
+        if (Test-Path -LiteralPath $p) {
+            $item = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
+            if ($item -and ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { return $p }
+        }
+        $parent = Split-Path -Parent $p
+        if (-not $parent -or $parent -eq $p) { break }
+        $p = $parent
+    }
+    return $null
+}
+
+function Get-FleetCacheFiles {
+    <#
+    Files under Root, never descending into a reparse-point directory: Windows PowerShell 5.1's
+    Get-ChildItem -Recurse follows junctions, and a junction inside a cache can point at user data.
+    #>
+    param([Parameter(Mandatory)][string]$Root)
+    $pending = New-Object System.Collections.Stack
+    $pending.Push($Root)
+    while ($pending.Count -gt 0) {
+        $dir = $pending.Pop()
+        foreach ($item in @(Get-ChildItem -LiteralPath $dir -Force -ErrorAction SilentlyContinue)) {
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { continue }
+            if ($item.PSIsContainer) { $pending.Push($item.FullName) } else { $item }
+        }
+    }
+}
+
 function Invoke-FleetCachePrune {
     <# Deletes files older than MinAgeDays under an allowed cache dir. Returns bytes freed. #>
     param([string]$Path, [double]$MinAgeDays = 7, [switch]$WhatIfOnly)
     if (-not (Test-FleetCacheDirAllowed $Path)) { throw "refusing to prune a path that is not an allowed cache directory: $Path" }
     if (-not (Test-Path -LiteralPath $Path)) { return 0 }
+    # The lexical checks above see only the path string. A cache root that is (or sits under) a junction
+    # or symlink can resolve into Documents, so refuse it outright (third review of #346).
+    $link = Get-FleetReparseAncestor -Path $Path
+    if ($link) { throw "refusing to prune ${Path}: $link is a reparse point (junction or symlink)" }
     $cut = (Get-FleetNow).AddDays(-$MinAgeDays)
     $freed = [int64]0
-    foreach ($f in @(Get-ChildItem -LiteralPath $Path -File -Recurse -Force -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTimeUtc -lt $cut -and -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) })) {
+    foreach ($f in @(Get-FleetCacheFiles -Root $Path | Where-Object { $_.LastWriteTimeUtc -lt $cut })) {
         if (-not $WhatIfOnly) {
             try { Remove-Item -LiteralPath $f.FullName -Force -ErrorAction Stop; $freed += $f.Length } catch { Write-Verbose "skip $($f.FullName): $($_.Exception.Message)" }
         }

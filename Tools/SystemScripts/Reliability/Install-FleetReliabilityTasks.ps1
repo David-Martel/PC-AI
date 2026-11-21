@@ -67,8 +67,9 @@ $backupDir = Join-Path $homeDir 'backups'
 
 if ($PSCmdlet.ShouldProcess($homeDir, 'create with ACL SYSTEM/Administrators/' + $user)) {
     foreach ($d in @($homeDir, $backupDir)) { if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null } }
-    & icacls.exe $homeDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' "${user}:(OI)(CI)F" | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "icacls failed on $homeDir (exit $LASTEXITCODE)" }
+    # Restricts the home and every file in it (policy.json included) and verifies the result; throws, so no
+    # elevated task is registered over a home that other users can still write.
+    Set-FleetHomeAcl -Path $homeDir
 }
 
 $scripts = Join-Path $PSScriptRoot '.'

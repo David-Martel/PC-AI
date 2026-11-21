@@ -256,14 +256,20 @@ function ConvertTo-FleetHashtable {
 }
 
 function Read-FleetJsonFile {
-    param([Parameter(Mandatory)][string]$Path, $Default = @{})
+    # -ThrowOnError: an existing file that cannot be read or parsed throws and is left in place, for
+    # callers where "unreadable" must not mean "empty" (playbook budgets).
+    param([Parameter(Mandatory)][string]$Path, $Default = @{}, [switch]$ThrowOnError)
     if (-not (Test-Path -LiteralPath $Path)) { return $Default }
     try {
         $raw = [IO.File]::ReadAllText($Path)
-        if ([string]::IsNullOrWhiteSpace($raw)) { return $Default }
+        if ([string]::IsNullOrWhiteSpace($raw)) {
+            if ($ThrowOnError) { throw "$Path is empty" }
+            return $Default
+        }
         return (ConvertTo-FleetHashtable ($raw | ConvertFrom-Json))
     }
     catch {
+        if ($ThrowOnError) { throw "cannot read ${Path}: $($_.Exception.Message)" }
         # A dry run never moves a live file, even a corrupt one (second review of #346).
         if ($script:FleetReadOnly) { Write-Verbose "unreadable JSON left in place (read-only): $Path"; return $Default }
         # A corrupt state file must not stop the sweeper; keep it for inspection and start fresh.

@@ -889,6 +889,31 @@ Describe 'PC-AI.Reliability' {
             (Get-FleetIncidentState)['testhost|task|\r\retry|run'].state | Should -Be 'open'
         }
 
+        It 'does not read an unreadable log as a clean one' {
+            # Detects the false recovery from the fifth review of #346: Get-Content errors were suppressed, so a
+            # locked or unreadable log gave no lines and an ok log-rule observation that resolved the incident.
+            $log = Join-Path $TestDrive 'job.log'
+            Set-Content -LiteralPath $log -Value '[ERROR] still broken'
+            Mock -ModuleName PC-AI.Reliability Get-Content { Write-Error -Message 'The process cannot access the file because it is being used by another process' -Category ReadError -ErrorAction Continue }
+            $o = @(InModuleScope PC-AI.Reliability -Parameters @{ L = $log } { param($L) Get-FleetLogRuleObservation -Rule @{ log = $L } -Tasks @{} })
+            @($o | Where-Object { $_.Check -eq 'log-rule' -and $_.Status -eq 'ok' }).Count | Should -Be 0
+            ($o | Where-Object Check -EQ 'log-rule').Status | Should -Be 'skipped'
+            ($o | Where-Object Check -EQ 'log-read').Status | Should -Be 'failed'
+        }
+
+        It 'does not act again when its budget state exists but cannot be read' {
+            # Detects the reset budget from the fifth review of #346: an unreadable state file was moved aside and
+            # treated as "no attempts yet", so the playbook acted again.
+            $script:Ran = 0
+            $action = { param($a) $script:Ran++; @{ outcome = 'triggered'; detail = 'x' } }
+            $path = InModuleScope PC-AI.Reliability { Join-Path (Join-Path (Get-FleetPath -Kind state) 'playbooks') ('{0}.json' -f (Get-FleetShortHash 'p|k-unreadable')) }
+            New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
+            Set-Content -LiteralPath $path -Value '{ truncated'
+            Invoke-FleetPlaybook -Playbook p -IncidentKey 'k-unreadable' -Policy $script:Policy -Action $action | Should -Be 'state-unreadable'
+            $script:Ran | Should -Be 0
+            Get-Content -LiteralPath $path -Raw | Should -Match 'truncated'
+        }
+
         It 'clears a detector-error only when that detector itself runs successfully' {
             # Detects false recovery: sweeps limited to other detectors used to resolve the error.
             Mock -ModuleName PC-AI.Reliability Get-FleetTaskObservations { throw 'scheduler unavailable' }
@@ -1027,6 +1052,22 @@ Describe 'PC-AI.Reliability' {
             $everyone = @((Get-Acl -LiteralPath $file).Access | Where-Object { $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value -eq 'S-1-1-0' })
             $everyone.Count | Should -Be 0
             (Get-Item $file).Length | Should -BeGreaterThan 3
+        }
+
+        It 'removes explicit grants of other identities from the home and its files before elevated tasks use it' -Tag 'WindowsOnly' {
+            # Detects the writable policy from the fifth review of #346: /inheritance:r kept an explicit Users:Modify
+            # on an existing home and its policy.json, while the tasks run with Highest privileges.
+            if (-not (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows)) { Set-ItResult -Skipped -Because 'Windows ACLs'; return }
+            $homeDir = Join-Path $TestDrive 'acl-home'
+            New-Item -ItemType Directory -Force $homeDir | Out-Null
+            $policy = Join-Path $homeDir 'policy.json'
+            Set-Content -LiteralPath $policy -Value '{}'
+            & icacls.exe $homeDir /grant '*S-1-5-32-545:(OI)(CI)M' | Out-Null
+            & icacls.exe $policy /grant '*S-1-5-32-545:M' | Out-Null
+            @(Get-FleetSecretDirAclViolation -Path $policy).Count | Should -BeGreaterThan 0
+            Set-FleetHomeAcl -Path $homeDir
+            @(Get-FleetSecretDirAclViolation -Path $homeDir).Count | Should -Be 0
+            @(Get-FleetSecretDirAclViolation -Path $policy).Count | Should -Be 0
         }
 
         It 'sends to the recipient of the policy passed with -PolicyPath, not the default policy' {

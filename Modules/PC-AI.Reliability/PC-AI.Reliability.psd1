@@ -10,7 +10,7 @@
     FunctionsToExport = @(
         'Get-FleetPolicy', 'Get-FleetReliabilityHome', 'Get-FleetRealProfile', 'Set-FleetNormalPriority',
         'New-FleetLedgerEvent', 'Write-FleetLedgerEvent', 'Send-FleetBusEvent', 'Invoke-FleetSpoolReplay',
-        'Get-FleetDiscordToken', 'Set-FleetDiscordToken', 'Send-FleetDiscordEvent',
+        'Get-FleetDiscordToken', 'Set-FleetDiscordToken', 'Send-FleetDiscordEvent', 'Set-FleetHomeAcl', 'Get-FleetSecretDirAclViolation',
         'New-FleetObservation', 'Submit-FleetObservation', 'Get-FleetIncidentState', 'Resolve-FleetUnobservedIncidents',
         'Get-FleetTaskObservations', 'Get-FleetDiskObservations', 'Get-FleetDiskTrend', 'Get-FleetRunnerObservations',
         'Get-FleetWorkflowObservations', 'Get-FleetPostgresObservations', 'Get-FleetOrphanProcessObservations', 'Get-FleetCertObservations',

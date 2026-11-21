@@ -51,7 +51,14 @@ function Invoke-FleetPlaybook {
     $ctx = @{ outcome = 'locked' }
     $acquired = $false
     $null = Invoke-FleetWithLock -LockName ('playbook-{0}' -f (Get-FleetShortHash $stateKey)) -NoWait -Acquired ([ref]$acquired) -ScriptBlock {
-        $st = Read-FleetJsonFile -Path $statePath -Default $null
+        # Unreadable budget state is not "no attempts yet": do nothing and keep the file as evidence
+        # (fifth review of #346). A human has to look; the incident stays open.
+        try { $st = Read-FleetJsonFile -Path $statePath -Default $null -ThrowOnError }
+        catch {
+            Write-Warning ("fleet playbook {0}: budget state unreadable, not acting: {1}" -f $Playbook, $_.Exception.Message)
+            $ctx.outcome = 'state-unreadable'
+            return
+        }
         if ($null -eq $st) { $st = @{ key = $stateKey; attempts = @(); escalated_at = $null; last_outcome = $null } }
         $window = $now.AddHours(-[double]$settings.window_hours)
         $attempts = @(@($st.attempts) | Where-Object { $_ -and (ConvertFrom-FleetIso $_) -gt $window })

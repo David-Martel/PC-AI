@@ -279,6 +279,36 @@ function Set-FleetSecretDirAcl {
     return $LASTEXITCODE
 }
 
+function Set-FleetHomeAcl {
+    <#
+    Makes Path, and everything under it, writable only by SYSTEM, Administrators and the current user,
+    then verifies it, throwing when any other identity keeps access. The elevated (Highest) tasks read
+    their policy and reaper list from here, so an explicit grant left over on an existing home or file
+    (which /inheritance:r keeps) would let another user steer them (fifth review of #346).
+    #>
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { New-Item -ItemType Directory -Path $Path -Force | Out-Null }
+    $exit = Set-FleetSecretDirAcl -Path $Path
+    if ($exit -ne 0) { throw "icacls failed on $Path (exit $exit)" }
+    $allowed = @('S-1-5-18', 'S-1-5-32-544', [Security.Principal.WindowsIdentity]::GetCurrent().User.Value)
+    foreach ($rule in (Get-Acl -LiteralPath $Path).Access) {
+        if ($rule.IsInherited) { continue }
+        try { $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value } catch { $sid = [string]$rule.IdentityReference }
+        if ($allowed -notcontains $sid) { & icacls.exe $Path /remove:g "*$sid" | Out-Null }
+    }
+    # Children: drop explicit entries and protection, so each inherits exactly the home's ACL.
+    if (@(Get-ChildItem -LiteralPath $Path -Force).Count -gt 0) {
+        & icacls.exe (Join-Path $Path '*') /reset /T /C /Q | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "icacls /reset failed under $Path (exit $LASTEXITCODE)" }
+    }
+    $bad = @()
+    foreach ($item in @(Get-Item -LiteralPath $Path -Force) + @(Get-ChildItem -LiteralPath $Path -Recurse -Force)) {
+        $extra = @(Get-FleetSecretDirAclViolation -Path $item.FullName)
+        if ($extra.Count -gt 0) { $bad += ('{0}: {1}' -f $item.FullName, ($extra -join ', ')) }
+    }
+    if ($bad.Count -gt 0) { throw "other identities keep access under ${Path}: $($bad -join '; ')" }
+}
+
 function Get-FleetSecretDirAclViolation {
     <# Identities other than SYSTEM, Administrators and the current user that have any access to Path. #>
     param([Parameter(Mandatory)][string]$Path)

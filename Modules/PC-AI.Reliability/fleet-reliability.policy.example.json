@@ -1,0 +1,36 @@
+{
+  "_comment": "Copy to %ProgramData%\\fleet-reliability\\policy.json and edit. Every key is optional; see docs/reliability/fleet-ledger.md. Paths may use {profile} (real user profile) and {home} (fleet-reliability home).",
+  "task_stale_factor": 2,
+  "task_include": ["\\backups\\*"],
+  "task_scope": [],
+  "task_exclude": ["\\Microsoft\\*"],
+  "task_ok_codes": ["0x0", "0x41301", "0x41325", "0x800710E0"],
+  "task_severity": { "\\backups\\*": "high" },
+  "task_ok_codes_by_task": { "\\forwarders\\*": ["0xC000013A"] },
+  "expect_enabled": ["\\backups\\offsite-copy"],
+  "log_rules": [
+    { "task": "\\backups\\db-pull", "log": "{profile}\\logs\\db-pull*.log", "patterns": ["\\[ERROR\\]", "integrity check did not pass"], "tail_lines": 400, "severity": "high" },
+    { "task": "\\exports\\history", "log": "{profile}\\logs\\history-export.log", "patterns": ["\\bSTALE\\b"] }
+  ],
+  "rerun_tasks": ["\\fleet-reliability-test\\*"],
+  "disks": [
+    { "name": "C", "min_free_gb": 20, "min_free_pct": 5, "required": true },
+    { "name": "T", "min_free_gb": 15, "required": true }
+  ],
+  "disk_trend_window_hours": 6,
+  "disk_trend_alert_hours": 24,
+  "fleet_checks": false,
+  "runner_scopes": ["repos/<owner>/<repo>", "orgs/<org>"],
+  "workflow_expectations": [ { "repo": "<owner>/<repo>", "workflow": "qa.yml", "max_age_days": 3 } ],
+  "drain": { "bus_agent": "vct-nightly", "max_minutes": 90, "runner_patterns": ["<host>-*"] },
+  "postgres": [ { "name": "agent-bus", "port": 5300, "max_connections": 100, "warn_pct": 80, "reaper": "{profile}\\.machine\\qmd\\Stop-OrphanQmdMcp.ps1" } ],
+  "orphan_processes": [ { "pattern": "litho-qmd-mcp*", "reaper": "{profile}\\.machine\\qmd\\Stop-OrphanQmdMcp.ps1" } ],
+  "cert_endpoints": ["<name>.<domain>:443"],
+  "cert_warn_days": 21,
+  "cert_high_days": 7,
+  "cache_prune": [ { "drive": "C", "dirs": [ { "path": "{profile}\\AppData\\Local\\pip\\cache", "min_age_days": 14 } ], "commands": ["uv-cache-prune"] } ],
+  "compaction": { "request_agent": "<storage lane agent id>", "drives": ["T"], "task": null },
+  "playbooks": { "budget": 1, "window_hours": 24, "backoff_minutes": 30, "rerun-task": { "budget": 1 } },
+  "alerts": { "discord_min_severity": "medium", "discord_channel_id": null, "discord_dm_user_id": null },
+  "digest": { "fleet": false, "since_hours": 24 }
+}

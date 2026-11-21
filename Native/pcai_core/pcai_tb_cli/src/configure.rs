@@ -940,33 +940,58 @@ pub struct ThunderboltUnregistrationReport {
     pub notes: Vec<String>,
 }
 
-fn ipv6_route_still_present<R: CommandRunner>(runner: &R, if_index: u32, if_alias: &str, prefix: &str) -> bool {
-    let Some((address, length)) = prefix.split_once('/') else {
-        return true;
-    };
-    let Ok(address) = address.parse::<std::net::Ipv6Addr>() else {
-        return true;
+/// Reads the /128 IPv6 routes installed on one interface. `None` means the table could
+/// not be read, which callers treat as unknown rather than absent.
+fn installed_ipv6_host_routes<R: CommandRunner>(
+    runner: &R,
+    if_index: u32,
+    if_alias: &str,
+) -> Option<std::collections::BTreeSet<std::net::Ipv6Addr>> {
+    let parse = |token: &str| -> Option<(std::net::Ipv6Addr, u8)> {
+        let (ip, len) = token.split_once('/').unwrap_or((token, "128"));
+        Some((ip.parse().ok()?, len.parse().ok()?))
     };
     #[cfg(target_os = "windows")]
-    let (ok, listing) = {
+    {
         let _ = if_alias;
-        runner.run("netsh", &["interface", "ipv6", "show", "route"])
-    };
-    #[cfg(not(target_os = "windows"))]
-    let (ok, listing) = runner.run("ip", &["-6", "route", "show", prefix, "dev", if_alias]);
-    if !ok {
-        return true;
+        // netsh columns: Publish Type Met Prefix Idx Gateway/Interface; Idx follows Prefix.
+        let (ok, listing) = runner.run("netsh", &["interface", "ipv6", "show", "route"]);
+        if !ok {
+            return None;
+        }
+        let index = if_index.to_string();
+        Some(
+            listing
+                .lines()
+                .filter_map(|line| {
+                    let tokens: Vec<&str> = line.split_whitespace().collect();
+                    let at = tokens.iter().position(|t| t.contains('/') && t.contains(':'))?;
+                    (tokens.get(at + 1) == Some(&index.as_str()))
+                        .then(|| parse(tokens[at]))
+                        .flatten()
+                })
+                .filter(|(_, len)| *len == 128)
+                .map(|(ip, _)| ip)
+                .collect(),
+        )
     }
-    let index = if_index.to_string();
-    listing.lines().any(|line| {
-        let tokens: Vec<&str> = line.split_whitespace().collect();
-        let names_prefix = tokens.iter().any(|token| {
-            token.split_once('/').is_some_and(|(ip, len)| {
-                len == length && ip.parse::<std::net::Ipv6Addr>().is_ok_and(|ip| ip == address)
-            })
-        });
-        names_prefix && (cfg!(not(target_os = "windows")) || tokens.contains(&index.as_str()))
-    })
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = if_index;
+        // iproute2 prints host routes without "/128": "fd00:7462:7032::9 metric 5 pref medium".
+        let (ok, listing) = runner.run("ip", &["-6", "route", "show", "dev", if_alias]);
+        if !ok {
+            return None;
+        }
+        Some(
+            listing
+                .lines()
+                .filter_map(|line| line.split_whitespace().next().and_then(parse))
+                .filter(|(_, len)| *len == 128)
+                .map(|(ip, _)| ip)
+                .collect(),
+        )
+    }
 }
 
 fn unregister_action(
@@ -999,6 +1024,7 @@ pub fn plan_and_apply_unregister_actions<R: CommandRunner>(
     adapter: &ThunderboltAdapterState,
     local_id: &ThunderboltPeerIdentity,
     peers: &[ThunderboltPeerIdentity],
+    explicit_peers: bool,
     apply: bool,
     verify_live_identity: bool,
 ) -> Vec<PlannedAction> {
@@ -1047,6 +1073,9 @@ pub fn plan_and_apply_unregister_actions<R: CommandRunner>(
         }
         actions.push(act);
     }
+    // Read-only; registered /128 routes are invisible to the adapter snapshot.
+    let routes = installed_ipv6_host_routes(runner, if_idx, alias);
+    let parsed = |ula: &str| ula.parse::<std::net::Ipv6Addr>().ok();
     for peer in peers {
         let pair = compute_commutative_pairwise_ipv4(&local_id.computer_name, &peer.computer_name).ok();
         let pair_present = pair.as_ref().is_some_and(|p| has_v4_30(&p.local_ipv4_address));
@@ -1056,7 +1085,13 @@ pub fn plan_and_apply_unregister_actions<R: CommandRunner>(
                 .chain(&peer.all_ula_addresses)
                 .any(|a| ipv6_addrs_equal(&n.ip_address, a))
         });
-        if !pair_present && !neighbor_seen {
+        let route_seen = routes.as_ref().is_some_and(|installed| {
+            peer.all_ula_addresses
+                .iter()
+                .filter_map(|ula| parsed(ula))
+                .any(|ula| installed.contains(&ula))
+        });
+        if !explicit_peers && !pair_present && !neighbor_seen && !route_seen {
             continue;
         }
         if let Some(pair) = pair.filter(|_| pair_present) {
@@ -1075,18 +1110,27 @@ pub fn plan_and_apply_unregister_actions<R: CommandRunner>(
         }
         for ula in &peer.all_ula_addresses {
             let prefix = format!("{ula}/128");
-            // Routes are not in the adapter snapshot; Apply deletes, then re-reads on failure.
+            // Unknown table (None) plans the delete; Apply then decides from a fresh read.
+            let present = match (&routes, parsed(ula)) {
+                (Some(installed), Some(ip)) => installed.contains(&ip),
+                _ => true,
+            };
             let mut act = unregister_action(
                 adapter,
                 "RemovePeerIPv6ULARoute128",
                 format!("{prefix} -> ifIndex {if_idx} ({})", peer.computer_name),
-                true,
+                present,
             );
-            if apply {
+            if apply && present {
                 let (ok, msg) = remove_ipv6_host_route(runner, if_idx, alias, &prefix);
+                let gone = || {
+                    installed_ipv6_host_routes(runner, if_idx, alias)
+                        .zip(parsed(ula))
+                        .is_some_and(|(installed, ip)| !installed.contains(&ip))
+                };
                 if ok {
                     act.applied = true;
-                } else if !ipv6_route_still_present(runner, if_idx, alias, &prefix) {
+                } else if gone() {
                     act.already_in_desired_state = true;
                 } else {
                     act.error = Some(msg);
@@ -1096,6 +1140,24 @@ pub fn plan_and_apply_unregister_actions<R: CommandRunner>(
         }
     }
     actions
+}
+
+/// Local addresses are per adapter, so a peer-scoped unregister on a hub or multi-port
+/// host must name the link; otherwise it would strip addresses that another registered
+/// link still uses (codex review of #336).
+pub fn unregister_peer_gate(
+    peer: Option<&str>,
+    adapter_selector: Option<&str>,
+    adapter_count: usize,
+) -> Option<PlannedAction> {
+    let peer = peer?;
+    (adapter_selector.is_none() && adapter_count > 1).then(|| {
+        registration_gate(
+            "PeerHintGate",
+            peer,
+            format!("--peer is ambiguous across {adapter_count} USB4 adapters; pass --adapter <GUID|MAC> to choose the link to unregister"),
+        )
+    })
 }
 
 /// Plans (dry-run) or performs `unregister` on this machine's connected USB4 adapters.
@@ -1123,8 +1185,14 @@ pub fn unregister_local_thunderbolt_fabric(
         .map(|hostname| resolve_peer_identity(Some(&hostname), None, registry_path))
         .transpose()?;
     let mut actions = registration_preflight_actions(&local_id, snapshot.adapters.len(), apply, os_identity.as_ref());
+    let explicit_peer = peer_hint.filter(|hint| !hint.trim().is_empty());
+    actions.extend(unregister_peer_gate(
+        explicit_peer,
+        adapter_selector,
+        snapshot.adapters.len(),
+    ));
     let preflight_ok = actions.is_empty();
-    let peer_names = match peer_hint.filter(|hint| !hint.trim().is_empty()) {
+    let peer_names = match explicit_peer {
         Some(hint) => vec![hint.to_string()],
         None => crate::identity::known_fleet_peer_names(registry_path, &local_id.computer_name)?,
     };
@@ -1141,7 +1209,13 @@ pub fn unregister_local_thunderbolt_fabric(
     let mut notes = Vec::new();
     for adapter in snapshot.adapters.iter().filter(|_| preflight_ok) {
         actions.extend(plan_and_apply_unregister_actions(
-            &runner, adapter, &local_id, &peers, apply, true,
+            &runner,
+            adapter,
+            &local_id,
+            &peers,
+            explicit_peer.is_some(),
+            apply,
+            true,
         ));
         if adapter.metric_known {
             notes.push(format!(
@@ -1839,10 +1913,22 @@ mod tests {
         )
     }
 
+    /// Records commands. `show` returns the next queued route listing (the last repeats);
+    /// any command containing `fail_containing` fails.
     struct RecordingRunner {
         fail_containing: Option<String>,
-        route_listing: String,
+        route_listings: Mutex<std::collections::VecDeque<String>>,
         invocations: Mutex<Vec<String>>,
+    }
+
+    impl RecordingRunner {
+        fn new(fail_containing: Option<&str>, listings: &[String]) -> Self {
+            RecordingRunner {
+                fail_containing: fail_containing.map(str::to_string),
+                route_listings: Mutex::new(listings.iter().cloned().collect()),
+                invocations: Mutex::new(vec![]),
+            }
+        }
     }
 
     impl CommandRunner for RecordingRunner {
@@ -1850,13 +1936,27 @@ mod tests {
             let command = format!("{program} {}", args.join(" "));
             self.invocations.lock().unwrap().push(command.clone());
             if args.contains(&"show") {
-                return (true, self.route_listing.clone());
+                let mut queue = self.route_listings.lock().unwrap();
+                let listing = if queue.len() > 1 {
+                    queue.pop_front()
+                } else {
+                    queue.front().cloned()
+                };
+                return (true, listing.unwrap_or_default());
             }
             match &self.fail_containing {
                 Some(needle) if command.contains(needle.as_str()) => (false, format!("Simulated failure: {command}")),
                 _ => (true, "Ok.".to_string()),
             }
         }
+    }
+
+    /// A route table line both parsers read: netsh (prefix then Idx) and iproute2 (prefix first).
+    fn route_table(index: u32, ulas: &[String]) -> String {
+        ulas.iter()
+            .map(|ula| format!("{ula}/128 {index} Ethernet {index}"))
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
     // Protects: hub/multi-port hosts. Detects: the old behaviour, where --peer on a host with
@@ -1927,16 +2027,16 @@ mod tests {
         for recorded in ["fd00:7462:7032:d700:0:9058:d9e:d2a7", "fd00:7462:7032::50"] {
             assert!(nuc.all_ula_addresses.iter().any(|a| ipv6_addrs_equal(a, recorded)));
         }
+        // The NUC's recorded route table held both Gen9 ULAs on ifIndex 19 at metric 5.
+        let runner = RecordingRunner::new(None, &[route_table(19, &gen9.all_ula_addresses)]);
         let peers = vec![gen7, gen9];
-        let runner = RecordingRunner {
-            fail_containing: None,
-            route_listing: String::new(),
-            invocations: Mutex::new(vec![]),
-        };
 
         let planned =
-            plan_and_apply_unregister_actions(&runner, &recorded_nuc_gen9_adapter(), &nuc, &peers, false, false);
-        assert!(runner.invocations.lock().unwrap().is_empty(), "dry-run ran a command");
+            plan_and_apply_unregister_actions(&runner, &recorded_nuc_gen9_adapter(), &nuc, &peers, false, false, false);
+        assert!(
+            runner.invocations.lock().unwrap().iter().all(|c| c.contains(" show ")),
+            "dry-run ran a mutating command"
+        );
         let pending: Vec<_> = planned.iter().filter(|a| !a.already_in_desired_state).collect();
         let count = |category: &str| pending.iter().filter(|a| a.category == category).count();
         assert_eq!(count("RemoveLocalIPv6LinkLocal"), nuc.all_link_local_addresses.len());
@@ -1947,7 +2047,8 @@ mod tests {
             .iter()
             .filter(|a| a.category == "RemovePeerIPv6ULARoute128")
             .collect();
-        assert!(!routes.is_empty() && routes.iter().all(|a| a.target.ends_with("(dtm-p1gen9)")));
+        assert_eq!(routes.len(), 2);
+        assert!(routes.iter().all(|a| a.target.ends_with("(dtm-p1gen9)")));
         assert!(pending.iter().all(|a| !a.target.contains("dtm-p1gen7")));
 
         let other = hub_adapter(
@@ -1957,8 +2058,46 @@ mod tests {
             &[("fe80::b:12", 64), ("169.254.194.182", 16)],
             &["fe80::7:31"],
         );
-        let spared = plan_and_apply_unregister_actions(&runner, &other, &nuc, &peers, false, false);
+        let empty = RecordingRunner::new(None, &[String::new()]);
+        let spared = plan_and_apply_unregister_actions(&empty, &other, &nuc, &peers, false, false, false);
         assert!(spared.iter().all(|a| a.already_in_desired_state), "{spared:?}");
+    }
+
+    // Protects: routes registered without a /30 or a neighbor entry (codex review of #336).
+    // Detects: skipping installed /128 routes because the neighbor cache is empty, and
+    // inventing removals when neither the table nor an explicit peer names them.
+    // Needs: route-table fixtures. Breadcrumb: installed_ipv6_host_routes and explicit_peers.
+    #[test]
+    fn unregister_finds_routes_from_the_table_or_an_explicit_peer() {
+        let reg = repo_registry_path();
+        let nuc = resolve_peer_identity(Some("dtm-super-nuc"), None, Some(&reg)).unwrap();
+        let gen9 = resolve_peer_identity(Some("dtm-p1gen9"), None, Some(&reg)).unwrap();
+        let bare = hub_adapter(
+            19,
+            "02-00-00-0B-00-19",
+            "{a0000000-0000-4000-8000-000000000b19}",
+            &[],
+            &[],
+        );
+        let peers = vec![gen9.clone()];
+        let pending_routes = |actions: &[PlannedAction]| {
+            actions
+                .iter()
+                .filter(|a| a.category == "RemovePeerIPv6ULARoute128" && !a.already_in_desired_state)
+                .count()
+        };
+
+        let installed = RecordingRunner::new(None, &[route_table(19, &gen9.all_ula_addresses)]);
+        let found = plan_and_apply_unregister_actions(&installed, &bare, &nuc, &peers, false, false, false);
+        assert_eq!(pending_routes(&found), 2);
+
+        let elsewhere = RecordingRunner::new(None, &[route_table(4, &gen9.all_ula_addresses)]);
+        let none = plan_and_apply_unregister_actions(&elsewhere, &bare, &nuc, &peers, false, false, false);
+        if cfg!(target_os = "windows") {
+            assert_eq!(pending_routes(&none), 0, "a route on another ifIndex was claimed");
+        }
+        let explicit = plan_and_apply_unregister_actions(&elsewhere, &bare, &nuc, &peers, true, false, false);
+        assert!(explicit.iter().any(|a| a.category == "RemovePeerIPv6ULARoute128"));
     }
 
     // Protects: Apply reports real failures and tolerates already-absent routes only after
@@ -1969,39 +2108,42 @@ mod tests {
         let reg = repo_registry_path();
         let nuc = resolve_peer_identity(Some("dtm-super-nuc"), None, Some(&reg)).unwrap();
         let gen9 = resolve_peer_identity(Some("dtm-p1gen9"), None, Some(&reg)).unwrap();
+        let installed = route_table(19, &gen9.all_ula_addresses);
         let gen9_ula = gen9.all_ula_addresses[0].clone();
         let peers = vec![gen9];
         let adapter = recorded_nuc_gen9_adapter();
 
-        let absent = RecordingRunner {
-            fail_containing: Some("route".into()),
-            route_listing: "No  Manual  256  ::/0  4  Ethernet 12".into(),
-            invocations: Mutex::new(vec![]),
-        };
-        let actions = plan_and_apply_unregister_actions(&absent, &adapter, &nuc, &peers, true, false);
+        // Present when planned, gone when re-read after the failed delete.
+        let absent = RecordingRunner::new(Some("route"), &[installed.clone(), String::new()]);
+        let actions = plan_and_apply_unregister_actions(&absent, &adapter, &nuc, &peers, false, true, false);
         assert!(check_applied_actions(&actions).is_ok(), "{actions:?}");
         let log = absent.invocations.lock().unwrap().join("\n");
         assert!(log.contains("172.31.255.22") && log.contains(&format!("{gen9_ula}/128")));
 
-        let still_there = RecordingRunner {
-            fail_containing: Some("route".into()),
-            route_listing: format!("No  Manual  5  {gen9_ula}/128  19  Ethernet 19"),
-            invocations: Mutex::new(vec![]),
-        };
-        let actions = plan_and_apply_unregister_actions(&still_there, &adapter, &nuc, &peers, true, false);
+        let still_there = RecordingRunner::new(Some("route"), std::slice::from_ref(&installed));
+        let actions = plan_and_apply_unregister_actions(&still_there, &adapter, &nuc, &peers, false, true, false);
         assert!(check_applied_actions(&actions).is_err());
 
-        let address_fails = RecordingRunner {
-            fail_containing: Some("172.31.255.22".into()),
-            route_listing: String::new(),
-            invocations: Mutex::new(vec![]),
-        };
-        let actions = plan_and_apply_unregister_actions(&address_fails, &adapter, &nuc, &peers, true, false);
+        let address_fails = RecordingRunner::new(Some("172.31.255.22"), &[installed]);
+        let actions = plan_and_apply_unregister_actions(&address_fails, &adapter, &nuc, &peers, false, true, false);
         let pair = actions
             .iter()
             .find(|a| a.category == "RemovePairwiseIPv4Subnet30")
             .unwrap();
         assert!(!pair.applied && pair.error.is_some());
         assert!(check_applied_actions(&actions).is_err());
+    }
+
+    // Protects: peer-scoped unregister on hub hosts. Detects: --peer without --adapter on a
+    // multi-adapter host reaching every adapter (codex review of #336). Needs: nothing live.
+    // Breadcrumb: unregister_peer_gate.
+    #[test]
+    fn peer_scoped_unregister_on_multi_adapter_host_needs_adapter() {
+        let gate = unregister_peer_gate(Some("dtm-p1gen9"), None, 2).unwrap();
+        assert_eq!(gate.category, "PeerHintGate");
+        assert!(check_applied_actions(&[gate]).is_err());
+        assert!(unregister_peer_gate(Some("dtm-p1gen9"), Some("02-00-00-0B-00-19"), 2).is_none());
+        assert!(unregister_peer_gate(Some("dtm-p1gen9"), None, 1).is_none());
+        assert!(unregister_peer_gate(None, None, 2).is_none());
     }
 }

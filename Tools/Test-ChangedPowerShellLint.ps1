@@ -50,9 +50,22 @@ Import-Module PSScriptAnalyzer -ErrorAction Stop
 $mergeBase = (git -C $RepoRoot merge-base $BaseRef HEAD 2>$null)
 if ($LASTEXITCODE -ne 0 -or -not $mergeBase) { throw "Cannot find a merge base between '$BaseRef' and HEAD in $RepoRoot" }
 
-$committed = @(git -C $RepoRoot diff --name-only --diff-filter=ACMR "$mergeBase" HEAD)
-$working = @(git -C $RepoRoot diff --name-only --diff-filter=ACMR HEAD)
-$untracked = @(git -C $RepoRoot ls-files --others --exclude-standard)
+# NUL-delimited, UTF-8 paths: without -z Git quotes names with non-ASCII characters ("t\303\251st.ps1"), and
+# the quoted form matches no extension filter, so such a file would be skipped silently.
+function Get-GitPathList {
+    param([string[]]$GitArgs)
+    $saved = [Console]::OutputEncoding
+    try {
+        [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+        $raw = (git -C $RepoRoot @GitArgs) -join "`n"
+        if ($LASTEXITCODE -ne 0) { throw "git $($GitArgs -join ' ') failed in $RepoRoot" }
+    }
+    finally { [Console]::OutputEncoding = $saved }
+    @($raw.Split([char]0, [StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object { $_.Trim("`n") } | Where-Object { $_ })
+}
+$committed = @(Get-GitPathList @('diff', '--name-only', '-z', '--diff-filter=ACMR', "$mergeBase", 'HEAD'))
+$working = @(Get-GitPathList @('diff', '--name-only', '-z', '--diff-filter=ACMR', 'HEAD'))
+$untracked = @(Get-GitPathList @('ls-files', '-z', '--others', '--exclude-standard'))
 $exclude = '(^|/)(target|bin|obj|node_modules|\.git|\.pcai|packages|artifacts|output)/'
 $files = @($committed + $working + $untracked |
     Where-Object { $_ -and $_ -match '\.(ps1|psm1|psd1)$' -and $_ -notmatch $exclude } |

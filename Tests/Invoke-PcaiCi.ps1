@@ -79,7 +79,11 @@ param(
 
     [string]$NextestCommand = 'cargo-nextest',
 
-    [string]$ResultsDir
+    [string]$ResultsDir,
+
+    # Test seam: module names to treat as not installed.
+    [Parameter(DontShow)]
+    [string[]]$AssumeMissingModule = @()
 )
 
 Set-StrictMode -Version Latest
@@ -119,7 +123,10 @@ function New-CiStep {
         [string]$Description,
         [string]$CiCommand,
         [string[]]$Command,
-        [string]$WorkingDirectory = $repoRoot
+        [string]$WorkingDirectory = $repoRoot,
+        # Modules CI installs before this step. The tools behind some steps skip a check and still exit 0 when
+        # their module is missing, so the runner reports such a step FAIL instead of letting it pass.
+        [string[]]$RequiresModule = @()
     )
     [pscustomobject]@{
         Id               = $Id
@@ -128,6 +135,7 @@ function New-CiStep {
         CiCommand        = $CiCommand
         Command          = $Command
         WorkingDirectory = $WorkingDirectory
+        RequiresModule   = $RequiresModule
     }
 }
 
@@ -154,13 +162,13 @@ $allSteps = @(
         -CiCommand '.\Tools\Test-CredentialScan.ps1' `
         -Command @('pwsh', '-NoProfile', '-File', (Join-Path $repoRoot 'Tools/Test-CredentialScan.ps1'))
     New-CiStep -Id 'WorkflowSyntax' -Tiers @('Quick','Full') -Description 'Workflow syntax' `
-        -CiCommand '.\Tools\Test-WorkflowSyntax.ps1' `
+        -CiCommand '.\Tools\Test-WorkflowSyntax.ps1' -RequiresModule 'powershell-yaml' `
         -Command @('pwsh', '-NoProfile', '-File', (Join-Path $repoRoot 'Tools/Test-WorkflowSyntax.ps1'))
     New-CiStep -Id 'PowerShellLintChanged' -Tiers @('Quick') -Description 'PSScriptAnalyzer on changed files (local accelerator, not in ci.yml)' `
-        -CiCommand '' `
+        -CiCommand '' -RequiresModule 'PSScriptAnalyzer' `
         -Command @('pwsh', '-NoProfile', '-File', (Join-Path $repoRoot 'Tools/Test-ChangedPowerShellLint.ps1'))
     New-CiStep -Id 'PowerShellLint' -Tiers @('Full') -Description 'PSScriptAnalyzer lint, all files' `
-        -CiCommand '.\Build.ps1 -Component lint -LintProfile powershell' `
+        -CiCommand '.\Build.ps1 -Component lint -LintProfile powershell' -RequiresModule 'PSScriptAnalyzer' `
         -Command @('pwsh', '-NoProfile', '-File', (Join-Path $repoRoot 'Build.ps1'), '-Component', 'lint', '-LintProfile', 'powershell')
     New-CiStep -Id 'RustFmt' -Tiers @('Quick','Full') -Description 'rustfmt check' `
         -CiCommand '.\Build.ps1 -Component format -LintProfile rust-inference-fmt -DependencyStrategy locked' `
@@ -213,6 +221,15 @@ foreach ($step in $steps) {
     $log = Join-Path $ResultsDir "pcai-ci-$($step.Id).log"
     Write-Host "==> $($step.Id): $($step.Description)"
     $watch = [Diagnostics.Stopwatch]::StartNew()
+    $missing = @($step.RequiresModule | Where-Object { $_ -in $AssumeMissingModule -or -not (Get-Module -ListAvailable -Name $_) })
+    if ($missing.Count -gt 0) {
+        "missing required module(s): $($missing -join ', '). CI installs them; Install-Module <name> -Scope CurrentUser, then rerun." |
+            Tee-Object -FilePath $log | Out-Host
+        $watch.Stop()
+        $results.Add([pscustomobject]@{ Id = $step.Id; Status = 'FAIL'; ExitCode = 2; DurationMs = [int]$watch.ElapsedMilliseconds; Log = $log })
+        if ($FailFast) { break }
+        continue
+    }
     Push-Location $step.WorkingDirectory
     try {
         $exe = $step.Command[0]

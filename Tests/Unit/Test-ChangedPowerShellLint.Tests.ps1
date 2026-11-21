@@ -76,4 +76,17 @@ Describe 'Test-ChangedPowerShellLint' -Tag 'Unit', 'Portable' -Skip:(-not [bool]
         $r.Text | Should -Match 'committed\.ps1'
         $r.Text | Should -Match 'analyzed 2 changed PowerShell file'
     }
+    # Protects: a file whose name Git would quote (non-ASCII) is still analyzed. Detects: selection from Git's quoted
+    # display names, where "t\303\251st.ps1" matches no extension filter and the file disappears (codex review of #337).
+    # Needs: PSScriptAnalyzer and git. Breadcrumb: Tools/Test-ChangedPowerShellLint.ps1 Get-GitPathList.
+    It 'analyzes staged and untracked files with non-ASCII names' {
+        $repo = New-FixtureRepo 'nonascii'
+        [IO.File]::WriteAllText((Join-Path $repo 'stagéd.ps1'), "Invoke-Expression 'Get-Date'`n", [Text.UTF8Encoding]::new($false))
+        git -C $repo add -A | Out-Null
+        [IO.File]::WriteAllText((Join-Path $repo 'untrackéd.ps1'), "Write-Output 'u'`n", [Text.UTF8Encoding]::new($false))
+        $r = Invoke-Tool $repo
+        $r.Exit | Should -Be 1
+        $r.Text | Should -Match 'analyzed 2 changed PowerShell file'
+        $r.Text | Should -Match 'PSAvoidUsingInvokeExpression'
+    }
 }

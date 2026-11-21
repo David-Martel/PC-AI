@@ -135,4 +135,23 @@ Describe 'Invoke-PcaiCi execution' -Tag 'Unit', 'Portable' {
         (Get-Content (Join-Path $caller 'ci-results/pcai-ci-last.json') -Raw | ConvertFrom-Json).Results[0].Status | Should -Be 'PASS'
         Test-Path (Join-Path $fixture 'ci-results') | Should -BeFalse
     }
+    # Protects: a local run never reports PASS for a check it could not perform. Detects: a step whose tool skips its
+    # check when a module is missing (Test-WorkflowSyntax without powershell-yaml, Build.ps1 lint without
+    # PSScriptAnalyzer) being reported PASS (codex review of #337). Needs: the -AssumeMissingModule test seam.
+    # Breadcrumb: Tests/Invoke-PcaiCi.ps1 RequiresModule.
+    It 'fails a step whose required module is missing, without running it' {
+        $resultsDir = Join-Path $TestDrive 'missing-module'
+        $results = @(& $script:Runner -Only WorkflowSyntax -PassThru -ResultsDir $resultsDir -AssumeMissingModule 'powershell-yaml' 6>$null 2>$null)
+        $row = $results | Where-Object Id -EQ 'WorkflowSyntax'
+        $row.Status | Should -Be 'FAIL'
+        $row.ExitCode | Should -Be 2
+        Get-Content (Join-Path $resultsDir 'pcai-ci-WorkflowSyntax.log') -Raw | Should -Match 'missing required module\(s\): powershell-yaml'
+    }
+
+    It 'declares the modules CI installs for the steps that need them' {
+        $plan = Get-Plan @{ Tier = 'Full' }
+        ($plan | Where-Object Id -EQ 'WorkflowSyntax').RequiresModule | Should -Be @('powershell-yaml')
+        ($plan | Where-Object Id -EQ 'PowerShellLint').RequiresModule | Should -Be @('PSScriptAnalyzer')
+        (Get-Plan @{ Tier = 'Quick' } | Where-Object Id -EQ 'PowerShellLintChanged').RequiresModule | Should -Be @('PSScriptAnalyzer')
+    }
 }

@@ -153,6 +153,35 @@ Describe 'Trust checks walk every ancestor' -Tag 'Unit' {
     It 'returns false off Windows and for a missing path' {
         Test-PcaiAdminOwnedPath -Path (Join-Path $TestDrive 'missing.json') | Should -BeFalse
     }
+    # Protects: the volume root is an ancestor like any other. Detects: the root skipped before its
+    # ACL was read, so a custom volume whose root grants Users DeleteChild passed although they can
+    # replace the whole protected tree (codex review of #344 at 45700340). Needs: Get-Acl mocked to
+    # an admin-owned chain whose root alone varies. Positive control: C:\'s real shape (Users may
+    # only add entries; TrustedInstaller owns it and holds full control) passes.
+    It 'checks the volume root: <Name>' -Skip:(-not $IsWindows) -ForEach @(
+        @{ Name = 'Users DeleteChild on the root is refused'; Rights = 'DeleteSubdirectoriesAndFiles'; Expected = $false }
+        @{ Name = 'Users create-folder on the root (C:\ default) passes'; Rights = 'AppendData'; Expected = $true }
+    ) {
+        $file = Join-Path $TestDrive 'root-check.json'
+        Set-Content -LiteralPath $file -Value '{}'
+        $global:PcaiTestRootRights = $Rights
+        try {
+            Mock Get-Acl {
+                $isRoot = $LiteralPath -match '^[A-Za-z]:\\?$'
+                $rules = if ($isRoot) {
+                    @([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]'S-1-5-11', $global:PcaiTestRootRights, 'None', 'None', 'Allow'),
+                        [Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464', 'FullControl', 'None', 'None', 'Allow'))
+                } else { @() }
+                $owner = if ($isRoot) { 'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464' } else { 'S-1-5-32-544' }
+                [pscustomobject]@{ Rules = $rules; Owner = $owner } |
+                    Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = $this.Owner } } -PassThru |
+                    Add-Member -MemberType ScriptMethod -Name GetAccessRules -Value { $this.Rules } -PassThru
+            }
+            Test-PcaiAdminOwnedPath -Path $file | Should -Be $Expected
+            Test-PcaiSystemTrustedPath -Path $file | Should -Be $Expected
+            Should -Invoke Get-Acl -ParameterFilter { $LiteralPath -match '^[A-Za-z]:\\?$' }
+        } finally { Remove-Variable -Name PcaiTestRootRights -Scope Global -ErrorAction SilentlyContinue }
+    }
 }
 
 Describe 'Invoke-PcaiLinkHealth side effects' -Tag 'Unit', 'Portable' {
@@ -258,6 +287,30 @@ Describe 'SYSTEM install and restore trust the whole ancestor chain' -Tag 'Unit'
         $target = Join-Path $TestDrive 'staging/pcai-usb4/link-health/bin'
         { Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask } | Should -Throw '*not trusted for a SYSTEM task*'
         Should -Invoke Register-ScheduledTask -Times 0 -Exactly
+    }
+    # Protects: the SYSTEM task never runs an interpreter a standard user can replace. Detects: the
+    # task registered with $PSHOME\pwsh.exe from a per-user or portable install (codex review of
+    # #344 at 45700340; dtm-p1gen9's $PSHOME grants Authenticated Users Modify). Needs: a pwsh.exe
+    # under TestDrive, which the test user owns. Breadcrumb: Resolve-PcaiSystemPwsh.
+    It 'refuses a SYSTEM install when no candidate interpreter is admin-owned and protected' -Skip:(-not $IsWindows) {
+        $userPwsh = Join-Path $TestDrive 'portable/pwsh.exe'
+        $null = New-Item -ItemType File -Force -Path $userPwsh
+        { Resolve-PcaiSystemPwsh -Candidate @($userPwsh, (Join-Path $TestDrive 'missing/pwsh.exe')) } |
+            Should -Throw '*No PowerShell 7 is trusted to run as SYSTEM*portable*absent*'
+        Mock Get-ScheduledTask { }
+        Mock Register-ScheduledTask { }
+        Mock Resolve-PcaiSystemPwsh { throw 'No PowerShell 7 is trusted to run as SYSTEM: test' }
+        { Install-PcaiHealthWindows -Root $repoRoot -Target (Join-Path $TestDrive 'dry/bin') -Components @('LinkHealth') -SystemTask -IsDryRun } |
+            Should -Throw '*No PowerShell 7 is trusted*'
+        Should -Invoke Register-ScheduledTask -Times 0 -Exactly
+    }
+    It 'uses the first candidate whose executable and directory are trusted' -Skip:(-not $IsWindows) {
+        $first = Join-Path $TestDrive 'a/pwsh.exe'
+        $second = Join-Path $TestDrive 'b/pwsh.exe'
+        $null = New-Item -ItemType File -Force -Path $first, $second
+        Mock Test-PcaiSystemTrustedPath { $Path -like '*\b*' }
+        Resolve-PcaiSystemPwsh -Candidate @($first, $second) | Should -Be $second
+        Should -Invoke Test-PcaiSystemTrustedPath -ParameterFilter { $Path -eq (Join-Path $TestDrive 'b') }
     }
     It 'does not restore a SYSTEM baseline that is not admin-owned and protected' -Skip:(-not $IsWindows) {
         Mock Get-ScheduledTask { [pscustomobject]@{ TaskName = 'LinkHealthSystem' } }

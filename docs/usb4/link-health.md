@@ -124,9 +124,18 @@ Apply mode runs only in the SYSTEM task, and only when all of these hold:
   `%ProgramData%` otherwise inherits "Users may create files", which would let a standard user
   plant `config.json` or pre-create `apply\`. The installer refuses an existing `pcai-usb4` or
   `link-health` that another account owns. Apply mode ignores a `config.json` that is not
-  admin-owned. Every ancestor of a trusted path must be owned by Administrators, SYSTEM or
-  TrustedInstaller, must not be a reparse point, and must not let another account delete,
-  rename or re-permission it;
+  admin-owned. Every ancestor of a trusted path, the volume root included, must be owned by
+  Administrators, SYSTEM or TrustedInstaller, must not be a reparse point, and must not let
+  another account delete, rename or re-permission it (letting Users create entries, as C:\
+  and `%ProgramData%` do, is allowed);
+- the interpreter is trusted too. The task runs `pwsh.exe` as SYSTEM before any script check,
+  so `-System` registers only a `pwsh.exe` whose file, directory (no other account may add
+  files to it) and ancestors pass the same checks. It tries the installer's own `$PSHOME`,
+  then `Program Files\PowerShell\7`, and otherwise refuses, dry run included. A per-user or
+  portable PowerShell fails: dtm-p1gen9's `C:\codedev\tools\PowerShell\7` grants
+  Authenticated Users Modify, and that host has no machine-wide PowerShell 7 (checked
+  2026-11-21), so `-System` refuses there until the MSI is installed. The NUC, dtm-work and
+  Gen7 have the MSI install, owned by SYSTEM;
 - the state is `Drift`, so every guard (ifIndex, MAC, GUID) still matches.
 
 It then runs the plan's own guard and apply lines, which create state only when absent and

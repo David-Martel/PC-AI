@@ -439,9 +439,11 @@ function Test-PcaiAdminOwnedPath {
     Auto-apply executes command text from the plan, so a user-writable policy, plan or status
     root would be a privilege escalation. The path and its parent must be owned by
     Administrators or SYSTEM and grant no other account a right to change them. Every further
-    ancestor up to the volume root must not be a reparse point and must be owned by
+    ancestor, the volume root included, must not be a reparse point and must be owned by
     Administrators, SYSTEM or TrustedInstaller; an ancestor may still let Users create entries
-    (as %ProgramData% does), because that does not let them replace an existing child.
+    (as %ProgramData% and C:\ do), because that does not let them replace an existing child.
+    A root that grants Users DeleteChild (possible on a custom volume) is refused.
+    TrustedInstaller's own rights on an ancestor are trusted.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path)
@@ -455,7 +457,6 @@ function Test-PcaiAdminOwnedPath {
         $p = $chain[$i]
         $item = Get-Item -LiteralPath $p -Force
         if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { return $false }
-        if ($i -eq $chain.Count - 1) { break }   # the volume root itself
         $acl = Get-Acl -LiteralPath $p
         $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
         if ($i -le 1 -and $owner -notin $script:PcaiAdminSids) { return $false }
@@ -465,7 +466,7 @@ function Test-PcaiAdminOwnedPath {
         # WriteOwner, generic write/all); creating new entries, as %ProgramData% allows, is fine.
         $mask = if ($i -eq 0) { $script:PcaiWriteRightsMask } else { [int64]0x500D0040 }
         foreach ($rule in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) {
-            if ($rule.AccessControlType -ne 'Allow' -or $rule.IdentityReference.Value -in $script:PcaiAdminSids) { continue }
+            if ($rule.AccessControlType -ne 'Allow' -or $rule.IdentityReference.Value -in $trustedOwners) { continue }
             if ($rule.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly) { continue }
             if ([int64]$rule.FileSystemRights -band $mask) { return $false }
         }

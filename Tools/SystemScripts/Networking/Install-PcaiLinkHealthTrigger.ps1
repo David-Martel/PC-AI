@@ -58,6 +58,7 @@ $script:PcaiAdminSids = @('S-1-5-32-544', 'S-1-5-18')
 # Invoke-PcaiLinkHealth.ps1, whose Test-PcaiAdminOwnedPath this mirrors.
 $script:PcaiWriteRightsMask = [int64]0x500D0156
 $script:PcaiAncestorRightsMask = [int64]0x500D0040
+$script:PcaiTrustedInstallerSid = 'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464'
 
 # Event sources verified on dtm-p1gen9 on 2026-11-21 against real USB4NET plug history:
 #  - Kernel-PnP/Configuration 400 (configured) and 410 (started) record a USB4NET adapter arriving;
@@ -120,33 +121,58 @@ function Test-PcaiSystemTrustedPath {
     .SYNOPSIS
     True when a path is safe for the SYSTEM task to run from or restore: the path and its parent
     are owned by Administrators or SYSTEM, no other account can change the path, and no ancestor
-    up to the volume root is a reparse point, has an untrusted owner, or lets another account
-    delete, rename or re-permission it. Mirrors Test-PcaiAdminOwnedPath in
-    Invoke-PcaiLinkHealth.ps1, which applies the same rule to the policy and plan at run time.
+    up to and including the volume root is a reparse point, has an untrusted owner, or lets
+    another account delete, rename or re-permission it. The volume root is checked like any
+    ancestor: a custom volume whose root grants Users DeleteChild would let them replace the
+    whole tree. TrustedInstaller may own ancestors and hold rights on them (it owns C:\ and
+    C:\Program Files). Mirrors Test-PcaiAdminOwnedPath in Invoke-PcaiLinkHealth.ps1, which
+    applies the same rule to the policy and plan at run time.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path)
     if (-not $IsWindows -or -not (Test-Path -LiteralPath $Path)) { return $false }
-    $trustedOwners = $script:PcaiAdminSids + @('S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464')
+    $trustedOwners = $script:PcaiAdminSids + @($script:PcaiTrustedInstallerSid)
     $chain = [Collections.Generic.List[string]]::new()
     $cursor = (Get-Item -LiteralPath $Path -Force).FullName
     while ($cursor) { $chain.Add($cursor); $cursor = Split-Path -Parent $cursor }
     for ($i = 0; $i -lt $chain.Count; $i++) {
         $item = Get-Item -LiteralPath $chain[$i] -Force
         if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { return $false }
-        if ($i -eq $chain.Count - 1) { break }   # the volume root itself
         $acl = Get-Acl -LiteralPath $chain[$i]
         $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
         if ($i -le 1 -and $owner -notin $script:PcaiAdminSids) { return $false }
         if ($owner -notin $trustedOwners) { return $false }
         $mask = if ($i -eq 0) { $script:PcaiWriteRightsMask } else { $script:PcaiAncestorRightsMask }
         foreach ($rule in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) {
-            if ($rule.AccessControlType -ne 'Allow' -or $rule.IdentityReference.Value -in $script:PcaiAdminSids) { continue }
+            if ($rule.AccessControlType -ne 'Allow' -or $rule.IdentityReference.Value -in $trustedOwners) { continue }
             if ($rule.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly) { continue }
             if ([int64]$rule.FileSystemRights -band $mask) { return $false }
         }
     }
     return $true
+}
+
+function Resolve-PcaiSystemPwsh {
+    <#
+    .SYNOPSIS
+    The pwsh.exe the SYSTEM task may run: the first candidate whose executable and whole runtime
+    directory pass Test-PcaiSystemTrustedPath, else a terminating error.
+    .DESCRIPTION
+    The task runs the interpreter as SYSTEM before any script check, so a pwsh.exe, or a DLL in its
+    directory, that a standard user can replace is a privilege escalation. The installer's own
+    $PSHOME is tried first; a per-user or portable install (dtm-p1gen9's C:\codedev\tools\PowerShell
+    grants Authenticated Users Modify) fails, and a machine-wide install under Program Files is
+    used instead. The directory is checked as a path, so no other account may add files to it.
+    #>
+    [CmdletBinding()]
+    param([string[]]$Candidate = @((Join-Path $PSHOME 'pwsh.exe'), (Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'PowerShell\7\pwsh.exe')))
+    $tried = [Collections.Generic.List[string]]::new()
+    foreach ($exe in @($Candidate | Select-Object -Unique)) {
+        if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { $tried.Add("$exe (absent)"); continue }
+        if ((Test-PcaiSystemTrustedPath -Path $exe) -and (Test-PcaiSystemTrustedPath -Path (Split-Path -Parent $exe))) { return $exe }
+        $tried.Add("$exe (it, its directory or an ancestor is not admin-owned and protected)")
+    }
+    throw "No PowerShell 7 is trusted to run as SYSTEM: $($tried -join '; '). Install PowerShell 7 machine-wide (the MSI, under Program Files), then rerun -System."
 }
 
 function New-PcaiProtectedDirectory {
@@ -369,8 +395,10 @@ function Install-PcaiHealthWindows {
     if (-not $files) { throw "No health scripts found under $Root" }
     $version = Get-PcaiContentVersion -File $files
     $bin = Join-Path $Target $version
-    $specs = Get-PcaiTaskSpec -BinDir $bin -Pwsh $pwsh -UserId $userId -Components $present -SystemTask:$SystemTask
     if ($IsDryRun) {
+        # A dry run refuses an untrusted interpreter exactly as the real install would.
+        if ($SystemTask) { $pwsh = Resolve-PcaiSystemPwsh; Write-Output "would run the SYSTEM task with $pwsh" }
+        $specs = Get-PcaiTaskSpec -BinDir $bin -Pwsh $pwsh -UserId $userId -Components $present -SystemTask:$SystemTask
         Write-Output "would install $($files.Count) file(s) to $bin"
         foreach ($s in $specs) { Write-Output "would register $($script:PcaiTaskFolder)$($s.Name)" }
         return
@@ -406,6 +434,8 @@ function Install-PcaiHealthWindows {
         if (-not (Test-PcaiSystemTrustedPath -Path $bin)) {
             throw "$bin is not trusted for a SYSTEM task: it or an ancestor up to the volume root has an untrusted owner, is a reparse point or lets another account replace it. Use the default %ProgramData% root or fix the ACLs."
         }
+        # The interpreter runs as SYSTEM before any script check, so it needs the same custody.
+        $pwsh = Resolve-PcaiSystemPwsh
         # A baseline a user planted while the tree was writable would later be restored elevated.
         foreach ($f in @(Get-ChildItem -LiteralPath $backupDir -File -Force -ErrorAction SilentlyContinue)) {
             if (-not (Test-PcaiSystemTrustedPath -Path $f.FullName)) {
@@ -414,6 +444,7 @@ function Install-PcaiHealthWindows {
             }
         }
     }
+    $specs = Get-PcaiTaskSpec -BinDir $bin -Pwsh $pwsh -UserId $userId -Components $present -SystemTask:$SystemTask
     $null = New-Item -ItemType Directory -Force -Path $bin, $backupDir
     foreach ($f in $files) { Copy-Item -LiteralPath $f.Source -Destination (Join-Path $bin $f.Name) -Force }
     $commit = $null

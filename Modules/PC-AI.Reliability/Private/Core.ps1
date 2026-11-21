@@ -287,7 +287,14 @@ function Write-FleetJsonFile {
     $tmp = '{0}.tmp-{1}' -f $Path, ([guid]::NewGuid().ToString('N').Substring(0, 8))
     $json = $Value | ConvertTo-Json -Depth 12
     [IO.File]::WriteAllText($tmp, $json, (New-Object System.Text.UTF8Encoding($false)))
-    Move-Item -LiteralPath $tmp -Destination $Path -Force
+    # Terminating: a state file that could not be replaced must stop the caller. A playbook reserves its
+    # attempt with this write before acting, and a silent failure here let it act without spending budget
+    # (sixth review of #346).
+    try { Move-Item -LiteralPath $tmp -Destination $Path -Force -ErrorAction Stop }
+    catch {
+        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+        throw "could not write ${Path}: $($_.Exception.Message)"
+    }
 }
 
 function Get-FleetShortHash {

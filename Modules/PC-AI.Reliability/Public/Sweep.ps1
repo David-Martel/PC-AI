@@ -4,6 +4,20 @@ Entry points: the task wrapper (Invoke-FleetTask), the health sweep (Invoke-Flee
 the daily digest (Send-FleetDigest). Tools/SystemScripts/Reliability/*.ps1 are thin CLIs over these.
 #>
 
+function Get-FleetStreamEncoding {
+    <# Encoding named by the byte-order mark at the start of a stream (UTF-8 without one). Leaves the position at 0. #>
+    param([Parameter(Mandatory)][IO.Stream]$Stream)
+    $bom = New-Object byte[] 4
+    [void]$Stream.Seek(0, [IO.SeekOrigin]::Begin)
+    $n = $Stream.Read($bom, 0, 4)
+    [void]$Stream.Seek(0, [IO.SeekOrigin]::Begin)
+    if ($n -ge 4 -and $bom[0] -eq 0xFF -and $bom[1] -eq 0xFE -and $bom[2] -eq 0 -and $bom[3] -eq 0) { return (New-Object Text.UTF32Encoding($false, $true)) }
+    if ($n -ge 2 -and $bom[0] -eq 0xFF -and $bom[1] -eq 0xFE) { return (New-Object Text.UnicodeEncoding($false, $true)) }
+    if ($n -ge 2 -and $bom[0] -eq 0xFE -and $bom[1] -eq 0xFF) { return (New-Object Text.UnicodeEncoding($true, $true)) }
+    if ($n -ge 3 -and $bom[0] -eq 0xEF -and $bom[1] -eq 0xBB -and $bom[2] -eq 0xBF) { return (New-Object Text.UTF8Encoding($true)) }
+    return (New-Object Text.UTF8Encoding($false))
+}
+
 function Invoke-FleetTask {
     <#
     Runs a scheduled task's real command and records what actually happened. A task that exits 0
@@ -48,8 +62,15 @@ function Invoke-FleetTask {
         $fs = [IO.File]::Open($LogPath, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
         try {
             if ($fs.Length -lt $logOffset) { $logOffset = 0 }   # rotated during the run
+            # The encoding comes from the byte-order mark at the START of the file; seeking first skipped it, and
+            # appended UTF-16 text was decoded as UTF-8 so no failure pattern matched (sixth review of #346).
+            $enc = Get-FleetStreamEncoding -Stream $fs
+            $bomLength = $enc.GetPreamble().Length
+            if ($logOffset -lt $bomLength) { $logOffset = $bomLength }
+            $unit = 1; if ($enc -is [Text.UnicodeEncoding]) { $unit = 2 } elseif ($enc -is [Text.UTF32Encoding]) { $unit = 4 }
+            $logOffset -= (($logOffset - $bomLength) % $unit)   # stay on a character boundary
             [void]$fs.Seek($logOffset, [IO.SeekOrigin]::Begin)
-            $sr = New-Object IO.StreamReader($fs)
+            $sr = New-Object IO.StreamReader($fs, $enc, $false)
             $scan += "`n" + $sr.ReadToEnd()
         }
         finally { $fs.Dispose() }

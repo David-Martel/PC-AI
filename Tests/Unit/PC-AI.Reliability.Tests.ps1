@@ -614,6 +614,21 @@ Describe 'PC-AI.Reliability' {
             $script:Ran | Should -Be 1
         }
 
+        It 'does not act when its attempt cannot be reserved' -Tag 'WindowsOnly' {
+            # Detects the fail-open from the sixth review of #346: Move-Item had no -ErrorAction Stop, so a state
+            # file that could not be replaced left the attempt unrecorded while the action still ran.
+            if (-not (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows)) { Set-ItResult -Skipped -Because 'Windows share modes'; return }
+            $script:Ran = 0
+            $action = { param($a) $script:Ran++; @{ outcome = 'triggered'; detail = 'x' } }
+            $path = InModuleScope PC-AI.Reliability { Join-Path (Join-Path (Get-FleetPath -Kind state) 'playbooks') ('{0}.json' -f (Get-FleetShortHash 'p|k-locked')) }
+            New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
+            Set-Content -LiteralPath $path -Value '{"key":"p|k-locked","attempts":[]}'
+            $fs = [IO.File]::Open($path, 'Open', 'Read', 'Read')   # readable, but cannot be replaced
+            try { { Invoke-FleetPlaybook -Playbook p -IncidentKey 'k-locked' -Policy $script:Policy -Action $action } | Should -Throw }
+            finally { $fs.Dispose() }
+            $script:Ran | Should -Be 0
+        }
+
         It 'acts once, then escalates exactly once when the budget is spent' -Tag 'Portable' {
             # Detects runaway remediation: a broken fix must not loop, and a human must hear about it.
             $action = { param($a) $script:Ran++; @{ outcome = 'triggered'; detail = 'x' } }
@@ -744,6 +759,22 @@ Describe 'PC-AI.Reliability' {
         It 'keeps a real non-zero exit code' {
             $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 7; StdOut = '' }
             Invoke-FleetTask -Name '\t\job' -FilePath 'C:\fake\job.exe' | Should -Be 7
+        }
+
+        It 'decodes what a tool appends to an existing UTF-16 log' {
+            # Detects the hidden failure from the sixth review of #346: the wrapper sought past the byte-order mark
+            # and read the appended UTF-16 text as UTF-8, so '[ERROR]' never matched and exit 0 passed.
+            $log = Join-Path $TestDrive 'utf16.log'
+            [IO.File]::WriteAllText($log, "started`r`n", [Text.Encoding]::Unicode)
+            $script:Utf16Log = $log
+            Mock -ModuleName PC-AI.Reliability Invoke-FleetProcess {
+                if ($FilePath -eq 'C:\fake\utf16job.exe') {
+                    $bytes = [Text.Encoding]::Unicode.GetBytes("[ERROR] integrity check did not pass`r`n")
+                    $fs = [IO.File]::Open($script:Utf16Log, 'Append', 'Write', 'ReadWrite'); try { $fs.Write($bytes, 0, $bytes.Length) } finally { $fs.Dispose() }
+                }
+                [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = ''; TimedOut = $false; OutputComplete = $true }
+            }
+            Invoke-FleetTask -Name '\t\utf16' -FilePath 'C:\fake\utf16job.exe' -LogPath $log | Should -Be 1
         }
 
         It 'scans only the bytes the tool appended to its own log during this run' {
@@ -925,6 +956,22 @@ Describe 'PC-AI.Reliability' {
             Invoke-FleetPlaybook -Playbook p -IncidentKey 'k-unreadable' -Policy $script:Policy -Action $action | Should -Be 'state-unreadable'
             $script:Ran | Should -Be 0
             Get-Content -LiteralPath $path -Raw | Should -Match 'truncated'
+        }
+
+        It 'keeps expect_enabled, log_rules and interactive checks inside task_scope' {
+            # Detects the staged-rollout leak from the sixth review of #346: these loops ignored task_scope and
+            # task_exclude, so a rollout limited to one task still opened incidents for unrelated tasks.
+            $pol = Get-FleetPolicy -Path (Join-Path $TestDrive 'none.json')
+            $pol.task_scope = @('\in\*')
+            $pol.expect_enabled = @('\out\backup', '\in\backup')
+            $outLog = Join-Path $TestDrive 'out.log'; Set-Content -LiteralPath $outLog -Value '[ERROR] x'
+            $pol.log_rules = @(@{ task = '\out\job'; log = $outLog })
+            Mock -ModuleName PC-AI.Reliability Get-FleetTaskHealthData { [pscustomobject]@{ Tasks = @() } }
+            Mock -ModuleName PC-AI.Reliability Get-FleetScheduledTaskData { @([pscustomobject]@{ FullName = '\out\gui'; State = 'Ready'; LogonType = 'Interactive'; UserId = 'someone' }) }
+            Mock -ModuleName PC-AI.Reliability Get-FleetInteractiveUserData { @() }
+            $o = @(Get-FleetTaskObservations -Policy $pol)
+            @($o | Where-Object { $_.Name -like '\out\*' }).Count | Should -Be 0
+            @($o | Where-Object { $_.Name -eq '\in\backup' -and $_.Check -eq 'task-expected' }).Count | Should -Be 1
         }
 
         It 'clears a detector-error only when that detector itself runs successfully' {

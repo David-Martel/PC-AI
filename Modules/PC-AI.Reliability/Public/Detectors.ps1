@@ -244,6 +244,9 @@ function Get-FleetTaskObservations {
 
     # Tasks that must be enabled (an offsite backup task sat Disabled and never ran).
     foreach ($pattern in @($Policy.expect_enabled)) {
+        # Staged rollouts: task_scope / task_exclude govern every task check, not only the result axis
+        # (sixth review of #346).
+        if (-not (Test-FleetTaskInScope -Policy $Policy -FullName ([string]$pattern))) { continue }
         $hits = @($tasks | Where-Object { ('{0}{1}' -f $_.TaskPath, $_.TaskName) -like $pattern })
         if ($hits.Count -eq 0) {
             $obs += New-FleetObservation -Source task -Name ([string]$pattern) -Check task-expected -Status failed -Severity medium -Message 'expected task is not registered' -ResolveAfter 1
@@ -278,6 +281,8 @@ function Get-FleetTaskObservations {
 
     # Exit 0 while the log says it failed (a database pull, a history export printing STALE, a logger).
     foreach ($rule in @($Policy.log_rules)) {
+        $ruleName = [string]$rule.task; if (-not $ruleName) { $ruleName = [string]$rule.log }
+        if (-not (Test-FleetTaskInScope -Policy $Policy -FullName $ruleName)) { continue }
         $obs += Get-FleetLogRuleObservation -Rule $rule -Tasks $byName
     }
     return $obs

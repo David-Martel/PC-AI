@@ -558,14 +558,14 @@ function Invoke-PcaiSystemdActivation {
         if ($LASTEXITCODE -ne 0) { $failed.Add("systemctl --user $($Argument -join ' ') exited $LASTEXITCODE"); return $false }
         return $true
     }
-    if (& $run @('daemon-reload')) {
+    if (& $run -Argument @('daemon-reload')) {
         foreach ($u in @($Unit | Where-Object { $_ -like '*.timer' -or $_ -eq 'pcai-link-health-monitor.service' })) {
-            $ok = & $run @('enable', '--now', $u)
-            if ($ok -and $u -like '*.service') { $ok = & $run @('restart', $u) }
+            $ok = & $run -Argument @('enable', '--now', $u)
+            if ($ok -and $u -like '*.service') { $ok = & $run -Argument @('restart', $u) }
             if ($ok) { Write-Output "enabled $u" }
         }
         if ($StartNow) {
-            foreach ($u in @($Unit | Where-Object { $_ -like '*health.service' })) { if (& $run @('start', '--no-block', $u)) { Write-Output "started $u" } }
+            foreach ($u in @($Unit | Where-Object { $_ -like '*health.service' })) { if (& $run -Argument @('start', '--no-block', $u)) { Write-Output "started $u" } }
         }
     }
     if ($failed.Count) { throw "systemd activation failed: $($failed -join '; ')" }

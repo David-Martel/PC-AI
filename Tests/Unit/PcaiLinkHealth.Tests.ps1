@@ -625,10 +625,21 @@ Describe 'systemd activation checks every systemctl exit status' -Tag 'Unit', 'P
         $script:Units = @('pcai-link-health.service', 'pcai-link-health.timer', 'pcai-link-health-monitor.service')
     }
     AfterAll { Remove-Item -LiteralPath Function:\systemctl -ErrorAction SilentlyContinue }
-    It 'enables the timer and the monitor when every call succeeds' {
-        Mock systemctl { $global:LASTEXITCODE = 0 }
-        $out = @(Invoke-PcaiSystemdActivation -Unit $Units)
-        $out | Should -Be @('enabled pcai-link-health.timer', 'enabled pcai-link-health-monitor.service')
+    It 'enables the timer and the monitor when every call succeeds, passing every argument' {
+        # Each call's full argument list is recorded, so a flag or unit name that failed to reach
+        # systemctl fails here (codex review of #344 at 87305579 suspected exactly that).
+        $global:PcaiTestCalls = [Collections.Generic.List[string]]::new()
+        try {
+            Mock systemctl { $global:PcaiTestCalls.Add($args -join ' '); $global:LASTEXITCODE = 0 }
+            $out = @(Invoke-PcaiSystemdActivation -Unit $Units -StartNow)
+            $out | Should -Be @('enabled pcai-link-health.timer', 'enabled pcai-link-health-monitor.service', 'started pcai-link-health.service')
+            @($global:PcaiTestCalls) | Should -Be @(
+                '--user daemon-reload'
+                '--user enable --now pcai-link-health.timer'
+                '--user enable --now pcai-link-health-monitor.service'
+                '--user restart pcai-link-health-monitor.service'
+                '--user start --no-block pcai-link-health.service')
+        } finally { Remove-Variable -Name PcaiTestCalls -Scope Global -ErrorAction SilentlyContinue }
     }
     It 'throws, naming the failed call, when <Name>' -ForEach @(
         @{ Name = 'the user manager is unavailable'; Fail = 'daemon-reload'; Expect = '*daemon-reload exited 1*' }

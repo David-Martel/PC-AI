@@ -10,6 +10,11 @@
 #>
 
 $script:ModuleRoot = $PSScriptRoot
+# Deferred to a follow-up PR (docs/reliability/fleet-ledger.md, "Deferred"): automatic remediation and the
+# privileged setup steps (ACL hardening, token provisioning) refuse to run. The ledger, spool, incidents,
+# detectors, alerts and digest are complete and on. Only the unit tests switch this off, to keep the deferred
+# code's regression tests running; production code never does.
+$script:FleetDeferred = @{ remediation = $true; privileged_setup = $true }
 foreach ($dir in @('Private', 'Public')) {
     $path = Join-Path $PSScriptRoot $dir
     if (Test-Path -LiteralPath $path) {

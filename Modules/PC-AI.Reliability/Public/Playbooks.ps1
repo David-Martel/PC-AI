@@ -39,6 +39,8 @@ function Invoke-FleetPlaybook {
         [string]$Source = 'playbook',
         [string]$SubjectName
     )
+    # Deferred: no action, no budget state, no ledger line. The incident stays open and alerts as usual.
+    if ($script:FleetDeferred -and $script:FleetDeferred.remediation) { return 'deferred' }
     $settings = Get-FleetPlaybookSettings -Policy $Policy -Name $Playbook
     if (-not $settings.enabled) { return 'disabled' }
     if (-not $SubjectName) { $SubjectName = $IncidentKey }
@@ -198,6 +200,7 @@ function Get-FleetCacheFiles {
 function Invoke-FleetCachePrune {
     <# Deletes files older than MinAgeDays under an allowed cache dir. Returns bytes freed. #>
     param([string]$Path, [double]$MinAgeDays = 7, [switch]$WhatIfOnly)
+    Assert-FleetNotDeferred -Feature remediation -What 'Cache pruning'
     if (-not (Test-FleetCacheDirAllowed $Path)) { throw "refusing to prune a path that is not an allowed cache directory: $Path" }
     if (-not (Test-Path -LiteralPath $Path)) { return 0 }
     # The lexical checks above see only the path string. A cache root that is (or sits under) a junction

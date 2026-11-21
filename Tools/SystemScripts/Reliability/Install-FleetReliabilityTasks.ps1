@@ -52,6 +52,12 @@ if ($Help) {
 }
 if ($CliArgs.Count -gt 0) { Write-Error "Unknown argument(s): $($CliArgs -join ', ')"; exit 2 }
 if ($DryRun) { $WhatIfPreference = $true }
+# Deferred to a follow-up PR (docs/reliability/fleet-ledger.md, "Deferred"): registering elevated tasks and
+# hardening the home ACL refuse to run here. -DryRun still prints the plan and changes nothing.
+if (-not $DryRun -and -not $WhatIfPreference) {
+    Write-Error 'Installing the fleet reliability tasks is deferred to a follow-up PR; nothing was changed. Use -DryRun to see the plan. Until then run the sweep and digest by hand (see docs/reliability/fleet-ledger.md).'
+    exit 2
+}
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot '..\..\..\Modules\PC-AI.Reliability\PC-AI.Reliability.psd1') -Force
 

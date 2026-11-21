@@ -14,6 +14,14 @@ $script:FleetForwardKinds = @('incident-open', 'incident-resolved', 'incident-fl
 $script:FleetFindingKinds = @('incident-open', 'incident-flapping', 'incident-reminder', 'escalation')
 $script:FleetSeverityRank = @{ info = 0; low = 1; medium = 2; high = 3; critical = 4 }
 
+function Assert-FleetNotDeferred {
+    <# Throws when a deferred feature is called (see $script:FleetDeferred in the .psm1). #>
+    param([Parameter(Mandatory)][ValidateSet('remediation', 'privileged_setup')][string]$Feature, [Parameter(Mandatory)][string]$What)
+    if ($script:FleetDeferred -and $script:FleetDeferred[$Feature]) {
+        throw "$What is deferred to a follow-up PR and refuses to run (docs/reliability/fleet-ledger.md, Deferred)."
+    }
+}
+
 function Get-FleetNow {
     <# UTC now. Tests set $env:FLEET_NOW (ISO-8601) so time-based rules are deterministic. #>
     if (-not [string]::IsNullOrWhiteSpace($env:FLEET_NOW)) {

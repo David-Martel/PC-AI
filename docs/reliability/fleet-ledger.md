@@ -18,25 +18,24 @@ pwsh -NoProfile -File Tools/SystemScripts/Reliability/Invoke-FleetHealthSweep.ps
 # Run once, observe and record only (no playbooks)
 pwsh -NoProfile -File Tools/SystemScripts/Reliability/Invoke-FleetHealthSweep.ps1 -NoPlaybooks
 
-# Install on a host (S4U tasks: sweep every 15 min, optional daily digest); preview first
-pwsh -NoProfile -File Tools/SystemScripts/Reliability/Install-FleetReliabilityTasks.ps1 -WhatIf
-pwsh -NoProfile -File Tools/SystemScripts/Reliability/Install-FleetReliabilityTasks.ps1 [-Digest | -FleetDigest]
+# Installing the S4U tasks is DEFERRED (see "Deferred to a follow-up PR"): only the plan can be printed.
+pwsh -NoProfile -File Tools/SystemScripts/Reliability/Install-FleetReliabilityTasks.ps1 -DryRun
 
 # Wrap a task so its runs are recorded semantically (exit 0 + "[ERROR]" in the log = failed)
 # Use -Command: `pwsh -File` cannot pass an array to -ArgumentList (the wrapper refuses a quoted list).
 pwsh -NoProfile -Command "& 'Tools/SystemScripts/Reliability/Invoke-FleetTask.ps1' -Name '\backups\pull' -FilePath pwsh.exe -ArgumentList '-NoProfile','-File','C:\jobs\pull.ps1' -LogPath C:\logs\pull.log; exit `$LASTEXITCODE"
 
-# Provision the Discord token once per host (interactive; never printed)
-Import-Module ./Modules/PC-AI.Reliability/PC-AI.Reliability.psd1
-Set-FleetDiscordToken -Token (Read-Host -AsSecureString 'bot token')
 ```
+
+Token provisioning (`Set-FleetDiscordToken`) is deferred as well. Discord delivery works today from
+`DISCORD_BOT_TOKEN`, or from an existing token file.
 
 CI: PC-AI's Windows `CI` workflow is disabled, so pull requests run only `linux-ci.yml` (`pester-lint`). It runs
 the `Portable`-tagged blocks of this suite on Linux; the DPAPI, scheduler-priority and Windows-path cases run
 locally on Windows (PowerShell 7 and 5.1).
 
-The installer prints its revert commands. It exports any task it replaces to
-`%ProgramData%\fleet-reliability\backups\` first.
+The installer's dry run prints the tasks it would register and the revert commands. A real install will export
+any task it replaces to `%ProgramData%\fleet-reliability\backups\` first.
 
 ## Why
 
@@ -131,7 +130,50 @@ staged rollout; empty means every local task.
 | `cert-expiry` | under 21 days (medium), under 7 days (high), or a chain error (critical) | renewed |
 | `detector-error` | a detector that threw; it is reported, never read as healthy | the detector runs |
 
-## Playbooks: bounded, and narrow on purpose
+## Deferred to a follow-up PR
+
+Review of this PR converged on two surfaces. Most findings from round 4 onward, and every P1 after round 6 but one,
+were there:
+
+- **automatic remediation:** the playbooks and cache pruning;
+- **privileged setup:** ACL hardening of the elevated home and Discord token provisioning.
+
+The ledger, spool, incidents, detectors, alerts and digest are complete and on. The two deferred surfaces refuse to
+run:
+
+- **Remediation:** `Invoke-FleetPlaybook` returns `deferred` and runs no action. It writes no budget state and no
+  ledger line, and the incident stays open and alerts as usual. `Invoke-FleetCachePrune` throws.
+- **Privileged setup:** `Set-FleetHomeAcl` and `Set-FleetDiscordToken` throw, and the installer exits 2 unless
+  `-DryRun` is given. Nothing is changed.
+
+A test imports the module in a fresh process. It proves that all four refuse, that the playbook's action never runs,
+and that no file is created. The implementation stays in the tree behind `$script:FleetDeferred` (in the `.psm1`),
+and the unit suite keeps testing it.
+
+The follow-up PR turns these on. It must keep all of the following rules, each learned from a review finding here:
+
+**Remediation**
+
+1. Reserve the attempt durably before acting, with a terminating write; if the reservation fails, do not act.
+2. Unreadable budget state means "do not act". Keep the file as evidence; never treat it as empty.
+3. Keep one state file per playbook and incident, under that pair's lock.
+4. A failed ledger write after the action must not unspend the budget.
+5. Never follow a junction or symlink. Refuse a cache root that is, or sits under, a reparse point, and never
+   descend into one. Windows PowerShell 5.1's `Get-ChildItem -Recurse` follows junctions.
+6. Re-run only allowlisted tasks that are neither running nor disabled. Escalate exactly once per spent budget.
+
+**Privileged setup**
+
+1. Refuse reparse points at the home, its ancestors and its descendants before any change, including creating the
+   directory.
+2. Ownership must be SYSTEM, Administrators or the installer. Take ownership, or refuse when that fails.
+3. Strip explicit entries for other identities, reset children to inherit only, then verify the whole tree; fail
+   closed on any `icacls` error.
+4. Never overwrite a secret in place. Write a new file that inherits the restricted ACL, verify it, move it over the
+   old one, and verify the result.
+5. `-DryRun` and `--help` must have no side effects, with tests that prove it.
+
+## Playbooks: bounded, and narrow on purpose (deferred, see above)
 
 Each playbook:
 

@@ -230,6 +230,7 @@ function Set-FleetDiscordToken {
         [Parameter(ParameterSetName = 'Bw', Mandatory)][string]$FromBitwardenItem,
         [Parameter(ParameterSetName = 'Bw', Mandatory)][string]$Field
     )
+    Assert-FleetNotDeferred -Feature privileged_setup -What 'Token provisioning (Set-FleetDiscordToken)'
     if ($PSCmdlet.ParameterSetName -eq 'Bw') {
         $item = (& bw get item $FromBitwardenItem 2>$null) | ConvertFrom-Json
         if ($null -eq $item) { throw 'Bitwarden item not readable (is the vault unlocked?)' }
@@ -336,6 +337,7 @@ function Set-FleetHomeAcl {
     (which /inheritance:r keeps) would let another user steer them (fifth review of #346).
     #>
     param([Parameter(Mandatory)][string]$Path)
+    Assert-FleetNotDeferred -Feature privileged_setup -What 'ACL hardening (Set-FleetHomeAcl)'
     # Before ANY change: a junction or symlink at the home, above it or anywhere under it would carry the
     # elevated, recursive ACL reset outside the home (eleventh review of #346). Refuse, change nothing.
     Assert-FleetNoReparsePoint -Path $Path

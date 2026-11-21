@@ -55,6 +55,10 @@ Describe 'PC-AI.Reliability' {
         Remove-Item Env:FLEET_LEDGER_MAX_BYTES -ErrorAction SilentlyContinue
         Remove-Item Env:DISCORD_BOT_TOKEN -ErrorAction SilentlyContinue
         Reset-FleetFake
+        # Auto-remediation and privileged setup ship DEFERRED (refused) in this PR; see docs/reliability/fleet-ledger.md
+        # "Deferred". The unit tests below still exercise their internals, so they switch the gate off here. The
+        # shipped default (everything refused, nothing touched) is proven in a fresh child process further down.
+        & (Get-Module PC-AI.Reliability) { $script:FleetDeferred = @{ remediation = $false; privileged_setup = $false } }
         Mock -ModuleName PC-AI.Reliability Invoke-FleetProcess {
             [void]$script:Calls.Add([pscustomobject]@{ FilePath = $FilePath; Args = @($ArgumentList) })
             $verb = @($ArgumentList)[0]
@@ -1407,6 +1411,42 @@ Describe 'PC-AI.Reliability CLIs: help and dry-run' {
         $env:AGENT_BUS_EXE = Join-Path $TestDrive 'no-such-agent-bus.exe'
     }
     AfterEach { $env:FLEET_RELIABILITY_HOME = $script:SavedHome; $env:AGENT_BUS_EXE = $script:SavedBus }
+
+    It 'ships with remediation and privileged setup refused, acting on nothing' -Tag 'Portable' {
+        # The scope cut for #346: the bounded playbooks, cache pruning, ACL hardening and token provisioning drew most
+        # review findings, so they are deferred to a follow-up PR. A fresh import must refuse all of them and leave
+        # no trace: no action run, no state, no ledger line, no file outside the home.
+        $marker = Join-Path $TestDrive ('acted-' + [guid]::NewGuid().ToString('N').Substring(0, 6))
+        $module = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.Reliability\PC-AI.Reliability.psd1'
+        $probe = @"
+`$ErrorActionPreference = 'Stop'
+Import-Module '$module' -Force
+`$out = @()
+`$out += 'playbook=' + (Invoke-FleetPlaybook -Playbook rerun-task -IncidentKey k -Policy (Get-FleetPolicy) -Action { Set-Content -LiteralPath '$marker' -Value x; @{ outcome = 'triggered' } })
+foreach (`$call in @(
+        { Invoke-FleetCachePrune -Path '$TestDrive\a\b\pipcache' },
+        { Set-FleetHomeAcl -Path '$TestDrive\h' },
+        { `$s = New-Object System.Security.SecureString; `$s.AppendChar('x'); Set-FleetDiscordToken -Token `$s })) {
+    try { & `$call; `$out += 'ran' } catch { `$out += 'refused:' + (`$_.Exception.Message -match 'deferred') }
+}
+`$out -join ';'
+"@
+        $r = & $script:Pwsh -NoProfile -NonInteractive -Command $probe 2>&1 | Out-String
+        $r | Should -Match 'playbook=deferred;refused:True;refused:True;refused:True'
+        Test-Path -LiteralPath $marker | Should -BeFalse
+        Test-Path -LiteralPath $env:FLEET_RELIABILITY_HOME | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $TestDrive 'h') | Should -BeFalse
+    }
+
+    It 'installer refuses a real run before changing anything' -Tag 'WindowsOnly' {
+        if (-not (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows)) { Set-ItResult -Skipped -Because 'Task Scheduler'; return }
+        $folder = '\fleet-reliability-deferred-test-' + [guid]::NewGuid().ToString('N').Substring(0, 6) + '\'
+        $r = Invoke-Cli 'Install-FleetReliabilityTasks.ps1' @('-TaskFolder', $folder)
+        $r.Code | Should -Not -Be 0
+        $r.Out | Should -Match 'deferred'
+        @(Get-ScheduledTask -TaskPath $folder -ErrorAction SilentlyContinue).Count | Should -Be 0
+        Test-Path -LiteralPath $env:FLEET_RELIABILITY_HOME | Should -BeFalse
+    }
 
     It 'prints help for -h and --help on every CLI' -Tag 'Portable' {
         foreach ($cli in 'Invoke-FleetHealthSweep.ps1', 'Invoke-FleetTask.ps1', 'Send-FleetDigest.ps1', 'Install-FleetReliabilityTasks.ps1') {

@@ -1212,6 +1212,19 @@ Describe 'PC-AI.Reliability' {
             { Set-FleetHomeAcl -Path $homeDir } | Should -Not -Throw
         }
 
+        It 'refuses to write the token into a secrets directory owned by another account' -Tag 'WindowsOnly' {
+            # Detects the trusted foreign owner from the tenth review of #346: Set-FleetDiscordToken restricted the
+            # ACL but not the owner, who can rewrite that ACL later and read the LocalMachine-DPAPI token.
+            if (-not (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows)) { Set-ItResult -Skipped -Because 'Windows ACLs'; return }
+            Mock -ModuleName PC-AI.Reliability Get-FleetItemOwnerSid { 'S-1-5-21-1-2-3-1001' }
+            Mock -ModuleName PC-AI.Reliability Set-FleetItemOwner { 0 }
+            $secure = New-Object System.Security.SecureString
+            foreach ($ch in 'dummy-token-value'.ToCharArray()) { $secure.AppendChar($ch) }
+            { Set-FleetDiscordToken -Token $secure } | Should -Throw '*owned by*'
+            Test-Path (Join-Path $env:FLEET_RELIABILITY_HOME 'secrets\discord-bot-token.dpapi') | Should -BeFalse
+            Should -Invoke -ModuleName PC-AI.Reliability Set-FleetItemOwner -Times 1 -Exactly
+        }
+
         It 'accepts a home the installing user owns, with no ownership change' -Tag 'WindowsOnly' {
             # Positive control on REAL owners: a fresh directory and file are owned by the current user.
             if (-not (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows)) { Set-ItResult -Skipped -Because 'Windows ACLs'; return }

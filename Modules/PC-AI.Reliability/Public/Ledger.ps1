@@ -251,6 +251,10 @@ function Set-FleetDiscordToken {
     if ($aclExit -ne 0) { throw "could not restrict $dir (icacls exit $aclExit); token NOT written" }
     $extra = @(Get-FleetSecretDirAclViolation -Path $dir)
     if ($extra.Count -gt 0) { throw "$dir still grants access to: $($extra -join ', '); token NOT written" }
+    # A foreign owner of the secrets directory can rewrite its ACL after this and read the token (tenth
+    # review of #346): take ownership or refuse, before the secret is written.
+    $ownerProblem = Confirm-FleetTrustedOwner -Path $dir
+    if ($ownerProblem) { throw "$ownerProblem; token NOT written" }
     Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue
     $entropy = [Text.Encoding]::UTF8.GetBytes('fleet-reliability/discord-bot-token/v1')
     $blob = [Security.Cryptography.ProtectedData]::Protect([Text.Encoding]::UTF8.GetBytes($plain), $entropy, 'LocalMachine')
@@ -292,6 +296,21 @@ function Set-FleetItemOwner {
     return $LASTEXITCODE
 }
 
+function Confirm-FleetTrustedOwner {
+    <#
+    Makes sure Path is owned by SYSTEM, Administrators or the current user, taking ownership for the
+    current user when it is not. Returns $null when trusted, else a description of the remaining owner.
+    An owner can always rewrite the DACL, so a restricted ACL under a foreign owner protects nothing.
+    #>
+    param([Parameter(Mandatory)][string]$Path)
+    $allowed = @('S-1-5-18', 'S-1-5-32-544', [Security.Principal.WindowsIdentity]::GetCurrent().User.Value)
+    if ($allowed -contains (Get-FleetItemOwnerSid -Path $Path)) { return $null }
+    $null = Set-FleetItemOwner -Path $Path
+    $owner = Get-FleetItemOwnerSid -Path $Path
+    if ($allowed -contains $owner) { return $null }
+    return ('{0}: owned by {1}' -f $Path, $owner)
+}
+
 function Set-FleetHomeAcl {
     <#
     Makes Path, and everything under it, writable only by SYSTEM, Administrators and the current user,
@@ -318,11 +337,8 @@ function Set-FleetHomeAcl {
     foreach ($item in @(Get-Item -LiteralPath $Path -Force) + @(Get-ChildItem -LiteralPath $Path -Recurse -Force)) {
         # An owner can always rewrite the DACL, so a foreign owner would undo all of the above after the
         # elevated tasks exist (seventh review of #346). Take ownership for the installing user; fail closed.
-        if ($allowed -notcontains (Get-FleetItemOwnerSid -Path $item.FullName)) {
-            $null = Set-FleetItemOwner -Path $item.FullName
-            $owner = Get-FleetItemOwnerSid -Path $item.FullName
-            if ($allowed -notcontains $owner) { $bad += ('{0}: owned by {1}' -f $item.FullName, $owner) }
-        }
+        $ownerProblem = Confirm-FleetTrustedOwner -Path $item.FullName
+        if ($ownerProblem) { $bad += $ownerProblem }
         $extra = @(Get-FleetSecretDirAclViolation -Path $item.FullName)
         if ($extra.Count -gt 0) { $bad += ('{0}: {1}' -f $item.FullName, ($extra -join ', ')) }
     }

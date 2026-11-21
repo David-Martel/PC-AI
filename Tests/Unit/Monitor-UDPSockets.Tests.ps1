@@ -138,3 +138,13 @@ Describe 'Invoke-UdpMonitor' {
         Test-Path -LiteralPath $script:dir | Should -BeFalse
     }
 }
+
+Describe 'script entry point' {
+    It '-DryRun run as a script prints the would-log line, exits 0 and creates nothing' {
+        $dir = Join-Path $TestDrive 'entry-not-created'
+        $out = pwsh -NoProfile -File $script:Script -DryRun -LogDir $dir
+        $LASTEXITCODE | Should -Be 0
+        ($out -join "`n") | Should -Match 'DRYRUN would log: .*OK: \d+ UDP sockets'
+        Test-Path -LiteralPath $dir | Should -BeFalse
+    }
+}

@@ -114,6 +114,8 @@ function Invoke-UdpMonitor {
 # Run only when executed, not when dot-sourced by the tests.
 if ($MyInvocation.InvocationName -ne '.') {
     if ($ShowHelp -or $Rest -contains '--help' -or $Rest -contains '-h') { Get-Help $PSCommandPath -Detailed; exit 0 }
-    $code = Invoke-UdpMonitor -Threshold $Threshold -LogDir $LogDir -HeartbeatMinutes $HeartbeatMinutes -DryRun:$DryRun -WhatIf:$WhatIfPreference
-    exit $code
+    # The function returns DRYRUN text lines followed by the exit code (an int); print the text, exit with the code.
+    $result = @(Invoke-UdpMonitor -Threshold $Threshold -LogDir $LogDir -HeartbeatMinutes $HeartbeatMinutes -DryRun:$DryRun -WhatIf:$WhatIfPreference)
+    $result | Where-Object { $_ -is [string] }
+    exit ([int]@($result | Where-Object { $_ -is [int] })[-1])
 }

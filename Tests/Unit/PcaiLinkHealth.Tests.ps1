@@ -232,6 +232,7 @@ Describe 'SYSTEM install never trusts a pre-existing version directory' -Tag 'Un
         Mock Start-ScheduledTask { }
         Mock Get-Acl { [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = 'S-1-5-32-544' } } -PassThru }
         Mock New-PcaiProtectedDirectory { $null = New-Item -ItemType Directory -Force -Path $Path }
+        Mock Test-PcaiSystemTrustedPath { $true }
         $target = Join-Path $TestDrive 'pcai-usb4/link-health/bin'
         $files = @(Get-PcaiHealthFile -Root $repoRoot -Components @('LinkHealth') | Where-Object { Test-Path -LiteralPath $_.Source })
         $bin = Join-Path $target (Get-PcaiContentVersion -File $files)
@@ -241,6 +242,33 @@ Describe 'SYSTEM install never trusts a pre-existing version directory' -Tag 'Un
         Test-Path -LiteralPath (Join-Path $bin 'planted.ps1') | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $bin 'Invoke-PcaiLinkHealth.ps1') | Should -BeTrue
         Should -Invoke New-PcaiProtectedDirectory -ParameterFilter { $Path -eq $bin }
+    }
+}
+
+Describe 'SYSTEM install and restore trust the whole ancestor chain' -Tag 'Unit' {
+    It 'refuses a SYSTEM install root under a directory the user owns' -Skip:(-not $IsWindows) {
+        Mock Get-ScheduledTask { }
+        Mock Register-ScheduledTask { }
+        Mock New-PcaiProtectedDirectory { $null = New-Item -ItemType Directory -Force -Path $Path }
+        # Only the last three levels look admin-owned; TestDrive (a user profile path) does not.
+        Mock Get-Acl {
+            [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = 'S-1-5-32-544' } } -PassThru |
+                Add-Member -MemberType ScriptMethod -Name GetAccessRules -Value { @() } -PassThru
+        } -ParameterFilter { $LiteralPath -like '*pcai-usb4*' }
+        $target = Join-Path $TestDrive 'staging/pcai-usb4/link-health/bin'
+        { Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask } | Should -Throw '*not trusted for a SYSTEM task*'
+        Should -Invoke Register-ScheduledTask -Times 0 -Exactly
+    }
+    It 'does not restore a SYSTEM baseline that is not admin-owned and protected' -Skip:(-not $IsWindows) {
+        Mock Get-ScheduledTask { [pscustomobject]@{ TaskName = 'LinkHealthSystem' } }
+        Mock Unregister-ScheduledTask { }
+        Mock Register-ScheduledTask { }
+        $target = Join-Path $TestDrive 'restore'
+        $null = New-Item -ItemType Directory -Force -Path (Join-Path $target 'backup')
+        Set-Content -LiteralPath (Join-Path $target 'backup/LinkHealthSystem.baseline.xml') -Value '<Task>planted</Task>'
+        $out = Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask -Remove -RestoreSaved
+        ($out -join ' ') | Should -Match 'refusing to restore LinkHealthSystem'
+        Should -Invoke Register-ScheduledTask -Times 0 -Exactly
     }
 }
 

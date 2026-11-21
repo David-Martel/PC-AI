@@ -52,6 +52,12 @@ $ErrorActionPreference = 'Stop'
 
 $script:PcaiTaskFolder = '\PC-AI\'
 $script:PcaiAdminSids = @('S-1-5-32-544', 'S-1-5-18')
+# Rights that let an account change a file or directory (write data/attributes, append, delete,
+# WriteDAC, WriteOwner, generic write/all), and the subset that lets it replace or take over an
+# ancestor (Delete, DeleteChild, WriteDAC, WriteOwner, generic write/all). Same values as
+# Invoke-PcaiLinkHealth.ps1, whose Test-PcaiAdminOwnedPath this mirrors.
+$script:PcaiWriteRightsMask = [int64]0x500D0156
+$script:PcaiAncestorRightsMask = [int64]0x500D0040
 
 # Event sources verified on dtm-p1gen9 on 2026-11-21 against real USB4NET plug history:
 #  - Kernel-PnP/Configuration 400 (configured) and 410 (started) record a USB4NET adapter arriving;
@@ -107,6 +113,40 @@ function Get-PcaiContentVersion {
         $sha.AppendData([IO.File]::ReadAllBytes($f.Source))
     }
     return [Convert]::ToHexString($sha.GetHashAndReset()).Substring(0, 12).ToLowerInvariant()
+}
+
+function Test-PcaiSystemTrustedPath {
+    <#
+    .SYNOPSIS
+    True when a path is safe for the SYSTEM task to run from or restore: the path and its parent
+    are owned by Administrators or SYSTEM, no other account can change the path, and no ancestor
+    up to the volume root is a reparse point, has an untrusted owner, or lets another account
+    delete, rename or re-permission it. Mirrors Test-PcaiAdminOwnedPath in
+    Invoke-PcaiLinkHealth.ps1, which applies the same rule to the policy and plan at run time.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not $IsWindows -or -not (Test-Path -LiteralPath $Path)) { return $false }
+    $trustedOwners = $script:PcaiAdminSids + @('S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464')
+    $chain = [Collections.Generic.List[string]]::new()
+    $cursor = (Get-Item -LiteralPath $Path -Force).FullName
+    while ($cursor) { $chain.Add($cursor); $cursor = Split-Path -Parent $cursor }
+    for ($i = 0; $i -lt $chain.Count; $i++) {
+        $item = Get-Item -LiteralPath $chain[$i] -Force
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { return $false }
+        if ($i -eq $chain.Count - 1) { break }   # the volume root itself
+        $acl = Get-Acl -LiteralPath $chain[$i]
+        $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
+        if ($i -le 1 -and $owner -notin $script:PcaiAdminSids) { return $false }
+        if ($owner -notin $trustedOwners) { return $false }
+        $mask = if ($i -eq 0) { $script:PcaiWriteRightsMask } else { $script:PcaiAncestorRightsMask }
+        foreach ($rule in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) {
+            if ($rule.AccessControlType -ne 'Allow' -or $rule.IdentityReference.Value -in $script:PcaiAdminSids) { continue }
+            if ($rule.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly) { continue }
+            if ([int64]$rule.FileSystemRights -band $mask) { return $false }
+        }
+    }
+    return $true
 }
 
 function New-PcaiProtectedDirectory {
@@ -311,6 +351,10 @@ function Install-PcaiHealthWindows {
             if ($RestoreSaved) {
                 $saved = Get-Item -LiteralPath (Join-Path $backupDir "$n.baseline.xml") -ErrorAction SilentlyContinue
                 if (-not $saved) { Write-Output "no pre-install definition of $n to restore (baseline: none)" }
+                if ($saved -and $SystemTask -and -not (Test-PcaiSystemTrustedPath -Path $saved.FullName)) {
+                    Write-Output "refusing to restore $n from $($saved.FullName): it or a parent directory is not admin-owned and protected; review it by hand"
+                    $saved = $null
+                }
                 if ($saved) {
                     Register-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $n -Xml (Get-Content -LiteralPath $saved.FullName -Raw) | Out-Null
                     Write-Output "restored: $($script:PcaiTaskFolder)$n from $($saved.Name)"
@@ -356,6 +400,19 @@ function Install-PcaiHealthWindows {
         }
         New-PcaiProtectedDirectory -Path $bin
         New-PcaiProtectedDirectory -Path $backupDir
+        # The protections above cover only the last levels. A custom -InstallRoot under a directory
+        # a user controls would still let that user replace the whole subtree, so the full chain
+        # up to the volume root must be trusted before a SYSTEM task points into it.
+        if (-not (Test-PcaiSystemTrustedPath -Path $bin)) {
+            throw "$bin is not trusted for a SYSTEM task: it or an ancestor up to the volume root has an untrusted owner, is a reparse point or lets another account replace it. Use the default %ProgramData% root or fix the ACLs."
+        }
+        # A baseline a user planted while the tree was writable would later be restored elevated.
+        foreach ($f in @(Get-ChildItem -LiteralPath $backupDir -File -Force -ErrorAction SilentlyContinue)) {
+            if (-not (Test-PcaiSystemTrustedPath -Path $f.FullName)) {
+                Remove-Item -LiteralPath $f.FullName -Force
+                Write-Output "removed untrusted backup $($f.Name) (not admin-owned and protected)"
+            }
+        }
     }
     $null = New-Item -ItemType Directory -Force -Path $bin, $backupDir
     foreach ($f in $files) { Copy-Item -LiteralPath $f.Source -Destination (Join-Path $bin $f.Name) -Force }

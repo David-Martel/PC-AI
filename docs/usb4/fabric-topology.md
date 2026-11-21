@@ -30,6 +30,15 @@ Normal output is bounded by interface/address/neighbor cardinality and checked
 against 256 KiB; the shared runner's text readers do not impose a streaming memory
 cap on exceptional provider output. No report is written automatically.
 
+The 64-neighbor bound applies to the unicast rows the planner receives, after
+multicast, zero-MAC and failed-probe rows are dropped; the raw neighbor cache is
+bounded separately at 4096 rows. Windows keeps a Permanent row for every joined
+multicast group, so a hub-attached link on dtm-p1gen9 held 65 raw rows and two
+usable ones (2026-11-21); bounding before filtering refused every live host. The
+default child deadline is 30 seconds (maximum 120): the present-device inventory
+took 9.5 s on dtm-p1gen9, 10.8 s on dtm-p1gen7 and 14.1 s on dtm-super-nuc, so
+the former 10-second default failed on two of three hosts.
+
 Collect a second host through an existing independently trusted management
 channel. Export each returned object as JSON only to an explicitly chosen private
 file. Combine the two `hosts` arrays into one observation envelope with schema

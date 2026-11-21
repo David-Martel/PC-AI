@@ -21,7 +21,7 @@ $observation = ./Get-Usb4FabricObservation.ps1
 param(
     [ValidateRange(30, 300)][int]$TtlSeconds = 90,
     [ValidateSet('local', 'management-ssh')][string]$Source = 'local',
-    [ValidateRange(1, 30)][int]$TimeoutSeconds = 10,
+    [ValidateRange(1, 120)][int]$TimeoutSeconds = 30,
     [switch]$DryRun,
     [Alias('h', 'help')][switch]$ShowHelp,
     [Parameter(DontShow)][switch]$Collect
@@ -100,6 +100,17 @@ foreach ($adapter in $candidates) {
             $_.CategoryInfo.Category -ne [Management.Automation.ErrorCategory]::ObjectNotFound) { throw }
         $neighbors = @()
     }
+    # Windows keeps a Permanent entry for every joined multicast group and an Unreachable
+    # entry for every failed probe on the interface: a real USB4 link held 65 raw rows and
+    # 2 usable ones (dtm-p1gen9, 2026-11-21). Bound the raw provider result generously,
+    # then apply the 64-row contract to the unicast evidence the planner actually receives.
+    if ($neighbors.Count -gt 4096) { throw 'USB4 raw neighbor-cache inventory exceeds its bound.' }
+    $neighbors = @($neighbors | Where-Object {
+        $macText = ([string]$_.LinkLayerAddress).Replace('-', '').Replace(':', '')
+        [string]$_.State -in @('Reachable', 'Stale', 'Delay', 'Probe', 'Permanent') -and
+        $macText -match '^[0-9a-fA-F]{12}$' -and $macText -ne '000000000000' -and
+        (([Convert]::ToInt32($macText.Substring(0, 2), 16) -band 1) -eq 0)
+    })
     if ($neighbors.Count -gt 64 -or $addresses.Count -gt 64) { throw 'USB4 address/neighbor inventory exceeds its bound.' }
     $interfaces += @([ordered]@{
         interface_guid = ([guid]$adapter.InterfaceGuid).ToString()
@@ -108,12 +119,7 @@ foreach ($adapter in $candidates) {
         interface_index = $index; interface_alias = [string]$adapter.Name
         up = ($adapter.InterfaceOperationalStatus -eq 1 -and $adapter.AdminStatus -eq 1)
         addresses = $addresses
-        neighbors = @($neighbors | Where-Object {
-            $macText = ([string]$_.LinkLayerAddress).Replace('-', '').Replace(':', '')
-            [string]$_.State -in @('Reachable', 'Stale', 'Delay', 'Probe', 'Permanent') -and
-            $macText -match '^[0-9a-fA-F]{12}$' -and $macText -ne '000000000000' -and
-            (([Convert]::ToInt32($macText.Substring(0, 2), 16) -band 1) -eq 0)
-        } | ForEach-Object { [ordered]@{ address = [string]$_.IPAddress; mac = [string]$_.LinkLayerAddress } })
+        neighbors = @($neighbors | ForEach-Object { [ordered]@{ address = [string]$_.IPAddress; mac = [string]$_.LinkLayerAddress } })
     })
 }
     [ordered]@{ observed_at_utc = [DateTimeOffset]::UtcNow.ToString('o');

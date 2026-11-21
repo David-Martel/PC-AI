@@ -279,15 +279,20 @@ fn guard_lines(ends: &BTreeMap<u32, (String, String)>) -> Vec<String> {
 fn journal_guard(plan_id: &str, create: bool) -> String {
     const VERIFY: &str = "$i = Get-Item -LiteralPath $p -Force -ErrorAction Stop; if ($i.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw \"Journal storage $p is a reparse point; review and remove it\" }; $acl = Get-Acl -LiteralPath $p -ErrorAction Stop; if ($acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -notin $ok) { throw \"Journal storage $p is not owned by Administrators or SYSTEM; review and remove it\" }; foreach ($r in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) { if ($r.AccessControlType -eq 'Allow' -and $r.IdentityReference.Value -notin $ok -and ($p -eq $d -or -not ($r.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly)) -and ([int64]$r.FileSystemRights -band $(if ($p -eq $d) { 0x500D0156 } else { 0x100D0040 }))) { throw \"Journal storage $p lets $($r.IdentityReference.Value) change it; review and remove it\" } }";
     const CREATE: &str = "$s = [Security.AccessControl.DirectorySecurity]::new(); $s.SetAccessRuleProtection($true, $false); $s.SetOwner([Security.Principal.SecurityIdentifier]'S-1-5-32-544'); foreach ($id in $ok) { $s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]$id, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow')) }; if ($p -ne $d) { $s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]'S-1-5-32-545', 'ReadAndExecute', 'ContainerInherit, ObjectInherit', 'None', 'Allow')) }; New-Item -ItemType Directory -Path $p -ErrorAction Stop | Out-Null; Set-Acl -LiteralPath $p -AclObject $s -ErrorAction Stop";
+    // The journal file must not be a reparse point and must be owned by Administrators, SYSTEM or
+    // the caller (elevated; client Windows makes the creator the owner of a file it adds).
+    const FILE: &str = "if (Test-Path -LiteralPath $j) { $fi = Get-Item -LiteralPath $j -Force -ErrorAction Stop; if ($fi.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw \"Journal $j is a reparse point; review and remove it\" }; $fo = (Get-Acl -LiteralPath $j -ErrorAction Stop).GetOwner([Security.Principal.SecurityIdentifier]).Value; if ($fo -notin $ok -and $fo -ne [Security.Principal.WindowsIdentity]::GetCurrent().User.Value) { throw \"Journal $j is owned by $fo; review and remove it\" } }";
     let head = format!(
         "$ok = 'S-1-5-32-544', 'S-1-5-18'; $d = Join-Path $env:ProgramData 'pcai-usb4\\route-plan'; $j = Join-Path $d '{plan_id}.journal'"
     );
     if create {
         format!(
-            "{head}; foreach ($p in (Split-Path $d), $d) {{ $new = -not (Test-Path -LiteralPath $p); if ($new) {{ {CREATE} }}; {VERIFY}; if ($new -and $p -eq $d -and @(Get-ChildItem -LiteralPath $p -Force).Count) {{ throw \"New journal storage $p is not empty\" }} }}"
+            "{head}; foreach ($p in (Split-Path $d), $d) {{ $new = -not (Test-Path -LiteralPath $p); if ($new) {{ {CREATE} }}; {VERIFY}; if ($new -and $p -eq $d -and @(Get-ChildItem -LiteralPath $p -Force).Count) {{ throw \"New journal storage $p is not empty\" }} }}; {FILE}"
         )
     } else {
-        format!("{head}; if (Test-Path -LiteralPath $d) {{ foreach ($p in (Split-Path $d), $d) {{ {VERIFY} }} }}")
+        format!(
+            "{head}; if (Test-Path -LiteralPath $d) {{ foreach ($p in (Split-Path $d), $d) {{ {VERIFY} }}; {FILE} }}"
+        )
     }
 }
 
@@ -309,14 +314,23 @@ fn owned_apply(plan_id: &str, key: &str, present: &str, command: &str) -> String
     )
 }
 
-/// Rollback acts only on keys this plan's apply journaled on this host. It removes the state
-/// only while it is present, then retires the key, so a later rollback cannot remove state that
-/// someone else recreates.
-fn owned_rollback(plan_id: &str, key: &str, present: &str, command: &str) -> String {
+/// The ifIndex still names the adapter the plan observed (MAC and GUID). Windows reuses an index
+/// for a new adapter after a replug, so an index alone never authorizes a change.
+fn adapter_matches(index: u32, mac: &str, guid: &str) -> String {
+    format!(
+        "($a = Get-NetAdapter -InterfaceIndex {index} -ErrorAction SilentlyContinue) -and $a.MacAddress -eq '{mac}' -and [guid]$a.InterfaceGuid -eq [guid]'{guid}'"
+    )
+}
+
+/// Rollback acts only on keys this plan's apply journaled on this host, and only while the
+/// ifIndex still names the adapter the plan observed; otherwise it changes nothing and keeps the
+/// key. It removes the state only while it is present, then retires the key, so a later rollback
+/// cannot remove state that someone else recreates.
+fn owned_rollback(plan_id: &str, key: &str, adapter: &str, present: &str, command: &str) -> String {
     let guard = journal_guard(plan_id, false);
     let retire = retire_key(key);
     format!(
-        "{guard}; if (@(Get-Content -LiteralPath $j -ErrorAction SilentlyContinue) -contains '{key}') {{ if ({present}) {{ {command} -ErrorAction Stop }}; {retire} }}"
+        "{guard}; if (@(Get-Content -LiteralPath $j -ErrorAction SilentlyContinue) -contains '{key}') {{ if (-not ({adapter})) {{ Write-Output 'The ifIndex no longer names the planned adapter; nothing changed and the journal key is kept: {key}' }} else {{ if ({present}) {{ {command} -ErrorAction Stop }}; {retire} }} }}"
     )
 }
 
@@ -492,7 +506,7 @@ pub fn build_route_plan(
                         // New-NetIPAddress disables DHCP on a DHCP-enabled interface (Microsoft Learn), and
                         // removing the address would not restore it, so such an interface is refused.
                         format!(
-                            "if ((Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4).Dhcp -eq 'Enabled') {{ throw 'DHCP is enabled on ifIndex {index}; a static address would disable it' }}; {}",
+                            "if ((Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -ErrorAction Stop).Dhcp -eq 'Enabled') {{ throw 'DHCP is enabled on ifIndex {index}; a static address would disable it' }}; {}",
                             owned_apply(
                                 &plan_id,
                                 &key,
@@ -505,6 +519,7 @@ pub fn build_route_plan(
                         owned_rollback(
                             &plan_id,
                             &format!("EdgeAddress|{index}|{ip}/30"),
+                            &adapter_matches(index, &end.mac, &end.interface_guid),
                             &address_present,
                             &format!("Remove-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -Confirm:$false"),
                         )
@@ -608,6 +623,7 @@ pub fn build_route_plan(
                             rollback: Some(owned_rollback(
                                 &plan_id,
                                 &format!("HostRoute|{index}|{target_ip}/32 via {gateway}"),
+                                &adapter_matches(index, &out.mac, &out.interface_guid),
                                 &route_present,
                                 &format!("Remove-NetRoute -InterfaceIndex {index} -DestinationPrefix {target_ip}/32 -NextHop {gateway} -Confirm:$false"),
                             )),
@@ -640,6 +656,7 @@ pub fn build_route_plan(
                                 rollback: Some(owned_rollback(
                                     &plan_id,
                                     &format!("Forwarding|{index}"),
+                                    &adapter_matches(index, &end.mac, &end.interface_guid),
                                     &forwarding_enabled,
                                     &format!("Set-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -Forwarding Disabled"),
                                 )),
@@ -863,6 +880,11 @@ mod tests {
                 .unwrap();
             let retire = rollback.find("Set-Content -LiteralPath $j").unwrap();
             assert!(undo < retire, "key retired before undo: {rollback}");
+            let identity = rollback
+                .find(&format!("Get-NetAdapter -InterfaceIndex {} ", action.interface_index))
+                .expect("rollback checks the adapter identity");
+            assert!(identity < undo && rollback[identity..undo].contains("MacAddress -eq '"));
+            assert!(rollback[identity..undo].contains("[guid]$a.InterfaceGuid -eq [guid]'"));
             assert!(rollback[..undo]
                 .rfind("if (")
                 .is_some_and(|i| rollback[i..undo].contains("Get-Net")));

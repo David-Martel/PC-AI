@@ -798,11 +798,13 @@ if ($failures.Count) { $failures; exit 1 }
     );
 }
 
-// Protects: rollback authority comes only from a journal in admin-only storage, every change is
-// journaled before it is made, and rollback retires what it undid. Detects: reading a journal from
-// a directory a standard user created (forged keys would authorize removals), a network change
-// made after a failed journal write, a key left behind by a failed apply, and a retained key that
-// lets a second rollback remove state someone else recreated. Needs: Windows with pwsh; the
+// Protects: rollback authority comes only from an admin-owned journal in admin-only storage, every
+// change is journaled before it is made, and rollback retires what it undid and touches only the
+// adapter the plan observed. Detects: reading a journal from a directory a standard user created
+// or a journal file another account owns (forged keys would authorize removals), a network change
+// made after a failed journal write, a key left behind by a failed apply, a retained key that lets
+// a second rollback remove state someone else recreated, and a rollback acting on a new adapter
+// that reuses the ifIndex (codex review of #335 at 46a1e2a0). Needs: Windows with pwsh; the
 // network cmdlets, Get-Acl and Set-Acl are replaced by functions, so nothing is changed and no
 // elevation is needed. Breadcrumb: src/route_plan.rs journal_guard/owned_apply/owned_rollback.
 #[cfg(windows)]
@@ -879,7 +881,12 @@ function Invoke-Line([string]$Text) { try { & ([scriptblock]::Create($Text)) | O
 function Get-Journal { @(Get-ChildItem -LiteralPath (Join-Path $env:ProgramData 'pcai-usb4\route-plan') -Filter *.journal -ErrorAction SilentlyContinue | Get-Content) }
 $key = [regex]::Match($cmd.apply, "Value '(EdgeAddress\|[^']+)'").Groups[1].Value
 $journalName = [regex]::Match($cmd.apply, "([0-9a-f]{16}\.journal)").Groups[1].Value
-if (-not $key -or -not $journalName) { 'no journal key or name in the apply line'; exit 1 }
+$mac = [regex]::Match($cmd.rollback, "MacAddress -eq '([^']+)'").Groups[1].Value
+$guid = [regex]::Match($cmd.rollback, "InterfaceGuid -eq \[guid\]'([^']+)'").Groups[1].Value
+if (-not $key -or -not $journalName -or -not $mac -or -not $guid) { 'no journal key, journal name or adapter identity in the generated lines'; exit 1 }
+# The planned adapter answers at its ifIndex unless a test replaces it.
+$script:adapterMac = $mac
+function Get-NetAdapter { [pscustomobject]@{ MacAddress = $script:adapterMac; InterfaceGuid = $guid } }
 
 # A directory a standard user made: the journal in it must be neither trusted nor written.
 $env:ProgramData = Join-Path $Root 'forged'
@@ -893,10 +900,15 @@ $m = Invoke-Line $cmd.apply
 if ($m -notlike 'Journal storage*') { $failures.Add("forged apply was not refused: $m") }
 if ($script:calls.Count) { $failures.Add("forged storage reached the network cmdlets: $($script:calls -join ',')") }
 
-# Trusted storage: ownership and ACL reads report Administrators and SYSTEM only.
+# Trusted storage: ownership and ACL reads report Administrators and SYSTEM only, except that a test
+# can make the journal file itself belong to the Users group.
+$script:foreignJournal = $false
 function Get-Acl {
+    [CmdletBinding()]
+    param([string]$LiteralPath)
     $s = [Security.AccessControl.DirectorySecurity]::new()
-    $s.SetOwner([Security.Principal.SecurityIdentifier]'S-1-5-32-544')
+    $owner = if ($script:foreignJournal -and $LiteralPath -like '*.journal') { 'S-1-5-32-545' } else { 'S-1-5-32-544' }
+    $s.SetOwner([Security.Principal.SecurityIdentifier]$owner)
     foreach ($id in 'S-1-5-32-544', 'S-1-5-18') {
         $s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]$id, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow'))
     }
@@ -916,6 +928,22 @@ if ((Get-Journal) -contains $key -or $script:present) { $failures.Add('rollback 
 $script:present = $true; $script:calls.Clear()   # someone else recreates the address
 $m = Invoke-Line $cmd.rollback
 if ($m -or $script:calls.Count -or -not $script:present) { $failures.Add("second rollback touched recreated state: $m / $($script:calls -join ',')") }
+
+# A replaced adapter at the same ifIndex: rollback changes nothing and keeps the key.
+$env:ProgramData = Join-Path $Root 'replaced'
+New-Item -ItemType Directory -Path $env:ProgramData | Out-Null
+$script:present = $false; $script:calls.Clear()
+$m = Invoke-Line $cmd.apply
+$script:adapterMac = '02-00-00-00-00-99'
+$m = Invoke-Line $cmd.rollback
+if ($m -or ($script:calls -contains 'Remove') -or (Get-Journal) -notcontains $key -or -not $script:present) { $failures.Add("rollback acted on a replaced adapter: $m / $($script:calls -join ',') / $((Get-Journal) -join ';')") }
+$script:adapterMac = $mac
+
+# A journal file another account owns is never trusted, even in admin-only storage.
+$script:foreignJournal = $true; $script:calls.Clear()
+$m = Invoke-Line $cmd.rollback
+if ($m -notlike 'Journal *is owned by S-1-5-32-545*' -or $script:calls.Count) { $failures.Add("rollback trusted a journal owned by Users: $m / $($script:calls -join ',')") }
+$script:foreignJournal = $false
 
 # A failed journal write must stop apply before any change.
 $env:ProgramData = Join-Path $Root 'nowrite'

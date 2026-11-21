@@ -87,7 +87,7 @@ directories with a protected ACL; a line that finds anything else stops with
 the network. Apply writes the key before it makes the change, and removes the key
 again if the change fails and the state is still absent. Rollback undoes the state
 only while it is present and then removes the key, so a second rollback cannot
-remove an address, route or forwarding setting that someone else recreated.
+remove an address, route or forwarding setting that someone else recreated. Rollback also checks that the ifIndex still names the adapter the plan observed (MAC and GUID); after a replug Windows can give that index to another adapter, so a mismatch changes nothing and keeps the key. The journal file must be owned by Administrators, SYSTEM or the elevated caller.
 
 `New-NetIPAddress` disables DHCP on an
 interface where it is enabled, and removing the address would not restore it, so

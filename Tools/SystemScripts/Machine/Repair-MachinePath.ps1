@@ -4,14 +4,16 @@
     Applies machine-path.policy.json to one host: PATH, redundant binaries and agent-home-hostile wrappers.
 
 .DESCRIPTION
-    Dry run by default; nothing is written without -Apply. With -Apply the script:
+    Dry run by default; nothing is written without -Apply. File archival is REPORT-ONLY unless -ApplyArchive is also
+    passed: the archive analysis (below) always runs and lists each candidate as eligible or unsafe, but no file is moved
+    without -Apply -ApplyArchive. Sync-MachineEnvironment.ps1 never runs this script. With -Apply the script:
 
       1. backs up both PATH values (raw text and registry kind) to <BackupDir>\<host>.<scope>.path.bak-<hash>
          and records a resolution baseline of the policy commands (<host>.baseline.before.json);
       2. rewrites the USER PATH: absolute entries only, dead and duplicate entries removed, forbidden entries
          removed, the policy head block first, the remaining entries in their existing order. The machine PATH is
          only touched with -IncludeMachine (needs an elevated session);
-      3. archives, never deletes, to <managed bin>\.superseded\<name>-<sha12><ext>:
+      3. only with -ApplyArchive, archives, never deletes, to <managed bin>\.superseded\<name>-<sha12><ext>:
            * SHA-suffixed or pre-<sha> variants of a binary (agent-bus-<sha>.exe and so on),
            * pass-through wrappers (a .cmd that only calls the same-named program elsewhere on PATH),
            * exe copies identical to a machine-scope or WinGet/Go copy of the same program,
@@ -29,12 +31,20 @@
 .PARAMETER Apply
     Execute. Without it the script prints the plan only.
 
+.PARAMETER ApplyArchive
+    Together with -Apply, actually move the archive candidates that the report lists as eligible. Off by default: applied
+    archival is deferred (see docs/MACHINE_PATH_POLICY.md) and must never be passed by an unattended sync.
+
+.PARAMETER SkipArchive
+    Skip the archive analysis and its report entirely.
+
 .PARAMETER BackupDir
     Defaults to the real profile's .machine\backups\path.
 
 .EXAMPLE
-    pwsh -NoProfile -File Repair-MachinePath.ps1            # dry run
-    pwsh -NoProfile -File Repair-MachinePath.ps1 -Apply
+    pwsh -NoProfile -File Repair-MachinePath.ps1            # dry run, includes the archive report
+    pwsh -NoProfile -File Repair-MachinePath.ps1 -Apply     # PATH and wrapper fixes; archival stays report-only
+    pwsh -NoProfile -File Repair-MachinePath.ps1 -Apply -ApplyArchive
 #>
 [CmdletBinding()]
 param(
@@ -45,6 +55,7 @@ param(
     [string]$UserHome,
     [string]$BackupDir,
     [switch]$SkipArchive,
+    [switch]$ApplyArchive,
     [switch]$SkipWrappers
 )
 
@@ -186,8 +197,11 @@ $archive = @($archive | Sort-Object Path -Unique)
 foreach ($a in $archive) {
     $ref = Test-Referenced -Path $a.Path
     $a | Add-Member -NotePropertyName Referenced -NotePropertyValue $ref -Force
-    '  archive{0} {1} ({2})' -f $(if ($ref) { ' SKIP(referenced)' } else { '' }), $a.Path.Replace($ctx.UserHome, '~'), $a.Why
+    # Report-only by default: say why each candidate is eligible (the replacement wins in cmd.exe and PowerShell, no live
+    # reference names it) or unsafe (a config, task, service or process names the exact file).
+    '  archive {0}: {1} ({2})' -f $(if ($ref) { 'UNSAFE (referenced by live config, task, service or process)' } else { 'eligible (replacement wins in cmd and PowerShell; no reference found)' }), $a.Path.Replace($ctx.UserHome, '~'), $a.Why
 }
+if (-not $SkipArchive) { "archive: {0} candidate(s); {1}" -f $archive.Count, $(if ($ApplyArchive -and $Apply) { 'will be moved (-ApplyArchive)' } else { 'REPORT ONLY, nothing is moved (pass -Apply -ApplyArchive to move eligible files)' }) }
 
 # ---- 3. wrappers that break in agent homes -----------------------------------------------------------------------
 function Get-WrapperRewrite {
@@ -276,6 +290,7 @@ function Move-ToSuperseded {
 
 $truthBefore = Save-GroundTruth -Tag before   # before any change, in a fresh pwsh and in an agent-home environment
 foreach ($a in $archive) {
+    if (-not $ApplyArchive) { $actions.Add([pscustomobject]@{ Action = 'archive-report-only'; Path = $a.Path; Referenced = $a.Referenced }); continue }
     if ($a.Referenced -and -not $a.LinkTo) { $actions.Add([pscustomobject]@{ Action = 'skip-referenced'; Path = $a.Path }); continue }
     try {
         $dest = Move-ToSuperseded -Path $a.Path -LinkTo $(if ($a.Referenced) { $a.LinkTo })

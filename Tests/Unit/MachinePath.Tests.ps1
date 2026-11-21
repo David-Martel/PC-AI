@@ -496,3 +496,40 @@ Describe 'Reference corpus keeps runtime-assembled wrapper references' {
         Test-MachineTextReference -CorpusText $c.Text -Path (Join-Path $script:Bin 'self.cmd') -UserHome 'C:\Users\tester' | Should -BeFalse
     }
 }
+
+Describe 'Repair-MachinePath.ps1 archival is report-only by default' {
+    # Why: automatic file moves were the source of every review finding from round 3 to round 7 (cmd vs PowerShell winners,
+    # sibling references, relative spellings). Moves now need an explicit -ApplyArchive, and an unattended sync must never pass it.
+    # The analysis stays so the report remains accurate (coordinator direction on PR 343).
+    BeforeAll {
+        $script:RepairPath = (Resolve-Path (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Repair-MachinePath.ps1')).Path
+        $script:RepairText = Get-Content $script:RepairPath -Raw
+        $script:SyncText2 = Get-Content (Resolve-Path (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Sync-MachineEnvironment.ps1')).Path -Raw
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($script:RepairPath, [ref]$null, [ref]$null)
+        $script:Params = @{}
+        foreach ($p in $ast.ParamBlock.Parameters) { $script:Params[$p.Name.VariablePath.UserPath] = $p }
+    }
+    It 'declares -ApplyArchive as an opt-in switch with no default' {
+        $script:Params.ContainsKey('ApplyArchive') | Should -BeTrue
+        $script:Params['ApplyArchive'].StaticType.Name | Should -Be 'SwitchParameter'
+        $script:Params['ApplyArchive'].DefaultValue | Should -BeNullOrEmpty
+    }
+    It 'guards every file move behind -ApplyArchive and records the report-only outcome otherwise' {
+        $loop = $script:RepairText.IndexOf('foreach ($a in $archive) {' + "`r`n" + '    if (-not $ApplyArchive)')
+        if ($loop -lt 0) { $loop = $script:RepairText.IndexOf('foreach ($a in $archive) {' + "`n" + '    if (-not $ApplyArchive)') }
+        $loop | Should -BeGreaterThan 0
+        $script:RepairText | Should -Match 'archive-report-only'
+        # The only call that moves an archive candidate sits after that guard.
+        $script:RepairText.IndexOf('Move-ToSuperseded -Path $a.Path') | Should -BeGreaterThan $loop
+    }
+    It 'prints the report for each candidate with the reason it is eligible or unsafe' {
+        $script:RepairText | Should -Match 'UNSAFE \(referenced'
+        $script:RepairText | Should -Match 'eligible \(replacement wins in cmd and PowerShell'
+        $script:RepairText | Should -Match 'REPORT ONLY'
+    }
+    It 'is never run by Sync-MachineEnvironment.ps1' {
+        $script:SyncText2 | Should -Not -Match 'Repair-MachinePath'
+        $script:SyncText2 | Should -Not -Match 'ApplyArchive'
+    }
+}
+

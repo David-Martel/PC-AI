@@ -42,6 +42,13 @@ things prevented traffic between Gen7 and Gen9 (observed 2026-11-21):
    the destination's /30, and enables IPv4 forwarding on both USB4 interfaces
    of each transit host. Replies are planned explicitly: the reversed path gets
    routes to the address the source sent from, its end of the first segment.
+   A pair's routes are added together or not at all. Windows uses the strong
+   host model by default, so a host's own packets, replies included, leave only
+   through the interface that owns their source address. If the sending host of
+   either direction already routes that destination through another interface,
+   the pair is reported `Blocked` with the conflicting route named, rather than
+   `Routed` one way. A transit host forwards on any route, so a different next
+   hop there is only dropped with a warning.
 5. Each host's commands begin with a guard. The guard checks that every planned
    ifIndex still carries the observed MAC and interface GUID, and stops if the
    adapter has been replaced. The plan expires with the oldest observation's TTL.

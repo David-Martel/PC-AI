@@ -325,6 +325,20 @@ fn found(query: &str, filter: &str) -> String {
     )
 }
 
+/// A planned host route on the same host to the same destination as `action` but through another
+/// interface or next hop. `None` for anything that is not a host route.
+fn conflicting_route<'a>(list: &'a [RouteAction], action: &RouteAction) -> Option<&'a RouteAction> {
+    if action.kind != RouteActionKind::HostRoute {
+        return None;
+    }
+    let destination = |a: &RouteAction| a.target.split(" via ").next().map(str::to_string);
+    list.iter().find(|existing| {
+        existing.kind == RouteActionKind::HostRoute
+            && destination(existing) == destination(action)
+            && (existing.interface_index, &existing.target) != (action.interface_index, &action.target)
+    })
+}
+
 /// The ifIndex still names the adapter the plan observed (MAC and GUID). Windows reuses an index
 /// for a new adapter after a replug, so an index alone never authorizes a change.
 fn adapter_matches(index: u32, mac: &str, guid: &str) -> String {
@@ -452,9 +466,12 @@ pub fn build_route_plan(
     // One action per (kind, interface, target): the per-pair note differs when a transit
     // host routes the same destination both for itself and for an upstream source. A second
     // next hop for the same destination on the same host is a conflict, never a duplicate.
-    let mut push = |host: &str, action: RouteAction| {
+    // Routes are only ever added, so a route a committed pair relies on is never replaced.
+    let push = |actions: &mut BTreeMap<String, Vec<RouteAction>>,
+                conflicts: &mut Vec<String>,
+                host: &str,
+                action: RouteAction| {
         let list = actions.entry(host.to_string()).or_default();
-        let destination = |a: &RouteAction| a.target.split(" via ").next().map(str::to_string);
         if list.iter().any(|existing| {
             existing.kind == action.kind
                 && existing.interface_index == action.interface_index
@@ -462,17 +479,12 @@ pub fn build_route_plan(
         }) {
             return;
         }
-        if action.kind == RouteActionKind::HostRoute {
-            if let Some(existing) = list
-                .iter()
-                .find(|e| e.kind == RouteActionKind::HostRoute && destination(e) == destination(&action))
-            {
-                conflicts.push(format!(
-                    "{host}: keeping route {} on ifIndex {}; dropped conflicting {} on ifIndex {}",
-                    existing.target, existing.interface_index, action.target, action.interface_index
-                ));
-                return;
-            }
+        if let Some(existing) = conflicting_route(list, &action) {
+            conflicts.push(format!(
+                "{host}: keeping route {} on ifIndex {}; dropped conflicting {} on ifIndex {}",
+                existing.target, existing.interface_index, action.target, action.interface_index
+            ));
+            return;
         }
         list.push(action);
     };
@@ -507,6 +519,8 @@ pub fn build_route_plan(
                 ));
             }
             push(
+                &mut actions,
+                &mut conflicts,
                 &end.host,
                 RouteAction {
                     kind: RouteActionKind::EdgeAddress,
@@ -606,6 +620,10 @@ pub fn build_route_plan(
                     format!("{to} -> {from} (reply)"),
                 ));
             }
+            // The pair's actions are staged and committed together, so a pair that is blocked
+            // leaves no routes or forwarding behind. Each entry records whether the route
+            // leaves a leg's first host, which sends from a fixed address.
+            let mut staged: Vec<(String, RouteAction, bool)> = Vec::new();
             for (leg, target_ip, note) in &legs {
                 // Every hop that is not already on the target's /30 needs a host route.
                 for (i, node) in leg.iter().enumerate().take(leg.len() - 1) {
@@ -624,8 +642,8 @@ pub fn build_route_plan(
                         ),
                         "",
                     );
-                    push(
-                        node,
+                    staged.push((
+                        node.clone(),
                         RouteAction {
                             kind: RouteActionKind::HostRoute,
                             interface_index: index,
@@ -646,8 +664,42 @@ pub fn build_route_plan(
                             )),
                             note: Some(note.clone()),
                         },
-                    );
+                        i == 0,
+                    ));
                 }
+            }
+            // Windows uses the strong host model by default: a host's own packets, including its
+            // replies, leave only through the interface that owns their source address. A leg's
+            // first host already routing the target through another interface would keep that
+            // route and send the packet nowhere, so the pair is blocked instead of Routed.
+            // Transit hosts forward on any route, so a different next hop there is only dropped.
+            let endpoint_conflicts: Vec<String> = staged
+                .iter()
+                .filter(|(_, _, origin)| *origin)
+                .filter_map(|(node, action, _)| {
+                    let existing = conflicting_route(actions.get(node)?, action)?;
+                    Some(format!(
+                        "{node} already routes {} on ifIndex {}, but sends from the source address on ifIndex {} ({})",
+                        existing.target, existing.interface_index, action.interface_index, action.target
+                    ))
+                })
+                .collect();
+            if !endpoint_conflicts.is_empty() {
+                plan.paths.push(PlannedPath {
+                    from: from.clone(),
+                    to: to.clone(),
+                    status: PathStatus::Blocked,
+                    hops: vec![],
+                    destination_ipv4: None,
+                    reason: Some(format!(
+                        "Strong host routing: a route would not leave through the interface of its source address: {}",
+                        endpoint_conflicts.join("; ")
+                    )),
+                });
+                continue;
+            }
+            for (node, action, _) in staged {
+                push(&mut actions, &mut conflicts, &node, action);
             }
             for (i, node) in path.iter().enumerate().take(path.len() - 1).skip(1) {
                 transit_used.insert(node.clone());
@@ -658,6 +710,8 @@ pub fn build_route_plan(
                             "(Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -ErrorAction Stop).Forwarding -eq 'Enabled'"
                         );
                         push(
+                            &mut actions,
+                            &mut conflicts,
                             node,
                             RouteAction {
                                 kind: RouteActionKind::Forwarding,
@@ -1118,23 +1172,34 @@ mod tests {
         }
     }
 
-    /// Follows on-link /30s and planned host routes from `start` toward `target`.
-    fn delivers(plan: &RoutePlan, start: &str, target: Ipv4Addr) -> bool {
+    /// Follows on-link /30s and planned host routes from `start`, sending from `source`, toward
+    /// `target`. Windows defaults to the strong host model, so the first hop must leave through
+    /// the interface that owns `source`; a route or on-link /30 on another interface of `start`
+    /// does not carry the packet. Transit hosts forward on any route.
+    fn delivers(plan: &RoutePlan, start: &str, source: Ipv4Addr, target: Ipv4Addr) -> bool {
         let ends: Vec<&PlannedEdgeEnd> = plan.edges.iter().flat_map(|e| e.endpoints.iter()).collect();
         let owner = |ip: Ipv4Addr| {
             ends.iter()
                 .find(|e| e.ipv4_address == ip.to_string())
                 .map(|e| e.host.clone())
         };
+        let source_index = ends
+            .iter()
+            .find(|e| e.host == start && e.ipv4_address == source.to_string())
+            .map(|e| e.interface_index)
+            .expect("source address belongs to the start host");
         let mut at = start.to_string();
-        for _ in 0..16 {
+        for hop in 0..16 {
             if owner(target).as_deref() == Some(at.as_str()) {
                 return true;
             }
             let on_link = ends
                 .iter()
                 .find(|e| e.host == at && same_slash30(e.ipv4_address.parse().unwrap(), target));
-            if on_link.is_some() {
+            if let Some(on_link) = on_link {
+                if hop == 0 && on_link.interface_index != source_index {
+                    return false;
+                }
                 at = owner(target).unwrap();
                 continue;
             }
@@ -1145,6 +1210,9 @@ mod tests {
             }) else {
                 return false;
             };
+            if hop == 0 && route.interface_index != source_index {
+                return false;
+            }
             let gateway: Ipv4Addr = route.target.rsplit(' ').next().unwrap().parse().unwrap();
             at = owner(gateway).unwrap();
         }
@@ -1154,12 +1222,6 @@ mod tests {
     fn assert_every_routed_pair_round_trips(plan: &RoutePlan) {
         for path in plan.paths.iter().filter(|p| p.status != PathStatus::Blocked) {
             let destination: Ipv4Addr = path.destination_ipv4.as_deref().unwrap().parse().unwrap();
-            assert!(
-                delivers(plan, &path.from, destination),
-                "{} cannot reach {}",
-                path.from,
-                path.to
-            );
             let first = plan
                 .edges
                 .iter()
@@ -1177,8 +1239,15 @@ mod tests {
                 .parse()
                 .unwrap();
             assert!(
-                delivers(plan, &path.to, source),
-                "{} cannot reply to {} at {source}",
+                delivers(plan, &path.from, source, destination),
+                "{} cannot reach {} at {destination} from {source}",
+                path.from,
+                path.to
+            );
+            // The destination answers from the address the request reached.
+            assert!(
+                delivers(plan, &path.to, destination, source),
+                "{} cannot reply from {destination} to {} at {source}",
                 path.to,
                 path.from
             );
@@ -1203,5 +1272,68 @@ mod tests {
         assert_every_routed_pair_round_trips(&plan);
         let recorded = build_route_plan(&observation(), &policy(&["dtm-super-nuc"]), &fleet(), now()).unwrap();
         assert_every_routed_pair_round_trips(&recorded);
+    }
+
+    // Protects: a pair is reported Routed only when the destination's reply can leave through
+    // the interface that owns the address it answers from (Windows strong host model). Detects:
+    // a reply route dropped as a conflict because the host already routes the source address
+    // through another interface for its own traffic, leaving the path Routed but one-way (codex
+    // review of #335 at 5e1346a7: e-b-a-g-c forward while c keeps its c-f route to e). Needs:
+    // the reviewer's seven-host mesh with five transit hosts. Breadcrumb: origin conflicts.
+    #[test]
+    fn a_path_whose_reply_route_conflicts_at_the_endpoint_is_blocked() {
+        let links = [
+            ("a", "b"),
+            ("a", "g"),
+            ("b", "d"),
+            ("b", "e"),
+            ("c", "f"),
+            ("c", "g"),
+            ("d", "f"),
+        ];
+        let known: BTreeSet<String> = ["a", "b", "c", "d", "e", "f", "g"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        let plan = build_route_plan(
+            &mesh_observation(&links),
+            &policy(&["a", "b", "d", "f", "g"]),
+            &known,
+            now(),
+        )
+        .unwrap();
+        assert_every_routed_pair_round_trips(&plan);
+        let blocked: Vec<&PlannedPath> = plan
+            .paths
+            .iter()
+            .filter(|p| p.reason.as_deref().is_some_and(|r| r.contains("source address")))
+            .collect();
+        assert!(!blocked.is_empty(), "the endpoint conflict must block a path");
+        for path in &blocked {
+            assert_eq!(path.status, PathStatus::Blocked);
+            assert!(path.hops.is_empty() && path.destination_ipv4.is_none());
+        }
+        // A blocked pair leaves nothing behind: no route carries its forward or reply note.
+        for path in &blocked {
+            let notes = [
+                format!("{} -> {}", path.from, path.to),
+                format!("{} -> {} (reply)", path.to, path.from),
+            ];
+            for host in &plan.hosts {
+                assert!(
+                    !host
+                        .actions
+                        .iter()
+                        .any(|a| a.note.as_ref().is_some_and(|n| notes.contains(n))),
+                    "blocked pair {} -> {} left an action on {}",
+                    path.from,
+                    path.to,
+                    host.host
+                );
+            }
+        }
+        // Without the conflict the same mesh still routes most pairs.
+        let routed = plan.paths.iter().filter(|p| p.status == PathStatus::Routed).count();
+        assert!(routed > blocked.len(), "{routed} routed, {} blocked", blocked.len());
     }
 }

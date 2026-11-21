@@ -1047,6 +1047,21 @@ pub fn plan_and_apply_unregister_actions<R: CommandRunner>(
             return vec![gate];
         }
     }
+    // Read-only, and before any removal: registered /128 routes are invisible to the adapter
+    // snapshot. If the table cannot be read, peer routes cannot be identified, so nothing on
+    // this adapter is removed (a partial unregister would strand those routes).
+    let routes = installed_ipv6_host_routes(runner, if_idx, alias);
+    if routes.is_none() && !peers.is_empty() {
+        let mut gate = unregister_action(
+            adapter,
+            "RouteTableRead",
+            format!("IPv6 route table for ifIndex {if_idx}"),
+            true,
+        );
+        gate.command_summary = format!("Read installed /128 routes on {alias} (ifIndex {if_idx}) before unregistering");
+        gate.error = Some("The IPv6 route table could not be read; refusing to unregister this adapter".to_string());
+        return vec![gate];
+    }
     let has_v6 = |address: &str| adapter.addresses.iter().any(|a| ipv6_addrs_equal(&a.address, address));
     let has_v4_30 = |address: &str| {
         adapter
@@ -1073,8 +1088,6 @@ pub fn plan_and_apply_unregister_actions<R: CommandRunner>(
         }
         actions.push(act);
     }
-    // Read-only; registered /128 routes are invisible to the adapter snapshot.
-    let routes = installed_ipv6_host_routes(runner, if_idx, alias);
     let parsed = |ula: &str| ula.parse::<std::net::Ipv6Addr>().ok();
     for peer in peers {
         let pair = compute_commutative_pairwise_ipv4(&local_id.computer_name, &peer.computer_name).ok();
@@ -1923,6 +1936,7 @@ mod tests {
     /// Records commands. `show` returns the next queued route listing (the last repeats);
     /// any command containing `fail_containing` fails.
     struct RecordingRunner {
+        fail_show: bool,
         fail_containing: Option<String>,
         route_listings: Mutex<std::collections::VecDeque<String>>,
         invocations: Mutex<Vec<String>>,
@@ -1931,6 +1945,7 @@ mod tests {
     impl RecordingRunner {
         fn new(fail_containing: Option<&str>, listings: &[String]) -> Self {
             RecordingRunner {
+                fail_show: false,
                 fail_containing: fail_containing.map(str::to_string),
                 route_listings: Mutex::new(listings.iter().cloned().collect()),
                 invocations: Mutex::new(vec![]),
@@ -1943,6 +1958,9 @@ mod tests {
             let command = format!("{program} {}", args.join(" "));
             self.invocations.lock().unwrap().push(command.clone());
             if args.contains(&"show") {
+                if self.fail_show {
+                    return (false, "Simulated route-table read failure".to_string());
+                }
                 let mut queue = self.route_listings.lock().unwrap();
                 let listing = if queue.len() > 1 {
                     queue.pop_front()
@@ -2152,5 +2170,36 @@ mod tests {
         assert!(unregister_peer_gate(Some("dtm-p1gen9"), Some("02-00-00-0B-00-19"), 2).is_none());
         assert!(unregister_peer_gate(Some("dtm-p1gen9"), None, 1).is_none());
         assert!(unregister_peer_gate(None, None, 2).is_none());
+    }
+
+    // Protects: an unreadable route table fails closed (codex review of #336). Detects:
+    // skipping peer routes silently and still removing local addresses, which reports success
+    // with residual routes. Needs: a runner whose route-table read fails.
+    // Breadcrumb: plan_and_apply_unregister_actions RouteTableRead gate.
+    #[test]
+    fn unreadable_route_table_refuses_unregister_on_that_adapter() {
+        let reg = repo_registry_path();
+        let nuc = resolve_peer_identity(Some("dtm-super-nuc"), None, Some(&reg)).unwrap();
+        let gen9 = resolve_peer_identity(Some("dtm-p1gen9"), None, Some(&reg)).unwrap();
+        let mut runner = RecordingRunner::new(None, &[String::new()]);
+        runner.fail_show = true;
+        for apply in [false, true] {
+            let actions = plan_and_apply_unregister_actions(
+                &runner,
+                &recorded_nuc_gen9_adapter(),
+                &nuc,
+                std::slice::from_ref(&gen9),
+                false,
+                apply,
+                false,
+            );
+            assert_eq!(actions.len(), 1, "{actions:?}");
+            assert_eq!(actions[0].category, "RouteTableRead");
+            assert!(check_applied_actions(&actions).is_err());
+        }
+        assert!(
+            runner.invocations.lock().unwrap().iter().all(|c| c.contains(" show ")),
+            "a removal ran after the route table could not be read"
+        );
     }
 }

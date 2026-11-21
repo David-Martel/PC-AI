@@ -434,3 +434,109 @@ Describe 'Tool shim resolution' -Tag 'Unit', 'Portable' {
         ($r | Where-Object Name -eq 'pcai-no-such-tool-0b9f').Ok | Should -BeFalse
     }
 }
+
+Describe 'Profile-load probe reports what a user would see, not silenced probes' -Tag 'Unit', 'Portable' {
+    # Why: a profile that tests for a variable with `Get-Variable -ErrorAction SilentlyContinue`
+    # still appends an ErrorRecord to $Error, although the host prints nothing and the shell is
+    # healthy. dtm-work's private profile does this 13 times per load, and the probe used to exit 3
+    # on `$Error.Count` ("Cannot find a variable with the name '__CoreProfileLoaded'"). A failing
+    # profile is one whose load throws or writes an error to the error stream.
+    BeforeAll {
+        $script:profiles = Join-Path $TestDrive 'profiles'
+        $null = New-Item -ItemType Directory -Path $script:profiles
+        function New-ProbeProfile {
+            param([string]$Name, [string]$Body)
+            $p = Join-Path $script:profiles "$Name.ps1"
+            [IO.File]::WriteAllText($p, $Body)
+            return $p
+        }
+    }
+    It 'accepts a profile whose existence checks are silenced with SilentlyContinue' {
+        $p = New-ProbeProfile 'silent' @'
+$null = Get-Variable -Name PcaiNoSuchVariable -Scope Global -ErrorAction SilentlyContinue
+$null = Get-Item -LiteralPath 'Function:\PcaiNoSuchFunction' -ErrorAction SilentlyContinue
+$null = Get-Command PcaiNoSuchCommand -ErrorAction SilentlyContinue
+$env:PCAI_PROBE_RAN = '1'
+'@
+        $r = Measure-PcaiProfileLoad -ProfilePath $p
+        $r.ExitCode | Should -Be 0
+        $r.FirstError | Should -BeNullOrEmpty
+        $r.TimedOut | Should -BeFalse
+    }
+    It 'rejects a profile that throws, and names the message' {
+        $p = New-ProbeProfile 'throws' "throw 'pcai probe boom'"
+        $r = Measure-PcaiProfileLoad -ProfilePath $p
+        $r.ExitCode | Should -Be 3
+        $r.FirstError | Should -Match 'pcai probe boom'
+    }
+    It 'rejects a profile that writes a non-terminating error nobody silenced' {
+        $p = New-ProbeProfile 'loud' '$null = Get-Variable -Name PcaiNoSuchVariable -Scope Global'
+        $r = Measure-PcaiProfileLoad -ProfilePath $p
+        $r.ExitCode | Should -Be 3
+        $r.FirstError | Should -Match 'PcaiNoSuchVariable'
+    }
+    It 'rejects a profile that fails to parse' {
+        $p = New-ProbeProfile 'syntax' 'if ($true) { '
+        (Measure-PcaiProfileLoad -ProfilePath $p).ExitCode | Should -Be 3
+    }
+    It 'checks every profile in the list, so a late failure is not hidden by an earlier clean file' {
+        $good = New-ProbeProfile 'first-good' '$x = 1'
+        $bad = New-ProbeProfile 'second-bad' "throw 'second failed'"
+        $r = Measure-PcaiProfileLoad -ProfilePath @($good, $bad)
+        $r.ExitCode | Should -Be 3
+        $r.FirstError | Should -Match 'second failed'
+    }
+    It 'treats a missing profile file as nothing to load' {
+        (Measure-PcaiProfileLoad -ProfilePath (Join-Path $script:profiles 'does-not-exist.ps1')).ExitCode | Should -Be 0
+    }
+}
+
+Describe 'Debounce delays a run instead of dropping it' -Tag 'Unit', 'Portable' {
+    # Why: with a leading-edge drop and a 600 s window, a ToolingHealth task started by hand seven
+    # minutes after the logon run exited 0, printed "debounced" into a hidden window and left
+    # status.json at the old evaluation. The window now trails (as LinkHealth does): a run that
+    # starts inside it waits out the rest and then evaluates, so status.json always catches up.
+    BeforeEach {
+        Mock Find-PcaiToolingRepo { , @() }
+        Mock Invoke-PcaiParallel { , @() }
+        Mock Get-PcaiProfileChain { , @() }
+        Mock Measure-PcaiProfileLoad { [pscustomobject]@{ Seconds = 0.1; ExitCode = 0; TimedOut = $false; FirstError = $null } }
+        Mock Test-PcaiToolShim { , @() }
+        Mock Get-PcaiOpenPullRequest { , @() }
+        $script:root = Join-Path $TestDrive ('debounce-' + [guid]::NewGuid().ToString('n'))
+        $null = New-Item -ItemType Directory -Path $script:root
+        [IO.File]::WriteAllText((Join-Path $script:root 'config.json'), '{ "busEnabled": false }')
+    }
+    It 'waits out the interval, then evaluates and writes a fresh status' {
+        [IO.File]::WriteAllText((Join-Path $script:root 'last-run.txt'), [DateTime]::UtcNow.ToString('o'))
+        $sw = [Diagnostics.Stopwatch]::StartNew()
+        $status = @(Invoke-PcaiToolingHealth -RunTrigger Event -Root $script:root -MinInterval 3) | Where-Object { $_ -isnot [string] }
+        $sw.Stop()
+        $status | Should -Not -BeNullOrEmpty
+        $status.debounceWaitSeconds | Should -BeGreaterThan 1
+        $sw.Elapsed.TotalSeconds | Should -BeGreaterThan 1.5
+        $written = Get-Content -LiteralPath (Join-Path $script:root 'status.json') -Raw | ConvertFrom-Json
+        $written.evaluatedAtUtc | Should -Not -BeNullOrEmpty
+        $written.debounceWaitSeconds | Should -BeGreaterThan 1
+    }
+    It 'does not wait when the last run is older than the interval' {
+        [IO.File]::WriteAllText((Join-Path $script:root 'last-run.txt'), [DateTime]::UtcNow.AddMinutes(-5).ToString('o'))
+        $status = @(Invoke-PcaiToolingHealth -RunTrigger Event -Root $script:root -MinInterval 60) | Where-Object { $_ -isnot [string] }
+        $status.debounceWaitSeconds | Should -Be 0
+    }
+    It 'does not wait for a manual run' {
+        [IO.File]::WriteAllText((Join-Path $script:root 'last-run.txt'), [DateTime]::UtcNow.ToString('o'))
+        $status = @(Invoke-PcaiToolingHealth -RunTrigger Manual -Root $script:root -MinInterval 60) | Where-Object { $_ -isnot [string] }
+        $status.debounceWaitSeconds | Should -Be 0
+    }
+    It 'treats an unreadable stamp as no stamp rather than failing the run' {
+        [IO.File]::WriteAllText((Join-Path $script:root 'last-run.txt'), 'not a date')
+        $status = @(Invoke-PcaiToolingHealth -RunTrigger Event -Root $script:root -MinInterval 60) | Where-Object { $_ -isnot [string] }
+        $status.debounceWaitSeconds | Should -Be 0
+    }
+    It 'caps the window well inside the task time limit' {
+        $attr = (Get-Command (Join-Path $repoRoot 'Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1')).Parameters['MinIntervalSeconds'].Attributes |
+            Where-Object { $_ -is [System.Management.Automation.ValidateRangeAttribute] }
+        $attr.MaxRange | Should -BeLessOrEqual 300
+    }
+}

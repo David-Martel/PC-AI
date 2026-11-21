@@ -803,8 +803,9 @@ if ($failures.Count) { $failures; exit 1 }
 // adapter the plan observed. Detects: reading a journal from a directory a standard user created
 // or a journal file another account owns (forged keys would authorize removals), a network change
 // made after a failed journal write, a key left behind by a failed apply, a retained key that lets
-// a second rollback remove state someone else recreated, and a rollback acting on a new adapter
-// that reuses the ifIndex (codex review of #335 at 46a1e2a0). Needs: Windows with pwsh; the
+// a second rollback remove state someone else recreated, a rollback acting on a new adapter
+// that reuses the ifIndex (codex review of #335 at 46a1e2a0), and a failed state query read as
+// absence, which retired the key while the state stayed active (codex review at 5c182bd7). Needs: Windows with pwsh; the
 // network cmdlets, Get-Acl and Set-Acl are replaced by functions, so nothing is changed and no
 // elevation is needed. Breadcrumb: src/route_plan.rs journal_guard/owned_apply/owned_rollback.
 #[cfg(windows)]
@@ -874,7 +875,15 @@ $script:calls = [Collections.Generic.List[string]]::new()
 $script:present = $false
 $script:failNew = $false
 function Get-NetIPInterface { [pscustomobject]@{ Dhcp = 'Disabled'; Forwarding = 'Disabled' } }
-function Get-NetIPAddress { if ($script:present) { [pscustomobject]@{ PrefixLength = 30 } } }
+$script:queryFails = $false
+# Like the real cmdlet: a missing address is an ObjectNotFound error; a provider failure is another error.
+function Get-NetIPAddress {
+    [CmdletBinding()]
+    param($InterfaceIndex, $IPAddress, $AddressFamily)
+    if ($script:queryFails) { Write-Error -Message 'stub CIM provider failure' -Category ConnectionError; return }
+    if ($script:present) { [pscustomobject]@{ PrefixLength = 30 } }
+    else { Write-Error -Message 'No matching MSFT_NetIPAddress objects found' -Category ObjectNotFound }
+}
 function New-NetIPAddress { $script:calls.Add('New'); if ($script:failNew) { throw 'stub New-NetIPAddress failure' }; $script:present = $true }
 function Remove-NetIPAddress { $script:calls.Add('Remove'); $script:present = $false }
 function Invoke-Line([string]$Text) { try { & ([scriptblock]::Create($Text)) | Out-Null; $null } catch { $_.Exception.Message } }
@@ -938,6 +947,12 @@ $script:adapterMac = '02-00-00-00-00-99'
 $m = Invoke-Line $cmd.rollback
 if ($m -or ($script:calls -contains 'Remove') -or (Get-Journal) -notcontains $key -or -not $script:present) { $failures.Add("rollback acted on a replaced adapter: $m / $($script:calls -join ',') / $((Get-Journal) -join ';')") }
 $script:adapterMac = $mac
+
+# A failed state query is not absence: rollback keeps the key and changes nothing.
+$script:queryFails = $true; $script:calls.Clear()
+$m = Invoke-Line $cmd.rollback
+if ($m -notlike 'State query failed*' -or $script:calls.Count -or (Get-Journal) -notcontains $key) { $failures.Add("rollback treated a failed query as absence: $m / $($script:calls -join ',') / $((Get-Journal) -join ';')") }
+$script:queryFails = $false
 
 # A journal file another account owns is never trusted, even in admin-only storage.
 $script:foreignJournal = $true; $script:calls.Clear()

@@ -314,6 +314,17 @@ fn owned_apply(plan_id: &str, key: &str, present: &str, command: &str) -> String
     )
 }
 
+/// True when `query` (piped through `filter`) finds the object, false when the cmdlet reports it
+/// as not found, and a thrown error for any other failure. The NetTCPIP cmdlets report a missing
+/// address or route as an ObjectNotFound error, so `-ErrorAction SilentlyContinue` alone would
+/// read a failed CIM query as "absent", and rollback would then retire a key whose state is still
+/// active.
+fn found(query: &str, filter: &str) -> String {
+    format!(
+        "(& {{ $e = @(); $r = @({query} -ErrorAction SilentlyContinue -ErrorVariable e{filter}); if (@($e | Where-Object {{ $_.CategoryInfo.Category -ne 'ObjectNotFound' }}).Count) {{ throw ('State query failed; nothing changed and the journal key is kept: ' + $e[0]) }}; $r.Count -gt 0 }})"
+    )
+}
+
 /// The ifIndex still names the adapter the plan observed (MAC and GUID). Windows reuses an index
 /// for a new adapter after a replug, so an index alone never authorizes a change.
 fn adapter_matches(index: u32, mac: &str, guid: &str) -> String {
@@ -484,8 +495,9 @@ pub fn build_route_plan(
             }
             let present = end.observed_v4.contains(&end.address);
             let (index, ip) = (end.interface_index, end.address);
-            let address_present = format!(
-                "Get-NetIPAddress -InterfaceIndex {index} -IPAddress {ip} -ErrorAction SilentlyContinue | Where-Object PrefixLength -eq 30"
+            let address_present = found(
+                &format!("Get-NetIPAddress -InterfaceIndex {index} -IPAddress {ip}"),
+                " | Where-Object PrefixLength -eq 30",
             );
             if present {
                 // The observation records addresses without prefix lengths; an address the plan
@@ -606,7 +618,12 @@ pub fn build_route_plan(
                     }
                     let index = out.interface_index;
                     let gateway = next.address;
-                    let route_present = format!("Get-NetRoute -InterfaceIndex {index} -DestinationPrefix {target_ip}/32 -NextHop {gateway} -ErrorAction SilentlyContinue");
+                    let route_present = found(
+                        &format!(
+                            "Get-NetRoute -InterfaceIndex {index} -DestinationPrefix {target_ip}/32 -NextHop {gateway}"
+                        ),
+                        "",
+                    );
                     push(
                         node,
                         RouteAction {
@@ -638,7 +655,7 @@ pub fn build_route_plan(
                     if let Some(end) = edge.end(node) {
                         let index = end.interface_index;
                         let forwarding_enabled = format!(
-                            "(Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4).Forwarding -eq 'Enabled'"
+                            "(Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -ErrorAction Stop).Forwarding -eq 'Enabled'"
                         );
                         push(
                             node,
@@ -885,9 +902,17 @@ mod tests {
                 .expect("rollback checks the adapter identity");
             assert!(identity < undo && rollback[identity..undo].contains("MacAddress -eq '"));
             assert!(rollback[identity..undo].contains("[guid]$a.InterfaceGuid -eq [guid]'"));
-            assert!(rollback[..undo]
-                .rfind("if (")
-                .is_some_and(|i| rollback[i..undo].contains("Get-Net")));
+            // The presence check between the identity check and the undo must fail loudly: only
+            // ObjectNotFound counts as absence for address and route queries, and the forwarding
+            // query stops on any error.
+            let presence = &rollback[identity..undo];
+            assert!(presence.contains("Get-Net"), "{rollback}");
+            assert!(
+                presence.contains("$_.CategoryInfo.Category -ne 'ObjectNotFound'")
+                    || presence.contains("-AddressFamily IPv4 -ErrorAction Stop).Forwarding"),
+                "a failed state query would read as absence: {rollback}"
+            );
+            assert!(!presence.contains("-ErrorAction SilentlyContinue |") || presence.contains("-ErrorVariable e"));
         }
     }
 

@@ -102,12 +102,39 @@ Describe 'Invoke-UdpMonitor' {
         Get-LogText $script:dir | Should -Match 'AUTO-KILL: dllhost PID 99 with 10001 sockets'
     }
 
-    It 'honours -WhatIf: logs the alert but never stops the process (safe smoke test on a live host)' {
+    It '-DryRun creates no directory, log or heartbeat, and says what it would log (AGENTS.md dry-run rule)' {
+        $out = Invoke-UdpMonitor -Threshold 5000 -LogDir $script:dir -HeartbeatMinutes 60 -DryRun
+        Test-Path -LiteralPath $script:dir | Should -BeFalse
+        ($out | Where-Object { $_ -is [string] }) -join "`n" | Should -Match 'DRYRUN would log: .*OK: 150 UDP sockets'
+        $out | Where-Object { $_ -is [int] } | Should -Be 0
+    }
+
+    It '-DryRun leaves an existing log and heartbeat byte-for-byte and mtime unchanged, so it cannot suppress the next real OK line' {
+        $null = New-Item -ItemType Directory $script:dir
+        $log = Join-Path $script:dir 'udp-monitor.log'; $hb = Join-Path $script:dir 'udp-monitor.heartbeat'
+        Set-Content $log 'old line'; Set-Content $hb 'old'
+        (Get-Item $hb).LastWriteTime = [datetime]'2026-01-01 00:00:00'
+        $before = @((Get-FileHash $log).Hash, (Get-FileHash $hb).Hash, (Get-Item $hb).LastWriteTime.Ticks)
+        $null = Invoke-UdpMonitor -Threshold 5000 -LogDir $script:dir -HeartbeatMinutes 60 -DryRun
+        @((Get-FileHash $log).Hash, (Get-FileHash $hb).Hash, (Get-Item $hb).LastWriteTime.Ticks) | Should -Be $before
+    }
+
+    It '-DryRun above 10000 dllhost sockets reports the kill but stops nothing and flushes nothing' {
+        Mock Get-NetUDPEndpoint { New-Endpoints 10001 -OwningProcess 99 }
+        Mock Get-Process { [pscustomobject]@{ ProcessName = 'dllhost' } }
+        $out = Invoke-UdpMonitor -Threshold 5000 -LogDir $script:dir -HeartbeatMinutes 60 -DryRun
+        Should -Invoke Stop-Process -Times 0 -Exactly
+        Should -Invoke ipconfig -Times 0 -Exactly
+        Test-Path -LiteralPath $script:dir | Should -BeFalse
+        ($out | Where-Object { $_ -is [string] }) -join "`n" | Should -Match 'DRYRUN would log: .*AUTO-KILL: dllhost PID 99'
+    }
+
+    It '-WhatIf is a dry run too: no files, no kill' {
         Mock Get-NetUDPEndpoint { New-Endpoints 10001 -OwningProcess 99 }
         Mock Get-Process { [pscustomobject]@{ ProcessName = 'dllhost' } }
         $null = Invoke-UdpMonitor -Threshold 5000 -LogDir $script:dir -HeartbeatMinutes 60 -WhatIf
         Should -Invoke Stop-Process -Times 0 -Exactly
         Should -Invoke ipconfig -Times 0 -Exactly
-        Get-LogText $script:dir | Should -Match 'ALERT'
+        Test-Path -LiteralPath $script:dir | Should -BeFalse
     }
 }

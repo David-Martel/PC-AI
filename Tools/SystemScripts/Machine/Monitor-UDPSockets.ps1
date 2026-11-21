@@ -28,24 +28,32 @@
 .PARAMETER LogDir
   Directory for udp-monitor.log and udp-monitor.heartbeat.
 
+.PARAMETER DryRun
+  Non-mutating: reads the endpoint count and prints what it would log, but creates no directory, writes no log line,
+  does not touch the heartbeat stamp, stops no process and flushes no DNS. -WhatIf is treated the same way. Use it for
+  smoke tests on a live host.
+
 .PARAMETER HeartbeatMinutes
   Minimum minutes between OK lines. Default 60.
 
 .EXAMPLE
-  pwsh -NoProfile -File Monitor-UDPSockets.ps1 -WhatIf   # log, but never stop a process or flush DNS
+  pwsh -NoProfile -File Monitor-UDPSockets.ps1 -DryRun   # report only: no file, process or DNS change
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [int]$Threshold = 5000,
     # GetFolderPath, not $env:USERPROFILE: agent homes redirect USERPROFILE and the log would land there.
     [string]$LogDir = (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.machine\logs'),
-    [int]$HeartbeatMinutes = 60
+    [int]$HeartbeatMinutes = 60,
+    [switch]$DryRun,
+    [Alias('h', 'Help')][switch]$ShowHelp,
+    [Parameter(ValueFromRemainingArguments)][string[]]$Rest
 )
 
 function Write-UdpLog {
-    param([string]$LogDir, [string]$Message)
-    # -WhatIf:$false: a dry run must still write its own log; only the kill and the DNS flush are suppressed.
-    $Message | Out-File -Append -LiteralPath (Join-Path $LogDir 'udp-monitor.log') -Encoding utf8 -WhatIf:$false
+    param([string]$LogDir, [string]$Message, [switch]$DryRun)
+    if ($DryRun) { Write-Output ('DRYRUN would log: ' + $Message); return }
+    $Message | Out-File -Append -LiteralPath (Join-Path $LogDir 'udp-monitor.log') -Encoding utf8
 }
 
 function Test-HeartbeatDue {
@@ -58,14 +66,16 @@ function Test-HeartbeatDue {
 
 function Invoke-UdpMonitor {
     [CmdletBinding(SupportsShouldProcess)]
-    param([int]$Threshold, [string]$LogDir, [int]$HeartbeatMinutes)
+    param([int]$Threshold, [string]$LogDir, [int]$HeartbeatMinutes, [switch]$DryRun)
 
-    if (-not (Test-Path -LiteralPath $LogDir)) { New-Item -ItemType Directory -Path $LogDir -Force -WhatIf:$false | Out-Null }
+    # -WhatIf behaves as -DryRun: nothing on disk, no process, no DNS.
+    if ($WhatIfPreference) { $DryRun = [switch]::new($true) }
+    if (-not $DryRun -and -not (Test-Path -LiteralPath $LogDir)) { New-Item -ItemType Directory -Path $LogDir -Force | Out-Null }
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 
     try { $endpoints = @(Get-NetUDPEndpoint -ErrorAction Stop) }
     catch {
-        Write-UdpLog $LogDir "[$timestamp] ERROR: cannot read UDP endpoints: $($_.Exception.Message)"
+        Write-UdpLog $LogDir "[$timestamp] ERROR: cannot read UDP endpoints: $($_.Exception.Message)" -DryRun:$DryRun
         return 1
     }
     $udpCount = $endpoints.Count
@@ -78,13 +88,16 @@ function Invoke-UdpMonitor {
             $name = if ($proc) { $proc.ProcessName } else { 'unknown' }
             $msg += "  PID $($t.Name) ($name): $($t.Count) sockets`n"
         }
-        Write-UdpLog $LogDir $msg
+        Write-UdpLog $LogDir $msg -DryRun:$DryRun
 
         # Stop the worst offender only when it is dllhost holding more than 10000 sockets.
         $worst = $top | Select-Object -First 1
         $worstProc = Get-Process -Id $worst.Name -ErrorAction SilentlyContinue
         if ($worstProc -and $worstProc.ProcessName -eq 'dllhost' -and $worst.Count -gt 10000) {
-            if ($PSCmdlet.ShouldProcess("dllhost PID $($worst.Name) ($($worst.Count) sockets)", 'Stop-Process and flush DNS')) {
+            if ($DryRun) {
+                Write-UdpLog $LogDir "[$timestamp] AUTO-KILL: dllhost PID $($worst.Name) with $($worst.Count) sockets" -DryRun
+            }
+            elseif ($PSCmdlet.ShouldProcess("dllhost PID $($worst.Name) ($($worst.Count) sockets)", 'Stop-Process and flush DNS')) {
                 Write-UdpLog $LogDir "[$timestamp] AUTO-KILL: dllhost PID $($worst.Name) with $($worst.Count) sockets"
                 Stop-Process -Id $worst.Name -Force
                 ipconfig /flushdns | Out-Null
@@ -92,14 +105,15 @@ function Invoke-UdpMonitor {
         }
     }
     elseif (Test-HeartbeatDue -LogDir $LogDir -Minutes $HeartbeatMinutes) {
-        Write-UdpLog $LogDir "[$timestamp] OK: $udpCount UDP sockets"
-        Set-Content -LiteralPath (Join-Path $LogDir 'udp-monitor.heartbeat') -Value $timestamp -WhatIf:$false
+        Write-UdpLog $LogDir "[$timestamp] OK: $udpCount UDP sockets" -DryRun:$DryRun
+        if (-not $DryRun) { Set-Content -LiteralPath (Join-Path $LogDir 'udp-monitor.heartbeat') -Value $timestamp }
     }
     return 0
 }
 
 # Run only when executed, not when dot-sourced by the tests.
 if ($MyInvocation.InvocationName -ne '.') {
-    $code = Invoke-UdpMonitor -Threshold $Threshold -LogDir $LogDir -HeartbeatMinutes $HeartbeatMinutes -WhatIf:$WhatIfPreference
+    if ($ShowHelp -or $Rest -contains '--help' -or $Rest -contains '-h') { Get-Help $PSCommandPath -Detailed; exit 0 }
+    $code = Invoke-UdpMonitor -Threshold $Threshold -LogDir $LogDir -HeartbeatMinutes $HeartbeatMinutes -DryRun:$DryRun -WhatIf:$WhatIfPreference
     exit $code
 }

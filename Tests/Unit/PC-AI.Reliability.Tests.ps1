@@ -24,7 +24,7 @@ BeforeAll {
 
     function script:Reset-FleetFake {
         $script:Calls.Clear()
-        $script:Fake = @{ Send = 0; Spool = 0; Replay = 0; ReplayErr = ''; ReadOut = '[]'; Task = $null }
+        $script:Fake = @{ Send = 0; Spool = 0; Replay = 0; ReplayErr = ''; ReadOut = '[]'; ReadExit = 0; ReadTimedOut = $false; Task = $null }
     }
     function script:Get-BusCall([string]$Verb) {
         return @($script:Calls | Where-Object { @($_.Args)[0] -eq $Verb })
@@ -70,7 +70,7 @@ Describe 'PC-AI.Reliability' {
                 'send' { $r.ExitCode = $script:Fake.Send }
                 'spool-send' { $r.ExitCode = $script:Fake.Spool }
                 'spool-replay' { $r.ExitCode = $script:Fake.Replay; $r.StdErr = $script:Fake.ReplayErr }
-                'read' { $r.StdOut = $script:Fake.ReadOut }
+                'read' { $r.StdOut = $script:Fake.ReadOut; $r.ExitCode = $script:Fake.ReadExit; $r.TimedOut = $script:Fake.ReadTimedOut }
             }
             return $r
         }
@@ -522,6 +522,45 @@ Describe 'PC-AI.Reliability' {
             $o = @(Get-FleetRunnerObservations -Policy $script:Policy | Where-Object { $_.Check -eq 'drain-overrun' })
             $o[0].Status | Should -Be 'degraded'
             $o[0].Message | Should -Match 'state unknown'
+        }
+
+        It 'reads a failed, timed-out or unparseable DRAIN lookup as unknown, never as inactive' {
+            # Detects the false recovery from the thirteenth review of #346: a failed agent-bus read returned
+            # "no DRAIN", so an ongoing overrun was resolved during a bus outage.
+            $read = { InModuleScope PC-AI.Reliability -Parameters @{ P = $script:Policy } { param($P) Get-FleetDrainState -Policy $P } }
+            $script:Fake.ReadExit = 3
+            $s = & $read
+            $s.Unknown | Should -BeTrue
+            $s.Active | Should -BeFalse
+            $s.Error | Should -Match 'exit 3'
+            $script:Fake.ReadExit = 0; $script:Fake.ReadTimedOut = $true
+            (& $read).Unknown | Should -BeTrue
+            $script:Fake.ReadTimedOut = $false; $script:Fake.ReadOut = 'not json'
+            (& $read).Unknown | Should -BeTrue
+            # Positive control: a successful empty read is a known "no DRAIN".
+            $script:Fake.ReadOut = '[]'
+            (& $read).Unknown | Should -BeFalse
+        }
+
+        It 'keeps an open drain overrun open and reports the read failure while the DRAIN state is unknown' {
+            Mock -ModuleName PC-AI.Reliability Get-FleetDrainState { @{ Active = $true; Minutes = 140 } }
+            foreach ($o in @(Get-FleetRunnerObservations -Policy $script:Policy)) { $null = Submit-FleetObservation -Observation $o }
+            $key = 'testhost|runner|vct-nightly|drain-overrun'
+            (Get-FleetIncidentState)[$key].state | Should -Be 'open'
+            Mock -ModuleName PC-AI.Reliability Get-FleetDrainState { @{ Active = $false; Minutes = 0; Alert = $null; Unknown = $true; Error = 'agent-bus read timed out' } }
+            $o = @(Get-FleetRunnerObservations -Policy $script:Policy)
+            ($o | Where-Object { $_.Check -eq 'drain-overrun' }).Status | Should -Be 'skipped'
+            $readErr = $o | Where-Object { $_.Check -eq 'drain-state-read' }
+            $readErr.Status | Should -Be 'failed'
+            $readErr.Message | Should -Match 'timed out'
+            foreach ($x in $o) { $null = Submit-FleetObservation -Observation $x }
+            (Get-FleetIncidentState)[$key].state | Should -Be 'open'
+            # Positive control: a successful read that shows no DRAIN does resolve it, and clears the read error.
+            Mock -ModuleName PC-AI.Reliability Get-FleetDrainState { @{ Active = $false; Minutes = 0; Alert = $null; Unknown = $false } }
+            $o = @(Get-FleetRunnerObservations -Policy $script:Policy)
+            ($o | Where-Object { $_.Check -eq 'drain-state-read' }).Status | Should -Be 'ok'
+            foreach ($x in $o) { $null = Submit-FleetObservation -Observation $x }
+            (Get-FleetIncidentState)[$key].state | Should -Be 'resolved'
         }
 
         It 'reports an expected workflow whose newest run is too old as stale' {

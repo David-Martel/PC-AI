@@ -101,15 +101,20 @@ function Get-FleetDrainState {
     agent's newest lifecycle message on agent-bus: '<agent> START ...' (active), '... ended ...' or
     '... restored cleanly ...' (over), or 'ALERT ...' (state unknown: e.g. a run died before its restore).
     Matching is case-SENSITIVE: case-insensitive 'START' matched "restart" inside an ALERT and read a
-    dead run as an active DRAIN. Returns @{ Active; StartedAt; Minutes; Alert }.
+    dead run as an active DRAIN. Returns @{ Active; StartedAt; Minutes; Alert; Unknown; Error }.
+    A failed, timed-out or unparseable read is Unknown, never "no DRAIN": reading it as inactive let an
+    ongoing overrun resolve during a bus outage (thirteenth review of #346).
     #>
     param([hashtable]$Policy)
     $agent = [string]$Policy.drain.bus_agent
-    $none = @{ Active = $false; StartedAt = $null; Minutes = 0; Alert = $null }
+    $none = @{ Active = $false; StartedAt = $null; Minutes = 0; Alert = $null; Unknown = $false; Error = $null }
     if ([string]::IsNullOrWhiteSpace($agent)) { return $none }
+    $unknown = { param($why) @{ Active = $false; StartedAt = $null; Minutes = 0; Alert = $null; Unknown = $true; Error = $why } }
     $r = Invoke-FleetProcess -FilePath (Get-FleetAgentBusPath) -ArgumentList @('read', '--from-agent', $agent, '--since-minutes', '600', '--limit', '20', '--encoding', 'json') -TimeoutSeconds 20
-    if ($r.TimedOut -or $r.ExitCode -ne 0) { return $none }
-    $msgs = @($r.StdOut | ConvertFrom-Json | ForEach-Object { $_ })   # 5.1 emits a JSON array as one object
+    if ($r.TimedOut) { return (& $unknown 'agent-bus read timed out after 20 s') }
+    if ($r.ExitCode -ne 0) { return (& $unknown ("agent-bus read failed (exit {0}): {1}" -f $r.ExitCode, ([string]$r.StdErr).Trim())) }
+    try { $msgs = @($r.StdOut | ConvertFrom-Json -ErrorAction Stop | ForEach-Object { $_ }) }   # 5.1 emits a JSON array as one object
+    catch { return (& $unknown ("agent-bus read returned unparseable output: {0}" -f $_.Exception.Message)) }
     if ($msgs.Count -eq 1 -and $msgs[0].PSObject.Properties.Name -contains 'messages') { $msgs = @($msgs[0].messages) }
     $life = @($msgs | Where-Object { $_.body -cmatch '^ALERT\b' -or $_.body -cmatch '\bSTART\b' -or $_.body -cmatch '\bended\b|restored cleanly' } |
             Sort-Object { try { ConvertFrom-FleetIso $_.timestamp_utc } catch { [datetime]::MinValue } })
@@ -447,7 +452,20 @@ function Get-FleetRunnerObservations {
     $obs = @()
     $drain = Get-FleetDrainState -Policy $Policy
     $max = 90; if ($Policy.drain.max_minutes) { $max = [int]$Policy.drain.max_minutes }
-    if ($drain.Active) {
+    $drainAgent = [string]$Policy.drain.bus_agent
+    if ($drainAgent) {
+        # The read itself is reported, so a bus outage is visible and clears once a read succeeds.
+        $rs = 'ok'; $rm = 'DRAIN state read'
+        if ($drain.Unknown) { $rs = 'failed'; $rm = "DRAIN state unknown: $($drain.Error)" }
+        $obs += New-FleetObservation -Source runner -Name $drainAgent -Check drain-state-read -Status $rs -Severity low -Message $rm -ResolveAfter 1
+    }
+    if ($drain.Unknown) {
+        # No evidence is not good evidence: 'skipped' is neutral, so an open overrun neither resolves nor
+        # reopens, and the stale-key resolver sees the key as observed. Offline runners are still reported
+        # below, because an unknown DRAIN cannot excuse them.
+        $obs += New-FleetObservation -Source runner -Name $drainAgent -Check drain-overrun -Status skipped -Message "DRAIN state unknown: $($drain.Error)"
+    }
+    elseif ($drain.Active) {
         $st = 'ok'; $msg = "DRAIN active for $($drain.Minutes) min (budget $max)"
         if ($drain.Minutes -gt $max) { $st = 'failed'; $msg = "DRAIN has lasted $($drain.Minutes) min, over its $max min budget" }
         $obs += New-FleetObservation -Source runner -Name ([string]$Policy.drain.bus_agent) -Check drain-overrun -Status $st -Severity high -Message $msg -ResolveAfter 1

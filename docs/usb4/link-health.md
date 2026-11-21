@@ -86,7 +86,7 @@ minisforum-ms01 has linger enabled. Enabling it elsewhere is an owner command:
    |---|---|---|
    | `InSync` | Guards match; every planned address, route and forwarding setting is present | ok |
    | `Drift` | Guards match; some planned state is missing (reboot, or replug into the same port) | warn |
-   | `LinkDown` | The planned adapter is present but down | warn |
+   | `LinkDown` | A planned adapter, or with no plan every adapter, is present but down (a USB4 P2P adapter exists only while a peer is attached) | warn |
    | `InstanceChanged` | The planned ifIndex names another adapter, the adapter moved, or it is gone | warn |
    | `Absent` | No USB4 adapter and no plan (for example ms01 today) | ok |
    | `Healthy`, `NotInPlan` | Adapters up, but there is no plan or the plan does not name this host | ok |

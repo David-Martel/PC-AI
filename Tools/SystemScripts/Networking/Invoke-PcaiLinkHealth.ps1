@@ -253,13 +253,14 @@ function Compare-PcaiLinkPlan {
     $findings = [Collections.Generic.List[object]]::new()
     $up = @($Adapter | Where-Object Status -eq 'Up')
     if (-not $Plan) {
-        $state = if ($Adapter.Count -eq 0) { 'Absent' } else { 'NoPlan' }
+        # A USB4 P2P adapter exists only while a peer is attached, so present-but-down is a fault.
+        $state = if ($Adapter.Count -eq 0) { 'Absent' } elseif (-not $up) { 'LinkDown' } else { 'NoPlan' }
         return [pscustomobject]@{ State = $state; GuardsMatch = $false; Findings = $findings.ToArray(); PlanHost = $null }
     }
     $planHost = @($Plan.hosts | Where-Object host -eq $HostName) | Select-Object -First 1
     $endpoints = @(foreach ($e in @($Plan.edges)) { foreach ($ep in @($e.endpoints)) { if ($ep.host -eq $HostName) { $ep } } })
     if (-not $planHost -and $endpoints.Count -eq 0) {
-        $state = if ($Adapter.Count -eq 0) { 'Absent' } else { 'NotInPlan' }
+        $state = if ($Adapter.Count -eq 0) { 'Absent' } elseif (-not $up) { 'LinkDown' } else { 'NotInPlan' }
         return [pscustomobject]@{ State = $state; GuardsMatch = $false; Findings = $findings.ToArray(); PlanHost = $null }
     }
 

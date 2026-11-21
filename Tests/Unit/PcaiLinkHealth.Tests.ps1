@@ -72,6 +72,11 @@ Describe 'Compare-PcaiLinkPlan classifies the live USB4 state against the plan' 
         (Compare-PcaiLinkPlan -Plan $null -HostName 'ms01' -Adapter @()).State | Should -Be 'Absent'
         Get-PcaiLinkHealthSeverity -State 'Absent' | Should -Be 'ok'
     }
+    It 'reports LinkDown for a present but down adapter even without a plan (Linux discovery-only mode)' {
+        (Compare-PcaiLinkPlan -Plan $null -HostName 'ms01' -Adapter @(New-TestAdapter -Status 'Down')).State | Should -Be 'LinkDown'
+        Get-PcaiLinkHealthSeverity -State 'LinkDown' | Should -Be 'warn'
+        (Compare-PcaiLinkPlan -Plan $Plan -HostName 'other' -Adapter @(New-TestAdapter -Status 'Down')).State | Should -Be 'LinkDown'
+    }
     It 'reports NotInPlan for a host the plan does not mention' {
         (Compare-PcaiLinkPlan -Plan $Plan -HostName 'other' -Adapter @(New-TestAdapter)).State | Should -Be 'NotInPlan'
     }

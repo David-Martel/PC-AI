@@ -907,9 +907,31 @@ pub fn bind_peer_hint(
         None => None,
     };
     if let Some(adapter) = target {
-        peer_by_if
-            .entry(adapter.interface_index)
-            .or_insert_with(|| peer_name.to_string());
+        let index = adapter.interface_index;
+        // An explicit binding must agree with discovery; a disagreement is refused, never
+        // resolved silently in favour of either side.
+        if let Some(bound) = peer_by_if
+            .get(&index)
+            .filter(|bound| !bound.eq_ignore_ascii_case(peer_name))
+        {
+            return Ok(Some(registration_gate(
+                "PeerHintGate",
+                peer_name,
+                format!("--peer '{peer_name}' conflicts with discovery, which bound ifIndex {index} to '{bound}'"),
+            )));
+        }
+        if let Some(other) = peer_by_if
+            .iter()
+            .find(|(other, bound)| **other != index && bound.eq_ignore_ascii_case(peer_name))
+            .map(|(other, _)| *other)
+        {
+            return Ok(Some(registration_gate(
+                "PeerHintGate",
+                peer_name,
+                format!("Discovery bound '{peer_name}' to ifIndex {other}, not the selected ifIndex {index}"),
+            )));
+        }
+        peer_by_if.insert(index, peer_name.to_string());
         return Ok(None);
     }
     if adapters.is_empty() || peer_by_if.values().any(|bound| bound.eq_ignore_ascii_case(peer_name)) {
@@ -2200,6 +2222,49 @@ mod tests {
         assert!(
             runner.invocations.lock().unwrap().iter().all(|c| c.contains(" show ")),
             "a removal ran after the route table could not be read"
+        );
+    }
+
+    // Protects: an explicit --adapter binding never silently loses to discovery (gemini review
+    // of #336). Detects: or_insert keeping a different discovered peer on the selected adapter,
+    // or the hinted peer being discovered on another adapter. Needs: adapter fixtures only.
+    // Breadcrumb: bind_peer_hint conflict gates.
+    #[test]
+    fn explicit_adapter_binding_conflicting_with_discovery_is_refused() {
+        let adapters = vec![
+            recorded_nuc_gen9_adapter(),
+            hub_adapter(
+                12,
+                "02-00-00-0B-00-12",
+                "{a0000000-0000-4000-8000-000000000b12}",
+                &[],
+                &[],
+            ),
+        ];
+        let mut other_peer_on_selected = HashMap::from([(19, "dtm-p1gen7".to_string())]);
+        let gate = bind_peer_hint(
+            &adapters,
+            &mut other_peer_on_selected,
+            "dtm-p1gen9",
+            Some("02-00-00-0B-00-19"),
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(gate.category, "PeerHintGate");
+        assert_eq!(other_peer_on_selected.get(&19).map(String::as_str), Some("dtm-p1gen7"));
+
+        let mut peer_elsewhere = HashMap::from([(12, "dtm-p1gen9".to_string())]);
+        let gate = bind_peer_hint(&adapters, &mut peer_elsewhere, "dtm-p1gen9", Some("02-00-00-0B-00-19"))
+            .unwrap()
+            .unwrap();
+        assert!(gate.error.as_deref().unwrap().contains("ifIndex 12"));
+        assert!(!peer_elsewhere.contains_key(&19));
+
+        let mut agreeing = HashMap::from([(19, "DTM-P1GEN9".to_string())]);
+        assert!(
+            bind_peer_hint(&adapters, &mut agreeing, "dtm-p1gen9", Some("02-00-00-0B-00-19"))
+                .unwrap()
+                .is_none()
         );
     }
 }

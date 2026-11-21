@@ -2,7 +2,7 @@
 
 Install, test, run: `pwsh -NoProfile -File Tools/SystemScripts/Machine/Test-MachinePath.ps1` audits a host
 (read only; exit 0 clean, 1 warnings, 2 errors). `Repair-MachinePath.ps1` shows the plan and, with `-Apply`, rewrites the PATH and
-the agent-home-hostile wrappers. It only reports file archival unless `-ApplyArchive` is also passed (see "Deferred on purpose").
+the agent-home-hostile wrappers. File archival is report-only; `-ApplyArchive` is refused (see "Deferred on purpose").
 Tests: `Invoke-Pester Tests/Unit/MachinePath.Tests.ps1`. The policy data is
 [machine-path.policy.json](../Tools/SystemScripts/Machine/machine-path.policy.json); the code is
 [MachinePath.psm1](../Tools/SystemScripts/Machine/MachinePath.psm1),
@@ -44,11 +44,11 @@ See also `~/.agents/RUST_TOOLING.md` for the cargo home.
   `python`, `docker`, `npm` wrappers. They only apply in user-first shells; that is accepted.
 * **No pass-through wrappers.** A `.cmd` whose only job is to call the same-named program that is already on the machine
   PATH (`gpg.cmd`) adds a `cmd.exe` start (about 70 ms) and a second resolution order. `Repair-MachinePath.ps1` reports it as an
-  archive candidate; moving it needs `-ApplyArchive`.
+  archive candidate; moving it is deferred.
 * **Archive, never delete (report-only for now).** Superseded files would move to `<bin>\.superseded\<name>-<sha12><ext>` after a
   reference search (live MCP configs, Codex, Gemini, VS Code, git and ssh config, hooks, `.machine`, surviving managed wrappers,
   scheduled tasks, services and running processes) finds nothing that names them. The analysis always runs and the report marks
-  each candidate eligible or unsafe; no file moves without `-Apply -ApplyArchive`, and `Sync-MachineEnvironment.ps1` never runs
+  each candidate eligible, unsafe or blocked; no file moves, `-ApplyArchive` is refused with exit 2 before anything is touched, and `Sync-MachineEnvironment.ps1` never runs
   the repair script.
 * **Only a copy that would actually win is a twin.** An identical copy elsewhere on PATH justifies archiving a `~/bin` exe only
   when it is the first runnable candidate left, and never when it lives under the profile's `AppData` (WinGet Links,
@@ -78,7 +78,7 @@ broadcasts `WM_SETTINGCHANGE` for running Explorer-launched shells.
 
 * **Applied archival (`-ApplyArchive`) is deferred to a follow-up PR.** Seven review rounds on this change were almost all edge
   cases of automatically moving duplicate wrappers and binaries, and a destructive file move does not belong in an unattended
-  sync path. Until that PR lands the switch exists but is off by default, Sync never passes it, and the report is the contract.
+  sync path. Until that PR lands `-ApplyArchive` fails with "applied archival is deferred to the follow-up PR described in docs/MACHINE_PATH_POLICY.md" and exit 2 before any file is read or moved, Sync never runs the script, and the report is the contract.
   The follow-up must satisfy these winner and reference rules (each already has an analysis test in
   `Tests/Unit/MachinePath.Tests.ps1`):
   1. The surviving copy is chosen from the PATH as it will be after the apply, including planned machine entries with

@@ -514,13 +514,10 @@ Describe 'Repair-MachinePath.ps1 archival is report-only by default' {
         $script:Params['ApplyArchive'].StaticType.Name | Should -Be 'SwitchParameter'
         $script:Params['ApplyArchive'].DefaultValue | Should -BeNullOrEmpty
     }
-    It 'guards every file move behind -ApplyArchive and records the report-only outcome otherwise' {
-        $loop = $script:RepairText.IndexOf('foreach ($a in $archive) {' + "`r`n" + '    if (-not $ApplyArchive)')
-        if ($loop -lt 0) { $loop = $script:RepairText.IndexOf('foreach ($a in $archive) {' + "`n" + '    if (-not $ApplyArchive)') }
-        $loop | Should -BeGreaterThan 0
+    It 'has no code path that moves an archive candidate' {
+        # Move-ToSuperseded remains only for the agent-home wrapper rewrite; archive candidates are recorded, never moved.
+        $script:RepairText | Should -Not -Match 'Move-ToSuperseded -Path \$a\.Path'
         $script:RepairText | Should -Match 'archive-report-only'
-        # The only call that moves an archive candidate sits after that guard.
-        $script:RepairText.IndexOf('Move-ToSuperseded -Path $a.Path') | Should -BeGreaterThan $loop
     }
     It 'prints the report for each candidate with the reason it is eligible or unsafe' {
         $script:RepairText | Should -Match 'UNSAFE \(referenced'
@@ -579,5 +576,52 @@ Describe 'Get-MachineBashShimTarget' {
         Get-MachineBashShimTarget -Text "#!/bin/sh`necho hi`nexec `"C:/x/tool.exe`" `"`$@`"" | Should -BeNullOrEmpty
         Get-MachineBashShimTarget -Text "exec `"C:/x/tool.exe`" `"`$@`"" | Should -BeNullOrEmpty
         Get-MachineBashShimTarget -Text $null | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Repair-MachinePath.ps1 refuses -ApplyArchive' {
+    # Why: applied archival is deferred to a follow-up PR (docs/MACHINE_PATH_POLICY.md). The switch must fail loudly with a nonzero
+    # exit before any file is read or moved, so no caller can destroy files through this script in this version (coordinator direction on PR 343).
+    # The positive control proves the temp candidate IS eligible in the report, so "untouched" is meaningful.
+    BeforeAll {
+        $script:RepairPath2 = (Resolve-Path (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\Repair-MachinePath.ps1')).Path
+        $script:PolicySrc = (Resolve-Path (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Machine\machine-path.policy.json')).Path
+        $script:Home2 = Join-Path $TestDrive 'home'
+        $script:Bin2 = Join-Path $script:Home2 'bin'
+        New-Item -ItemType Directory -Force -Path $script:Bin2 | Out-Null
+        $script:Candidate = Join-Path $script:Bin2 'zzprobe-abc1234.exe'
+        [IO.File]::WriteAllBytes($script:Candidate, [byte[]](77, 90, 1, 2, 3))
+        $pol = Get-Content $script:PolicySrc -Raw | ConvertFrom-Json -AsHashtable
+        $pol['managedBinDirs'] = @($script:Bin2)
+        $script:Policy2 = Join-Path $TestDrive 'policy.json'
+        $pol | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:Policy2 -Encoding utf8NoBOM
+        $script:Backups2 = Join-Path $TestDrive 'backups'
+        $script:Snapshot = {
+            $files = @(Get-ChildItem -LiteralPath $TestDrive -Recurse -Force -File | Sort-Object FullName | ForEach-Object { "$($_.FullName)|$($_.Length)|$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)" })
+            $files -join "`n"
+        }
+    }
+    It 'positive control: the report lists the temp candidate as eligible' {
+        $out = & (Get-Command pwsh).Source -NoProfile -File $script:RepairPath2 -UserHome $script:Home2 -PolicyPath $script:Policy2 -BackupDir $script:Backups2 -SkipWrappers 2>&1 | Out-String
+        $LASTEXITCODE | Should -Be 0
+        $out | Should -Match 'zzprobe-abc1234\.exe'
+        $out | Should -Match 'eligible'
+        $out | Should -Match 'REPORT ONLY'
+        Test-Path -LiteralPath $script:Candidate | Should -BeTrue
+    }
+    It '-Apply -ApplyArchive exits nonzero with the deferral message and moves nothing' {
+        $before = & $script:Snapshot
+        $out = & (Get-Command pwsh).Source -NoProfile -File $script:RepairPath2 -Apply -ApplyArchive -UserHome $script:Home2 -PolicyPath $script:Policy2 -BackupDir $script:Backups2 2>&1 | Out-String
+        $LASTEXITCODE | Should -Not -Be 0
+        $out | Should -Match 'applied archival is deferred to the follow-up PR described in docs/MACHINE_PATH_POLICY\.md'
+        Test-Path -LiteralPath $script:Candidate | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:Bin2 '.superseded') | Should -BeFalse
+        Test-Path -LiteralPath $script:Backups2 | Should -BeFalse
+        & $script:Snapshot | Should -Be $before
+    }
+    It '-ApplyArchive alone is refused too' {
+        & (Get-Command pwsh).Source -NoProfile -File $script:RepairPath2 -ApplyArchive -UserHome $script:Home2 -PolicyPath $script:Policy2 2>&1 | Out-Null
+        $LASTEXITCODE | Should -Not -Be 0
+        Test-Path -LiteralPath $script:Candidate | Should -BeTrue
     }
 }

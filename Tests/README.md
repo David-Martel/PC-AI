@@ -478,3 +478,22 @@ The [retained partial/full-symbol resolver controls](Portable/native-resolver-ad
 run in the existing native managed test project. They detect native calls or cached
 handles from a core that failed required-export admission. Synthetic symbol
 fixtures do not qualify the production Rust core or a deployed native bundle.
+
+## Local CI mirror
+
+GitHub-hosted runners are disabled for this account, so `ci.yml` never runs and its failures stay
+invisible. `Tests/Invoke-PcaiCi.ps1` runs the same commands locally:
+
+```powershell
+pwsh Tests/Invoke-PcaiCi.ps1 -Plan              # list the Quick steps
+pwsh Tests/Invoke-PcaiCi.ps1                    # Quick: credential scan, workflow syntax, changed-file lint, rustfmt (about 40 s)
+pwsh Tests/Invoke-PcaiCi.ps1 -Tier Full -FailFast   # adds full lint (about 12 min), check, clippy, unit tests, Pester Unit and Boot
+pwsh Tests/Invoke-PcaiCi.ps1 -Only RustCheck    # any step by id, whatever the tier
+```
+
+Logs and `pcai-ci-last.json` go to `.pcai/build/logs/pcai-ci/`. `Tests/Unit/Invoke-PcaiCi.Tests.ps1`
+fails when a step's command or the Pester path list no longer appears in `ci.yml`, so the mirror
+cannot drift silently. Quick uses `Tools/Test-ChangedPowerShellLint.ps1`, because PSScriptAnalyzer
+keeps static state and cannot be parallelized in one process (splitting across eight processes was
+only 1.4x faster: 701 s to 492 s). Its first full run also found a real lint failure on `main`
+(`Tests/Portable/Test-Usb4RouteOwnership.ps1`, PSShouldProcess) that no CI run could report.

@@ -1,0 +1,79 @@
+#Requires -Version 7.0
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
+
+# Why this file exists: the full PSScriptAnalyzer pass over ~850 files takes 8-12 minutes and
+# PSScriptAnalyzer cannot be run in parallel runspaces, so Tools/Test-ChangedPowerShellLint.ps1
+# analyzes only the files a branch changed. A gate that silently analyzes nothing is worse than
+# none, so these tests pin both directions: a bad file fails, a good file passes, an empty change
+# set says so, and the analyzed count is reported.
+# See Tools/Test-ChangedPowerShellLint.ps1 and Tests/Invoke-PcaiCi.ps1.
+
+BeforeAll {
+    $script:RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    $script:Tool = Join-Path $script:RepoRoot 'Tools/Test-ChangedPowerShellLint.ps1'
+    $script:Settings = Join-Path $script:RepoRoot 'PSScriptAnalyzerSettings.psd1'
+    $script:HasAnalyzer = [bool](Get-Module -ListAvailable PSScriptAnalyzer)
+
+    function New-FixtureRepo {
+        param([string]$Name)
+        $dir = Join-Path $TestDrive $Name
+        [IO.Directory]::CreateDirectory($dir) | Out-Null
+        git -C $dir init -q -b main 2>&1 | Out-Null
+        git -C $dir config user.email 'fixture@example.invalid' | Out-Null
+        git -C $dir config user.name 'fixture' | Out-Null
+        git -C $dir config commit.gpgsign false | Out-Null
+        [IO.File]::WriteAllText((Join-Path $dir 'base.ps1'), "Write-Output 'base'`n", [Text.UTF8Encoding]::new($false))
+        git -C $dir add -A | Out-Null
+        git -C $dir commit -q -m base 2>&1 | Out-Null
+        $dir
+    }
+
+    function Invoke-Tool {
+        param([string]$Repo)
+        $out = pwsh -NoProfile -File $script:Tool -RepoRoot $Repo -BaseRef main -SettingsPath $script:Settings 2>&1
+        [pscustomobject]@{ Exit = $LASTEXITCODE; Text = ($out | Out-String) }
+    }
+}
+
+Describe 'Test-ChangedPowerShellLint' -Tag 'Unit', 'Portable' -Skip:(-not [bool](Get-Module -ListAvailable PSScriptAnalyzer)) {
+    It 'fails and names the rule for a changed file with an analyzer error' {
+        $repo = New-FixtureRepo 'bad'
+        # PSAvoidUsingInvokeExpression is enabled in the repo settings.
+        [IO.File]::WriteAllText((Join-Path $repo 'bad.ps1'), "Invoke-Expression 'Get-Date'`n", [Text.UTF8Encoding]::new($false))
+        $r = Invoke-Tool $repo
+        $r.Exit | Should -Be 1
+        $r.Text | Should -Match 'bad\.ps1'
+        $r.Text | Should -Match 'PSAvoidUsingInvokeExpression'
+    }
+
+    It 'passes and reports the analyzed count for a clean changed file' {
+        $repo = New-FixtureRepo 'good'
+        [IO.File]::WriteAllText((Join-Path $repo 'good.ps1'), "Write-Output 'ok'`n", [Text.UTF8Encoding]::new($false))
+        $r = Invoke-Tool $repo
+        $r.Exit | Should -Be 0
+        $r.Text | Should -Match 'analyzed 1 changed PowerShell file'
+    }
+
+    It 'ignores unchanged files even when they would fail' {
+        $repo = New-FixtureRepo 'unchanged'
+        [IO.File]::WriteAllText((Join-Path $repo 'old-bad.ps1'), "Invoke-Expression 'Get-Date'`n", [Text.UTF8Encoding]::new($false))
+        git -C $repo add -A | Out-Null
+        git -C $repo commit -q -m 'bad but committed on main' 2>&1 | Out-Null
+        $r = Invoke-Tool $repo
+        $r.Exit | Should -Be 0
+        $r.Text | Should -Match 'no changed PowerShell files'
+    }
+
+    It 'sees files committed on the branch and files that are untracked' {
+        $repo = New-FixtureRepo 'branch'
+        git -C $repo switch -q -c topic 2>&1 | Out-Null
+        [IO.File]::WriteAllText((Join-Path $repo 'committed.ps1'), "Invoke-Expression 'Get-Date'`n", [Text.UTF8Encoding]::new($false))
+        git -C $repo add -A | Out-Null
+        git -C $repo commit -q -m topic 2>&1 | Out-Null
+        [IO.File]::WriteAllText((Join-Path $repo 'untracked.ps1'), "Write-Output 'u'`n", [Text.UTF8Encoding]::new($false))
+        $r = Invoke-Tool $repo
+        $r.Exit | Should -Be 1
+        $r.Text | Should -Match 'committed\.ps1'
+        $r.Text | Should -Match 'analyzed 2 changed PowerShell file'
+    }
+}

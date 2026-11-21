@@ -110,6 +110,13 @@ codegen-units = 16 # Parallelize for faster build
 strip = false      # Keep symbols for verification
 panic = "abort"    # Smaller binary, faster panics
 
+[profile.dev]
+# Line tables keep backtraces and panics readable but drop variable-level DWARF. Measured on this
+# workspace (pcai_core_lib, cold, no sccache, 16-thread laptop): 72 s and 77 s at the default
+# debug = true against 61 s and 61 s at line-tables-only, and the target directory shrinks from
+# 1184 MB to 888 MB. Set CARGO_PROFILE_DEV_DEBUG=true for a debugger session.
+debug = "line-tables-only"
+
 [workspace.lints.rust]
 # Enforced: verified clean at -D warnings on 2026-09-07.
 ambiguous_negative_literals = "warn"

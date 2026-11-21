@@ -620,10 +620,13 @@ How to read the result:
   MAC equals the inventory MAC. A hotel LAN can also be 192.168.1.0/24, so the subnet
   never decides. Off the home LAN, LAN candidates are not probed or recommended, because a
   connect to a LAN address on a hotel network would reach someone else's machine.
-  Home is verified per interface: each LAN candidate's egress interface (Find-NetRoute) is
+  Home is verified per interface: each LAN candidate's egress interface (`Find-NetRoute`) is
   resolved before it is probed, and it is probed only if that interface verified a
   gateway MAC. On a host with Ethernet at home and Wi-Fi on a network that reuses the subnet,
-  a LAN address routed out of Wi-Fi is skipped with gress-not-verified.
+  a LAN address routed out of Wi-Fi is skipped with `egress-not-verified`.
+  A MagicDNS name is resolved before it is probed and is probed only when every answer is the
+  host's inventory tailnet address; with Tailscale down, a foreign resolver answer is skipped
+  as `magicdns-mismatch` and never connected to.
 - `Recommended` is the first reachable candidate in the order LAN, tailnet direct,
   tailnet peer-relay, tailnet relay, with the MagicDNS name just behind the tailnet
   address. Each candidate also carries its egress interface and Tailscale path

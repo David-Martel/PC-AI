@@ -58,6 +58,14 @@ BeforeAll {
             TailscalePath = if ($Path) { [pscustomobject]@{ State = $Path; Display = $Path } } else { $null }
         }
     }
+    # Stands in for the DNS resolver: each known MagicDNS name resolves to its inventory tailnet address.
+    function Get-TestMagicDns {
+        param([string[]]$Names)
+        $table = @{ 'nas.tailnet.example.invalid' = '100.64.0.101'; 'workstation.tailnet.example.invalid' = '100.64.0.102' }
+        $answers = @{}
+        foreach ($name in $Names) { $answers[$name] = if ($table.ContainsKey($name)) { @($table[$name]) } else { @() } }
+        $answers
+    }
     function Write-TestInventory {
         param([string]$Json)
         $file = Join-Path $TestDrive ([guid]::NewGuid().ToString('N') + '.json')
@@ -498,6 +506,117 @@ param(`$Address, `$Port)
     }
 }
 
+Describe 'MagicDNS resolution guard' -Tag 'Unit' {
+    BeforeAll {
+        # Roaming: the system resolver, not Tailscale, may answer for the MagicDNS name, and a foreign network can
+        # point it at one of its own hosts. The name must resolve to this host's tailnet address before any connect.
+        $script:DnsInventory = Write-TestInventory '{"schema":"pcai.fleet-paths/1","gateways":[{"name":"gw","ip":"192.0.2.1","mac":"00-00-5E-00-53-01","probePorts":[443]}],"hosts":{"box":{"tailnet":"100.64.0.102","magicDns":"box.tailnet.example.invalid","services":{"ssh":{"ports":[22]}}},"untracked":{"tailnet":null,"magicDns":"untracked.tailnet.example.invalid","services":{"ssh":{"ports":[22]}}}}}'
+        Mock Get-FleetNeighbor { New-TestNeighbor }
+        Mock Find-FleetRoute { [pscustomobject]@{ Interface = 'Tailscale'; InterfaceIndex = 3; SourceAddress = '100.64.0.100'; NextHop = 'on-link' } }
+        Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'tailscale unavailable'; Status = $null } }
+        # Every connect succeeds and leaves one file per address-port, so a skipped candidate is provably not connected to.
+        function Invoke-DnsScenario {
+            param([string]$Name, [scriptblock]$Resolver)
+            $log = Join-Path $TestDrive "dns-$Name"
+            $null = New-Item -ItemType Directory -Path $log
+            $connector = [scriptblock]::Create(@"
+param(`$Address, `$Port)
+`$null = New-Item -ItemType File -Force -Path (Join-Path '$log' "`$Address-`$Port")
+[pscustomobject]@{ Task = [Threading.Tasks.Task]::CompletedTask; Client = `$null }
+"@)
+            Mock Resolve-FleetDnsNames -MockWith $Resolver
+            $report = Invoke-FleetPathTest -InventoryPath $script:DnsInventory -BudgetMs 500 -Connector $connector -Target 'box'
+            [pscustomobject]@{
+                Log = $log
+                Dns = @($report.Targets[0].Endpoints[0].Candidates | Where-Object Kind -EQ 'magicdns')[0]
+                Tailnet = @($report.Targets[0].Endpoints[0].Candidates | Where-Object Kind -EQ 'tailnet')[0]
+                Recommended = $report.Targets[0].Endpoints[0].Recommended
+            }
+        }
+        $script:Foreign = Invoke-DnsScenario -Name 'foreign' -Resolver { @{ 'box.tailnet.example.invalid' = @('203.0.113.9') } }
+        $script:Matching = Invoke-DnsScenario -Name 'matching' -Resolver { @{ 'box.tailnet.example.invalid' = @('100.64.0.102') } }
+        $script:Failed = Invoke-DnsScenario -Name 'failed' -Resolver { @{} }
+        $script:Mixed = Invoke-DnsScenario -Name 'mixed' -Resolver { @{ 'box.tailnet.example.invalid' = @('100.64.0.102', '203.0.113.9') } }
+    }
+
+    # Protects: the off-LAN guard. If tailscale is unavailable and a roaming network's resolver sends the MagicDNS
+    # name to a foreign host, a successful connect must not be probed, reported reachable or recommended.
+    # Detects: MagicDNS candidates being connected to before checking where the name resolved.
+    # Needs: mocked resolver answering an RFC 5737 address; the connector's probe log proves no connect happened.
+    # Breadcrumb: Invoke-FleetPathTest MagicDNS resolution; Resolve-FleetDnsNames
+    It 'skips a MagicDNS name that resolves to a foreign address and never connects to it' {
+        $script:Foreign.Dns.Skipped | Should -Be 'magicdns-mismatch'
+        $script:Foreign.Dns.Reachable | Should -BeFalse
+        @($script:Foreign.Dns.Resolved) | Should -Be @('203.0.113.9')
+        Test-Path -LiteralPath (Join-Path $script:Foreign.Log 'box.tailnet.example.invalid-22') | Should -BeFalse
+        $script:Foreign.Recommended.Kind | Should -Be 'tailnet'
+    }
+
+    # Protects: the control for the test above; a harness that probes nothing would pass it.
+    # Detects: the guard skipping a correct resolution, or a connector that never records.
+    # Needs: mocked resolver answering the inventory tailnet address.
+    # Breadcrumb: Invoke-FleetPathTest MagicDNS resolution
+    It 'positive control: probes a MagicDNS name that resolves to the inventory tailnet address' {
+        $script:Matching.Dns.Skipped | Should -BeNullOrEmpty
+        $script:Matching.Dns.Reachable | Should -BeTrue
+        @($script:Matching.Dns.Resolved) | Should -Be @('100.64.0.102')
+        Test-Path -LiteralPath (Join-Path $script:Matching.Log 'box.tailnet.example.invalid-22') | Should -BeTrue
+    }
+
+    # Protects: fail closed when the name does not resolve.
+    # Detects: a resolver failure leaving the candidate eligible.
+    # Needs: mocked resolver returning no addresses.
+    # Breadcrumb: Resolve-FleetDnsNames
+    It 'skips a MagicDNS name that does not resolve and never connects to it' {
+        $script:Failed.Dns.Skipped | Should -Be 'magicdns-unresolved'
+        $script:Failed.Dns.Reachable | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $script:Failed.Log 'box.tailnet.example.invalid-22') | Should -BeFalse
+    }
+
+    # Protects: DNS answers are a set; one foreign address among correct ones can still be the one the connect uses.
+    # Detects: a guard that accepts a name when any address matches.
+    # Needs: mocked resolver answering the right address plus a foreign one.
+    # Breadcrumb: Test-FleetMagicDnsResolution
+    It 'skips a MagicDNS name when any resolved address is foreign' {
+        $script:Mixed.Dns.Skipped | Should -Be 'magicdns-mismatch'
+        Test-Path -LiteralPath (Join-Path $script:Mixed.Log 'box.tailnet.example.invalid-22') | Should -BeFalse
+    }
+
+    # Protects: the resolution rule itself, independent of the report plumbing.
+    # Detects: acceptance of an empty answer, a host with no recorded tailnet address, a foreign IPv4 or IPv6
+    # address, or a different tailnet address.
+    # Needs: nothing. The tailnet IPv6 range fd7a:115c:a1e0::/48 is allowed beside the inventory IPv4 because MagicDNS
+    # answers both families.
+    # Breadcrumb: Test-FleetMagicDnsResolution
+    It 'accepts <Case>: <Expected>' -ForEach @(
+        @{ Case = 'the inventory address'; Addresses = @('100.64.0.102'); Tailnet = '100.64.0.102'; Expected = $true }
+        @{ Case = 'the inventory address plus a tailnet IPv6 address'; Addresses = @('100.64.0.102', 'fd7a:115c:a1e0::66'); Tailnet = '100.64.0.102'; Expected = $true }
+        @{ Case = 'a tailnet IPv6 address alone'; Addresses = @('fd7a:115c:a1e0::66'); Tailnet = '100.64.0.102'; Expected = $false }
+        @{ Case = 'a different tailnet address'; Addresses = @('100.64.0.103'); Tailnet = '100.64.0.102'; Expected = $false }
+        @{ Case = 'a documentation address'; Addresses = @('203.0.113.9'); Tailnet = '100.64.0.102'; Expected = $false }
+        @{ Case = 'a foreign IPv6 address beside the right one'; Addresses = @('100.64.0.102', '2001:db8::1'); Tailnet = '100.64.0.102'; Expected = $false }
+        @{ Case = 'an empty answer'; Addresses = @(); Tailnet = '100.64.0.102'; Expected = $false }
+        @{ Case = 'an answer when the inventory has no tailnet address'; Addresses = @('100.64.0.102'); Tailnet = $null; Expected = $false }
+    ) {
+        Test-FleetMagicDnsResolution -Addresses $Addresses -TailnetAddress $Tailnet | Should -Be $Expected
+    }
+
+}
+
+Describe 'MagicDNS resolver wrapper' -Tag 'Unit' {
+    # Protects: the real resolver wrapper is bounded and never throws, so a hung or failing lookup becomes "unresolved".
+    # Detects: an unbounded wait or an exception escaping for an unresolvable name.
+    # Needs: a reserved example.invalid name (RFC 6761), which must not resolve; needs no network answer.
+    # Breadcrumb: Resolve-FleetDnsNames
+    It 'returns an empty answer for an unresolvable name within the budget' {
+        $clock = [Diagnostics.Stopwatch]::StartNew()
+        $answers = Resolve-FleetDnsNames -Names @('nothing.example.invalid') -BudgetMs 3000
+        $clock.Stop()
+        @($answers['nothing.example.invalid']).Count | Should -Be 0
+        $clock.ElapsedMilliseconds | Should -BeLessThan 5000
+    }
+}
+
 Describe 'Tailscale path parsing' -Tag 'Unit' {
     # Protects: the recommendation prefers a direct tailnet path over a DERP relay.
     # Detects: `Relay` (the home DERP region, set on every peer) being read as "relayed".
@@ -690,6 +809,7 @@ Describe 'Whole run on the home LAN' -Tag 'Unit' {
         Mock Find-FleetRoute {
             [pscustomobject]@{ Interface = $(if ($Address -like '100.64.*') { 'Tailscale' } else { 'Ethernet 12' }); InterfaceIndex = $(if ($Address -like '100.64.*') { 3 } else { 12 }); SourceAddress = '192.0.2.200'; NextHop = 'on-link' }
         }
+        Mock Resolve-FleetDnsNames { Get-TestMagicDns -Names $Names }
         Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $true; Error = $null; Status = $script:TailscaleFixture } }
         $script:Json = Invoke-FleetPathTest -InventoryPath $script:InventoryPath -BudgetMs 500 -Connector $script:ConnectAllButMinipcLan -AsJson
         $script:Report = $script:Json | ConvertFrom-Json
@@ -722,7 +842,7 @@ Describe 'Whole run on the home LAN' -Tag 'Unit' {
         $nas.Endpoints.Count | Should -Be 4
         $candidate = $nas.Endpoints[0].Candidates[0]
         $candidate.PSObject.Properties.Name | Should -Be @(
-            'Kind', 'Address', 'Port', 'Order', 'Reachable', 'LatencyMs', 'Skipped', 'Error', 'RemoteAddress',
+            'Kind', 'Address', 'Port', 'Order', 'Reachable', 'LatencyMs', 'Skipped', 'Error', 'RemoteAddress', 'Resolved',
             'Interface', 'SourceAddress', 'NextHop', 'TailscalePath')
         $candidate.Kind | Should -Be 'lan'
         $candidate.Reachable | Should -BeTrue
@@ -797,6 +917,7 @@ Describe 'Whole run on a colliding network' -Tag 'Unit' {
         # A hotel network: 192.0.2.1 answers and every address "connects", but the gateway MAC is not ours.
         Mock Get-FleetNeighbor { New-TestNeighbor -Mac '00-11-22-33-44-55' }
         Mock Find-FleetRoute { [pscustomobject]@{ Interface = 'Wi-Fi'; InterfaceIndex = 7; SourceAddress = '192.0.2.77'; NextHop = '192.0.2.1' } }
+        Mock Resolve-FleetDnsNames { Get-TestMagicDns -Names $Names }
         Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $true; Error = $null; Status = $script:TailscaleFixture } }
         $script:Hotel = Invoke-FleetPathTest -InventoryPath $script:InventoryPath -BudgetMs 500 -Connector $script:ConnectAll
     }
@@ -835,6 +956,7 @@ Describe 'Whole run without tailscale' -Tag 'Unit' {
     BeforeAll {
         Mock Get-FleetNeighbor { New-TestNeighbor }
         Mock Find-FleetRoute { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
+        Mock Resolve-FleetDnsNames { Get-TestMagicDns -Names $Names }
         Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'tailscale binary not found'; Status = $null } }
         $script:NoTs = Invoke-FleetPathTest -InventoryPath $script:InventoryPath -BudgetMs 500 -Connector $script:ConnectAll -Target 'workstation'
     }

@@ -26,6 +26,11 @@ Find-NetRoute before it is probed, and it is probed only if that interface is on
 verified a gateway MAC. On a host with Ethernet on the home LAN and Wi-Fi on a network
 that reuses the subnet, a LAN address routed out of Wi-Fi is skipped with the reason
 egress-not-verified, as is one whose route cannot be resolved.
+A MagicDNS name is resolved before it is probed and is probed only if every answer is
+the host's inventory tailnet address (plus, optionally, tailnet IPv6 addresses in
+fd7a:115c:a1e0::/48). With Tailscale down, a roaming network's resolver can send the
+name to one of its own hosts; such a candidate is skipped as magicdns-mismatch (an
+empty or failed lookup as magicdns-unresolved) and is never connected to or recommended.
 
 The tool changes nothing. It calls Get-NetNeighbor, Find-NetRoute and
 `tailscale status --json`, and it opens TCP connections that it closes at once. It
@@ -433,6 +438,64 @@ function Resolve-FleetLocation {
     }
 }
 
+function Resolve-FleetDnsNames {
+    # Wrapper so tests need no resolver. All lookups start together and share one deadline.
+    # A failed, timed-out or empty lookup yields an empty list, which callers treat as
+    # "unresolved" and never as a match. IPv4-mapped IPv6 answers are mapped back to IPv4.
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string[]]$Names, [int]$BudgetMs = 1500)
+    $answers = @{}
+    $tasks = @{}
+    foreach ($name in $Names) {
+        $answers[$name] = @()
+        try { $tasks[$name] = [Net.Dns]::GetHostAddressesAsync($name) } catch { }
+    }
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    foreach ($name in @($tasks.Keys)) {
+        $left = [int][Math]::Max(0, $BudgetMs - $clock.ElapsedMilliseconds)
+        try {
+            if ($tasks[$name].Wait($left)) {
+                $answers[$name] = @($tasks[$name].Result | ForEach-Object {
+                        if ($_.IsIPv4MappedToIPv6) { $_.MapToIPv4().ToString() } else { $_.ToString() }
+                    })
+            }
+        }
+        catch { }
+    }
+    $answers
+}
+
+function Test-FleetMagicDnsResolution {
+    # Pure. A MagicDNS name is trusted only when it resolves to this host's tailnet
+    # address: every answer must be that IPv4 address or an address in the tailnet IPv6
+    # range fd7a:115c:a1e0::/48 (MagicDNS answers both families), and the IPv4 address
+    # must be present. Anything else, including an empty answer, a host with no recorded
+    # tailnet address, or one foreign address among correct ones, fails.
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [AllowEmptyCollection()][string[]]$Addresses = @(),
+        [AllowNull()][AllowEmptyString()][string]$TailnetAddress
+    )
+    if ([string]::IsNullOrWhiteSpace($TailnetAddress) -or @($Addresses).Count -eq 0) { return $false }
+    $sawTailnetAddress = $false
+    foreach ($text in $Addresses) {
+        $ip = $null
+        if (-not [ipaddress]::TryParse($text, [ref]$ip)) { return $false }
+        if ($ip.IsIPv4MappedToIPv6) { $ip = $ip.MapToIPv4() }
+        if ($ip.AddressFamily -eq [Net.Sockets.AddressFamily]::InterNetwork) {
+            if ($ip.ToString() -ne $TailnetAddress) { return $false }
+            $sawTailnetAddress = $true
+        }
+        else {
+            $bytes = $ip.GetAddressBytes()
+            $inTailnetRange = $bytes[0] -eq 0xFD -and $bytes[1] -eq 0x7A -and $bytes[2] -eq 0x11 -and $bytes[3] -eq 0x5C -and $bytes[4] -eq 0xA1 -and $bytes[5] -eq 0xE0
+            if (-not $inTailnetRange) { return $false }
+        }
+    }
+    return $sawTailnetAddress
+}
+
 function Test-FleetLanEgress {
     # Pure. A LAN candidate is eligible only when the interface Windows would send it out
     # of is one that verified a home gateway. Unknown route or ifIndex: not eligible.
@@ -596,7 +659,7 @@ function Invoke-FleetPathTest {
                     [pscustomobject]([ordered]@{
                             Kind = $c.Kind; Address = $c.Address; Port = $c.Port; Order = $c.Order
                             Reachable = $false; LatencyMs = $null; Skipped = $null
-                            Error = $null; RemoteAddress = $null
+                            Error = $null; RemoteAddress = $null; Resolved = $null
                             Interface = $null; SourceAddress = $null; NextHop = $null; TailscalePath = $null
                         })
                 }
@@ -604,6 +667,22 @@ function Invoke-FleetPathTest {
             }
         }
     }
+
+    # MagicDNS names are resolved BEFORE any connect. With Tailscale down, a roaming
+    # network's resolver can answer for the name with one of its own hosts, and a
+    # successful connect to that host would be eligible for recommendation. Only a name
+    # that resolves to this host's inventory tailnet address is probed.
+    $dnsNames = @($endpoints | ForEach-Object { $_.Candidates } | Where-Object { $_.Kind -eq 'magicdns' } | ForEach-Object { $_.Address } | Sort-Object -Unique)
+    $dnsAnswers = if ($dnsNames.Count -gt 0) { Resolve-FleetDnsNames -Names $dnsNames -BudgetMs $BudgetMs } else { @{} }
+    foreach ($e in $endpoints) {
+        foreach ($c in ($e.Candidates | Where-Object { $_.Kind -eq 'magicdns' })) {
+            $answer = @($dnsAnswers[$c.Address] | Where-Object { $_ })
+            $c.Resolved = $answer
+            if ($answer.Count -eq 0) { $c.Skipped = 'magicdns-unresolved' }
+            elseif (-not (Test-FleetMagicDnsResolution -Addresses $answer -TailnetAddress $e.FleetHost.Tailnet)) { $c.Skipped = 'magicdns-mismatch' }
+        }
+    }
+    & $stage 'magicdns names resolved'
 
     # Wave A: the gateway probes that decide the location, plus every candidate that
     # does not depend on it (tailnet and MagicDNS). Each distinct address:port is
@@ -615,7 +694,7 @@ function Invoke-FleetPathTest {
     foreach ($probe in $gatewayProbes) { $waveA["$($probe.Address):$($probe.Port)"] = $probe }
     foreach ($e in $endpoints) {
         foreach ($c in $e.Candidates) {
-            if ($c.Kind -ne 'lan') { $waveA["$($c.Address):$($c.Port)"] = [pscustomobject]@{ Address = $c.Address; Port = $c.Port } }
+            if ($c.Kind -ne 'lan' -and -not $c.Skipped) { $waveA["$($c.Address):$($c.Port)"] = [pscustomobject]@{ Address = $c.Address; Port = $c.Port } }
         }
     }
     $warmAddress = if (@($inventory.Gateways).Count -gt 0) { @($inventory.Gateways)[0].Ip } else { $null }

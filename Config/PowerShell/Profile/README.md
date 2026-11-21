@@ -72,3 +72,46 @@ module is a cloud-only OneDrive file, and the import throws where winget is not 
 PATH ordering and module roots (it does no imports, network, process or secret work, and keeps the
 vault behind `Connect-MachineVault`). Copy it to `%USERPROFILE%\.config\powershell\`. Tests:
 `Invoke-Pester -Path Tests/Boot/ProfileBootstrap.Tests.ps1,Tests/Boot/MinimalProfile.Tests.ps1`.
+
+## Tooling health on logon and network change
+
+[`Invoke-PcaiToolingHealth.ps1`](../../../Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1)
+checks that the profile chain still loads and that the tools and repositories it relies on are
+what they should be. It runs from the `\PC-AI\ToolingHealth` scheduled task or the
+`pcai-tooling-health.timer` user unit, never from the profile, so it cannot slow an interactive
+shell. The trigger installer and its schedule are described in
+[USB4 link health](../../../docs/usb4/link-health.md); tests are in
+[PcaiToolingHealth.Tests.ps1](../../../Tests/Unit/PcaiToolingHealth.Tests.ps1).
+
+```powershell
+pwsh -NoProfile -File Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1 -Quick -DryRun   # profile + shims, read-only
+pwsh -NoProfile -File Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1 -NoFastForward  # full pass, report only
+```
+
+
+- **Profile chain.** Every profile file exists and parses. The deployed shim copies are compared
+  with `Config/PowerShell/Profile/Microsoft.PowerShell_profile.ps1` at the PC-AI checkout's
+  `origin/HEAD` (line endings normalized). The full pass times a child `pwsh -Command 'exit 0'`
+  that loads the chain, against a 5 s budget.
+- **Tool shims.** Each tool resolves on PATH and prints a `--help` banner (all started
+  concurrently). Shadowing copies further down PATH are listed, with a size and SHA-256
+  comparison. A tool is identified by path and `--help`, never by `--version` alone, because
+  `~/bin` and `~/.local/bin` shadow system commands at different versions.
+- **Repositories.** Checkouts whose `origin` is dtm-claude, dtm-codex, PC-AI, google-access or
+  agent-hub (configurable) are fetched. A checkout is fast-forwarded with `git merge --ff-only`
+  only when it is on its default branch, has no tracked changes, no merge, rebase,
+  cherry-pick or index lock, and no local commits. Everything else (`OffDefault`, `Detached`,
+  `Dirty`, `Busy`, `Ahead`, `Diverged`, `FetchFailed`) is reported, never changed. Linked
+  worktrees that are merged, whose upstream is gone, prunable or detached, stale local
+  branches and your open pull requests are listed. Nothing is deleted.
+
+`-Quick` checks only the profile chain and the shims and does not run `--help`; it took about
+1 s inside the script on dtm-p1gen9, where `gh`, `rclone` and `pwsh` each need 1.5-2 s just to
+print `--help`. The scheduled full pass took 15-25 s with eight checkouts.
+
+It writes `status.json` under `%LOCALAPPDATA%\PC-AI\tooling-health` (or
+`~/.local/state/pcai/tooling-health`) and posts a one-line summary to agent-bus (thread
+`machine-hygiene`, sender `pcai-tooling-health-<host>`) when the result changes or a checkout
+was fast-forwarded. An optional `config.json` there overrides `repoNames`, `repoRoots`,
+`repoPaths`, `tools`, `profileLoadBudgetSec`, `busEnabled` and `busThread`; unknown keys are
+refused. Exit codes: 0 ok, 2 something to report, 1 a parse error or missing git or pwsh.

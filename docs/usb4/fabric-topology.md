@@ -107,4 +107,8 @@ provider failures, absent devices and unknown roots. These are software controls
 physical unplug, sleep, reboot and newly started application sessions require
 their own machine evidence. Nominal Windows link speed is not measured throughput.
 
+To route between hosts that share no cable, through a hub chain or an intermediate
+host, use [`pcai-tb route-plan`](multi-hop-routing.md). It reads the same observation
+and prints guarded, reversible commands for an owner to run.
+
 The [deployment/interface roadmap](fabric-deployment.md) separates transport, trust, configuration and application capabilities, and records per-edge ownership, upgrade and architecture qualification requirements. It is a proposed design; the planner does not implement those service/UI features.

@@ -1,0 +1,5 @@
+{
+  "schema": "pcai.usb4-route-policy/v1",
+  "transit_hosts": ["dtm-super-nuc"],
+  "route_metric": 5
+}

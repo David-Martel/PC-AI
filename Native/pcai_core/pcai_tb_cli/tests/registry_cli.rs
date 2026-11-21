@@ -622,6 +622,320 @@ fn cli_lifecycle_empty_topology_is_valid_without_route_actions() {
     assert!(value["PeerLinkStates"].as_array().unwrap().is_empty());
 }
 
+fn route_plan_inputs(name: &str, transit: &[&str]) -> (PathBuf, PathBuf, PathBuf) {
+    let dir = temp_dir(name);
+    let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/usb4-hub-chain-observation.json");
+    let mut observation: serde_json::Value = serde_json::from_str(&fs::read_to_string(fixture).unwrap()).unwrap();
+    let fresh = chrono::Utc::now().to_rfc3339();
+    for host in observation["hosts"].as_array_mut().unwrap() {
+        host["observed_at_utc"] = serde_json::Value::String(fresh.clone());
+    }
+    let input = dir.join("observation.json");
+    fs::write(&input, serde_json::to_vec(&observation).unwrap()).unwrap();
+    let policy = dir.join("policy.json");
+    fs::write(
+        &policy,
+        serde_json::to_vec(&serde_json::json!({ "schema": "pcai.usb4-route-policy/v1", "transit_hosts": transit }))
+            .unwrap(),
+    )
+    .unwrap();
+    (dir, input, policy)
+}
+
+// Protects: the actual route-plan entrypoint plans the recorded Gen7 -> NUC -> Gen9 hub
+// chain from files, with the repository registry. Detects: dispatch, option parsing or
+// registry wiring regressions. Needs: fixture rewritten to a fresh time; no adapters.
+// Breadcrumb: src/main.rs route-plan dispatch and src/route_plan.rs.
+#[test]
+fn cli_route_plan_routes_recorded_hub_chain_through_named_transit() {
+    let (dir, input, policy) = route_plan_inputs("route-plan-chain", &["dtm-super-nuc"]);
+    let registry = repo_registry_path();
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
+        .args([
+            "route-plan",
+            "--input",
+            input.to_str().unwrap(),
+            "--policy",
+            policy.to_str().unwrap(),
+            "--registry",
+            registry.to_str().unwrap(),
+            "--compact",
+        ])
+        .output()
+        .expect("run route-plan");
+    let _ = fs::remove_dir_all(&dir);
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let plan: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(plan["schema"], "pcai.usb4-route-plan/v1");
+    assert_eq!(plan["apply_supported"], false);
+    let routed = plan["paths"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["from"] == "dtm-p1gen7" && p["to"] == "dtm-p1gen9")
+        .unwrap();
+    assert_eq!(routed["status"], "Routed");
+    assert_eq!(routed["hops"][1], "dtm-super-nuc");
+}
+
+// Protects: route-plan stays a planner. Detects: accepting --apply, other mutation flags or
+// a missing policy. Needs: fixture files only. Breadcrumb: src/main.rs route-plan option gate.
+#[test]
+fn cli_route_plan_refuses_apply_and_requires_policy() {
+    let (dir, input, policy) = route_plan_inputs("route-plan-refusals", &[]);
+    let run = |args: &[&str]| {
+        hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
+            .args(args)
+            .output()
+            .expect("run route-plan refusal")
+    };
+    let (input, policy) = (input.to_str().unwrap(), policy.to_str().unwrap());
+    for args in [
+        vec!["route-plan", "--input", input, "--policy", policy, "--apply"],
+        vec![
+            "route-plan",
+            "--input",
+            input,
+            "--policy",
+            policy,
+            "--assign-pairwise-ipv4",
+        ],
+        vec!["route-plan", "--input", input],
+        vec!["topology-plan", "--input", input, "--policy", policy],
+        vec!["status", "--policy", policy],
+    ] {
+        let output = run(&args);
+        assert!(!output.status.success(), "{args:?} succeeded");
+        assert!(output.stdout.is_empty(), "{args:?} emitted output");
+    }
+    let _ = fs::remove_dir_all(&dir);
+}
+
+// Protects: generated commands are valid PowerShell for the cmdlets they call. Detects:
+// syntax errors, unknown cmdlets and unsupported parameters (for example a review claim that
+// Get-NetAdapter lacks -InterfaceIndex) without executing anything. Needs: Windows with pwsh
+// and the NetAdapter/NetTCPIP modules. Breadcrumb: src/route_plan.rs owned_apply/owned_rollback/guard_lines.
+#[cfg(windows)]
+#[test]
+fn cli_route_plan_commands_parse_and_bind_to_real_cmdlet_parameters() {
+    let (dir, input, policy) = route_plan_inputs("route-plan-pwsh", &["dtm-super-nuc"]);
+    let registry = repo_registry_path();
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
+        .args([
+            "route-plan",
+            "--input",
+            input.to_str().unwrap(),
+            "--policy",
+            policy.to_str().unwrap(),
+            "--registry",
+            registry.to_str().unwrap(),
+            "--compact",
+        ])
+        .output()
+        .expect("run route-plan");
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let plan: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let mut commands = Vec::new();
+    for host in plan["hosts"].as_array().unwrap() {
+        for field in ["guard", "preflight"] {
+            commands.extend(
+                host[field]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .filter_map(|c| c.as_str())
+                    .map(String::from),
+            );
+        }
+        for action in host["actions"].as_array().unwrap() {
+            for field in ["apply", "rollback"] {
+                if let Some(command) = action[field].as_str() {
+                    commands.push(command.to_string());
+                }
+            }
+        }
+    }
+    assert!(commands.len() > 10);
+    let commands_path = dir.join("commands.json");
+    fs::write(&commands_path, serde_json::to_vec(&commands).unwrap()).unwrap();
+    let checker = dir.join("check.ps1");
+    fs::write(
+        &checker,
+        r#"param([string]$Path)
+$failures = @()
+foreach ($text in (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json)) {
+    $tokens = $null; $errors = $null
+    $ast = [Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$errors)
+    if ($errors.Count) { $failures += "PARSE: $text"; continue }
+    foreach ($call in $ast.FindAll({ param($n) $n -is [Management.Automation.Language.CommandAst] }, $true)) {
+        $name = $call.GetCommandName()
+        if (-not $name -or $name -notmatch '^[A-Za-z]+-[A-Za-z]+$') { continue }
+        $cmd = Get-Command -Name $name -ErrorAction SilentlyContinue
+        if (-not $cmd) { $failures += "CMDLET $name"; continue }
+        $known = @($cmd.Parameters.Values | ForEach-Object { $_.Name; $_.Aliases })
+        foreach ($p in $call.CommandElements | Where-Object { $_ -is [Management.Automation.Language.CommandParameterAst] }) {
+            if (@($known | Where-Object { $_ -like "$($p.ParameterName)*" }).Count -eq 0) { $failures += "PARAM $name -$($p.ParameterName)" }
+        }
+    }
+}
+if ($failures.Count) { $failures; exit 1 }
+'OK'
+"#,
+    )
+    .unwrap();
+    let check = hidden_command("pwsh")
+        .args(["-NoLogo", "-NoProfile", "-NonInteractive", "-File"])
+        .arg(&checker)
+        .arg(&commands_path)
+        .output()
+        .expect("run pwsh command checker");
+    let _ = fs::remove_dir_all(&dir);
+    assert!(
+        check.status.success(),
+        "{}{}",
+        String::from_utf8_lossy(&check.stdout),
+        String::from_utf8_lossy(&check.stderr)
+    );
+}
+
+// Protects: rollback authority comes only from a journal in admin-only storage, every change is
+// journaled before it is made, and rollback retires what it undid. Detects: reading a journal from
+// a directory a standard user created (forged keys would authorize removals), a network change
+// made after a failed journal write, a key left behind by a failed apply, and a retained key that
+// lets a second rollback remove state someone else recreated. Needs: Windows with pwsh; the
+// network cmdlets, Get-Acl and Set-Acl are replaced by functions, so nothing is changed and no
+// elevation is needed. Breadcrumb: src/route_plan.rs journal_guard/owned_apply/owned_rollback.
+#[cfg(windows)]
+#[test]
+fn cli_route_plan_journal_is_protected_write_ahead_and_retired() {
+    let (dir, input, policy) = route_plan_inputs("route-plan-journal", &["dtm-super-nuc"]);
+    let registry = repo_registry_path();
+    let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
+        .args([
+            "route-plan",
+            "--input",
+            input.to_str().unwrap(),
+            "--policy",
+            policy.to_str().unwrap(),
+            "--registry",
+            registry.to_str().unwrap(),
+            "--compact",
+        ])
+        .output()
+        .expect("run route-plan");
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let plan: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let action = plan["hosts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|h| h["host"] == "dtm-p1gen9")
+        .and_then(|h| {
+            h["actions"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|a| a["kind"] == "EdgeAddress" && a["apply"].is_string())
+                .cloned()
+        })
+        .expect("an owned Gen9 edge address");
+    let lines = dir.join("lines.json");
+    fs::write(
+        &lines,
+        serde_json::to_vec(&serde_json::json!({ "apply": action["apply"], "rollback": action["rollback"] })).unwrap(),
+    )
+    .unwrap();
+    let script = dir.join("journal.ps1");
+    fs::write(&script, JOURNAL_CHECKER).unwrap();
+    let run = hidden_command("pwsh")
+        .args(["-NoLogo", "-NoProfile", "-NonInteractive", "-File"])
+        .arg(&script)
+        .arg(&lines)
+        .arg(dir.join("root"))
+        .output()
+        .expect("run pwsh journal checker");
+    let _ = fs::remove_dir_all(&dir);
+    assert!(
+        run.status.success(),
+        "{}{}",
+        String::from_utf8_lossy(&run.stdout),
+        String::from_utf8_lossy(&run.stderr)
+    );
+}
+
+/// Runs one apply/rollback pair against stub cmdlets under a temporary `$env:ProgramData`.
+#[cfg(windows)]
+const JOURNAL_CHECKER: &str = r#"param([string]$Lines, [string]$Root)
+$cmd = Get-Content -Raw -LiteralPath $Lines | ConvertFrom-Json
+$failures = [Collections.Generic.List[string]]::new()
+$script:calls = [Collections.Generic.List[string]]::new()
+$script:present = $false
+$script:failNew = $false
+function Get-NetIPInterface { [pscustomobject]@{ Dhcp = 'Disabled'; Forwarding = 'Disabled' } }
+function Get-NetIPAddress { if ($script:present) { [pscustomobject]@{ PrefixLength = 30 } } }
+function New-NetIPAddress { $script:calls.Add('New'); if ($script:failNew) { throw 'stub New-NetIPAddress failure' }; $script:present = $true }
+function Remove-NetIPAddress { $script:calls.Add('Remove'); $script:present = $false }
+function Invoke-Line([string]$Text) { try { & ([scriptblock]::Create($Text)) | Out-Null; $null } catch { $_.Exception.Message } }
+function Get-Journal { @(Get-ChildItem -LiteralPath (Join-Path $env:ProgramData 'pcai-usb4\route-plan') -Filter *.journal -ErrorAction SilentlyContinue | Get-Content) }
+$key = [regex]::Match($cmd.apply, "Value '(EdgeAddress\|[^']+)'").Groups[1].Value
+$journalName = [regex]::Match($cmd.apply, "([0-9a-f]{16}\.journal)").Groups[1].Value
+if (-not $key -or -not $journalName) { 'no journal key or name in the apply line'; exit 1 }
+
+# A directory a standard user made: the journal in it must be neither trusted nor written.
+$env:ProgramData = Join-Path $Root 'forged'
+$forged = New-Item -ItemType Directory -Path (Join-Path $env:ProgramData 'pcai-usb4\route-plan') -Force
+Set-Content -LiteralPath (Join-Path $forged.FullName $journalName) -Value $key
+$script:present = $true
+$m = Invoke-Line $cmd.rollback
+if ($m -notlike 'Journal storage*') { $failures.Add("forged rollback was not refused: $m") }
+$script:present = $false
+$m = Invoke-Line $cmd.apply
+if ($m -notlike 'Journal storage*') { $failures.Add("forged apply was not refused: $m") }
+if ($script:calls.Count) { $failures.Add("forged storage reached the network cmdlets: $($script:calls -join ',')") }
+
+# Trusted storage: ownership and ACL reads report Administrators and SYSTEM only.
+function Get-Acl {
+    $s = [Security.AccessControl.DirectorySecurity]::new()
+    $s.SetOwner([Security.Principal.SecurityIdentifier]'S-1-5-32-544')
+    foreach ($id in 'S-1-5-32-544', 'S-1-5-18') {
+        $s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]$id, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow'))
+    }
+    $s
+}
+function Set-Acl { }
+
+$env:ProgramData = Join-Path $Root 'trusted'
+New-Item -ItemType Directory -Path $env:ProgramData | Out-Null
+$script:present = $false; $script:calls.Clear()
+$m = Invoke-Line $cmd.apply
+if ($m) { $failures.Add("apply failed: $m") }
+if ((Get-Journal) -notcontains $key -or ($script:calls -join ',') -ne 'New') { $failures.Add("apply did not journal and create: $((Get-Journal) -join ';') / $($script:calls -join ',')") }
+$m = Invoke-Line $cmd.rollback
+if ($m) { $failures.Add("rollback failed: $m") }
+if ((Get-Journal) -contains $key -or $script:present) { $failures.Add('rollback did not remove the address and retire its key') }
+$script:present = $true; $script:calls.Clear()   # someone else recreates the address
+$m = Invoke-Line $cmd.rollback
+if ($m -or $script:calls.Count -or -not $script:present) { $failures.Add("second rollback touched recreated state: $m / $($script:calls -join ',')") }
+
+# A failed journal write must stop apply before any change.
+$env:ProgramData = Join-Path $Root 'nowrite'
+New-Item -ItemType Directory -Path $env:ProgramData | Out-Null
+function Add-Content { throw 'stub journal write failure' }
+$script:present = $false; $script:calls.Clear()
+$m = Invoke-Line $cmd.apply
+if ($m -notlike '*journal write failure*' -or $script:calls.Count) { $failures.Add("apply changed state without a journal record: $m / $($script:calls -join ',')") }
+Remove-Item function:Add-Content
+
+# A failed change whose state is still absent retires its key.
+$env:ProgramData = Join-Path $Root 'failnew'
+New-Item -ItemType Directory -Path $env:ProgramData | Out-Null
+$script:failNew = $true; $script:present = $false; $script:calls.Clear()
+$m = Invoke-Line $cmd.apply
+if ($m -notlike '*New-NetIPAddress failure*' -or (Get-Journal) -contains $key) { $failures.Add("failed apply left its key: $m / $((Get-Journal) -join ';')") }
+
+if ($failures.Count) { $failures; exit 1 }
+'OK'
+"#;
 // Protects: unregister and --adapter stay local and scoped. Detects: unregister accepting a
 // remote --computer or register-only flags, and --adapter leaking into read-only commands.
 // Needs: repository registry only; every case is refused before any adapter query or Apply.

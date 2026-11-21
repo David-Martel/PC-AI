@@ -255,6 +255,8 @@ function Test-ProviderCardinalityAndAncestryBounds {
     Assert-Refused { Get-Usb4FabricHost } '*address/neighbor inventory exceeds its bound*'
     Reset-Fixture; $script:fixture.neighbors = @(1..65 | ForEach-Object { [pscustomobject]@{ IPAddress='fe80::2'; State='Reachable'; LinkLayerAddress='10-C5-05-C4-3A-54' } })
     Assert-Refused { Get-Usb4FabricHost } '*address/neighbor inventory exceeds its bound*'
+    Reset-Fixture; $script:fixture.neighbors = @(1..4097 | ForEach-Object { [pscustomobject]@{ IPAddress='ff02::1'; State='Permanent'; LinkLayerAddress='33-33-00-00-00-01' } })
+    Assert-Refused { Get-Usb4FabricHost } '*raw neighbor-cache inventory exceeds its bound*'
     Reset-Fixture; $leaf = $script:fixture.adapters[0].PnPDeviceID; $script:fixture.parent[$leaf] = $leaf
     Assert-Refused { Get-Usb4FabricHost } '*PnP ancestry contains a cycle*'
     Reset-Fixture; $previous = $script:fixture.adapters[0].PnPDeviceID
@@ -265,10 +267,32 @@ function Test-ProviderCardinalityAndAncestryBounds {
     }
 }
 
+# Protects: collection from a real hub-attached USB4 link, whose neighbor cache is mostly
+# multicast and failed-probe rows. Detects: applying the 64-row bound before filtering, which
+# refused every live host (dtm-p1gen9 held 51 Permanent multicast, 12 Unreachable and 2 Stale
+# unicast rows on 2026-11-21; dtm-p1gen7 failed the same way). Needs: that recorded row mix.
+# Breadcrumb: Get-Usb4FabricHost raw neighbor bound, filter, then 64-row contract.
+function Test-RecordedHubNeighborCacheIsCollected {
+    Reset-Fixture
+    $multicast = @(1..51 | ForEach-Object {
+        [pscustomobject]@{ IPAddress = ('ff02::1:ff00:{0:x}' -f $_); State = 'Permanent'; LinkLayerAddress = '33-33-FF-00-00-01' } })
+    $failed = @(1..12 | ForEach-Object {
+        [pscustomobject]@{ IPAddress = ('169.254.1.{0}' -f $_); State = 'Unreachable'; LinkLayerAddress = '00-00-00-00-00-00' } })
+    $script:fixture.neighbors = @($multicast + $failed + @(
+        [pscustomobject]@{ IPAddress = 'fe80::82b5:5547:19c5:35c9'; State = 'Stale'; LinkLayerAddress = '02-A4-26-26-24-63' },
+        [pscustomobject]@{ IPAddress = '172.31.255.22'; State = 'Stale'; LinkLayerAddress = '02-A4-26-26-24-63' }))
+    if ($script:fixture.neighbors.Count -ne 65) { throw 'Recorded neighbor-cache fixture lost its shape.' }
+    $actual = (Get-Usb4FabricHost).interfaces[0].neighbors
+    if ($actual.Count -ne 2 -or $actual[0].address -cne 'fe80::82b5:5547:19c5:35c9' -or $actual[1].address -cne '172.31.255.22') {
+        throw 'A live-shaped neighbor cache was refused or its unicast evidence was lost.'
+    }
+}
+
 $selectors = @('Test-DryRunAndHelpAvoidProviders', 'Test-PresentIdentityExcludesPhantomsAndAliasDecoys',
     'Test-UnknownRootRetainsUnqualifiedInterface', 'Test-ProviderErrorsRefuseEmptySuccess',
     'Test-AddressNotFoundBoundaryPreservesHealthyAdapter', 'Test-NeighborNotFoundBoundary',
-    'Test-NeighborsFilterUnusableEntries', 'Test-ProviderCardinalityAndAncestryBounds')
+    'Test-NeighborsFilterUnusableEntries', 'Test-ProviderCardinalityAndAncestryBounds',
+    'Test-RecordedHubNeighborCacheIsCollected')
 if (@($Selector | Where-Object { $_ -cnotin $selectors }).Count) { throw 'Unknown USB4 observation test selector.' }
 $passed = 0
 foreach ($name in $selectors) {

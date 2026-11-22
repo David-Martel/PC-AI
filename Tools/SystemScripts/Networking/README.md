@@ -52,13 +52,19 @@ An explicit Apply can migrate a matching `disabled` profile after it verifies
 that the profile has no stored IPv6 addresses, DNS, gateway, or routes. The
 IPv4 address pair still provides the source-bound SSH and benchmark paths.
 See the [Linux profile tests](../../../Tests/Integration/ThunderboltLinuxProfile.Tests.ps1)
-and their [review record](../../../Tests/Integration/thunderbolt-linux-profile-review.json).
+and the [profile migration](../../../Tests/Integration/thunderbolt-linux-profile-review.json)
+and [repeat Configure](../../../Tests/Integration/thunderbolt-linux-idempotency-review.json) review records.
+Run `Invoke-Pester Tests/Integration/ThunderboltLinuxProfile.Tests.ps1` on Linux
+to execute the generated Bash against fixture-only NetworkManager commands.
+On Windows, set `PCAI_TB_TEST_SSH_ALIAS` to a key-authenticated Linux host.
 Configure sets no gateway or DNS and uses the configured MTU for Windows IPv4
-and the Linux link. If a
-later Windows step fails, the Linux isolated profile can remain configured; the
-error is surfaced and LAN SSH remains available for recovery. Re-running is
-idempotent. Rollback removes only the added Windows /30 address and owned Linux
-profile; undo module persistence only if it is no longer needed.
+and the Linux link. A repeat Apply leaves Linux traffic undisturbed when the
+stored profile, active connection UUID, live MTU and addresses all match and
+the device has no gateway. Activating a profile can interrupt the data link,
+so use the LAN management alias for changes. If a later Windows step fails,
+the Linux profile can remain configured and the error is surfaced. Rollback
+removes only the added Windows /30 address and owned Linux profile. Undo
+module persistence only if it is no longer needed.
 
 After applying Configure, the tool verifies SSH over the Thunderbolt address with
 the local source bound and checks Linux's return route. Its `ThunderboltSsh`

@@ -132,6 +132,17 @@ jobs:
           $config.Run.Exit = $true
           Invoke-Pester -Configuration $config
 
+      # Protects connection continuity on repeat Apply. Detects reactivation of a
+      # matching link and skipped reconciliations despite drift. Needs local
+      # Bash, Python 3 and Pester. Source: Invoke-ThunderboltLinuxPeer.ps1.
+      - name: Linux NetworkManager profile contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -MinimumVersion 5.6.1
+          $result = Invoke-Pester -Path Tests/Integration/ThunderboltLinuxProfile.Tests.ps1 -PassThru
+          if ($result.Result -ne 'Passed' -or $result.PassedCount -eq 0) { throw 'Linux profile contracts failed' }
+
       - name: PSScriptAnalyzer (errors fail the job)
         shell: pwsh
         run: |

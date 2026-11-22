@@ -84,8 +84,8 @@ paths change. Details: [portable bootstrap](docs/portable-bootstrap.md).
 
 #### `functiongemma-runtime.yml` (FunctionGemma runtime)
 
-Job `runtime-tests`: build and HTTP contract tests for `Deploy/rust-functiongemma-runtime`. Details:
-[runtime validation](docs/functiongemma-runtime-validation.md).
+Job `runtime-tests` runs the runtime HTTP contracts and the shared core's CPU tests on
+Windows and Ubuntu. See [FunctionGemma validation](docs/functiongemma-runtime-validation.md).
 
 #### `media-upscale.yml` (Media upscale contracts)
 

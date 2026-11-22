@@ -1,20 +1,24 @@
-name: FunctionGemma runtime
+name: FunctionGemma runtime and core
 
 on:
   pull_request:
     branches: [main]
     paths:
       - 'Deploy/rust-functiongemma-runtime/**'
+      - 'Deploy/rust-functiongemma-core/**'
       - 'Deploy/Cargo.toml'
       - 'Deploy/Cargo.lock'
+      - 'vendor/candle-core-0.9.2/**'
       - '.github/workflows/functiongemma-runtime.yml'
       - '.github/actions/setup-job-rust/**'
   push:
     branches: [main]
     paths:
       - 'Deploy/rust-functiongemma-runtime/**'
+      - 'Deploy/rust-functiongemma-core/**'
       - 'Deploy/Cargo.toml'
       - 'Deploy/Cargo.lock'
+      - 'vendor/candle-core-0.9.2/**'
       - '.github/workflows/functiongemma-runtime.yml'
       - '.github/actions/setup-job-rust/**'
 
@@ -54,3 +58,9 @@ jobs:
         if: runner.environment != 'self-hosted'
       - name: Test locked default runtime and documentation examples
         run: cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime
+      # Protects: CPU builds of the shared model code, including chat templates and weight utilities.
+      # Detects: compile errors and core test failures missed by the default runtime's optional model dependency.
+      # Needs: Rust stable, the workspace lockfile and vendored patches; no CUDA or model weights.
+      # Breadcrumb: Deploy/rust-functiongemma-core/{Cargo.toml,src/}
+      - name: Test locked FunctionGemma core on CPU
+        run: cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-core --no-default-features

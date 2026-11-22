@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T21:07:00Z",
+  "sourceBaseline": "2c8504d38b3d2d94348db73e0c07acd3ea6ca96a",
+  "hashConvention": "SHA-256 of UTF-8 LF file text, with exact selector extents including indentation and final LF",
+  "sourceBindings": {
+    ".github/workflows/functiongemma-runtime.yml": "0631271eb8e6455eff5243a716679fbb4efcec4363a92635c7a24cc87006bef1",
+    "Deploy/Cargo.lock": "29305303d42b346d9ce98cbf803d410d682532df3d6364a65b4522a0fc1543ef",
+    "Deploy/rust-functiongemma-core/Cargo.toml": "11408bb3a7cf1491f9e0d9c6f8414f8641d212d52b3b1d23ff676eba14cca144",
+    "Deploy/rust-functiongemma-core/src/gpu.rs": "3dc8e75dc074bdd91a86feacc510c7266b98ccd925a1eb0c1f11245dfad9026c",
+    "Deploy/rust-functiongemma-core/src/model.rs": "07607583d019323109f7e6a70bc848a0eb8933bd67314559a0b2f8e8ac69dc5f"
+  },
+  "selectors": [
+    {
+      "selector": "Test locked FunctionGemma core on CPU",
+      "source": ".github/workflows/functiongemma-runtime.yml",
+      "sha256": "a6e557e84da9cf5212c15fb7ed4c4ce8cc284664a62b9e4c8066ed5e2374b9ad",
+      "reviewer": "codex-releaseaudit",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "The baseline misses core-only changes and the locked CPU selector fails to compile. The new selector preserves the runtime command, selects only the CPU core and runs on core and patched Candle changes."
+    },
+    {
+      "selector": "cpu_build_reports_cuda_memory_operations_unavailable",
+      "source": "Deploy/rust-functiongemma-core/src/gpu.rs",
+      "sha256": "a108c243832544099d68fb0c26ee661512711cdc54043b9f5d576e9f2ede3975",
+      "reviewer": "codex-releaseaudit",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "Checks unavailable memory telemetry and pool configuration even when the caller requests tuning. A fabricated result or unconditional error would fail."
+    },
+    {
+      "selector": "cpu_layer_rejects_qlora_and_runs_full_precision",
+      "source": "Deploy/rust-functiongemma-core/src/model.rs",
+      "sha256": "268d0ab00e08ff090f84dbc8412a40c27bd558e0e7b8ebdfc2e9afe7cc4a8a6e",
+      "reviewer": "codex-releaseaudit",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "Requires a specific unavailable-backend error for 4-bit requests and checks a real full-precision forward pass with in-memory weights."
+    }
+  ]
+}

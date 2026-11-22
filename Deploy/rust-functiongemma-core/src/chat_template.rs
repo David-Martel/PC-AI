@@ -70,9 +70,9 @@ mod tests {
     //   value::Serde (feature "serde"); without it this crate does not compile (E0277).
     // Detects: nested message fields, tool calls, tool schemas or the generation
     //   flag being lost or flattened by the adapter.
-    // Needs: pure rendering, no model or GPU. The crate itself builds only with its
-    //   default `cuda` feature (cudarc and qlora_rs are used unconditionally), so a
-    //   CPU-only run compiles this file alone against minijinja 3 (see the PR body).
+    // Needs: pure rendering with MiniJinja 3, no model or GPU. The locked core
+    //   test command runs this fixture with default features disabled.
+    // Breadcrumb: chat_template::render_chat_template.
     #[test]
     fn renders_nested_messages_tools_and_generation_prompt() {
         let out = render_chat_template(TEMPLATE, &messages(), &tools(), true).expect("render");

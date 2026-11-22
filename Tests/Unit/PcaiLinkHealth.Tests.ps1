@@ -267,21 +267,33 @@ Describe 'Route plan validity' -Tag 'Unit', 'Portable' {
         (Get-PcaiRoutePlanWindow -Plan $decoded -NowUtc ([DateTimeOffset]$Now)).State | Should -Be $Expected
     }
 
-    # Protects: an emitted script cannot apply later after its observation expires.
-    # Detects: an expiry check that runs only before rendering, after preflight, or not at all.
+    # Protects: a saved script proceeds only while its observation window is current.
+    # Detects: accepting an expired or future plan, blocking a current plan, or checking validity after preflight.
     # Needs: a generated script containing fixture-only guards and commands, with no network or elevation.
     # Breadcrumb: Invoke-PcaiLinkHealth.ps1::New-PcaiHostApplyScript.
-    It 'refuses a saved apply script whose validity has elapsed before any network command runs' {
+    It 'checks a saved apply script in the <Case> observation window before fixture commands' -ForEach @(
+        @{ Case = 'expired'; StartOffset = -120; ExpiryOffset = -60; AllowsFixture = $false }
+        @{ Case = 'future'; StartOffset = 60; ExpiryOffset = 120; AllowsFixture = $false }
+        @{ Case = 'current'; StartOffset = -60; ExpiryOffset = 60; AllowsFixture = $true }
+    ) {
         $hostFixture = [pscustomobject]@{
             host = 'fixture'
-            guard = @("throw 'hardware guard should not run'")
+            guard = @('$null = $fixtureCalls.Add("adapter check")')
             preflight = @()
-            actions = @([pscustomobject]@{ kind = 'HostRoute'; interface_index = 1; target = 'fixture'; apply = "throw 'mutation should not run'" })
+            actions = @([pscustomobject]@{ kind = 'HostRoute'; interface_index = 1; target = 'fixture'; apply = '$null = $fixtureCalls.Add("route change")' })
         }
+        $now = [DateTimeOffset]::UtcNow
         $text = New-PcaiHostApplyScript -PlanHost $hostFixture -PlanId '0123456789abcdef' `
-            -EvaluatedAtUtc ([DateTimeOffset]'2026-11-21T11:50:17Z') -ExpiresAtUtc ([DateTimeOffset]'2026-11-21T11:51:17Z')
+            -EvaluatedAtUtc ($now.AddSeconds($StartOffset)) -ExpiresAtUtc ($now.AddSeconds($ExpiryOffset))
         $body = ($text -split '\r?\n' | Where-Object { $_ -notlike '#Requires*' }) -join "`n"
-        { & ([scriptblock]::Create($body)) } | Should -Throw '*outside its validity window*'
+        $fixtureCalls = [Collections.Generic.List[string]]::new()
+        if ($AllowsFixture) {
+            & ([scriptblock]::Create($body))
+            @($fixtureCalls) | Should -Be @('adapter check', 'route change')
+        } else {
+            { & ([scriptblock]::Create($body)) } | Should -Throw '*outside its validity window*'
+            $fixtureCalls.Count | Should -Be 0
+        }
     }
 }
 

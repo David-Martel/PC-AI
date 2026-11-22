@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "reviewedAtUtc": "2026-11-22T16:16:25.0218554Z",
+  "reviewedAtUtc": "2026-11-22T17:00:49.9514352+00:00",
   "reviewer": "codex",
   "reviewerType": "independent source agent",
   "sourceBaseline": "1aa6f468fed6dd3f19ed499af84958fc6723c9ff",
   "hashConvention": "SHA-256 of UTF-8 LF source files and exact Pester It AST extent. Data-driven selectors are reviewed as groups.",
   "sourceBindings": {
     "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1": "a1e50b0f2b30bf11e7c7c09b7077bf9b07e0ea4376bb33682054d9829c1052ad",
-    "Tests/Unit/PcaiLinkHealth.Tests.ps1": "9fefeefe514de94ec8abcdb76c85007560fd35a8a752cb0a076ecac6191d6074"
+    "Tests/Unit/PcaiLinkHealth.Tests.ps1": "6754d232e5e70dbcba19347dd3ae0c8e90b8e5e2c5e0fb0dfff49d6d026a2d18"
   },
   "selectors": [
     {
@@ -31,14 +31,14 @@
       "reviewScope": "Evaluates declared windows against a fixed clock. No network or system settings are used."
     },
     {
-      "selector": "refuses a saved apply script whose validity has elapsed before any network command runs",
+      "selector": "checks a saved apply script in the <Case> observation window before fixture commands",
       "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
-      "sha256": "5fef39256d877523227f17f6dcf8529a3b78a44d7ec0557a88e5dd3d3b4b06e8",
+      "sha256": "ec98793fe0b5df0267c14094de629ec1350e8c1e8bfe634d3b100dc35cd3f074",
       "codeUnderTest": [
         "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1"
       ],
       "disposition": "keep",
-      "reviewScope": "Invokes the rendered guard with an expired window and an inert command sentinel."
+      "reviewScope": "Executes the saved script with an expired, future and current window. Both rejected cases run zero fixture commands; the current window runs the inert adapter and route markers in order. Full Windows watcher suite passed 92 cases with two environmental skips."
     },
     {
       "selector": "applies only for Drift with a current plan, guards matching, elevated, and enabled",

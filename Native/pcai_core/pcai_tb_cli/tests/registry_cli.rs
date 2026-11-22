@@ -711,10 +711,10 @@ fn cli_route_plan_refuses_apply_and_requires_policy() {
     let _ = fs::remove_dir_all(&dir);
 }
 
-// Protects: generated commands are valid PowerShell for the cmdlets they call. Detects:
-// syntax errors, unknown cmdlets and unsupported parameters (for example a review claim that
-// Get-NetAdapter lacks -InterfaceIndex) without executing anything. Needs: Windows with pwsh
-// and the NetAdapter/NetTCPIP modules. Breadcrumb: src/route_plan.rs owned_apply/owned_rollback/guard_lines.
+// Protects: generated commands bind to real cmdlet parameters and the executable clock prefix
+// rejects an expired or future plan. Detects: malformed PowerShell, unsupported parameters, or a
+// nonterminating time check. Needs: Windows with pwsh and the NetAdapter/NetTCPIP modules. Only
+// the clock prefix runs, without any network commands. Breadcrumb: src/route_plan.rs apply_clock_guard/owned_apply.
 #[cfg(windows)]
 #[test]
 fn cli_route_plan_commands_parse_and_bind_to_real_cmdlet_parameters() {
@@ -762,11 +762,60 @@ fn cli_route_plan_commands_parse_and_bind_to_real_cmdlet_parameters() {
     fs::write(
         &checker,
         r#"param([string]$Path)
+$ErrorActionPreference = 'Stop'
+
+function Get-ClockFailures([string]$Prefix, [object[]]$Cases) {
+    $timestamps = [regex]::Matches($Prefix, "\[DateTimeOffset\]'([^']+)'")
+    if ($timestamps.Count -ne 2) { return 'Expected two rendered timestamps in the apply clock guard' }
+    foreach ($case in $Cases) {
+        $text = $Prefix.Replace($timestamps[0].Groups[1].Value, $case.Start).Replace($timestamps[1].Groups[1].Value, $case.End)
+        $reached = $null
+        $caught = $null
+        try { $reached = & ([scriptblock]::Create("$text`n'after-clock-guard'")) 3>$null }
+        catch { $caught = $_.Exception.Message }
+        if ($case.Valid) {
+            if ($caught -or $reached -cne 'after-clock-guard') { $case.Name }
+        } elseif ($caught -notlike '*outside its validity window*' -or $reached) { $case.Name }
+    }
+}
+
 $failures = @()
+$clockChecked = $false
 foreach ($text in (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json)) {
     $tokens = $null; $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$errors)
     if ($errors.Count) { $failures += "PARSE: $text"; continue }
+    if (-not $clockChecked -and $text.StartsWith('$pcaiPlanNow = ')) {
+        $clockChecked = $true
+        $prefixStatements = @($ast.EndBlock.Statements | Select-Object -First 2)
+        if ($prefixStatements.Count -ne 2 -or
+            $prefixStatements[0] -isnot [Management.Automation.Language.AssignmentStatementAst] -or
+            $prefixStatements[1] -isnot [Management.Automation.Language.IfStatementAst] -or
+            @($prefixStatements | ForEach-Object {
+                $_.FindAll({ param($n) $n -is [Management.Automation.Language.CommandAst] }, $true)
+            }).Count) {
+            $failures += 'Expected an isolated, fixture-safe apply clock prefix'
+        } else {
+            $prefix = ($prefixStatements | ForEach-Object { $_.Extent.Text }) -join "`n"
+            $now = [DateTimeOffset]::UtcNow
+            $cases = @(
+                @{ Name = 'expired'; Start = $now.AddMinutes(-2).ToString('o'); End = $now.AddMinutes(-1).ToString('o'); Valid = $false }
+                @{ Name = 'future'; Start = $now.AddMinutes(1).ToString('o'); End = $now.AddMinutes(2).ToString('o'); Valid = $false }
+                @{ Name = 'current'; Start = $now.AddMinutes(-1).ToString('o'); End = $now.AddMinutes(1).ToString('o'); Valid = $true }
+            )
+            foreach ($failure in @(Get-ClockFailures $prefix $cases)) { $failures += "CLOCK: $failure" }
+            $mutants = @{
+                'and instead of or' = $prefix.Replace(' -or ', ' -and ')
+                'warning instead of throw' = $prefix.Replace('throw ', 'Write-Warning ')
+            }
+            foreach ($mutant in $mutants.GetEnumerator()) {
+                $caughtCases = @(Get-ClockFailures $mutant.Value $cases)
+                if (($caughtCases -join ',') -cne 'expired,future') {
+                    $failures += "CLOCK: did not detect $($mutant.Key) in both noncurrent cases"
+                }
+            }
+        }
+    }
     foreach ($call in $ast.FindAll({ param($n) $n -is [Management.Automation.Language.CommandAst] }, $true)) {
         $name = $call.GetCommandName()
         if (-not $name -or $name -notmatch '^[A-Za-z]+-[A-Za-z]+$') { continue }
@@ -778,6 +827,7 @@ foreach ($text in (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json)) {
         }
     }
 }
+if (-not $clockChecked) { $failures += 'No rendered apply clock prefix exercised' }
 if ($failures.Count) { $failures; exit 1 }
 'OK'
 "#,

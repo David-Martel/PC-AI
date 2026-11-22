@@ -352,6 +352,51 @@ function ConvertTo-FleetSafeMessage {
     catch { return ('[excerpt withheld: redaction failed; sha256 {0}]' -f (Get-FleetShortHash $Text)) }
 }
 
+# Keys whose values are credentials whatever they look like. Shared with the Linux ledger (sentinel-utils #1600).
+$script:FleetSensitiveKeyPattern = '(?i)password|passwd|passphrase|pwd|secret|token|api[_-]?key|auth|credential|cookie|private[_-]?key|access[_-]?key|session[_-]?id'
+
+function Protect-FleetStructure {
+    <#
+    A redacted COPY of structured event data (Details, Remediation): any non-null value under a sensitive key is
+    replaced whole, at any depth and of any type, since a plain value under such a key ({ password = 'v' }, a
+    number under pin_secret) matches no text rule; every other string goes through Protect-FleetText. The
+    caller's object is not changed. Throws on any error; callers use ConvertTo-FleetSafeStructure.
+    #>
+    param($Value)
+    if ($null -eq $Value) { return $null }
+    if ($Value -is [string]) { return [string](Protect-FleetText -Text $Value) }
+    if ($Value -is [System.Collections.IDictionary]) {
+        $out = @{}
+        foreach ($k in @($Value.Keys)) {
+            $v = $Value[$k]
+            if ([string]$k -match $script:FleetSensitiveKeyPattern -and $null -ne $v) { $out[[string]$k] = '[REDACTED]' }
+            else { $out[[string]$k] = Protect-FleetStructure -Value $v }
+        }
+        return $out
+    }
+    if ($Value -is [System.Management.Automation.PSCustomObject]) {
+        $out = @{}
+        foreach ($p in $Value.PSObject.Properties) {
+            if ($p.Name -match $script:FleetSensitiveKeyPattern -and $null -ne $p.Value) { $out[$p.Name] = '[REDACTED]' }
+            else { $out[$p.Name] = Protect-FleetStructure -Value $p.Value }
+        }
+        return $out
+    }
+    if ($Value -is [System.Collections.IEnumerable]) {
+        $items = @(foreach ($i in $Value) { , (Protect-FleetStructure -Value $i) })
+        return , $items
+    }
+    return $Value
+}
+
+function ConvertTo-FleetSafeStructure {
+    <# The redacted copy, or, when redaction fails, @{ redaction = 'failed' }: structured data fails CLOSED too. #>
+    param($Value)
+    if ($null -eq $Value) { return $null }
+    try { return (Protect-FleetStructure -Value $Value) }
+    catch { return @{ redaction = 'failed' } }
+}
+
 function Set-FleetNormalPriority {
     <#
     Raises this process from BelowNormal/Idle to Normal and returns the previous class. Task Scheduler

@@ -122,6 +122,10 @@ that does not parse is quarantined.
   Slack, JWT and Discord token shapes). If redaction fails, the excerpt is withheld and only its hash is kept. The wrapper's
   own copy under `<home>\logs\` is redacted the same way (that directory inherits the ProgramData ACL while ACL
   hardening is deferred); raw output stays only in the tool's own `-LogPath` log, which the module never copies.
+  Structured event data (`details`, `remediation`) is redacted by key as well: any non-null value under a sensitive
+  key (password, secret, token, api key, auth, credential, cookie, private or access key, session id) is replaced whole,
+  at any depth and of any type, and every other string goes through the text rules. If that fails, the structure is
+  replaced by `{ redaction: failed }`.
 
 ## Policy
 

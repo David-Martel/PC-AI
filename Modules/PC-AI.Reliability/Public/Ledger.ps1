@@ -29,6 +29,11 @@ function New-FleetLedgerEvent {
     # Every event message is redacted before it is written or forwarded; a redaction failure withholds it (P1).
     $Message = [string](ConvertTo-FleetSafeMessage $Message)
     if ($Message.Length -gt 2000) { $Message = $Message.Substring(0, 1997) + '...' }
+    # Structured data is redacted by key as well as by text: a plain value under a sensitive key matched no text
+    # rule and reached the ledger and agent-bus metadata (the gap found on the Linux ledger, sentinel-utils #1600).
+    $safeDetails = ConvertTo-FleetSafeStructure $Details
+    if ($null -eq $safeDetails) { $safeDetails = @{} }
+    $safeRemediation = ConvertTo-FleetSafeStructure $Remediation
     $rand = -join ((1..8) | ForEach-Object { '{0:x}' -f (Get-Random -Maximum 16) })
     return [ordered]@{
         schema       = $script:FleetLedgerSchema
@@ -47,8 +52,8 @@ function New-FleetLedgerEvent {
         message      = $Message
         log_path     = if ([string]::IsNullOrWhiteSpace($LogPath)) { $null } else { $LogPath }
         incident_key = if ([string]::IsNullOrWhiteSpace($IncidentKey)) { $null } else { $IncidentKey }
-        remediation  = $Remediation
-        details      = $Details
+        remediation  = $safeRemediation
+        details      = $safeDetails
     }
 }
 

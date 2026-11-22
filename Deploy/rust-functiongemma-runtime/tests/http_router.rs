@@ -53,6 +53,9 @@ async fn test_streaming_chat_completion() {
     assert!(body.contains("[DONE]"), "Body should end with [DONE]");
 }
 
+// Protects: health telemetry keys and model metadata. Detects: missing fields
+// or a numeric CPU reading before the second sample. Needs: a loopback socket
+// and local process/RAM counters. Breadcrumb: handlers::health and metrics::system_metrics.
 #[tokio::test]
 async fn health_and_models() {
     let app = rust_functiongemma_runtime::build_router();
@@ -81,6 +84,17 @@ async fn health_and_models() {
     assert!(health["metadata"]["version"].as_str().is_some());
     assert!(health["metadata"]["model"].as_str().is_some());
     assert!(health["metadata"]["tools"].is_object());
+    let metrics = &health["metrics"];
+    for field in [
+        "process_rss_mb",
+        "process_vmem_mb",
+        "total_memory_mb",
+        "free_memory_mb",
+        "uptime_sec",
+    ] {
+        assert!(metrics[field].is_u64(), "missing or invalid health metric {field}");
+    }
+    assert!(metrics.get("cpu_usage").is_some_and(serde_json::Value::is_null));
 
     let models: serde_json::Value = client
         .get(format!("{}/v1/models", base))

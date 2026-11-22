@@ -151,7 +151,7 @@ pub(crate) struct SystemMetrics {
     pub(crate) process_vmem_mb: u64,
     pub(crate) total_memory_mb: u64,
     pub(crate) free_memory_mb: u64,
-    pub(crate) cpu_usage: f32,
+    pub(crate) cpu_usage: Option<f32>,
     pub(crate) uptime_sec: u64,
 }
 

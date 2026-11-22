@@ -4,8 +4,8 @@ use serde_json::Value;
 use std::fs;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
-use std::time::Instant;
-use sysinfo::System;
+use std::time::{Duration, Instant};
+use sysinfo::{MemoryRefreshKind, ProcessRefreshKind, ProcessesToUpdate, System};
 
 #[cfg(feature = "model")]
 use crate::gpu::device_label;
@@ -20,8 +20,32 @@ pub(crate) static TOTAL_INFER_MS: AtomicU64 = AtomicU64::new(0);
 /// Cached tools metadata (loaded once from disk)
 pub(crate) static TOOLS_METADATA_CACHE: OnceLock<ToolsMetadata> = OnceLock::new();
 
-/// Cached system metrics with refresh interval
-pub(crate) static SYSTEM_METRICS_CACHE: OnceLock<Mutex<(Instant, SystemMetrics)>> = OnceLock::new();
+#[derive(Default)]
+struct SystemMetricsCache {
+    system: Option<System>,
+    snapshot: Option<SystemMetrics>,
+    cpu_sample: Option<CpuSample>,
+    refreshed_at: Option<Instant>,
+}
+
+static SYSTEM_METRICS_CACHE: OnceLock<Mutex<SystemMetricsCache>> = OnceLock::new();
+
+#[derive(Clone, Copy)]
+struct CpuSample {
+    at: Instant,
+    millis: u64,
+}
+
+impl CpuSample {
+    fn usage_since(self, previous: Self) -> Option<f32> {
+        let interval = self.at.checked_duration_since(previous.at)?;
+        if interval < sysinfo::MINIMUM_CPU_UPDATE_INTERVAL {
+            return None;
+        }
+        let cpu_time = Duration::from_millis(self.millis.checked_sub(previous.millis)?);
+        Some((100.0 * cpu_time.as_secs_f64() / interval.as_secs_f64()) as f32)
+    }
+}
 
 /// How often to refresh system metrics (seconds)
 pub(crate) const METRICS_REFRESH_SECS: u64 = 5;
@@ -72,50 +96,58 @@ pub(crate) fn router_metadata() -> RouterMetadata {
     }
 }
 
-pub(crate) fn collect_system_metrics() -> Option<SystemMetrics> {
-    let mut sys = System::new_all().ok()?;
-    sys.refresh_all();
+fn collect_system_metrics(sys: &mut System, previous_cpu: Option<CpuSample>) -> Option<(SystemMetrics, CpuSample)> {
+    const BYTES_PER_MIB: u64 = 1024 * 1024;
+
     let pid = sysinfo::get_current_pid().ok()?;
+    sys.refresh_memory_specifics(MemoryRefreshKind::nothing().with_ram());
+    let updated = sys.refresh_processes_specifics(
+        ProcessesToUpdate::Some(&[pid]),
+        true,
+        ProcessRefreshKind::nothing().with_memory().with_cpu().without_tasks(),
+    );
+    if updated == 0 || sys.total_memory() == 0 {
+        return None;
+    }
     let process = sys.process(pid)?;
 
-    let process_rss_mb = process.memory() / 1024;
-    let process_vmem_mb = process.virtual_memory() / 1024;
-    let total_memory_mb = sys.total_memory() / 1024;
-    let free_memory_mb = sys.free_memory() / 1024;
-    let cpu_usage = process.cpu_usage();
-    // sysinfo 0.40 made uptime fallible; 0 is the existing "unknown" value (see the fallback below).
-    let uptime_sec = System::uptime().unwrap_or(0);
-
-    Some(SystemMetrics {
-        process_rss_mb,
-        process_vmem_mb,
-        total_memory_mb,
-        free_memory_mb,
-        cpu_usage,
-        uptime_sec,
-    })
+    let cpu = CpuSample {
+        at: Instant::now(),
+        millis: process.accumulated_cpu_time(),
+    };
+    let snapshot = SystemMetrics {
+        process_rss_mb: process.memory() / BYTES_PER_MIB,
+        process_vmem_mb: process.virtual_memory() / BYTES_PER_MIB,
+        total_memory_mb: sys.total_memory() / BYTES_PER_MIB,
+        free_memory_mb: sys.free_memory() / BYTES_PER_MIB,
+        cpu_usage: previous_cpu.and_then(|previous| cpu.usage_since(previous)),
+        uptime_sec: System::uptime().unwrap_or(0),
+    };
+    Some((snapshot, cpu))
 }
 
 pub(crate) fn system_metrics() -> Option<SystemMetrics> {
-    let cache = SYSTEM_METRICS_CACHE.get_or_init(|| {
-        let metrics = collect_system_metrics().unwrap_or(SystemMetrics {
-            process_rss_mb: 0,
-            process_vmem_mb: 0,
-            total_memory_mb: 0,
-            free_memory_mb: 0,
-            cpu_usage: 0.0,
-            uptime_sec: 0,
-        });
-        Mutex::new((Instant::now(), metrics))
-    });
-
+    let cache = SYSTEM_METRICS_CACHE.get_or_init(Mutex::default);
     let mut guard = cache.lock().ok()?;
-    if guard.0.elapsed().as_secs() >= METRICS_REFRESH_SECS {
-        if let Some(fresh) = collect_system_metrics() {
-            *guard = (Instant::now(), fresh);
+    if guard
+        .refreshed_at
+        .is_none_or(|refreshed| refreshed.elapsed().as_secs() >= METRICS_REFRESH_SECS)
+    {
+        if guard.system.is_none() {
+            guard.system = System::new().ok();
         }
+        let previous_cpu = guard.cpu_sample;
+        if let Some((fresh, cpu)) = guard
+            .system
+            .as_mut()
+            .and_then(|system| collect_system_metrics(system, previous_cpu))
+        {
+            guard.snapshot = Some(fresh);
+            guard.cpu_sample = Some(cpu);
+        }
+        guard.refreshed_at = Some(Instant::now());
     }
-    Some(guard.1.clone())
+    guard.snapshot.clone()
 }
 
 pub(crate) fn router_stats() -> Option<RouterStats> {
@@ -142,4 +174,55 @@ pub(crate) fn router_stats() -> Option<RouterStats> {
         avg_tokens_per_sec,
         avg_latency_ms,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Protects: scoped and correctly sized health telemetry. Detects: scanning
+    // unrelated processes, reporting KiB as MiB, or inventing a cold CPU delta.
+    // Needs: current-process and RAM counters. Breadcrumb: collect_system_metrics.
+    #[test]
+    fn cold_health_samples_one_process_and_reports_mib() -> anyhow::Result<()> {
+        let mut system = System::new()?;
+        let (metrics, _) = collect_system_metrics(&mut system, None)
+            .ok_or_else(|| anyhow::anyhow!("the test process should be available"))?;
+        let pid = sysinfo::get_current_pid().map_err(anyhow::Error::msg)?;
+        let process = system
+            .process(pid)
+            .ok_or_else(|| anyhow::anyhow!("no current-process sample"))?;
+
+        assert_eq!(system.processes().len(), 1);
+        assert!(system.total_memory() > 0);
+        assert_eq!(metrics.total_memory_mb, system.total_memory() >> 20);
+        assert_eq!(metrics.free_memory_mb, system.free_memory() >> 20);
+        assert_eq!(metrics.process_rss_mb, process.memory() >> 20);
+        assert_eq!(metrics.process_vmem_mb, process.virtual_memory() >> 20);
+        assert_eq!(metrics.cpu_usage, None);
+        Ok(())
+    }
+
+    // Protects: interval CPU percentage. Detects: normalizing to one core,
+    // measuring instantaneously, or wrapping a regressed CPU counter.
+    // Needs: synthetic timestamps. Breadcrumb: CpuSample::usage_since.
+    #[test]
+    fn health_cpu_usage_requires_an_interval_and_allows_multiple_cores() {
+        let start = CpuSample {
+            at: Instant::now(),
+            millis: 100,
+        };
+        let refreshed = CpuSample {
+            at: start.at + Duration::from_secs(5),
+            millis: 7_600,
+        };
+        let regressed = CpuSample {
+            millis: 50,
+            ..refreshed
+        };
+
+        assert_eq!(refreshed.usage_since(start), Some(150.0));
+        assert_eq!(start.usage_since(start), None);
+        assert_eq!(regressed.usage_since(start), None);
+    }
 }

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T22:46:53Z",
+  "sourceBaseline": "244fe612fd88dcd0884234bf9a4a180ede218dec",
+  "hashConvention": "SHA-256 of LF-normalized UTF-8. Rust selector extents run from the attribute through the closing brace and LF. Python selector extents include the def line through the final body line and LF.",
+  "sourceBindings": {
+    "Deploy/rust-functiongemma-runtime/src/metrics.rs": "64550a389402f6a6080b4f61d9744190750d9c23e34a5c925c0b7c359db36a74",
+    "Deploy/rust-functiongemma-runtime/src/types.rs": "096edf0cc768eddaed3c3bdc2397d2a5c70afe3975a844fc9ea293043c00d2a9",
+    "Deploy/rust-functiongemma-runtime/tests/http_router.rs": "f81498a8acd6ad20194e43b7ddcef786861ab3bfb4a982d763b1c46cde9a18ee",
+    "Tests/Benchmarks/measure_functiongemma_health.py": "feda8f7274944d5c94cb9065fb5c4d6604116ed26fdae2422d9bb277a4ccc09a"
+  },
+  "selectors": [
+    {
+      "selector": "cold_health_samples_one_process_and_reports_mib",
+      "source": "Deploy/rust-functiongemma-runtime/src/metrics.rs",
+      "sha256": "95de4ddc3052fedd6497ae183906da37e4003fdd55b90be54e31bc09fa6e3211",
+      "reviewer": "codex-acceleration-audit",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "The one-PID collector leaves only the current process in sysinfo, converts the sampled values to MiB and leaves CPU unknown after one sample."
+    },
+    {
+      "selector": "health_cpu_usage_requires_an_interval_and_allows_multiple_cores",
+      "source": "Deploy/rust-functiongemma-runtime/src/metrics.rs",
+      "sha256": "669a92598db0fb6bcec2a05c5a222990d53bc968e01936def6d97e814d5a2ca6",
+      "reviewer": "codex-acceleration-audit",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Synthetic values prove actual elapsed-time percent, a valid reading above 100%, and rejection of zero-interval or decreasing counters."
+    },
+    {
+      "selector": "health_and_models",
+      "source": "Deploy/rust-functiongemma-runtime/tests/http_router.rs",
+      "sha256": "426c828b2e02a7c4401e6e5850123d7977263d1f1ed12dd91f2f0bb160452d75",
+      "reviewer": "codex-acceleration-audit",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "The real loopback health response keeps numeric memory and uptime keys and exposes a present null CPU value before the next sample."
+    },
+    {
+      "selector": "measure",
+      "source": "Tests/Benchmarks/measure_functiongemma_health.py",
+      "sha256": "6d9592531deb6723c37cc9adfce3267cde1e650ba7c88c208197ff1e5159718b",
+      "reviewer": "codex-acceleration-audit",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Known staged runtime builds start in private temporary directories with loopback readiness and request deadlines. The reviewed benchmark separates first, cached, and post-expiry samples, reaps each child, and hashes the staged binary."
+    }
+  ]
+}

@@ -3,12 +3,12 @@
   "reviewedAtUtc": "2026-11-22T16:16:25.0393770Z",
   "reviewer": "codex",
   "reviewerType": "independent source agent",
-  "sourceBaseline": "1aa6f468fed6dd3f19ed499af84958fc6723c9ff",
+  "sourceBaseline": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
   "hashConvention": "SHA-256 of UTF-8 LF source files and exact Pester It AST extent. Data-driven selectors are reviewed as groups.",
   "sourceBindings": {
     "Tools/Invoke-ThunderboltNetworking.ps1": "0343cb4fa2a00e50c84321cba68f093895572d59d476bfd7c85a490461293fce",
-    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "9d804ba0051508e593691925b00ffe68e899094896e47637530ad812295c44f1",
-    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "16a054c286c895c3fe33988d9fd82652a7a55dc40f9e8a988a42a64aed8bafea"
+    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "6b7f827324c12264c581ab1c74328bf6127d7a041d841cc8f413f9efeae3b51e",
+    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "3b8a2acff5ddb5a7bfc355c656043ae8cf5122a816bf4b780eb1f989583348bc"
   },
   "selectors": [
     {
@@ -65,6 +65,110 @@
       ],
       "disposition": "keep",
       "reviewScope": "Verifies the planner describes requested simultaneous mode and does not start a trial."
+    },
+    {
+      "selector": "checks the source-bound return route before it opens the duplex listener",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "e60651f49dab2375f09e9f2ec5cd8dc3a93b92cc14860c300fb8a324f56e4c85",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Pins the ip route get ... from <peer> check and its position before the iperf3 -s line in the rendered remote script."
+    },
+    {
+      "selector": "aborts on a route mismatch before the listener line",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "da0eef00cb7fe8956ad74b24f85b99d674d67171fe18452a5a9ce8bd223f0a12",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Pins set -euo pipefail, both refusal exits before the listener and the interface binding of the route comparison."
+    },
+    {
+      "selector": "keeps the <Mode> listener one-shot, bound, time-limited and cleaned up",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "c92955048de3c13b965b37fa630d4b8d7c5f6e5e14d04a08958360a74c35b1d4",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Pins the timeout --kill-after wrapper, -1 -B peer bind, trap cleanup and readiness handshake for the duplex and default scripts. Data-driven rows are reviewed as a group."
+    },
+    {
+      "selector": "adds no return-route check for the <Mode> trial",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "ba90a3eaa5a01b8a0c766f8182586f66c4035003dee602d02a867df9136febc7",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Confirms forward and reverse trials keep a script without the duplex route lookup or Python. Data-driven rows are reviewed as a group."
+    },
+    {
+      "selector": "lets a direct route on thunderbolt0 through to the bounded listener",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "932157c5e8248793ce957897774c6a7458178e6c5b525dae33d9c1531f6c40fa",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Runs the rendered script under bash with stubbed hostname, ip, timeout, iperf3 and the real python3; positive control for the refusal cases."
+    },
+    {
+      "selector": "refuses <Case> before opening the listener",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "145332c521b7c9ab937aa6c3c303a31ee3d60b3d3ab627d77aa68bd49725018d",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Runs the rendered script under bash against LAN NIC, gateway, via, missing device, thunderbolt00, empty, duplicate, garbled and failing-ip route fixtures; asserts nonzero exit, no readiness line and no listener call. Data-driven rows are reviewed as a group."
+    },
+    {
+      "selector": "does not consult the return route outside duplex mode",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "0b587402fb5eabe93255b6c0f94c186ed3cedfd2e3c0aaf314e74b76e39fea18",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Runs the default script under bash with a failing, garbled ip route get and requires the listener to start anyway."
+    },
+    {
+      "selector": "rejects a bits_per_second of <Rate> in <Row> with no result",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "3326d6d7cebb707b5ee00e7563db0c902645e010c7d1cc34dc131fd98b17a521",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Checks that zero and negative receiver rates in either summary row throw the named error and produce no result object. Data-driven rows are reviewed as a group."
     }
   ]
 }

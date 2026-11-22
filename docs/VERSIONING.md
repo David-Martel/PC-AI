@@ -5,8 +5,8 @@ version, it comes from a signed, annotated git tag on `main`, and the Rust works
 document says what the number means, who creates a tag and when, how untagged builds are named, which components follow
 the product version and which keep their own, and how builds and installs read it.
 
-**Baseline version:** `0.2.0`. This is the first release. It was approved by the owner on 2026-11-22, when the
-repository had no tags, so no build before then has a release version. The `versioning` check in
+**Baseline version:** `0.2.0`. This is the first release, approved by the owner. When this policy was written
+(2026-11-22) the repository had no tags, so no earlier build has a release version. The `versioning` check in
 [validate-doc-accuracy.ps1](../Tools/validate-doc-accuracy.ps1) reads this line.
 
 ## Why this exists

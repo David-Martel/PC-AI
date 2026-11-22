@@ -12,7 +12,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "one generation at a time, so model and KV-cache memory stay bounded.",
       "detects": "removing the inference gate lets queued async requests overlap.",
       "needs": "no model or GPU; a temp directory for the PNG outputs.",
@@ -20,7 +20,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -31,7 +31,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "poll, cancel, init and shutdown stay responsive during a generation.",
       "detects": "holding the state mutex across generation (poll would time out here), a queued request leaving Pending before it owns the gate, a cancelled queued request still running.",
       "needs": "no model or GPU; the in-flight generation is a mock blocked on a channel.",
@@ -39,7 +39,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -50,7 +50,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "every synchronous inference entry point (generate, bytes, understand, load) queues behind the gate, so model replacement cannot race a generation.",
       "detects": "an entry point that skips acquire_inference_gate, or one that holds the state mutex while waiting for it (the status calls below would then hang).",
       "needs": "no model loaded in this process; the gate is held by the test as a stand-in for a running generation.",
@@ -58,7 +58,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -69,7 +69,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "an incomplete checkpoint is refused at the FFI boundary with an existing status code and a diagnostic naming the missing tensors, and leaves no model loaded.",
       "detects": "a weight-completeness check that is bypassed or whose typed error is flattened into a success; a half-loaded pipeline left behind after failure.",
       "needs": "a temp directory only; the 7B constructor metadata uses scalar-backed views, so nothing large is allocated and no GPU or download is involved.",
@@ -77,7 +77,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -88,7 +88,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a request cancelled while generating never creates or overwrites the caller's destination file, and leaves no staging file.",
       "detects": "encoding straight to the destination before the cancel check.",
       "needs": "a temp directory; the cancel is issued from inside the mock generate.",
@@ -96,7 +96,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -107,7 +107,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a cancel that lands after encoding but before publish still leaves the destination untouched and removes the staging file.",
       "detects": "moving the cancellation check after the publish step (the destination would be replaced and Complete reported).",
       "needs": "a temp directory; the cancel is issued from inside the mock encoder.",
@@ -115,7 +115,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -126,7 +126,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a normal completion publishes the whole file and removes the staging file.",
       "detects": "a publish that leaves the `.partial` name behind or writes a truncated file.",
       "needs": "a temp directory only.",
@@ -134,7 +134,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -145,7 +145,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a failed write reports Failed, leaves no partial file and never touches an existing destination; a failed publish does the same.",
       "detects": "encoding in place, or a staging file leaked on the error path.",
       "needs": "a temp directory; the encoder writes some bytes then fails, and a directory squatting on the destination makes the rename fail.",
@@ -153,7 +153,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -164,7 +164,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the synchronous save path is atomic too: a failure keeps the old file.",
       "detects": "`image.save` writing in place and leaving a truncated destination.",
       "needs": "a temp directory; the destination name has no usable image extension.",
@@ -172,7 +172,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -183,7 +183,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a destination near the 255-character component limit still publishes, on both the asynchronous and synchronous paths.",
       "detects": "a staging name derived from the destination basename (248 + suffix exceeds 255 and the exclusive create fails with an invalid-name error).",
       "needs": "a temp directory on a filesystem with a 255-character component limit.",
@@ -191,7 +191,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -202,7 +202,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "staging names are short, independent of the destination, unique per call and live next to the destination.",
       "detects": "a name that embeds the destination basename or repeats between calls.",
       "needs": "nothing on disk.",
@@ -210,7 +210,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -221,15 +221,15 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "shutdown during an in-flight load is final: the finished model is discarded (outside the slot lock) and nothing is loaded afterwards.",
       "detects": "an unconditional install after load (the pre-fix behaviour), or a stale model freed while the slot lock is held.",
       "needs": "no model; the paused load is a closure blocked on a channel.",
-      "selector_sha256": "0efa2576d9277094caa6233acf73eab8d66fb64ac3f042440f059acc109f5922",
+      "selector_sha256": "a6eb2f2bf0ee8b3844e425d15bf6f5bd00e9816ee530807a67b09a4ca8d9e41b",
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -240,15 +240,72 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the reverse ordering still works: shutdown, then a new load, installs normally, and replacing a model frees the old one outside the lock.",
       "detects": "an epoch check that rejects every load after the first shutdown.",
       "needs": "no model.",
-      "selector_sha256": "0c0c00c20d643ec34220315ea362692dc891f173fb7859e3a24fbb97917de71d",
+      "selector_sha256": "a57035ac3551cfd7ea601e14278c71b1632b1ab1917e6ce316d2bbf441dc399e",
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_load_queued_behind_generation_is_cancelled_by_shutdown_before_reading",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
+      "protects": "a load queued behind a running generation is cancelled when shutdown runs first: it never reaches the loader and the slot stays empty.",
+      "detects": "capturing the lifecycle epoch after the gate is held (the load then adopts the post-shutdown epoch and installs a model after shutdown), or dropping the stale check that runs before any weights are read.",
+      "needs": "no model; the generation is the test holding the gate.",
+      "selector_sha256": "42e10c651afce804c463003ebf31d7b5835caf62189e35667b389c221524e37c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_load_admitted_after_shutdown_installs_once_the_gate_frees",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
+      "protects": "a load admitted after shutdown installs normally, even while a generation still holds the gate when shutdown ran.",
+      "detects": "a stale check that rejects every load once any shutdown has happened.",
+      "needs": "no model.",
+      "selector_sha256": "71cbfe9a4325411190c2b55c7bc82aee50d1efac79ecf4b2463b4fba3435753a",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_exported_load_queued_behind_generation_is_cancelled_by_shutdown",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
+      "protects": "the exported load path is wired to the lifecycle: a pcai_media_load_model style request queued behind a generation, then shutdown, reports ModelNotLoaded and never tries to read the (nonexistent) model path.",
+      "detects": "load_model_at taking the gate itself before admission, or passing the wrong slot or gate, which would surface as an I/O error for the missing path.",
+      "needs": "no model; the path does not exist, so reaching the loader would fail loudly.",
+      "selector_sha256": "6f379af1fcc813c6a7b66b25aaf65d4897b82d9a27f5cace93ba065d69f40c99",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -259,15 +316,15 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a failed load leaves the slot, and the epoch, alone.",
       "detects": "an error path that clears a previously loaded model.",
       "needs": "no model.",
-      "selector_sha256": "34e5f4dfc6bf636ecbbedd052c0e59e648e3728ad6fee7c5830d8b057a8bcf6b",
+      "selector_sha256": "4fc33b92465e47f24a4e821b4dfd255aec9eed077cafa00cebeea1255b82403d",
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -278,7 +335,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the exported pcai_media_shutdown invalidates in-flight loads of the real global slot (not just the generic helper).",
       "detects": "shutdown that stops touching MODEL_SLOT, or only clears the handle without bumping the epoch.",
       "needs": "no model.",
@@ -286,7 +343,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -297,7 +354,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a publish on slow or stalled storage blocks nobody else: poll and cancel of other requests answer within 100 ms while one request sits in its rename.",
       "detects": "the rename (or any file IO) running under the global request-table lock.",
       "needs": "no model; the rename is a mock publish step blocked on a channel.",
@@ -305,7 +362,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -316,7 +373,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a failing rename while publishing reports Failed, removes the staging file and leaves the destination alone, again without the global lock.",
       "detects": "an error path that leaves the request Publishing or leaks the partial file.",
       "needs": "a temp directory; the publish step is a mock that fails.",
@@ -324,7 +381,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+          "sha256": "64662eb968e81c0934146d55ebf2d961f2e0cb68c9b201cf2dcfa269316baeb4"
         }
       ]
     },
@@ -335,7 +392,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the metadata probe describes 7B tensor shapes without allocating them.",
       "detects": "a probe that materializes real payloads (tens of GiB) or answers presence queries as true.",
       "needs": "CPU only; one scalar tensor.",
@@ -354,7 +411,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the derived 7B required-tensor schema keeps every generation component and drops the aligner and GGUF backbone.",
       "detects": "constructor changes that silently remove a required tensor from the preflight, or leak optional ones into it.",
       "needs": "CPU only; constructor metadata, no weights.",
@@ -373,7 +430,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "invalid head counts fail as an error instead of a divide-by-zero or a wrong schema.",
       "detects": "removal of the divisibility guards in required_generation_metadata.",
       "needs": "CPU only.",
@@ -392,7 +449,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a nonempty but incomplete 7B checkpoint is refused before the VarMap or GGUF is touched, in both load modes.",
       "detects": "a preflight that is skipped or reordered after allocation (this would try to allocate a 7B model).",
       "needs": "temp directory; no model download, GPU or GGUF file.",
@@ -411,7 +468,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a model directory holding only PyTorch weights is refused with the exact conversion command for that directory, not a bare \"no shards\" message.",
       "detects": "the refusal losing its preparation guidance, or load proceeding to allocate.",
       "needs": "a temp directory only; no model, GPU or network.",
@@ -430,7 +487,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "generation-only checkpoints load while understanding stays unavailable.",
       "detects": "treating a missing vision tower or aligner as a fatal generation error, or as loaded.",
       "needs": "CPU only; tiny safetensors fixture.",
@@ -449,7 +506,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "aligner readiness is reported true only when every aligner tensor is present.",
       "detects": "a partial aligner being reported as ready (random aligner weights would then reach understanding).",
       "needs": "CPU only; tiny safetensors fixture.",
@@ -468,7 +525,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a checkpoint with only aligner tensors cannot pass as a generation checkpoint.",
       "detects": "optional components masking missing required generation tensors.",
       "needs": "CPU only; tiny safetensors fixture.",
@@ -487,7 +544,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a model directory with no safetensors shards fails for both safetensors and GGUF loads.",
       "detects": "the old behaviour of warning and running with random weights.",
       "needs": "temp directory only.",
@@ -506,7 +563,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a safetensors archive with zero tensors is rejected before any allocation.",
       "detects": "an empty archive being treated as present weights.",
       "needs": "temp directory only.",
@@ -525,7 +582,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "build_janus_model selects the GGUF loader when a GGUF path is supplied",
       "detects": "Routing to the safetensors loader, or accepting a non-GGUF dummy file; the test now targets the model-build helper because the pipeline loader preflights checkpoint metadata first",
       "needs": "temporary directory; no model weights",
@@ -544,7 +601,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "header preflight accepts a complete checkpoint that mixes plain and \"model.\"-prefixed names.",
       "detects": "prefix detection that rejects valid real-world checkpoints.",
       "needs": "temp directory only.",
@@ -563,7 +620,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "header preflight reports missing tensors with a typed IncompleteWeights error.",
       "detects": "a preflight that checks only some tensors or loses the typed error.",
       "needs": "temp directory only.",
@@ -582,7 +639,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a tensor with the wrong shape is refused from the header alone.",
       "detects": "preflight comparing names but not shapes.",
       "needs": "temp directory only.",
@@ -601,7 +658,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "loading into an empty VarMap is an error, not a silent no-op that leaves a later model random.",
       "detects": "a load_weights that returns Ok(0) for an empty registry.",
       "needs": "temp directory only.",
@@ -620,7 +677,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "an empty archive cannot satisfy required variables.",
       "detects": "the removed one-third-found heuristic returning success.",
       "needs": "temp directory only.",
@@ -639,7 +696,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a partial archive fails before any variable is overwritten.",
       "detects": "check-and-set interleaving that leaves a half-loaded model after an error.",
       "needs": "temp directory only.",
@@ -658,7 +715,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a complete archive with mixed prefixes loads every variable with the right values.",
       "detects": "prefix handling regressions and HashSet-order-dependent prefix detection.",
       "needs": "temp directory only.",
@@ -677,7 +734,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a wrong-shaped tensor is an error naming the tensor.",
       "detects": "shape mismatches being cast or truncated into the variable.",
       "needs": "temp directory only.",
@@ -696,7 +753,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a mistyped or missing explicit path is an error naming that path, never a fallback to the official prepared model that shares its last component.",
       "detects": "the basename fallback, which silently loaded Models/Janus-Pro-1B for `<missing dir>/Janus-Pro-1B` or a typo'd absolute path, and any download attempt.",
       "needs": "temp directories; the downloader fails the test if called.",
@@ -715,7 +772,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "only the exact supported DeepSeek ids resolve to a prepared copy; a third-party repo or a case variant goes to the normal download path (and then to the SafeTensors refusal), never to the local official model.",
       "detects": "matching on the last component or ignoring case, which would load the wrong model. Rule: exact, case-sensitive (see PREPARED_MODEL_IDS).",
       "needs": "a temp directory; the downloader is a mock that records its calls.",
@@ -734,7 +791,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the emitted refusal text and docs/media-weight-preparation.md carry the same runnable commands: -SkipAuth for the public DeepSeek repos (no Bitwarden prompt) and explicit uv dependencies for the converter.",
       "detects": "either side drifting from the shared command constants, or a command that only works in an environment that already has torch, safetensors and numpy.",
       "needs": "the repository docs directory (read through CARGO_MANIFEST_DIR).",
@@ -753,7 +810,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the cold-cache path for the default model id: a prepared SafeTensors copy is used without touching the network.",
       "detects": "resolution that downloads (or fails) even though Models/<name> is ready.",
       "needs": "a temp directory; the downloader is a mock that fails the test if called.",
@@ -772,7 +829,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a cold cache (nothing prepared) falls back to the downloader, and the resulting config-only directory yields an actionable hint naming the repo's tools.",
       "detects": "a hint that omits the download or convert command, the target directory, or the way to point the loader at the result; an incomplete prepared directory (no tokenizer) being treated as usable.",
       "needs": "temp directories; the downloader is a mock returning a config-only cache dir.",
@@ -791,7 +848,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a local directory that already has PyTorch weights gets an in-place convert command and no download step; an existing local directory is never replaced by a prepared copy.",
       "detects": "telling the user to re-download what is already on disk, or a hint that names the wrong directory.",
       "needs": "a temp directory.",
@@ -810,7 +867,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a corrupt or truncated checkpoint is a typed error at preflight and at load, never a panic and never a silently random-weight model.",
       "detects": "header parsing that unwraps, or a loader that treats an unreadable archive as \"no tensors present, use random weights\".",
       "needs": "a temp directory only; no model, GPU or network.",
@@ -829,7 +886,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the metadata preflight itself refuses to run with nothing to check.",
       "detects": "an empty expected-tensor map making every checkpoint pass vacuously.",
       "needs": "a temp directory only.",
@@ -848,7 +905,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a model output whose height or width differs from the expectation is refused.",
       "detects": "the old check that compared only batch and channel dimensions.",
       "needs": "linked ONNX Runtime (feature `upscale`); no model file.",
@@ -867,7 +924,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "overflowing output dimensions fail instead of wrapping or allocating.",
       "detects": "unchecked multiplication of height and width.",
       "needs": "linked ONNX Runtime (feature `upscale`); no model file.",
@@ -886,7 +943,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "planar CHW output is converted to the right RGB pixels.",
       "detects": "plane-order or clamping regressions in tensor_to_image.",
       "needs": "linked ONNX Runtime (feature `upscale`); no model file.",
@@ -905,7 +962,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "image_to_tensor yields the planar CHW element count for a 6x8 RGB image",
       "detects": "A wrong plane count or layout; the edit only removes a clippy identity_op multiplication (1 * 3 * 6 * 8 became 3 * 6 * 8) with the same value",
       "needs": "no model weights or GPU",
@@ -924,7 +981,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a flash-attn build still runs on CPU for both cache types.",
       "detects": "the use_flash_attn path being taken without a CUDA device.",
       "needs": "CPU only; the flash-attn feature itself is exercised on CUDA hosts.",
@@ -943,7 +1000,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the quantized backbone loads from an explicitly supplied tiny GGUF and decodes one CPU step",
       "detects": "GGUF metadata or tensor-name drift in from_gguf, or a malformed header requesting a large dequantization buffer; the test stays ignored unless PCAI_TEST_GGUF_WEIGHTS is set",
       "needs": "PCAI_TEST_GGUF_WEIGHTS pointing at a Llama GGUF of at most 64 MiB; skipped (ignored) otherwise, so it is not exercised here",
@@ -962,7 +1019,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the full Janus-Pro 7B constructor smoke test is only run on purpose",
       "detects": "Nothing new: the edit corrects the ignore reason and doc comment to tens of GiB of F32 parameters; the body is unchanged",
       "needs": "tens of GiB of memory; ignored by default and not exercised here",
@@ -981,7 +1038,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the 1B Janus constructor smoke test is only run on purpose",
       "detects": "Nothing new: the edit corrects the ignore reason and doc comment to several GiB of F32 parameters; the body is unchanged",
       "needs": "several GiB of memory; ignored by default and not exercised here",
@@ -1000,7 +1057,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "HTTP cfg_scale and temperature reach the pipeline call unchanged, defaults included.",
       "detects": "overrides being dropped at the request boundary.",
       "needs": "no model; a closure stands in for the pipeline.",
@@ -1019,7 +1076,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a second inference request queues while one is active, health stays responsive, and the permit is released.",
       "detects": "a lock held across generation that blocks /health, or a leaked permit.",
       "needs": "no model; the admission semaphore is exercised directly.",
@@ -1038,7 +1095,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "a failing generation releases the admission permit.",
       "detects": "an early return that leaks the single permit and wedges the server.",
       "needs": "no model; an injected failing closure.",
@@ -1057,7 +1114,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "invalid requests are rejected without waiting for admission.",
       "detects": "validation moved after the queue, letting bad requests wait behind a long generation.",
       "needs": "no model; the test holds the only permit.",
@@ -1076,7 +1133,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-media-weight-safety",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "reviewed_utc": "2026-11-22T19:39:42.770243+00:00",
       "protects": "the media server health response serialises the new native_understanding_available field",
       "detects": "A health payload that drops or renames native_understanding_available",
       "needs": "no model weights or GPU",

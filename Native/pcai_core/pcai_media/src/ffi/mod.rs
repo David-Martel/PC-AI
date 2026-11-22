@@ -271,9 +271,11 @@ static INFERENCE_GATE: Mutex<()> = Mutex::new(());
 /// A loaded-model handle guarded by a lifecycle epoch.
 ///
 /// `epoch` increments on every shutdown.  A load captures the epoch when it
-/// is admitted and only installs its model if the epoch is unchanged, so a
-/// shutdown that runs while a (long, lock-free) load is in flight cannot be
-/// undone by that load finishing afterwards.
+/// is admitted, before it waits for [`INFERENCE_GATE`], and is cancelled if the
+/// epoch has moved by the time it holds the gate (before any weights are read)
+/// or by the time its model is finished (the model is dropped, not installed).
+/// A shutdown therefore cannot be undone by a load that was queued behind a
+/// generation or that was running when the shutdown arrived.
 struct ModelSlot<T> {
     epoch: u64,
     model: Option<Arc<T>>,
@@ -332,13 +334,72 @@ fn slot_shutdown<T>(slot: &Mutex<ModelSlot<T>>) {
     drop(released);
 }
 
-/// Run `load` outside every lock and install its result if the slot was not
-/// shut down meanwhile.  `Ok(false)` means the load completed but was
-/// discarded because of a shutdown.
-fn load_into_slot<T>(slot: &Mutex<ModelSlot<T>>, load: impl FnOnce() -> anyhow::Result<T>) -> anyhow::Result<bool> {
+/// Whether no shutdown has happened since `epoch` was captured.
+fn slot_epoch_is<T>(slot: &Mutex<ModelSlot<T>>, epoch: u64) -> bool {
+    lock_slot(slot).epoch == epoch
+}
+
+/// How a load request ended.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LoadOutcome {
+    /// The model was loaded and installed.
+    Installed,
+    /// A shutdown ran while the request waited for the gate; the loader was
+    /// never called, so no weights were read.
+    CancelledWhileQueued,
+    /// A shutdown ran during the load; the finished model was dropped.
+    DiscardedAfterLoad,
+}
+
+/// Take `gate`, recovering from poison.  The gate guards no data, so a panic
+/// in an earlier holder must not wedge every later caller.
+fn lock_gate(gate: &Mutex<()>) -> MutexGuard<'_, ()> {
+    gate.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// [`load_into_slot_observed`] without an admission hook.
+#[cfg(test)]
+fn load_into_slot<T>(
+    slot: &Mutex<ModelSlot<T>>,
+    gate: &Mutex<()>,
+    load: impl FnOnce() -> anyhow::Result<T>,
+) -> anyhow::Result<LoadOutcome> {
+    load_into_slot_observed(slot, gate, || {}, load)
+}
+
+/// Load a model under `gate` and install it unless a shutdown intervened.
+///
+/// Order matters.  The epoch is captured at admission, before waiting for the
+/// gate, so a shutdown that runs while this request is queued behind a
+/// generation is seen: once the gate is held the epoch is re-checked and a
+/// stale request is cancelled before `load` reads or allocates anything.  The
+/// epoch is checked again at install, so a shutdown during `load` still wins.
+///
+/// Lock order: the slot mutex is only taken briefly, never while waiting for
+/// the gate, and the gate is never taken while the slot mutex is held, so the
+/// two cannot invert.  `load` runs under the gate but under no other lock.
+///
+/// `admitted` runs right after admission (epoch captured) and before the wait
+/// for the gate.  Production passes a no-op; tests use it to know a request is
+/// queued before they shut down.
+fn load_into_slot_observed<T>(
+    slot: &Mutex<ModelSlot<T>>,
+    gate: &Mutex<()>,
+    admitted: impl FnOnce(),
+    load: impl FnOnce() -> anyhow::Result<T>,
+) -> anyhow::Result<LoadOutcome> {
     let epoch = slot_begin_load(slot);
+    admitted();
+    let _gate = lock_gate(gate);
+    if !slot_epoch_is(slot, epoch) {
+        return Ok(LoadOutcome::CancelledWhileQueued);
+    }
     let model = load()?;
-    Ok(slot_install(slot, epoch, model))
+    Ok(if slot_install(slot, epoch, model) {
+        LoadOutcome::Installed
+    } else {
+        LoadOutcome::DiscardedAfterLoad
+    })
 }
 
 /// Take the inference gate, recovering from poison.
@@ -346,7 +407,7 @@ fn load_into_slot<T>(slot: &Mutex<ModelSlot<T>>, load: impl FnOnce() -> anyhow::
 /// The gate guards no data, so a panic in an earlier holder must not wedge
 /// every later inference call.
 fn acquire_inference_gate() -> MutexGuard<'static, ()> {
-    INFERENCE_GATE.lock().unwrap_or_else(PoisonError::into_inner)
+    lock_gate(&INFERENCE_GATE)
 }
 
 /// Lock the state mutex briefly for request-map bookkeeping, recovering from
@@ -453,38 +514,48 @@ pub extern "C" fn pcai_media_load_model(model_path: *const c_char, gpu_layers: i
         Err(code) => return code as i32,
     };
 
-    // No generation may run while the model is loaded or replaced, and the
-    // state mutex must not be held for the (long) load.
-    let _gate = acquire_inference_gate();
-    let device = match get_state().lock() {
-        Ok(guard) => guard.device.clone(),
-        Err(e) => {
-            set_error(
-                format!("Failed to acquire state lock: {e}"),
-                PcaiMediaErrorCode::GenerationError,
-            );
-            return PcaiMediaErrorCode::GenerationError as i32;
-        }
-    };
+    load_model_at(path_str, gpu_layers, || {})
+}
 
-    let config = PipelineConfig {
-        model: path_str.clone(),
-        gpu_layers,
-        device,
-        ..PipelineConfig::default()
-    };
-
-    // `GenerationPipeline::load` is synchronous (uses blocking I/O internally
-    // through hf-hub and safetensors).  Call it directly -- no async executor
-    // is required for the load path.  Neither the state mutex nor the model
-    // slot is held while it runs; a shutdown that arrives meanwhile bumps the
-    // slot epoch and the finished model is discarded instead of installed.
-    match load_into_slot(&MODEL_SLOT, || GenerationPipeline::load(config)) {
-        Ok(true) => {
+/// Body of [`pcai_media_load_model`].  `admitted` runs after the load is
+/// admitted (lifecycle epoch captured) and before it waits for the gate; the
+/// exported function passes a no-op and tests use it to know a load is queued.
+///
+/// No generation may run while the model is loaded or replaced, and neither
+/// the state mutex nor the model slot is held for the (long) load.
+/// `GenerationPipeline::load` is synchronous (blocking hf-hub and safetensors
+/// I/O), so it is called directly with no async executor.  A shutdown that
+/// arrives while the request is queued cancels it before any weights are read;
+/// one that arrives during the load discards the finished model.
+fn load_model_at(path_str: String, gpu_layers: i32, admitted: impl FnOnce()) -> i32 {
+    let outcome = load_into_slot_observed(&MODEL_SLOT, &INFERENCE_GATE, admitted, || {
+        let device = get_state()
+            .lock()
+            .map(|guard| guard.device.clone())
+            .map_err(|e| anyhow::anyhow!("Failed to acquire state lock: {e}"))?;
+        let config = PipelineConfig {
+            model: path_str.clone(),
+            gpu_layers,
+            device,
+            ..PipelineConfig::default()
+        };
+        GenerationPipeline::load(config)
+    });
+    match outcome {
+        Ok(LoadOutcome::Installed) => {
             tracing::info!(model = %path_str, gpu_layers, "model loaded");
             PcaiMediaErrorCode::Success as i32
         }
-        Ok(false) => {
+        Ok(LoadOutcome::CancelledWhileQueued) => {
+            set_error(
+                format!(
+                    "Model '{path_str}' load was queued when pcai_media_shutdown ran and was cancelled before any weights were read"
+                ),
+                PcaiMediaErrorCode::ModelNotLoaded,
+            );
+            PcaiMediaErrorCode::ModelNotLoaded as i32
+        }
+        Ok(LoadOutcome::DiscardedAfterLoad) => {
             set_error(
                 format!("Model '{path_str}' finished loading after pcai_media_shutdown and was discarded"),
                 PcaiMediaErrorCode::ModelNotLoaded,
@@ -1273,8 +1344,9 @@ pub extern "C" fn pcai_media_upscale_image(
 /// Release the loaded pipeline and free associated memory.
 ///
 /// After this call [`pcai_media_generate_image`] will fail until
-/// [`pcai_media_load_model`] is called again, including when a load was in
-/// flight: that load finishes, is discarded, and reports `ModelNotLoaded`.
+/// [`pcai_media_load_model`] is called again.  A load that was queued behind
+/// a generation when this ran is cancelled before it reads any weights, and a
+/// load already running finishes and is discarded; both report `ModelNotLoaded`.
 /// A generation already running finishes on its own handle.  Calling this
 /// function before [`pcai_media_init`] is safe and is a no-op.
 #[no_mangle]
@@ -2190,6 +2262,7 @@ mod tests {
 
     struct ProbeRig {
         slot: Arc<Mutex<ModelSlot<Probe>>>,
+        gate: Arc<Mutex<()>>,
         drops: Arc<std::sync::atomic::AtomicUsize>,
         dropped_under_lock: Arc<std::sync::atomic::AtomicBool>,
     }
@@ -2198,6 +2271,7 @@ mod tests {
         fn new() -> Self {
             Self {
                 slot: Arc::new(Mutex::new(ModelSlot::new())),
+                gate: Arc::new(Mutex::new(())),
                 drops: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
                 dropped_under_lock: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             }
@@ -2228,9 +2302,10 @@ mod tests {
         let (started_tx, started_rx) = std::sync::mpsc::channel::<()>();
         let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
         let slot = rig.slot.clone();
+        let gate = rig.gate.clone();
         let probe = rig.probe();
         let loader = std::thread::spawn(move || {
-            load_into_slot(&slot, move || {
+            load_into_slot(&slot, &gate, move || {
                 started_tx.send(()).unwrap();
                 release_rx
                     .recv_timeout(std::time::Duration::from_secs(10))
@@ -2246,11 +2321,15 @@ mod tests {
         finishes_within("slot shutdown", move || slot_shutdown(&slot));
 
         release_tx.send(()).unwrap();
-        let installed = loader
+        let outcome = loader
             .join()
             .expect("loader must not panic")
             .expect("load itself succeeds");
-        assert!(!installed, "a load that finished after shutdown must not install");
+        assert_eq!(
+            outcome,
+            LoadOutcome::DiscardedAfterLoad,
+            "a load that finished after shutdown must not install"
+        );
         assert!(slot_current(&rig.slot).is_none(), "slot stays unloaded");
         assert_eq!(rig.drops(), 1, "the stale model is dropped");
         assert!(
@@ -2268,12 +2347,18 @@ mod tests {
         let rig = ProbeRig::new();
         slot_shutdown(&rig.slot);
         let first = rig.probe();
-        assert!(load_into_slot(&rig.slot, move || Ok(first)).unwrap());
+        assert_eq!(
+            load_into_slot(&rig.slot, &rig.gate, move || Ok(first)).unwrap(),
+            LoadOutcome::Installed
+        );
         assert!(slot_current(&rig.slot).is_some());
         assert_eq!(rig.drops(), 0);
 
         let second = rig.probe();
-        assert!(load_into_slot(&rig.slot, move || Ok(second)).unwrap());
+        assert_eq!(
+            load_into_slot(&rig.slot, &rig.gate, move || Ok(second)).unwrap(),
+            LoadOutcome::Installed
+        );
         assert_eq!(rig.drops(), 1, "the replaced model is dropped");
         assert!(!rig.dropped_under_lock());
 
@@ -2283,6 +2368,113 @@ mod tests {
         assert!(!rig.dropped_under_lock());
     }
 
+    /// Start `load_into_slot_observed` on a thread and return once the request is
+    /// admitted (epoch captured) and therefore queued behind whoever holds the
+    /// gate.  The loader counts its invocations in `calls`.
+    fn spawn_queued_load(
+        rig: &ProbeRig,
+        calls: &Arc<std::sync::atomic::AtomicUsize>,
+    ) -> std::thread::JoinHandle<anyhow::Result<LoadOutcome>> {
+        let (admitted_tx, admitted_rx) = std::sync::mpsc::channel::<()>();
+        let slot = rig.slot.clone();
+        let gate = rig.gate.clone();
+        let probe = rig.probe();
+        let calls = calls.clone();
+        let handle = std::thread::spawn(move || {
+            load_into_slot_observed(
+                &slot,
+                &gate,
+                move || admitted_tx.send(()).expect("test is waiting for admission"),
+                move || {
+                    calls.fetch_add(1, AtomicOrdering::SeqCst);
+                    Ok(probe)
+                },
+            )
+        });
+        admitted_rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("load is admitted");
+        handle
+    }
+
+    // Protects: a load queued behind a running generation is cancelled when shutdown
+    //   runs first: it never reaches the loader and the slot stays empty.
+    // Detects: capturing the lifecycle epoch after the gate is held (the load then
+    //   adopts the post-shutdown epoch and installs a model after shutdown), or
+    //   dropping the stale check that runs before any weights are read.
+    // Needs: no model; the generation is the test holding the gate.
+    #[test]
+    fn test_load_queued_behind_generation_is_cancelled_by_shutdown_before_reading() {
+        let rig = ProbeRig::new();
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let generation = lock_gate(&rig.gate);
+        let loader = spawn_queued_load(&rig, &calls);
+
+        // Shutdown takes only the slot lock, so it runs while the load waits.
+        let slot = rig.slot.clone();
+        finishes_within("slot shutdown with a queued load", move || slot_shutdown(&slot));
+        drop(generation);
+
+        let outcome = loader
+            .join()
+            .expect("loader must not panic")
+            .expect("a cancelled load is not an error");
+        assert_eq!(outcome, LoadOutcome::CancelledWhileQueued);
+        assert_eq!(calls.load(AtomicOrdering::SeqCst), 0, "the loader must not be reached");
+        assert!(slot_current(&rig.slot).is_none(), "slot stays empty");
+    }
+
+    // Protects: a load admitted after shutdown installs normally, even while a
+    //   generation still holds the gate when shutdown ran.
+    // Detects: a stale check that rejects every load once any shutdown has happened.
+    // Needs: no model.
+    #[test]
+    fn test_load_admitted_after_shutdown_installs_once_the_gate_frees() {
+        let rig = ProbeRig::new();
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let generation = lock_gate(&rig.gate);
+        let slot = rig.slot.clone();
+        finishes_within("slot shutdown", move || slot_shutdown(&slot));
+        let loader = spawn_queued_load(&rig, &calls);
+        drop(generation);
+
+        let outcome = loader.join().expect("loader must not panic").expect("load succeeds");
+        assert_eq!(outcome, LoadOutcome::Installed);
+        assert_eq!(calls.load(AtomicOrdering::SeqCst), 1);
+        assert!(slot_current(&rig.slot).is_some());
+    }
+
+    // Protects: the exported load path is wired to the lifecycle: a pcai_media_load_model
+    //   style request queued behind a generation, then shutdown, reports ModelNotLoaded
+    //   and never tries to read the (nonexistent) model path.
+    // Detects: load_model_at taking the gate itself before admission, or passing the
+    //   wrong slot or gate, which would surface as an I/O error for the missing path.
+    // Needs: no model; the path does not exist, so reaching the loader would fail loudly.
+    #[test]
+    fn test_exported_load_queued_behind_generation_is_cancelled_by_shutdown() {
+        let generation = acquire_inference_gate();
+        let (admitted_tx, admitted_rx) = std::sync::mpsc::channel::<()>();
+        let loader = std::thread::spawn(move || {
+            let rc = load_model_at("Z:/not/a/model/directory".to_string(), 0, move || {
+                admitted_tx.send(()).expect("test is waiting for admission");
+            });
+            let message = unsafe { CStr::from_ptr(pcai_media_last_error()) }
+                .to_string_lossy()
+                .into_owned();
+            (rc, message)
+        });
+        admitted_rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("load is admitted");
+        finishes_within("exported shutdown with a queued load", || pcai_media_shutdown());
+        drop(generation);
+
+        let (rc, message) = loader.join().expect("loader must not panic");
+        assert_eq!(rc, PcaiMediaErrorCode::ModelNotLoaded as i32, "{message}");
+        assert!(message.contains("cancelled before any weights were read"), "{message}");
+        assert!(slot_current(&MODEL_SLOT).is_none());
+    }
+
     // Protects: a failed load leaves the slot, and the epoch, alone.
     // Detects: an error path that clears a previously loaded model.
     // Needs: no model.
@@ -2290,8 +2482,11 @@ mod tests {
     fn test_failed_load_keeps_existing_model() {
         let rig = ProbeRig::new();
         let kept = rig.probe();
-        assert!(load_into_slot(&rig.slot, move || Ok(kept)).unwrap());
-        let error = load_into_slot(&rig.slot, || -> anyhow::Result<Probe> {
+        assert_eq!(
+            load_into_slot(&rig.slot, &rig.gate, move || Ok(kept)).unwrap(),
+            LoadOutcome::Installed
+        );
+        let error = load_into_slot(&rig.slot, &rig.gate, || -> anyhow::Result<Probe> {
             anyhow::bail!("bad checkpoint")
         })
         .expect_err("load error propagates");

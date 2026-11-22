@@ -226,6 +226,55 @@ function Test-ListenerNamesAndPreservesAbandonedFirewallRules {
     }
 }
 
+# Protects: exclusive host custody while a USB4 listener can change firewall state.
+# Detects: a second listener opening a rule or starting a transfer while the kernel mutex is held.
+# Needs: PowerShell 7, a separate runspace, a unique named mutex and synthetic firewall/runner providers.
+# Breadcrumb: Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::listener mutex admission and release.
+function Test-ListenerRefusesCompetingMutexOwner {
+    $acquired = [Threading.ManualResetEventSlim]::new()
+    $release = [Threading.ManualResetEventSlim]::new()
+    $holder = [PowerShell]::Create()
+    try {
+        $null = $holder.AddScript({
+            param($MutexName, $Acquired, $Release)
+            $mutex = [Threading.Mutex]::new($false, $MutexName)
+            try {
+                if (-not $mutex.WaitOne(0)) { throw 'The fixture mutex already has an owner.' }
+                try {
+                    $Acquired.Set()
+                    if (-not $Release.Wait(10000)) { throw 'The competing fixture owner timed out.' }
+                } finally {
+                    $mutex.ReleaseMutex()
+                }
+            } finally {
+                $mutex.Dispose()
+            }
+        }).AddArgument($fixtureMutexName).AddArgument($acquired).AddArgument($release)
+        $pending = $holder.BeginInvoke()
+        try {
+            if (-not $acquired.Wait(5000)) { throw 'The competing fixture owner never acquired the mutex.' }
+            try {
+                Invoke-FixtureEndpoint -Role listen -Firewall $true | Out-Null
+                throw 'The endpoint ignored the competing listener mutex owner.'
+            } catch {
+                if ($_.Exception.Message -notlike '*Another USB4 HIL listener owns*' -or
+                    $fixtureState.Transfers -ne 0 -or $fixtureState.Added -ne 0 -or $fixtureState.Removed -ne 0) { throw }
+            }
+        } finally {
+            $release.Set()
+            $null = $holder.EndInvoke($pending)
+        }
+    } finally {
+        $holder.Dispose()
+        $release.Dispose()
+        $acquired.Dispose()
+    }
+    $result = Invoke-FixtureEndpoint -Role listen -Firewall $true
+    if ($result.role -ne 'listen' -or $fixtureState.Transfers -ne 1 -or $fixtureState.Added -ne 1 -or $fixtureState.Removed -ne 1) {
+        throw 'The endpoint did not accept the listener after the competing owner released the mutex.'
+    }
+}
+
 # Protects: a failed removal surfaces the owned rule identifier for recovery.
 # Detects: cleanup errors discarded or a rule reported without its exact name.
 # Needs: PowerShell 7 and a stub firewall provider refusing removal.
@@ -245,7 +294,7 @@ try {
     foreach ($selector in @('Test-ClientUsesScopedOnLinkRouteAndCounters', 'Test-ClientRejectsWrongNeighborIpOrMac',
             'Test-ClientRejectsFlatReceiveOrTransmitCounter', 'Test-ListenerRemovesScopedFirewallRuleAfterSuccess',
             'Test-ListenerPreservesTimeoutAndRemovesScopedFirewallRule', 'Test-ListenerNamesAndPreservesAbandonedFirewallRules',
-            'Test-ListenerReportsExactRuleWhenFirewallCleanupFails')) {
+            'Test-ListenerRefusesCompetingMutexOwner', 'Test-ListenerReportsExactRuleWhenFirewallCleanupFails')) {
         $fixtureState = @{
             NextHop = '::'; DestinationPrefix = 'fe80::/64'; NeighborIp = 'fe80::2%25'; NeighborMac = '02-00-00-00-00-02'
             Counter = 0; FlatRx = $false; FlatTx = $false; Timeout = $false; Transfers = 0

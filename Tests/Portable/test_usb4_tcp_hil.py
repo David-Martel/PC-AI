@@ -7,6 +7,8 @@ import importlib.util
 import io
 import json
 from pathlib import Path
+import re
+import subprocess
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
@@ -140,6 +142,37 @@ class Usb4HilControls(unittest.TestCase):
             self.assertEqual(result['state'], 'Failed')
             self.assertIn('fixture-name', result['error'])
             self.assertNotIn('client', [call.args[2] for call in run.call_args_list])
+
+    # Protects: the remote transport gives the owned listener time to exit and clean up.
+    # Detects: the outer timeout cutting off the remote job or leaving too little time for cleanup.
+    # Needs: PowerShell endpoint source, a synthetic profile and a subprocess mock. No network.
+    # Breadcrumb: Tests/Hardware/usb4_tcp_hil.py::run_endpoint and Invoke-PcaiUsb4TcpEndpoint.ps1::$processTimeout.
+    def test_remote_listener_deadline_leaves_time_for_owned_cleanup(self):
+        endpoint_source = (source.parents[2] / hil.ENDPOINT).read_bytes()
+        job_graces = re.findall(r'^\s*\$processTimeout = \$seconds \+ (\d+)\s*$',
+                                endpoint_source.decode('utf-8-sig'), re.MULTILINE)
+        self.assertEqual(len(job_graces), 2, 'Find both PowerShell role budgets to check the outer deadline.')
+        longest_job_grace = max(map(int, job_graces))
+        artifacts = {hil.ENDPOINT: endpoint_source, hil.PROCESS_RUNNER: b'fixture runner source'}
+        data = sample_profile()
+        data['edges'][0]['server']['management'] = 'test@management-b'
+        response = subprocess.CompletedProcess([], 0, stdout=b'{}', stderr=b'')
+        for duration in (2, 15):
+            with self.subTest(duration=duration), patch.object(hil.subprocess, 'run', return_value=response) as run:
+                data['edges'][0]['seconds'] = duration
+                edge, = hil.profile(data)
+                self.assertEqual(hil.run_endpoint(artifacts, edge, 'listen', True), {})
+                run.assert_called_once()
+                command = run.call_args.args[0]
+                self.assertEqual(command[0], 'ssh')
+                self.assertIn('test@management-b', command)
+                connect_option = next((arg for arg in command if arg.startswith('ConnectTimeout=')), '')
+                self.assertRegex(connect_option, r'^ConnectTimeout=[1-9]\d*$')
+                connect_timeout = int(connect_option.split('=', 1)[1])
+                outer_timeout = run.call_args.kwargs['timeout']
+                self.assertIsInstance(outer_timeout, int)
+                # Reserve 30 s for remote PowerShell setup, CIM calls and firewall cleanup after the owned job.
+                self.assertGreaterEqual(outer_timeout, duration + longest_job_grace + connect_timeout + 30)
 
     # Protects planning as a read-only diagnostic. Detects network execution,
     # output writes or a false qualified status. Needs a temporary profile only.

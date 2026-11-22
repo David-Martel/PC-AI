@@ -1,0 +1,66 @@
+{
+  "SchemaVersion": 1,
+  "SourceBaseline": "a8f55809ddd889e8ccb7505bad487c28284c4a8a",
+  "ReviewedAtUtc": "2026-11-22T23:48:04.5822574Z",
+  "HashConvention": "SHA-256 of UTF-8 LF sources and the exact Pester It command AST extent without a trailing newline.",
+  "SourceBindings": {
+    "Build.ps1": "43cf975aba31029e5295ecb9cfa6d15d7d589ea1502a8d88ee0dceb29b887fdd",
+    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "73d083ecb3312fb919e52496a67a199f753a21fd7fb99c8c367ac2f835125caf",
+    "Tests/Unit/BuildReleaseGate.Tests.ps1": "aa6399cb125d2c3b4632d8439cfd24428f3461d25a0214a1969ada567c6e2c98"
+  },
+  "Validation": "Windows PowerShell 7, Pester 5.7.1. Candidate has 11 passes. The same fixture against source baseline has seven expected failures and four passes. The controls validate release-writer admission and CUDA error reporting. Successful-run artifact provenance and archive contents need separate verification.",
+  "Selectors": [
+    {
+      "Selector": "routes <Case> to exit <ExitCode> with the expected release writers",
+      "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
+      "Sha256": "bb062fb29a7a1e0a3e20479f67acb74e80d1109a9a3edc0b000fb882bac327a9",
+      "Protects": "Requested release outputs require successful component and requested-test outcomes. Diagnostic and standalone modes retain their ordinary behavior.",
+      "Detects": "Release writers called after failure or exit status zero for missing or empty failure data.",
+      "Needs": "PowerShell 7, Pester 5 and TestDrive. Extracted top-level statements run in an owned child with inert build and release stubs.",
+      "Breadcrumb": "Build.ps1 main execution, post-build tests and release output calls.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "The original runs showed release-writer calls in failed component/test cases and exit zero for empty and missing requested-test verdicts. Successful deploy, diagnostic failure and standalone failure retained expected behavior."
+    },
+    {
+      "Selector": "returns no artifacts when the inference child exits unsuccessfully",
+      "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
+      "Sha256": "924d52e124db54da132a4af21b260877604161226f436b66572e3b493cba2d4c",
+      "Protects": "Failed inference child invocations retain their logs and do not advertise cached target artifacts.",
+      "Detects": "Cargo target lookup or copying after a child exit code other than zero.",
+      "Needs": "PowerShell 7, Pester 5 and TestDrive with an inert child script.",
+      "Breadcrumb": "Build.ps1 Invoke-InferenceBuild artifact collection.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "Before the fix, the child exited 17 and the production wrapper still called Resolve-CargoOutputDirectory. The candidate skips the call, returns no artifacts and retains the fixture log."
+    },
+    {
+      "Selector": "rejects explicit CUDA with <Case>",
+      "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
+      "Sha256": "3d213735adbd74380ccea10d6267c09d24414a0cbb42a1fec01348fafac0136f",
+      "Protects": "Explicit CUDA requests require a complete discovered toolkit before the inference build starts.",
+      "Detects": "A missing helper or toolkit falling through to CPU mode.",
+      "Needs": "PowerShell 7, Pester 5 and a disposable stub discovery helper. No CUDA or compiler.",
+      "Breadcrumb": "Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment CUDA selection.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "Both missing-input cases fell through on the original and throw actionable errors in the candidate."
+    },
+    {
+      "Selector": "does not require CUDA when the switch is absent",
+      "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
+      "Sha256": "ad4ead471aa17c7a1855cc73bf785c704b2337c9285a913eef6c6f344cdd0f",
+      "Protects": "CPU-only builds do not require the CUDA toolkit or discovery helper.",
+      "Detects": "Applying the toolkit guard to CPU-only requests.",
+      "Needs": "PowerShell 7, Pester 5 and a nonexistent helper path in TestDrive.",
+      "Breadcrumb": "Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment conditional CUDA branch.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "The CPU-only control passes on the original and candidate. This does not run the compiler."
+    }
+  ]
+}

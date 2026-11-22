@@ -2164,9 +2164,18 @@ function Invoke-InferenceBuild {
     try {
         # Capture output to log file while showing progress
         $output = & $buildScript @buildArgs 2>&1 | Tee-Object -FilePath $logFile
-        $success = $LASTEXITCODE -eq 0
+        $buildExitCode = $LASTEXITCODE
+        if ($buildExitCode -ne 0) {
+            Write-BuildStep "pcai-inference ($Backend) failed (exit $buildExitCode). See: $logFile" 'error'
+            return @{
+                Success   = $false
+                Duration  = (Get-Date) - $componentStart
+                Artifacts = @()
+                LogFile   = $logFile
+            }
+        }
 
-        # Collect artifacts
+        # Collect artifacts only after the child has succeeded.
         $artifacts = @()
         $inferenceProjectDir = Join-Path $script:ProjectRoot 'Native\pcai_core\pcai_inference'
         $targetDir = Resolve-CargoOutputDirectory -ProjectDir $inferenceProjectDir -Configuration $Configuration
@@ -2201,11 +2210,10 @@ function Invoke-InferenceBuild {
             }
         }
 
-        $status = if ($success) { 'success' } else { 'error' }
-        Write-BuildStep "pcai-inference ($Backend) build complete" $status
+        Write-BuildStep "pcai-inference ($Backend) build complete" 'success'
 
         return @{
-            Success   = $success
+            Success   = $true
             Duration  = (Get-Date) - $componentStart
             Artifacts = $artifacts
             LogFile   = $logFile
@@ -3497,17 +3505,30 @@ foreach ($target in $buildTargets) {
     }
 }
 
+$failedCount = @($results.Values | Where-Object { $_.Success -ne $true }).Count
+
 if ($SkipTests) {
     Write-BuildStep 'Post-build tests skipped by request' 'skip'
 } elseif ($RunTests) {
     $testResult = Invoke-PostBuildTests -BuildTargets $buildTargets -Configuration $Configuration
-    if (-not $testResult.Success) {
-        foreach ($failedSuite in $testResult.Failed) {
+    if ($testResult.Success -ne $true) {
+        $failedSuites = @($testResult.Failed | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        $failedCount += [math]::Max(1, $failedSuites.Count)
+        if ($failedSuites.Count -eq 0) {
+            Write-BuildStep 'Post-build tests did not report success' 'error'
+        }
+        foreach ($failedSuite in $failedSuites) {
             Write-BuildStep "Test suite failed: $failedSuite" 'error'
         }
     }
 } else {
     Write-BuildStep 'Post-build tests not requested. Use -RunTests to execute component-aligned tests, or -Component test for standalone test run.' 'warning'
+}
+
+if ($failedCount -gt 0 -and ($Package -or $Deploy)) {
+    Write-BuildStep 'Release outputs skipped because a build or a requested test failed' 'error'
+    Write-BuildSummary -Results $results
+    exit $failedCount
 }
 
 # Generate manifest
@@ -3525,11 +3546,6 @@ if ($Deploy) {
 # Summary
 Write-BuildSummary -Results $results -ManifestPath $manifestPath
 
-# Exit with appropriate code
-$failedCount = @($results.Values | Where-Object { -not $_.Success }).Count
-if ($RunTests -and -not $SkipTests -and $testResult -and -not $testResult.Success) {
-    $failedCount += @($testResult.Failed).Count
-}
 exit $failedCount
 
 #endregion

@@ -239,6 +239,7 @@ All notable changes to PC-AI are documented here.
 - **usb4**: Enable link-local IPv6 on isolated Linux profiles (#394)
 - **usb4**: Preserve authoritative empty HNS inventory (#396)
 - **usb4**: Avoid reactivating a healthy Linux peer link (#398)
+- **usb4**: Pin Linux EUI-64 and check live DNS (#401)
 
 ### Build
 
@@ -422,6 +423,7 @@ All notable changes to PC-AI are documented here.
 - Record scheduled terminal window repair (#280)
 - **usb4**: Define RDMA qualification baselines (#380)
 - **usb4**: Correct direct route review attribution (#390)
+- **release**: Adopt a versioning policy and set the 0.2.0 baseline
 
 ### Features
 

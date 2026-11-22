@@ -3,7 +3,6 @@
 //! This backend uses mistral.rs for high-performance LLM inference with support for:
 //! - GGUF quantized models
 //! - SafeTensors (HuggingFace) models
-//! - Multimodal models (vision + text)
 //! - CUDA acceleration (when available)
 //! - CPU fallback when CUDA is not enabled at build time
 
@@ -57,6 +56,28 @@ impl MistralRsBackend {
         }
     }
 
+    fn requires_cpu(&self) -> bool {
+        // The pinned builder tries CUDA when it was compiled in, even if a
+        // device is missing. Check initialization before opening the model.
+        self.select_cpu(Self::cuda_enabled(), || match best_device(false) {
+            Ok(_) => true,
+            Err(error) => {
+                tracing::warn!(%error, "CUDA device unavailable, loading the model on CPU");
+                false
+            }
+        })
+    }
+
+    fn select_cpu(&self, cuda_compiled: bool, cuda_available: impl FnOnce() -> bool) -> bool {
+        if self.force_cpu {
+            return true;
+        }
+        if cuda_compiled {
+            return !cuda_available();
+        }
+        cfg!(target_os = "windows")
+    }
+
     /// Detect if a path is a GGUF model
     fn is_gguf_model(path: &str) -> bool {
         path.to_lowercase().ends_with(".gguf")
@@ -94,23 +115,14 @@ impl MistralRsBackend {
         // Try to parse as local path
         let (model_id, gguf_file) = Self::parse_gguf_path(path)?;
 
-        // Detect best available device (prefer CUDA, fallback to CPU)
-        let default_force_cpu = cfg!(target_os = "windows") && !Self::cuda_enabled();
-        let force_cpu = self.force_cpu || default_force_cpu;
-
-        if force_cpu && cfg!(target_os = "windows") && !self.force_cpu {
-            tracing::info!(
-                "Defaulting to CPU mode on Windows. For GPU support, build with 'cuda-mistralrs' \
-                 (or umbrella 'cuda') and ensure CUDA environment is initialized."
-            );
+        // mistral.rs 0.8.1 resolves the device using its builder's force_cpu setting.
+        let mut builder = GgufModelBuilder::new(&model_id, vec![&gguf_file]).with_logging();
+        let force_cpu = self.requires_cpu();
+        if force_cpu {
+            builder = builder.with_force_cpu();
         }
-
-        let device = best_device(force_cpu).map_err(|e| Error::Backend(format!("Failed to get device: {}", e)))?;
-        tracing::info!("Using device: {:?}", device);
-
-        // Build the model
-        let model = GgufModelBuilder::new(&model_id, vec![&gguf_file])
-            .with_logging()
+        tracing::info!(force_cpu, "Loading GGUF with the selected device policy");
+        let model = builder
             .build()
             .await
             .map_err(|e| Error::Backend(format!("Failed to load GGUF model: {}", e)))?;
@@ -127,23 +139,13 @@ impl MistralRsBackend {
     async fn load_safetensors_model(&mut self, path: &str) -> Result<()> {
         tracing::info!("Loading SafeTensors model from: {}", path);
 
-        // Detect best available device (prefer CUDA, fallback to CPU)
-        let default_force_cpu = cfg!(target_os = "windows") && !Self::cuda_enabled();
-        let force_cpu = self.force_cpu || default_force_cpu;
-
-        if force_cpu && cfg!(target_os = "windows") && !self.force_cpu {
-            tracing::info!(
-                "Defaulting to CPU mode on Windows. For GPU support, build with 'cuda-mistralrs' \
-                 (or umbrella 'cuda') and ensure CUDA environment is initialized."
-            );
+        let mut builder = TextModelBuilder::new(path.to_string()).with_logging();
+        let force_cpu = self.requires_cpu();
+        if force_cpu {
+            builder = builder.with_force_cpu();
         }
-
-        let device = best_device(force_cpu).map_err(|e| Error::Backend(format!("Failed to get device: {}", e)))?;
-        tracing::info!("Using device: {:?}", device);
-
-        // Build the model using TextModelBuilder for SafeTensors
-        let model = TextModelBuilder::new(path.to_string())
-            .with_logging()
+        tracing::info!(force_cpu, "Loading text model with the selected device policy");
+        let model = builder
             .build()
             .await
             .map_err(|e| Error::Backend(format!("Failed to load SafeTensors model: {}", e)))?;
@@ -257,6 +259,34 @@ impl InferenceBackend for MistralRsBackend {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Protects explicit CPU mode regardless of the compiled GPU features.
+    // Detects changes that allow the automatic device probe in explicit CPU mode.
+    // Needs no device or checkpoint. Breadcrumb: MistralRsBackend::requires_cpu.
+    #[test]
+    fn explicit_cpu_mode_requires_cpu() {
+        assert!(MistralRsBackend::with_config(true)
+            .select_cpu(true, || { panic!("an explicit CPU request must not initialize CUDA") }));
+    }
+
+    // Protects automatic selection for a CUDA artifact with a detachable GPU.
+    // Detects retaining CUDA after a failed probe or choosing CPU with a ready device.
+    // Needs two synthetic probe outcomes. Breadcrumb: MistralRsBackend::select_cpu.
+    #[test]
+    fn auto_mode_falls_back_only_when_cuda_is_unavailable() {
+        let backend = MistralRsBackend::new();
+        assert!(backend.select_cpu(true, || false));
+        assert!(!backend.select_cpu(true, || true));
+    }
+
+    // Protects default loading with a Windows CPU-only artifact.
+    // Detects CPU-only deployments entering the CUDA builder policy.
+    // Needs Windows without the backend CUDA feature. Breadcrumb: MistralRsBackend::requires_cpu.
+    #[cfg(all(target_os = "windows", not(feature = "cuda-mistralrs")))]
+    #[test]
+    fn windows_cpu_artifact_defaults_to_cpu_mode() {
+        assert!(MistralRsBackend::new().requires_cpu());
+    }
 
     #[test]
     fn test_is_gguf_model() {

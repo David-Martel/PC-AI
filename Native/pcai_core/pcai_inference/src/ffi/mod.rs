@@ -445,7 +445,16 @@ pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: 
             }
         }
     }
-    #[cfg(not(feature = "llamacpp"))]
+    #[cfg(feature = "mistralrs-backend")]
+    if guard
+        .as_ref()
+        .is_some_and(|backend| backend.backend_name() == "mistral.rs")
+    {
+        use crate::backends::mistralrs::MistralRsBackend;
+        *guard = Some(Box::new(MistralRsBackend::with_config(gpu_layers == 0)));
+        state.publish_backend_flags(&guard);
+    }
+    #[cfg(not(any(feature = "llamacpp", feature = "mistralrs-backend")))]
     {
         let _ = gpu_layers; // Suppress unused warning
     }

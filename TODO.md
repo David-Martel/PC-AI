@@ -214,6 +214,8 @@ not valid YAML and had never run. Repaired in the 2026-09-07 pass; see
 
 ## Active Priorities
 
+- [ ] Use the [AI qualification matrix](docs/ai-build-qualification.md) to reconcile build target selection and runtime device admission. Prioritize installed CPU, CUDA with and without an attached GPU, and a maintained Intel GPU backend. Gate model promotion on model-hash-pinned functional evidence and use the benchmark admission rules for any reported acceleration.
+
 ### 1. OneDrive, Boot, And UI Responsiveness
 
 - [x] Monitor OneDrive after installer repair and reset until at least one clean

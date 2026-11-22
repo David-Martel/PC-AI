@@ -5,9 +5,9 @@
 Qualifies installed Windows media tools without opening capture devices.
 .DESCRIPTION
 Default operation enumerates compiled FFmpeg backends and fresh Windows GPU
-inventory. Runtime qualification is separate: ValidateIntelQsv encodes exactly
-16 synthetic 320x240 frames to the null muxer. It reads no camera, microphone,
-file or network stream. No NVIDIA encode is attempted. Python is inspected only
+inventory. ValidateIntelQsv and ValidateNvidiaNvenc explicitly request runtime
+qualification using 16 synthetic 320x240 frames and the null muxer. Neither
+reads a camera, microphone, file or network stream. Python is inspected only
 when an explicit virtual-environment interpreter is supplied. All subprocesses
 have a timeout and retain exit codes and errors; missing tools remain unknown.
 .PARAMETER PythonPath
@@ -16,6 +16,8 @@ Absolute path to an existing venv Scripts/python.exe with a pyvenv.cfg parent.
 Optional absolute gst-inspect-1.0.exe path; current and older defaults are searched.
 .PARAMETER ValidateIntelQsv
 Run a small synthetic Intel QSV encode to verify runtime availability.
+.PARAMETER ValidateNvidiaNvenc
+Run a small H.264 encode on FFmpeg's default NVIDIA NVENC device.
 .PARAMETER ListCaptureDevices
 List DirectShow device names using FFmpeg's dummy input; never open a real device.
 .PARAMETER OutputPath
@@ -34,6 +36,8 @@ Show help; accepts -h and --help.
 pwsh -NoLogo -NoProfile -File .\Tools\Test-PcaiMediaToolchain.ps1 -DryRun
 .EXAMPLE
 pwsh -NoLogo -NoProfile -NonInteractive -File .\Tools\Test-PcaiMediaToolchain.ps1 -ValidateIntelQsv
+.EXAMPLE
+pwsh -NoLogo -NoProfile -NonInteractive -File .\Tools\Test-PcaiMediaToolchain.ps1 -ValidateNvidiaNvenc
 #>
 [CmdletBinding()]
 param(
@@ -45,7 +49,8 @@ param(
     [ValidateRange(1, 120)] [int]$TimeoutSeconds = 15,
     [ValidateRange(1, 120)] [int]$GStreamerScanTimeoutSeconds = 120,
     [switch]$DryRun,
-    [Alias('h', '-help')] [switch]$Help
+    [Alias('h', '-help')] [switch]$Help,
+    [switch]$ValidateNvidiaNvenc
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -166,10 +171,12 @@ function Get-MediaToolchainReport {
     #>
     param([string]$PythonPath, [string]$GStreamerPath, [switch]$ValidateIntelQsv,
         [switch]$ListCaptureDevices, [int]$TimeoutSeconds = 15,
-        [ValidateRange(1, 120)] [int]$GStreamerScanTimeoutSeconds = 120, [switch]$DryRun)
+        [ValidateRange(1, 120)] [int]$GStreamerScanTimeoutSeconds = 120, [switch]$DryRun,
+        [switch]$ValidateNvidiaNvenc)
     if ($DryRun) {
         return [pscustomobject]@{ status = 'DryRun'; writesPerformed = $false; processesStarted = $false
             inventoryQueried = $false; intelSyntheticFrames = $(if ($ValidateIntelQsv) { 16 } else { 0 })
+            nvidiaSyntheticFrames = $(if ($ValidateNvidiaNvenc) { 16 } else { 0 })
             listCaptureDevices = $ListCaptureDevices.IsPresent; pythonRequested = [bool]$PythonPath }
     }
     if (-not $IsWindows) { throw 'Media qualification requires Windows.' }
@@ -206,7 +213,10 @@ function Get-MediaToolchainReport {
         ffprobe = [ordered]@{ path = $ffprobe; status = 'Missing'; probe = $null }
         gstreamer = [ordered]@{ path = $gst; status = 'Missing'; probes = @(); missingOptionalElements = @(); interpretation = 'Element metadata only; no pipeline opened' }
         intelQsv = [ordered]@{ status = 'NotRequested'; syntheticFrames = 16; width = 320; height = 240; probe = $null }
-        nvidiaRuntime = [ordered]@{ status = 'NotAttempted'; reason = 'This tool does not run NVIDIA workloads' }
+        nvidiaRuntime = [ordered]@{
+            status = 'NotAttempted'; reason = 'NVIDIA runtime validation was not requested'
+            encoder = 'h264_nvenc'; syntheticFrames = 16; observedFrames = $null; width = 320; height = 240; probe = $null
+        }
         captureDeviceListing = [ordered]@{ status = 'NotRequested'; probe = $null }
         python = [ordered]@{ path = $PythonPath; status = 'NotRequested'; probe = $null; data = $null }
     }
@@ -269,6 +279,37 @@ function Get-MediaToolchainReport {
             $report.intelQsv.status = if ($report.intelQsv.probe.status -eq 'Succeeded') { 'Validated' } else { $report.intelQsv.probe.status }
         }
     }
+    if ($ValidateNvidiaNvenc) {
+        $report.nvidiaRuntime.reason = $null
+        if (-not $ffmpeg) { $report.nvidiaRuntime.status = 'MissingFfmpeg' }
+        elseif ($report.ffmpeg.probes[2].status -ne 'Succeeded') { $report.nvidiaRuntime.status = 'EncoderInventoryFailed' }
+        elseif ($report.ffmpeg.compiledEncoders -notcontains 'h264_nvenc') { $report.nvidiaRuntime.status = 'EncoderUnavailable' }
+        elseif ($report.gpuInventory.status -ne 'Available') { $report.nvidiaRuntime.status = 'UnknownGpuInventory' }
+        elseif (@($report.gpuInventory.devices | Microsoft.PowerShell.Core\Where-Object {
+                    $_.PNPDeviceID -match '^PCI\\VEN_10DE(?:&|$)'
+                }).Count -eq 0) {
+            $report.nvidiaRuntime.status = 'NoNvidiaGpu'
+        }
+        else {
+            $nvencArgs = @('-nostdin', '-hide_banner', '-loglevel', 'error', '-abort_on', 'empty_output',
+                '-progress', 'pipe:1', '-f', 'lavfi', '-i', 'color=c=black:s=320x240:r=30',
+                '-frames:v', '16', '-an', '-pix_fmt', 'nv12', '-c:v', 'h264_nvenc', '-f', 'null', '-')
+            $probe = Invoke-MediaProcess $ffmpeg $nvencArgs $TimeoutSeconds
+            $report.nvidiaRuntime.probe = $probe
+            if ($probe.status -ne 'Succeeded') { $report.nvidiaRuntime.status = $probe.status }
+            else {
+                # Earlier progress blocks cannot substitute for the final frame count.
+                $finalProgress = [regex]::Split(([string]$probe.stdout).TrimEnd(), '(?m)^progress=continue\r?\n')[-1]
+                $frameLines = [regex]::Matches($finalProgress, '(?m)^frame=[ \t]*([0-9]+)\r?$')
+                $report.nvidiaRuntime.status = 'IncompleteOutput'
+                if ($frameLines.Count -eq 1 -and $frameLines[0].Groups[1].Value -ceq '16' -and
+                    $finalProgress -cmatch '(?m)^progress=end\z') {
+                    $report.nvidiaRuntime.observedFrames = 16
+                    $report.nvidiaRuntime.status = 'Validated'
+                }
+            }
+        }
+    }
     if ($ListCaptureDevices) {
         if (-not $ffmpeg) { $report.captureDeviceListing.status = 'MissingFfmpeg' }
         else {
@@ -318,6 +359,7 @@ print(json.dumps(result))
         $report.gstreamer.status -in @('Missing', 'Failed') -or $report.gpuInventory.status -ne 'Available' -or
         $report.python.status -in @('Failed', 'TimedOut', 'OpenCvConflict', 'ImportFailed', 'Incomplete', 'InvalidJson') -or
         ($ValidateIntelQsv -and $report.intelQsv.status -ne 'Validated') -or
+        ($ValidateNvidiaNvenc -and $report.nvidiaRuntime.status -ne 'Validated') -or
         ($ListCaptureDevices -and $report.captureDeviceListing.status -ne 'Listed')) {
         $report.status = 'CompletedWithIssues'
     }
@@ -327,6 +369,7 @@ print(json.dumps(result))
 if ($Help) { Microsoft.PowerShell.Core\Get-Help -Name $PSCommandPath -Detailed; return }
 $validatedReportPath = if ($OutputPath) { Resolve-MediaReportPath $OutputPath } else { $null }
 $report = Get-MediaToolchainReport -PythonPath $PythonPath -GStreamerPath $GStreamerPath -ValidateIntelQsv:$ValidateIntelQsv `
+    -ValidateNvidiaNvenc:$ValidateNvidiaNvenc `
     -ListCaptureDevices:$ListCaptureDevices -TimeoutSeconds $TimeoutSeconds `
     -GStreamerScanTimeoutSeconds $GStreamerScanTimeoutSeconds -DryRun:$DryRun
 if ($validatedReportPath -and -not $DryRun) {

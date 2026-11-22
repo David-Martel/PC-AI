@@ -46,6 +46,9 @@ on:
       - 'Tests/Portable/Test-Usb4TcpEndpoint.ps1'
       - 'Tests/Portable/usb4-tcp-hil-review.json'
       - 'Tests/Hardware/**'
+      - 'Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1'
+      - 'Tests/Integration/ThunderboltLinuxProfile.Tests.ps1'
+      - 'Tests/Integration/thunderbolt-linux-idempotency-review.json'
       - 'docs/usb4/hardware-testing.md'
       - '.github/actions/setup-job-rust/action.yml'
       - '.github/workflows/usb4-lifecycle.yml'
@@ -59,6 +62,29 @@ concurrency:
 permissions:
   contents: read
 jobs:
+  linux-profile:
+    # Keep generated shell fixtures on a disposable runner, away from fleet
+    # NetworkManager even if a future script bypasses a test double.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Protects repeat Apply from reactivating a healthy link. Detects redundant
+      # writes and ignored drift. Needs Bash, Python 3, pwsh and Pester.
+      # Source: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1.
+      - name: Linux NetworkManager profile contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Module -ListAvailable Pester | Where-Object Version -eq '5.7.1')) {
+            Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force
+          }
+          Import-Module Pester -RequiredVersion 5.7.1
+          $result = Invoke-Pester -Path Tests/Integration/ThunderboltLinuxProfile.Tests.ps1 -PassThru
+          if ($result.Result -ne 'Passed' -or $result.PassedCount -eq 0) { throw 'Linux profile contracts failed' }
+
   lifecycle:
     strategy:
       fail-fast: false

@@ -1,13 +1,13 @@
 {
   "SchemaVersion": 1,
-  "SourceBaseline": "44d364088715b44ed44b9779cd5b05d4cb0ccef2",
-  "ReviewedAtUtc": "2026-11-22T19:40:34.2269548+00:00",
+  "SourceBaseline": "88c904c4a991c6079c21145966a535ce0167f9a3",
+  "ReviewedAtUtc": "2026-11-22T19:54:42.3987451+00:00",
   "HashConvention": "SHA-256 of UTF-8 LF source files, exact Pester It AST extents, and the CI step starting at its name without the trailing blank line",
   "SourceBindings": {
-    "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1": "2bf1825a1dea8ff49010fe18e261d9f08a819b40d57aebe9135df77d7073ccb3",
+    "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1": "b2b0ac2b03531ddc13f9e8f3a1149bfa59085cfdba26f811301d9af4845019e9",
     "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "fc76110e18dd46184dac7c31d456275e29e579d3074d37885382a22ad96e63bf",
-    "Tools/SystemScripts/Networking/README.md": "b572b45d52533fbf348dc0d39f088b42ce3f06a51dbced2822a5a5aa0e9d2927",
-    ".github/workflows/linux-ci.yml": "8ee59d5f055055d2894fcac63e33372dbce783056582e45685d46d0894fbdf42"
+    "Tools/SystemScripts/Networking/README.md": "fc6c0cc36bb7818459669271f0870f45eb7674198f342ed0446e4ef248041b90",
+    ".github/workflows/usb4-lifecycle.yml": "fb716e86d15e5405b86be6c04de5f911290b598bdea1a5ba1a1838a3dcaf28c4"
   },
   "Selectors": [
     {
@@ -16,7 +16,7 @@
       "Sha256": "ca262c23dde064374f5a688d22f1d8f410062fb1ae831687c984b4632401ca21",
       "Protects": "an already active, fully reconciled USB4 connection.",
       "Detects": "redundant NetworkManager modification or activation that can interrupt the peer.",
-      "Needs": "SSH to a Linux host with Bash, Python 3 and fixture-only nmcli.",
+      "Needs": "Linux Bash, Python 3 and fixture-only nmcli. Windows runs through SSH.",
       "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.",
       "Reviewer": "codex",
       "ReviewerType": "author self-review",
@@ -25,10 +25,10 @@
     {
       "Selector": "reconciles a profile with <Scenario> drift instead of declaring a ready link",
       "Source": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
-      "Sha256": "a549c36aa5f9c25d9d0d94cff4a073cbbe0e9fbe7eb7a0d7d99792822b23b177",
+      "Sha256": "a0ff13c0ee9cc03616aad426fea6a000e9cb8898160c33243946263861de95a8",
       "Protects": "reconciliation when the stored profile and running link differ.",
       "Detects": "declaring a match from profile identity alone, despite incorrect live settings.",
-      "Needs": "SSH to a Linux host with Bash, Python 3 and fixture-only nmcli.",
+      "Needs": "Linux Bash, Python 3 and fixture-only nmcli. Windows runs through SSH.",
       "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.",
       "Reviewer": "codex",
       "ReviewerType": "author self-review",
@@ -40,7 +40,7 @@
       "Sha256": "701cb98fcf4bf2b9fa362cc3f19be6c05e821a6d92c71c28c322cb854557881a",
       "Protects": "the peer's existing upstream IPv6 policy from automatic adoption.",
       "Detects": "activating a profile that permits an IPv6 default route.",
-      "Needs": "SSH to a Linux host with Bash, Python 3 and fixture-only nmcli.",
+      "Needs": "Linux Bash, Python 3 and fixture-only nmcli. Windows runs through SSH.",
       "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.",
       "Reviewer": "codex",
       "ReviewerType": "author self-review",
@@ -48,16 +48,16 @@
     },
     {
       "Selector": "Linux NetworkManager profile contracts",
-      "Source": ".github/workflows/linux-ci.yml",
-      "Sha256": "d86d1919c0baca8c8a2121e4eaa4c00f9a5dfcdada218e5ea4822da44ca0f087",
+      "Source": ".github/workflows/usb4-lifecycle.yml",
+      "Sha256": "5b73f082a64d170d6d7a472fffff8ed6f77fd5ec919a0ce04393535eb38f6a83",
       "Protects": "Connection continuity on repeat Apply.",
       "Detects": "Reactivation of matching profiles, skipped reconciliation despite drift, and empty or unsuccessful test runs.",
-      "Needs": "Linux, PowerShell, Bash, Python 3 and Pester. Uses local fakes without SSH, sudo access or attached hardware.",
+      "Needs": "A disposable Linux runner, PowerShell, Bash, Python 3 and Pester. Uses local fakes without SSH or attached hardware.",
       "Breadcrumb": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
       "Reviewer": "codex",
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed"
     }
   ],
-  "Validation": "The pre-change Windows/MS01 fixture failed on redundant activation. Updated Windows PowerShell and MS01-backed Bash ran 90 controller tests successfully. WSL local Bash ran 18 profile tests successfully. PowerShell and workflow lint passed. No attached Linux USB4NET device was available."
+  "Validation": "The pre-change Windows/MS01 fixture failed on redundant activation. Updated Windows PowerShell and MS01-backed Bash passed 90 controller cases before the additional IPv4 gateway fixture. The final 19 Linux profile cases passed using MS01-backed Bash and local WSL. PowerShell and workflow lint passed. No attached Linux USB4NET device was available."
 }

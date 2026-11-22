@@ -57,6 +57,7 @@ and [repeat Configure](../../../Tests/Integration/thunderbolt-linux-idempotency-
 Run `Invoke-Pester Tests/Integration/ThunderboltLinuxProfile.Tests.ps1` on Linux
 to execute the generated Bash against fixture-only NetworkManager commands.
 On Windows, set `PCAI_TB_TEST_SSH_ALIAS` to a key-authenticated Linux host.
+CI runs this fixture on a disposable Linux runner.
 Configure sets no gateway or DNS and uses the configured MTU for Windows IPv4
 and the Linux link. A repeat Apply leaves Linux traffic undisturbed when the
 stored profile, active connection UUID, live MTU and addresses all match and

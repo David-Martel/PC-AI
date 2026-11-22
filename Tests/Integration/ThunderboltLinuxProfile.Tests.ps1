@@ -37,7 +37,7 @@ nmcli() {
                 esac;;
             IP4.ADDRESS) if [ "$scenario" != live-v4 ]; then printf '172.31.240.2/30\n'; fi;;
             IP6.ADDRESS) if [ "$scenario" != live-v6 ]; then printf 'fe80::2/64\n'; fi;;
-            IP4.GATEWAY) printf '%s\n' '--';;
+            IP4.GATEWAY) if [ "$scenario" = live-v4-gateway ]; then printf '172.31.240.1\n'; else printf '%s\n' '--'; fi;;
             IP6.GATEWAY) if [ "$scenario" = live-gateway ]; then printf 'fe80::1\n'; else printf '%s\n' '--'; fi;;
             *) return 99;;
         esac
@@ -95,7 +95,7 @@ PY
 Describe 'Generated Linux profile logic executed by Bash' {
     # Protects: an already active, fully reconciled USB4 connection.
     # Detects: redundant NetworkManager modification or activation that can interrupt the peer.
-    # Needs: SSH to a Linux host with Bash, Python 3 and fixture-only nmcli.
+    # Needs: Linux Bash, Python 3 and fixture-only nmcli. Windows runs through SSH.
     # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.
     It 'leaves the matching active profile and its traffic undisturbed' {
         $r = Invoke-ProfileFixture ready
@@ -104,11 +104,12 @@ Describe 'Generated Linux profile logic executed by Bash' {
     }
     # Protects: reconciliation when the stored profile and running link differ.
     # Detects: declaring a match from profile identity alone, despite incorrect live settings.
-    # Needs: SSH to a Linux host with Bash, Python 3 and fixture-only nmcli.
+    # Needs: Linux Bash, Python 3 and fixture-only nmcli. Windows runs through SSH.
     # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.
     It 'reconciles a profile with <Scenario> drift instead of declaring a ready link' -ForEach @(
         @{ Scenario = 'other-active' }, @{ Scenario = 'live-mtu' }, @{ Scenario = 'stored-mtu' },
-        @{ Scenario = 'live-v4' }, @{ Scenario = 'live-v6' }, @{ Scenario = 'live-gateway' }
+        @{ Scenario = 'live-v4' }, @{ Scenario = 'live-v6' },
+        @{ Scenario = 'live-v4-gateway' }, @{ Scenario = 'live-gateway' }
     ) {
         $r = Invoke-ProfileFixture $Scenario
         $r.exitCode | Should -Be 0
@@ -150,7 +151,7 @@ Describe 'Generated Linux profile logic executed by Bash' {
     }
     # Protects: the peer's existing upstream IPv6 policy from automatic adoption.
     # Detects: activating a profile that permits an IPv6 default route.
-    # Needs: SSH to a Linux host with Bash, Python 3 and fixture-only nmcli.
+    # Needs: Linux Bash, Python 3 and fixture-only nmcli. Windows runs through SSH.
     # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.
     It 'refuses an existing profile permitting an IPv6 default route' {
         $r = Invoke-ProfileFixture ipv6-default

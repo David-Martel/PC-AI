@@ -904,9 +904,17 @@ fn backup_path(dest: &Path) -> PathBuf {
 /// free and overwriting whatever is there.
 #[cfg(any(unix, windows))]
 fn destination_exists(probe: io::Result<fs::Metadata>) -> io::Result<bool> {
+    classify_destination(probe).map(|existing| existing.is_some())
+}
+
+/// [`destination_exists`] that keeps the metadata: `Some` if the destination exists,
+/// `None` if it is absent, an error for anything else.  Publication takes its
+/// decision from this one result.
+#[cfg(any(unix, windows))]
+fn classify_destination(probe: io::Result<fs::Metadata>) -> io::Result<Option<fs::Metadata>> {
     match probe {
-        Ok(_) => Ok(true),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+        Ok(metadata) => Ok(Some(metadata)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
         Err(error) => Err(error),
     }
 }
@@ -1220,7 +1228,7 @@ fn strip_access_acl(_path: &Path) -> io::Result<()> {
 /// anything is renamed, so the destination is left untouched.  The owning user
 /// and extended attributes other than the access ACL are not carried over.
 ///
-/// A rename replaces an existing file (and fails if `dest` is a directory).
+/// One probe of `dest` decides everything (see [`publish_staged_checked`]).
 /// Callers remove the staging file on error.
 #[cfg(unix)]
 fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
@@ -1233,33 +1241,113 @@ fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
 fn publish_staged_with(
     staged: &Path,
     dest: &Path,
-    preserve: impl FnOnce(&Path, &Path) -> io::Result<()>,
+    preserve: impl FnOnce(&Path, &Path, Option<&fs::Metadata>) -> io::Result<()>,
 ) -> io::Result<()> {
     publish_staged_checked(staged, dest, |path| fs::metadata(path), preserve)
 }
 
 /// [`publish_staged`] with the metadata call and the access-control step injected.
 ///
-/// The destination is classified first, with [`destination_exists`]: an error
-/// other than "not found" fails the publish before anything is changed.  An
-/// existing destination is replaced by a rename.  An absent one is filled by
-/// [`move_without_replacing`], so a file created there in the meantime (by
-/// another process, after the check) is never overwritten: the publish fails
-/// with an explicit error and that file is left as it was.
+/// ONE probe of the destination, classified by [`classify_destination`], makes the
+/// decision, and that decision picks the permission policy and the publication
+/// primitive together:
+///
+/// - absent: new-file permissions, then [`move_without_replacing`]; a file that
+///   appears in the meantime is never overwritten ("not overwritten" error);
+/// - existing regular file: its mode, group and ACL handling, then
+///   [`replace_existing`]; if the file has vanished by then the publish fails
+///   instead of creating a file with existing-file permissions;
+/// - any other probe error, or an existing destination that is not a regular file:
+///   the publish fails before anything is changed.
+///
+/// The access-control step receives the decision rather than probing again, so the
+/// two can never disagree.
 #[cfg(unix)]
 fn publish_staged_checked(
     staged: &Path,
     dest: &Path,
     probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
-    preserve: impl FnOnce(&Path, &Path) -> io::Result<()>,
+    preserve: impl FnOnce(&Path, &Path, Option<&fs::Metadata>) -> io::Result<()>,
 ) -> io::Result<()> {
-    let existed = destination_exists(probe(dest))?;
-    preserve(staged, dest)?;
-    if existed {
-        fs::rename(staged, dest)
+    let existing = classify_destination(probe(dest))?;
+    if let Some(metadata) = &existing {
+        if !metadata.is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!(
+                    "{} exists and is not a regular file; refusing to replace it",
+                    dest.display()
+                ),
+            ));
+        }
+    }
+    preserve(staged, dest, existing.as_ref())?;
+    if existing.is_some() {
+        replace_existing(staged, dest)
     } else {
         move_without_replacing(staged, dest)
     }
+}
+
+/// Replace `dest`, which existed at the probe, with `staged`; fail if it is gone.
+///
+/// Linux swaps the two names with `renameat2(RENAME_EXCHANGE)`, which fails with
+/// `ENOENT` if `dest` has vanished, and then removes the staging name (which now
+/// holds the replaced file).  Where the kernel or filesystem lacks the flag, and on
+/// other Unix systems, the fallback checks that `dest` still exists and renames
+/// over it; that check is not atomic, but it closes the window in practice and
+/// still never lets a vanished target be published as a replacement.
+#[cfg(unix)]
+fn replace_existing(staged: &Path, dest: &Path) -> io::Result<()> {
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        let from = CString::new(staged.as_os_str().as_bytes()).map_err(io::Error::other)?;
+        let to = CString::new(dest.as_os_str().as_bytes()).map_err(io::Error::other)?;
+        // SAFETY: both strings are NUL-terminated and outlive the call.
+        let status = unsafe {
+            libc::renameat2(
+                libc::AT_FDCWD,
+                from.as_ptr(),
+                libc::AT_FDCWD,
+                to.as_ptr(),
+                libc::RENAME_EXCHANGE,
+            )
+        };
+        if status == 0 {
+            if let Err(error) = fs::remove_file(staged) {
+                tracing::warn!(
+                    staging = %staged.display(),
+                    %error,
+                    "published, but the replaced file could not be removed from the staging name"
+                );
+            }
+            return Ok(());
+        }
+        let error = io::Error::last_os_error();
+        match error.raw_os_error() {
+            Some(libc::ENOENT) => return Err(disappeared(dest)),
+            Some(libc::ENOSYS | libc::EINVAL | libc::ENOTSUP) => {}
+            _ => return Err(error),
+        }
+    }
+    match destination_exists(fs::symlink_metadata(dest)) {
+        Ok(true) => fs::rename(staged, dest),
+        Ok(false) => Err(disappeared(dest)),
+        Err(error) => Err(error),
+    }
+}
+
+/// The error for a replacement whose target is no longer there.
+#[cfg(unix)]
+fn disappeared(dest: &Path) -> io::Error {
+    io::Error::new(
+        io::ErrorKind::NotFound,
+        format!(
+            "{} disappeared while the image was being published; not publishing a replacement for a file that is gone",
+            dest.display()
+        ),
+    )
 }
 
 /// Move `staged` to `dest` only if nothing is at `dest`: atomic, never overwrites.
@@ -1311,14 +1399,15 @@ fn move_by_linking(staged: &Path, dest: &Path) -> io::Result<()> {
 }
 
 /// Give the staged file the access control `dest` has (or will have): see
-/// [`publish_staged`].
+/// [`publish_staged`].  `existing` is the metadata from the publish decision
+/// (`None`: the destination is absent); the destination is not classified again.
 #[cfg(unix)]
-fn copy_access_control(staged: &Path, dest: &Path) -> io::Result<()> {
+fn copy_access_control(staged: &Path, dest: &Path, existing: Option<&fs::Metadata>) -> io::Result<()> {
     use std::os::unix::fs::MetadataExt;
-    let mut dest_existed = false;
-    let permissions = match fs::metadata(dest) {
-        Ok(existing) => {
-            dest_existed = true;
+    let permissions = match existing {
+        Some(existing) => {
+            // If the destination has vanished since the decision this fails (ENOENT)
+            // rather than guessing: the decision and the file no longer agree.
             if has_access_acl(dest)? {
                 return Err(io::Error::new(
                     io::ErrorKind::Unsupported,
@@ -1337,11 +1426,10 @@ fn copy_access_control(staged: &Path, dest: &Path) -> io::Result<()> {
             strip_access_acl(staged)?;
             existing.permissions()
         }
-        Err(error) if error.kind() == io::ErrorKind::NotFound => plain_create_permissions(dest)?,
-        Err(error) => return Err(error),
+        None => plain_create_permissions(dest)?,
     };
     fs::set_permissions(staged, permissions)?;
-    if dest_existed && has_access_acl(staged)? {
+    if existing.is_some() && has_access_acl(staged)? {
         return Err(io::Error::new(
             io::ErrorKind::PermissionDenied,
             format!(
@@ -1368,13 +1456,15 @@ fn copy_access_control(staged: &Path, dest: &Path) -> io::Result<()> {
 /// under the backup name while it swaps, and this function undoes a failed swap:
 ///
 /// - success: the backup is deleted;
-/// - failure with a backup present (1176 or 1177, whichever the call reports):
-///   the backup is the original, so it is moved back over the destination and
-///   the original error is returned;
-/// - failure with no backup (the documented "files keep their names" case): the
-///   destination was never touched, and the original error is returned;
-/// - the restore itself fails: the backup is KEPT, because it is the user's only
-///   copy, and the error names its path.
+/// - failure with a backup present (1177): the backup is the original, so it is
+///   moved back to the destination WITHOUT replacing anything, and the original
+///   error is returned;
+/// - failure with no backup (1176 with a backup requested, and every other error:
+///   the documented "files keep their names" cases): the destination was never
+///   touched, and the original error is returned;
+/// - the restore itself fails, including because another writer put a file at the
+///   destination meanwhile: the backup is KEPT, because it is the user's only copy,
+///   that file is left untouched, and the error names the backup's path.
 ///
 /// For a new destination the private staging DACL is reset to the directory's
 /// inherited entries first, so the file ends up with what a plain `File::create`
@@ -1456,31 +1546,44 @@ fn discard_backup(backup: &Path) {
 
 /// Undo a failed `ReplaceFileW` and return the error to report.
 ///
-/// `cause` is the error the replace step returned.  If `backup` exists it holds
-/// the original file (ReplaceFileW only creates it by renaming the replaced
-/// file), so it is moved back over `dest`: `fs::rename` replaces an existing
-/// file on Windows (`MOVEFILE_REPLACE_EXISTING`), which covers a replacement
-/// that was already moved into place.  If it does not exist, Windows kept the
-/// original under the destination name and there is nothing to restore.
+/// `cause` is the error the replace step returned.  Microsoft Learn (ReplaceFileW,
+/// return value) documents the states: with a backup requested, 1176 leaves "the
+/// replaced and replacement files" under "their original file names", so there is
+/// no backup and nothing to undo; 1177 leaves the replacement under its own name and
+/// "the file to be replaced ... with a different name", which is the backup name.
+/// So if `backup` exists it holds the original, and it is moved back to `dest`
+/// WITHOUT replacing ([`move_without_replacing`]): a file that appeared at `dest`
+/// meanwhile belongs to someone else and is left untouched.
 ///
-/// If the move fails, the backup is left where it is and the returned error
-/// names it, so the original can be recovered by hand; it is never deleted here.
+/// If the move fails, for that collision or any other reason, the backup is left
+/// where it is and the returned error names it and says why, so the original can
+/// be recovered by hand; it is never deleted here.
 #[cfg(windows)]
 fn restore_from_backup(dest: &Path, backup: &Path, cause: io::Error) -> io::Error {
     if matches!(destination_exists(fs::symlink_metadata(backup)), Ok(false)) {
         return cause;
     }
-    match fs::rename(backup, dest) {
+    match move_without_replacing(backup, dest) {
         Ok(()) => cause,
-        Err(restore) => io::Error::new(
-            cause.kind(),
-            format!(
-                "replacing {dest} failed ({cause}) and the original could not be moved back ({restore}); \
-                 the original image is kept at {backup}",
-                dest = dest.display(),
-                backup = backup.display(),
-            ),
-        ),
+        Err(restore) => {
+            let why = if restore.kind() == io::ErrorKind::AlreadyExists {
+                format!(
+                    "{} now exists (a file appeared there) and was not overwritten",
+                    dest.display()
+                )
+            } else {
+                format!("the move failed ({restore})")
+            };
+            io::Error::new(
+                cause.kind(),
+                format!(
+                    "replacing {dest} failed ({cause}); the original could not be restored because {why}; \
+                     the original image is kept at {backup}",
+                    dest = dest.display(),
+                    backup = backup.display(),
+                ),
+            )
+        }
     }
 }
 
@@ -3846,7 +3949,7 @@ mod tests {
         let dest_text = dest.to_string_lossy().into_owned();
         let encode = encode_for(&dest);
         execute_async_request_staged(id, dest_text, mock_image, encode, |staged, dest| {
-            publish_staged_with(staged, dest, |_, _| Err(io::Error::other("injected chgrp failure")))
+            publish_staged_with(staged, dest, |_, _, _| Err(io::Error::other("injected chgrp failure")))
         });
         let (status, text) = poll_full(id);
         assert_eq!(status, 3, "the failed preservation is reported as Failed");
@@ -3945,22 +4048,22 @@ mod tests {
         assert!(!staged.exists(), "the staged file became the destination");
     }
 
-    // Protects: ERROR_UNABLE_TO_MOVE_REPLACEMENT (1176) after the replaced file has
-    //   been moved aside leaves the user's original in place: the request is Failed,
-    //   destination bytes and ACL are restored from the backup, and neither the
-    //   staging file nor the backup is left behind.
-    // Detects: a publish that returns the error without moving the backup back (the
-    //   original image is then gone), or that deletes the backup before restoring it.
-    // Needs: Windows with icacls on PATH; the failure state is injected through the
-    //   replace seam (Microsoft Learn, ReplaceFileW: the replaced file is then at the
-    //   backup name and the destination name is free).
+    // Protects: ERROR_UNABLE_TO_MOVE_REPLACEMENT (1176) with a backup requested.  Microsoft
+    //   Learn (ReplaceFileW, return value): "If lpBackupFileName was specified, the replaced
+    //   and replacement files retain their original file names."  So the destination is
+    //   still the original and no backup exists; the restore must be a no-op that does not
+    //   touch the destination, the request is Failed, and the staging file is removed.
+    // Detects: a restore that moves or deletes something when nothing was moved aside, or
+    //   a publish that reports the failure as success.
+    // Needs: Windows with icacls on PATH; the documented file state is injected through
+    //   the replace seam (nothing is moved).
     #[cfg(windows)]
     #[test]
-    fn test_replace_error_1176_restores_the_original_from_the_backup() {
+    fn test_replace_error_1176_with_a_backup_leaves_the_destination_alone() {
         let _serial = serialize_global_state();
         let tmp = tempfile::tempdir().expect("tempdir");
         let (dest, acl_before) = owner_only_destination(tmp.path());
-        let (status, text) = publish_with_injected_replace(&dest, |dest, _staged, backup| {
+        let (status, text) = publish_with_injected_replace(&dest, |dest, staged, backup| {
             assert_eq!(
                 backup.parent(),
                 dest.parent(),
@@ -3972,37 +4075,44 @@ mod tests {
                 "backup name {name}"
             );
             assert!(!backup.exists(), "backup name is unused");
-            fs::rename(dest, backup).unwrap();
+            assert!(staged.exists(), "the replacement keeps its own name");
             Err(io::Error::from_raw_os_error(1176))
         });
         assert_eq!(status, 3, "the failed replace is reported as Failed");
         assert!(text.expect("failure message").contains("1176"));
-        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes restored");
-        assert_eq!(acl_entries(&acl_listing(&dest)), acl_before, "destination ACL restored");
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            acl_before,
+            "destination ACL untouched"
+        );
         assert_eq!(dir_listing(tmp.path()), ["private.png"], "no backup or staging file");
     }
 
-    // Protects: ERROR_UNABLE_TO_MOVE_REPLACEMENT_2 (1177), where the replacement already
-    //   sits under the destination name and the original is at the backup name, ends with
-    //   the original back in place, the replacement gone and no backup left.
-    // Detects: a restore that cannot replace an existing destination (the move fails
-    //   because the replacement is in the way), or that leaves the replacement published.
-    // Needs: Windows with icacls on PATH; the failure state is injected through the
-    //   replace seam.
+    // Protects: ERROR_UNABLE_TO_MOVE_REPLACEMENT_2 (1177).  Microsoft Learn: "The replacement
+    //   file still exists under its original name ... The file to be replaced still exists
+    //   with a different name. If lpBackupFileName is specified, it will be the name of the
+    //   replaced file."  So the original is at the backup name and the destination name is
+    //   free: the original is moved back (without replacing), the staging file is removed,
+    //   the request is Failed, and no backup is left.
+    // Detects: a publish that leaves the original at the backup name, or one that deletes
+    //   the backup before restoring it.
+    // Needs: Windows with icacls on PATH; the documented file state is injected through
+    //   the replace seam.
     #[cfg(windows)]
     #[test]
-    fn test_replace_error_1177_restores_the_original_over_the_replacement() {
+    fn test_replace_error_1177_restores_the_original_from_the_backup() {
         let _serial = serialize_global_state();
         let tmp = tempfile::tempdir().expect("tempdir");
         let (dest, acl_before) = owner_only_destination(tmp.path());
         let (status, text) = publish_with_injected_replace(&dest, |dest, staged, backup| {
             fs::rename(dest, backup).unwrap();
-            fs::rename(staged, dest).unwrap();
+            assert!(staged.exists(), "the replacement still exists under its original name");
             Err(io::Error::from_raw_os_error(1177))
         });
         assert_eq!(status, 3, "the failed replace is reported as Failed");
         assert!(text.expect("failure message").contains("1177"));
-        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "the replacement is not published");
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes restored");
         assert_eq!(acl_entries(&acl_listing(&dest)), acl_before, "destination ACL restored");
         assert_eq!(dir_listing(tmp.path()), ["private.png"], "no backup or staging file");
     }
@@ -4285,6 +4395,259 @@ mod tests {
         assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
         assert_eq!(unix_mode(&dest), 0o600, "destination mode untouched");
         assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: a regular file that appears at the destination while a failed replace is being
+    //   undone belongs to another writer and is never overwritten by the restore: the request
+    //   is Failed, the concurrent file keeps its bytes and ACL, the backup is kept, and the
+    //   error names the backup and says the destination exists.
+    // Detects: a restore with a replacing rename (MOVEFILE_REPLACE_EXISTING), which would
+    //   clobber the concurrent file with the original.
+    // Needs: Windows with icacls on PATH; the 1177 state is injected through the replace
+    //   seam, which then creates the concurrent file at the free destination name.
+    #[cfg(windows)]
+    #[test]
+    fn test_restore_does_not_overwrite_a_file_that_appeared_at_the_destination() {
+        use std::cell::RefCell;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, _original_acl) = owner_only_destination(tmp.path());
+        let concurrent_acl: RefCell<Vec<String>> = RefCell::new(Vec::new());
+        let backup_seen: RefCell<Option<PathBuf>> = RefCell::new(None);
+        let (status, text) = publish_with_injected_replace(&dest, |dest, _staged, backup| {
+            fs::rename(dest, backup).unwrap();
+            fs::write(dest, b"another writer's file").unwrap();
+            *concurrent_acl.borrow_mut() = acl_entries(&acl_listing(dest));
+            *backup_seen.borrow_mut() = Some(backup.to_path_buf());
+            Err(io::Error::from_raw_os_error(1177))
+        });
+        let backup = backup_seen.into_inner().expect("the replace step ran");
+        assert_eq!(status, 3, "the failed replace is reported as Failed");
+        let text = text.expect("failure message");
+        assert!(
+            text.contains(backup.to_string_lossy().as_ref()),
+            "the error names the backup {backup:?}: {text}"
+        );
+        assert!(text.contains("now exists"), "the error states the collision: {text}");
+        assert_eq!(
+            fs::read(&dest).unwrap(),
+            b"another writer's file",
+            "the concurrent file is byte-identical"
+        );
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            concurrent_acl.into_inner(),
+            "the concurrent file's ACL is untouched"
+        );
+        assert_eq!(fs::read(&backup).unwrap(), ORIGINAL, "the backup keeps the original");
+        let backup_name = backup.file_name().unwrap().to_string_lossy().into_owned();
+        assert_eq!(
+            dir_listing(tmp.path()),
+            [backup_name, "private.png".to_string()],
+            "only the backup and the concurrent file remain; the staging file is gone"
+        );
+    }
+
+    // Protects: one probe decides "new or existing" for the permission policy AND the
+    //   publication primitive.  A target that is removed after the probe (here: after the
+    //   access-control step) is not published as a replacement: the request is Failed with
+    //   an explicit error, the destination is not created, and the staging file is removed.
+    // Detects: a flow that re-probes in the access-control step and then renames over (or
+    //   into) whatever is there, applying existing-file semantics to a file that is gone.
+    // Needs: Unix; the removal is injected through the preserve seam after the real step.
+    #[cfg(unix)]
+    #[test]
+    fn test_target_removed_before_the_replace_is_not_published_as_a_replacement() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o640)).unwrap();
+        let id = register_request(MediaRequestStatus::Pending);
+        let encode = encode_for(&dest);
+        execute_async_request_staged(
+            id,
+            dest.to_string_lossy().into_owned(),
+            mock_image,
+            encode,
+            |staged, dest| {
+                publish_staged_with(staged, dest, |staged, dest, existing| {
+                    copy_access_control(staged, dest, existing)?;
+                    fs::remove_file(dest).unwrap();
+                    Ok(())
+                })
+            },
+        );
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3, "a replacement of a vanished target is Failed");
+        assert!(text.expect("failure message").contains("disappeared"));
+        assert!(!dest.exists(), "nothing was published at the vanished path");
+        assert_eq!(dir_listing(tmp.path()), Vec::<String>::new(), "staging file removed");
+    }
+
+    // Protects: the decision made from the probe is the only one: when the probe reports an
+    //   existing file that the access-control step then cannot find, the publish fails
+    //   closed instead of switching to new-file permissions and a replacing rename.
+    // Detects: an access-control step that probes the destination again and disagrees with
+    //   the first decision.
+    // Needs: Unix; the stale probe result is injected through the metadata seam (it
+    //   reports another, existing file for a destination that is absent).
+    #[cfg(unix)]
+    #[test]
+    fn test_stale_existing_decision_does_not_create_the_destination() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let other = tmp.path().join("other.png");
+        fs::write(&other, ORIGINAL).unwrap();
+        fs::set_permissions(&other, fs::Permissions::from_mode(0o640)).unwrap();
+        let dest = tmp.path().join("gone.png");
+        let (status, _text) = publish_with_injected_probe(&dest, |_| fs::metadata(&other));
+        assert_eq!(status, 3, "the conflicted decision is Failed");
+        assert!(!dest.exists(), "the destination was not created");
+        assert_eq!(dir_listing(tmp.path()), ["other.png"], "staging file removed");
+    }
+
+    // Protects: the access ACL a staging file inherits from a directory's DEFAULT ACL is
+    //   removed by the access-control step before the destination's mode is copied, so the
+    //   mode copy cannot raise the ACL mask and activate the inherited named entry.
+    // Detects: a missing or misplaced strip (the staged file would keep the named user's
+    //   entry, effective at the copied 0640).
+    // Needs: Linux and a filesystem with POSIX ACL xattrs; returns early with a message when
+    //   the default ACL cannot be set.  Positive control: the staging file really carries
+    //   an inherited access ACL before the step runs.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_staged_files_inherited_acl_is_stripped_before_the_mode_is_copied() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("dest.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o640)).unwrap();
+        // SAFETY: geteuid cannot fail.
+        let other_user = unsafe { libc::geteuid() }.wrapping_add(1);
+        let default_acl = [
+            (0x01u16, 7u16, u32::MAX),
+            (0x02, 6, other_user),
+            (0x04, 5, u32::MAX),
+            (0x10, 7, u32::MAX),
+            (0x20, 0, u32::MAX),
+        ];
+        if let Err(error) = set_posix_acl(tmp.path(), c"system.posix_acl_default", &default_acl) {
+            eprintln!("SKIP staged-acl test: cannot set a default ACL here: {error}");
+            return;
+        }
+        let (staged, file) = create_staging_file(&dest).expect("staging file");
+        drop(file);
+        assert!(
+            has_access_acl(&staged).unwrap(),
+            "positive control: the staging file inherited an access ACL from the directory"
+        );
+        let existing = fs::metadata(&dest).unwrap();
+        copy_access_control(&staged, &dest, Some(&existing)).expect("access control");
+        assert!(
+            !has_access_acl(&staged).unwrap(),
+            "the inherited access ACL is gone after the step"
+        );
+        assert_eq!(unix_mode(&staged), 0o640, "the destination's mode was copied");
+    }
+
+    /// Set a POSIX ACL extended attribute (`system.posix_acl_access` or
+    /// `system.posix_acl_default`) from `(tag, perm, id)` entries.
+    #[cfg(target_os = "linux")]
+    fn set_posix_acl(path: &Path, attribute: &CStr, entries: &[(u16, u16, u32)]) -> io::Result<()> {
+        use std::os::unix::ffi::OsStrExt;
+        let mut acl = 2u32.to_le_bytes().to_vec();
+        for (tag, perm, id) in entries {
+            acl.extend_from_slice(&tag.to_le_bytes());
+            acl.extend_from_slice(&perm.to_le_bytes());
+            acl.extend_from_slice(&id.to_le_bytes());
+        }
+        let path = CString::new(path.as_os_str().as_bytes()).map_err(io::Error::other)?;
+        // SAFETY: valid NUL-terminated strings and a buffer of the stated length.
+        let status = unsafe { libc::setxattr(path.as_ptr(), attribute.as_ptr(), acl.as_ptr().cast(), acl.len(), 0) };
+        if status == 0 {
+            Ok(())
+        } else {
+            Err(io::Error::last_os_error())
+        }
+    }
+
+    // Protects: a destination with plain mode bits (0640, no ACL) in a directory that has a
+    //   DEFAULT ACL with a named user entry is replaced without gaining an access ACL, on
+    //   the synchronous and the asynchronous path.  The staging file inherits the default
+    //   ACL with its named entry masked by the 0600 mode; copying the destination's 0640
+    //   would raise the mask and make that entry effective, widening access to the image.
+    // Detects: a publish that copies the mode but leaves the inherited access ACL on the
+    //   staged file (the published image would then be readable by the named user).
+    // Needs: Linux and a filesystem with POSIX ACL xattrs; returns early with a message
+    //   when the default ACL cannot be set.  A positive control creates a probe file and
+    //   requires it to carry an inherited access ACL, so a passing run proves the
+    //   directory's default ACL was operative.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_inherited_default_acl_is_not_activated_by_the_mode_copy() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let sync_dest = tmp.path().join("sync.png");
+        let async_dest = tmp.path().join("async.png");
+        for dest in [&sync_dest, &async_dest] {
+            fs::write(dest, ORIGINAL).unwrap();
+            fs::set_permissions(dest, fs::Permissions::from_mode(0o640)).unwrap();
+            assert!(
+                !has_access_acl(dest).unwrap(),
+                "precondition: the destination has plain mode bits"
+            );
+        }
+        // SAFETY: geteuid cannot fail.
+        let other_user = unsafe { libc::geteuid() }.wrapping_add(1);
+        // default: user::rwx, user:<other>:rw-, group::r-x, mask::rwx, other::---
+        let default_acl = [
+            (0x01u16, 7u16, u32::MAX),
+            (0x02, 6, other_user),
+            (0x04, 5, u32::MAX),
+            (0x10, 7, u32::MAX),
+            (0x20, 0, u32::MAX),
+        ];
+        if let Err(error) = set_posix_acl(tmp.path(), c"system.posix_acl_default", &default_acl) {
+            eprintln!("SKIP default-acl test: cannot set a default ACL here: {error}");
+            return;
+        }
+        let probe = tmp.path().join("probe");
+        File::create(&probe).unwrap();
+        assert!(
+            has_access_acl(&probe).unwrap(),
+            "positive control: a file created in the directory inherits an access ACL"
+        );
+        fs::remove_file(&probe).unwrap();
+
+        write_image_atomically(&image::RgbImage::new(2, 2), &sync_dest).expect("sync publish");
+        let id = register_request(MediaRequestStatus::Pending);
+        let encode = encode_for(&async_dest);
+        execute_async_request_staged(
+            id,
+            async_dest.to_string_lossy().into_owned(),
+            mock_image,
+            encode,
+            publish_staged,
+        );
+        assert_eq!(poll_full(id).0, 2, "the async publish completes");
+
+        for (label, dest) in [("sync", &sync_dest), ("async", &async_dest)] {
+            assert_ne!(fs::read(dest).unwrap(), ORIGINAL, "{label}: the new image is published");
+            assert!(
+                !has_access_acl(dest).unwrap(),
+                "{label}: the published file carries no inherited access ACL"
+            );
+            assert_eq!(unix_mode(dest), 0o640, "{label}: the destination's mode is kept");
+        }
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["async.png", "sync.png"],
+            "no staging file left"
+        );
     }
 
     // Protects: every test that touches the process-wide FFI state takes the serial

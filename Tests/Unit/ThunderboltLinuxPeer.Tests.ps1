@@ -672,15 +672,29 @@ public static class VigilProcessCustodyFixture {
             $owned.Dispose()
         }
     }
+    # Protects: a stdin write the child never reads is ended by the operation's own timeout, and the child that was started is terminated.
+    # Detects: removing the timeout or the process kill, or losing the process-tree cleanup; a timeout that fires without killing.
+    # Needs: PowerShell 7 and a Windows job object. The runner is compiled before timing, so the outer bound covers the operation
+    #        and its teardown only. The 8 s operational timeout is asserted separately from the generous elapsed upper bound.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1, Invoke-TbNative.
     It 'bounds a large stdin write when the actual child never reads it' {
+        $timeoutSeconds = 8
+        $slackSeconds = 10
         $pidFile = Join-Path $TestDrive 'nonreading-child.pid'
-        $child = '$PID | Set-Content -LiteralPath ''' + $pidFile.Replace("'", "''") + '''; Start-Sleep 15'
+        # The child records its PID and start time, then sleeps 40 s, far longer than timeout plus slack, so only a real kill ends it.
+        $child = '$me = [Diagnostics.Process]::GetCurrentProcess(); [string]::Join('','', $me.Id, $me.StartTime.ToUniversalTime().Ticks) | Set-Content -LiteralPath ''' + $pidFile.Replace("'", "''") + '''; Start-Sleep 40'
+        Initialize-VigilBoundedProcessRunner
         $timer = [Diagnostics.Stopwatch]::StartNew()
-        { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $child) -InputText ('x' * 1048576) -TimeoutSeconds 2 } | Should -Throw '*timed out*'
-        $timer.Elapsed.TotalSeconds | Should -BeLessThan 5
-        Test-Path -LiteralPath $pidFile | Should -BeTrue
-        $childId = [int](Get-Content -LiteralPath $pidFile)
-        Get-Process -Id $childId -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $child) -InputText ('x' * 1048576) -TimeoutSeconds $timeoutSeconds } |
+            Should -Throw "*timed out after $timeoutSeconds seconds; process tree terminated*"
+        $timer.Stop()
+        $timer.Elapsed.TotalSeconds | Should -BeGreaterOrEqual $timeoutSeconds -Because 'the operation timeout, not an early exit, ended the call'
+        $timer.Elapsed.TotalSeconds | Should -BeLessThan ($timeoutSeconds + $slackSeconds) -Because 'teardown on a loaded host needs slack, but the 40 s child must not run to completion'
+        Test-Path -LiteralPath $pidFile | Should -BeTrue -Because 'the child must have started before the timeout for its termination to be provable'
+        $childId, $startTicks = (Get-Content -LiteralPath $pidFile -Raw).Trim() -split ','
+        $survivor = Get-Process -Id ([int]$childId) -ErrorAction SilentlyContinue |
+            Where-Object { $_.StartTime.ToUniversalTime().Ticks -eq [long]$startTicks }
+        $survivor | Should -BeNullOrEmpty -Because 'the exact child process that was started must be gone'
     }
     It 'preserves large stdin and simultaneous output without deadlock' {
         $text = 'z' * 1048576
@@ -693,7 +707,7 @@ public static class VigilProcessCustodyFixture {
 $info = [Diagnostics.ProcessStartInfo]::new('__SHELL__')
 $info.UseShellExecute = $false
 $info.CreateNoWindow = $true
-foreach ($argument in @('-NoLogo','-NoProfile','-Command','Start-Sleep 30')) { $info.ArgumentList.Add($argument) }
+foreach ($argument in @('-NoLogo','-NoProfile','-Command','Start-Sleep 40')) { $info.ArgumentList.Add($argument) }
 $owned = [Diagnostics.Process]::Start($info)
 $witness = @{ Id = $owned.Id; StartTicks = $owned.StartTime.ToUniversalTime().Ticks } | ConvertTo-Json
 [IO.File]::WriteAllText('__WITNESS__', $witness)

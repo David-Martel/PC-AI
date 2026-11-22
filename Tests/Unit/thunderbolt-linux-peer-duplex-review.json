@@ -8,7 +8,7 @@
   "sourceBindings": {
     "Tools/Invoke-ThunderboltNetworking.ps1": "0343cb4fa2a00e50c84321cba68f093895572d59d476bfd7c85a490461293fce",
     "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "6b7f827324c12264c581ab1c74328bf6127d7a041d841cc8f413f9efeae3b51e",
-    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "3b8a2acff5ddb5a7bfc355c656043ae8cf5122a816bf4b780eb1f989583348bc"
+    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "ce1503ca71c8f7415343faf55a7174079ea71c49b44de594c2ef1e1ecd507205"
   },
   "selectors": [
     {

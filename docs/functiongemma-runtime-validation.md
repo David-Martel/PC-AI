@@ -45,6 +45,31 @@ examples that accidentally depend on private middleware APIs. The existing HTTP
 tests use the default unauthenticated configuration; this gate does not establish
 coverage of configured bearer-token rejection or acceptance.
 
+### Health telemetry latency
+
+The [health collector](../Deploy/rust-functiongemma-runtime/src/metrics.rs)
+refreshes RAM and router-process counters every five seconds. A cold
+`cpu_usage` is `null` until an interval is available. CPU percentages use one
+logical core as 100%. If sampling fails initially, the response omits
+`metrics`. A later failure keeps the last good snapshot until the next
+scheduled refresh. The four `*_mb` values retain their keys and now represent
+MiB. Older builds reported KiB under those keys.
+
+Use the [loopback benchmark](../Tests/Benchmarks/measure_functiongemma_health.py)
+with Python 3.11 or later. Stage the locked baseline and candidate binaries
+separately and run the same command with each path.
+
+```sh
+python Tests/Benchmarks/measure_functiongemma_health.py <staged-runtime> --trials 3
+```
+
+Each trial launches a fresh CPU runtime and measures the first health request,
+a cached request, and a request after the five-second refresh interval. The
+receipt records each latency and the binary SHA-256. Windows loopback medians
+for three debug launches per build against baseline `244fe612` were 1,285 ms
+to 35 ms on first access and 1,352 ms to 53 ms on refresh. Cached responses
+varied between runs, with medians of 2.25 ms and 23.48 ms in this sample.
+
 The core selection exercises the [chat-template fixtures](../Deploy/rust-functiongemma-core/src/chat_template.rs),
 [safetensors utilities](../Deploy/rust-functiongemma-core/src/safetensors_utils.rs)
 and other CPU-only core tests. The runtime still uses its default heuristic

@@ -46,9 +46,15 @@ Ethernet adapters cannot satisfy these checks. The SSH control path stays on LAN
 Configuration adds the Windows address without deleting unrelated addresses.
 Linux creates the persistent NetworkManager profile `pcai-tb-<peer>` and rejects
 ambiguous names or an existing profile with unexpected interface, address,
-IP method, gateway, DNS, routes, IPv6 settings, or autoconnect policy. Existing
-profiles are selected by UUID. It sets no
-gateway or DNS, disables default routing, and uses MTU 1500 at both ends. If a
+IP method, gateway, DNS, routes, or autoconnect policy. Existing profiles are
+selected by UUID. Configure sets `ipv6.method link-local` and `ipv6.never-default yes`.
+An explicit Apply can migrate a matching `disabled` profile after it verifies
+that the profile has no stored IPv6 addresses, DNS, gateway, or routes. The
+IPv4 address pair still provides the source-bound SSH and benchmark paths.
+See the [Linux profile tests](../../../Tests/Integration/ThunderboltLinuxProfile.Tests.ps1)
+and their [review record](../../../Tests/Integration/thunderbolt-linux-profile-review.json).
+Configure sets no gateway or DNS and uses the configured MTU for Windows IPv4
+and the Linux link. If a
 later Windows step fails, the Linux isolated profile can remain configured; the
 error is surfaced and LAN SSH remains available for recovery. Re-running is
 idempotent. Rollback removes only the added Windows /30 address and owned Linux

@@ -229,6 +229,11 @@ Override artifact location: `$env:PCAI_ARTIFACTS_ROOT = 'D:\build'`
 
 ### Version Information
 
+The versioning policy is [docs/VERSIONING.md](docs/VERSIONING.md): one SemVer product version for the repository, from
+signed annotated `vX.Y.Z` tags on `main`, which the Rust workspace inherits through `[workspace.package]`. The
+`versioning` check in `Tools/validate-doc-accuracy.ps1` keeps the workspace version, the tags and the format below in
+agreement.
+
 ```powershell
 # Get version info from git metadata
 .\Tools\Get-BuildVersion.ps1
@@ -240,9 +245,10 @@ Override artifact location: `$env:PCAI_ARTIFACTS_ROOT = 'D:\build'`
 .\Tools\Get-BuildVersion.ps1 -Format Json    # JSON output
 .\Tools\Get-BuildVersion.ps1 -Format Env     # Shell export format
 .\Tools\Get-BuildVersion.ps1 -Format Cargo   # Cargo rustc-env format
+.\Tools\Get-BuildVersion.ps1 -Format CMake   # CMake set() commands
 ```
 
-**Version Format:** `{semver}.{commits}+{hash}[.dirty]`
+**Version Format:** `{semver}[.{commits}]+{hash}[.dirty]`
 
 - Example: `0.2.0.15+abc1234` (15 commits since v0.2.0, hash abc1234)
 - Example: `0.2.0+abc1234` (exactly at tag v0.2.0)
@@ -617,7 +623,7 @@ Pre-commit hooks are managed via `lefthook.yml`. Install: `lefthook install`. On
 
 **Optional (for GPU):**
 
-- CUDA Toolkit 13.2+ (`CUDA_PATH` env var) — 13.2 is latest (March 2026)
+- CUDA Toolkit 13.x (`CUDA_PATH` env var); `Tools\Initialize-CudaEnvironment.ps1` probes v13.1 first (cudarc compatibility), then v13.2, then older
 - cuDNN (for mistral.rs flash attention)
 - sccache (for faster rebuilds)
 

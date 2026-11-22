@@ -12,7 +12,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 authors = ["David Martel"]
 edition = "2021"
 # The locked workspace includes sysinfo 0.40 requiring Rust 1.95 and UUID

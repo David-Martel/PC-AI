@@ -368,13 +368,15 @@ impl GenerationPipeline {
     fn preflight_generation_weights(
         model_config: &JanusConfig,
         shards: &[PathBuf],
+        model_id: &str,
         model_path: &std::path::Path,
         quantized_llama: bool,
     ) -> Result<()> {
         anyhow::ensure!(
             !shards.is_empty(),
-            "no safetensors weight shards found in '{}'; generation requires trained model weights, including non-LLM components for GGUF models",
-            model_path.display()
+            "no safetensors weight shards found in '{}'; generation requires trained model weights, including non-LLM components for GGUF models. {}",
+            model_path.display(),
+            hub::weights_preparation_hint(model_id, model_path)
         );
         anyhow::ensure!(
             !hub::open_safetensors(shards)
@@ -540,7 +542,13 @@ impl GenerationPipeline {
             dtype // full-precision path: use the configured dtype as-is
         };
 
-        Self::preflight_generation_weights(&model_config, &shards, &model_path, config.gguf_path.is_some())?;
+        Self::preflight_generation_weights(
+            &model_config,
+            &shards,
+            &config.model,
+            &model_path,
+            config.gguf_path.is_some(),
+        )?;
         let registry = VarMap::new();
         let vb = VarBuilder::from_varmap(&registry, non_llm_dtype, &device);
         let mut varmap = Some(registry);
@@ -1828,6 +1836,25 @@ mod tests {
                 .expect("partial 7B checkpoint must fail before allocation or GGUF parsing");
             assert!(error.downcast_ref::<hub::IncompleteWeights>().is_some(), "{error:#}");
         }
+    }
+
+    // Protects: a model directory holding only PyTorch weights is refused with the exact
+    //   conversion command for that directory, not a bare "no shards" message.
+    // Detects: the refusal losing its preparation guidance, or load proceeding to allocate.
+    // Needs: a temp directory only; no model, GPU or network.
+    #[test]
+    fn test_load_refuses_pytorch_only_directory_with_conversion_command() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        std::fs::write(tmp.path().join("pytorch_model.bin"), b"not read").unwrap();
+        let config = PipelineConfig {
+            model: tmp.path().to_string_lossy().into_owned(),
+            device: "cpu".to_string(),
+            ..PipelineConfig::default()
+        };
+        let error = format!("{:#}", GenerationPipeline::load(config).err().expect("must refuse"));
+        assert!(error.contains("no safetensors weight shards"), "{error}");
+        assert!(error.contains("Tools/convert-sharded-weights.py"), "{error}");
+        assert!(error.contains(&tmp.path().to_string_lossy().into_owned()), "{error}");
     }
 
     // Protects: generation-only checkpoints load while understanding stays unavailable.

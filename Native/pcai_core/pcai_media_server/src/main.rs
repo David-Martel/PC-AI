@@ -53,7 +53,10 @@ static GLOBAL: MiMalloc = MiMalloc;
 #[derive(Debug, Parser)]
 #[command(name = "pcai-media", about = "Janus-Pro media inference HTTP server")]
 struct Args {
-    /// Model path or HuggingFace repo ID.
+    /// Model directory or HuggingFace repo ID. The directory needs config.json, tokenizer.json
+    /// and complete SafeTensors weights; a repo ID resolves to a prepared Models/<name> copy
+    /// (or $PCAI_MODELS_DIR/<name>). Prepare weights with Tools/Get-JanusProModel.ps1 and
+    /// Tools/convert-sharded-weights.py (see docs/media-weight-preparation.md).
     #[arg(short = 'm', long = "model", default_value = "deepseek-ai/Janus-Pro-1B")]
     model: String,
 

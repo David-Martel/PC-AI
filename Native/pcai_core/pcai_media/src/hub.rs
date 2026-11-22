@@ -1,8 +1,8 @@
 //! Model download and weight loading for the Janus-Pro pipeline.
 //!
 //! This module handles:
-//! 1. Resolving a model identifier (HuggingFace Hub ID or local path) to a
-//!    local directory.
+//! 1. Resolving a model identifier (local path, prepared SafeTensors copy of a
+//!    HuggingFace Hub ID, or the Hub cache) to a local directory.
 //! 2. Collecting safetensors shard paths within that directory.
 //! 3. Memory-mapping the shards into a [`MmapedSafetensors`] archive.
 //! 4. Loading tensors from the archive into a [`VarMap`].
@@ -15,7 +15,7 @@
 //! use std::path::PathBuf;
 //!
 //! let model_path = hub::resolve_model_path("deepseek-ai/Janus-Pro-7B")
-//!     .expect("failed to download model");
+//!     .expect("failed to resolve model");
 //! let shards = hub::collect_safetensors(&model_path);
 //! println!("found {} shard(s)", shards.len());
 //! ```
@@ -31,48 +31,155 @@ use candle_nn::VarMap;
 // resolve_model_path
 // ---------------------------------------------------------------------------
 
+/// Environment variable naming a directory that holds prepared model
+/// directories (`<dir>/<model name>/` with SafeTensors weights).
+pub const MODELS_DIR_ENV: &str = "PCAI_MODELS_DIR";
+
+/// Directories searched for a prepared copy of a Hub model id: `$PCAI_MODELS_DIR`
+/// first, then `Models` relative to the working directory (the layout written
+/// by `Tools/Get-JanusProModel.ps1`).
+pub fn prepared_model_roots() -> Vec<PathBuf> {
+    let mut roots = Vec::new();
+    if let Some(dir) = std::env::var_os(MODELS_DIR_ENV).filter(|value| !value.is_empty()) {
+        roots.push(PathBuf::from(dir));
+    }
+    roots.push(PathBuf::from("Models"));
+    roots
+}
+
+/// Last path component of a model id (`deepseek-ai/Janus-Pro-1B` -> `Janus-Pro-1B`).
+fn model_dir_name(model_id: &str) -> Option<&str> {
+    let name = model_id.rsplit(['/', '\\']).next()?;
+    (!name.is_empty() && name != "." && name != "..").then_some(name)
+}
+
+/// Find a prepared copy of `model_id` under one of `roots`.
+///
+/// A prepared directory is `<root>/<model name>/` holding `config.json`,
+/// `tokenizer.json` and SafeTensors weights, which is what the loader needs.
+pub fn find_prepared_model(model_id: &str, roots: &[PathBuf]) -> Option<PathBuf> {
+    let name = model_dir_name(model_id)?;
+    roots.iter().map(|root| root.join(name)).find(|dir| {
+        dir.join("config.json").is_file()
+            && dir.join("tokenizer.json").is_file()
+            && !collect_safetensors(dir).is_empty()
+    })
+}
+
 /// Resolve a model identifier to a local directory containing model files.
 ///
-/// If `model_id` points to an existing local directory it is returned as-is.
-/// Otherwise the function attempts to download the model from HuggingFace Hub
-/// using the async tokio API, fetching `config.json` and `tokenizer.json`
-/// into the Hub cache directory.
+/// Order: an existing local directory is returned as-is; otherwise a prepared
+/// SafeTensors copy under [`prepared_model_roots`]; otherwise the model is
+/// downloaded from HuggingFace Hub (`config.json` and `tokenizer.json` only,
+/// into the Hub cache). Janus-Pro repositories publish PyTorch `.bin`
+/// weights, so the downloaded directory has no SafeTensors until the weights
+/// are prepared; see [`weights_preparation_hint`].
 ///
 /// # Errors
 ///
 /// Returns an error if the Hub download fails or if required files cannot be
 /// found after downloading.
 pub fn resolve_model_path(model_id: &str) -> Result<PathBuf> {
+    resolve_model_path_with(model_id, &prepared_model_roots(), download_model_blocking)
+}
+
+/// [`resolve_model_path`] with injectable search roots and downloader, so the
+/// cold-cache behaviour can be tested without a network.
+pub fn resolve_model_path_with(
+    model_id: &str,
+    roots: &[PathBuf],
+    download: impl FnOnce(&str) -> Result<PathBuf>,
+) -> Result<PathBuf> {
     let local = PathBuf::from(model_id);
     if local.is_dir() {
         tracing::info!(model = model_id, "using local model directory");
         return Ok(local);
     }
-
+    if let Some(prepared) = find_prepared_model(model_id, roots) {
+        tracing::info!(model = model_id, path = %prepared.display(), "using prepared SafeTensors model directory");
+        return Ok(prepared);
+    }
     tracing::info!(model = model_id, "downloading model from HuggingFace Hub");
+    download(model_id)
+}
 
-    // Use the async tokio API (avoids ureq → rustls → ring build dependency).
-    // Block on the async call since resolve_model_path is sync.
-    let rt = tokio::runtime::Handle::try_current()
-        .map(|_h| {
-            // We're already inside a tokio runtime — use spawn_blocking to
-            // avoid blocking the async executor.
-            std::thread::scope(|s| {
-                s.spawn(|| {
-                    let local_rt = tokio::runtime::Runtime::new().expect("tokio runtime");
-                    local_rt.block_on(download_model_async(model_id))
-                })
-                .join()
-                .expect("download thread panicked")
+/// Whether `dir` holds PyTorch checkpoint weights (single, sharded or index).
+fn has_pytorch_weights(dir: &Path) -> bool {
+    std::fs::read_dir(dir)
+        .map(|entries| {
+            entries.flatten().any(|entry| {
+                let name = entry.file_name();
+                let name = name.to_string_lossy();
+                name.starts_with("pytorch_model") && (name.ends_with(".bin") || name.ends_with(".bin.index.json"))
             })
         })
-        .unwrap_or_else(|_| {
-            // No runtime — create one and block.
-            let rt = tokio::runtime::Runtime::new().context("failed to create tokio runtime")?;
-            rt.block_on(download_model_async(model_id))
-        })?;
+        .unwrap_or(false)
+}
 
-    Ok(rt)
+/// Actionable text for a model directory that has no SafeTensors weights.
+///
+/// The loader never reads PyTorch `.bin` checkpoints and refuses random
+/// weights. Both published Janus-Pro repositories (`deepseek-ai/Janus-Pro-1B`
+/// and `-7B`) contain only `.bin` weights, so they must be downloaded and
+/// converted once. The commands are the repository's own tools:
+/// `Tools/Get-JanusProModel.ps1` (downloads `config.json`, the tokenizer and
+/// `pytorch_model*.bin` into `Models/<name>`) and
+/// `Tools/convert-sharded-weights.py` (writes `model.safetensors` next to
+/// them).
+pub fn weights_preparation_hint(model_id: &str, model_path: &Path) -> String {
+    let local_dir = PathBuf::from(model_id).is_dir();
+    let (prepared_dir, download_step) = if local_dir {
+        let dir = model_path.display().to_string();
+        let download = (!has_pytorch_weights(model_path)).then(|| {
+            format!(
+                "1. download the PyTorch weights into it, for example: pwsh Tools/Get-JanusProModel.ps1 -ModelId deepseek-ai/Janus-Pro-1B -OutputDir \"{dir}\"; "
+            )
+        });
+        (dir, download)
+    } else {
+        let name = model_dir_name(model_id).unwrap_or("Janus-Pro-1B");
+        let dir = format!("Models/{name}");
+        let download = format!("1. pwsh Tools/Get-JanusProModel.ps1 -ModelId {model_id}; ");
+        (dir, Some(download))
+    };
+    let convert = format!(
+        "{}uv run python Tools/convert-sharded-weights.py \"{prepared_dir}\" (writes model.safetensors there)",
+        if download_step.is_some() { "2. " } else { "" }
+    );
+    let finish = if local_dir {
+        format!("then load \"{prepared_dir}\" again")
+    } else {
+        format!(
+            "then load \"{prepared_dir}\" (pass it as the model, or keep it under Models/ or ${MODELS_DIR_ENV} so '{model_id}' resolves to it)"
+        )
+    };
+    format!(
+        "Janus-Pro is published as PyTorch weights and this loader only reads complete SafeTensors (it refuses random weights). Prepare them once: {}{convert}; {finish}",
+        download_step.unwrap_or_default()
+    )
+}
+
+/// Download `config.json` and `tokenizer.json` for `model_id` into the Hub
+/// cache, blocking the caller (safe inside or outside a tokio runtime).
+fn download_model_blocking(model_id: &str) -> Result<PathBuf> {
+    // Use the async tokio API (avoids ureq -> rustls -> ring build dependency).
+    // Block on the async call since the loader is sync.
+    let run = || -> Result<PathBuf> {
+        let runtime = tokio::runtime::Runtime::new().context("failed to create tokio runtime")?;
+        runtime.block_on(download_model_async(model_id))
+    };
+    if tokio::runtime::Handle::try_current().is_ok() {
+        // Already inside a tokio runtime: use a scoped thread so the async
+        // executor is not blocked.
+        std::thread::scope(|scope| {
+            scope
+                .spawn(run)
+                .join()
+                .map_err(|_| anyhow::anyhow!("model download thread panicked"))?
+        })
+    } else {
+        run()
+    }
 }
 
 /// Async implementation of model download from HuggingFace Hub.
@@ -509,6 +616,93 @@ mod tests {
         let error = load_weights(&required_variables(), &[path], DType::F32, &Device::Cpu)
             .expect_err("mismatched shape must fail");
         assert!(format!("{error:#}").contains("first.weight"));
+    }
+
+    // Protects: the cold-cache path for the default model id: a prepared SafeTensors copy
+    //   is used without touching the network.
+    // Detects: resolution that downloads (or fails) even though Models/<name> is ready.
+    // Needs: a temp directory; the downloader is a mock that fails the test if called.
+    #[test]
+    fn test_prepared_copy_resolves_without_network() {
+        let root = tempfile::tempdir().expect("tempdir");
+        let prepared = root.path().join("Janus-Pro-1B");
+        fs::create_dir(&prepared).unwrap();
+        fs::write(prepared.join("config.json"), "{}").unwrap();
+        fs::write(prepared.join("tokenizer.json"), "{}").unwrap();
+        weight_fixture(&prepared.join("model.safetensors"), &[("first.weight", vec![1.0, 2.0])]);
+
+        let resolved = resolve_model_path_with("deepseek-ai/Janus-Pro-1B", &[root.path().to_path_buf()], |_| {
+            anyhow::bail!("the network must not be used when a prepared copy exists")
+        })
+        .expect("prepared copy resolves");
+        assert_eq!(resolved, prepared);
+    }
+
+    // Protects: a cold cache (nothing prepared) falls back to the downloader, and the
+    //   resulting config-only directory yields an actionable hint naming the repo's tools.
+    // Detects: a hint that omits the download or convert command, the target directory,
+    //   or the way to point the loader at the result; an incomplete prepared directory
+    //   (no tokenizer) being treated as usable.
+    // Needs: temp directories; the downloader is a mock returning a config-only cache dir.
+    #[test]
+    fn test_cold_cache_falls_back_to_download_and_hint_names_the_commands() {
+        let roots = tempfile::tempdir().expect("tempdir");
+        let incomplete = roots.path().join("Janus-Pro-1B");
+        fs::create_dir(&incomplete).unwrap();
+        fs::write(incomplete.join("config.json"), "{}").unwrap();
+        weight_fixture(&incomplete.join("model.safetensors"), &[("first.weight", vec![1.0])]);
+
+        let cache = tempfile::tempdir().expect("tempdir");
+        fs::write(cache.path().join("config.json"), "{}").unwrap();
+        fs::write(cache.path().join("tokenizer.json"), "{}").unwrap();
+        let cache_path = cache.path().to_path_buf();
+        let mut downloaded = false;
+        let resolved = resolve_model_path_with("deepseek-ai/Janus-Pro-1B", &[roots.path().to_path_buf()], |id| {
+            assert_eq!(id, "deepseek-ai/Janus-Pro-1B");
+            downloaded = true;
+            Ok(cache_path.clone())
+        })
+        .expect("mock download resolves");
+        assert!(
+            downloaded,
+            "an incomplete prepared directory must not satisfy resolution"
+        );
+        assert_eq!(resolved, cache.path());
+        assert!(collect_safetensors(&resolved).is_empty());
+
+        let hint = weights_preparation_hint("deepseek-ai/Janus-Pro-1B", &resolved);
+        for needle in [
+            "Tools/Get-JanusProModel.ps1 -ModelId deepseek-ai/Janus-Pro-1B",
+            "Tools/convert-sharded-weights.py \"Models/Janus-Pro-1B\"",
+            "PCAI_MODELS_DIR",
+            "refuses random weights",
+        ] {
+            assert!(hint.contains(needle), "missing {needle:?} in: {hint}");
+        }
+    }
+
+    // Protects: a local directory that already has PyTorch weights gets an in-place
+    //   convert command and no download step; an existing local directory is never
+    //   replaced by a prepared copy.
+    // Detects: telling the user to re-download what is already on disk, or a hint that
+    //   names the wrong directory.
+    // Needs: a temp directory.
+    #[test]
+    fn test_local_pytorch_directory_hint_converts_in_place() {
+        let local = tempfile::tempdir().expect("tempdir");
+        fs::write(local.path().join("pytorch_model-00001-of-00002.bin"), b"x").unwrap();
+        let id = local.path().to_string_lossy().into_owned();
+        let other = tempfile::tempdir().expect("tempdir");
+        let resolved = resolve_model_path_with(&id, &[other.path().to_path_buf()], |_| {
+            anyhow::bail!("a local directory needs no download")
+        })
+        .expect("local directory resolves to itself");
+        assert_eq!(resolved, local.path());
+
+        let hint = weights_preparation_hint(&id, &resolved);
+        assert!(!hint.contains("Get-JanusProModel"), "{hint}");
+        assert!(hint.contains("Tools/convert-sharded-weights.py"), "{hint}");
+        assert!(hint.contains(&id), "{hint}");
     }
 
     // Protects: a corrupt or truncated checkpoint is a typed error at preflight and at

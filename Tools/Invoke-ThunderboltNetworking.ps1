@@ -71,6 +71,7 @@ param(
     [ValidateRange(1024, 65535)][int]$Port = 5201,
 
     [string]$IperfPath = 'iperf3',
+    [switch]$FullDuplex,
 
     [Alias('h', 'help')][switch]$ShowHelp
 )
@@ -79,11 +80,14 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 if ($ShowHelp) { Get-Help $PSCommandPath -Detailed; return }
+if ($FullDuplex -and ($Mode -ne 'LinuxPeer' -or $Action -ne 'Benchmark')) {
+    throw '-FullDuplex requires -Mode LinuxPeer -Action Benchmark.'
+}
 if ($Mode -eq 'LinuxPeer') {
     & (Join-Path $PSScriptRoot 'SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1') `
         -Action $Action -Peer $Peer -ConfigPath $ConfigPath -InterfaceAlias $InterfaceAlias `
         -LinuxInterface $LinuxInterface -Apply:$Apply -DryRun:$DryRun `
-        -DurationSeconds $DurationSeconds -Port $Port -IperfPath $IperfPath -WhatIf:$WhatIfPreference
+        -DurationSeconds $DurationSeconds -Port $Port -IperfPath $IperfPath -FullDuplex:$FullDuplex -WhatIf:$WhatIfPreference
     return
 }
 

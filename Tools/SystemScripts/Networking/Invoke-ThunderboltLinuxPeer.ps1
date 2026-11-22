@@ -6,6 +6,8 @@ Inspect, prepare, configure or benchmark an isolated Linux Thunderbolt peer.
 Uses existing key-authenticated LAN SSH with strict host-key checking. Specify a
 reviewed -Peer profile. Status is read-only. Mutations require -Apply and ShouldProcess approval. No gateway, DNS,
 WinRM, global firewall or Thunderbolt security changes are made.
+.PARAMETER FullDuplex
+Runs one simultaneous TCP test. Both endpoints need iperf3 3.11 or newer.
 .EXAMPLE
 ./Invoke-ThunderboltLinuxPeer.ps1 -Peer $ReviewedPeer -Action Configure -DryRun
 #>
@@ -21,6 +23,7 @@ param(
     [ValidateRange(1, 60)][int]$DurationSeconds = 10,
     [ValidateRange(1024, 65535)][int]$Port = 5201,
     [string]$IperfPath = 'iperf3',
+    [switch]$FullDuplex,
     [Alias('h', 'help')][switch]$ShowHelp
 )
 
@@ -288,31 +291,45 @@ ip -j -4 route get '$($Profile.localAddress)' | python3 -c 'import json,sys; r=j
     }
 }
 
-function Invoke-TbBenchmark {
+function Invoke-TbBenchmarkTrial {
     [CmdletBinding()]
-    param([hashtable]$Profile, [object]$Adapter, [string]$RemoteInterface, [string]$Executable, [int]$Seconds, [int]$ServerPort)
-    Assert-TbBenchmarkRoute -Profile $Profile -Adapter $Adapter
-    $results = @()
-    foreach ($reverse in @($false, $true)) {
-        $start = [Diagnostics.ProcessStartInfo]::new('ssh')
-        $start.UseShellExecute = $false
-        $start.CreateNoWindow = $true
-        $start.RedirectStandardInput = $true
-        $start.RedirectStandardOutput = $true
-        $start.RedirectStandardError = $true
-        foreach ($arg in @('-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=10', $Profile.sshAlias, 'bash', '-s')) { $start.ArgumentList.Add($arg) }
-        $server = [Diagnostics.Process]::new()
-        $server.StartInfo = $start
-        $serverStarted = $false
-        try {
-            if (-not $server.Start()) { throw 'Could not start benchmark SSH server.' }
-            $serverStarted = $true
-            $serverErr = $server.StandardError.ReadToEndAsync()
-            $serverScript = @"
+    param([hashtable]$Profile, [object]$Adapter, [string]$RemoteInterface, [string]$Executable,
+        [int]$Seconds, [int]$ServerPort, [string[]]$ClientOptions = @())
+    $start = [Diagnostics.ProcessStartInfo]::new('ssh')
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardInput = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    foreach ($arg in @('-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=10', $Profile.sshAlias, 'bash', '-s')) { $start.ArgumentList.Add($arg) }
+    $server = [Diagnostics.Process]::new()
+    $server.StartInfo = $start
+    $serverStarted = $false
+    try {
+        if (-not $server.Start()) { throw 'Could not start benchmark SSH server.' }
+        $serverStarted = $true
+        $serverErr = $server.StandardError.ReadToEndAsync()
+        $returnRouteCheck = if ($ClientOptions -contains '--bidir') {
+            @"
+ip -j -4 route get '$($Profile.localAddress)' from '$($Profile.peerAddress)' | python3 -c '
+import json
+import sys
+
+routes = json.load(sys.stdin)
+if len(routes) != 1:
+    sys.exit("Expected exactly one source-bound duplex return route")
+route = routes[0]
+if route.get("dev") != sys.argv[1] or route.get("gateway") or route.get("via"):
+    sys.exit("Duplex return route is not direct on the selected interface")
+' '$RemoteInterface'
+"@
+        }
+        $serverScript = @"
 set -euo pipefail
 test "`$(hostname)" = '$($Profile.expectedHostname)'
 ip -4 addr show dev '$RemoteInterface' | grep -Fq 'inet $($Profile.peerAddress)/30 '
-timeout $($Seconds + 15)s iperf3 -s -1 -B '$($Profile.peerAddress)' -p $ServerPort &
+$returnRouteCheck
+timeout --kill-after=3s $($Seconds + 15)s iperf3 -s -1 -B '$($Profile.peerAddress)' -p $ServerPort &
 child=`$!
 trap 'kill "`$child" 2>/dev/null || true' EXIT HUP INT TERM
 sleep 0.5
@@ -320,35 +337,97 @@ kill -0 "`$child"
 echo PCAI_IPERF_READY
 wait "`$child"
 "@
-            $server.StandardInput.Write($serverScript.Replace("`r`n", "`n"))
-            $server.StandardInput.Close()
-            $ready = $false
-            $deadline = [DateTime]::UtcNow.AddSeconds(10)
-            while (-not $ready -and [DateTime]::UtcNow -lt $deadline) {
-                $lineTask = $server.StandardOutput.ReadLineAsync()
-                if (-not $lineTask.Wait([int][Math]::Max(1, ($deadline - [DateTime]::UtcNow).TotalMilliseconds))) {
-                    throw 'Remote benchmark server readiness timed out.'
-                }
-                $line = $lineTask.GetAwaiter().GetResult()
-                if ($null -eq $line) { throw "Remote benchmark server failed: $($serverErr.GetAwaiter().GetResult())" }
-                $ready = $line -eq 'PCAI_IPERF_READY'
+        $server.StandardInput.Write($serverScript.Replace("`r`n", "`n"))
+        $server.StandardInput.Close()
+        $ready = $false
+        $timer = [Diagnostics.Stopwatch]::StartNew()
+        while (-not $ready -and $timer.ElapsedMilliseconds -lt 10000) {
+            $lineTask = $server.StandardOutput.ReadLineAsync()
+            if (-not $lineTask.Wait([int][Math]::Max(1, 10000 - $timer.ElapsedMilliseconds))) {
+                throw 'Remote benchmark server readiness timed out.'
             }
-            if (-not $ready) { throw 'Remote benchmark server did not become ready.' }
-            $serverOut = $server.StandardOutput.ReadToEndAsync()
-            Assert-TbBenchmarkRoute -Profile $Profile -Adapter $Adapter
-            $arguments = @('-c', $Profile.peerAddress, '-B', $Profile.localAddress, '-p', "$ServerPort", '-t', "$Seconds", '-J')
-            if ($reverse) { $arguments += '-R' }
-            $json = Invoke-TbNative -FilePath $Executable -Arguments $arguments -TimeoutSeconds ($Seconds + 15) | ConvertFrom-Json
-            if ($json.PSObject.Properties.Name -contains 'error') { throw "iperf3 reported: $($json.error)" }
-            if (-not $server.WaitForExit(10000)) { throw 'Remote one-shot benchmark server did not finish.' }
-            if ($server.ExitCode -ne 0) { throw "Remote benchmark server exited $($server.ExitCode): $($serverErr.GetAwaiter().GetResult())" }
-            $null = $serverOut.GetAwaiter().GetResult()
-            $results += [pscustomobject]@{ Direction = $(if ($reverse) { 'LinuxToWindows' } else { 'WindowsToLinux' }); Measurement = $json }
+            $line = $lineTask.GetAwaiter().GetResult()
+            if ($null -eq $line) {
+                $details = if ($serverErr.Wait(1000)) { $serverErr.GetAwaiter().GetResult() } else { 'stderr drain timed out' }
+                throw "Remote benchmark server failed: $details"
+            }
+            $ready = $line -eq 'PCAI_IPERF_READY'
         }
-        finally {
-            if ($serverStarted -and -not $server.HasExited) { $server.Kill($true) }
-            $server.Dispose()
+        if (-not $ready) { throw 'Remote benchmark server did not become ready.' }
+        $serverOut = $server.StandardOutput.ReadToEndAsync()
+        Assert-TbBenchmarkRoute -Profile $Profile -Adapter $Adapter
+        $arguments = @('-c', $Profile.peerAddress, '-B', $Profile.localAddress, '-p', "$ServerPort", '-t', "$Seconds", '-J') + $ClientOptions
+        $raw = Invoke-TbNative -FilePath $Executable -Arguments $arguments -TimeoutSeconds ($Seconds + 15)
+        if (-not $server.WaitForExit(10000)) { throw 'Remote one-shot benchmark server did not finish.' }
+        if (-not $serverOut.Wait(1000) -or -not $serverErr.Wait(1000)) { throw 'Remote benchmark server output drain timed out.' }
+        if ($server.ExitCode -ne 0) { throw "Remote benchmark server exited $($server.ExitCode): $($serverErr.GetAwaiter().GetResult())" }
+        return $raw
+    }
+    finally {
+        try {
+            if ($serverStarted -and -not $server.HasExited) {
+                try { $server.Kill($true) } catch [InvalidOperationException] { if (-not $server.HasExited) { throw } }
+                if (-not $server.WaitForExit(5000)) { throw 'Benchmark SSH process did not stop within the cleanup deadline.' }
+            }
         }
+        finally { $server.Dispose() }
+    }
+}
+
+function Get-TbDuplexIperfVersion {
+    [CmdletBinding()]
+    param([string]$Output, [string]$Endpoint)
+    # iperf3 3.7 introduced --bidir, but 3.11 first names the reverse JSON summaries separately.
+    [version]$version = $null
+    if ($Output -notmatch '(?m)^iperf (?<version>\d+\.\d+(?:\.\d+)?)(?:\s|$)' -or
+        -not [version]::TryParse($Matches.version, [ref]$version) -or $version -lt [version]'3.11') {
+        throw "$Endpoint requires iperf3 3.11 or newer for full-duplex JSON summaries."
+    }
+    return $version.ToString()
+}
+
+function Invoke-TbBenchmark {
+    [CmdletBinding()]
+    param([hashtable]$Profile, [object]$Adapter, [string]$RemoteInterface, [string]$Executable,
+        [int]$Seconds, [int]$ServerPort, [switch]$FullDuplex)
+    Assert-TbBenchmarkRoute -Profile $Profile -Adapter $Adapter
+    $trial = @{ Profile = $Profile; Adapter = $Adapter; RemoteInterface = $RemoteInterface;
+        Executable = $Executable; Seconds = $Seconds; ServerPort = $ServerPort }
+    if ($FullDuplex) {
+        $clientVersion = Get-TbDuplexIperfVersion -Endpoint 'Windows' -Output (Invoke-TbNative -FilePath $Executable -Arguments @('--version') -TimeoutSeconds 5)
+        $remoteVersionScript = "set -e`ntest `"`$(hostname)`" = '$($Profile.expectedHostname)'`niperf3 --version`n"
+        $serverVersion = Get-TbDuplexIperfVersion -Endpoint 'Linux' -Output (Invoke-TbSsh -SshAlias $Profile.sshAlias -Script $remoteVersionScript -TimeoutSeconds 15)
+        $modes = @(@{ Direction = 'FullDuplex'; ClientOptions = @('--bidir') })
+    } else {
+        $modes = @(@{ Direction = 'WindowsToLinux'; ClientOptions = @() }, @{ Direction = 'LinuxToWindows'; ClientOptions = @('-R') })
+    }
+    $results = foreach ($mode in $modes) {
+        $json = Invoke-TbBenchmarkTrial @trial -ClientOptions $mode.ClientOptions | ConvertFrom-Json -NoEnumerate
+        if ($json -isnot [pscustomobject]) { throw 'iperf3 did not return a JSON result object.' }
+        if ($json.PSObject.Properties['error']) { throw "iperf3 reported: $($json.error)" }
+        $result = [ordered]@{ Direction = $mode.Direction; Measurement = $json }
+        if ($FullDuplex) {
+            $rates = [ordered]@{}
+            $summaryNames = [ordered]@{ WindowsToLinux = 'sum_received'; LinuxToWindows = 'sum_received_bidir_reverse' }
+            $end = if ($json.PSObject.Properties['end']) { $json.end }
+            foreach ($direction in $summaryNames.Keys) {
+                $name = $summaryNames[$direction]
+                $property = if ($end -is [pscustomobject]) { $end.PSObject.Properties[$name] }
+                if (-not $property -or $property.Value -isnot [pscustomobject]) { throw "iperf3 full-duplex JSON is missing end.$name." }
+                $row = $property.Value
+                foreach ($field in 'bits_per_second', 'bytes', 'seconds') {
+                    $value = if ($row.PSObject.Properties[$field]) { $row.$field }
+                    if (($value -isnot [int] -and $value -isnot [long] -and $value -isnot [double]) -or
+                        -not [double]::IsFinite([double]$value) -or $value -le 0) {
+                        throw "iperf3 full-duplex JSON has invalid end.$name.$field."
+                    }
+                }
+                $rates[$direction] = $row.bits_per_second
+            }
+            $result.ReceiverBitsPerSecond = [pscustomobject]$rates
+            $result.Iperf3Version = [pscustomobject]@{ Windows = $clientVersion; Linux = $serverVersion }
+        }
+        [pscustomobject]$result
     }
     return $results
 }
@@ -357,7 +436,8 @@ function Invoke-ThunderboltLinuxPeerMain {
     [CmdletBinding(SupportsShouldProcess)]
     param([string]$SelectedAction, [string]$SelectedPeer, [string]$ProfilePath, [string]$WindowsAlias,
         [string]$RemoteInterface, [switch]$EnableApply, [switch]$IsDryRun,
-        [int]$Seconds = 10, [int]$ServerPort = 5201, [string]$Executable = 'iperf3')
+        [int]$Seconds = 10, [int]$ServerPort = 5201, [string]$Executable = 'iperf3', [switch]$FullDuplex)
+    if ($FullDuplex -and $SelectedAction -ne 'Benchmark') { throw '-FullDuplex requires -Action Benchmark.' }
     $profile = Get-TbProfile -Path $ProfilePath -Name $SelectedPeer
     $linux = Get-TbLinuxInventory -SshAlias $profile.sshAlias
     if ($linux.hostname -cne $profile.expectedHostname) { throw 'SSH peer hostname does not match profile.' }
@@ -413,9 +493,13 @@ fi
         Assert-TbAddressSafety -Profile $profile -Adapter $adapter -Inventory $linux -RemoteInterface $remote.name
         Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter
         if (-not $linux.iperf3Available) { throw 'Linux iperf3 is unavailable; run Prepare first.' }
-        $result.Plan = @('Measure source-bound iperf3 forward and reverse throughput with bounded one-shot servers.')
-        if ($EnableApply -and -not $IsDryRun -and $PSCmdlet.ShouldProcess($SelectedPeer, 'Run two iperf3 measurements')) {
-            $result.Measurements = @(Invoke-TbBenchmark -Profile $profile -Adapter $adapter -RemoteInterface $remote.name -Executable $Executable -Seconds $Seconds -ServerPort $ServerPort)
+        $result.Plan = @(if ($FullDuplex) {
+                'Measure simultaneous TCP in both directions with one bounded iperf3 session (3.11+ on both hosts).'
+            } else {
+                'Measure source-bound iperf3 forward and reverse throughput with bounded one-shot servers.'
+            })
+        if ($EnableApply -and -not $IsDryRun -and $PSCmdlet.ShouldProcess($SelectedPeer, $result.Plan[0])) {
+            $result.Measurements = @(Invoke-TbBenchmark -Profile $profile -Adapter $adapter -RemoteInterface $remote.name -Executable $Executable -Seconds $Seconds -ServerPort $ServerPort -FullDuplex:$FullDuplex)
             $result.Applied = $true
             $result.State = 'Measured'
         }
@@ -428,5 +512,5 @@ if ($MyInvocation.InvocationName -ne '.') {
     if ([string]::IsNullOrWhiteSpace($Peer)) { throw 'Specify -Peer with a reviewed Linux peer profile from -ConfigPath.' }
     Invoke-ThunderboltLinuxPeerMain -SelectedAction $Action -SelectedPeer $Peer -ProfilePath $ConfigPath `
         -WindowsAlias $InterfaceAlias -RemoteInterface $LinuxInterface -EnableApply:$Apply -IsDryRun:$DryRun `
-        -Seconds $DurationSeconds -ServerPort $Port -Executable $IperfPath -WhatIf:$WhatIfPreference
+        -Seconds $DurationSeconds -ServerPort $Port -Executable $IperfPath -FullDuplex:$FullDuplex -WhatIf:$WhatIfPreference
 }

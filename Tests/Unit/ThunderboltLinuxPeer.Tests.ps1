@@ -27,6 +27,80 @@ Describe 'Explicit Linux peer selection' -Tag 'Unit', 'Portable' {
     }
 }
 
+Describe 'Thunderbolt TCP benchmark modes' -Tag 'Unit', 'Portable' {
+    BeforeEach {
+        $benchmarkProfile = @{ sshAlias = 'test-peer'; expectedHostname = 'test-peer'; localAddress = '172.31.240.1'; peerAddress = '172.31.240.2' }
+        $session = @{ Profile = $benchmarkProfile; Adapter = $adapter; RemoteInterface = 'thunderbolt0'; Executable = 'test-iperf3'; Seconds = 4; ServerPort = 55201 }
+        Mock Assert-TbBenchmarkRoute {}
+        Mock Invoke-TbNative { 'iperf 3.16 (cJSON 1.7.15)' }
+        Mock Invoke-TbSsh { 'iperf 3.16 (cJSON 1.7.15)' }
+    }
+
+    # Protects: the default keeps separate forward and reverse measurements.
+    # Detects: accidentally opting existing callers into concurrent traffic or changing result order.
+    # Needs: mocked process and inventory providers; no network transport.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, Invoke-TbBenchmark.
+    It 'keeps the default benchmark as forward and reverse trials' {
+        Mock Invoke-TbBenchmarkTrial { '{"end":{"sum_received":{"bits_per_second":20}}}' }
+        $result = @(Invoke-TbBenchmark @session)
+        $result.Count | Should -Be 2
+        $result[0].Direction | Should -Be 'WindowsToLinux'
+        $result[1].Direction | Should -Be 'LinuxToWindows'
+        Should -Invoke Invoke-TbBenchmarkTrial -Times 1 -Exactly -ParameterFilter { -not $ClientOptions }
+        Should -Invoke Invoke-TbBenchmarkTrial -Times 1 -Exactly -ParameterFilter { $ClientOptions -contains '-R' }
+        Should -Invoke Invoke-TbNative -Times 0 -Exactly
+        Should -Invoke Invoke-TbSsh -Times 0 -Exactly
+    }
+
+    # Protects: true simultaneous tests launch one source-bound client and report rates from both receivers.
+    # Detects: treating successive one-way tests as duplex, or swapping the Linux and Windows receiver rows.
+    # Needs: mocked process and inventory providers plus the iperf3 JSON contract; no traffic.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, Invoke-TbBenchmark.
+    It 'runs one bidirectional trial and reports both receiver rates' {
+        Mock Invoke-TbBenchmarkTrial {
+            '{"end":{"sum_received":{"bits_per_second":8000,"bytes":4000,"seconds":4},"sum_received_bidir_reverse":{"bits_per_second":6000,"bytes":3000,"seconds":4}}}'
+        }
+        $result = @(Invoke-TbBenchmark @session -FullDuplex)
+        $result.Count | Should -Be 1
+        $result[0].Direction | Should -Be 'FullDuplex'
+        $result[0].ReceiverBitsPerSecond.WindowsToLinux | Should -Be 8000
+        $result[0].ReceiverBitsPerSecond.LinuxToWindows | Should -Be 6000
+        Should -Invoke Invoke-TbBenchmarkTrial -Times 1 -Exactly -ParameterFilter {
+            $ClientOptions -contains '--bidir' -and $ClientOptions -notcontains '-R' -and
+            $Profile.peerAddress -eq '172.31.240.2' -and $Profile.localAddress -eq '172.31.240.1' -and
+            $RemoteInterface -eq 'thunderbolt0' -and $ServerPort -eq 55201 -and $Seconds -eq 4
+        }
+    }
+
+    # Protects: duplex evidence is two real receiver rows from a successful JSON result.
+    # Detects: reporting a one-way, failed, or nonnumeric measurement as full duplex.
+    # Needs: mocked one-shot process and fixed JSON fixtures; no network transport.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, Invoke-TbBenchmark.
+    It 'rejects incomplete duplex evidence from <Case>' -ForEach @(
+        @{ Case = 'an iperf error'; Payload = '{"error":"stream failed"}'; Expected = '*stream failed*' }
+        @{ Case = 'a missing reverse receiver'; Payload = '{"end":{"sum_received":{"bits_per_second":8000,"bytes":4000,"seconds":4}}}'; Expected = '*sum_received_bidir_reverse*' }
+        @{ Case = 'a missing forward receiver'; Payload = '{"end":{"sum_received_bidir_reverse":{"bits_per_second":6000,"bytes":3000,"seconds":4}}}'; Expected = '*sum_received*' }
+        @{ Case = 'an invalid receiver rate'; Payload = '{"end":{"sum_received":{"bits_per_second":"8000","bytes":4000,"seconds":4},"sum_received_bidir_reverse":{"bits_per_second":6000,"bytes":3000,"seconds":4}}}'; Expected = '*sum_received*bits_per_second*' }
+    ) {
+        Mock Invoke-TbBenchmarkTrial { $Payload }
+        { Invoke-TbBenchmark @session -FullDuplex } | Should -Throw $Expected
+    }
+
+    # Protects: both endpoints provide the separately named bidirectional JSON summaries.
+    # Detects: starting a test against iperf3 versions that lack the required evidence shape.
+    # Needs: mocked Windows and Linux version commands and process boundary.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, Invoke-TbBenchmark.
+    It 'refuses an older <Endpoint> iperf3 before opening the one-shot listener' -ForEach @(
+        @{ Endpoint = 'Windows' }; @{ Endpoint = 'Linux' }
+    ) {
+        if ($Endpoint -eq 'Windows') { Mock Invoke-TbNative { 'iperf 3.10.1' } }
+        else { Mock Invoke-TbSsh { 'iperf 3.10.1' } }
+        Mock Invoke-TbBenchmarkTrial { throw 'Listener must not start.' }
+        { Invoke-TbBenchmark @session -FullDuplex } | Should -Throw "*$Endpoint*iperf3 3.11 or newer*"
+        Should -Invoke Invoke-TbBenchmarkTrial -Times 0 -Exactly
+    }
+}
+
 Describe 'Thunderbolt profile safety' {
     It 'uses separate isolated /30 profiles at conservative MTU' {
         $milly = Get-TbProfile -Path $profilePath -Name millylaptop1
@@ -125,6 +199,17 @@ Describe 'Configuration isolation and dry-run' {
         $result = Invoke-ThunderboltLinuxPeerMain -SelectedAction Prepare -SelectedPeer millylaptop1 -ProfilePath $profilePath -EnableApply -IsDryRun
         $result.Applied | Should -BeFalse
         Should -Invoke Invoke-TbSsh -Times 0
+    }
+    # Protects: previewing a duplex benchmark creates no traffic even with -Apply.
+    # Detects: starting the one-shot benchmark in the planning path or omitting its concurrent plan.
+    # Needs: mocked adapter and Linux inventory; no peer or iperf3 installation.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, Invoke-ThunderboltLinuxPeerMain.
+    It 'previews full-duplex traffic without running the benchmark' {
+        Mock Assert-TbBenchmarkRoute {}
+        $result = Invoke-ThunderboltLinuxPeerMain -SelectedAction Benchmark -SelectedPeer millylaptop1 -ProfilePath $profilePath -FullDuplex -EnableApply -IsDryRun
+        $result.Applied | Should -BeFalse
+        $result.Plan -join ' ' | Should -Match 'simultaneous'
+        Should -Invoke Invoke-TbBenchmark -Times 0 -Exactly
     }
     It 'WhatIf suppresses Configure writes even with Apply' {
         $result = Invoke-ThunderboltLinuxPeerMain -SelectedAction Configure -SelectedPeer millylaptop1 -ProfilePath $profilePath -EnableApply -WhatIf

@@ -13,6 +13,7 @@ $peerConfig = 'C:/pcai-config/lan-peers.json'
 ./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer $peer -ConfigPath $peerConfig -Action Configure -DryRun
 ./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer $peer -ConfigPath $peerConfig -Action Configure -Apply
 ./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer $peer -ConfigPath $peerConfig -Action Benchmark -Apply -IperfPath C:/Tools/iperf3.exe
+./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer $peer -ConfigPath $peerConfig -Action Benchmark -FullDuplex -Apply -IperfPath C:/Tools/iperf3.exe
 ```
 
 Status and default action planning are read-only. `-DryRun` and `-WhatIf` suppress
@@ -59,10 +60,18 @@ result includes a usable command that reuses the existing alias's user/key and
 LAN host-key identity with strict checking. This leaves the LAN alias unchanged.
 
 Benchmark requires configured addresses and a source-bound Windows route through
-the selected adapter. It runs forward and reverse iperf3 against peer-address-bound
-one-shot servers. Server lifetime and local processes are bounded; raw iperf3 JSON
-is returned. Any native exit failure, route mismatch or missing hardware prevents
-a throughput result. Rates are measurements, not claims about cable or dock speed.
+the selected adapter. The default uses separate forward and reverse iperf3 trials
+against peer-address-bound one-shot servers. `-FullDuplex` runs both directions
+simultaneously in one TCP session and checks the direct source-bound Linux return
+route before opening the listener. Both endpoints need iperf3 3.11 or newer for
+separately named receiver summaries. The duplex result includes the raw JSON,
+both tool versions and `ReceiverBitsPerSecond.WindowsToLinux` and `.LinuxToWindows`.
+A missing or invalid receiver summary, native failure, route mismatch or missing
+hardware prevents a throughput result. The server and local process waits have
+deadlines. These are synthetic TCP measurements of the selected link under load.
+[Duplex test review](../../../Tests/Unit/thunderbolt-linux-peer-duplex-review.json).
+[iperf3 duplex option](https://software.es.net/iperf/invoking.html) ·
+[iperf3 3.11 receiver summaries](https://github.com/esnet/iperf/blob/3.11/src/iperf_api.c#L3587-L3605)
 
 The explicit Linux-runtime regression suite executes the generated Bash profile
 logic with hardware and NetworkManager I/O fixtures. Run it only against an

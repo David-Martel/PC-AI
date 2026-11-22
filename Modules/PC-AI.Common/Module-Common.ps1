@@ -3,15 +3,12 @@ function Write-Success {
     Write-Host $Message -ForegroundColor Green
 }
 
-function Write-Warning {
-    param([string]$Message)
-    Write-Host "WARNING: $Message" -ForegroundColor Yellow
-}
-
-function Write-Error {
-    param([string]$Message)
-    Write-Host "ERROR: $Message" -ForegroundColor Red
-}
+# Console helpers below must never reuse the name of a built-in cmdlet.
+# A function named Write-Warning or Write-Error outranks the cmdlet in command
+# resolution, so any scope importing this module would lose the warning and
+# error streams, -ErrorAction/-WarningAction and try/catch signalling. Use the
+# built-in cmdlets for diagnostics and Write-Info/Write-Success for plain
+# console text. Tests/Unit/PcaiCommonCmdletShadowing.Tests.ps1 enforces this.
 
 function Write-Info {
     param([string]$Message)

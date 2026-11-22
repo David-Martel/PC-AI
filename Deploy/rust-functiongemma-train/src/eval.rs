@@ -410,6 +410,9 @@ mod tests {
         assert!(!report.contains("Per-Tool F1"));
     }
 
+    // Protects: label extraction from a native FunctionGemma tool envelope.
+    // Detects: a correct emitted tool mislabeled as NO_TOOL.
+    // Needs: a static tool fixture. Breadcrumb: evaluate_sample, core prompt::parse_function_call.
     #[test]
     fn test_eval_sample_result_labels() {
         use crate::data_gen::{Message, TrainingItem};
@@ -424,7 +427,7 @@ mod tests {
                 },
                 Message {
                     role: "assistant".into(),
-                    content: Some("<start_function_call>test_tool({})<end_function_call>".into()),
+                    content: Some("<start_function_call>call:test_tool{}<end_function_call>".into()),
                     tool_calls: Some(json!([{
                         "type": "function",
                         "function": {
@@ -448,7 +451,7 @@ mod tests {
         };
 
         let result = evaluate_sample(
-            "<start_function_call>test_tool({})<end_function_call>",
+            "<start_function_call>call:test_tool{}<end_function_call>",
             &item,
             true,
             false,

@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T23:25:20Z",
+  "sourceBaseline": "f206821554bae47a21407ac426ff2cf9a1fa0544",
+  "hashConvention": "SHA-256 of UTF-8 LF. Rust extents run from test attributes through closing brace and LF. Pester and workflow extents include indentation and LF.",
+  "sourceBindings": {
+    "Deploy/rust-functiongemma-train/Cargo.toml": "27ff4de5451c395c0679a0804425138e73523f25e1e472e806ca0fa3aebbca4a",
+    "Deploy/rust-functiongemma-train/README.md": "dfef5f0b477f9f4366727ca7fbf9c4a29d448e2b345b51bf026b8c1f0336c320",
+    "Deploy/rust-functiongemma-train/src/lib.rs": "79f7eb3bb0ab307048032e6aa80fade45cbd62402e4edb57ef1073c928af34ee",
+    "Deploy/rust-functiongemma-train/src/trainer.rs": "e219252f8839b66960391bfb5acb32bfb5065fae86afd0528cc9a0c3432dc5bf",
+    "Deploy/rust-functiongemma-train/src/eval.rs": "1cbfe11bba8ef962c1628ef3795e0acee196e234fbb51f676780d60cf2124359",
+    "Deploy/rust-functiongemma-train/tests/full_training_test.rs": "063ec960ef12e704a7c3c121e6058c7e7128f0cca84110c1a6e2150efa80e35c",
+    "Deploy/rust-functiongemma-train/tests/trainer_lora_test.rs": "8f6e1c9b5b857d140e327530b7af2456793300c48f65fb6d2828d8274bef5783",
+    "Deploy/rust-functiongemma-train/tests/integration_test.rs": "e62b28885150584e5218060e0a7bf406f3e65cffde9fc80470a6c2d44f798588",
+    "Deploy/rust-functiongemma-core/src/model.rs": "9887a9c2a8b460c6f699147bf53f52ccfc4b82401a2171998125234eaada5911",
+    "Build.ps1": "92ef324fbad5d93a9d898814142ae9fc8b7743e14c3abc706e3958147d3d682f",
+    "Tools/Invoke-DocPipeline.ps1": "3b68829694976fdb9a7cedda4e1492ce207089a347d9c92c62700c68f180c6ab",
+    ".github/workflows/functiongemma-runtime.yml": "a6bdded080bd952b9dfce68b3445bf12591c4b2962bc2cd3a41d8a53c89d6b62",
+    "Tests/Unit/FunctionGemmaPreparation.Tests.ps1": "ffcb4dbe89335cde9435eb2850c00bd353169b2a3af130b1e7431d89c6887476",
+    "Deploy/rust-functiongemma-train/src/trainer/accumulation_tests.rs": "5866610267dd0a5b04461ea37eeb0290b9732eaa8624e4c9f4eb9a3ab794f6d4"
+  },
+  "selectors": [
+    {
+      "selector": "cpu_tensor_reduction_computes_expected_sum",
+      "source": "Deploy/rust-functiongemma-train/src/lib.rs",
+      "sha256": "871ce5cb7b8ee7abd0e9453eb316a05d4f56f076be5cadc5cd0ea8f1154c754c",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Executes a CPU F32 tensor reduction and checks the exact result."
+    },
+    {
+      "selector": "cuda_tensor_reduction_computes_expected_sum",
+      "source": "Deploy/rust-functiongemma-train/src/lib.rs",
+      "sha256": "37baf999231a56377a084fe6f8b06cd7f78e9f43f72a54dbe9b7c4757df20cb5",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Requires explicit CUDA initialization and a real reduction. No device-selection fallback is accepted."
+    },
+    {
+      "selector": "test_eval_sample_result_labels",
+      "source": "Deploy/rust-functiongemma-train/src/eval.rs",
+      "sha256": "28582e4b8dc0377ba04a054e41a8158a353de56af9ea7ecd0f14a3e16e2a1457",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks the current FunctionGemma tool envelope yields the expected label."
+    },
+    {
+      "selector": "test_full_training_config_integration",
+      "source": "Deploy/rust-functiongemma-train/tests/full_training_test.rs",
+      "sha256": "38ba08f1befbe2b4caf5c22d15e64bef206f3fc1654b1fbc5cbc557de50cb410",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks supported configuration fields and fixture invariants using the current trainer type."
+    },
+    {
+      "selector": "test_training_components_compatibility",
+      "source": "Deploy/rust-functiongemma-train/tests/full_training_test.rs",
+      "sha256": "8a4b2eddb312198510e78f1975ccbf2b1438601ff24fe340011e33527c01e480",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks the authoritative core LoRA configuration and current training components fit together."
+    },
+    {
+      "selector": "test_lora_config_derivation",
+      "source": "Deploy/rust-functiongemma-train/tests/full_training_test.rs",
+      "sha256": "9ea8713ff57bffdc791d38f3135a5f7741ae2dbc95444c96df7e5a8b3f65cfb0",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks rank and scaling from trainer settings are carried into the core LoRA configuration."
+    },
+    {
+      "selector": "test_full_pipeline_simulation",
+      "source": "Deploy/rust-functiongemma-train/tests/full_training_test.rs",
+      "sha256": "0f9fdffe685ee83c838d78e61e36144c49cd1dda0bf924db8a27edd21273def3",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Exercises dataset/model-independent pipeline and math invariants."
+    },
+    {
+      "selector": "test_trainer_config_custom_values",
+      "source": "Deploy/rust-functiongemma-train/tests/trainer_lora_test.rs",
+      "sha256": "ed4f124a6b2ed2e6360ec7f9f607b6752487d85295b007565624b0fd84114244",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks explicit trainer settings with other fields inherited from supported defaults."
+    },
+    {
+      "selector": "cpu_model_forward_preserves_shape_and_masks_future_tokens",
+      "source": "Deploy/rust-functiongemma-train/tests/integration_test.rs",
+      "sha256": "114ed14ceadc2741f376eedc596e5d3ef46aa08daedc03f4e7c3e1f9a7fb789b",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks future tokens do not alter prefix logits while suffix logits change in a two-layer CPU model."
+    },
+    {
+      "selector": "selects Cargo arguments for <Operation>",
+      "source": "Tests/Unit/FunctionGemmaPreparation.Tests.ps1",
+      "sha256": "18f446e3ec1bb4d81345de601c10562fffd158d096c61d9b497462632c9fb822",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Capture the normal Build.ps1 invocation for the two CPU-only preparers and preserved training and evaluation routing."
+    },
+    {
+      "selector": "Test locked FunctionGemma core and trainer on CPU",
+      "source": ".github/workflows/functiongemma-runtime.yml",
+      "sha256": "5ae8bdf8fda7c09490945e8f8bd85f6cc8922d99d375b8ce58ec638ed7d1bcab",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "The OS matrix selects both locked CPU packages. The combined command shares dependency artifacts."
+    },
+    {
+      "selector": "fresh_lora_preserves_base_output_and_existing_adapter_weights",
+      "source": "Deploy/rust-functiongemma-core/src/model.rs",
+      "sha256": "8050457ddca2e39cbb694c15a15e301395daf496ede25ffd1a7c2c3d9c86c80c",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks fresh nonzero A, zero B and base-output parity, then verifies existing A/B tensors survive constructor reuse."
+    },
+    {
+      "selector": "training_step_updates_attention_and_mlp_lora_weights",
+      "source": "Deploy/rust-functiongemma-core/src/model.rs",
+      "sha256": "cc72fb52c2c59a4e952feb7b531944a05c323acf0149ae632b737203ed04c36e",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks one deterministic full-model backward step changes Q, K and MLP adapter weights. Controls catch detached RMSNorm, all-zero initialization and accidental training FlashAttention."
+    },
+    {
+      "selector": "single_microbatch_has_the_same_update_at_caps_one_and_four",
+      "source": "Deploy/rust-functiongemma-train/src/trainer/accumulation_tests.rs",
+      "sha256": "5f17627ce247cf56697bd35591a385087f2cf83645668e18d88d9f4cc2682abe",
+      "reviewer": "codex-trainer-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks a real CPU SGD weight update matches for caps 1 and 4 with one available batch, after proving the reference actually updates weights."
+    },
+    {
+      "selector": "tail_after_a_full_window_matches_explicitly_partitioned_updates",
+      "source": "Deploy/rust-functiongemma-train/src/trainer/accumulation_tests.rs",
+      "sha256": "62ba5bc4a46a69f0c1bccc62ba465f6157511400c922ad2d269abc5c8d0d0cf1",
+      "reviewer": "codex-trainer-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks two full-window microbatches plus a short tail produce the same reference updates as explicit 2+1 partitioning."
+    }
+  ]
+}

@@ -408,11 +408,6 @@ function Invoke-TrainingDataGeneration {
     }
 
     try {
-        if (-not $pipelineOptions.UseNativeRouter -and -not ($script:CudaInfo -and $script:CudaInfo.Found)) {
-            Add-PipelineStep -Name 'TrainingData' -Status 'Warning' -Error 'CUDA not detected; skipping router dataset generation (rust-functiongemma-train requires CUDA)'
-            return
-        }
-
         $routerParams = @{
             MaxCases = $pipelineOptions.RouterMaxCases
         }

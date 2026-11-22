@@ -260,50 +260,94 @@ mod linux {
         }
     }
 
+    /// Fields of one mountinfo record, validated through the source field.
+    struct MountRecord<'a> {
+        path: &'a [u8],
+        filesystem: &'a [u8],
+        /// Fields after the source. The kernel prints one, but a super-option that holds an
+        /// unescaped space (a 9p `path=C:\Program Files\...`) splits into several.
+        super_options: Vec<&'a [u8]>,
+    }
+
+    /// Validates a record through its mount point, separator, filesystem type and source.
+    ///
+    /// Returns `None` for any record that is damaged before or at those fields.
+    fn parse_mount_record(record: &[u8]) -> Option<MountRecord<'_>> {
+        let mut fields = record.split(|byte| *byte == b' ');
+        // The first six fields are required; optional fields end at a standalone hyphen.
+        let mount_id = fields.next()?;
+        let parent_id = fields.next()?;
+        let mut device = fields.next()?.split(|byte| *byte == b':');
+        let root = fields.next()?;
+        let path = fields.next()?;
+        let options = fields.next()?;
+        let decimal = |field: &[u8]| !field.is_empty() && field.iter().all(u8::is_ascii_digit);
+        if !decimal(mount_id)
+            || !decimal(parent_id)
+            || !decimal(device.next()?)
+            || !decimal(device.next()?)
+            || device.next().is_some()
+            // Namespace bind mounts can report a root such as net:[inode].
+            || root.is_empty()
+            || !path.starts_with(b"/")
+            || options.is_empty()
+        {
+            return None;
+        }
+        fields.find(|field| *field == b"-")?;
+        let filesystem = fields.next()?;
+        let source = fields.next()?;
+        if filesystem.is_empty() || source.is_empty() {
+            return None;
+        }
+        Some(MountRecord {
+            path,
+            filesystem,
+            super_options: fields.collect(),
+        })
+    }
+
+    /// Classifies the configfs mount from a complete `/proc/self/mountinfo` listing.
+    ///
+    /// The configfs record gets every check: it must parse through the source and carry exactly
+    /// one non-empty super-options field, and a second record for the mount point is a conflict.
+    /// A record for any other mount point is not evidence about configfs, so one that is damaged
+    /// or carries extra super-option fields is skipped instead of discarding the listing. A
+    /// skipped record that still names the configfs path as a field cannot be proven unrelated
+    /// and fails closed. `Absent` additionally needs at least one usable record, so a listing of
+    /// nothing but damage stays `None`.
     fn parse_mountinfo(bytes: &[u8]) -> Option<ConfigfsMount> {
         let records = bytes.strip_suffix(b"\n")?;
         let mut mount = None;
+        let mut usable_records = 0_usize;
         for record in records.split(|byte| *byte == b'\n') {
-            let mut fields = record.split(|byte| *byte == b' ');
-            // The first six fields are required; optional fields end at a standalone hyphen.
-            let mount_id = fields.next()?;
-            let parent_id = fields.next()?;
-            let mut device = fields.next()?.split(|byte| *byte == b':');
-            let root = fields.next()?;
-            let path = fields.next()?;
-            let options = fields.next()?;
-            let decimal = |field: &[u8]| !field.is_empty() && field.iter().all(u8::is_ascii_digit);
-            if !decimal(mount_id)
-                || !decimal(parent_id)
-                || !decimal(device.next()?)
-                || !decimal(device.next()?)
-                || device.next().is_some()
-                // Namespace bind mounts can report a root such as net:[inode].
-                || root.is_empty()
-                || !path.starts_with(b"/")
-                || options.is_empty()
-            {
-                return None;
-            }
-            fields.find(|field| *field == b"-")?;
-            let filesystem = fields.next()?;
-            let source = fields.next()?;
-            let super_options = fields.next()?;
-            if filesystem.is_empty() || source.is_empty() || super_options.is_empty() || fields.next().is_some() {
-                return None;
-            }
-            if path == CONFIGFS_PATH {
-                if mount.is_some() {
+            match parse_mount_record(record) {
+                Some(parsed) if parsed.path == CONFIGFS_PATH => {
+                    let [super_options] = parsed.super_options.as_slice() else {
+                        return None;
+                    };
+                    if super_options.is_empty() || mount.is_some() {
+                        return None;
+                    }
+                    mount = Some(if parsed.filesystem == b"configfs" {
+                        ConfigfsMount::Mounted
+                    } else {
+                        ConfigfsMount::UnexpectedType
+                    });
+                    usable_records += 1;
+                }
+                Some(_) => usable_records += 1,
+                None if record.split(|byte| *byte == b' ').any(|field| field == CONFIGFS_PATH) => {
                     return None;
                 }
-                mount = Some(if filesystem == b"configfs" {
-                    ConfigfsMount::Mounted
-                } else {
-                    ConfigfsMount::UnexpectedType
-                });
+                None => {}
             }
         }
-        Some(mount.unwrap_or(ConfigfsMount::Absent))
+        match (mount, usable_records) {
+            (Some(mount), _) => Some(mount),
+            (None, 0) => None,
+            (None, _) => Some(ConfigfsMount::Absent),
+        }
     }
 
     fn observe_configfs_mount(path: &Path) -> ConfigfsMount {
@@ -546,6 +590,146 @@ mod linux {
             assert_eq!(parse_mountinfo(&oversized), Some(ConfigfsMount::Mounted));
             fs::write(&path, oversized).expect("write oversized mountinfo fixture");
             assert_eq!(observe_configfs_mount(&path), ConfigfsMount::Unavailable);
+        }
+
+        /// Writes `lines` as a newline-terminated mountinfo file and classifies it.
+        fn classify_mountinfo(lines: &[&str]) -> ConfigfsMount {
+            let dir = tempfile::tempdir().expect("create mountinfo fixture root");
+            let path = dir.path().join("mountinfo");
+            let mut bytes = lines.join("\n").into_bytes();
+            bytes.push(b'\n');
+            fs::write(&path, bytes).expect("write mountinfo fixture");
+            observe_configfs_mount(&path)
+        }
+
+        const WSL2_ROOT: &str = "1 0 8:48 / / rw,relatime - ext4 /dev/sdd rw,discard,errors=remount-ro,data=ordered";
+        const WSL2_SYSFS: &str = "2 1 0:2 / /sys rw,nosuid,nodev,noexec,noatime shared:2 - sysfs sysfs rw";
+        const WSL2_PROC: &str = "3 1 0:5 / /proc rw,nosuid,nodev,noexec,noatime shared:3 - proc proc rw";
+        const WSL2_CGROUP: &str =
+            "5 2 0:7 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime shared:5 - cgroup2 cgroup2 rw,nsdelegate";
+        const WSL2_CONFIGFS: &str =
+            "12 2 0:8 / /sys/kernel/config rw,nosuid,nodev,noexec,relatime shared:12 - configfs configfs rw";
+        // A 9p drvfs mount as WSL2 reports it. The kernel does not escape the space inside the
+        // `path=` super-option, so the record splits into one field more than the format allows.
+        const WSL2_9P_WITH_SPACE: &str = r"45 1 0:41 / /Docker/host rw,noatime - 9p drvfs rw,dirsync,aname=drvfs;path=C:\Program Files\Docker\Docker\resources;symlinkroot=/mnt/,mmap,access=client,msize=65536,trans=fd,rfd=8,wfd=8";
+
+        // Protects configfs detection on WSL2, where an unrelated 9p mount carries an unescaped
+        // space in its super-options. Detects that record discarding a valid configfs record
+        // (the whole file reported Unavailable) in either order. Needs Linux temporary files.
+        // Breadcrumb: parse_mountinfo.
+        #[test]
+        fn configfs_is_found_beside_a_9p_record_with_unescaped_space_in_super_options() {
+            let normal = [WSL2_ROOT, WSL2_SYSFS, WSL2_PROC, WSL2_CGROUP];
+            let after: Vec<&str> = [&normal[..], &[WSL2_CONFIGFS, WSL2_9P_WITH_SPACE]].concat();
+            let before: Vec<&str> = [&normal[..], &[WSL2_9P_WITH_SPACE, WSL2_CONFIGFS]].concat();
+            assert_eq!(classify_mountinfo(&after), ConfigfsMount::Mounted);
+            assert_eq!(classify_mountinfo(&before), ConfigfsMount::Mounted);
+            // The same host without configfs is Absent, not Unavailable.
+            let without: Vec<&str> = [&normal[..], &[WSL2_9P_WITH_SPACE]].concat();
+            assert_eq!(classify_mountinfo(&without), ConfigfsMount::Absent);
+            // A mismatched filesystem type is still reported next to the tolerated record.
+            let wrong_type = "12 2 0:8 / /sys/kernel/config rw - tmpfs configfs rw";
+            assert_eq!(
+                classify_mountinfo(&[WSL2_ROOT, WSL2_9P_WITH_SPACE, wrong_type]),
+                ConfigfsMount::UnexpectedType
+            );
+        }
+
+        // Protects configfs detection against damaged records for other mount points. Detects a
+        // missing separator, too few fields, non-decimal identifiers, a missing source and blank
+        // lines poisoning the whole file. Needs Linux temporary files.
+        // Breadcrumb: parse_mountinfo.
+        #[test]
+        fn malformed_records_for_other_mount_points_are_skipped() {
+            for malformed in [
+                "30 1 0:30 / /mnt/a rw shared:1 tmpfs none rw",
+                "31 1 0:31",
+                "x y 0:32 / /mnt/b rw - tmpfs none rw",
+                "32 1 0:33 / /mnt/c rw -",
+                "33 1 0:34 / /mnt/d rw - tmpfs",
+                "",
+            ] {
+                assert_eq!(
+                    classify_mountinfo(&[WSL2_ROOT, malformed, WSL2_CONFIGFS, malformed]),
+                    ConfigfsMount::Mounted,
+                    "record {malformed:?} must not hide configfs"
+                );
+                assert_eq!(
+                    classify_mountinfo(&[WSL2_ROOT, malformed]),
+                    ConfigfsMount::Absent,
+                    "record {malformed:?} must not invent a configfs answer"
+                );
+            }
+        }
+
+        // Protects fail-closed reporting for the configfs mount point itself. Detects any
+        // loosening of the checks that apply to a configfs record: extra, missing or non-decimal
+        // fields, a missing separator, a shifted mount point, stacked records and conflicting
+        // types must all stay Unavailable. Needs Linux temporary files. Breadcrumb: parse_mountinfo.
+        #[test]
+        fn malformed_or_conflicting_configfs_records_still_fail_closed() {
+            for (record, why) in [
+                (
+                    "12 2 0:8 / /sys/kernel/config rw - configfs configfs rw extra",
+                    "extra trailing field",
+                ),
+                (
+                    "12 2 0:8 / /sys/kernel/config rw - tmpfs configfs rw extra",
+                    "extra field on wrong type",
+                ),
+                (
+                    "x 2 0:8 / /sys/kernel/config rw - configfs configfs rw",
+                    "non-decimal mount id",
+                ),
+                (
+                    "12 2 0:8 / /sys/kernel/config rw configfs configfs rw",
+                    "missing separator",
+                ),
+                (
+                    "12 2 0:8 / /sys/kernel/config rw - configfs",
+                    "missing source and options",
+                ),
+                (
+                    "12 2 0:8 / /sys/kernel/config rw - configfs configfs",
+                    "missing super options",
+                ),
+                (
+                    "12 2 0:8 /sys/kernel/config rw - configfs configfs rw",
+                    "shifted mount point",
+                ),
+                ("12 2 0:8 / /sys/kernel/config", "truncated record"),
+            ] {
+                assert_eq!(
+                    classify_mountinfo(&[WSL2_ROOT, WSL2_9P_WITH_SPACE, record]),
+                    ConfigfsMount::Unavailable,
+                    "{why}: {record:?}"
+                );
+            }
+            let tmpfs = "13 12 0:9 / /sys/kernel/config rw - tmpfs none rw";
+            let damaged = "13 12 0:9 / /sys/kernel/config rw -";
+            for conflict in [WSL2_CONFIGFS, tmpfs, damaged] {
+                assert_eq!(
+                    classify_mountinfo(&[WSL2_ROOT, WSL2_CONFIGFS, WSL2_9P_WITH_SPACE, conflict]),
+                    ConfigfsMount::Unavailable,
+                    "stacked record {conflict:?}"
+                );
+            }
+        }
+
+        // Protects the rule that absence is only reported from a file with at least one usable
+        // record. Detects an all-damaged or empty record list becoming Absent once damaged
+        // records are skipped. Needs Linux temporary files. Breadcrumb: parse_mountinfo.
+        #[test]
+        fn absence_needs_at_least_one_usable_record() {
+            for lines in [
+                &[""][..],
+                &["garbage"],
+                &["11 10 0:47"],
+                &["11 10 0:47 / /mnt/a rw shared:1 tmpfs none rw"],
+            ] {
+                assert_eq!(classify_mountinfo(lines), ConfigfsMount::Unavailable, "{lines:?}");
+            }
+            assert_eq!(classify_mountinfo(&[WSL2_9P_WITH_SPACE]), ConfigfsMount::Absent);
         }
 
         // Protects distinction between a missing control surface and a directory impostor.

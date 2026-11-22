@@ -6,7 +6,7 @@
   "sourceBaseline": "805ade5aea13fd7cbe515953137f15f017479ce8",
   "hashConvention": "SHA-256 of UTF-8 LF files and Rust selectors dedented from fn through the matching closing brace and final newline.",
   "sourceBindings": {
-    "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs": "17d7546cc848b11bbc6cdd9133b71f6cd834fa48d6dd10fc21747ce4ca44995b",
+    "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs": "24455c18894b6b6f62095d341ab9b405368e897e04445b4ae4ca8838efdc1969",
     "Native/pcai_core/pcai_tb_cli/tests/stream_preflight_cli.rs": "ae5795521e0af655aaf3cdd399dc8204a12ee198f9f090108b0cc06ebd97bd48",
     "Native/pcai_core/pcai_tb_cli/src/main.rs": "005db3e060a6e1f56359ec27efea597e9cf35439aff6fe18883d73ee2a415da5",
     "Native/pcai_core/pcai_tb_cli/Cargo.toml": "f6eae1229b50702ce650d52a1c86834331c4e001af274a33c925b97f99d31480",
@@ -76,10 +76,51 @@
       "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
       "disposition": "keep",
       "reviewScope": "Checks real-shaped namespace mount rows, exact mountpoint and filesystem type, duplicate rows, malformed and over-budget input."
+    },
+    {
+      "selector": "configfs_is_found_beside_a_9p_record_with_unescaped_space_in_super_options",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "80248543ff59eaba6afa3e09a6bc457da9db727b13b2836a723426e8a00cf30c",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent of the implementation",
+      "reviewScope": "Real-shaped WSL2 mountinfo with a 9p drvfs record whose super-options hold an unescaped space, in both orders around the configfs record. Confirms Mounted, Absent without configfs, and UnexpectedType for a wrong type."
+    },
+    {
+      "selector": "malformed_records_for_other_mount_points_are_skipped",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "31ce1ce85a2fd8b4d992bf24ae3923611679311ae327b51fefd58e8202686c2d",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent of the implementation",
+      "reviewScope": "Missing separator, too few fields, non-decimal identifiers, missing source and blank lines for other mount points neither hide nor invent a configfs answer."
+    },
+    {
+      "selector": "malformed_or_conflicting_configfs_records_still_fail_closed",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "47b46d978ecdcf35bd01ee2b5ca66002c34b5eb7bb61572a3a6ff353339ffb33",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent of the implementation",
+      "reviewScope": "Extra, missing or non-decimal fields, a missing separator, a shifted mount point, a truncated record and stacked or damaged duplicate configfs records stay Unavailable."
+    },
+    {
+      "selector": "absence_needs_at_least_one_usable_record",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "b667379857db21f156ba7eb61837fbc49a61cc0be14a3c79353b5411d15e2f03",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent of the implementation",
+      "reviewScope": "An empty or entirely damaged listing stays Unavailable instead of becoming Absent; a listing with one tolerated record is Absent."
     }
   ],
   "execution": {
     "windows": "Two CLI controls passed; strict platform result maintained.",
-    "ms01": "Two new real-shaped assertions failed initially. The corrected source passed six Linux unit and two CLI controls. The live 7.0.0-43-generic host reported Unspecified via BootConfig and configfs Mounted, with no eligible stream nodes."
+    "ms01": "Two new real-shaped assertions failed initially. The corrected source passed six Linux unit and two CLI controls. The live 7.0.0-43-generic host reported Unspecified via BootConfig and configfs Mounted, with no eligible stream nodes.",
+    "wsl2-mountinfo-tolerance": "Author run on WSL2 kernel 6.18.58.1-microsoft-standard-WSL2 with rustc 1.100.0. Three of the four new tests failed on the previous parser (a 9p drvfs record with an unescaped space discarded the whole listing); all ten Linux stream_preflight unit tests then passed, and the live host reported configfs Mounted. Four parser mutations were each caught by a test. Author self-review only; an independent review of the four new selectors is still outstanding."
   }
 }

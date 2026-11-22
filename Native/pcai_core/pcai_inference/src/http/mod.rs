@@ -8,7 +8,7 @@ use axum::{
     Json, Router,
 };
 use futures::stream;
-use pcai_http_guard::{bind_listener, parse_bind_addr, pick_token, SecurityOptions, SecurityPolicy};
+use pcai_http_guard::{bind_listener, parse_bind_addr, pick_token, SecurityError, SecurityOptions, SecurityPolicy};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::{convert::Infallible, sync::Arc, sync::OnceLock};
@@ -125,7 +125,12 @@ fn security_policy(config: &ServerConfig) -> Result<(SocketAddr, SecurityPolicy)
         cors_allowed_origins: config.cors_allowed_origins.clone(),
         auth_token: config.auth_token.clone(),
     };
-    let policy = SecurityPolicy::new(addr, &options).map_err(|e| Error::Config(e.to_string()))?;
+    let policy = SecurityPolicy::new(addr, &options).map_err(|e| match e {
+        SecurityError::TokenRequired { .. } => Error::Config(format!(
+            "{e}: set server.auth_token in the config or {TOKEN_ENV_VAR} in the environment"
+        )),
+        other => Error::Config(other.to_string()),
+    })?;
     Ok((addr, policy))
 }
 

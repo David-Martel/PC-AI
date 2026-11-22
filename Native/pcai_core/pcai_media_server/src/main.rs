@@ -38,7 +38,7 @@ use tokio::sync::RwLock;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
-use pcai_http_guard::{bind_listener, parse_bind_addr, pick_token, SecurityOptions, SecurityPolicy};
+use pcai_http_guard::{bind_listener, parse_bind_addr, pick_token, SecurityError, SecurityOptions, SecurityPolicy};
 use pcai_media::config::PipelineConfig;
 use pcai_media::generate::GenerationPipeline;
 use pcai_media::understand::UnderstandingPipeline;
@@ -120,7 +120,12 @@ fn security_policy(security: &ServeSecurity) -> Result<(SocketAddr, SecurityPoli
         cors_allowed_origins: security.cors_allowed_origins.clone(),
         auth_token: security.auth_token.clone(),
     };
-    let policy = SecurityPolicy::new(addr, &options)?;
+    let policy = SecurityPolicy::new(addr, &options).map_err(|error| match error {
+        SecurityError::TokenRequired { .. } => {
+            anyhow::anyhow!("{error}: set the {TOKEN_ENV_VAR} environment variable")
+        }
+        other => anyhow::Error::new(other),
+    })?;
     Ok((addr, policy))
 }
 

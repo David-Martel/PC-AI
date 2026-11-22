@@ -42,8 +42,8 @@ impl std::fmt::Debug for SecurityOptions {
 pub enum SecurityError {
     /// A network-reachable bind without a credential.
     #[error(
-        "refusing to bind {bind}: it is not a loopback address and no authentication token is configured; set an \
-         auth token (the `auth_token` setting or the token environment variable) or bind 127.0.0.1 or ::1"
+        "refusing to bind {bind}: it is not a loopback address and no authentication token is configured; set a \
+         token (see the server's token setting) or bind 127.0.0.1 or ::1"
     )]
     TokenRequired {
         /// The requested bind address.
@@ -201,49 +201,54 @@ fn loggable(value: &str) -> String {
 async fn host_guard(State(inner): State<Arc<Inner>>, request: Request, next: Next) -> Response {
     match check_host(&inner.hosts, &request) {
         Ok(()) => next.run(request).await,
-        Err(response) => response,
-    }
-}
-
-fn check_host(allowed: &HostAllowList, request: &Request) -> Result<(), Response> {
-    let malformed = || {
-        reject(
+        Err(HostRejection::Malformed) => reject(
             StatusCode::BAD_REQUEST,
             "invalid_request_error",
             "invalid_host",
             "The Host header is missing, duplicated or malformed.",
-        )
-    };
+        ),
+        Err(HostRejection::NotAllowed) => reject(
+            StatusCode::MISDIRECTED_REQUEST,
+            "invalid_request_error",
+            "host_not_allowed",
+            "This server does not answer to that Host.",
+        ),
+    }
+}
 
+/// Why a request's `Host` was refused.
+enum HostRejection {
+    /// Missing (outside HTTP/1.0), duplicated or syntactically invalid.
+    Malformed,
+    /// Well formed, but not on the allow-list.
+    NotAllowed,
+}
+
+fn check_host(allowed: &HostAllowList, request: &Request) -> Result<(), HostRejection> {
     let mut keys = Vec::with_capacity(2);
     let mut host_headers = request.headers().get_all(header::HOST).iter();
     if let Some(value) = host_headers.next() {
         if host_headers.next().is_some() {
-            return Err(malformed());
+            return Err(HostRejection::Malformed);
         }
-        let text = value.to_str().map_err(|_| malformed())?;
-        keys.push((text, parse_authority_host(text).ok_or_else(malformed)?));
+        let text = value.to_str().map_err(|_| HostRejection::Malformed)?;
+        keys.push((text, parse_authority_host(text).ok_or(HostRejection::Malformed)?));
     }
     if let Some(authority) = request.uri().authority() {
         let text = authority.as_str();
-        keys.push((text, parse_authority_host(text).ok_or_else(malformed)?));
+        keys.push((text, parse_authority_host(text).ok_or(HostRejection::Malformed)?));
     }
 
     if keys.is_empty() {
         return if request.version() == Version::HTTP_10 {
             Ok(())
         } else {
-            Err(malformed())
+            Err(HostRejection::Malformed)
         };
     }
     if let Some((text, _)) = keys.iter().find(|(_, key)| !allowed.allows(key)) {
         tracing::warn!(host = %loggable(text), "rejected request: Host header is not allowed");
-        return Err(reject(
-            StatusCode::MISDIRECTED_REQUEST,
-            "invalid_request_error",
-            "host_not_allowed",
-            "This server does not answer to that Host.",
-        ));
+        return Err(HostRejection::NotAllowed);
     }
     Ok(())
 }

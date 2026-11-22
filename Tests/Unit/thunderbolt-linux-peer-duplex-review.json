@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T16:16:25.0393770Z",
+  "reviewer": "codex",
+  "reviewerType": "independent source agent",
+  "sourceBaseline": "1aa6f468fed6dd3f19ed499af84958fc6723c9ff",
+  "hashConvention": "SHA-256 of UTF-8 LF source files and exact Pester It AST extent. Data-driven selectors are reviewed as groups.",
+  "sourceBindings": {
+    "Tools/Invoke-ThunderboltNetworking.ps1": "0343cb4fa2a00e50c84321cba68f093895572d59d476bfd7c85a490461293fce",
+    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "9d804ba0051508e593691925b00ffe68e899094896e47637530ad812295c44f1",
+    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "16a054c286c895c3fe33988d9fd82652a7a55dc40f9e8a988a42a64aed8bafea"
+  },
+  "selectors": [
+    {
+      "selector": "keeps the default benchmark as forward and reverse trials",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "76ee64957d1e5162a27e6bf41a2883acd69faa6cb0e688829194ed68ac926eeb",
+      "codeUnderTest": [
+        "Tools/Invoke-ThunderboltNetworking.ps1",
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Mocked trials verify the legacy two-call shape and directional flags."
+    },
+    {
+      "selector": "runs one bidirectional trial and reports both receiver rates",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "9d6572110b5515923f9a150e833a89e9895981a18927133119d74b5b141fd9f5",
+      "codeUnderTest": [
+        "Tools/Invoke-ThunderboltNetworking.ps1",
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Validates one trial and both receiver counters with controlled JSON."
+    },
+    {
+      "selector": "rejects incomplete duplex evidence from <Case>",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "92d617545adb0d84e1492a8ff931e46f41fb7f96697ca1df6c5d9faf76b3024a",
+      "codeUnderTest": [
+        "Tools/Invoke-ThunderboltNetworking.ps1",
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Checks that malformed or incomplete receiver evidence cannot pass as a measurement."
+    },
+    {
+      "selector": "refuses an older <Endpoint> iperf3 before opening the one-shot listener",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "9d395a5feb033db15b9e149e27a50a11b4387e56a0024d56050be403fbe03dc7",
+      "codeUnderTest": [
+        "Tools/Invoke-ThunderboltNetworking.ps1",
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Confirms the version gate refuses before a process that would listen for traffic."
+    },
+    {
+      "selector": "previews full-duplex traffic without running the benchmark",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "8522066b6cb1c99c0018958352b1b9c7520dd41c15913dbde4d31af0abe811b3",
+      "codeUnderTest": [
+        "Tools/Invoke-ThunderboltNetworking.ps1",
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Verifies the planner describes requested simultaneous mode and does not start a trial."
+    }
+  ]
+}

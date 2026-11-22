@@ -77,6 +77,12 @@ separately. Keep cable, ports, MTU and workload fixed when comparing transports.
 Windows USB4NET and Linux ThunderboltIP provide the common TCP/UDP path for
 mixed peers. On Linux, choose experiments by what the application needs to test.
 
+Run `pcai-tb stream-preflight --compact` on each candidate Linux endpoint. It
+reports visibility of the kernel control directory, module entries, and
+`/dev/tbstreamN` character devices. An unavailable or incomplete scan stays
+explicit. Device entries can appear before a peer attaches. The probe leaves
+stream devices unopened because the first open can allocate DMA rings.
+
 | Candidate | Qualification scope |
 | --- | --- |
 | [Upstream USB4STREAM](https://docs.kernel.org/admin-guide/thunderbolt.html#streaming-data-directly-over-thunderbolt-cable) | Raw Linux-to-Linux host streams via `/dev/tbstreamX`. Check the installed kernel's `CONFIG_USB4_STREAM` and match its userspace ABI on both endpoints. Verify payload hashes in both directions and repeat after reconnect. |
@@ -84,9 +90,24 @@ mixed peers. On Linux, choose experiments by what the application needs to test.
 | [Hellas Thunderbolt verbs](https://github.com/hellas-ai/thunderbolt-ibverbs) | Out-of-tree Linux kernel modules and userspace. Pin matching module and userspace revisions on two lab hosts, then verify the selected device and actual verbs traffic. |
 | [Strix Halo USB4 driver](https://github.com/hyukudan/strix-halo-usb4-driver) | Out-of-tree kernel patches for AMD Strix Halo, including an experimental DMA-BUF path. Use the project's exact kernel baseline and matching test hardware. |
 
+Use a maintained kernel or distribution backport for USB4STREAM. Map the
+configured stream's `index` to its local device and preserve enrolled peer
+identity independently of the node number. A managed data path needs bounded
+nonblocking I/O, partial-transfer handling and requalification after hangup.
+Run IP forwarding and internet passthrough on the qualified network transport.
+[USB4STREAM driver](https://github.com/torvalds/linux/blob/v7.2/drivers/thunderbolt/stream.c) ·
+[Maintained Linux releases](https://www.kernel.org/) ·
+[Strix Halo peer measurements](https://github.com/jyatesdotdev/strix-rdma#status).
+
 The Microsoft preview preflight returns **UnsupportedPlatform** on Linux.
 Windows NetworkDirect to Linux USB4STREAM or verbs remains unqualified. Keep
 conventional RoCE over an RDMA-capable Ethernet NIC as a separate result.
+
+The [CLI controls](../../Native/pcai_core/pcai_tb_cli/tests/stream_preflight_cli.rs)
+exercise the report and option boundaries on Windows and Linux. The
+[Linux fixtures](../../Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs)
+exercise kernel-path and device-entry classification without a live stream.
+[Native test review](../../Native/pcai_core/pcai_tb_cli/tests/stream-preflight-review.json).
 
 The [preflight unit tests](../../Tests/Unit/PcaiUsb4RdmaReadiness.Tests.ps1) use
 a sanitized route-plan fixture and simulated Windows interfaces. They require

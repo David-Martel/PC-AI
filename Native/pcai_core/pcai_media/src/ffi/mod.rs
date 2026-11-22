@@ -49,7 +49,7 @@ use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
 use tokio::runtime::Runtime;
 
@@ -227,7 +227,10 @@ struct MediaState {
     )]
     runtime: Runtime,
     /// Loaded generation pipeline (None until `pcai_media_load_model` succeeds).
-    pipeline: Option<GenerationPipeline>,
+    ///
+    /// Shared so inference can run on a cloned handle without holding the
+    /// state mutex; see [`INFERENCE_GATE`].
+    pipeline: Option<Arc<GenerationPipeline>>,
     /// Device string set by `pcai_media_init`, propagated to `load_model`.
     device: String,
     /// Async request status map (request ID → status).
@@ -250,6 +253,48 @@ fn get_state() -> &'static Mutex<MediaState> {
             device: "cuda:0".to_string(),
             requests: HashMap::new(),
         })
+    })
+}
+
+/// Serializes model load/replace, generation and understanding.
+///
+/// One generation at a time bounds model/KV-cache memory.  Lock order is
+/// always this gate first, then the state mutex, and the state mutex is only
+/// held for short bookkeeping, never across inference or model loading.
+/// `pcai_media_poll_result`, `pcai_media_cancel`, `pcai_media_init` and
+/// `pcai_media_shutdown` take only the state mutex, so they stay responsive
+/// while a generation is running.
+static INFERENCE_GATE: Mutex<()> = Mutex::new(());
+
+/// Take the inference gate, recovering from poison.
+///
+/// The gate guards no data, so a panic in an earlier holder must not wedge
+/// every later inference call.
+fn acquire_inference_gate() -> MutexGuard<'static, ()> {
+    INFERENCE_GATE.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// Lock the state mutex briefly for request-map bookkeeping, recovering from
+/// poison (the request map stays structurally valid after a panic).
+fn lock_state_recovering() -> MutexGuard<'static, MediaState> {
+    get_state().lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// Clone the loaded pipeline handle and release the state mutex immediately.
+///
+/// Returns the status code and message the FFI boundary should report.
+fn loaded_pipeline() -> Result<Arc<GenerationPipeline>, (PcaiMediaErrorCode, String)> {
+    let guard = get_state().lock().map_err(|e| {
+        (
+            PcaiMediaErrorCode::GenerationError,
+            format!("Failed to acquire state lock: {e}"),
+        )
+    })?;
+    guard.pipeline.clone().ok_or_else(|| {
+        (
+            PcaiMediaErrorCode::ModelNotLoaded,
+            "No model loaded — call pcai_media_load_model first".to_string(),
+        )
     })
 }
 
@@ -339,9 +384,11 @@ pub extern "C" fn pcai_media_load_model(model_path: *const c_char, gpu_layers: i
         Err(code) => return code as i32,
     };
 
-    let state = get_state();
-    let mut guard = match state.lock() {
-        Ok(g) => g,
+    // No generation may run while the model is loaded or replaced, and the
+    // state mutex must not be held for the (long) load.
+    let _gate = acquire_inference_gate();
+    let device = match get_state().lock() {
+        Ok(guard) => guard.device.clone(),
         Err(e) => {
             set_error(
                 format!("Failed to acquire state lock: {e}"),
@@ -354,16 +401,25 @@ pub extern "C" fn pcai_media_load_model(model_path: *const c_char, gpu_layers: i
     let config = PipelineConfig {
         model: path_str.clone(),
         gpu_layers,
-        device: guard.device.clone(),
+        device,
         ..PipelineConfig::default()
     };
 
     // `GenerationPipeline::load` is synchronous (uses blocking I/O internally
-    // through hf-hub and safetensors).  Call it directly — no async executor
+    // through hf-hub and safetensors).  Call it directly -- no async executor
     // is required for the load path.
     match GenerationPipeline::load(config) {
         Ok(pipeline) => {
-            guard.pipeline = Some(pipeline);
+            match get_state().lock() {
+                Ok(mut guard) => guard.pipeline = Some(Arc::new(pipeline)),
+                Err(e) => {
+                    set_error(
+                        format!("Failed to acquire state lock: {e}"),
+                        PcaiMediaErrorCode::GenerationError,
+                    );
+                    return PcaiMediaErrorCode::GenerationError as i32;
+                }
+            }
             tracing::info!(model = %path_str, gpu_layers, "model loaded");
             PcaiMediaErrorCode::Success as i32
         }
@@ -420,29 +476,13 @@ pub extern "C" fn pcai_media_generate_image(
         Err(code) => return code as i32,
     };
 
-    let state = get_state();
-    let guard = match state.lock() {
-        Ok(g) => g,
-        Err(e) => {
-            set_error(
-                format!("Failed to acquire state lock: {e}"),
-                PcaiMediaErrorCode::GenerationError,
-            );
-            return PcaiMediaErrorCode::GenerationError as i32;
-        }
-    };
-
-    // Apply caller-supplied hyper-parameters to the loaded pipeline's config
-    // by overwriting the fields in a cloned config.  The pipeline is rebuilt
-    // in-place only when cfg_scale or temperature differ from the defaults.
-    let pipeline = match guard.pipeline.as_ref() {
-        Some(p) => p,
-        None => {
-            set_error(
-                "No model loaded — call pcai_media_load_model first",
-                PcaiMediaErrorCode::ModelNotLoaded,
-            );
-            return PcaiMediaErrorCode::ModelNotLoaded as i32;
+    // Serialize inference; the state mutex is only held to clone the handle.
+    let _gate = acquire_inference_gate();
+    let pipeline = match loaded_pipeline() {
+        Ok(p) => p,
+        Err((code, message)) => {
+            set_error(message, code);
+            return code as i32;
         }
     };
 
@@ -521,25 +561,11 @@ pub extern "C" fn pcai_media_understand_image(
         Err(_) => return std::ptr::null_mut(),
     };
 
-    let state = get_state();
-    let guard = match state.lock() {
-        Ok(g) => g,
-        Err(e) => {
-            set_error(
-                format!("Failed to acquire state lock: {e}"),
-                PcaiMediaErrorCode::GenerationError,
-            );
-            return std::ptr::null_mut();
-        }
-    };
-
-    let pipeline = match guard.pipeline.as_ref() {
-        Some(p) => p,
-        None => {
-            set_error(
-                "No model loaded — call pcai_media_load_model first",
-                PcaiMediaErrorCode::ModelNotLoaded,
-            );
+    let _gate = acquire_inference_gate();
+    let pipeline = match loaded_pipeline() {
+        Ok(p) => p,
+        Err((code, message)) => {
+            set_error(message, code);
             return std::ptr::null_mut();
         }
     };
@@ -558,7 +584,7 @@ pub extern "C" fn pcai_media_understand_image(
 
     // Run understanding pipeline (borrows from GenerationPipeline).
     let result = UnderstandingPipeline::understand_with_fallback(
-        pipeline,
+        &pipeline,
         &dyn_image,
         Some(std::path::Path::new(&path_str)),
         &prompt_str,
@@ -632,26 +658,13 @@ pub extern "C" fn pcai_media_generate_image_bytes(
         Err(code) => return code as i32,
     };
 
-    let state = get_state();
-    let guard = match state.lock() {
-        Ok(g) => g,
-        Err(e) => {
-            set_error(
-                format!("Failed to acquire state lock: {e}"),
-                PcaiMediaErrorCode::GenerationError,
-            );
-            return PcaiMediaErrorCode::GenerationError as i32;
-        }
-    };
-
-    let pipeline = match guard.pipeline.as_ref() {
-        Some(p) => p,
-        None => {
-            set_error(
-                "No model loaded — call pcai_media_load_model first",
-                PcaiMediaErrorCode::ModelNotLoaded,
-            );
-            return PcaiMediaErrorCode::ModelNotLoaded as i32;
+    // Serialize inference; the state mutex is only held to clone the handle.
+    let _gate = acquire_inference_gate();
+    let pipeline = match loaded_pipeline() {
+        Ok(p) => p,
+        Err((code, message)) => {
+            set_error(message, code);
+            return code as i32;
         }
     };
 
@@ -703,6 +716,43 @@ pub extern "C" fn pcai_media_generate_image_bytes(
         "image generated (bytes)"
     );
     PcaiMediaErrorCode::Success as i32
+}
+
+/// Run one queued async generation request to a terminal status.
+///
+/// The request stays `Pending` while it waits for the inference gate, so
+/// `pcai_media_cancel` can drop it before any work starts and
+/// `pcai_media_poll_result` reports it truthfully.  The state mutex is taken
+/// only for short status updates: never while waiting for the gate, never
+/// across `generate`, and never across the PNG save.
+fn execute_async_request(id: i64, output_path: String, generate: impl FnOnce() -> anyhow::Result<image::RgbImage>) {
+    let gate = acquire_inference_gate();
+
+    // Transition: Pending -> Running, unless cancelled while queued.
+    {
+        let mut guard = lock_state_recovering();
+        if !matches!(guard.requests.get(&id), Some(MediaRequestStatus::Pending)) {
+            return;
+        }
+        guard.requests.insert(id, MediaRequestStatus::Running);
+    }
+
+    let result = generate();
+    drop(gate);
+
+    let terminal = match result {
+        Ok(image) => match image.save(&output_path) {
+            Ok(()) => MediaRequestStatus::Complete(output_path),
+            Err(e) => MediaRequestStatus::Failed(format!("Save failed: {e}")),
+        },
+        Err(e) => generation_failure_status(&e),
+    };
+
+    let mut guard = lock_state_recovering();
+    // A cancel that arrived mid-generation wins; poll reports it as cancelled.
+    if matches!(guard.requests.get(&id), Some(MediaRequestStatus::Running)) {
+        guard.requests.insert(id, terminal);
+    }
 }
 
 /// Submit an asynchronous image generation request.
@@ -775,84 +825,17 @@ pub extern "C" fn pcai_media_generate_image_async(
     }
 
     // Spawn a plain OS thread (not Tokio) to avoid nesting block_on.
-    let cfg_scale_val = cfg_scale;
-    let temperature_val = temperature;
+    let override_cfg = if cfg_scale > 0.0 { Some(cfg_scale as f64) } else { None };
+    let override_temp = if temperature > 0.0 {
+        Some(temperature as f64)
+    } else {
+        None
+    };
     std::thread::spawn(move || {
-        // Transition: Pending → Running (unless already cancelled).
-        {
-            let state = get_state();
-            if let Ok(mut g) = state.lock() {
-                if matches!(g.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
-                    return;
-                }
-                g.requests.insert(id, MediaRequestStatus::Running);
-            }
-        }
-
-        // Run the synchronous generation under the lock.
-        let result = {
-            let state = get_state();
-            let guard = match state.lock() {
-                Ok(g) => g,
-                Err(error) => {
-                    let message = format!("Lock failed: {error}");
-                    // PoisonError owns this guard; locking the same mutex again deadlocks.
-                    let mut guard = error.into_inner();
-                    guard.requests.insert(id, MediaRequestStatus::Failed(message));
-                    return;
-                }
-            };
-
-            // Check for cancellation before expensive work.
-            if matches!(guard.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
-                return;
-            }
-
-            let pipeline = match guard.pipeline.as_ref() {
-                Some(p) => p,
-                None => {
-                    drop(guard);
-                    if let Ok(mut g2) = get_state().lock() {
-                        g2.requests
-                            .insert(id, MediaRequestStatus::Failed("Model not loaded".to_string()));
-                    }
-                    return;
-                }
-            };
-
-            let override_cfg = if cfg_scale_val > 0.0 {
-                Some(cfg_scale_val as f64)
-            } else {
-                None
-            };
-            let override_temp = if temperature_val > 0.0 {
-                Some(temperature_val as f64)
-            } else {
-                None
-            };
-
+        execute_async_request(id, out_str, move || {
+            let pipeline = loaded_pipeline().map_err(|(_, message)| anyhow::anyhow!(message))?;
             pipeline.generate_with_overrides(&prompt_str, override_cfg, override_temp)
-        };
-
-        // Store the terminal status.
-        if let Ok(mut g) = get_state().lock() {
-            if matches!(g.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
-                return;
-            }
-            match result {
-                Ok(image) => {
-                    if let Err(e) = image.save(&out_str) {
-                        g.requests
-                            .insert(id, MediaRequestStatus::Failed(format!("Save failed: {e}")));
-                    } else {
-                        g.requests.insert(id, MediaRequestStatus::Complete(out_str));
-                    }
-                }
-                Err(e) => {
-                    g.requests.insert(id, generation_failure_status(&e));
-                }
-            }
-        }
+        });
     });
 
     id
@@ -1507,5 +1490,240 @@ mod tests {
             expected_size,
             "PcaiMediaAsyncResult layout must match expected C ABI size"
         );
+    }
+
+    // ── Inference gate and lock scope ─────────────────────────────────────
+    //
+    // The global state mutex must never be held across generation or model
+    // load, otherwise pcai_media_poll_result and pcai_media_cancel block for
+    // the whole run (the bug fixed for pcai_inference in #374).  These tests
+    // use a mock generate closure through `execute_async_request`, so no
+    // model, GPU or download is needed.
+
+    /// Register a fresh async request id in the global request map.
+    fn register_request(status: MediaRequestStatus) -> i64 {
+        let id = NEXT_REQUEST_ID.fetch_add(1, AtomicOrdering::SeqCst);
+        lock_state_recovering().requests.insert(id, status);
+        id
+    }
+
+    /// Run `call` on a helper thread; fail instead of hanging if it blocks.
+    fn finishes_within<T: Send + 'static>(what: &str, call: impl FnOnce() -> T + Send + 'static) -> T {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = tx.send(call());
+        });
+        match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+            Ok(value) => value,
+            Err(_) => panic!("{what} blocked while inference was in flight"),
+        }
+    }
+
+    /// Poll a request through the C ABI, freeing any returned text.
+    fn poll_status(id: i64) -> i32 {
+        let result = pcai_media_poll_result(id);
+        pcai_media_free_string(result.text);
+        result.status
+    }
+
+    fn mock_image() -> anyhow::Result<image::RgbImage> {
+        Ok(image::RgbImage::new(1, 1))
+    }
+
+    // Protects: one generation at a time, so model and KV-cache memory stay bounded.
+    // Detects: removing the inference gate lets queued async requests overlap.
+    // Needs: no model or GPU; a temp directory for the PNG outputs.
+    #[test]
+    fn test_async_requests_are_serialized_and_all_complete() {
+        use std::sync::atomic::AtomicUsize;
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let active = Arc::new(AtomicUsize::new(0));
+        let peak = Arc::new(AtomicUsize::new(0));
+        let mut workers = Vec::new();
+        let mut ids = Vec::new();
+        for index in 0..4 {
+            let id = register_request(MediaRequestStatus::Pending);
+            ids.push(id);
+            let output = tmp
+                .path()
+                .join(format!("out{index}.png"))
+                .to_string_lossy()
+                .into_owned();
+            let (active, peak) = (active.clone(), peak.clone());
+            workers.push(std::thread::spawn(move || {
+                execute_async_request(id, output, move || {
+                    let now = active.fetch_add(1, AtomicOrdering::SeqCst) + 1;
+                    peak.fetch_max(now, AtomicOrdering::SeqCst);
+                    std::thread::sleep(std::time::Duration::from_millis(25));
+                    active.fetch_sub(1, AtomicOrdering::SeqCst);
+                    mock_image()
+                });
+            }));
+        }
+        for worker in workers {
+            worker.join().expect("worker must not panic");
+        }
+        assert_eq!(peak.load(AtomicOrdering::SeqCst), 1, "generations must not overlap");
+        for id in ids {
+            assert_eq!(poll_status(id), 2, "request {id} must complete");
+        }
+    }
+
+    // Protects: poll, cancel, init and shutdown stay responsive during a generation.
+    // Detects: holding the state mutex across generation (poll would time out here),
+    //   a queued request leaving Pending before it owns the gate, a cancelled queued
+    //   request still running.
+    // Needs: no model or GPU; the in-flight generation is a mock blocked on a channel.
+    #[test]
+    fn test_poll_and_cancel_respond_during_generation_and_cancel_skips_queued_work() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let running = register_request(MediaRequestStatus::Pending);
+        let queued = register_request(MediaRequestStatus::Pending);
+        let (entered_tx, entered_rx) = std::sync::mpsc::channel::<()>();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+        let ran_queued = Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+        let running_out = tmp.path().join("running.png").to_string_lossy().into_owned();
+        let first = std::thread::spawn(move || {
+            execute_async_request(running, running_out, move || {
+                entered_tx.send(()).expect("test is listening");
+                release_rx
+                    .recv_timeout(std::time::Duration::from_secs(10))
+                    .map_err(|_| anyhow::anyhow!("test never released the generation"))?;
+                mock_image()
+            });
+        });
+        entered_rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("first generation must start");
+
+        let queued_out = tmp.path().join("queued.png").to_string_lossy().into_owned();
+        let flag = ran_queued.clone();
+        let second = std::thread::spawn(move || {
+            execute_async_request(queued, queued_out, move || {
+                flag.store(true, AtomicOrdering::SeqCst);
+                mock_image()
+            });
+        });
+
+        // The first generation still owns the gate; every status path must answer.
+        assert_eq!(finishes_within("poll", move || poll_status(running)), 1);
+        assert_eq!(
+            finishes_within("poll", move || poll_status(queued)),
+            0,
+            "queued stays Pending"
+        );
+        assert_eq!(finishes_within("cancel", move || pcai_media_cancel(queued)), 0);
+        assert_eq!(finishes_within("poll", move || poll_status(queued)), 4);
+        assert_eq!(finishes_within("cancel", || pcai_media_cancel(999_998)), -1);
+        assert_eq!(
+            finishes_within("init", || pcai_media_init(c"cpu".as_ptr())),
+            PcaiMediaErrorCode::Success as i32
+        );
+        finishes_within("shutdown", || pcai_media_shutdown());
+
+        release_tx.send(()).expect("generation is waiting");
+        first.join().expect("first worker must not panic");
+        second.join().expect("second worker must not panic");
+        assert!(
+            !ran_queued.load(AtomicOrdering::SeqCst),
+            "a request cancelled while queued must never generate"
+        );
+        assert_eq!(poll_status(running), 2);
+    }
+
+    // Protects: every synchronous inference entry point (generate, bytes, understand,
+    //   load) queues behind the gate, so model replacement cannot race a generation.
+    // Detects: an entry point that skips acquire_inference_gate, or one that holds the
+    //   state mutex while waiting for it (the status calls below would then hang).
+    // Needs: no model loaded in this process; the gate is held by the test as a stand-in
+    //   for a running generation.
+    #[test]
+    fn test_sync_entry_points_queue_behind_gate_without_blocking_status() {
+        let model_dir = tempfile::tempdir().expect("tempdir");
+        let model_dir = CString::new(model_dir.path().to_string_lossy().into_owned()).unwrap();
+        let (tx, rx) = std::sync::mpsc::channel::<(&'static str, i64)>();
+        let gate = acquire_inference_gate();
+
+        let mut workers = Vec::new();
+        let sender = tx.clone();
+        workers.push(std::thread::spawn(move || {
+            let rc = pcai_media_generate_image(c"a dog".as_ptr(), 0.0, 0.0, c"x.png".as_ptr());
+            sender.send(("generate", i64::from(rc))).unwrap();
+        }));
+        let sender = tx.clone();
+        workers.push(std::thread::spawn(move || {
+            let mut data: *mut u8 = std::ptr::null_mut();
+            let mut len = 0usize;
+            let rc = pcai_media_generate_image_bytes(c"a dog".as_ptr(), 0.0, 0.0, &mut data, &mut len);
+            sender.send(("bytes", i64::from(rc))).unwrap();
+        }));
+        let sender = tx.clone();
+        workers.push(std::thread::spawn(move || {
+            let text = pcai_media_understand_image(c"x.png".as_ptr(), c"describe".as_ptr(), 8, 0.0);
+            sender.send(("understand", i64::from(text.is_null()))).unwrap();
+        }));
+        let sender = tx.clone();
+        workers.push(std::thread::spawn(move || {
+            let rc = pcai_media_load_model(model_dir.as_ptr(), 0);
+            sender.send(("load", i64::from(rc))).unwrap();
+        }));
+        drop(tx);
+
+        assert!(
+            rx.recv_timeout(std::time::Duration::from_millis(300)).is_err(),
+            "inference entry points must wait for the gate"
+        );
+        assert_eq!(finishes_within("poll", || poll_status(999_997)), -1);
+        assert_eq!(finishes_within("cancel", || pcai_media_cancel(999_997)), -1);
+        drop(gate);
+
+        let mut outcomes = std::collections::HashMap::new();
+        for _ in 0..4 {
+            let (name, value) = rx
+                .recv_timeout(std::time::Duration::from_secs(10))
+                .expect("entry points must finish after the gate is released");
+            outcomes.insert(name, value);
+        }
+        for worker in workers {
+            worker.join().expect("entry point must not panic");
+        }
+        assert_eq!(outcomes["generate"], PcaiMediaErrorCode::ModelNotLoaded as i64);
+        assert_eq!(outcomes["bytes"], PcaiMediaErrorCode::ModelNotLoaded as i64);
+        assert_eq!(outcomes["understand"], 1, "understand returns NULL without a model");
+        assert_ne!(outcomes["load"], 0, "an empty model directory must not load");
+    }
+
+    // Protects: an incomplete checkpoint is refused at the FFI boundary with an existing
+    //   status code and a diagnostic naming the missing tensors, and leaves no model loaded.
+    // Detects: a weight-completeness check that is bypassed or whose typed error is
+    //   flattened into a success; a half-loaded pipeline left behind after failure.
+    // Needs: a temp directory only; the 7B constructor metadata uses scalar-backed views,
+    //   so nothing large is allocated and no GPU or download is involved.
+    #[test]
+    fn test_load_model_rejects_incomplete_checkpoint_and_stays_unloaded() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let config = pcai_media_model::config::JanusConfig::janus_pro_7b();
+        std::fs::write(tmp.path().join("config.json"), serde_json::to_vec(&config).unwrap()).unwrap();
+        let unrelated = candle_core::Tensor::zeros(1, candle_core::DType::F32, &candle_core::Device::Cpu).unwrap();
+        candle_core::safetensors::save(
+            &HashMap::from([("unrelated.weight", unrelated)]),
+            tmp.path().join("model.safetensors"),
+        )
+        .unwrap();
+        let path = CString::new(tmp.path().to_string_lossy().into_owned()).unwrap();
+
+        assert_eq!(pcai_media_init(c"cpu".as_ptr()), PcaiMediaErrorCode::Success as i32);
+        let rc = pcai_media_load_model(path.as_ptr(), 0);
+        assert_eq!(rc, PcaiMediaErrorCode::GenerationError as i32);
+        let message = unsafe { CStr::from_ptr(pcai_media_last_error()) }
+            .to_str()
+            .expect("diagnostic should be UTF-8")
+            .to_string();
+        assert!(message.contains("incomplete safetensors weights"), "{message}");
+        assert!(message.contains("required tensors"), "{message}");
+
+        let rc = pcai_media_generate_image(c"a dog".as_ptr(), 0.0, 0.0, c"x.png".as_ptr());
+        assert_eq!(rc, PcaiMediaErrorCode::ModelNotLoaded as i32);
     }
 }

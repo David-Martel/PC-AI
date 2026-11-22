@@ -120,6 +120,11 @@ updates:
   # to System.Text.Json 10.0.7 while PcaiNative (which IS covered) sat at
   # 10.0.9 -- two versions of one package in a single solution, invisible
   # because only half the projects were watched.
+  # These five updaters reach net8.0 projects directly or through ProjectReference. Keep
+  # System.Management.Automation on the PowerShell 7.4 line and System.Text.Json
+  # on 10.x until the projects they reference move to a supported newer runtime.
+  # Patch updates still flow. PowerShell 7.7 targets net11.0, and System.Text.Json
+  # 11 selects its .NET Standard fallback on net8.0. See PRs #318 and #322.
   - package-ecosystem: "nuget"
     directory: "/Native/PcaiNative"
     schedule:
@@ -130,12 +135,8 @@ updates:
       nuget-pcainative:
         update-types: ["minor", "patch"]
     ignore:
-      # System.Text.Json is held on the 10.x line while this project targets
-      # net8.0. 11.0.0 does not support net8.0: restore warns "doesn't support
-      # net8.0 and has not been tested with it" for it and its 11.0.0
-      # transitive packages, and #305 (10.0.14 -> 11.0.0) aborted the managed
-      # native suite on windows-latest. 10.x patch updates still flow. Remove
-      # this entry when the project moves off net8.0.
+      - dependency-name: "System.Management.Automation"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
       - dependency-name: "System.Text.Json"
         update-types: ["version-update:semver-major"]
     labels:
@@ -154,8 +155,8 @@ updates:
       nuget-servicehost:
         update-types: ["minor", "patch"]
     ignore:
-      # Same hold as PcaiNative: net8.0 target, and #305 proposed
-      # System.Text.Json 11.0.0 for this project's csproj.
+      - dependency-name: "System.Management.Automation"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
       - dependency-name: "System.Text.Json"
         update-types: ["version-update:semver-major"]
     labels:
@@ -173,6 +174,11 @@ updates:
     groups:
       nuget-chattui:
         update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "System.Management.Automation"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "System.Text.Json"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
       - "dotnet"
@@ -188,6 +194,11 @@ updates:
     groups:
       nuget-pcainative-tests:
         update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "System.Management.Automation"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "System.Text.Json"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
       - "dotnet"
@@ -203,6 +214,11 @@ updates:
     groups:
       nuget-chattui-tests:
         update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "System.Management.Automation"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "System.Text.Json"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
       - "dotnet"

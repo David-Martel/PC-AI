@@ -229,11 +229,6 @@ struct MediaState {
         reason = "Tokio runtime retained for future async hub download operations; not yet exercised by synchronous FFI paths"
     )]
     runtime: Runtime,
-    /// Loaded generation pipeline (None until `pcai_media_load_model` succeeds).
-    ///
-    /// Shared so inference can run on a cloned handle without holding the
-    /// state mutex; see [`INFERENCE_GATE`].
-    pipeline: Option<Arc<GenerationPipeline>>,
     /// Device string set by `pcai_media_init`, propagated to `load_model`.
     device: String,
     /// Async request status map (request ID → status).
@@ -252,7 +247,6 @@ fn get_state() -> &'static Mutex<MediaState> {
         let runtime = Runtime::new().expect("failed to create Tokio runtime for pcai_media");
         Mutex::new(MediaState {
             runtime,
-            pipeline: None,
             device: "cuda:0".to_string(),
             requests: HashMap::new(),
         })
@@ -263,11 +257,85 @@ fn get_state() -> &'static Mutex<MediaState> {
 ///
 /// One generation at a time bounds model/KV-cache memory.  Lock order is
 /// always this gate first, then the state mutex, and the state mutex is only
-/// held for short bookkeeping, never across inference or model loading.
+/// held for short bookkeeping, never across inference or model loading.  The
+/// loaded model lives in [`MODEL_SLOT`] under its own short-lived mutex.
 /// `pcai_media_poll_result`, `pcai_media_cancel`, `pcai_media_init` and
 /// `pcai_media_shutdown` take only the state mutex, so they stay responsive
 /// while a generation is running.
 static INFERENCE_GATE: Mutex<()> = Mutex::new(());
+
+/// A loaded-model handle guarded by a lifecycle epoch.
+///
+/// `epoch` increments on every shutdown.  A load captures the epoch when it
+/// is admitted and only installs its model if the epoch is unchanged, so a
+/// shutdown that runs while a (long, lock-free) load is in flight cannot be
+/// undone by that load finishing afterwards.
+struct ModelSlot<T> {
+    epoch: u64,
+    model: Option<Arc<T>>,
+}
+
+impl<T> ModelSlot<T> {
+    const fn new() -> Self {
+        Self { epoch: 0, model: None }
+    }
+}
+
+/// The loaded generation pipeline.  Its mutex is only ever held for a field
+/// read or write, and models are always dropped after it is released.
+static MODEL_SLOT: Mutex<ModelSlot<GenerationPipeline>> = Mutex::new(ModelSlot::new());
+
+fn lock_slot<T>(slot: &Mutex<ModelSlot<T>>) -> MutexGuard<'_, ModelSlot<T>> {
+    // The slot is two plain fields, so it stays consistent after a panic.
+    slot.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// Clone the current model handle, if any.
+fn slot_current<T>(slot: &Mutex<ModelSlot<T>>) -> Option<Arc<T>> {
+    lock_slot(slot).model.clone()
+}
+
+/// Capture the lifecycle epoch at load admission.
+fn slot_begin_load<T>(slot: &Mutex<ModelSlot<T>>) -> u64 {
+    lock_slot(slot).epoch
+}
+
+/// Install `model` if no shutdown happened since `epoch` was captured.
+///
+/// Returns whether it was installed.  A stale model and any model it
+/// replaces are dropped here, after the slot lock is released, because
+/// freeing a large model can be slow.
+fn slot_install<T>(slot: &Mutex<ModelSlot<T>>, epoch: u64, model: T) -> bool {
+    let (installed, displaced) = {
+        let mut guard = lock_slot(slot);
+        if guard.epoch == epoch {
+            (true, guard.model.replace(Arc::new(model)))
+        } else {
+            (false, None)
+        }
+    };
+    drop(displaced);
+    installed
+}
+
+/// Release the model and invalidate every in-flight load.
+fn slot_shutdown<T>(slot: &Mutex<ModelSlot<T>>) {
+    let released = {
+        let mut guard = lock_slot(slot);
+        guard.epoch = guard.epoch.wrapping_add(1);
+        guard.model.take()
+    };
+    drop(released);
+}
+
+/// Run `load` outside every lock and install its result if the slot was not
+/// shut down meanwhile.  `Ok(false)` means the load completed but was
+/// discarded because of a shutdown.
+fn load_into_slot<T>(slot: &Mutex<ModelSlot<T>>, load: impl FnOnce() -> anyhow::Result<T>) -> anyhow::Result<bool> {
+    let epoch = slot_begin_load(slot);
+    let model = load()?;
+    Ok(slot_install(slot, epoch, model))
+}
 
 /// Take the inference gate, recovering from poison.
 ///
@@ -283,17 +351,11 @@ fn lock_state_recovering() -> MutexGuard<'static, MediaState> {
     get_state().lock().unwrap_or_else(PoisonError::into_inner)
 }
 
-/// Clone the loaded pipeline handle and release the state mutex immediately.
+/// Clone the loaded pipeline handle without holding any lock afterwards.
 ///
 /// Returns the status code and message the FFI boundary should report.
 fn loaded_pipeline() -> Result<Arc<GenerationPipeline>, (PcaiMediaErrorCode, String)> {
-    let guard = get_state().lock().map_err(|e| {
-        (
-            PcaiMediaErrorCode::GenerationError,
-            format!("Failed to acquire state lock: {e}"),
-        )
-    })?;
-    guard.pipeline.clone().ok_or_else(|| {
+    slot_current(&MODEL_SLOT).ok_or_else(|| {
         (
             PcaiMediaErrorCode::ModelNotLoaded,
             "No model loaded — call pcai_media_load_model first".to_string(),
@@ -410,21 +472,20 @@ pub extern "C" fn pcai_media_load_model(model_path: *const c_char, gpu_layers: i
 
     // `GenerationPipeline::load` is synchronous (uses blocking I/O internally
     // through hf-hub and safetensors).  Call it directly -- no async executor
-    // is required for the load path.
-    match GenerationPipeline::load(config) {
-        Ok(pipeline) => {
-            match get_state().lock() {
-                Ok(mut guard) => guard.pipeline = Some(Arc::new(pipeline)),
-                Err(e) => {
-                    set_error(
-                        format!("Failed to acquire state lock: {e}"),
-                        PcaiMediaErrorCode::GenerationError,
-                    );
-                    return PcaiMediaErrorCode::GenerationError as i32;
-                }
-            }
+    // is required for the load path.  Neither the state mutex nor the model
+    // slot is held while it runs; a shutdown that arrives meanwhile bumps the
+    // slot epoch and the finished model is discarded instead of installed.
+    match load_into_slot(&MODEL_SLOT, || GenerationPipeline::load(config)) {
+        Ok(true) => {
             tracing::info!(model = %path_str, gpu_layers, "model loaded");
             PcaiMediaErrorCode::Success as i32
+        }
+        Ok(false) => {
+            set_error(
+                format!("Model '{path_str}' finished loading after pcai_media_shutdown and was discarded"),
+                PcaiMediaErrorCode::ModelNotLoaded,
+            );
+            PcaiMediaErrorCode::ModelNotLoaded as i32
         }
         Err(e) => {
             let msg = format!("Failed to load model '{path_str}': {e:#}");
@@ -731,14 +792,16 @@ pub extern "C" fn pcai_media_generate_image_bytes(
 // That way a cancelled request can never create or overwrite the caller's
 // file, and a failed write never leaves a partial file behind.
 
-/// Staging file path next to `dest`: `<dest>.<pid>.<token>.partial`.
+/// Short staging path in `dest`'s parent directory: `.pcai-<16 hex>.partial`.
 ///
-/// The process id keeps a stale file from an earlier process (request ids
-/// restart at 1) from colliding with this one.
-fn staging_path(dest: &Path, token: i64) -> PathBuf {
-    let mut name = dest.as_os_str().to_owned();
-    name.push(format!(".{}.{token}.partial", std::process::id()));
-    PathBuf::from(name)
+/// The name is independent of the destination's, so a valid destination near
+/// the 255-character component limit still gets a legal staging name.
+fn staging_path(dest: &Path) -> PathBuf {
+    let name = format!(".pcai-{:016x}.partial", rand::random::<u64>());
+    match dest.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent.join(name),
+        _ => PathBuf::from(name),
+    }
 }
 
 /// Encoder for `dest`: the image format follows the destination extension,
@@ -753,16 +816,33 @@ fn encode_for(dest: &Path) -> impl FnOnce(&image::RgbImage, &mut File) -> io::Re
     }
 }
 
+/// Exclusively create a staging file, retrying with a new name on collision.
+fn create_staging_file(dest: &Path) -> io::Result<(PathBuf, File)> {
+    for _ in 0..STAGING_ATTEMPTS {
+        let staged = staging_path(dest);
+        match OpenOptions::new().write(true).create_new(true).open(&staged) {
+            Ok(file) => return Ok((staged, file)),
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error),
+        }
+    }
+    Err(io::Error::new(
+        io::ErrorKind::AlreadyExists,
+        "no unused staging file name after several attempts",
+    ))
+}
+
+/// Attempts to find an unused staging name before giving up.
+const STAGING_ATTEMPTS: u32 = 8;
+
 /// Encode `image` into a fresh, exclusively created staging file next to
 /// `dest` and flush it to disk.  Any failure removes the staging file.
 fn stage_image(
     image: &image::RgbImage,
     dest: &Path,
-    token: i64,
     encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
 ) -> io::Result<PathBuf> {
-    let staged = staging_path(dest, token);
-    let mut file = OpenOptions::new().write(true).create_new(true).open(&staged)?;
+    let (staged, mut file) = create_staging_file(dest)?;
     let written = encode(image, &mut file).and_then(|()| file.sync_all());
     drop(file);
     match written {
@@ -787,8 +867,7 @@ fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
 /// Stage and publish in one step, for the synchronous paths that cannot be
 /// cancelled but must still never leave a partial destination.
 fn write_image_atomically(image: &image::RgbImage, dest: &Path) -> io::Result<()> {
-    let token = NEXT_REQUEST_ID.fetch_add(1, AtomicOrdering::SeqCst);
-    let staged = stage_image(image, dest, token, encode_for(dest))?;
+    let staged = stage_image(image, dest, encode_for(dest))?;
     publish_staged(&staged, dest).inspect_err(|_| {
         let _ = fs::remove_file(&staged);
     })
@@ -844,7 +923,7 @@ fn execute_async_request_with(
     }
 
     let dest = Path::new(&output_path);
-    let staged = match stage_image(&image, dest, id, encode) {
+    let staged = match stage_image(&image, dest, encode) {
         Ok(staged) => staged,
         Err(e) => {
             record_terminal_status(id, MediaRequestStatus::Failed(format!("Save failed: {e}")));
@@ -926,25 +1005,12 @@ pub extern "C" fn pcai_media_generate_image_async(
     };
 
     // Validate that a model is loaded before allocating an ID.
-    {
-        let state = get_state();
-        let guard = match state.lock() {
-            Ok(g) => g,
-            Err(e) => {
-                set_error(
-                    format!("Failed to lock state: {e}"),
-                    PcaiMediaErrorCode::GenerationError,
-                );
-                return -1;
-            }
-        };
-        if guard.pipeline.is_none() {
-            set_error(
-                "No model loaded — call pcai_media_load_model first",
-                PcaiMediaErrorCode::ModelNotLoaded,
-            );
-            return -1;
-        }
+    if slot_current(&MODEL_SLOT).is_none() {
+        set_error(
+            "No model loaded — call pcai_media_load_model first",
+            PcaiMediaErrorCode::ModelNotLoaded,
+        );
+        return -1;
     }
 
     // Allocate a unique request ID and register it as Pending.
@@ -1160,19 +1226,16 @@ pub extern "C" fn pcai_media_upscale_image(
 /// Release the loaded pipeline and free associated memory.
 ///
 /// After this call [`pcai_media_generate_image`] will fail until
-/// [`pcai_media_load_model`] is called again.  Calling this function before
-/// [`pcai_media_init`] is safe and is a no-op.
+/// [`pcai_media_load_model`] is called again, including when a load was in
+/// flight: that load finishes, is discarded, and reports `ModelNotLoaded`.
+/// A generation already running finishes on its own handle.  Calling this
+/// function before [`pcai_media_init`] is safe and is a no-op.
 #[no_mangle]
 pub extern "C" fn pcai_media_shutdown() {
     clear_error();
 
-    // If the global state has never been initialised there is nothing to do.
-    if let Some(state) = MEDIA_STATE.get() {
-        if let Ok(mut guard) = state.lock() {
-            guard.pipeline = None;
-            tracing::info!("pcai_media_shutdown: pipeline released");
-        }
-    }
+    slot_shutdown(&MODEL_SLOT);
+    tracing::info!("pcai_media_shutdown: pipeline released");
 }
 
 /// Return a pointer to the last error message for the current thread.
@@ -2016,5 +2079,190 @@ mod tests {
         write_image_atomically(&image::RgbImage::new(2, 2), &good).expect("png write");
         assert_eq!(image::open(&good).unwrap().width(), 2);
         assert_eq!(dir_listing(tmp.path()), ["existing.unknownext", "good.png"]);
+    }
+
+    // Protects: a destination near the 255-character component limit still publishes,
+    //   on both the asynchronous and synchronous paths.
+    // Detects: a staging name derived from the destination basename (248 + suffix
+    //   exceeds 255 and the exclusive create fails with an invalid-name error).
+    // Needs: a temp directory on a filesystem with a 255-character component limit.
+    #[test]
+    fn test_long_valid_destination_name_publishes_on_both_paths() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let name = format!("{}.png", "a".repeat(244));
+        assert_eq!(name.len(), 248);
+        let dest = tmp.path().join(&name);
+
+        let id = register_request(MediaRequestStatus::Pending);
+        execute_async_request(id, dest.to_string_lossy().into_owned(), mock_image);
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 2, "async publish failed: {text:?}");
+        assert_eq!(dir_listing(tmp.path()), std::slice::from_ref(&name));
+        fs::remove_file(&dest).unwrap();
+
+        write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("sync publish");
+        assert_eq!(image::open(&dest).unwrap().width(), 2);
+        assert_eq!(dir_listing(tmp.path()), [name]);
+    }
+
+    // Protects: staging names are short, independent of the destination, unique per
+    //   call and live next to the destination.
+    // Detects: a name that embeds the destination basename or repeats between calls.
+    // Needs: nothing on disk.
+    #[test]
+    fn test_staging_path_is_short_unique_and_beside_destination() {
+        let dest = Path::new("some_dir").join("x".repeat(240));
+        let first = staging_path(&dest);
+        let second = staging_path(&dest);
+        assert_ne!(first, second);
+        assert_eq!(first.parent(), dest.parent());
+        let leaf = first.file_name().unwrap().to_string_lossy().into_owned();
+        assert!(leaf.starts_with(".pcai-") && leaf.ends_with(".partial"), "{leaf}");
+        assert!(leaf.len() < 40, "{leaf}");
+        assert_eq!(staging_path(Path::new("bare.png")).parent(), Some(Path::new("")));
+    }
+
+    // ── Model slot lifecycle: shutdown must win over an in-flight load ────
+
+    /// Model stand-in that records when it is dropped and whether the slot
+    /// lock was held at that moment.
+    struct Probe {
+        slot: Arc<Mutex<ModelSlot<Probe>>>,
+        drops: Arc<std::sync::atomic::AtomicUsize>,
+        dropped_under_lock: Arc<std::sync::atomic::AtomicBool>,
+    }
+
+    impl Drop for Probe {
+        fn drop(&mut self) {
+            if self.slot.try_lock().is_err() {
+                self.dropped_under_lock.store(true, AtomicOrdering::SeqCst);
+            }
+            self.drops.fetch_add(1, AtomicOrdering::SeqCst);
+        }
+    }
+
+    struct ProbeRig {
+        slot: Arc<Mutex<ModelSlot<Probe>>>,
+        drops: Arc<std::sync::atomic::AtomicUsize>,
+        dropped_under_lock: Arc<std::sync::atomic::AtomicBool>,
+    }
+
+    impl ProbeRig {
+        fn new() -> Self {
+            Self {
+                slot: Arc::new(Mutex::new(ModelSlot::new())),
+                drops: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                dropped_under_lock: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            }
+        }
+        fn probe(&self) -> Probe {
+            Probe {
+                slot: self.slot.clone(),
+                drops: self.drops.clone(),
+                dropped_under_lock: self.dropped_under_lock.clone(),
+            }
+        }
+        fn drops(&self) -> usize {
+            self.drops.load(AtomicOrdering::SeqCst)
+        }
+        fn dropped_under_lock(&self) -> bool {
+            self.dropped_under_lock.load(AtomicOrdering::SeqCst)
+        }
+    }
+
+    // Protects: shutdown during an in-flight load is final: the finished model is
+    //   discarded (outside the slot lock) and nothing is loaded afterwards.
+    // Detects: an unconditional install after load (the pre-fix behaviour), or a stale
+    //   model freed while the slot lock is held.
+    // Needs: no model; the paused load is a closure blocked on a channel.
+    #[test]
+    fn test_shutdown_during_load_discards_the_stale_model() {
+        let rig = ProbeRig::new();
+        let (started_tx, started_rx) = std::sync::mpsc::channel::<()>();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+        let slot = rig.slot.clone();
+        let probe = rig.probe();
+        let loader = std::thread::spawn(move || {
+            load_into_slot(&slot, move || {
+                started_tx.send(()).unwrap();
+                release_rx
+                    .recv_timeout(std::time::Duration::from_secs(10))
+                    .map_err(|_| anyhow::anyhow!("test never released the load"))?;
+                Ok(probe)
+            })
+        });
+        started_rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("load starts");
+
+        let slot = rig.slot.clone();
+        finishes_within("slot shutdown", move || slot_shutdown(&slot));
+
+        release_tx.send(()).unwrap();
+        let installed = loader
+            .join()
+            .expect("loader must not panic")
+            .expect("load itself succeeds");
+        assert!(!installed, "a load that finished after shutdown must not install");
+        assert!(slot_current(&rig.slot).is_none(), "slot stays unloaded");
+        assert_eq!(rig.drops(), 1, "the stale model is dropped");
+        assert!(
+            !rig.dropped_under_lock(),
+            "the stale model is dropped outside the slot lock"
+        );
+    }
+
+    // Protects: the reverse ordering still works: shutdown, then a new load, installs
+    //   normally, and replacing a model frees the old one outside the lock.
+    // Detects: an epoch check that rejects every load after the first shutdown.
+    // Needs: no model.
+    #[test]
+    fn test_load_after_shutdown_installs_and_replacement_drops_outside_lock() {
+        let rig = ProbeRig::new();
+        slot_shutdown(&rig.slot);
+        let first = rig.probe();
+        assert!(load_into_slot(&rig.slot, move || Ok(first)).unwrap());
+        assert!(slot_current(&rig.slot).is_some());
+        assert_eq!(rig.drops(), 0);
+
+        let second = rig.probe();
+        assert!(load_into_slot(&rig.slot, move || Ok(second)).unwrap());
+        assert_eq!(rig.drops(), 1, "the replaced model is dropped");
+        assert!(!rig.dropped_under_lock());
+
+        slot_shutdown(&rig.slot);
+        assert!(slot_current(&rig.slot).is_none());
+        assert_eq!(rig.drops(), 2, "shutdown releases the model");
+        assert!(!rig.dropped_under_lock());
+    }
+
+    // Protects: a failed load leaves the slot, and the epoch, alone.
+    // Detects: an error path that clears a previously loaded model.
+    // Needs: no model.
+    #[test]
+    fn test_failed_load_keeps_existing_model() {
+        let rig = ProbeRig::new();
+        let kept = rig.probe();
+        assert!(load_into_slot(&rig.slot, move || Ok(kept)).unwrap());
+        let error = load_into_slot(&rig.slot, || -> anyhow::Result<Probe> {
+            anyhow::bail!("bad checkpoint")
+        })
+        .expect_err("load error propagates");
+        assert!(error.to_string().contains("bad checkpoint"));
+        assert!(slot_current(&rig.slot).is_some());
+        assert_eq!(rig.drops(), 0);
+    }
+
+    // Protects: the exported pcai_media_shutdown invalidates in-flight loads of the
+    //   real global slot (not just the generic helper).
+    // Detects: shutdown that stops touching MODEL_SLOT, or only clears the handle
+    //   without bumping the epoch.
+    // Needs: no model.
+    #[test]
+    fn test_exported_shutdown_bumps_the_global_epoch() {
+        let before = slot_begin_load(&MODEL_SLOT);
+        pcai_media_shutdown();
+        assert_ne!(slot_begin_load(&MODEL_SLOT), before);
+        assert!(slot_current(&MODEL_SLOT).is_none());
     }
 }

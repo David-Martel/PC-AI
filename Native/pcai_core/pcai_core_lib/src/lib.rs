@@ -190,17 +190,20 @@ pub extern "C" fn pcai_estimate_tokens(text: *const c_char) -> usize {
 /// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_check_resource_safety(gpu_limit: f32) -> i32 {
-    if telemetry::check_resource_safety(gpu_limit) {
-        1
-    } else {
-        0
+    // Telemetry that cannot be collected is reported as unsafe (0): the caller asked
+    // whether it may proceed, and an unverified system must not read as safe.
+    match telemetry::check_resource_safety(gpu_limit) {
+        Ok(true) => 1,
+        Ok(false) | Err(_) => 0,
     }
 }
 
 /// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_get_system_telemetry_json() -> *mut c_char {
-    let tel = telemetry::collect_telemetry();
+    let Ok(tel) = telemetry::collect_telemetry() else {
+        return std::ptr::null_mut();
+    };
     match serde_json::to_string(&tel) {
         Ok(json) => rust_str_to_c(&json),
         Err(_) => std::ptr::null_mut(),
@@ -254,9 +257,12 @@ pub extern "C" fn pcai_query_full_context_json() -> *mut c_char {
         vmm: vmm_health::VmmHealth,
     }
 
+    let (Ok(system), Ok(telemetry)) = (system::get_system_summary(), telemetry::collect_telemetry()) else {
+        return std::ptr::null_mut();
+    };
     let context = FullContext {
-        system: system::get_system_summary(),
-        telemetry: telemetry::collect_telemetry(),
+        system,
+        telemetry,
         vmm: vmm_health::check_vmm_health(),
     };
 

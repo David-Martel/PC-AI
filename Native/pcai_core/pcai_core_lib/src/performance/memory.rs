@@ -79,12 +79,12 @@ fn format_bytes(bytes: u64) -> String {
     }
 }
 
-/// Get system memory statistics
-pub fn get_memory_stats() -> MemoryStats {
-    let mut sys = System::new_all();
+/// Read memory statistics, reporting why the probe failed instead of hiding it.
+fn read_memory_stats() -> Result<MemoryStats, PcaiStatus> {
+    let mut sys = System::new_all()?;
     sys.refresh_memory();
 
-    MemoryStats {
+    Ok(MemoryStats {
         status: PcaiStatus::Success,
         total_memory_bytes: sys.total_memory(),
         used_memory_bytes: sys.used_memory(),
@@ -92,12 +92,28 @@ pub fn get_memory_stats() -> MemoryStats {
         total_swap_bytes: sys.total_swap(),
         used_swap_bytes: sys.used_swap(),
         elapsed_ms: 0,
-    }
+    })
 }
 
-/// Get formatted memory usage information
-pub fn get_memory_usage_info() -> MemoryUsageInfo {
-    let stats = get_memory_stats();
+/// Get system memory statistics.
+///
+/// The FFI struct carries its own status, so a failed probe (sysinfo 0.40
+/// `System::new_all` is fallible) is reported as zeroed metrics with a non-success
+/// `status`, not as a panic.
+pub fn get_memory_stats() -> MemoryStats {
+    read_memory_stats().unwrap_or_else(|status| MemoryStats {
+        status,
+        ..MemoryStats::default()
+    })
+}
+
+/// Get formatted memory usage information.
+///
+/// # Errors
+///
+/// Returns the [`PcaiStatus`] for a failed memory probe.
+pub fn get_memory_usage_info() -> Result<MemoryUsageInfo, PcaiStatus> {
+    let stats = read_memory_stats()?;
 
     let memory_percent = if stats.total_memory_bytes > 0 {
         (stats.used_memory_bytes as f64 / stats.total_memory_bytes as f64) * 100.0
@@ -111,7 +127,7 @@ pub fn get_memory_usage_info() -> MemoryUsageInfo {
         0.0
     };
 
-    MemoryUsageInfo {
+    Ok(MemoryUsageInfo {
         total_memory: format_bytes(stats.total_memory_bytes),
         used_memory: format_bytes(stats.used_memory_bytes),
         available_memory: format_bytes(stats.available_memory_bytes),
@@ -119,26 +135,38 @@ pub fn get_memory_usage_info() -> MemoryUsageInfo {
         total_swap: format_bytes(stats.total_swap_bytes),
         used_swap: format_bytes(stats.used_swap_bytes),
         swap_percent,
-    }
+    })
 }
 
-/// Check if system is under memory pressure
-pub fn is_memory_pressure() -> bool {
-    let stats = get_memory_stats();
+/// Check if system is under memory pressure.
+///
+/// # Errors
+///
+/// Returns the [`PcaiStatus`] for a failed memory probe, so "unknown" is not
+/// mistaken for "no pressure".
+pub fn is_memory_pressure() -> Result<bool, PcaiStatus> {
+    let stats = read_memory_stats()?;
     if stats.total_memory_bytes == 0 {
-        return false;
+        return Ok(false);
     }
 
     let usage_percent = (stats.used_memory_bytes as f64 / stats.total_memory_bytes as f64) * 100.0;
 
     // Consider memory pressure if usage > 90%
-    usage_percent > 90.0
+    Ok(usage_percent > 90.0)
 }
 
-/// Get processes consuming the most memory
-pub fn get_top_memory_consumers(top_n: usize) -> Vec<super::process::ProcessInfo> {
-    let (_, processes) = super::process::get_top_processes(top_n, "memory");
-    processes
+/// Get processes consuming the most memory.
+///
+/// # Errors
+///
+/// Returns the failing [`PcaiStatus`] when the process sampler could not be created.
+pub fn get_top_memory_consumers(top_n: usize) -> Result<Vec<super::process::ProcessInfo>, PcaiStatus> {
+    let (stats, processes) = super::process::get_top_processes(top_n, "memory");
+    if stats.status.is_error() {
+        return Err(stats.status);
+    }
+    Ok(processes)
 }
 
 #[cfg(test)]
@@ -154,9 +182,11 @@ mod tests {
         assert!(stats.used_memory_bytes <= stats.total_memory_bytes);
     }
 
+    /// The sysinfo 0.40 port made this probe fallible; on a supported host it must
+    /// still succeed, so the `Result` is unwrapped here rather than skipped.
     #[test]
     fn test_get_memory_usage_info() {
-        let info = get_memory_usage_info();
+        let info = get_memory_usage_info().expect("memory probe succeeds on a supported host");
         assert!(!info.total_memory.is_empty());
         assert!(info.memory_percent >= 0.0 && info.memory_percent <= 100.0);
     }
@@ -170,15 +200,15 @@ mod tests {
         assert_eq!(format_bytes(1099511627776), "1.00 TB");
     }
 
+    /// A failed probe must surface as `Err`; it must never read as "no pressure".
     #[test]
     fn test_is_memory_pressure() {
-        // This test just verifies the function runs
-        let _ = is_memory_pressure();
+        assert!(is_memory_pressure().is_ok());
     }
 
     #[test]
     fn test_get_top_memory_consumers() {
-        let consumers = get_top_memory_consumers(5);
+        let consumers = get_top_memory_consumers(5).expect("process sampler starts on a supported host");
         assert!(!consumers.is_empty());
         // Should be sorted by memory descending
         for i in 1..consumers.len() {

@@ -12,15 +12,15 @@ pub mod process;
 #[cfg(windows)]
 pub mod usb;
 
-use std::sync::Mutex;
-use std::sync::OnceLock;
+use std::sync::{Mutex, PoisonError};
 use sysinfo::System;
 
-static SYS: OnceLock<Mutex<System>> = OnceLock::new();
+use crate::PcaiStatus;
 
-fn get_system() -> &'static Mutex<System> {
-    SYS.get_or_init(|| Mutex::new(System::new_all()))
-}
+/// Shared sampler, created lazily inside the mutex rather than in a `OnceLock`, so a
+/// failed `System::new_all` (fallible since sysinfo 0.40) is returned to the caller
+/// and retried on the next call instead of being cached forever.
+static SYS: Mutex<Option<System>> = Mutex::new(None);
 
 #[derive(Debug, serde::Serialize)]
 pub struct ProcessMetrics {
@@ -42,10 +42,16 @@ pub struct SystemTelemetry {
 }
 
 /// Collects high-fidelity system telemetry.
-pub fn collect_telemetry() -> SystemTelemetry {
-    let mut sys = match get_system().lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
+///
+/// # Errors
+///
+/// Returns the [`PcaiStatus`] mapped from the sysinfo error when the shared
+/// `System` cannot be created.
+pub fn collect_telemetry() -> Result<SystemTelemetry, PcaiStatus> {
+    let mut slot = SYS.lock().unwrap_or_else(PoisonError::into_inner);
+    let sys = match slot.as_mut() {
+        Some(sys) => sys,
+        None => slot.insert(System::new_all()?),
     };
 
     sys.refresh_all();
@@ -78,7 +84,7 @@ pub fn collect_telemetry() -> SystemTelemetry {
         }
     }
 
-    SystemTelemetry {
+    Ok(SystemTelemetry {
         cpu_usage,
         memory_used_mb: memory_used,
         memory_total_mb: memory_total,
@@ -89,16 +95,38 @@ pub fn collect_telemetry() -> SystemTelemetry {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs(),
-    }
+    })
 }
 
-pub fn check_resource_safety(gpu_limit: f32) -> bool {
-    let telemetry = collect_telemetry();
+/// Reports whether resource use is within safe limits.
+///
+/// # Errors
+///
+/// Returns the [`PcaiStatus`] when telemetry cannot be collected, so "unknown" is
+/// not mistaken for "safe".
+pub fn check_resource_safety(gpu_limit: f32) -> Result<bool, PcaiStatus> {
+    let telemetry = collect_telemetry()?;
     if let Some(gpu) = telemetry.gpu_utilization {
         if gpu > (gpu_limit * 100.0) {
-            return false;
+            return Ok(false);
         }
     }
     // A NaN reading is not over the limit, as before: only a CPU above 90 % is unsafe.
-    telemetry.cpu_usage <= 90.0 || telemetry.cpu_usage.is_nan()
+    Ok(telemetry.cpu_usage <= 90.0 || telemetry.cpu_usage.is_nan())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The sysinfo 0.40 port made the shared `System` fallible and moved it behind a
+    /// lazily initialised mutex; two consecutive calls prove both the first-call
+    /// initialisation and the reuse path return real figures.
+    #[test]
+    fn collect_telemetry_initialises_then_reuses_the_shared_system() {
+        let first = collect_telemetry().expect("telemetry collects on a supported host");
+        let second = collect_telemetry().expect("shared system is reused");
+        assert!(first.memory_total_mb > 0);
+        assert_eq!(first.memory_total_mb, second.memory_total_mb);
+    }
 }

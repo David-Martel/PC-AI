@@ -3,7 +3,7 @@
 //! Provides optimized access to hardware, OS, and process information.
 
 use serde::Serialize;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Mutex, PoisonError};
 use std::time::Instant;
 use sysinfo::{Components, Disks, Networks, System};
 
@@ -67,14 +67,14 @@ struct CpuReading {
 }
 
 impl CpuSampler {
-    fn new() -> Self {
-        let mut system = System::new();
+    fn new() -> Result<Self, PcaiStatus> {
+        let mut system = System::new()?;
         system.refresh_cpu_all();
-        Self {
+        Ok(Self {
             system,
             refreshed_at: Instant::now(),
             valid_delta: false,
-        }
+        })
     }
 
     fn sample(&mut self) -> CpuReading {
@@ -88,7 +88,7 @@ impl CpuSampler {
                 .system
                 .cpus()
                 .iter()
-                .map(|cpu| self.valid_delta.then(|| cpu.cpu_usage()))
+                .map(|cpu| self.valid_delta.then(|| cpu.usage()))
                 .collect(),
             avg_load: self.valid_delta.then(|| self.system.global_cpu_usage()),
             sample_status: if self.valid_delta { "Sampled" } else { "WarmingUp" },
@@ -97,19 +97,32 @@ impl CpuSampler {
     }
 }
 
-fn read_cpu_usage() -> CpuReading {
-    static SAMPLER: OnceLock<Mutex<CpuSampler>> = OnceLock::new();
-    let sampler = SAMPLER.get_or_init(|| Mutex::new(CpuSampler::new()));
-    let mut sampler = sampler.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-    sampler.sample()
+/// Samples CPU usage from the process-wide sampler.
+///
+/// The sampler is created lazily inside the mutex rather than in a `OnceLock`, so a
+/// failed `System::new` is returned to the caller and retried on the next call
+/// instead of being cached forever.
+fn read_cpu_usage() -> Result<CpuReading, PcaiStatus> {
+    static SAMPLER: Mutex<Option<CpuSampler>> = Mutex::new(None);
+    let mut slot = SAMPLER.lock().unwrap_or_else(PoisonError::into_inner);
+    let sampler = match slot.as_mut() {
+        Some(sampler) => sampler,
+        None => slot.insert(CpuSampler::new()?),
+    };
+    Ok(sampler.sample())
 }
 
 /// Retrieves a comprehensive summary of system status.
-pub fn get_system_summary() -> SystemSummary {
-    let mut sys = System::new_all();
+///
+/// # Errors
+///
+/// Returns the [`PcaiStatus`] mapped from the sysinfo error when the system, disk,
+/// network or component probe cannot be created (all fallible since sysinfo 0.40).
+pub fn get_system_summary() -> Result<SystemSummary, PcaiStatus> {
+    let mut sys = System::new_all()?;
     sys.refresh_all();
 
-    let disks_list = Disks::new_with_refreshed_list();
+    let disks_list = Disks::new_with_refreshed_list()?;
     let disks = disks_list
         .iter()
         .map(|d| DiskInfo {
@@ -121,17 +134,17 @@ pub fn get_system_summary() -> SystemSummary {
         })
         .collect();
 
-    let networks_list = Networks::new_with_refreshed_list();
+    let networks_list = Networks::new_with_refreshed_list()?;
     let networks = networks_list
         .iter()
         .map(|(name, data)| NetworkInfo {
-            interface: name.clone(),
+            interface: name.to_string_lossy().into_owned(),
             received_kb: data.received() / 1024,
             transmitted_kb: data.transmitted() / 1024,
         })
         .collect();
 
-    let components_list = Components::new_with_refreshed_list();
+    let components_list = Components::new_with_refreshed_list()?;
     let temperatures = components_list
         .iter()
         .map(|c| ComponentTemp {
@@ -140,7 +153,7 @@ pub fn get_system_summary() -> SystemSummary {
         })
         .collect();
 
-    SystemSummary {
+    Ok(SystemSummary {
         os_name: System::name().unwrap_or_default(),
         os_version: System::os_version().unwrap_or_default(),
         hostname: System::host_name().unwrap_or_default(),
@@ -151,7 +164,7 @@ pub fn get_system_summary() -> SystemSummary {
         disks,
         networks,
         temperatures,
-    }
+    })
 }
 
 // ============================================================================
@@ -161,14 +174,23 @@ pub fn get_system_summary() -> SystemSummary {
 /// Returns a JSON report of the system status.
 #[no_mangle]
 pub extern "C" fn pcai_query_system_info() -> PcaiStringBuffer {
-    let summary = get_system_summary();
-    crate::string::json_to_buffer(&summary)
+    match get_system_summary() {
+        Ok(summary) => crate::string::json_to_buffer(&summary),
+        Err(status) => PcaiStringBuffer::error(status),
+    }
 }
 
 /// Specialized query for hardware metrics (temps, CPU usage).
 #[no_mangle]
 pub extern "C" fn pcai_query_hardware_metrics() -> PcaiStringBuffer {
-    let cpu = read_cpu_usage();
+    match collect_hardware_metrics() {
+        Ok(buffer) => buffer,
+        Err(status) => PcaiStringBuffer::error(status),
+    }
+}
+
+fn collect_hardware_metrics() -> Result<PcaiStringBuffer, PcaiStatus> {
+    let cpu = read_cpu_usage()?;
 
     #[derive(Serialize)]
     struct Metrics {
@@ -179,7 +201,7 @@ pub extern "C" fn pcai_query_hardware_metrics() -> PcaiStringBuffer {
         temps: Vec<ComponentTemp>,
     }
 
-    let components_list = Components::new_with_refreshed_list();
+    let components_list = Components::new_with_refreshed_list()?;
     let temps = components_list
         .iter()
         .map(|c| ComponentTemp {
@@ -188,13 +210,13 @@ pub extern "C" fn pcai_query_hardware_metrics() -> PcaiStringBuffer {
         })
         .collect();
 
-    crate::string::json_to_buffer(&Metrics {
+    Ok(crate::string::json_to_buffer(&Metrics {
         cpu_usage: cpu.cpu_usage,
         avg_load: cpu.avg_load,
         cpu_sample_status: cpu.sample_status,
         cpu_sample_age_milliseconds: cpu.sample_age_milliseconds,
         temps,
-    })
+    }))
 }
 
 // ============================================================================
@@ -360,9 +382,18 @@ mod measurement_tests {
         assert!(value["celsius"].is_null());
     }
 
+    /// The sysinfo 0.40 port made every probe behind the summary fallible; on a
+    /// supported host the summary must still build and report real hardware.
+    #[test]
+    fn system_summary_builds_on_a_supported_host() {
+        let summary = get_system_summary().expect("summary builds on a supported host");
+        assert!(summary.cpu_count > 0);
+        assert!(summary.memory_total_gb > 0.0);
+    }
+
     #[test]
     fn cpu_usage_requires_a_real_sampling_interval() {
-        let mut sampler = CpuSampler::new();
+        let mut sampler = CpuSampler::new().expect("sampler starts on a supported host");
         let first = sampler.sample();
         assert_eq!(first.sample_status, "WarmingUp");
         assert!(first.avg_load.is_none());

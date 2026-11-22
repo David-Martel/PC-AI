@@ -7,7 +7,7 @@ The [USB descriptor inventory](windows-usb-descriptors.md) reports declared
 configuration current limits separately from measured current, USB-C PD and
 whole-PC input power. Unavailable or mismatched descriptor budgets remain null.
 
-The native workspace requires Rust 1.95 or newer: the locked sysinfo 0.39.6
+The native workspace requires Rust 1.95 or newer: the locked sysinfo 0.40.4
 dependency declares that minimum. The previous workspace declaration of 1.85
 was inconsistent with its dependencies. Optional backends may impose additional
 requirements; this host's Rust 1.99 successfully checks the core. Run CargoTools'

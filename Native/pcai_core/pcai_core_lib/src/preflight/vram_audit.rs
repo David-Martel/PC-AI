@@ -71,7 +71,8 @@ pub struct VramProcess {
 /// # Errors
 ///
 /// Returns an error only when NVML initialises successfully but a
-/// subsequent query (device count, memory info) fails unexpectedly.
+/// subsequent query (device count, memory info) fails unexpectedly, or when
+/// `sysinfo` cannot initialise for PID-to-name resolution.
 pub fn vram_snapshot_all() -> Result<Vec<GpuVramSnapshot>> {
     let nvml = match super::get_nvml() {
         Some(n) => n,
@@ -85,7 +86,7 @@ pub fn vram_snapshot_all() -> Result<Vec<GpuVramSnapshot>> {
     // We refresh only the specific PIDs we need rather than enumerating
     // every process on the system.
     use sysinfo::{Pid, ProcessesToUpdate, System};
-    let mut sys = System::new();
+    let mut sys = System::new().context("sysinfo could not initialise for PID-to-name resolution")?;
 
     for idx in 0..count {
         let device = match nvml.device_by_index(idx) {

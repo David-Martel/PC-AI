@@ -118,6 +118,9 @@ pub unsafe extern "C" fn pcai_get_top_processes_json(top_n: u32, sort_by: *const
 
     let start = Instant::now();
     let (stats, processes) = process::get_top_processes(top_n as usize, sort_key);
+    if stats.status.is_error() {
+        return PcaiStringBuffer::error(stats.status);
+    }
 
     let json_output = process::ProcessListJson {
         status: "Success".to_string(),
@@ -149,6 +152,9 @@ pub unsafe extern "C" fn pcai_get_top_processes_compact(top_n: u32, sort_by: *co
 
     let start = Instant::now();
     let (mut stats, processes) = process::get_top_processes(top_n as usize, sort_key);
+    if stats.status.is_error() {
+        return PcaiByteBuffer::error(stats.status);
+    }
     stats.elapsed_ms = start.elapsed().as_millis() as u64;
 
     match process::pack_top_processes_compact(&stats, sort_key, &processes) {
@@ -165,6 +171,9 @@ pub extern "C" fn pcai_get_memory_stats() -> MemoryStats {
 #[no_mangle]
 pub extern "C" fn pcai_get_memory_stats_json() -> PcaiStringBuffer {
     let stats = memory::get_memory_stats();
+    if stats.status.is_error() {
+        return PcaiStringBuffer::error(stats.status);
+    }
 
     let json_output = memory::MemoryJson {
         status: "Success".to_string(),
@@ -208,7 +217,10 @@ pub extern "C" fn pcai_analyze_memory_pressure() -> MemoryPressureReport {
 #[no_mangle]
 pub extern "C" fn pcai_get_process_categories_json() -> PcaiStringBuffer {
     let start = Instant::now();
-    let (_, categories) = optimizer::get_process_categories();
+    let (_, categories) = match optimizer::get_process_categories() {
+        Ok(scan) => scan,
+        Err(status) => return PcaiStringBuffer::error(status),
+    };
 
     let json_output = optimizer::ProcessCategoriesJson {
         status: "Success".to_string(),
@@ -225,7 +237,10 @@ pub extern "C" fn pcai_get_process_categories_json() -> PcaiStringBuffer {
 /// Recommendations are sorted ascending by priority (1 = critical, 4 = low).
 #[no_mangle]
 pub extern "C" fn pcai_get_optimization_recommendations_json() -> PcaiStringBuffer {
-    let (elapsed_ms, recommendations) = optimizer::get_optimization_recommendations();
+    let (elapsed_ms, recommendations) = match optimizer::get_optimization_recommendations() {
+        Ok(result) => result,
+        Err(status) => return PcaiStringBuffer::error(status),
+    };
 
     let json_output = optimizer::OptimizationRecommendationsJson {
         status: "Success".to_string(),

@@ -43,5 +43,8 @@ Export-ModuleMember -Function @(
     'Test-WSLConnectivity',
     'Get-StableNetAdapter',
     'Repair-UsbNetAdapter',
-    'Test-NetPathHealth'
+    'Test-NetPathHealth',
+    'Get-PcaiEndpointCandidate',
+    'Connect-PcaiEndpoint',
+    'Resolve-PcaiPeerEndpoint'
 )

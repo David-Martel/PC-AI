@@ -256,6 +256,25 @@ Describe 'Quality ratchet end to end' -Tag 'Unit', 'Quality', 'Portable' {
         $counts['ast-grep|unwrap-call|test'] | Should -Be 1 -Because 'the unwrap after #[cfg(test)] mod is test code'
     }
 
+    # Protects: shared build caches. Native/pcai_core/target/** is a junction to a shared cargo cache on some
+    # hosts; the walker must neither enter excluded directories nor follow any junction or symlink.
+    It 'does not walk target/ or follow a junction when scanning a non-git tree' -Skip:(-not ($script:HaveAstGrep -and $script:HavePssa)) {
+        $outside = Join-Path $TestDrive 'outside-cache'
+        script:Write-FixtureFile $outside 'deps/bad.rs' "pub fn x(o: Option<u8>) -> u8 { o.unwrap() }`n"
+        script:Write-FixtureFile $script:Fixture 'target/debug/bad.rs' "pub fn x(o: Option<u8>) -> u8 { o.unwrap() }`n"
+        $linkKind = if ($IsWindows) { 'Junction' } else { 'SymbolicLink' }
+        New-Item -ItemType $linkKind -Path (Join-Path $script:Fixture 'Native/linked') -Target $outside | Out-Null
+        try {
+            $run = script:Invoke-Ratchet -Fixture $script:Fixture -OutDir $script:Out
+            $run.Result.counts['ast-grep|unwrap-call|prod'] | Should -Be 1 -Because 'only Native/lib/src/lib.rs counts'
+            (Test-Path -LiteralPath (Join-Path $outside 'deps/bad.rs')) | Should -BeTrue -Because 'the scan must not delete through the link'
+        } finally {
+            # Remove the link itself, never its contents.
+            [System.IO.Directory]::Delete((Join-Path $script:Fixture 'Native/linked'), $false)
+            Remove-Item -LiteralPath (Join-Path $script:Fixture 'target') -Recurse -Force
+        }
+    }
+
     It 'passes against the baseline it just wrote' -Skip:(-not ($script:HaveAstGrep -and $script:HavePssa)) {
         $run = script:Invoke-Ratchet -Fixture $script:Fixture -OutDir $script:Out
         $run.ExitCode | Should -Be 0 -Because $run.Output

@@ -194,8 +194,24 @@ function Get-ScanFile {
     $wanted = [regex]::new('\.(rs|cs|ps1|psm1)$', 'IgnoreCase')
     if ($Git.IsRepo) { $all = $Git.Tracked } else {
         $rootFull = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\', '/')
-        $all = @(Get-ChildItem -LiteralPath $Root -Recurse -File -Force |
-                ForEach-Object { ConvertTo-PosixPath $_.FullName.Substring($rootFull.Length + 1) })
+        $all = [System.Collections.Generic.List[string]]::new()
+        # Walk by hand instead of Get-ChildItem -Recurse so excluded directories are never entered and no
+        # junction or symlink is followed: Native/pcai_core/target/** is a junction to the shared cargo
+        # cache on some hosts and must never be traversed.
+        $skipNames = [System.Collections.Generic.HashSet[string]]::new([string[]]@('vendor', 'third_party', 'worktrees', '.pcai', '.git', 'node_modules', 'target', 'obj'), [StringComparer]::OrdinalIgnoreCase)
+        $pending = [System.Collections.Generic.Stack[string]]::new()
+        $pending.Push($rootFull)
+        while ($pending.Count -gt 0) {
+            $directory = $pending.Pop()
+            foreach ($entry in (Get-ChildItem -LiteralPath $directory -Force)) {
+                if ($entry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { continue }
+                if ($entry.PSIsContainer) {
+                    if (-not $skipNames.Contains($entry.Name)) { $pending.Push($entry.FullName) }
+                } else {
+                    $all.Add((ConvertTo-PosixPath $entry.FullName.Substring($rootFull.Length + 1)))
+                }
+            }
+        }
     }
     $files = @($all | Where-Object { $wanted.IsMatch($_) -and -not $excluded.IsMatch($_) -and (Test-Path -LiteralPath (Join-Path $Root $_) -PathType Leaf) })
     return , (Sort-Ordinal -Items $files -KeyOf { param($f) $f })

@@ -46,6 +46,17 @@ through the public upscale pipeline. It checks the dimensions and every RGB pixe
 of a non-square input after a real ORT session run. Use a known RealESRGAN model
 for image quality, GPU, throughput and production memory qualification.
 
+The [fixture generator](../Native/pcai_core/pcai_media/tests/fixtures/generate_tile_4x.py)
+uses Python's standard library and the ONNX protobuf field layout. Run the
+generator with a scratch output path to reproduce the fixture. Use `--check`
+to compare the checked-in 180-byte file without writing it. Its SHA-256 is
+`206823dd028a1db7966ed003d472d45b98e6bc11df092448c1260457fa13f661`.
+[ONNX schema](https://github.com/onnx/onnx/blob/v1.13.1/onnx/onnx.proto)
+
+```sh
+uv run --no-project python Native/pcai_core/pcai_media/tests/fixtures/generate_tile_4x.py Native/pcai_core/pcai_media/tests/fixtures/tile-4x.onnx.pb --check
+```
+
 The [optional-feature workflow](../.github/workflows/media-upscale.yml) runs these
 commands on Ubuntu and Windows with stable Rust. It triggers on Cargo config, media,
 media-model, workspace manifest/lockfile and workflow changes. Each matrix job is

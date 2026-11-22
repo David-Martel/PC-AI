@@ -58,6 +58,15 @@ jobs:
           components: clippy
       - uses: dtolnay/rust-toolchain@stable
         if: runner.environment != 'self-hosted'
+      # Protects fixture provenance. Detects any ONNX byte that the source cannot
+      # reproduce. Needs Python 3.9+ and the checked-in generator and fixture.
+      - name: Verify reproducible ONNX fixture
+        shell: pwsh
+        run: |
+          $python = if ($IsWindows) { 'python' } else { 'python3' }
+          $fixture = 'Native/pcai_core/pcai_media/tests/fixtures'
+          & $python "$fixture/generate_tile_4x.py" "$fixture/tile-4x.onnx.pb" --check
+          if ($LASTEXITCODE) { throw 'ONNX fixture differs from its generator' }
       - name: Check default FFI and optional CPU upscale
         run: cargo check --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale
       - name: Run real tensor and missing-model contracts

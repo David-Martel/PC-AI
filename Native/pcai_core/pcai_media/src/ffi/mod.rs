@@ -47,7 +47,9 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
-use std::fs::{self, File, OpenOptions};
+#[cfg(not(windows))]
+use std::fs::OpenOptions;
+use std::fs::{self, File};
 use std::io::{self, BufWriter, Write};
 use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
@@ -893,21 +895,16 @@ fn encode_for(dest: &Path) -> impl FnOnce(&image::RgbImage, &mut File) -> io::Re
 
 /// Exclusively create a staging file, retrying with a new name on collision.
 ///
-/// On Unix the file is created `0600`, so a half-written image is never
-/// readable by other users; [`publish_staged`] sets the final mode before the
-/// rename.  On Windows it inherits the directory's ACL like any new file, and
-/// [`publish_staged`] keeps an existing destination's ACL.
+/// The file is private from the moment it exists, so a half-written image is
+/// never readable by other users: on Unix it is created `0600`; on Windows it
+/// is created with a protected DACL naming only the owner and SYSTEM, so it
+/// inherits nothing from the directory.  [`publish_staged`] then gives it the
+/// destination's access control (or, for a new destination, what a plain
+/// `File::create` would have produced) before the rename.
 fn create_staging_file(dest: &Path) -> io::Result<(PathBuf, File)> {
     for _ in 0..STAGING_ATTEMPTS {
         let staged = staging_path(dest);
-        let mut options = OpenOptions::new();
-        options.write(true).create_new(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            options.mode(0o600);
-        }
-        match options.open(&staged) {
+        match create_private_file(&staged) {
             Ok(file) => return Ok((staged, file)),
             Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
             Err(error) => return Err(error),
@@ -917,6 +914,86 @@ fn create_staging_file(dest: &Path) -> io::Result<(PathBuf, File)> {
         io::ErrorKind::AlreadyExists,
         "no unused staging file name after several attempts",
     ))
+}
+
+/// Exclusively create `path`, readable and writable by this user only (Unix).
+#[cfg(unix)]
+fn create_private_file(path: &Path) -> io::Result<File> {
+    use std::os::unix::fs::OpenOptionsExt;
+    OpenOptions::new().write(true).create_new(true).mode(0o600).open(path)
+}
+
+/// Exclusively create `path` with a protected, owner-and-SYSTEM-only DACL
+/// (Windows).  The descriptor is applied by `CreateFileW` itself, so there is
+/// no moment at which the file carries an inherited ACL.
+#[cfg(windows)]
+fn create_private_file(path: &Path) -> io::Result<File> {
+    use std::os::windows::io::FromRawHandle;
+    use windows_sys::Win32::Foundation::{LocalFree, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::Security::Authorization::{
+        ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
+    };
+    use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
+    use windows_sys::Win32::Storage::FileSystem::{
+        CreateFileW, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_WRITE, FILE_SHARE_DELETE, FILE_SHARE_READ,
+        FILE_SHARE_WRITE,
+    };
+
+    // D:P = protected DACL (no inheritance); FA = file all access; OW = the owner
+    // (OWNER RIGHTS); SY = SYSTEM.
+    let sddl: Vec<u16> = "D:P(A;;FA;;;OW)(A;;FA;;;SY)"
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
+    let mut descriptor = std::ptr::null_mut();
+    // SAFETY: `sddl` is NUL-terminated and outlives the call; `descriptor` receives a
+    // LocalAlloc'd buffer that is freed below on every path.
+    let converted = unsafe {
+        ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            sddl.as_ptr(),
+            SDDL_REVISION_1,
+            &mut descriptor,
+            std::ptr::null_mut(),
+        )
+    };
+    if converted == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let attributes = SECURITY_ATTRIBUTES {
+        nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
+        lpSecurityDescriptor: descriptor,
+        bInheritHandle: 0,
+    };
+    let name = wide_path(path);
+    // SAFETY: `name` is NUL-terminated and `attributes` points at a valid descriptor
+    // for the duration of the call.
+    let handle = unsafe {
+        CreateFileW(
+            name.as_ptr(),
+            FILE_GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            &attributes,
+            CREATE_NEW,
+            FILE_ATTRIBUTE_NORMAL,
+            std::ptr::null_mut(),
+        )
+    };
+    let created = if handle == INVALID_HANDLE_VALUE {
+        Err(io::Error::last_os_error())
+    } else {
+        // SAFETY: `handle` is a valid, owned file handle that nothing else closes.
+        Ok(unsafe { File::from_raw_handle(handle) })
+    };
+    // SAFETY: `descriptor` was allocated by the conversion above and is no longer used.
+    unsafe { LocalFree(descriptor) };
+    created
+}
+
+/// UTF-16, NUL-terminated copy of `path` for Win32 calls.
+#[cfg(windows)]
+fn wide_path(path: &Path) -> Vec<u16> {
+    use std::os::windows::ffi::OsStrExt;
+    path.as_os_str().encode_wide().chain(std::iter::once(0)).collect()
 }
 
 /// Attempts to find an unused staging name before giving up.
@@ -970,69 +1047,200 @@ fn plain_create_permissions(dest: &Path) -> io::Result<fs::Permissions> {
     ))
 }
 
+/// Whether `path` carries a POSIX access ACL (the `system.posix_acl_access`
+/// extended attribute).  A filesystem without ACL support reports `false`; any
+/// other error is returned, so an unreadable attribute fails the publish.
+#[cfg(target_os = "linux")]
+fn has_access_acl(path: &Path) -> io::Result<bool> {
+    use std::os::unix::ffi::OsStrExt;
+    let path = CString::new(path.as_os_str().as_bytes()).map_err(io::Error::other)?;
+    // SAFETY: both strings are NUL-terminated; a null buffer with size 0 asks only
+    // for the attribute's size.
+    let size = unsafe {
+        libc::getxattr(
+            path.as_ptr(),
+            c"system.posix_acl_access".as_ptr(),
+            std::ptr::null_mut(),
+            0,
+        )
+    };
+    if size >= 0 {
+        return Ok(true);
+    }
+    let error = io::Error::last_os_error();
+    match error.raw_os_error() {
+        Some(libc::ENODATA | libc::ENOTSUP) => Ok(false),
+        _ => Err(error),
+    }
+}
+
+/// Other Unix systems: ACLs are not inspected here, so none are reported.
+#[cfg(all(unix, not(target_os = "linux")))]
+fn has_access_acl(_path: &Path) -> io::Result<bool> {
+    Ok(false)
+}
+
 /// Replace `dest` with the staged file without widening access to it.
 ///
-/// Unix: the staged file is `0600`, so before the rename it gets the mode the
-/// destination already has, or, for a new destination, the mode a plain
-/// `File::create` would have produced (0666 filtered by the umask).  Any
-/// failure leaves the destination untouched.  Ownership, POSIX ACLs and
-/// extended attributes of a replaced file are not carried over.
+/// Unix: the staged file is `0600`.  Before the rename it takes the
+/// destination's owning group (`fchown`, so a 0640 file stays with its group)
+/// and permission bits, or, for a new destination, the mode a plain
+/// `File::create` would have produced (0666 filtered by the umask).  A
+/// destination with a POSIX access ACL is refused with an explicit error,
+/// because the ACL cannot be carried over.  Every failure is returned before
+/// anything is renamed, so the destination is left untouched.  The owning user
+/// and extended attributes other than the access ACL are not carried over.
 ///
 /// A rename replaces an existing file (and fails if `dest` is a directory).
 /// Callers remove the staging file on error.
 #[cfg(unix)]
 fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
-    let permissions = match fs::metadata(dest) {
-        Ok(existing) => existing.permissions(),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => plain_create_permissions(dest)?,
-        Err(error) => return Err(error),
-    };
-    fs::set_permissions(staged, permissions)?;
+    publish_staged_with(staged, dest, copy_access_control)
+}
+
+/// [`publish_staged`] with the access-control step injected, so tests can make it
+/// fail.  The rename happens only if that step succeeded.
+#[cfg(unix)]
+fn publish_staged_with(
+    staged: &Path,
+    dest: &Path,
+    preserve: impl FnOnce(&Path, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    preserve(staged, dest)?;
     fs::rename(staged, dest)
 }
 
-/// Replace `dest` with the staged file without dropping its access control.
+/// Give the staged file the access control `dest` has (or will have): see
+/// [`publish_staged`].
+#[cfg(unix)]
+fn copy_access_control(staged: &Path, dest: &Path) -> io::Result<()> {
+    use std::os::unix::fs::MetadataExt;
+    let permissions = match fs::metadata(dest) {
+        Ok(existing) => {
+            if has_access_acl(dest)? {
+                return Err(io::Error::new(
+                    io::ErrorKind::Unsupported,
+                    format!(
+                        "{} has a POSIX access ACL, which a staged replace cannot preserve; refusing to publish over it",
+                        dest.display()
+                    ),
+                ));
+            }
+            let file = File::open(staged)?;
+            std::os::unix::fs::fchown(&file, None, Some(existing.gid()))?;
+            drop(file);
+            existing.permissions()
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => plain_create_permissions(dest)?,
+        Err(error) => return Err(error),
+    };
+    fs::set_permissions(staged, permissions)
+}
+
+/// Replace `dest` with the staged file, keeping the destination's ACL.
 ///
-/// Windows: when `dest` exists, `ReplaceFileW` swaps the staged file in and
-/// merges the replaced file's attributes, ACL and creation time into it
-/// (`REPLACEFILE_IGNORE_MERGE_ERRORS` tolerates a merge that is not possible),
-/// where a plain rename would leave the new file with the directory's
-/// inherited ACL.  When `dest` does not exist, or vanishes before the call,
-/// the file is renamed into place.  There is no backup file; if Windows
-/// reports `ERROR_UNABLE_TO_MOVE_REPLACEMENT_2` the replaced file may already
-/// be gone, which this function reports as an error like any other failure.
+/// Windows: `ReplaceFileW` swaps the staged file in and merges the replaced
+/// file's attributes, ACL and creation time into it.  It is called WITHOUT
+/// `REPLACEFILE_IGNORE_MERGE_ERRORS`, so a failed merge fails the call and the
+/// publish fails; the destination is never replaced by a file that carries the
+/// wrong ACL.  There is no backup file; if Windows reports
+/// `ERROR_UNABLE_TO_MOVE_REPLACEMENT_2` the replaced file may already be gone,
+/// which is reported as an error like any other failure.
+///
+/// For a new destination the private staging DACL is reset to the directory's
+/// inherited entries first, so the file ends up with what a plain `File::create`
+/// would have given it.  Callers remove the staging file on error.
 #[cfg(windows)]
 fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
-    use std::os::windows::ffi::OsStrExt;
-    use windows_sys::Win32::Storage::FileSystem::{ReplaceFileW, REPLACEFILE_IGNORE_MERGE_ERRORS};
-    const ERROR_FILE_NOT_FOUND: i32 = 2;
+    publish_staged_with(staged, dest, replace_file_keeping_acl)
+}
 
+/// [`publish_staged`] with the replace step injected, so tests can make it fail.
+#[cfg(windows)]
+fn publish_staged_with(
+    staged: &Path,
+    dest: &Path,
+    replace: impl FnOnce(&Path, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    const ERROR_FILE_NOT_FOUND: i32 = 2;
     if fs::symlink_metadata(dest).is_err() {
-        return fs::rename(staged, dest);
+        return publish_new_destination(staged, dest);
     }
-    let wide = |path: &Path| -> Vec<u16> { path.as_os_str().encode_wide().chain(std::iter::once(0)).collect() };
-    let (replaced, replacement) = (wide(dest), wide(staged));
+    match replace(dest, staged) {
+        Err(error) if error.raw_os_error() == Some(ERROR_FILE_NOT_FOUND) && fs::symlink_metadata(dest).is_err() => {
+            // The destination vanished between the check and the call.
+            publish_new_destination(staged, dest)
+        }
+        other => other,
+    }
+}
+
+/// Rename the staged file to a destination that does not exist, after giving it
+/// the directory's inherited ACL instead of its private one.
+#[cfg(windows)]
+fn publish_new_destination(staged: &Path, dest: &Path) -> io::Result<()> {
+    reset_to_inherited_dacl(staged)?;
+    fs::rename(staged, dest)
+}
+
+/// `ReplaceFileW(dest, staged, no backup, no flags)`: the replaced file's ACL is
+/// merged into the replacement, and a merge failure is an error.
+#[cfg(windows)]
+fn replace_file_keeping_acl(dest: &Path, staged: &Path) -> io::Result<()> {
+    use windows_sys::Win32::Storage::FileSystem::ReplaceFileW;
+    let (replaced, replacement) = (wide_path(dest), wide_path(staged));
     // SAFETY: both arguments are NUL-terminated UTF-16 buffers that outlive the
     // call; the backup, exclude and reserved parameters may be null.
-    let replaced_ok = unsafe {
+    let ok = unsafe {
         ReplaceFileW(
             replaced.as_ptr(),
             replacement.as_ptr(),
             std::ptr::null(),
-            REPLACEFILE_IGNORE_MERGE_ERRORS,
+            0,
             std::ptr::null(),
             std::ptr::null(),
         )
     };
-    if replaced_ok != 0 {
-        return Ok(());
+    if ok == 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
     }
-    let error = io::Error::last_os_error();
-    if error.raw_os_error() == Some(ERROR_FILE_NOT_FOUND) {
-        // The destination vanished between the check and the call.
-        return fs::rename(staged, dest);
+}
+
+/// Replace `path`'s explicit DACL with an empty, unprotected one, which makes
+/// Windows re-apply the parent directory's inheritable entries.
+#[cfg(windows)]
+fn reset_to_inherited_dacl(path: &Path) -> io::Result<()> {
+    use windows_sys::Win32::Security::Authorization::{SetNamedSecurityInfoW, SE_FILE_OBJECT};
+    use windows_sys::Win32::Security::{
+        InitializeAcl, ACL, ACL_REVISION, DACL_SECURITY_INFORMATION, UNPROTECTED_DACL_SECURITY_INFORMATION,
+    };
+    // An ACL header is 8 bytes; a u32 array gives it the alignment it needs.
+    let mut buffer = [0u32; 2];
+    let acl = buffer.as_mut_ptr().cast::<ACL>();
+    // SAFETY: `acl` points at `buffer`, which is large enough for an empty ACL.
+    if unsafe { InitializeAcl(acl, std::mem::size_of_val(&buffer) as u32, ACL_REVISION) } == 0 {
+        return Err(io::Error::last_os_error());
     }
-    Err(error)
+    let mut name = wide_path(path);
+    // SAFETY: `name` is NUL-terminated and `acl` is a valid empty ACL for the call.
+    let status = unsafe {
+        SetNamedSecurityInfoW(
+            name.as_mut_ptr(),
+            SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION | UNPROTECTED_DACL_SECURITY_INFORMATION,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            acl,
+            std::ptr::null(),
+        )
+    };
+    if status == 0 {
+        Ok(())
+    } else {
+        Err(io::Error::from_raw_os_error(status as i32))
+    }
 }
 
 /// Replace `dest` with the staged file where neither Unix permissions nor
@@ -1040,6 +1248,11 @@ fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
 #[cfg(not(any(unix, windows)))]
 fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
     fs::rename(staged, dest)
+}
+
+#[cfg(not(any(unix, windows)))]
+fn create_private_file(path: &Path) -> io::Result<File> {
+    OpenOptions::new().write(true).create_new(true).open(path)
 }
 
 /// Stage and publish in one step, for the synchronous paths that cannot be
@@ -3016,6 +3229,292 @@ mod tests {
         write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("publish");
         assert_eq!(image::open(&dest).unwrap().width(), 2, "the file was replaced");
         assert_eq!(acl_listing(&dest), before, "the explicit ACL survives the replace");
+    }
+
+    // ── Access control that must survive a staged replace ─────────────────
+
+    /// A supplementary group of this process other than its effective group, or
+    /// any group when running as root; `None` when there is none to use.
+    #[cfg(unix)]
+    fn other_group() -> Option<u32> {
+        // SAFETY: getegid and geteuid cannot fail; getgroups writes at most
+        // `groups.len()` entries into the buffer it is given.
+        let (egid, root) = unsafe { (libc::getegid(), libc::geteuid() == 0) };
+        let count = unsafe { libc::getgroups(0, std::ptr::null_mut()) };
+        let mut groups = vec![0 as libc::gid_t; usize::try_from(count).unwrap_or(0)];
+        let count = unsafe { libc::getgroups(i32::try_from(groups.len()).unwrap_or(0), groups.as_mut_ptr()) };
+        groups.truncate(usize::try_from(count).unwrap_or(0));
+        groups.into_iter().find(|group| *group != egid).or(root.then_some(4242))
+    }
+
+    // Protects: replacing an existing output keeps its owning group, so a 0640 file
+    //   is not handed to a different group when its mode bits are preserved.
+    // Detects: a publish that copies the mode but leaves the staged file in the
+    //   process's own group, on the sync and the async path.
+    // Needs: Unix and a second group this process may use (any group as root); the
+    //   test returns early with a message when there is none, so its positive control
+    //   is the mutation that skips the group copy.
+    #[cfg(unix)]
+    #[test]
+    fn test_publish_keeps_the_existing_destination_group() {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let _serial = serialize_global_state();
+        let Some(group) = other_group() else {
+            eprintln!("SKIP test_publish_keeps_the_existing_destination_group: no second group available");
+            return;
+        };
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("grouped.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        std::os::unix::fs::chown(&dest, None, Some(group)).expect("chgrp the destination");
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o640)).unwrap();
+        assert_eq!(fs::metadata(&dest).unwrap().gid(), group, "precondition");
+
+        write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("sync publish");
+        assert_eq!(fs::metadata(&dest).unwrap().gid(), group, "sync path keeps the group");
+        assert_eq!(unix_mode(&dest), 0o640);
+
+        let id = register_request(MediaRequestStatus::Pending);
+        execute_async_request(id, dest.to_string_lossy().into_owned(), mock_image);
+        assert_eq!(poll_full(id).0, 2, "async request completes");
+        assert_eq!(fs::metadata(&dest).unwrap().gid(), group, "async path keeps the group");
+    }
+
+    // Protects: a destination with a POSIX access ACL is not silently replaced by a file
+    //   that has lost it: the publish is refused with an explicit error, the destination
+    //   keeps its bytes, mode and ACL, and no staging file is left.
+    // Detects: an ACL-blind publish that widens access, or one that reports success.
+    // Needs: Linux and a filesystem with POSIX ACL xattrs; returns early with a message
+    //   when the xattr cannot be set.  After a successful setxattr the test reads the
+    //   xattr back, so a passing run proves the ACL was really present.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_destination_with_an_access_acl_is_refused_and_left_untouched() {
+        use std::os::unix::ffi::OsStrExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("acl.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        // user::rw-, user:<me>:r--, group::r--, mask::rw-, other::---
+        // SAFETY: geteuid cannot fail.
+        let uid = unsafe { libc::geteuid() };
+        let mut acl = 2u32.to_le_bytes().to_vec();
+        for (tag, perm, id) in [
+            (0x01u16, 6u16, u32::MAX),
+            (0x02, 4, uid),
+            (0x04, 4, u32::MAX),
+            (0x10, 6, u32::MAX),
+            (0x20, 0, u32::MAX),
+        ] {
+            acl.extend_from_slice(&tag.to_le_bytes());
+            acl.extend_from_slice(&perm.to_le_bytes());
+            acl.extend_from_slice(&id.to_le_bytes());
+        }
+        let path = CString::new(dest.as_os_str().as_bytes()).unwrap();
+        let name = c"system.posix_acl_access";
+        // SAFETY: valid NUL-terminated strings and a buffer of the stated length.
+        let set = unsafe { libc::setxattr(path.as_ptr(), name.as_ptr(), acl.as_ptr().cast(), acl.len(), 0) };
+        if set != 0 {
+            eprintln!(
+                "SKIP access-acl test: cannot set the ACL here: {}",
+                io::Error::last_os_error()
+            );
+            return;
+        }
+        // SAFETY: as above; a null buffer with size 0 asks only for the size.
+        let size = unsafe { libc::getxattr(path.as_ptr(), name.as_ptr(), std::ptr::null_mut(), 0) };
+        assert!(
+            size > 0,
+            "positive control: the ACL xattr is present before the publish"
+        );
+        let mode_before = unix_mode(&dest);
+
+        let error = write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect_err("publish must be refused");
+        assert!(error.to_string().contains("access ACL"), "explicit error, got: {error}");
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(unix_mode(&dest), mode_before, "destination mode untouched");
+        // SAFETY: as above.
+        let after = unsafe { libc::getxattr(path.as_ptr(), name.as_ptr(), std::ptr::null_mut(), 0) };
+        assert_eq!(after, size, "the ACL is still on the destination");
+        assert_eq!(dir_listing(tmp.path()), ["acl.png"], "no staging file left");
+    }
+
+    /// The access entries of an `acl_listing`, without the path column (icacls pads
+    /// continuation lines to the path length, so listings of different names differ in
+    /// whitespace only).
+    #[cfg(windows)]
+    fn acl_entries(listing: &str) -> Vec<String> {
+        listing
+            .lines()
+            .map(|line| line.trim().trim_start_matches("<PATH>").trim().to_string())
+            .filter(|line| line.contains(":("))
+            .collect()
+    }
+
+    /// Principals named in an `acl_listing`, e.g. `NT AUTHORITY\\SYSTEM`.
+    #[cfg(windows)]
+    fn acl_principals(listing: &str) -> Vec<String> {
+        listing
+            .lines()
+            .filter_map(|line| {
+                let line = line.trim().trim_start_matches("<PATH>").trim();
+                line.rfind(":(").map(|index| line[..index].trim().to_string())
+            })
+            .collect()
+    }
+
+    // Protects: the staging file is never readable by other users while it exists: its
+    //   DACL is protected (no inherited entries) and names only the owner and SYSTEM.
+    // Detects: a staging file that inherits the directory's ACL, which would expose a
+    //   half-written image during encoding even when the destination is restricted.
+    // Needs: Windows with icacls on PATH; reads the staging ACL before any publish.
+    #[cfg(windows)]
+    #[test]
+    fn test_staging_file_acl_is_private_before_publish() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("out.png");
+        let staged = stage_image(&image::RgbImage::new(1, 1), &dest, encode_for(&dest)).expect("stage");
+        let listing = acl_listing(&staged);
+        assert!(
+            !listing.contains("(I)"),
+            "no inherited entries on the staging file: {listing}"
+        );
+        let mut principals = acl_principals(&listing);
+        principals.sort();
+        assert_eq!(
+            principals,
+            ["NT AUTHORITY\\SYSTEM", "OWNER RIGHTS"],
+            "owner and SYSTEM only: {listing}"
+        );
+
+        // Positive control: an ordinary new file in the same directory inherits entries.
+        let control = tmp.path().join("control.bin");
+        fs::write(&control, ORIGINAL).unwrap();
+        assert!(acl_listing(&control).contains("(I)"), "control must inherit");
+        fs::remove_file(&staged).unwrap();
+    }
+
+    // Protects: a failure to carry the destination's ACL onto the replacement is an
+    //   error, not a silent success that publishes the directory's inherited ACL.
+    // Detects: ReplaceFileW called with REPLACEFILE_IGNORE_MERGE_ERRORS.  The merge is
+    //   made to fail by denying WRITE_DAC on the staged file.
+    // Needs: Windows with icacls on PATH.
+    #[cfg(windows)]
+    #[test]
+    fn test_acl_merge_failure_fails_closed_and_leaves_the_destination_untouched() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let user = std::env::var("USERNAME").expect("USERNAME is set");
+        let restrict = std::process::Command::new("icacls")
+            .arg(&dest)
+            .args(["/inheritance:r", "/grant:r", &format!("{user}:(F)")])
+            .output()
+            .expect("run icacls");
+        assert!(restrict.status.success(), "icacls restrict failed: {restrict:?}");
+        let acl_before = acl_listing(&dest);
+
+        let staged = stage_image(&image::RgbImage::new(2, 2), &dest, encode_for(&dest)).expect("stage");
+        let deny = std::process::Command::new("icacls")
+            .arg(&staged)
+            .args(["/deny", &format!("{user}:(WDAC)")])
+            .output()
+            .expect("run icacls");
+        assert!(deny.status.success(), "icacls deny failed: {deny:?}");
+
+        let result = publish_staged(&staged, &dest);
+        let _ = fs::remove_file(&staged);
+        assert!(result.is_err(), "a failed ACL merge must fail the publish");
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(acl_listing(&dest), acl_before, "destination ACL untouched");
+    }
+
+    // Protects: a brand-new output gets the directory's inherited ACL, exactly what a plain
+    //   File::create would have produced, not the private staging ACL.
+    // Detects: a new file left owner/SYSTEM-only after the rename.
+    // Needs: Windows with icacls on PATH.
+    #[cfg(windows)]
+    #[test]
+    fn test_new_destination_gets_the_directorys_inherited_acl() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let control = tmp.path().join("control.png");
+        fs::write(&control, ORIGINAL).unwrap();
+        let dest = tmp.path().join("new.png");
+        write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("publish");
+        assert_eq!(image::open(&dest).unwrap().width(), 2);
+        assert_eq!(acl_entries(&acl_listing(&dest)), acl_entries(&acl_listing(&control)));
+    }
+
+    // Protects: when the replace step fails (for example the merge of the destination's
+    //   ACL), the request is Failed, the destination keeps its bytes and ACL, and the
+    //   staging file is removed; nothing is published.
+    // Detects: a publish that swallows the replace error, falls back to a plain rename,
+    //   or leaves the staging file behind.
+    // Needs: Windows with icacls on PATH; the failure is injected through the replace seam.
+    #[cfg(windows)]
+    #[test]
+    fn test_injected_replace_failure_leaves_destination_acl_and_bytes_and_removes_staging() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let user = std::env::var("USERNAME").expect("USERNAME is set");
+        let restrict = std::process::Command::new("icacls")
+            .arg(&dest)
+            .args(["/inheritance:r", "/grant:r", &format!("{user}:(F)")])
+            .output()
+            .expect("run icacls");
+        assert!(restrict.status.success(), "icacls restrict failed: {restrict:?}");
+        let acl_before = acl_entries(&acl_listing(&dest));
+
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest_text = dest.to_string_lossy().into_owned();
+        let encode = encode_for(&dest);
+        execute_async_request_staged(id, dest_text, mock_image, encode, |staged, dest| {
+            publish_staged_with(staged, dest, |_, _| Err(io::Error::other("injected ACL merge failure")))
+        });
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3, "the failed replace is reported as Failed");
+        assert!(text.expect("failure message").contains("injected ACL merge failure"));
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            acl_before,
+            "destination ACL untouched"
+        );
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: when preserving the destination's access control fails (group copy, ACL
+    //   check or mode copy), the request is Failed, the destination keeps its bytes and
+    //   mode, and the staging file is removed; nothing is published.
+    // Detects: a publish that goes ahead after the preservation step reported an error.
+    // Needs: Unix; the failure is injected through the preserve seam.
+    #[cfg(unix)]
+    #[test]
+    fn test_injected_preservation_failure_publishes_nothing() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o600)).unwrap();
+
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest_text = dest.to_string_lossy().into_owned();
+        let encode = encode_for(&dest);
+        execute_async_request_staged(id, dest_text, mock_image, encode, |staged, dest| {
+            publish_staged_with(staged, dest, |_, _| Err(io::Error::other("injected chgrp failure")))
+        });
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3, "the failed preservation is reported as Failed");
+        assert!(text.expect("failure message").contains("injected chgrp failure"));
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(unix_mode(&dest), 0o600, "destination mode untouched");
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
     }
 
     // Protects: every test that touches the process-wide FFI state takes the serial

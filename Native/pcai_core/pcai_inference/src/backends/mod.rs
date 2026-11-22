@@ -1,5 +1,7 @@
 //! Inference backend implementations
 
+use std::sync::atomic::AtomicBool;
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
@@ -61,6 +63,17 @@ pub trait InferenceBackend: Send + Sync {
 
     /// Generate text from a prompt
     async fn generate(&self, request: GenerateRequest) -> Result<GenerateResponse>;
+
+    /// Generate text from a prompt, stopping early once `cancel` becomes `true`.
+    ///
+    /// Backends that can observe the flag between tokens should override this and
+    /// return the partial output with [`FinishReason::Stop`]. The default
+    /// implementation ignores the flag and runs [`generate`](Self::generate) to
+    /// completion, so callers must still be prepared to discard a late result.
+    async fn generate_cancellable(&self, request: GenerateRequest, cancel: &AtomicBool) -> Result<GenerateResponse> {
+        let _ = cancel;
+        self.generate(request).await
+    }
 
     /// Generate text from a prompt with streaming callback.
     /// Default implementation falls back to non-streaming generation.

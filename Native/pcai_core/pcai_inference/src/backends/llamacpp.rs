@@ -8,6 +8,7 @@ use llm::{
 use rand::{rngs::StdRng, SeedableRng};
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use super::{FinishReason, GenerateRequest, GenerateResponse, InferenceBackend};
@@ -259,7 +260,21 @@ impl LlamaCppBackend {
     pub async fn generate_streaming_internal<F>(
         &self,
         request: GenerateRequest,
+        callback: F,
+    ) -> Result<GenerateResponse>
+    where
+        F: FnMut(String) + Send,
+    {
+        self.generate_internal(request, callback, None).await
+    }
+
+    /// Shared token loop. When `cancel` is raised the loop halts before the next token
+    /// and the partial output is returned with [`FinishReason::Stop`].
+    async fn generate_internal<F>(
+        &self,
+        request: GenerateRequest,
         mut callback: F,
+        cancel: Option<&AtomicBool>,
     ) -> Result<GenerateResponse>
     where
         F: FnMut(String) + Send,
@@ -312,6 +327,12 @@ impl LlamaCppBackend {
                 &mut output_request,
                 |response| match response {
                     InferenceResponse::InferredToken(token) => {
+                        // Cancellation is observed once per token, so a cancelled request
+                        // stops within one decode step instead of running to max_tokens.
+                        if cancel.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+                            finish_reason = FinishReason::Stop;
+                            return Ok(InferenceFeedback::Halt);
+                        }
                         tokens_generated += 1;
 
                         if stop_sequences.is_empty() {
@@ -402,6 +423,10 @@ impl InferenceBackend for LlamaCppBackend {
 
     async fn generate(&self, request: GenerateRequest) -> Result<GenerateResponse> {
         self.generate_streaming_internal(request, |_| {}).await
+    }
+
+    async fn generate_cancellable(&self, request: GenerateRequest, cancel: &AtomicBool) -> Result<GenerateResponse> {
+        self.generate_internal(request, |_| {}, Some(cancel)).await
     }
 
     async fn generate_streaming(

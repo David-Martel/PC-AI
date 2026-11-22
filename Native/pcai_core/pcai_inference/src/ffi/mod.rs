@@ -10,8 +10,28 @@
 //!
 //! ## Thread Safety
 //!
-//! - Global state is protected by Mutex
-//! - Runtime is created once and reused
+//! The global state is split so that no lock is held across a running generation
+//! except the one that has to be:
+//!
+//! ```text
+//!   GlobalState
+//!   |- runtime          created once, shared by reference (no lock)
+//!   |- backend          RwLock<Option<Box<dyn InferenceBackend>>>
+//!   |                     read  = generating (sync, streaming, async worker)
+//!   |                     write = init / load_model / shutdown
+//!   |- generation_gate  Mutex<()>: one generation at a time, taken before `backend`
+//!   |- has_backend,
+//!   |  model_loaded     AtomicBool mirrors, so status checks and submit never wait
+//!   `- async_engine     request table (short-lived mutex) + one worker thread
+//!                         poll / cancel / submit never touch `backend` or the gate
+//! ```
+//!
+//! `pcai_poll_result` and `pcai_cancel` therefore return within milliseconds while a
+//! generation runs. `pcai_load_model`, `pcai_init` and `pcai_shutdown` still wait for a
+//! running generation to release the backend (they need exclusive access), except that
+//! shutdown first cancels outstanding async requests. See [`async_engine`] for the
+//! request life cycle, cancellation semantics and bounds.
+//!
 //! - Errors are stored in thread-local storage
 //!
 //! ## Usage from PowerShell
@@ -33,18 +53,21 @@
 //! ```
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_void};
-use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
+use std::sync::{Arc, Mutex, OnceLock, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use tokio::runtime::Runtime;
 
 #[cfg(any(feature = "llamacpp", feature = "mistralrs-backend"))]
 use crate::backends::BackendType;
-use crate::backends::{GenerateRequest, InferenceBackend};
+use crate::backends::{GenerateRequest, GenerateResponse, InferenceBackend};
 use crate::Error;
+
+mod async_engine;
+
+use async_engine::{lock_recover, AsyncEngine, AsyncLimits, GenerationRunner};
 
 // ============================================================================
 // Error Codes
@@ -89,27 +112,6 @@ impl PcaiErrorCode {
 // Async Request Tracking
 // ============================================================================
 
-/// Monotonically increasing request ID counter
-static NEXT_REQUEST_ID: AtomicI64 = AtomicI64::new(1);
-
-/// Status of an async inference request
-enum RequestStatus {
-    /// Request accepted, not yet picked up by worker thread
-    Pending,
-    /// Worker thread is actively running inference
-    Running,
-    /// Inference finished successfully
-    Complete {
-        text: String,
-        tokens_generated: u32,
-        prompt_tokens_estimated: u32,
-    },
-    /// Inference failed; text is the error message
-    Failed(String),
-    /// Request was cancelled before or during inference
-    Cancelled,
-}
-
 /// Result of polling an async request
 ///
 /// Returned by `pcai_poll_result`. When `status` is 2 (complete) or 3 (failed)
@@ -131,15 +133,77 @@ pub struct PcaiAsyncResult {
 // Global State
 // ============================================================================
 
-/// Global state holding the runtime, backend, and async request map
+/// Process-wide state. See the module docs for the locking rules.
 struct GlobalState {
-    runtime: Runtime,
-    backend: Option<Box<dyn InferenceBackend>>,
-    requests: HashMap<i64, RequestStatus>,
+    /// `Err` when the Tokio runtime could not be created; reported per call instead of panicking.
+    runtime: Result<Runtime, String>,
+    /// The active backend. Read-locked while generating, write-locked to replace or unload it.
+    backend: RwLock<Option<Box<dyn InferenceBackend>>>,
+    /// Serialises generations across the sync, streaming and async paths. Always taken
+    /// before `backend`.
+    generation_gate: Mutex<()>,
+    /// True while `backend` is `Some`. Updated under the `backend` write lock.
+    has_backend: AtomicBool,
+    /// True while the backend has a model loaded. Updated under the `backend` write lock.
+    model_loaded: AtomicBool,
+    /// Async request table and worker.
+    async_engine: AsyncEngine,
+}
+
+impl GlobalState {
+    fn runtime(&self) -> Result<&Runtime, Error> {
+        self.runtime
+            .as_ref()
+            .map_err(|e| Error::Backend(format!("Failed to create Tokio runtime: {e}")))
+    }
+
+    /// Shared access to the backend slot, recovering from a poisoned lock.
+    fn backend_read(&self) -> RwLockReadGuard<'_, Option<Box<dyn InferenceBackend>>> {
+        self.backend.read().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Exclusive access to the backend slot, recovering from a poisoned lock.
+    fn backend_write(&self) -> RwLockWriteGuard<'_, Option<Box<dyn InferenceBackend>>> {
+        self.backend.write().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Refresh the lock-free mirrors. Call while holding the `backend` write guard.
+    fn publish_backend_flags(&self, slot: &Option<Box<dyn InferenceBackend>>) {
+        let loaded = slot.as_ref().is_some_and(|b| b.is_loaded());
+        self.has_backend.store(slot.is_some(), AtomicOrdering::SeqCst);
+        self.model_loaded.store(loaded, AtomicOrdering::SeqCst);
+    }
+}
+
+/// Runs async-request generations on the process-wide backend.
+struct GlobalRunner;
+
+impl GenerationRunner for GlobalRunner {
+    fn run(&self, request: GenerateRequest, cancel: &AtomicBool) -> Result<GenerateResponse, Error> {
+        let state = init_global_state();
+        let _gate = lock_recover(&state.generation_gate);
+
+        // The request may have been cancelled while waiting behind another generation.
+        if cancel.load(AtomicOrdering::SeqCst) {
+            return Err(Error::Backend(
+                "Request cancelled before generation started".to_string(),
+            ));
+        }
+
+        let runtime = state.runtime()?;
+        let slot = state.backend_read();
+        let backend = slot
+            .as_ref()
+            .ok_or_else(|| Error::InvalidInput("Backend not initialized".to_string()))?;
+        if !backend.is_loaded() {
+            return Err(Error::ModelNotLoaded);
+        }
+        runtime.block_on(backend.generate_cancellable(request, cancel))
+    }
 }
 
 /// Global state instance (initialized once)
-static GLOBAL_STATE: OnceLock<Mutex<GlobalState>> = OnceLock::new();
+static GLOBAL_STATE: OnceLock<GlobalState> = OnceLock::new();
 
 // Thread-local error storage
 thread_local! {
@@ -150,14 +214,14 @@ thread_local! {
 }
 
 /// Initialize global state on first access
-fn init_global_state() -> &'static Mutex<GlobalState> {
-    GLOBAL_STATE.get_or_init(|| {
-        let runtime = Runtime::new().expect("Failed to create Tokio runtime");
-        Mutex::new(GlobalState {
-            runtime,
-            backend: None,
-            requests: HashMap::new(),
-        })
+fn init_global_state() -> &'static GlobalState {
+    GLOBAL_STATE.get_or_init(|| GlobalState {
+        runtime: Runtime::new().map_err(|e| e.to_string()),
+        backend: RwLock::new(None),
+        generation_gate: Mutex::new(()),
+        has_backend: AtomicBool::new(false),
+        model_loaded: AtomicBool::new(false),
+        async_engine: AsyncEngine::new(Arc::new(GlobalRunner), AsyncLimits::default()),
     })
 }
 
@@ -303,15 +367,9 @@ pub unsafe extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
     #[cfg(any(feature = "llamacpp", feature = "mistralrs-backend"))]
     {
         let state = init_global_state();
-        let mut guard = match state.lock() {
-            Ok(g) => g,
-            Err(e) => {
-                set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
-                return PcaiErrorCode::BackendError as i32;
-            }
-        };
 
-        // Create backend
+        // Create backend before taking the write lock so a slow constructor cannot
+        // stall readers.
         let backend = match backend_type.create() {
             Ok(b) => b,
             Err(e) => {
@@ -320,7 +378,9 @@ pub unsafe extern "C" fn pcai_init(backend_name: *const c_char) -> i32 {
             }
         };
 
-        guard.backend = Some(backend);
+        let mut slot = state.backend_write();
+        *slot = Some(backend);
+        state.publish_backend_flags(&slot);
         tracing::info!("Initialized backend: {}", backend_str);
 
         PcaiErrorCode::Success as i32
@@ -359,21 +419,17 @@ pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: 
         }
     };
 
-    // Get global state
+    // Loading needs exclusive access to the backend, so this waits for a running
+    // generation to finish. It does not touch the async request table, so poll and
+    // cancel stay responsive meanwhile.
     let state = init_global_state();
-    let mut guard = match state.lock() {
-        Ok(g) => g,
-        Err(e) => {
-            set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
-            return PcaiErrorCode::BackendError as i32;
-        }
-    };
+    let mut guard = state.backend_write();
 
     // For llamacpp backend, we need to recreate it with the right gpu_layers config
     // This is a limitation of the current backend design - do this before loading
     #[cfg(feature = "llamacpp")]
     {
-        if let Some(backend) = guard.backend.as_ref() {
+        if let Some(backend) = guard.as_ref() {
             if backend.backend_name() == "llama.cpp" {
                 use crate::backends::llamacpp::LlamaCppBackend;
 
@@ -384,7 +440,8 @@ pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: 
                 };
 
                 let new_backend = LlamaCppBackend::with_config(n_gpu_layers, 8192, 2048);
-                guard.backend = Some(Box::new(new_backend));
+                *guard = Some(Box::new(new_backend));
+                state.publish_backend_flags(&guard);
             }
         }
     }
@@ -394,7 +451,7 @@ pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: 
     }
 
     // Check backend exists
-    if guard.backend.is_none() {
+    if guard.is_none() {
         set_last_error_with_code(
             "Backend not initialized. Call pcai_init first.",
             PcaiErrorCode::NotInitialized,
@@ -402,12 +459,19 @@ pub unsafe extern "C" fn pcai_load_model(model_path: *const c_char, gpu_layers: 
         return PcaiErrorCode::NotInitialized as i32;
     }
 
-    // Load the model (async operation, block on runtime)
-    // Split mutable reference to satisfy borrow checker
-    let GlobalState { runtime, backend, .. } = &mut *guard;
+    let runtime = match state.runtime() {
+        Ok(r) => r,
+        Err(e) => {
+            set_last_error_with_code(e.to_string(), PcaiErrorCode::BackendError);
+            return PcaiErrorCode::BackendError as i32;
+        }
+    };
 
-    if let Some(backend) = backend {
+    // Load the model (async operation, block on runtime)
+    if let Some(backend) = guard.as_mut() {
         let result = runtime.block_on(async { backend.load_model(&path_str).await });
+        // Publish whether a model is loaded, whichever way the load went.
+        state.publish_backend_flags(&guard);
 
         match result {
             Ok(_) => {
@@ -483,18 +547,14 @@ pub unsafe extern "C" fn pcai_generate(prompt: *const c_char, max_tokens: u32, t
         return std::ptr::null_mut();
     }
 
-    // Get global state
+    // Generations are serialised by the gate. Holding it does not block poll or cancel,
+    // which never touch the gate or the backend.
     let state = init_global_state();
-    let guard = match state.lock() {
-        Ok(g) => g,
-        Err(e) => {
-            set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
-            return std::ptr::null_mut();
-        }
-    };
+    let _gate = lock_recover(&state.generation_gate);
+    let guard = state.backend_read();
 
     // Check backend exists
-    let backend = match guard.backend.as_ref() {
+    let backend = match guard.as_ref() {
         Some(b) => b,
         None => {
             set_last_error_with_code(
@@ -527,8 +587,16 @@ pub unsafe extern "C" fn pcai_generate(prompt: *const c_char, max_tokens: u32, t
         stop: vec![],
     };
 
+    let runtime = match state.runtime() {
+        Ok(r) => r,
+        Err(e) => {
+            set_last_error_with_code(e.to_string(), PcaiErrorCode::BackendError);
+            return std::ptr::null_mut();
+        }
+    };
+
     // Generate (async operation, block on runtime)
-    let result = guard.runtime.block_on(async { backend.generate(request).await });
+    let result = runtime.block_on(async { backend.generate(request).await });
 
     match result {
         Ok(response) => {
@@ -619,18 +687,13 @@ pub unsafe extern "C" fn pcai_generate_streaming(
 
     let prompt_str = prompt_str.to_string();
 
-    // Get global state
+    // Same locking as `pcai_generate`: gate, then a shared read of the backend.
     let state = init_global_state();
-    let guard = match state.lock() {
-        Ok(g) => g,
-        Err(e) => {
-            set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
-            return PcaiErrorCode::BackendError as i32;
-        }
-    };
+    let _gate = lock_recover(&state.generation_gate);
+    let guard = state.backend_read();
 
     // Check backend exists
-    let backend = match guard.backend.as_ref() {
+    let backend = match guard.as_ref() {
         Some(b) => b,
         None => {
             set_last_error_with_code(
@@ -668,7 +731,14 @@ pub unsafe extern "C" fn pcai_generate_streaming(
     // This is safe because we're using block_on (not spawning a separate thread) and the
     // callback/user_data are assumed valid for the duration of this call.
     let user_data_addr = user_data as usize;
-    let result = guard.runtime.block_on(async move {
+    let runtime = match state.runtime() {
+        Ok(r) => r,
+        Err(e) => {
+            set_last_error_with_code(e.to_string(), PcaiErrorCode::BackendError);
+            return PcaiErrorCode::BackendError as i32;
+        }
+    };
+    let result = runtime.block_on(async move {
         let mut bridge = move |token: String| {
             if let Ok(c_token) = CString::new(token) {
                 // SAFETY: We're reconstructing the pointer from the address we saved earlier.
@@ -725,20 +795,21 @@ pub extern "C" fn pcai_shutdown() {
     clear_last_error();
 
     let state = init_global_state();
-    let mut guard = match state.lock() {
-        Ok(g) => g,
-        Err(e) => {
-            set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
-            return;
-        }
-    };
 
-    if let Some(mut backend) = guard.backend.take() {
+    // Nobody will collect outstanding async requests after shutdown. Cancel them first
+    // so a backend that honours cancellation releases the lock promptly.
+    state.async_engine.cancel_all();
+
+    let mut guard = state.backend_write();
+    if let Some(mut backend) = guard.take() {
         // Unload model
-        let _ = guard.runtime.block_on(async { backend.unload_model().await });
+        if let Ok(runtime) = state.runtime() {
+            let _ = runtime.block_on(async { backend.unload_model().await });
+        }
 
         tracing::info!("Backend shutdown");
     }
+    state.publish_backend_flags(&guard);
 }
 
 /// Check if a backend has been initialized.
@@ -748,13 +819,8 @@ pub extern "C" fn pcai_shutdown() {
 /// * 0 if not initialized or on error
 #[no_mangle]
 pub extern "C" fn pcai_is_initialized() -> i32 {
-    let state = init_global_state();
-    let guard = match state.lock() {
-        Ok(g) => g,
-        Err(_) => return 0,
-    };
-
-    if guard.backend.is_some() {
+    // Lock-free: answers immediately even while a generation is running.
+    if init_global_state().has_backend.load(AtomicOrdering::SeqCst) {
         1
     } else {
         0
@@ -768,15 +834,11 @@ pub extern "C" fn pcai_is_initialized() -> i32 {
 /// * 0 if not loaded or on error
 #[no_mangle]
 pub extern "C" fn pcai_is_model_loaded() -> i32 {
-    let state = init_global_state();
-    let guard = match state.lock() {
-        Ok(g) => g,
-        Err(_) => return 0,
-    };
-
-    match guard.backend.as_ref() {
-        Some(backend) if backend.is_loaded() => 1,
-        _ => 0,
+    // Lock-free: answers immediately even while a generation is running.
+    if init_global_state().model_loaded.load(AtomicOrdering::SeqCst) {
+        1
+    } else {
+        0
     }
 }
 
@@ -795,12 +857,9 @@ pub extern "C" fn pcai_get_backend_name() -> *const c_char {
     static MISTRAL_RS: &str = "mistral.rs\0";
 
     let state = init_global_state();
-    let guard = match state.lock() {
-        Ok(g) => g,
-        Err(_) => return std::ptr::null(),
-    };
+    let guard = state.backend_read();
 
-    let backend = match guard.backend.as_ref() {
+    let backend = match guard.as_ref() {
         Some(b) => b,
         None => return std::ptr::null(),
     };
@@ -873,10 +932,14 @@ pub extern "C" fn pcai_version() -> *const c_char {
 
 /// Submit an asynchronous generation request
 ///
-/// Spawns a background OS thread that calls the active backend and stores the
-/// result in the global request map. The caller must poll with
-/// `pcai_poll_result` and eventually receive a terminal status (complete,
-/// failed, or cancelled) which removes the entry from the map.
+/// Queues the request for the single worker thread and returns immediately. The
+/// caller polls with `pcai_poll_result` and eventually receives a terminal status
+/// (complete, failed, or cancelled), which removes the entry. Entries that are never
+/// polled (for example cancelled and abandoned) are evicted after a TTL.
+///
+/// Generations run one at a time. The queue is bounded: when it is full the call
+/// fails with `-1` and [`PcaiErrorCode::BackendError`] instead of waiting or spawning
+/// more threads.
 ///
 /// # Arguments
 /// * `prompt` - Input text prompt (null-terminated C string, max 100 KB)
@@ -885,7 +948,7 @@ pub extern "C" fn pcai_version() -> *const c_char {
 ///
 /// # Returns
 /// * Request ID > 0 on success
-/// * -1 on error (check `pcai_last_error`)
+/// * -1 on error (check `pcai_last_error`), including a full queue
 ///
 /// # Safety
 /// * `prompt` must be a valid null-terminated C string
@@ -912,138 +975,55 @@ pub unsafe extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: 
         return -1;
     }
 
-    // Validate backend is ready before allocating an ID
-    {
-        let state = init_global_state();
-        let guard = match state.lock() {
-            Ok(g) => g,
-            Err(e) => {
-                set_last_error_with_code(format!("Failed to lock state: {}", e), PcaiErrorCode::BackendError);
-                return -1;
-            }
-        };
-
-        if guard.backend.is_none() {
-            set_last_error_with_code(
-                "Backend not initialized. Call pcai_init first.",
-                PcaiErrorCode::NotInitialized,
-            );
-            return -1;
-        }
-
-        let backend = guard.backend.as_ref().expect("backend is_none was checked above");
-        if !backend.is_loaded() {
-            set_last_error_with_code(
-                "Model not loaded. Call pcai_load_model first.",
-                PcaiErrorCode::ModelNotLoaded,
-            );
-            return -1;
-        }
+    // Validate backend readiness from the lock-free mirrors. Submit must never wait on
+    // the backend lock, which a running generation holds. The worker re-validates under
+    // the lock, so a shutdown racing this check surfaces as a Failed request.
+    let state = init_global_state();
+    if !state.has_backend.load(AtomicOrdering::SeqCst) {
+        set_last_error_with_code(
+            "Backend not initialized. Call pcai_init first.",
+            PcaiErrorCode::NotInitialized,
+        );
+        return -1;
+    }
+    if !state.model_loaded.load(AtomicOrdering::SeqCst) {
+        set_last_error_with_code(
+            "Model not loaded. Call pcai_load_model first.",
+            PcaiErrorCode::ModelNotLoaded,
+        );
+        return -1;
     }
 
-    // Allocate a unique request ID and register it as Pending
-    let id = NEXT_REQUEST_ID.fetch_add(1, AtomicOrdering::SeqCst);
-    {
-        let state = init_global_state();
-        if let Ok(mut g) = state.lock() {
-            g.requests.insert(id, RequestStatus::Pending);
+    let request = GenerateRequest {
+        prompt: prompt_str,
+        max_tokens: if max_tokens > 0 {
+            Some(max_tokens as usize)
+        } else {
+            None
+        },
+        temperature: if temperature > 0.0 { Some(temperature) } else { None },
+        top_p: None,
+        stop: vec![],
+    };
+
+    match state.async_engine.submit(request) {
+        Ok(id) => id,
+        Err(e) => {
+            set_last_error_with_code(e.to_string(), PcaiErrorCode::BackendError);
+            -1
         }
     }
-
-    // Spawn a plain OS thread so we can call `runtime.block_on` without risk
-    // of nesting a blocking call inside the Tokio thread pool.
-    std::thread::spawn(move || {
-        // Transition: Pending -> Running (unless already cancelled)
-        {
-            let state = init_global_state();
-            if let Ok(mut g) = state.lock() {
-                match g.requests.get(&id) {
-                    Some(RequestStatus::Cancelled) => return,
-                    _ => {
-                        g.requests.insert(id, RequestStatus::Running);
-                    }
-                }
-            }
-        }
-
-        // Estimate prompt tokens before sending to backend (outside the lock
-        // block so the value is available when storing the terminal status).
-        let prompt_tokens_est = estimate_prompt_tokens(&prompt_str);
-
-        // Build the request and run inference while holding the lock so that
-        // the borrow checker can split `runtime` and `backend` simultaneously.
-        let result = {
-            let state = init_global_state();
-            let mut guard = match state.lock() {
-                Ok(g) => g,
-                Err(e) => {
-                    if let Ok(mut g2) = init_global_state().lock() {
-                        g2.requests
-                            .insert(id, RequestStatus::Failed(format!("Lock failed: {}", e)));
-                    }
-                    return;
-                }
-            };
-
-            // Check for cancellation again before starting expensive work
-            if matches!(guard.requests.get(&id), Some(RequestStatus::Cancelled)) {
-                return;
-            }
-
-            let req = GenerateRequest {
-                prompt: prompt_str,
-                max_tokens: if max_tokens > 0 {
-                    Some(max_tokens as usize)
-                } else {
-                    None
-                },
-                temperature: if temperature > 0.0 { Some(temperature) } else { None },
-                top_p: None,
-                stop: vec![],
-            };
-
-            // Split borrow: `runtime` and `backend` are separate fields.
-            let GlobalState { runtime, backend, .. } = &mut *guard;
-            match backend.as_ref() {
-                Some(b) => runtime.block_on(b.generate(req)),
-                None => Err(crate::Error::InvalidInput("Backend not initialized".to_string())),
-            }
-        };
-
-        // Store the terminal status
-        if let Ok(mut g) = init_global_state().lock() {
-            // Respect a late cancellation
-            if matches!(g.requests.get(&id), Some(RequestStatus::Cancelled)) {
-                return;
-            }
-            match result {
-                Ok(response) => {
-                    g.requests.insert(
-                        id,
-                        RequestStatus::Complete {
-                            text: response.text,
-                            tokens_generated: response.tokens_generated as u32,
-                            prompt_tokens_estimated: prompt_tokens_est,
-                        },
-                    );
-                }
-                Err(e) => {
-                    let error_msg = format!("{}", e);
-                    let enriched = enrich_with_gpu_state(&error_msg);
-                    g.requests.insert(id, RequestStatus::Failed(enriched));
-                }
-            }
-        }
-    });
-
-    id
 }
 
 /// Poll the status of an async request
 ///
-/// When the returned `status` is 2 (complete) or 3 (failed) the request is
-/// removed from the internal map and the `text` pointer is non-null. The
-/// caller **must** free it with `pcai_free_string`.
+/// Returns within milliseconds even while a generation is running: it only touches
+/// the request table, never the backend.
+///
+/// When the returned `status` is 2 (complete), 3 (failed) or 4 (cancelled) the
+/// request is removed from the internal map, so polling the same id again returns
+/// -1. For 2 and 3 the `text` pointer is non-null and the caller **must** free it
+/// with `pcai_free_string`.
 ///
 /// Status codes:
 /// * 0 = pending
@@ -1051,7 +1031,8 @@ pub unsafe extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: 
 /// * 2 = complete (`text` contains the generated output)
 /// * 3 = failed (`text` contains the error message)
 /// * 4 = cancelled
-/// * -1 = unknown request ID
+/// * -1 = unknown request ID (never issued, already consumed by a terminal poll, or
+///   evicted after sitting unpolled past the retention window)
 ///
 /// # Arguments
 /// * `request_id` - ID returned by `pcai_generate_async`
@@ -1061,97 +1042,19 @@ pub unsafe extern "C" fn pcai_generate_async(prompt: *const c_char, max_tokens: 
 ///   `status` is 2 or 3.
 #[no_mangle]
 pub extern "C" fn pcai_poll_result(request_id: i64) -> PcaiAsyncResult {
-    let state = init_global_state();
-    let mut guard = match state.lock() {
-        Ok(g) => g,
-        Err(_) => {
-            return PcaiAsyncResult {
-                status: -1,
-                text: std::ptr::null_mut(),
-                tokens_generated: 0,
-                prompt_tokens_estimated: 0,
-            };
-        }
-    };
-
-    match guard.requests.get(&request_id) {
-        Some(RequestStatus::Pending) => PcaiAsyncResult {
-            status: 0,
-            text: std::ptr::null_mut(),
-            tokens_generated: 0,
-            prompt_tokens_estimated: 0,
-        },
-        Some(RequestStatus::Running) => PcaiAsyncResult {
-            status: 1,
-            text: std::ptr::null_mut(),
-            tokens_generated: 0,
-            prompt_tokens_estimated: 0,
-        },
-        Some(RequestStatus::Complete { .. }) => {
-            if let Some(RequestStatus::Complete {
-                text,
-                tokens_generated,
-                prompt_tokens_estimated,
-            }) = guard.requests.remove(&request_id)
-            {
-                let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
-                PcaiAsyncResult {
-                    status: 2,
-                    text: c_str.into_raw(),
-                    tokens_generated,
-                    prompt_tokens_estimated,
-                }
-            } else {
-                PcaiAsyncResult {
-                    status: -1,
-                    text: std::ptr::null_mut(),
-                    tokens_generated: 0,
-                    prompt_tokens_estimated: 0,
-                }
-            }
-        }
-        Some(RequestStatus::Failed(_)) => {
-            if let Some(RequestStatus::Failed(text)) = guard.requests.remove(&request_id) {
-                let c_str = CString::new(text.replace('\0', "\u{FFFD}")).unwrap_or_default();
-                PcaiAsyncResult {
-                    status: 3,
-                    text: c_str.into_raw(),
-                    tokens_generated: 0,
-                    prompt_tokens_estimated: 0,
-                }
-            } else {
-                PcaiAsyncResult {
-                    status: -1,
-                    text: std::ptr::null_mut(),
-                    tokens_generated: 0,
-                    prompt_tokens_estimated: 0,
-                }
-            }
-        }
-        Some(RequestStatus::Cancelled) => {
-            guard.requests.remove(&request_id);
-            PcaiAsyncResult {
-                status: 4,
-                text: std::ptr::null_mut(),
-                tokens_generated: 0,
-                prompt_tokens_estimated: 0,
-            }
-        }
-        None => PcaiAsyncResult {
-            status: -1,
-            text: std::ptr::null_mut(),
-            tokens_generated: 0,
-            prompt_tokens_estimated: 0,
-        },
-    }
+    init_global_state().async_engine.poll(request_id)
 }
 
 /// Cancel a pending or running async request
 ///
-/// Marks the request as cancelled. If inference is already in progress the
-/// worker thread will observe the flag before storing a result and will exit
-/// without writing to the map. The cancelled entry is cleaned up by the next
-/// call to `pcai_poll_result` for that ID.
+/// Marks the request cancelled immediately and returns without waiting for the
+/// generation. A request still in the queue is skipped. For a running request the
+/// backend is asked to stop: llama.cpp checks the flag once per token and halts
+/// early; a backend without that hook runs to completion and its result is
+/// discarded. Either way a late completion never replaces the cancelled status.
+///
+/// The cancelled entry is removed by the next `pcai_poll_result` for that ID, or
+/// evicted after the retention window if nobody polls it.
 ///
 /// # Arguments
 /// * `request_id` - ID returned by `pcai_generate_async`
@@ -1161,19 +1064,7 @@ pub extern "C" fn pcai_poll_result(request_id: i64) -> PcaiAsyncResult {
 /// * -1 if the request ID was not found or the request had already finished
 #[no_mangle]
 pub extern "C" fn pcai_cancel(request_id: i64) -> i32 {
-    let state = init_global_state();
-    let mut guard = match state.lock() {
-        Ok(g) => g,
-        Err(_) => return -1,
-    };
-
-    match guard.requests.get_mut(&request_id) {
-        Some(status @ RequestStatus::Pending) | Some(status @ RequestStatus::Running) => {
-            *status = RequestStatus::Cancelled;
-            0
-        }
-        _ => -1,
-    }
+    init_global_state().async_engine.cancel(request_id)
 }
 
 // ============================================================================

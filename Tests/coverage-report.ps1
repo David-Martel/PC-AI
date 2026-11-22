@@ -621,13 +621,13 @@ function Update-AssessmentBaseline {
     $old = if ($Baseline) { $Baseline | ConvertTo-Json -Depth 12 | ConvertFrom-Json -AsHashtable } else { @{} }
     $new = [ordered]@{
         schema_version            = $script:AssessmentSchemaVersion
-        target_coverage_pct       = if ($old.target_coverage_pct) { $old.target_coverage_pct } else { 85 }
-        files_analyzed_ratio_min  = if ($old.files_analyzed_ratio_min) { $old.files_analyzed_ratio_min } else { 0.95 }
+        target_coverage_pct       = if ($null -ne $old.target_coverage_pct) { $old.target_coverage_pct } else { 85 }
+        files_analyzed_ratio_min  = if ($null -ne $old.files_analyzed_ratio_min) { $old.files_analyzed_ratio_min } else { 0.95 }
         per_module_tolerance_pct  = if ($null -ne $old.per_module_tolerance_pct) { $old.per_module_tolerance_pct } else { 1.0 }
     }
 
     $q = $Assessment.quality
-    $oq = if ($old.quality) { $old.quality } else { @{} }
+    $oq = if ($null -ne $old.quality) { $old.quality } else { @{} }
     $newQ = [ordered]@{}
     foreach ($k in 'no_assertion_it', 'not_throw_only_it', 'tautology_it', 'parse_error_files') {
         $cur = [int]$q.$k
@@ -636,11 +636,13 @@ function Update-AssessmentBaseline {
     $new.quality = $newQ
 
     $orphans = @($Assessment.reach.orphans)
-    $kept = if ($old.orphans_allowed) { @($orphans | Where-Object { $_ -in @($old.orphans_allowed) }) } else { $orphans }
+    # Test for the key, not for truthiness: an explicit empty list means "allow none" and must stay empty. Only an
+    # absent key (first seeding) takes the current orphans.
+    $kept = if ($old.ContainsKey('orphans_allowed')) { @($orphans | Where-Object { $_ -in @($old.orphans_allowed) }) } else { $orphans }
     $new.orphans_allowed = @($kept | Sort-Object { $_ } -CaseSensitive)
 
     $tiers = [ordered]@{}
-    $oldTiers = if ($old.tiers) { $old.tiers } else { @{} }
+    $oldTiers = if ($null -ne $old.tiers) { $old.tiers } else { @{} }
     foreach ($name in (@($oldTiers.Keys) + $Tier | Sort-Object -Unique)) {
         if ($null -ne $oldTiers[$name]) { $tiers[$name] = $oldTiers[$name] }
     }
@@ -679,7 +681,7 @@ function Update-AssessmentBaseline {
             }
             $kf.tests_by_file = $tbf
             $bbf = [ordered]@{}
-            if ($prev.known_failures.blocks_by_file) {
+            if ($null -ne $prev.known_failures.blocks_by_file) {
                 foreach ($leaf in ($prev.known_failures.blocks_by_file.Keys | Sort-Object)) {
                     $now = [int]$blocksByFile[$leaf]
                     if ($now -gt 0) { $bbf[$leaf] = [math]::Min([int]$prev.known_failures.blocks_by_file[$leaf], $now) }
@@ -873,9 +875,23 @@ function Invoke-TestAssessment {
         } finally {
             Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
         }
+        # An absent, empty or malformed result is a measurement error, never a pass: a crash or a lost PassThru leaves
+        # nothing to gate, and `$ran` would otherwise be false and skip every run gate (codex review of #384).
+        if ($earlyViolations.Count -eq 0) {
+            $candidates = @(@($pester) | Where-Object { $null -ne $_ -and $null -ne $_.PSObject.Properties['Result'] })
+            if ($candidates.Count -eq 0) {
+                $pester = $null
+                $earlyViolations.Add((Get-GateViolation 'pester_run' 'Invoke-Pester returned no result object, so nothing was measured'))
+            } else {
+                $pester = $candidates[-1]
+            }
+        }
         if ($pester) {
-            $moduleFiles = @(Get-ModuleSourceFile -Files $files)
-            $assessment.coverage = [ordered]@{ pester = Get-CoverageSummary -CodeCoverage $pester.CodeCoverage -Root $Root -ModuleFiles $moduleFiles }
+            # A result without coverage data is reported by the gate as coverage_missing, not by a crash in the summary.
+            if ($null -ne $pester.PSObject.Properties['CodeCoverage'] -and $null -ne $pester.CodeCoverage) {
+                $moduleFiles = @(Get-ModuleSourceFile -Files $files)
+                $assessment.coverage = [ordered]@{ pester = Get-CoverageSummary -CodeCoverage $pester.CodeCoverage -Root $Root -ModuleFiles $moduleFiles }
+            }
             $assessment.run_summary = [ordered]@{
                 result = [string]$pester.Result; total = [int]$pester.TotalCount; passed = [int]$pester.PassedCount
                 failed = [int]$pester.FailedCount; skipped = [int]$pester.SkippedCount; not_run = [int]$pester.NotRunCount

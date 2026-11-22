@@ -46,14 +46,14 @@ function Measure-ClippyFindings {
     .SYNOPSIS
         Counts clippy lints in the cargo JSON stream and fails when the tree does not build.
     .DESCRIPTION
-        Lints and rustc errors are different things and are told apart, not summed:
-          lint         a `compiler-message` at level warning with a code, or at level error with a non-E#### code
-                       (`-D warnings` denies lints, so a clippy lint arrives at level error, e.g. clippy::needless_return).
-                       The same diagnostic is emitted once per target (lib and lib test), so it is counted once.
-          build error  level error with an E#### code (E0432 unresolved import), or with no code that is not the
-                       `aborting due to` / `could not compile` summary (a syntax error).
-        Any build error, a missing `build-finished` message, or a non-zero cargo exit that lints alone do not explain
-        throws "build failed". A tree that does not compile on both sides must never match its baseline and pass.
+        Lints are measured with `--cap-lints warn`, so a lint is only ever a warning and can never fail the build.
+        That leaves one rule with no lint-denial reasoning and no stderr classification: the measurement is valid only
+        when cargo exits 0 and its `build-finished` message says success:true, and a `compiler-message` at level error
+        is never acceptable. Anything else (an unresolved import, a syntax error, a `build.rs` that panics, a linker
+        or manifest error, a crash) throws "build failed", so a tree that does not build can neither count as a
+        baseline nor hide behind a lint in another crate (codex review of #384). The same diagnostic is emitted once
+        per target (lib and lib test), so a lint is counted once. Stderr is captured with the JSON and is quoted in
+        the failure message, because a custom build command failure is only reported there as text.
     .PARAMETER Root
         Repository root (the workspace is Root/Native/pcai_core).
     #>
@@ -62,16 +62,21 @@ function Measure-ClippyFindings {
     Push-Location (Join-Path $Root 'Native/pcai_core')
     try {
         $out = & cargo clippy --workspace --all-targets --no-deps --message-format=json `
-            -- -D warnings -A clippy::type_complexity 2>&1
+            -- --cap-lints warn -A clippy::type_complexity 2>&1
         $exit = $LASTEXITCODE
     } finally { Pop-Location }
     $seen = [System.Collections.Generic.HashSet[string]]::new()
     $lints = 0
     $errors = [System.Collections.Generic.List[string]]::new()
+    $stderrErrors = [System.Collections.Generic.List[string]]::new()
     $finished = $null
     foreach ($line in $out) {
         $text = [string]$line
-        if (-not $text.StartsWith('{')) { continue }
+        if (-not $text.StartsWith('{')) {
+            # Non-JSON output is cargo's own text (stderr): keep the error lines for the message.
+            if ($text -match '^\s*error') { $stderrErrors.Add($text.Trim()) }
+            continue
+        }
         try { $msg = $text | ConvertFrom-Json -ErrorAction Stop } catch { continue }
         if ($msg.reason -eq 'build-finished') { $finished = [bool]$msg.success; continue }
         if ($msg.reason -ne 'compiler-message') { continue }
@@ -84,26 +89,21 @@ function Measure-ClippyFindings {
         if (-not $seen.Add($key)) { continue }
         if ($level -eq 'warning') {
             if ($code) { $lints++ }
-        } elseif ($code -match '^E\d{4}$') {
-            $errors.Add("$code $($msg.message.message)")
-        } elseif ($code) {
-            $lints++
         } elseif ([string]$msg.message.message -notmatch '^(aborting due to|could not compile)') {
-            $errors.Add([string]$msg.message.message)
+            $errors.Add($(if ($code) { "$code $($msg.message.message)" } else { [string]$msg.message.message }))
         }
     }
+    $detail = @($errors) + @($stderrErrors | Where-Object { $_ -notmatch '^error: could not compile' })
+    $shown = (@($detail) | Select-Object -First 4) -join ' | '
     if ($errors.Count -gt 0) {
-        throw "build failed: $($errors.Count) rustc error(s), not lints: $((@($errors) | Select-Object -First 3) -join ' | ')"
+        throw "build failed: $($errors.Count) rustc error(s), not lints (exit $exit): $shown"
     }
-    if ($null -eq $finished) {
-        throw "build failed: cargo clippy produced no build-finished message (exit $exit), so this is not a measurement: $((@($out) | Select-Object -Last 3) -join ' | ')"
-    }
-    if (($exit -ne 0 -or -not $finished) -and $lints -eq 0) {
-        throw "build failed: cargo clippy exited $exit (build-finished success=$finished) with no lint or compiler error to explain it: $((@($out) | Select-Object -Last 3) -join ' | ')"
+    if ($exit -ne 0 -or $finished -ne $true) {
+        $fin = if ($null -eq $finished) { 'no build-finished message' } else { "build-finished success=$finished" }
+        throw "build failed: cargo clippy exited $exit ($fin), so this is not a measurement: $(if ($shown) { $shown } else { (@($out | ForEach-Object { [string]$_ }) | Select-Object -Last 3) -join ' | ' })"
     }
     $lints
 }
-
 function Measure-RustTests {
     <#
     .SYNOPSIS
@@ -114,10 +114,18 @@ function Measure-RustTests {
     param([Parameter(Mandatory)][string]$Root)
     if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) { throw 'cargo is not on PATH' }
     Push-Location (Join-Path $Root 'Native/pcai_core')
+    # The CargoTools wrapper rewrites `cargo test` to `cargo nextest run` when CARGO_USE_NEXTEST is set, and it sets the
+    # variable itself in the calling process after its first run. nextest prints no `test result:` lines, so this
+    # measurement pins the variable to 0 and restores it.
+    $savedNextest = $env:CARGO_USE_NEXTEST
     try {
-        $out = & cargo test --workspace --no-default-features --features server,ffi 2>&1
+        $env:CARGO_USE_NEXTEST = '0'
+        $out = & cargo test --workspace --no-fail-fast --no-default-features --features server,ffi 2>&1
         $exit = $LASTEXITCODE
-    } finally { Pop-Location }
+    } finally {
+        Pop-Location
+        $env:CARGO_USE_NEXTEST = $savedNextest
+    }
     $lines = @($out | ForEach-Object { [string]$_ })
     # Compilation must have succeeded before any count means anything: a test binary that built can run while another
     # target failed to compile.
@@ -127,8 +135,15 @@ function Measure-RustTests {
     }
     # One `test result:` line per test binary: sum them all. Reading only the last line reported one crate's tests,
     # and a compile failure printed none, which the old code turned into 0/0 and called "unchanged".
+    # --no-fail-fast keeps cargo running the later test binaries after one fails; without it a failure in a_fail.rs
+    # hides a new failure in z_hidden.rs (both sides read Failed=1). Failures are also kept by name, qualified by the
+    # binary that ran them, so a swapped failure with an unchanged count is still a change.
     $passed = 0; $failed = 0; $results = 0
+    $binary = ''
+    $failedNames = [System.Collections.Generic.List[string]]::new()
     foreach ($line in $lines) {
+        if ($line -match '^\s*(?:Running|Doc-tests)\s+(.+?)(?:\s+\(|$)') { $binary = $Matches[1].Trim() }
+        if ($line -match '^test (\S+) \.\.\. FAILED') { $failedNames.Add("${binary}::$($Matches[1])") }
         if ($line -match 'test result: \w+\.\s+(\d+) passed;\s+(\d+) failed') {
             $passed += [int]$Matches[1]; $failed += [int]$Matches[2]; $results++
         }
@@ -139,7 +154,7 @@ function Measure-RustTests {
     if ($exit -ne 0 -and $failed -eq 0) {
         throw "cargo test exited $exit with no failed test counted (build error after some tests ran)"
     }
-    [pscustomobject]@{ Passed = $passed; Failed = $failed }
+    [pscustomobject]@{ Passed = $passed; Failed = $failed; FailedNames = $failedNames.ToArray() }
 }
 
 # Child process for the Pester measurement. Head and base are measured in separate sessions: the modules under
@@ -215,6 +230,15 @@ function Measure-ScriptAnalyzer {
     @(Invoke-ScriptAnalyzer -Path $modules -Recurse -Severity Warning, Error).Count
 }
 
+function Compare-RustFailedNames {
+    <#
+    .SYNOPSIS
+        Returns the failed Rust tests that fail in Head and did not fail in Base, compared by name.
+    #>
+    param([string[]]$Base = @(), [string[]]$Head = @())
+    $known = [System.Collections.Generic.HashSet[string]]::new([string[]]@($Base))
+    @($Head | Where-Object { -not $known.Contains($_) })
+}
 function Invoke-Metrics {
     param([string]$Label, [string]$Root)
     Write-Host "  Collecting $Label ..." -ForegroundColor Gray
@@ -228,6 +252,7 @@ function Invoke-Metrics {
     $r = & $try 'Rust tests' { Measure-RustTests -Root $Root }
     $metrics.RustTestsPassed = if ($r) { $r.Passed } else { $null }
     $metrics.RustTestsFailed = if ($r) { $r.Failed } else { $null }
+    $metrics.RustFailedNames = if ($r) { @($r.FailedNames) } else { $null }
     $p = & $try 'Pester tests' { Measure-PesterTests -Root $Root }
     $metrics.PesterPassed = if ($p) { $p.Passed } else { $null }
     $metrics.PesterFailed = if ($p) { $p.Failed } else { $null }
@@ -347,6 +372,13 @@ foreach ($m in $metricDefs) {
     if ($status -eq 'regressed') { $regressions.Add($m.Key) }
 }
 
+# A failure that is new by name is a regression even when the failing count is unchanged (a swapped failure).
+if ($base -and $null -ne $head.Metrics.RustFailedNames -and $null -ne $base.Metrics.RustFailedNames) {
+    $newFailed = @(Compare-RustFailedNames -Base @($base.Metrics.RustFailedNames) -Head @($head.Metrics.RustFailedNames))
+    $newStatus = if ($newFailed.Count -gt 0) { 'regressed' } else { 'unchanged' }
+    $deltas['RustNewFailedTests'] = [pscustomobject]@{ Label = 'Rust tests newly failing (by name)'; Base = 0; Head = $newFailed.Count; Delta = $newFailed.Count; Status = $newStatus }
+    if ($newStatus -eq 'regressed') { $regressions.Add('RustNewFailedTests') }
+}
 $overall = if ($measurementErrors.Count -gt 0) { 'ERROR' }
 elseif ($regressions.Count -gt 0) { 'REGRESSED' }
 elseif (@($deltas.Values | Where-Object Status -eq 'improved').Count -gt 0) { 'IMPROVED' }

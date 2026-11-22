@@ -582,7 +582,7 @@ Describe 'Invoke-QualityGate measures or fails, and never moves the live checkou
         $script:CargoRoot = Join-Path $TestDrive 'qg/Native/pcai_core'
         New-Item -ItemType Directory -Path $script:CargoRoot -Force | Out-Null
     }
-    AfterEach { Remove-Item function:global:cargo -ErrorAction SilentlyContinue }
+    AfterEach { Remove-Item -Path Function:\cargo -ErrorAction SilentlyContinue }
 
     It 'sums every test result line, not only the last' {
         function global:cargo { $global:LASTEXITCODE = 0; 'test result: ok. 3 passed; 0 failed; 1 ignored'; 'test result: ok. 4 passed; 1 failed; 0 ignored' }
@@ -596,15 +596,21 @@ Describe 'Invoke-QualityGate measures or fails, and never moves the live checkou
         { Measure-RustTests -Root (Join-Path $TestDrive 'qg') } | Should -Throw '*build failed*'
     }
 
-    It 'counts clippy findings at level error (-D warnings) and treats a silent failure as an error' {
+    It 'counts clippy lints (capped to warnings) once each, and treats a denied-lint-shaped error or a silent failure as a build failure' {
+        function global:cargo {
+            $global:LASTEXITCODE = 0
+            '{"reason":"compiler-message","message":{"level":"warning","code":{"code":"clippy::needless_return"},"message":"x"}}'
+            '{"reason":"compiler-message","message":{"level":"warning","code":{"code":"unused_variables"},"message":"y"}}'
+            '{"reason":"compiler-message","message":{"level":"warning","code":{"code":"unused_variables"},"message":"y"}}'
+            '{"reason":"build-finished","success":true}'
+        }
+        Measure-ClippyFindings -Root (Join-Path $TestDrive 'qg') | Should -Be 2
         function global:cargo {
             $global:LASTEXITCODE = 101
             '{"reason":"compiler-message","message":{"level":"error","code":{"code":"clippy::needless_return"},"message":"x"}}'
-            '{"reason":"compiler-message","message":{"level":"warning","code":{"code":"unused_variables"},"message":"y"}}'
-            '{"reason":"compiler-message","message":{"level":"error","code":null,"message":"aborting due to 1 previous error"}}'
             '{"reason":"build-finished","success":false}'
         }
-        Measure-ClippyFindings -Root (Join-Path $TestDrive 'qg') | Should -Be 2
+        { Measure-ClippyFindings -Root (Join-Path $TestDrive 'qg') } | Should -Throw '*build failed*'
         function global:cargo { $global:LASTEXITCODE = 101; 'error: could not find Cargo.toml' }
         { Measure-ClippyFindings -Root (Join-Path $TestDrive 'qg') } | Should -Throw '*build failed*'
     }
@@ -1045,7 +1051,7 @@ Describe 'Invoke-QualityGate counts failed blocks and rejects unusable child res
         }
         $script:QCargo = $cargoDir
     }
-    AfterEach { Remove-Item function:global:pwsh -ErrorAction SilentlyContinue }
+    AfterEach { Remove-Item -Path Function:\pwsh -ErrorAction SilentlyContinue }
 
     It 'reports the throwing AfterAll in the head tree as a Pester failure and a regression (exit 1 with -FailOnRegression)' {
         $results = Join-Path $TestDrive 'qg-blocks-results'
@@ -1183,5 +1189,347 @@ Describe 'Invoke-QualityGate treats a rustc build failure as a build failure, no
         $json.overall | Should -Be 'ERROR'
         ($json.measurement_errors -join ' ') | Should -Match 'HEAD.*build failed'
         ($json.measurement_errors -join ' ') | Should -Match 'BASE.*build failed'
+    }
+}
+
+
+Describe 'Invoke-QualityGate: any failed build is a build failure, and lints are capped to warnings' -Tag 'Unit', 'Portable' {
+    # Protects: the build check in Measure-ClippyFindings. Detects: a lint masking a build that is broken in another way
+    # (codex review of #384, third finding). A scratch workspace with one crate that has an unused variable and another
+    # crate whose build.rs panics makes cargo exit 101; the panic goes to stderr as text ("failed to run custom build
+    # command"), not into the JSON stream, and the earlier check accepted any failed build as long as some lint existed.
+    # Design now: clippy runs with `--cap-lints warn`, so lints are warnings and can never fail the build; then ANY
+    # non-zero exit, `build-finished` other than success:true, or error diagnostic is a build failure, with no stderr
+    # classification or lint-denial reasoning. Stderr is still captured, for the failure message.
+    BeforeAll {
+        $script:HasCargo3 = [bool](Get-Command cargo -ErrorAction SilentlyContinue)
+        if ($script:HasCargo3) { cargo clippy --version *> $null; $script:HasCargo3 = ($LASTEXITCODE -eq 0) }
+        function script:Use-ScratchCargoEnv {
+            param([scriptblock]$Body)
+            $saved = @{}
+            foreach ($k in 'CARGO_TARGET_DIR', 'RUSTC_WRAPPER', 'CARGO_BUILD_RUSTC_WRAPPER') { $saved[$k] = [Environment]::GetEnvironmentVariable($k) }
+            try {
+                $env:CARGO_TARGET_DIR = Join-Path $TestDrive 'scratch-target-mixed'
+                $env:RUSTC_WRAPPER = ''
+                $env:CARGO_BUILD_RUSTC_WRAPPER = ''
+                & $Body
+            } finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) } }
+        }
+        function script:Get-FakeCargoStream {
+            param([string[]]$Lines, [int]$Exit)
+            $script:FakeStream = $Lines; $script:FakeExit = $Exit; $script:CargoArgs = $null
+            function global:cargo { $script:CargoArgs = @($args); $global:LASTEXITCODE = $script:FakeExit; $script:FakeStream }
+        }
+        $script:LintJson = '{"reason":"compiler-message","message":{"level":"warning","code":{"code":"unused_variables"},"message":"unused variable: `x`","spans":[{"is_primary":true,"file_name":"a/src/lib.rs","line_start":1,"column_start":5}]}}'
+        $script:FinishedFalse = '{"reason":"build-finished","success":false}'
+        $script:FinishedTrue = '{"reason":"build-finished","success":true}'
+        $script:CouldNotCompile = 'error: could not compile `a` (lib) due to 1 previous error'
+    }
+    AfterEach { Remove-Item -Path Function:\cargo -ErrorAction SilentlyContinue }
+
+    It 'counts capped lints once each and passes a successful build; the command caps lints instead of denying them' {
+        Get-FakeCargoStream @($script:LintJson, $script:LintJson, $script:FinishedTrue) 0
+        Measure-ClippyFindings -Root (Join-Path $TestDrive 'qg') | Should -Be 1
+        ($script:CargoArgs -join ' ') | Should -Match '--cap-lints warn'
+        ($script:CargoArgs -join ' ') | Should -Not -Match '-D warnings'
+    }
+
+    It 'rejects a lint plus a failed custom build command in stderr, and quotes the stderr in the message' {
+        Get-FakeCargoStream @($script:LintJson, 'error: failed to run custom build command for `b v0.0.0 (C:\x\b)`', 'Caused by:', '  process didn''t exit successfully (exit code: 101)', $script:CouldNotCompile, $script:FinishedFalse) 101
+        { Measure-ClippyFindings -Root (Join-Path $TestDrive 'qg') } | Should -Throw '*build failed*custom build command*'
+    }
+
+    It 'rejects every combination that is not exit 0 with build-finished success:true' {
+        foreach ($case in @(
+                @{ Lines = @($script:LintJson, $script:FinishedFalse); Exit = 101; Name = 'exit 101, success false, only lints' }
+                @{ Lines = @($script:LintJson, $script:FinishedFalse); Exit = 0; Name = 'exit 0 but success false' }
+                @{ Lines = @($script:LintJson, $script:FinishedTrue); Exit = 101; Name = 'success true but exit 101' }
+                @{ Lines = @($script:LintJson); Exit = 0; Name = 'no build-finished at all' }
+                @{ Lines = @($script:LintJson, 'error: linker `link.exe` not found', $script:FinishedFalse); Exit = 101; Name = 'a linker error' }
+            )) {
+            Get-FakeCargoStream $case.Lines $case.Exit
+            { Measure-ClippyFindings -Root (Join-Path $TestDrive 'qg') } | Should -Throw '*build failed*' -Because $case.Name
+        }
+    }
+
+    It 'rejects a codeless rustc error and an E0432 error even when the build-finished message says success' {
+        $syntax = '{"reason":"compiler-message","message":{"level":"error","code":null,"message":"expected `;`, found `}`","spans":[]}}'
+        $e0432 = '{"reason":"compiler-message","message":{"level":"error","code":{"code":"E0432"},"message":"unresolved import `x`","spans":[]}}'
+        foreach ($bad in $syntax, $e0432) {
+            Get-FakeCargoStream @($script:LintJson, $bad, $script:FinishedTrue) 0
+            { Measure-ClippyFindings -Root (Join-Path $TestDrive 'qg') } | Should -Throw '*build failed*'
+        }
+    }
+
+    It 'a real scratch workspace with a lint in one crate and a panicking build.rs in another is a build failure' {
+        if (-not $script:HasCargo3) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $root = Join-Path $TestDrive 'ws-mixed'
+        $ws = Join-Path $root 'Native/pcai_core'
+        Write-Utf8 (Join-Path $ws 'Cargo.toml') "[workspace]`nresolver = ""2""`nmembers = [""lintcrate"", ""buildcrate""]`n"
+        Write-Utf8 (Join-Path $ws 'lintcrate/Cargo.toml') "[package]`nname = ""lintcrate""`nversion = ""0.0.0""`nedition = ""2021""`n"
+        Write-Utf8 (Join-Path $ws 'lintcrate/src/lib.rs') "pub fn f() {`n    let unused = 1;`n}`n"
+        Write-Utf8 (Join-Path $ws 'buildcrate/Cargo.toml') "[package]`nname = ""buildcrate""`nversion = ""0.0.0""`nedition = ""2021""`nbuild = ""build.rs""`n"
+        Write-Utf8 (Join-Path $ws 'buildcrate/build.rs') "fn main() {`n    panic!(""scratch build script failure"");`n}`n"
+        Write-Utf8 (Join-Path $ws 'buildcrate/src/lib.rs') "pub fn g() {}`n"
+        { Use-ScratchCargoEnv { Measure-ClippyFindings -Root $root } } | Should -Throw '*build failed*'
+        # Control: the same lint crate alone is one lint and a passing build, so the throw above is the build script.
+        Remove-Item (Join-Path $ws 'buildcrate') -Recurse -Force
+        Write-Utf8 (Join-Path $ws 'Cargo.toml') "[workspace]`nresolver = ""2""`nmembers = [""lintcrate""]`n"
+        Use-ScratchCargoEnv { Measure-ClippyFindings -Root $root } | Should -Be 1
+    }
+}
+
+Describe 'Invoke-QualityGate: a failing test binary does not hide a new failure in a later one' -Tag 'Unit', 'Portable' {
+    # Protects: the Rust test comparison. Detects: `cargo test` without --no-fail-fast stopping at the first failing test
+    # binary (a_fail.rs), so a later binary (z_hidden.rs) with a NEW failure never runs; base and head both read
+    # Passed=0 Failed=1 and the gate sees no change (codex review of #384). Fix: --no-fail-fast, every `test result:`
+    # line summed, and failures compared by name, not only by count. Real cargo, a two-binary scratch crate, a private
+    # CARGO_TARGET_DIR; skipped with a reported reason when cargo or clippy is missing.
+    BeforeAll {
+        $script:HasCargo4 = [bool](Get-Command cargo -ErrorAction SilentlyContinue)
+        if ($script:HasCargo4) { cargo clippy --version *> $null; $script:HasCargo4 = ($LASTEXITCODE -eq 0) }
+        function script:Use-ScratchCargoEnv4 {
+            param([scriptblock]$Body)
+            $saved = @{}
+            foreach ($k in 'CARGO_TARGET_DIR', 'RUSTC_WRAPPER', 'CARGO_BUILD_RUSTC_WRAPPER') { $saved[$k] = [Environment]::GetEnvironmentVariable($k) }
+            try {
+                $env:CARGO_TARGET_DIR = Join-Path $TestDrive 'scratch-target-two'
+                $env:RUSTC_WRAPPER = ''
+                $env:CARGO_BUILD_RUSTC_WRAPPER = ''
+                & $Body
+            } finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) } }
+        }
+        function script:Write-TwoBinaryCrate {
+            param([string]$Root, [bool]$WithHidden)
+            $crate = Join-Path $Root 'Native/pcai_core'
+            Write-Utf8 (Join-Path $crate 'Cargo.toml') "[package]`nname = ""scratch""`nversion = ""0.0.0""`nedition = ""2021""`n[features]`nserver = []`nffi = []`n"
+            Write-Utf8 (Join-Path $crate 'src/lib.rs') "pub fn f() -> i32 { 1 }`n"
+            Write-Utf8 (Join-Path $crate 'tests/a_fail.rs') "#[test]`nfn known_failure() { assert_eq!(1, 2); }`n"
+            if ($WithHidden) { Write-Utf8 (Join-Path $crate 'tests/z_hidden.rs') "#[test]`nfn new_failure() { assert_eq!(3, 4); }`n" }
+        }
+        $script:TwoPester = "Describe 'a' -Tag 'Portable' { It 'a' { (1 + 1) | Should -Be 2 } }`n"
+    }
+    AfterEach { Remove-Item -Path Function:\cargo -ErrorAction SilentlyContinue }
+
+    It 'measures every test binary, passes --no-fail-fast, and names the failed tests' {
+        if (-not $script:HasCargo4) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $root = Join-Path $TestDrive 'two-binary-head'
+        Write-TwoBinaryCrate $root $true
+        $r = Use-ScratchCargoEnv4 { Measure-RustTests -Root $root }
+        $r.Failed | Should -Be 2 -Because 'z_hidden must run even though a_fail failed first'
+        @($r.FailedNames).Count | Should -Be 2
+        ($r.FailedNames -join ' ') | Should -Match 'known_failure'
+        ($r.FailedNames -join ' ') | Should -Match 'new_failure'
+        Get-Content (Join-Path $PSScriptRoot '../Invoke-QualityGate.ps1') -Raw | Should -Match '--no-fail-fast'
+    }
+
+    It 'the whole gate reports the new failure in the later binary as a regression (exit 1 with -FailOnRegression)' -Skip:(-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {
+        if (-not $script:HasCargo4) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $fx = Join-Path $TestDrive 'two-binary-repo'
+        Write-TwoBinaryCrate $fx $false
+        Write-Utf8 (Join-Path $fx 'Modules/Mod/F.ps1') "function Get-F { 1 }`n"
+        Write-Utf8 (Join-Path $fx 'Tests/Unit/A.Tests.ps1') $script:TwoPester
+        New-Item -ItemType Directory -Path (Join-Path $fx 'Tests/Helpers') -Force | Out-Null
+        Copy-Item $script:QualityGate (Join-Path $fx 'Tests/Invoke-QualityGate.ps1')
+        Copy-Item $script:Helper (Join-Path $fx 'Tests/Helpers/Get-PesterRunVerdict.ps1')
+        Invoke-FixtureGit $fx @('init', '-q', '-b', 'main') | Out-Null
+        Invoke-FixtureGit $fx @('add', '-A') | Out-Null
+        Invoke-FixtureGit $fx @('commit', '-q', '-m', 'base') | Out-Null
+        $base = (Invoke-FixtureGit $fx @('rev-parse', 'HEAD')) -join ''
+        Write-TwoBinaryCrate $fx $true
+        Invoke-FixtureGit $fx @('add', '-A') | Out-Null
+        Invoke-FixtureGit $fx @('commit', '-q', '-m', 'head') | Out-Null
+        $results = Join-Path $TestDrive 'two-binary-results'
+        Use-ScratchCargoEnv4 {
+            pwsh -NoProfile -File (Join-Path $fx 'Tests/Invoke-QualityGate.ps1') -BaseRef $base -ResultsDir $results -FailOnRegression *> $null
+            $script:TwoExit = $LASTEXITCODE
+        }
+        $json = Get-Content (Get-ChildItem $results -Filter 'quality-gate-*.json' | Select-Object -First 1).FullName -Raw | ConvertFrom-Json
+        $json.deltas.RustTestsFailed.base | Should -Be 1
+        $json.deltas.RustTestsFailed.head | Should -Be 2 -Because 'without --no-fail-fast both sides read 1 and the new failure is hidden'
+        $json.deltas.RustNewFailedTests.head | Should -Be 1
+        $json.overall | Should -Be 'REGRESSED'
+        $script:TwoExit | Should -Be 1
+    }
+
+    It 'pins CARGO_USE_NEXTEST to 0 while it runs cargo test and restores the caller value (nextest prints no test result lines)' {
+        $fx = Join-Path $TestDrive 'nextest-pin'
+        New-Item -ItemType Directory -Path (Join-Path $fx 'Native/pcai_core') -Force | Out-Null
+        $script:SeenNextest = 'unset'
+        function global:cargo {
+            $script:SeenNextest = $env:CARGO_USE_NEXTEST
+            $global:LASTEXITCODE = 0
+            'test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out'
+        }
+        $saved = $env:CARGO_USE_NEXTEST
+        try {
+            $env:CARGO_USE_NEXTEST = '1'
+            $r = Measure-RustTests -Root $fx
+            $after = $env:CARGO_USE_NEXTEST
+        } finally { $env:CARGO_USE_NEXTEST = $saved }
+        $script:SeenNextest | Should -Be '0'
+        $after | Should -Be '1'
+        $r.Passed | Should -Be 2
+    }
+    It 'compares failures by name: a swapped failure with an unchanged count is still a regression' {
+        $fx = Join-Path $TestDrive 'swap-names'
+        function global:cargo {
+            $global:LASTEXITCODE = 101
+            '     Running tests\a_fail.rs (target\debug\deps\a_fail-1.exe)'
+            "test $($script:SwapName) ... FAILED"
+            'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out'
+        }
+        New-Item -ItemType Directory -Path (Join-Path $fx 'Native/pcai_core') -Force | Out-Null
+        $script:SwapName = 'old_failure'
+        $a = Measure-RustTests -Root $fx
+        $script:SwapName = 'different_failure'
+        $b = Measure-RustTests -Root $fx
+        $a.Failed | Should -Be $b.Failed
+        ($a.FailedNames -join ',') | Should -Not -Be ($b.FailedNames -join ',')
+        @(Compare-RustFailedNames -Base $a.FailedNames -Head $b.FailedNames).Count | Should -Be 1
+        @(Compare-RustFailedNames -Base $a.FailedNames -Head $a.FailedNames).Count | Should -Be 0
+    }
+}
+
+Describe 'coverage-report.ps1 treats a missing Pester result as a measurement error' -Tag 'Unit', 'Portable' {
+    # Protects: the assessment failing closed. Detects: Invoke-Pester returning no result object (a crash, a swallowed
+    # error, PassThru lost) leaving `$pester` null, so `$ran` was false, every run gate was skipped and a seeded baseline
+    # passed on the static checks alone (codex review of #384, Tests/coverage-report.ps1 `$ran` and `if ($pester)`).
+    # A fake Pester 5.99 module placed first on PSModulePath stands in for Pester in a real child run of the script, so
+    # the real exit code is what is asserted. PCAI_FAKE_PESTER selects what its Invoke-Pester returns.
+    BeforeAll {
+        $script:NullFx = Join-Path $TestDrive 'null-pester-repo'
+        Write-Utf8 (Join-Path $script:NullFx 'Modules/M/F.ps1') "function Get-F { 1 }`n"
+        Write-Utf8 (Join-Path $script:NullFx 'Tests/Unit/Case.Tests.ps1') "Describe 'g' -Tag 'Portable' { It 'ok' { (1 + 1) | Should -Be 2 } }`n"
+        pwsh -NoProfile -File $script:Tool -RepoRoot $script:NullFx -Tier Portable -UpdateBaseline -OutputPath (Join-Path $TestDrive 'null-seed.json') *> $null
+        $script:NullSeedExit = $LASTEXITCODE
+        $fake = Join-Path $TestDrive 'fakemods/Pester/5.99.0'
+        New-Item -ItemType Directory -Path $fake -Force | Out-Null
+        Write-Utf8 (Join-Path $fake 'Pester.psd1') "@{ RootModule = 'Pester.psm1'; ModuleVersion = '5.99.0'; GUID = '11111111-2222-3333-4444-555555555555'; FunctionsToExport = @('New-PesterConfiguration', 'Invoke-Pester') }`n"
+        $fakeBody = @(
+            'function New-PesterConfiguration {'
+            '    [pscustomobject]@{'
+            '        Run = [pscustomobject]@{ Path = $null; PassThru = $null; Exit = $null }'
+            '        Filter = [pscustomobject]@{ Tag = $null }'
+            '        Output = [pscustomobject]@{ Verbosity = $null }'
+            '        TestResult = [pscustomobject]@{ Enabled = $null }'
+            '        CodeCoverage = [pscustomobject]@{ Enabled = $null; Path = $null; RecursePaths = $null; ExcludeTests = $null; OutputFormat = $null; OutputPath = $null }'
+            '    }'
+            '}'
+            'function Invoke-Pester {'
+            '    param($Configuration)'
+            '    switch ($env:PCAI_FAKE_PESTER) {'
+            '        ''null'' { return }'
+            '        ''empty'' { [pscustomobject]@{} }'
+            '        ''emptyarray'' { , @() }'
+            '        ''throws'' { throw ''pester crashed'' }'
+            '        ''nocoverage'' { [pscustomobject]@{ Result = ''Passed''; PassedCount = 1; FailedCount = 0; FailedContainersCount = 0; FailedBlocksCount = 0; TotalCount = 1; NotRunCount = 0; SkippedCount = 0; Containers = @(); Failed = @(); FailedBlocks = @(); CodeCoverage = $null } }'
+            '    }'
+            '}'
+        ) -join "`n"
+        Write-Utf8 (Join-Path $fake 'Pester.psm1') ($fakeBody + "`n")
+        $script:FakeModuleRoot = Join-Path $TestDrive 'fakemods'
+        function script:Invoke-FakePesterRun {
+            param([string]$Mode, [string]$Root, [string]$Name, [switch]$NoRun)
+            $savedPath = $env:PSModulePath; $savedMode = $env:PCAI_FAKE_PESTER
+            try {
+                $env:PSModulePath = $script:FakeModuleRoot + [IO.Path]::PathSeparator + $env:PSModulePath
+                $env:PCAI_FAKE_PESTER = $Mode
+                $out = Join-Path $TestDrive "fake-$Name.json"
+                $extra = @(if ($NoRun) { '-NoRun' })
+                pwsh -NoProfile -File $script:Tool -RepoRoot $Root -Tier Portable -OutputPath $out @extra *> $null
+                [pscustomobject]@{ Exit = $LASTEXITCODE; Doc = (Get-Content $out -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json) }
+            } finally { $env:PSModulePath = $savedPath; $env:PCAI_FAKE_PESTER = $savedMode }
+        }
+    }
+
+    It 'seeds the fixture baseline from a real run (control)' {
+        $script:NullSeedExit | Should -Be 0
+        Test-Path (Join-Path $script:NullFx 'Config/test-baseline.json') | Should -BeTrue
+    }
+
+    It 'exits 1 with a pester_run violation when Invoke-Pester returns nothing, an empty object, an empty array or throws' {
+        foreach ($mode in 'null', 'empty', 'emptyarray', 'throws') {
+            $r = Invoke-FakePesterRun -Mode $mode -Root $script:NullFx -Name $mode
+            $r.Exit | Should -Be 1 -Because "Invoke-Pester mode '$mode' must be a measurement error, not a pass"
+            $r.Doc.verdict | Should -Be 'fail'
+            @($r.Doc.violations | ForEach-Object { $_.code }) | Should -Contain 'pester_run' -Because $mode
+        }
+    }
+
+    It 'exits 1 with coverage_missing when the result has no coverage data' {
+        $r = Invoke-FakePesterRun -Mode 'nocoverage' -Root $script:NullFx -Name 'nocoverage'
+        $r.Exit | Should -Be 1
+        @($r.Doc.violations | ForEach-Object { $_.code }) | Should -Contain 'coverage_missing'
+    }
+
+    It 'with -NoRun the same fixture still passes its static checks (control: an explicit opt-out is not an error)' {
+        $r = Invoke-FakePesterRun -Mode 'null' -Root $script:NullFx -Name 'norun' -NoRun
+        $r.Exit | Should -Be 0
+        $r.Doc.verdict | Should -Be 'pass'
+        $r.Doc.PSObject.Properties.Name | Should -Not -Contain 'run_summary'
+    }
+
+    It 'positive control: the real Pester run of the same fixture still passes' {
+        pwsh -NoProfile -File $script:Tool -RepoRoot $script:NullFx -Tier Portable -OutputPath (Join-Path $TestDrive 'null-real.json') *> $null
+        $LASTEXITCODE | Should -Be 0
+    }
+}
+
+Describe 'An explicit empty orphans_allowed means allow none and is never widened' -Tag 'Unit', 'Portable' {
+    # Protects: the orphan allowlist ratchet. Detects: a truthiness check (`if ($old.orphans_allowed)`) treating a
+    # present but empty list as absent, so -UpdateBaseline re-seeded it from the current orphans, widened it, and then
+    # passed the gate it had just loosened (codex review of #384). Negative control: a baseline with
+    # "orphans_allowed": [] plus a new orphan fails, and -UpdateBaseline leaves the list empty and still fails.
+    BeforeAll {
+        $script:OrphFx = Join-Path $TestDrive 'orphan-repo'
+        Write-Utf8 (Join-Path $script:OrphFx 'Tests/Unit/A.Tests.ps1') "Describe 'a' -Tag 'Portable' { It 'ok' { (1 + 1) | Should -Be 2 } }`n"
+        pwsh -NoProfile -File $script:Tool -RepoRoot $script:OrphFx -NoRun -UpdateBaseline -OutputPath (Join-Path $TestDrive 'orph-seed.json') *> $null
+        $script:OrphSeedExit = $LASTEXITCODE
+        $script:OrphBaselinePath = Join-Path $script:OrphFx 'Config/test-baseline.json'
+    }
+
+    It 'seeds an explicit empty allowlist for a fixture with no orphans (control)' {
+        $script:OrphSeedExit | Should -Be 0
+        $json = Get-Content $script:OrphBaselinePath -Raw
+        $json | Should -Match '"orphans_allowed":\s*\[\s*\]'
+    }
+
+    It 'fails a new orphan, and -UpdateBaseline keeps the empty list empty and still fails' {
+        Write-Utf8 (Join-Path $script:OrphFx 'Tools/Odd/New.Tests.ps1') "Describe 'n' { It 'ok' { (3 + 3) | Should -Be 6 } }`n"
+        $before = Get-Content $script:OrphBaselinePath -Raw
+        pwsh -NoProfile -File $script:Tool -RepoRoot $script:OrphFx -NoRun -OutputPath (Join-Path $TestDrive 'orph-plain.json') *> $null
+        $LASTEXITCODE | Should -Be 1
+        (Get-Content $script:OrphBaselinePath -Raw) | Should -Be $before -Because 'a plain run never writes the baseline'
+        pwsh -NoProfile -File $script:Tool -RepoRoot $script:OrphFx -NoRun -UpdateBaseline -OutputPath (Join-Path $TestDrive 'orph-update.json') *> $null
+        $LASTEXITCODE | Should -Be 1 -Because 'the new orphan must still be a violation after the ratchet'
+        $after = Get-Content $script:OrphBaselinePath -Raw | ConvertFrom-Json
+        @($after.orphans_allowed).Count | Should -Be 0
+        Remove-Item (Join-Path $script:OrphFx 'Tools/Odd/New.Tests.ps1')
+    }
+
+    It 'keeps the other keys where 0 is legitimate (target, ratio, per-module floors, known-failure and quality counts)' {
+        $seeded = [pscustomobject]@{
+            schema_version = 1; target_coverage_pct = 0; files_analyzed_ratio_min = 0; per_module_tolerance_pct = 0
+            quality = [pscustomobject]@{ no_assertion_it_max = 0; not_throw_only_it_max = 0; tautology_it_max = 0; parse_error_files_max = 0 }
+            orphans_allowed = @()
+            tiers = [pscustomobject]@{ Portable = [pscustomobject]@{ coverage_min_pct = 0; per_module_min_pct = [pscustomobject]@{ Alpha = 0 }
+                    known_failures = [pscustomobject]@{ containers = @(); tests_by_file = [pscustomobject]@{}; blocks_by_file = [pscustomobject]@{} } } }
+        }
+        $assessment = [ordered]@{
+            quality = [ordered]@{ no_assertion_it = 5; not_throw_only_it = 5; tautology_it = 5; parse_error_files = 5 }
+            reach = [ordered]@{ orphans = @('x.Tests.ps1') }
+            coverage = [ordered]@{ pester = [ordered]@{ pct = 0.0; files_analyzed = 1; module_files_total = 1; by_module = @([pscustomobject]@{ module = 'Alpha'; pct = 0.0 }) } }
+        }
+        $run = [pscustomobject]@{ Result = 'Passed'; PassedCount = 1; FailedCount = 0; FailedContainersCount = 0; FailedBlocksCount = 0; TotalCount = 1; Containers = @(); Failed = @(); FailedBlocks = @() }
+        $u = Update-AssessmentBaseline -Baseline $seeded -Assessment $assessment -Tier Portable -PesterResult $run -Ran
+        $u.target_coverage_pct | Should -Be 0
+        $u.files_analyzed_ratio_min | Should -Be 0
+        $u.per_module_tolerance_pct | Should -Be 0
+        $u.quality.no_assertion_it_max | Should -Be 0 -Because 'a zero maximum must stay zero when the run is worse'
+        $u.quality.tautology_it_max | Should -Be 0
+        @($u.orphans_allowed).Count | Should -Be 0
+        $u.tiers.Portable.coverage_min_pct | Should -Be 0
+        $u.tiers.Portable.per_module_min_pct.Alpha | Should -Be 0
     }
 }

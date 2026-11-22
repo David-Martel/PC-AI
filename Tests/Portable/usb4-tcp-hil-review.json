@@ -1,16 +1,16 @@
 {
   "SchemaVersion": 1,
   "SourceBaseline": "4563c09c44bc7ba19d5137ff0eed9c414f966e7f",
-  "ReviewedAtUtc": "2026-11-22T18:35:15.276120+00:00",
+  "ReviewedAtUtc": "2026-11-22T18:40:25.704308+00:00",
   "HashConvention": "Whole sources, complete Python test method lines, and PowerShell selectors from Protects comment through closing brace, UTF-8 with LF",
   "SourceBindings": {
     "Tests/Portable/test_usb4_tcp_hil.py": "e225108c8581eae15e84b6017de73c079530f48cb94131a3c24a84fd9ab7ed9d",
-    "Tests/Hardware/usb4_tcp_hil.py": "7dba6a7ed138b317b9418687d69ec5dc0d4d9d00ee70cee630806912d39e3642",
-    "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1": "64779e3e8f2095add261d678610d2d3ecea34d487672154070eed39bb0dd2311",
+    "Tests/Hardware/usb4_tcp_hil.py": "e7ee3301f58f27ccca6dcd55fb7c85b26db187d9afb6b5e4310e59ee393cfa87",
+    "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1": "be06d9a964fd7a2909f089f6fe90b925668d7de25c1fe971e420eecb4b2198a5",
     "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1": "caa89c4ec2e46fc37b56caf911df76b176d918074231213f8cf6c866b9498040",
     ".github/workflows/usb4-lifecycle.yml": "f9198e558c3683c1d3e5c45dd69cb94a8b73e48dbe136c2a73c8bcb5a6f584b2",
     "docs/usb4/hardware-testing.md": "ee505b9f9316228843880b90643cd2a3d0e7211d483c363b103a1cd834bf8625",
-    "Tests/Portable/Test-Usb4TcpEndpoint.ps1": "0b0b377deca6baba695a7afc0ed33015d02a8038644dc38277ee1f14af7fad82"
+    "Tests/Portable/Test-Usb4TcpEndpoint.ps1": "fbc4f3caa246c5cba9eea9370a0f9e6986f7387f0d29fa2af59811219eb0a01b"
   },
   "Selectors": [
     {
@@ -76,7 +76,7 @@
     {
       "Selector": "Test-ClientUsesScopedOnLinkRouteAndCounters",
       "Source": "Tests/Portable/Test-Usb4TcpEndpoint.ps1",
-      "Sha256": "faaead50eff032a1cc0d25a916c2d5d3834c23b8ef2b0d1e0ec0c2794d3e28cd",
+      "Sha256": "20fd880c365f2fadcec0f181ad1a4f52eda8d636563eae54417655b350939828",
       "Protects": "Scoped on-link duplex underlay",
       "Detects": "Gateway acceptance and unattributed counters",
       "Needs": "PowerShell 7 and synthetic Windows provider responses",
@@ -141,7 +141,7 @@
     {
       "Selector": "Test-ListenerRemovesScopedFirewallRuleAfterSuccess",
       "Source": "Tests/Portable/Test-Usb4TcpEndpoint.ps1",
-      "Sha256": "fdac23a00df3c9ba9e1d94595a142238791c3e6a0f5c235c40a0aeb1104a83d5",
+      "Sha256": "21ce5533bd0cdd6e4b57bfdcfbd4b64cb157489072a49bb9fc02da90d0e26290",
       "Protects": "Firewall custody after successful listener exit",
       "Detects": "Wrong or leftover firewall rules",
       "Needs": "PowerShell 7 and synthetic Windows provider responses",

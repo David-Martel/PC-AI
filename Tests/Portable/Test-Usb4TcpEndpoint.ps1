@@ -20,7 +20,8 @@ function Invoke-VigilBoundedProcess {
     if ($Arguments -contains '--version') {
         return @{ ExitCode = 0; Stdout = 'iperf 3.22'; Stderr = '' }
     }
-    if ($TimeoutSeconds -lt 3 -or $TimeoutSeconds -gt 35 -or
+    $expectedTimeout = if ($Request.role -eq 'listen') { 48 } else { 28 }
+    if ($TimeoutSeconds -ne $expectedTimeout -or
         ($Arguments[0..5] -join ' ') -ne '-6 -B fe80::1%25 -p 42000 --json') {
         throw 'The process was not bounded and bound to the selected USB4 source.'
     }
@@ -123,7 +124,7 @@ function Invoke-FixtureEndpoint([string]$Role, [bool]$Firewall = $false) {
 }
 
 # Protects: USB4 source binding and underlay proof for the benchmark client.
-# Detects: a gateway, wrong scope, missing exact peer prefix, missing duplex options, or unattributed counters.
+# Detects: wrong routes, missing duplex options, incorrect client deadline, or unattributed counters.
 # Needs: PowerShell 7, synthetic provider data and a temporary file for binary hashing.
 # Breadcrumb: Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::Assert-DirectRoute, client branch, Get-Usb4Counters.
 function Test-ClientUsesScopedOnLinkRouteAndCounters {
@@ -179,7 +180,7 @@ function Test-ClientRejectsFlatReceiveOrTransmitCounter {
 }
 
 # Protects: the successful one-shot listener and the lifetime of its exact temporary allow rule.
-# Detects: a broadened rule, a rule surviving a normal exit, or deletion of unrelated rules.
+# Detects: an incorrect listener deadline, a broadened rule, or cleanup outside the owned rule.
 # Needs: PowerShell 7, synthetic Windows route/firewall providers and a stub runner.
 # Breadcrumb: Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::listen branch and firewall finally block.
 function Test-ListenerRemovesScopedFirewallRuleAfterSuccess {

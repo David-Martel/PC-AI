@@ -144,7 +144,7 @@ if ($Request.role -eq 'ready') {
             }
         }
         if (-not $ready) { Start-Sleep -Milliseconds 150 }
-    } until ($ready -or $clock.Elapsed.TotalSeconds -ge 8)
+    } until ($ready -or $clock.Elapsed.TotalSeconds -ge 20)
     @{ ready = $ready } | ConvertTo-Json -Compress
     return
 }
@@ -170,8 +170,11 @@ $version = $Matches[1]
 $arguments = @('-6', '-B', $source, '-p', "$port", '--json')
 if ($Request.role -eq 'listen') {
     $arguments += @('-s', '-1')
+    # Allow cold remote listener discovery before the benchmark client starts.
+    $processTimeout = $seconds + 45
 } else {
     $arguments += @('-c', $target, '--connect-timeout', '4000', '--bidir', '-P', "$streams", '-t', "$seconds")
+    $processTimeout = $seconds + 25
 }
 $ruleName = $null
 $listenerMutex = $null
@@ -196,7 +199,7 @@ try {
         }
     }
     $before = Get-Usb4Counters
-    $processResult = Invoke-VigilBoundedProcess -FilePath $executable -Arguments $arguments -TimeoutSeconds ($seconds + 25)
+    $processResult = Invoke-VigilBoundedProcess -FilePath $executable -Arguments $arguments -TimeoutSeconds $processTimeout
     if ($processResult.ExitCode -ne 0 -and -not $processResult.Stdout.Trim()) {
         throw "iperf3 $($Request.role) failed (exit $($processResult.ExitCode)): $($processResult.Stderr.Trim())"
     }

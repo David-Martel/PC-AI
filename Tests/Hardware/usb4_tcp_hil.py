@@ -124,7 +124,7 @@ def run_endpoint(artifacts, edge, role, allow_firewall):
                           'runner': artifacts[PROCESS_RUNNER].decode('utf-8-sig'), 'request': request})
     try:
         response = subprocess.run(prefix + ['pwsh', '-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', loader],
-                                  input=payload.encode('utf-8'), capture_output=True, timeout=edge['seconds'] + 90)
+                                  input=payload.encode('utf-8'), capture_output=True, timeout=edge['seconds'] + 110)
     except subprocess.TimeoutExpired:
         raise ValueError(f'{role} endpoint did not finish within its outer deadline') from None
     if response.returncode:

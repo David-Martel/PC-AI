@@ -1,0 +1,29 @@
+# cargo-fuzz harness for pcai_core_lib. Deliberately outside the pcai_core workspace
+# (own [workspace] table below): it needs nightly and libFuzzer, and must not join the
+# workspace lockfile or the stable CI build. See fuzz/README.md.
+[package]
+name = "pcai_core_fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+# The target compiles gguf.rs directly with #[path] instead of depending on pcai_core_lib: that
+# crate is a cdylib, and libFuzzer's instrumentation then asks the DLL link for a `main` symbol
+# (LNK2001 on MSVC, verified 2026-11-22). The reader needs only these three crates.
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+
+[[bin]]
+name = "gguf_meta"
+path = "fuzz_targets/gguf_meta.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

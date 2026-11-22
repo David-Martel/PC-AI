@@ -8,6 +8,82 @@ use std::path::Path;
 
 use anyhow::{bail, Context, Result};
 use serde::Serialize;
+use thiserror::Error;
+
+/// Maximum nesting depth of GGUF arrays that the reader follows.
+///
+/// Real GGUF files hold flat arrays of numbers or strings (vocabularies,
+/// scores, token types). Eight levels is far beyond any producer and keeps the
+/// recursive skipper to a constant, tiny stack footprint.
+pub const MAX_ARRAY_NESTING: usize = 8;
+
+/// Maximum length in bytes of a single GGUF string.
+pub const MAX_STRING_LEN: u64 = 1_000_000;
+
+/// Maximum number of metadata key-value pairs a header may declare.
+///
+/// Real files declare a few dozen to a few thousand.
+pub const MAX_KV_COUNT: u64 = 1 << 20;
+
+/// Maximum number of bytes read from one stream while parsing metadata.
+///
+/// Large tokenizer vocabularies make the metadata section tens of megabytes;
+/// this budget bounds the work done on a hostile or endless stream.
+pub const MAX_METADATA_BYTES: u64 = 256 * 1024 * 1024;
+
+/// A resource limit or arithmetic bound that GGUF metadata violated.
+///
+/// Returned (wrapped in [`anyhow::Error`]) by [`read_gguf_meta`] and
+/// [`read_gguf_meta_from`]; recover it with
+/// `err.downcast_ref::<GgufLimitError>()`.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[non_exhaustive]
+pub enum GgufLimitError {
+    /// Arrays nest deeper than [`MAX_ARRAY_NESTING`].
+    #[error("GGUF array nesting exceeds the limit of {max} levels")]
+    NestingTooDeep {
+        /// The limit that was exceeded.
+        max: usize,
+    },
+    /// A string is longer than [`MAX_STRING_LEN`].
+    #[error("GGUF string length {len} exceeds the limit of {max} bytes")]
+    StringTooLong {
+        /// The declared length.
+        len: u64,
+        /// The limit that was exceeded.
+        max: u64,
+    },
+    /// The header declares more than [`MAX_KV_COUNT`] entries.
+    #[error("GGUF metadata entry count {count} exceeds the limit of {max}")]
+    TooManyEntries {
+        /// The declared count.
+        count: u64,
+        /// The limit that was exceeded.
+        max: u64,
+    },
+    /// An array's total byte size does not fit in `u64`.
+    #[error("GGUF array of {count} elements of {elem_size} bytes overflows u64")]
+    ArraySizeOverflow {
+        /// The declared element count.
+        count: u64,
+        /// The size of one element in bytes.
+        elem_size: u64,
+    },
+    /// The model dimensions make the parameter estimate overflow `u64`.
+    #[error("GGUF embedding_length={embedding_length} and block_count={block_count} overflow the parameter estimate")]
+    DimensionsOverflow {
+        /// The declared hidden dimension.
+        embedding_length: u64,
+        /// The declared block count.
+        block_count: u64,
+    },
+    /// A value that must be non-negative is negative.
+    #[error("GGUF value {value} is negative but must not be")]
+    NegativeValue {
+        /// The negative value as read from the file.
+        value: i64,
+    },
+}
 
 /// Metadata extracted from a GGUF file header.
 #[derive(Debug, Clone, Serialize)]
@@ -152,8 +228,8 @@ pub fn estimate_model_memory_mb(meta: &GgufModelMeta, context_length: u64) -> u6
     let kv_mb = kv_bytes / (1024 * 1024);
 
     // 10% overhead for CUDA scratch, allocator fragmentation
-    let subtotal = weight_mb + kv_mb;
-    subtotal + (subtotal / 10)
+    let subtotal = weight_mb.saturating_add(kv_mb);
+    subtotal.saturating_add(subtotal / 10)
 }
 
 // -- GGUF binary parser -----------------------------------------------------------
@@ -202,16 +278,58 @@ impl GgufValueType {
 
 /// Read GGUF header metadata from a file path.
 ///
-/// Only reads the metadata section (typically <64KB). Does not mmap
-/// or read tensor data.
+/// Only reads the metadata section (typically <64KB, tens of MB with a large
+/// tokenizer vocabulary). Does not mmap or read tensor data. A thin wrapper
+/// over [`read_gguf_meta_from`], which holds the parsing and its limits.
 ///
 /// # Errors
 ///
 /// Returns an error if the file cannot be opened, is not a valid GGUF file,
-/// uses an unsupported version, or contains malformed metadata.
+/// uses an unsupported version, or contains malformed or over-limit metadata
+/// (see [`GgufLimitError`]).
+///
+/// # Panics
+///
+/// Never. The reader is reachable through the `pcai_gpu_preflight_json` FFI
+/// export in a `panic = "abort"` build, so every size taken from the file is
+/// bounds-checked or checked-arithmetic and every failure is an `Err`.
 pub fn read_gguf_meta(path: &Path) -> Result<GgufModelMeta> {
     let file = std::fs::File::open(path).with_context(|| format!("Cannot open GGUF file: {}", path.display()))?;
-    let mut reader = io::BufReader::new(file);
+    read_gguf_meta_from(io::BufReader::new(file))
+}
+
+/// Read GGUF header metadata from any byte stream.
+///
+/// Reads at most [`MAX_METADATA_BYTES`] from `reader`. Nesting, string length,
+/// entry count and every size computed from a value in the stream are limited
+/// as documented on [`GgufLimitError`]; nothing is allocated up front from a
+/// count or length that the stream declares.
+///
+/// # Errors
+///
+/// Returns an error if the stream is not a valid GGUF header, is truncated, or
+/// exceeds a limit. Limit violations carry a [`GgufLimitError`], recoverable
+/// with `err.downcast_ref::<GgufLimitError>()`.
+///
+/// # Panics
+///
+/// Never; see [`read_gguf_meta`].
+///
+/// # Examples
+///
+/// ```
+/// use pcai_core_lib::preflight::gguf::read_gguf_meta_from;
+///
+/// let mut bytes = b"GGUF".to_vec();
+/// bytes.extend_from_slice(&3_u32.to_le_bytes()); // version
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // tensor count
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // metadata entries
+/// let meta = read_gguf_meta_from(bytes.as_slice())?;
+/// assert_eq!(meta.embedding_length, 4096); // default when the key is absent
+/// # Ok::<(), anyhow::Error>(())
+/// ```
+pub fn read_gguf_meta_from<R: Read>(reader: R) -> Result<GgufModelMeta> {
+    let mut reader = reader.take(MAX_METADATA_BYTES);
 
     // Magic
     let mut magic = [0u8; 4];
@@ -231,6 +349,13 @@ pub fn read_gguf_meta(path: &Path) -> Result<GgufModelMeta> {
 
     // Metadata KV count
     let kv_count = read_u64_le(&mut reader)?;
+    if kv_count > MAX_KV_COUNT {
+        return Err(GgufLimitError::TooManyEntries {
+            count: kv_count,
+            max: MAX_KV_COUNT,
+        }
+        .into());
+    }
 
     // Parse metadata key-value pairs
     let mut architecture = String::new();
@@ -249,19 +374,19 @@ pub fn read_gguf_meta(path: &Path) -> Result<GgufModelMeta> {
                 architecture = read_gguf_typed_string(&mut reader, vtype)?;
             }
             "general.file_type" => {
-                file_type_raw = Some(read_gguf_typed_u32(&mut reader, vtype)?);
+                file_type_raw = read_gguf_typed_u32(&mut reader, vtype)?;
             }
             k if k.ends_with(".context_length") => {
-                context_length = Some(read_gguf_typed_u64(&mut reader, vtype)?);
+                context_length = read_gguf_typed_u64(&mut reader, vtype)?;
             }
             k if k.ends_with(".embedding_length") => {
-                embedding_length = Some(read_gguf_typed_u64(&mut reader, vtype)?);
+                embedding_length = read_gguf_typed_u64(&mut reader, vtype)?;
             }
             k if k.ends_with(".block_count") => {
-                block_count = Some(read_gguf_typed_u64(&mut reader, vtype)?);
+                block_count = read_gguf_typed_u64(&mut reader, vtype)?;
             }
             _ => {
-                skip_gguf_value(&mut reader, vtype_raw)?;
+                skip_gguf_value_by_type(&mut reader, vtype, 0)?;
             }
         }
     }
@@ -271,7 +396,10 @@ pub fn read_gguf_meta(path: &Path) -> Result<GgufModelMeta> {
     // Plus embedding table: vocab_size * emb (estimate vocab ~32K).
     let emb = embedding_length.unwrap_or(4096);
     let blocks = block_count.unwrap_or(32);
-    let estimated_params = (4 * emb * emb * blocks) + (32_000 * emb);
+    let estimated_params = estimate_parameter_count(emb, blocks).ok_or(GgufLimitError::DimensionsOverflow {
+        embedding_length: emb,
+        block_count: blocks,
+    })?;
 
     Ok(GgufModelMeta {
         architecture,
@@ -281,6 +409,18 @@ pub fn read_gguf_meta(path: &Path) -> Result<GgufModelMeta> {
         embedding_length: emb,
         block_count: blocks,
     })
+}
+
+/// `4 * emb^2 * blocks + 32_000 * emb`, or `None` if any step overflows `u64`.
+///
+/// `emb` and `blocks` come straight from the file, so each step is checked:
+/// unchecked, this panicked under overflow checks and wrapped to a small,
+/// wrong VRAM estimate in release builds.
+fn estimate_parameter_count(emb: u64, blocks: u64) -> Option<u64> {
+    let per_block = emb.checked_mul(emb)?.checked_mul(4)?;
+    let transformer = per_block.checked_mul(blocks)?;
+    let embedding_table = emb.checked_mul(32_000)?;
+    transformer.checked_add(embedding_table)
 }
 
 // -- Binary reader helpers --------------------------------------------------------
@@ -303,17 +443,33 @@ fn read_i32_le(r: &mut impl Read) -> Result<i32> {
     Ok(i32::from_le_bytes(buf))
 }
 
-fn read_gguf_string(r: &mut impl Read) -> Result<String> {
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "string length is bounds-checked to 1M immediately after cast"
-    )]
-    let len = read_u64_le(r)? as usize;
-    if len > 1_000_000 {
-        bail!("GGUF string length too large: {len}");
-    }
-    let mut buf = vec![0u8; len];
+fn read_i64_le(r: &mut impl Read) -> Result<i64> {
+    let mut buf = [0u8; 8];
     r.read_exact(&mut buf)?;
+    Ok(i64::from_le_bytes(buf))
+}
+
+/// Read a length-prefixed UTF-8 string.
+///
+/// The declared length is capped at [`MAX_STRING_LEN`] and compared as `u64`
+/// before it is converted to `usize` (a bare `as usize` truncated on 32-bit
+/// targets before the cap applied). The buffer grows with the bytes actually
+/// read, so a short stream that declares a large string allocates only what it
+/// delivered.
+fn read_gguf_string(r: &mut impl Read) -> Result<String> {
+    let len = read_u64_le(r)?;
+    if len > MAX_STRING_LEN {
+        return Err(GgufLimitError::StringTooLong {
+            len,
+            max: MAX_STRING_LEN,
+        }
+        .into());
+    }
+    let mut buf = Vec::new();
+    let read = r.by_ref().take(len).read_to_end(&mut buf)?;
+    if read as u64 != len {
+        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "GGUF string is truncated").into());
+    }
     String::from_utf8(buf).context("Invalid UTF-8 in GGUF string")
 }
 
@@ -321,87 +477,108 @@ fn read_gguf_typed_string(r: &mut impl Read, vtype: Option<GgufValueType>) -> Re
     match vtype {
         Some(GgufValueType::String) => read_gguf_string(r),
         _ => {
-            skip_gguf_value_by_type(r, vtype)?;
+            skip_gguf_value_by_type(r, vtype, 0)?;
             Ok(String::new())
         }
     }
 }
 
-fn read_gguf_typed_u32(r: &mut impl Read, vtype: Option<GgufValueType>) -> Result<u32> {
-    match vtype {
-        Some(GgufValueType::Uint32) => read_u32_le(r),
-        #[expect(
-            clippy::cast_sign_loss,
-            reason = "GGUF file_type is always a small non-negative integer"
-        )]
-        Some(GgufValueType::Int32) => Ok(read_i32_le(r)? as u32),
-        Some(GgufValueType::Uint16) => {
-            let mut buf = [0u8; 2];
-            r.read_exact(&mut buf)?;
-            Ok(u32::from(u16::from_le_bytes(buf)))
-        }
+/// Read a non-negative integer of any width, or `None` if the value has another type.
+///
+/// A mistyped value is skipped and reported as `None` so the caller falls back
+/// to its default; returning `Some(0)` made the parameter estimate collapse to
+/// near zero and preflight report "go". A negative signed value is an error:
+/// `as u64` turned it into an enormous dimension.
+fn read_gguf_typed_u64(r: &mut impl Read, vtype: Option<GgufValueType>) -> Result<Option<u64>> {
+    let value = match vtype {
+        Some(GgufValueType::Uint64) => read_u64_le(r)?,
+        Some(GgufValueType::Int64) => non_negative(read_i64_le(r)?)?,
+        Some(GgufValueType::Uint32) => u64::from(read_u32_le(r)?),
+        Some(GgufValueType::Int32) => non_negative(i64::from(read_i32_le(r)?))?,
+        Some(GgufValueType::Uint16) => u64::from(read_u16_le(r)?),
         _ => {
-            skip_gguf_value_by_type(r, vtype)?;
-            Ok(0)
+            skip_gguf_value_by_type(r, vtype, 0)?;
+            return Ok(None);
         }
+    };
+    Ok(Some(value))
+}
+
+/// As [`read_gguf_typed_u64`], narrowed to the `u32` of `general.file_type`.
+fn read_gguf_typed_u32(r: &mut impl Read, vtype: Option<GgufValueType>) -> Result<Option<u32>> {
+    Ok(read_gguf_typed_u64(r, vtype)?.map(|v| u32::try_from(v).unwrap_or(u32::MAX)))
+}
+
+fn read_u16_le(r: &mut impl Read) -> Result<u16> {
+    let mut buf = [0u8; 2];
+    r.read_exact(&mut buf)?;
+    Ok(u16::from_le_bytes(buf))
+}
+
+fn non_negative(v: i64) -> Result<u64> {
+    u64::try_from(v).map_err(|_| GgufLimitError::NegativeValue { value: v }.into())
+}
+
+/// Size in bytes of a fixed-width value type, or `None` for strings and arrays.
+fn fixed_size(vtype: GgufValueType) -> Option<u64> {
+    match vtype {
+        GgufValueType::Uint8 | GgufValueType::Int8 | GgufValueType::Bool => Some(1),
+        GgufValueType::Uint16 | GgufValueType::Int16 => Some(2),
+        GgufValueType::Uint32 | GgufValueType::Int32 | GgufValueType::Float32 => Some(4),
+        GgufValueType::Uint64 | GgufValueType::Int64 | GgufValueType::Float64 => Some(8),
+        GgufValueType::String | GgufValueType::Array => None,
     }
 }
 
-fn read_gguf_typed_u64(r: &mut impl Read, vtype: Option<GgufValueType>) -> Result<u64> {
-    match vtype {
-        Some(GgufValueType::Uint64) => read_u64_le(r),
-        #[expect(
-            clippy::cast_sign_loss,
-            reason = "GGUF dimension values (context_length, etc.) are always non-negative"
-        )]
-        Some(GgufValueType::Int64) => {
-            let mut buf = [0u8; 8];
-            r.read_exact(&mut buf)?;
-            Ok(i64::from_le_bytes(buf) as u64)
-        }
-        Some(GgufValueType::Uint32) => Ok(u64::from(read_u32_le(r)?)),
-        #[expect(
-            clippy::cast_sign_loss,
-            reason = "GGUF dimension values (context_length, etc.) are always non-negative"
-        )]
-        Some(GgufValueType::Int32) => Ok(read_i32_le(r)? as u64),
-        _ => {
-            skip_gguf_value_by_type(r, vtype)?;
-            Ok(0)
-        }
+/// Discard exactly `n` bytes, failing if the stream ends first.
+fn skip_bytes(r: &mut impl Read, n: u64) -> Result<()> {
+    let skipped = io::copy(&mut r.by_ref().take(n), &mut io::sink())?;
+    if skipped != n {
+        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "GGUF value is truncated").into());
     }
+    Ok(())
 }
 
-fn skip_gguf_value(r: &mut impl Read, vtype_raw: u32) -> Result<()> {
-    skip_gguf_value_by_type(r, GgufValueType::from_u32(vtype_raw))
-}
-
-fn skip_gguf_value_by_type(r: &mut impl Read, vtype: Option<GgufValueType>) -> Result<()> {
+/// Skip one value. `depth` is the number of arrays already entered.
+///
+/// Recursion happens only through nested arrays and stops at
+/// [`MAX_ARRAY_NESTING`]; before the limit, a crafted file with deeply nested
+/// arrays overflowed the stack, which aborts the process whatever the panic
+/// strategy. Arrays of fixed-width elements are skipped in one checked
+/// byte-count rather than element by element.
+fn skip_gguf_value_by_type(r: &mut impl Read, vtype: Option<GgufValueType>, depth: usize) -> Result<()> {
     match vtype {
-        Some(GgufValueType::Uint8 | GgufValueType::Int8 | GgufValueType::Bool) => {
-            let mut buf = [0u8; 1];
-            r.read_exact(&mut buf)?;
-        }
-        Some(GgufValueType::Uint16 | GgufValueType::Int16) => {
-            let mut buf = [0u8; 2];
-            r.read_exact(&mut buf)?;
-        }
-        Some(GgufValueType::Uint32 | GgufValueType::Int32 | GgufValueType::Float32) => {
-            let mut buf = [0u8; 4];
-            r.read_exact(&mut buf)?;
-        }
-        Some(GgufValueType::Uint64 | GgufValueType::Int64 | GgufValueType::Float64) => {
-            let mut buf = [0u8; 8];
-            r.read_exact(&mut buf)?;
-        }
         Some(GgufValueType::String) => {
             let _ = read_gguf_string(r)?;
         }
         Some(GgufValueType::Array) => {
+            if depth >= MAX_ARRAY_NESTING {
+                return Err(GgufLimitError::NestingTooDeep { max: MAX_ARRAY_NESTING }.into());
+            }
             let elem_type_raw = read_u32_le(r)?;
             let count = read_u64_le(r)?;
-            for _ in 0..count {
-                skip_gguf_value(r, elem_type_raw)?;
+            if count == 0 {
+                return Ok(());
+            }
+            let Some(elem_type) = GgufValueType::from_u32(elem_type_raw) else {
+                bail!("Unknown GGUF value type");
+            };
+            if let Some(elem_size) = fixed_size(elem_type) {
+                let total = count
+                    .checked_mul(elem_size)
+                    .ok_or(GgufLimitError::ArraySizeOverflow { count, elem_size })?;
+                skip_bytes(r, total)?;
+            } else {
+                // Every element consumes at least one byte, so this loop is
+                // bounded by the stream length (and `MAX_METADATA_BYTES`).
+                for _ in 0..count {
+                    skip_gguf_value_by_type(r, Some(elem_type), depth + 1)?;
+                }
+            }
+        }
+        Some(fixed) => {
+            if let Some(size) = fixed_size(fixed) {
+                skip_bytes(r, size)?;
             }
         }
         None => bail!("Unknown GGUF value type"),

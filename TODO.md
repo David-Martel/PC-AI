@@ -92,6 +92,9 @@ component results; they do not establish fleet or physical acceptance.
   for repeatable underlay measurements and release evidence.
 - [ ] Qualify the CalDigit path separately and investigate the direct-link
   duplex asymmetry before raising the affected edge's performance baseline.
+  The four-stream trial dropped to 1.48 / 21.31 Gbps on one edge. A later
+  single-stream trial on the merged revision measured 15.42 / 2.46 Gbps on
+  the other edge. Retain failed receipts alongside passing runs.
 - [ ] Validate eduroam/MWireless using usable supported credentials, provision
   AMT with its own management credentials/network, and qualify physical HIL paths.
 - [ ] Validate original-user/browser behavior and remaining Cog revision provenance

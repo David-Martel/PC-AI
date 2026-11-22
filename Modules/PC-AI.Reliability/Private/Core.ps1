@@ -327,6 +327,12 @@ function Protect-FleetText {
     if ([string]::IsNullOrEmpty($Text)) { return $Text }
     $t = $Text
     $t = [regex]::Replace($t, '(?i)\b([a-z][a-z0-9+.\-]*://)[^\s/:@]+:[^\s/@]+@', '$1***@')
+    # An Authorization header value is masked whole, before the scheme rule below sees it: quoted (JSON, a dict repr),
+    # or unquoted as an optional scheme then a comma-separated auth-param list (Digest: every field, not only the
+    # first, whose response= and cnonce= otherwise survived) or one token. Mirrors sentinel-utils #1600.
+    $authParam = '[A-Za-z0-9_\-]+\s*=\s*(?:"(?:[^"\\]|\\.)*"?|[^\s"'',;&}]+)'
+    $authSchemes = 'bearer|basic|token|digest|negotiate|ntlm|hoba|mutual|vapid|aws4-hmac-sha256|scram-sha-1|scram-sha-256'
+    $t = [regex]::Replace($t, ('(?i)\b((?:proxy-)?authorization["'']?\s*[:=]\s*)(?:"(?:[^"\\]|\\.)*"?|''(?:[^''\\]|\\.)*''?|(?:(?:{0})\s+)?(?:{1}(?:\s*,\s*{1})*|[^\s"'',;&}}]+))' -f $authSchemes, $authParam), '$1***')
     $t = [regex]::Replace($t, '(?i)\b(bearer|basic|token|digest)\s+[A-Za-z0-9._~+/=\-]{6,}', '$1 ***')
     $keys = 'password|passwd|pwd|passphrase|secret|token|api[_\-]?key|apikey|access[_\-]?key|private[_\-]?key|client[_\-]?secret|authorization|auth|credential|cookie|session[_\-]?id|sig|signature'
     # The key may be quoted ("password": / 'secret':), and a quoted value may contain escapes ("ab\"cd"): a

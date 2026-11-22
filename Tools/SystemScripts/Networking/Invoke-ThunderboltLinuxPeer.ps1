@@ -291,6 +291,41 @@ ip -j -4 route get '$($Profile.localAddress)' | python3 -c 'import json,sys; r=j
     }
 }
 
+function New-TbIperfServerScript {
+    [CmdletBinding()]
+    param([hashtable]$Profile, [string]$RemoteInterface, [int]$Seconds, [int]$ServerPort, [string[]]$ClientOptions = @())
+    # Pure text builder, extracted from Invoke-TbBenchmarkTrial so the remote guards can be tested without ssh.
+    # Callers normalize line endings before piping it to 'bash -s'.
+    $returnRouteCheck = if ($ClientOptions -contains '--bidir') {
+        @"
+ip -j -4 route get '$($Profile.localAddress)' from '$($Profile.peerAddress)' | python3 -c '
+import json
+import sys
+
+routes = json.load(sys.stdin)
+if len(routes) != 1:
+    sys.exit("Expected exactly one source-bound duplex return route")
+route = routes[0]
+if route.get("dev") != sys.argv[1] or route.get("gateway") or route.get("via"):
+    sys.exit("Duplex return route is not direct on the selected interface")
+' '$RemoteInterface'
+"@
+    }
+    @"
+set -euo pipefail
+test "`$(hostname)" = '$($Profile.expectedHostname)'
+ip -4 addr show dev '$RemoteInterface' | grep -Fq 'inet $($Profile.peerAddress)/30 '
+$returnRouteCheck
+timeout --kill-after=3s $($Seconds + 15)s iperf3 -s -1 -B '$($Profile.peerAddress)' -p $ServerPort &
+child=`$!
+trap 'kill "`$child" 2>/dev/null || true' EXIT HUP INT TERM
+sleep 0.5
+kill -0 "`$child"
+echo PCAI_IPERF_READY
+wait "`$child"
+"@
+}
+
 function Invoke-TbBenchmarkTrial {
     [CmdletBinding()]
     param([hashtable]$Profile, [object]$Adapter, [string]$RemoteInterface, [string]$Executable,
@@ -309,34 +344,7 @@ function Invoke-TbBenchmarkTrial {
         if (-not $server.Start()) { throw 'Could not start benchmark SSH server.' }
         $serverStarted = $true
         $serverErr = $server.StandardError.ReadToEndAsync()
-        $returnRouteCheck = if ($ClientOptions -contains '--bidir') {
-            @"
-ip -j -4 route get '$($Profile.localAddress)' from '$($Profile.peerAddress)' | python3 -c '
-import json
-import sys
-
-routes = json.load(sys.stdin)
-if len(routes) != 1:
-    sys.exit("Expected exactly one source-bound duplex return route")
-route = routes[0]
-if route.get("dev") != sys.argv[1] or route.get("gateway") or route.get("via"):
-    sys.exit("Duplex return route is not direct on the selected interface")
-' '$RemoteInterface'
-"@
-        }
-        $serverScript = @"
-set -euo pipefail
-test "`$(hostname)" = '$($Profile.expectedHostname)'
-ip -4 addr show dev '$RemoteInterface' | grep -Fq 'inet $($Profile.peerAddress)/30 '
-$returnRouteCheck
-timeout --kill-after=3s $($Seconds + 15)s iperf3 -s -1 -B '$($Profile.peerAddress)' -p $ServerPort &
-child=`$!
-trap 'kill "`$child" 2>/dev/null || true' EXIT HUP INT TERM
-sleep 0.5
-kill -0 "`$child"
-echo PCAI_IPERF_READY
-wait "`$child"
-"@
+        $serverScript = New-TbIperfServerScript -Profile $Profile -RemoteInterface $RemoteInterface -Seconds $Seconds -ServerPort $ServerPort -ClientOptions $ClientOptions
         $server.StandardInput.Write($serverScript.Replace("`r`n", "`n"))
         $server.StandardInput.Close()
         $ready = $false

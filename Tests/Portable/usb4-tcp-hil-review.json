@@ -1,0 +1,64 @@
+{
+  "SchemaVersion": 1,
+  "SourceBaseline": "dda12844d7f0973624a6a3d953abe1f37a5f0f63",
+  "ReviewedAtUtc": "2026-11-22T18:02:40.188021+00:00",
+  "HashConvention": "Whole sources and complete test method lines, UTF-8 with LF",
+  "SourceBindings": {
+    "Tests/Portable/test_usb4_tcp_hil.py": "dd14d9ed1e913a78527a4989f0d651fb3dba8a47be43cc5fafd2db1fcd84794e",
+    "Tests/Hardware/usb4_tcp_hil.py": "61b3bb0b05950fce86410e3b5f04afbf2572f27ca87b0613d5b5dc5b7d92c6ae",
+    "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1": "b66af2b6267033f113839bb1057492f960906e83af8339042a6a1debf31c307e",
+    "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1": "caa89c4ec2e46fc37b56caf911df76b176d918074231213f8cf6c866b9498040",
+    ".github/workflows/usb4-lifecycle.yml": "b2404a4fc77e73bc10f5b5377a5e59ecaa8379b237903f31c1a6a386f4ab6235",
+    "docs/usb4/hardware-testing.md": "7d81213fe8735adba7341de3642df9e856c84329e1f2a2206dae0808323b1041"
+  },
+  "Selectors": [
+    {
+      "Selector": "test_profile_checks_enrolled_roles_and_physical_identity",
+      "Source": "Tests/Portable/test_usb4_tcp_hil.py",
+      "Sha256": "5eaada2719563ac46bfedc27de9c0eeba230ed08925c0af6f311a3b873966eff",
+      "Protects": "Physical edge and endpoint admission",
+      "Detects": "Ambiguous network identity and invalid management targets",
+      "Needs": "Python 3.10+ standard library and synthetic endpoint records",
+      "Breadcrumb": "Tests/Hardware/usb4_tcp_hil.py::profile/endpoint",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "keep"
+    },
+    {
+      "Selector": "test_qualification_requires_both_receivers_and_counters",
+      "Source": "Tests/Portable/test_usb4_tcp_hil.py",
+      "Sha256": "76a56ba96935e7010f53b071af46689a800a981162f8fe773918508a1f87ed67",
+      "Protects": "Both directions and underlay custody",
+      "Detects": "Incorrect scoped sockets, duration, byte totals and USB4 counter attribution",
+      "Needs": "Python 3.10+ standard library and synthetic endpoint records",
+      "Breadcrumb": "Tests/Hardware/usb4_tcp_hil.py::measure/qualify",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "keep"
+    },
+    {
+      "Selector": "test_release_verification_fails_closed",
+      "Source": "Tests/Portable/test_usb4_tcp_hil.py",
+      "Sha256": "0a2a5fba68903facca1ba69a0bf01a67a9de2f277a03dd77c58abacee86b3491",
+      "Protects": "Release receipt admission",
+      "Detects": "Stale, mismatched, partial, or below-floor evidence",
+      "Needs": "Python 3.10+ standard library and synthetic endpoint records",
+      "Breadcrumb": "Tests/Hardware/usb4_tcp_hil.py::verify_receipt",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "keep"
+    },
+    {
+      "Selector": "test_listener_must_be_ready_and_only_receiver_can_open_firewall",
+      "Source": "Tests/Portable/test_usb4_tcp_hil.py",
+      "Sha256": "2bd2b5732a176d91349ebacdb91da816c802264f787333e340904c8e86f4281c",
+      "Protects": "Controlled listener and firewall staging",
+      "Detects": "Sending before readiness or permitting a client-side firewall exception",
+      "Needs": "Python 3.10+ standard library and synthetic endpoint records",
+      "Breadcrumb": "Tests/Hardware/usb4_tcp_hil.py::test_edge",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "keep"
+    }
+  ]
+}

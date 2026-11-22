@@ -47,6 +47,37 @@ pub fn prepared_model_roots() -> Vec<PathBuf> {
     roots
 }
 
+/// Hub ids whose prepared SafeTensors copy `Models/<name>` may stand in for the
+/// download. The match is exact and case-sensitive on purpose: any other id,
+/// including a third-party repo that merely ends in the same name, goes to
+/// the normal download path and never to a local directory it might not be.
+pub const PREPARED_MODEL_IDS: [&str; 2] = ["deepseek-ai/Janus-Pro-1B", "deepseek-ai/Janus-Pro-7B"];
+
+/// Download command for the PyTorch weights (append `-ModelId <id>` and, for
+/// the public DeepSeek repos, `-SkipAuth`).
+pub const DOWNLOAD_COMMAND: &str = "pwsh Tools/Get-JanusProModel.ps1";
+
+/// Conversion command (append the model directory). The dependencies are
+/// explicit so it runs in a clean environment with only `uv` installed.
+pub const CONVERT_COMMAND: &str =
+    "uv run --no-project --with torch --with safetensors --with numpy python Tools/convert-sharded-weights.py";
+
+fn is_prepared_model_id(model_id: &str) -> bool {
+    PREPARED_MODEL_IDS.contains(&model_id)
+}
+
+/// Whether `model_id` is meant as a filesystem path rather than a Hub id: an
+/// absolute or drive-qualified path, a `.`/`~` relative path, anything with a
+/// backslash, or more than one `/` (a Hub id has at most `owner/name`).
+fn looks_like_filesystem_path(model_id: &str) -> bool {
+    let bytes = model_id.as_bytes();
+    Path::new(model_id).is_absolute()
+        || model_id.starts_with(['/', '.', '~'])
+        || model_id.contains('\\')
+        || (bytes.len() >= 2 && bytes[1] == b':')
+        || model_id.matches('/').count() > 1
+}
+
 /// Last path component of a model id (`deepseek-ai/Janus-Pro-1B` -> `Janus-Pro-1B`).
 fn model_dir_name(model_id: &str) -> Option<&str> {
     let name = model_id.rsplit(['/', '\\']).next()?;
@@ -55,9 +86,13 @@ fn model_dir_name(model_id: &str) -> Option<&str> {
 
 /// Find a prepared copy of `model_id` under one of `roots`.
 ///
-/// A prepared directory is `<root>/<model name>/` holding `config.json`,
-/// `tokenizer.json` and SafeTensors weights, which is what the loader needs.
+/// Only the ids in [`PREPARED_MODEL_IDS`] qualify. A prepared directory is
+/// `<root>/<model name>/` holding `config.json`, `tokenizer.json` and
+/// SafeTensors weights, which is what the loader needs.
 pub fn find_prepared_model(model_id: &str, roots: &[PathBuf]) -> Option<PathBuf> {
+    if !is_prepared_model_id(model_id) {
+        return None;
+    }
     let name = model_dir_name(model_id)?;
     roots.iter().map(|root| root.join(name)).find(|dir| {
         dir.join("config.json").is_file()
@@ -68,10 +103,12 @@ pub fn find_prepared_model(model_id: &str, roots: &[PathBuf]) -> Option<PathBuf>
 
 /// Resolve a model identifier to a local directory containing model files.
 ///
-/// Order: an existing local directory is returned as-is; otherwise a prepared
-/// SafeTensors copy under [`prepared_model_roots`]; otherwise the model is
-/// downloaded from HuggingFace Hub (`config.json` and `tokenizer.json` only,
-/// into the Hub cache). Janus-Pro repositories publish PyTorch `.bin`
+/// Order: an existing local directory is returned as-is. An id that is
+/// written as a filesystem path but does not exist is an error naming that
+/// path, never a fallback. One of [`PREPARED_MODEL_IDS`] resolves to a
+/// prepared SafeTensors copy under [`prepared_model_roots`] when present. Any
+/// other id is downloaded from HuggingFace Hub (`config.json` and
+/// `tokenizer.json` only, into the Hub cache). Janus-Pro repositories publish PyTorch `.bin`
 /// weights, so the downloaded directory has no SafeTensors until the weights
 /// are prepared; see [`weights_preparation_hint`].
 ///
@@ -94,6 +131,11 @@ pub fn resolve_model_path_with(
     if local.is_dir() {
         tracing::info!(model = model_id, "using local model directory");
         return Ok(local);
+    }
+    if looks_like_filesystem_path(model_id) {
+        anyhow::bail!(
+            "model path '{model_id}' is not an existing directory; check the path (a missing path is never replaced by a prepared or downloaded model)"
+        );
     }
     if let Some(prepared) = find_prepared_model(model_id, roots) {
         tracing::info!(model = model_id, path = %prepared.display(), "using prepared SafeTensors model directory");
@@ -128,30 +170,40 @@ fn has_pytorch_weights(dir: &Path) -> bool {
 /// them).
 pub fn weights_preparation_hint(model_id: &str, model_path: &Path) -> String {
     let local_dir = PathBuf::from(model_id).is_dir();
-    let (prepared_dir, download_step) = if local_dir {
+    let (convert_target, download_step) = if local_dir {
         let dir = model_path.display().to_string();
         let download = (!has_pytorch_weights(model_path)).then(|| {
             format!(
-                "1. download the PyTorch weights into it, for example: pwsh Tools/Get-JanusProModel.ps1 -ModelId deepseek-ai/Janus-Pro-1B -OutputDir \"{dir}\"; "
+                "1. download the PyTorch weights into it, for example: {DOWNLOAD_COMMAND} -ModelId {} -SkipAuth -OutputDir \"{dir}\"; ",
+                PREPARED_MODEL_IDS[0]
             )
         });
-        (dir, download)
+        (format!("\"{dir}\""), download)
     } else {
         let name = model_dir_name(model_id).unwrap_or("Janus-Pro-1B");
-        let dir = format!("Models/{name}");
-        let download = format!("1. pwsh Tools/Get-JanusProModel.ps1 -ModelId {model_id}; ");
-        (dir, Some(download))
+        // The public DeepSeek repos need no token; anything else may.
+        let auth = if is_prepared_model_id(model_id) {
+            " -SkipAuth"
+        } else {
+            ""
+        };
+        (
+            format!("Models/{name}"),
+            Some(format!("1. {DOWNLOAD_COMMAND} -ModelId {model_id}{auth}; ")),
+        )
     };
     let convert = format!(
-        "{}uv run python Tools/convert-sharded-weights.py \"{prepared_dir}\" (writes model.safetensors there)",
+        "{}{CONVERT_COMMAND} {convert_target} (writes model.safetensors there)",
         if download_step.is_some() { "2. " } else { "" }
     );
     let finish = if local_dir {
-        format!("then load \"{prepared_dir}\" again")
-    } else {
+        format!("then load {convert_target} again")
+    } else if is_prepared_model_id(model_id) {
         format!(
-            "then load \"{prepared_dir}\" (pass it as the model, or keep it under Models/ or ${MODELS_DIR_ENV} so '{model_id}' resolves to it)"
+            "then load {convert_target} (pass it as the model, or keep it under Models/ or ${MODELS_DIR_ENV} so '{model_id}' resolves to it)"
         )
+    } else {
+        format!("then pass {convert_target} as the model (only the ids in PREPARED_MODEL_IDS resolve to Models/ automatically)")
     };
     format!(
         "Janus-Pro is published as PyTorch weights and this loader only reads complete SafeTensors (it refuses random weights). Prepare them once: {}{convert}; {finish}",
@@ -618,6 +670,132 @@ mod tests {
         assert!(format!("{error:#}").contains("first.weight"));
     }
 
+    /// Prepared directory for `name` under a fresh root, with every file the loader needs.
+    fn prepared_root(name: &str) -> (tempfile::TempDir, PathBuf) {
+        let root = tempfile::tempdir().expect("tempdir");
+        let dir = root.path().join(name);
+        fs::create_dir(&dir).unwrap();
+        fs::write(dir.join("config.json"), "{}").unwrap();
+        fs::write(dir.join("tokenizer.json"), "{}").unwrap();
+        weight_fixture(&dir.join("model.safetensors"), &[("first.weight", vec![1.0, 2.0])]);
+        (root, dir)
+    }
+
+    // Protects: a mistyped or missing explicit path is an error naming that path, never
+    //   a fallback to the official prepared model that shares its last component.
+    // Detects: the basename fallback, which silently loaded Models/Janus-Pro-1B for
+    //   `<missing dir>/Janus-Pro-1B` or a typo'd absolute path, and any download attempt.
+    // Needs: temp directories; the downloader fails the test if called.
+    #[test]
+    fn test_missing_explicit_path_is_an_error_not_a_prepared_fallback() {
+        let (root, _prepared) = prepared_root("Janus-Pro-1B");
+        let scratch = tempfile::tempdir().expect("tempdir");
+        let ids = [
+            scratch.path().join("missing").join("Janus-Pro-1B"),
+            scratch.path().join("Janus-Pro-1B-typo"),
+        ];
+        for id in ids {
+            let id = id.to_string_lossy().into_owned();
+            let error = resolve_model_path_with(&id, &[root.path().to_path_buf()], |_| {
+                anyhow::bail!("a missing explicit path must not download")
+            })
+            .expect_err("missing path must be an error");
+            assert!(error.to_string().contains(&id), "error must name the path: {error}");
+            assert!(error.to_string().contains("not an existing directory"), "{error}");
+        }
+        for id in [
+            r"D:\models\Janus-Pro-1B-typo",
+            "./Janus-Pro-1B",
+            "../Janus-Pro-1B",
+            "a/b/Janus-Pro-1B",
+        ] {
+            assert!(
+                resolve_model_path_with(id, &[root.path().to_path_buf()], |_| anyhow::bail!("no download")).is_err(),
+                "{id} is a path and does not exist"
+            );
+        }
+    }
+
+    // Protects: only the exact supported DeepSeek ids resolve to a prepared copy; a
+    //   third-party repo or a case variant goes to the normal download path (and then
+    //   to the SafeTensors refusal), never to the local official model.
+    // Detects: matching on the last component or ignoring case, which would load the
+    //   wrong model. Rule: exact, case-sensitive (see PREPARED_MODEL_IDS).
+    // Needs: a temp directory; the downloader is a mock that records its calls.
+    #[test]
+    fn test_only_exact_supported_ids_resolve_to_prepared_copy() {
+        let (root_1b, prepared_1b) = prepared_root("Janus-Pro-1B");
+        let roots = [root_1b.path().to_path_buf()];
+        let no_network = |_: &str| -> Result<PathBuf> { anyhow::bail!("exact id must not download") };
+        assert_eq!(
+            resolve_model_path_with("deepseek-ai/Janus-Pro-1B", &roots, no_network).unwrap(),
+            prepared_1b
+        );
+
+        let cache = tempfile::tempdir().expect("tempdir");
+        for id in [
+            "thirdparty/Janus-Pro-1B",
+            "DeepSeek-AI/Janus-Pro-1B",
+            "deepseek-ai/janus-pro-1b",
+            "Janus-Pro-1B",
+        ] {
+            let mut asked = Vec::new();
+            let resolved = resolve_model_path_with(id, &roots, |requested| {
+                asked.push(requested.to_string());
+                Ok(cache.path().to_path_buf())
+            })
+            .expect("download mock resolves");
+            assert_eq!(asked, [id], "{id} must go to the download path");
+            assert_eq!(
+                resolved,
+                cache.path(),
+                "{id} must not resolve to the prepared directory"
+            );
+        }
+
+        let (root_7b, prepared_7b) = prepared_root("Janus-Pro-7B");
+        assert_eq!(
+            resolve_model_path_with("deepseek-ai/Janus-Pro-7B", &[root_7b.path().to_path_buf()], no_network).unwrap(),
+            prepared_7b
+        );
+        assert!(find_prepared_model("thirdparty/Janus-Pro-1B", &roots).is_none());
+    }
+
+    // Protects: the emitted refusal text and docs/media-weight-preparation.md carry the
+    //   same runnable commands: -SkipAuth for the public DeepSeek repos (no Bitwarden
+    //   prompt) and explicit uv dependencies for the converter.
+    // Detects: either side drifting from the shared command constants, or a command that
+    //   only works in an environment that already has torch, safetensors and numpy.
+    // Needs: the repository docs directory (read through CARGO_MANIFEST_DIR).
+    #[test]
+    fn test_preparation_commands_are_runnable_and_match_the_documentation() {
+        assert_eq!(DOWNLOAD_COMMAND, "pwsh Tools/Get-JanusProModel.ps1");
+        assert_eq!(
+            CONVERT_COMMAND,
+            "uv run --no-project --with torch --with safetensors --with numpy python Tools/convert-sharded-weights.py"
+        );
+        let download = format!("{DOWNLOAD_COMMAND} -ModelId deepseek-ai/Janus-Pro-1B -SkipAuth");
+        let convert = format!("{CONVERT_COMMAND} Models/Janus-Pro-1B");
+        let hint = weights_preparation_hint("deepseek-ai/Janus-Pro-1B", Path::new("cache"));
+        assert!(hint.contains(&download), "{hint}");
+        assert!(hint.contains(&convert), "{hint}");
+
+        let docs = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../docs/media-weight-preparation.md"
+        ))
+        .expect("docs/media-weight-preparation.md");
+        assert!(docs.contains(&download), "doc is missing: {download}");
+        assert!(docs.contains(&convert), "doc is missing: {convert}");
+
+        let third_party = weights_preparation_hint("thirdparty/Janus-Pro-1B", Path::new("cache"));
+        assert!(!third_party.contains("-SkipAuth"), "auth may be needed: {third_party}");
+        assert!(
+            third_party.contains(&format!("{CONVERT_COMMAND} Models/Janus-Pro-1B")),
+            "{third_party}"
+        );
+    }
+
     // Protects: the cold-cache path for the default model id: a prepared SafeTensors copy
     //   is used without touching the network.
     // Detects: resolution that downloads (or fails) even though Models/<name> is ready.
@@ -672,8 +850,8 @@ mod tests {
 
         let hint = weights_preparation_hint("deepseek-ai/Janus-Pro-1B", &resolved);
         for needle in [
-            "Tools/Get-JanusProModel.ps1 -ModelId deepseek-ai/Janus-Pro-1B",
-            "Tools/convert-sharded-weights.py \"Models/Janus-Pro-1B\"",
+            "pwsh Tools/Get-JanusProModel.ps1 -ModelId deepseek-ai/Janus-Pro-1B -SkipAuth",
+            "uv run --no-project --with torch --with safetensors --with numpy python Tools/convert-sharded-weights.py Models/Janus-Pro-1B",
             "PCAI_MODELS_DIR",
             "refuses random weights",
         ] {

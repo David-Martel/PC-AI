@@ -12,30 +12,53 @@ contain only `.bin` weights (checked against the Hugging Face file listings on
 
 ## Prepare
 
+Both commands run as written from the repository root in a clean environment:
+the download needs no Bitwarden login (`-SkipAuth`, the DeepSeek repos are
+public) and the conversion pulls its own Python dependencies through `uv`, so
+only `pwsh` and `uv` need to be installed. The same strings are emitted by the
+loader's refusal message; `test_preparation_commands_are_runnable_and_match_the_documentation`
+in [`hub.rs`](../Native/pcai_core/pcai_media/src/hub.rs) fails if this page and
+the code drift apart.
+
 ```powershell
 # 1. Download config.json, the tokenizer and pytorch_model*.bin into Models/Janus-Pro-1B.
-pwsh Tools/Get-JanusProModel.ps1 -ModelId deepseek-ai/Janus-Pro-1B
+pwsh Tools/Get-JanusProModel.ps1 -ModelId deepseek-ai/Janus-Pro-1B -SkipAuth
 
-# 2. Convert to model.safetensors in the same directory (needs torch, safetensors, numpy;
-#    AI-Media/.venv has them, or run it with `uv run --with torch --with safetensors --with numpy`).
-uv run python Tools/convert-sharded-weights.py Models/Janus-Pro-1B
+# 2. Convert to model.safetensors in the same directory.
+uv run --no-project --with torch --with safetensors --with numpy python Tools/convert-sharded-weights.py Models/Janus-Pro-1B
 ```
 
-[`Get-JanusProModel.ps1`](../Tools/Get-JanusProModel.ps1) accepts `-OutputDir` and
+For the 7B model use `deepseek-ai/Janus-Pro-7B` and `Models/Janus-Pro-7B`.
+[`Get-JanusProModel.ps1`](../Tools/Get-JanusProModel.ps1) also accepts `-OutputDir` and
 points `Config/pcai-media.json` at the result.
-[`convert-sharded-weights.py`](../Tools/convert-sharded-weights.py) handles a
-single `pytorch_model.bin` (1B) and sharded `pytorch_model-*-of-*.bin` (7B) and
-exits without work if `model.safetensors` already exists.
+[`convert-sharded-weights.py`](../Tools/convert-sharded-weights.py) takes the model
+directory as its only required argument (`--output <name>` is optional),
+handles a single `pytorch_model.bin` (1B) and sharded `pytorch_model-*-of-*.bin`
+(7B), and exits without work if `model.safetensors` already exists.
 
 ## Point the loader at it
 
 - Pass the directory: `pcai-media --model Models/Janus-Pro-1B`, or set `model`
   in `Config/pcai-media.json` (it already uses `Models/...` paths).
-- Or keep the default model id. `deepseek-ai/Janus-Pro-1B` resolves to
-  `Models/Janus-Pro-1B/` (relative to the working directory) or
-  `$PCAI_MODELS_DIR/Janus-Pro-1B/` when that directory has `config.json`,
-  `tokenizer.json` and SafeTensors weights; otherwise only config and tokenizer
-  are downloaded and the load fails with the commands above.
+- Or keep the default model id. The two ids `deepseek-ai/Janus-Pro-1B` and
+  `deepseek-ai/Janus-Pro-7B` resolve to `Models/<name>/` (relative to the
+  working directory) or `$PCAI_MODELS_DIR/<name>/` when that directory has
+  `config.json`, `tokenizer.json` and SafeTensors weights; otherwise only
+  config and tokenizer are downloaded and the load fails with the commands
+  above.
+
+## Resolution rules
+
+- An existing directory is used as it is.
+- A model written as a filesystem path (absolute, drive-qualified, starting
+  with `.` or `~`, containing a backslash, or with more than one `/`) that does
+  not exist is an error naming that path. It never falls back to a prepared
+  or downloaded model.
+- Only the two exact ids above resolve to a prepared copy. The match is
+  case-sensitive and exact: `thirdparty/Janus-Pro-1B`,
+  `DeepSeek-AI/Janus-Pro-1B` and `deepseek-ai/janus-pro-1b` are ordinary Hub
+  ids that go to the download path and then to the SafeTensors refusal, so a
+  similarly named local directory can never stand in for a different model.
 
 ## Migration
 

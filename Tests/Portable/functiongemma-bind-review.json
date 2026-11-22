@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T22:35:55Z",
+  "sourceBaseline": "64104872a4668fe7cb5814448c4d73eebade5dd9",
+  "hashConvention": "SHA-256 of UTF-8 LF text. Selector extents include the tokio::test attribute through the closing brace and final LF.",
+  "sourceBindings": {
+    "Deploy/rust-functiongemma-runtime/src/lib.rs": "db7b59b9b4ca6f16324a79a419848739210a4f3b4ce7caec68441302f1cbac37",
+    "docs/functiongemma-runtime-validation.md": "7af2383abad494f8fa69b58afbcb2823d7492df9beab3f0f941a6cb096c5b902"
+  },
+  "selectors": [
+    {
+      "selector": "occupied_router_address_returns_bind_error",
+      "source": "Deploy/rust-functiongemma-runtime/src/lib.rs",
+      "sha256": "5cc5ccf4ab081ec7ec06b2651252315077ff5c71c9e8df6fe8fd15760eff68d2",
+      "reviewer": "codex-model-compatibility",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Holds the occupied socket through the second bind and checks both the requested address and the original address-in-use error. The previous fallback makes this selector fail."
+    },
+    {
+      "selector": "explicit_ephemeral_router_address_binds_loopback",
+      "source": "Deploy/rust-functiongemma-runtime/src/lib.rs",
+      "sha256": "5f52a1f2f4ec354148b542c42469a732ef432fcbff0a886f60968efc3436f3a4",
+      "reviewer": "codex-model-compatibility",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "An explicit port of zero still yields an assigned port on the requested IPv4 loopback address."
+    }
+  ]
+}

@@ -18,6 +18,13 @@ fall back to heuristic routing when model support is absent. See the
 [runtime README](../Deploy/rust-functiongemma-runtime/README.md) for model setup
 and the [repository entrypoint](../README.md) for the broader build workflow.
 
+The [listener](../Deploy/rust-functiongemma-runtime/src/lib.rs) binds the
+configured address. If another process owns a fixed port, startup exits with
+the requested address and the operating system's bind error before publishing
+new address or port receipts. Use `router_addr: "auto"` for an allocated
+IPv4 loopback port or explicitly set an address with port `0`. The listener
+tests cover an occupied fixed port and an explicit ephemeral loopback bind.
+
 The [runtime workflow](../.github/workflows/functiongemma-runtime.yml) runs the
 locked test command on Ubuntu and Windows for runtime source, tests, manifest,
 lockfile and workflow changes. Its 25-minute job bound limits stalled or cold

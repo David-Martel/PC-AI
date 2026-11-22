@@ -902,7 +902,7 @@ fn backup_path(dest: &Path) -> PathBuf {
 /// violation, an I/O error) says nothing about whether the file exists, so it is
 /// returned and the publish fails closed instead of treating the destination as
 /// free and overwriting whatever is there.
-#[cfg(any(unix, windows))]
+#[cfg(windows)]
 fn destination_exists(probe: io::Result<fs::Metadata>) -> io::Result<bool> {
     classify_destination(probe).map(|existing| existing.is_some())
 }
@@ -1228,11 +1228,12 @@ fn strip_access_acl(_path: &Path) -> io::Result<()> {
 /// anything is renamed, so the destination is left untouched.  The owning user
 /// and extended attributes other than the access ACL are not carried over.
 ///
-/// One probe of `dest` decides everything (see [`publish_staged_checked`]).
+/// One probe of `dest` decides everything (see [`publish_staged_checked`]); a
+/// destination that is a symlink, directory or special file is refused.
 /// Callers remove the staging file on error.
 #[cfg(unix)]
 fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
-    publish_staged_checked(staged, dest, |path| fs::metadata(path), copy_access_control)
+    publish_staged_checked(staged, dest, |path| fs::symlink_metadata(path), copy_access_control)
 }
 
 /// [`publish_staged`] with the access-control step injected, so tests can make it
@@ -1243,22 +1244,23 @@ fn publish_staged_with(
     dest: &Path,
     preserve: impl FnOnce(&Path, &Path, Option<&fs::Metadata>) -> io::Result<()>,
 ) -> io::Result<()> {
-    publish_staged_checked(staged, dest, |path| fs::metadata(path), preserve)
+    publish_staged_checked(staged, dest, |path| fs::symlink_metadata(path), preserve)
 }
 
 /// [`publish_staged`] with the metadata call and the access-control step injected.
 ///
-/// ONE probe of the destination, classified by [`classify_destination`], makes the
-/// decision, and that decision picks the permission policy and the publication
-/// primitive together:
+/// ONE probe of the destination, classified by [`classify_destination`] (with
+/// `symlink_metadata`, so a symlink is seen as a symlink), makes the decision, and
+/// that decision picks the permission policy and the publication primitive together:
 ///
 /// - absent: new-file permissions, then [`move_without_replacing`]; a file that
 ///   appears in the meantime is never overwritten ("not overwritten" error);
 /// - existing regular file: its mode, group and ACL handling, then
-///   [`replace_existing`]; if the file has vanished by then the publish fails
-///   instead of creating a file with existing-file permissions;
-/// - any other probe error, or an existing destination that is not a regular file:
-///   the publish fails before anything is changed.
+///   [`replace_existing`], which holds the probe's file type and identity (device
+///   and inode) against what is actually replaced;
+/// - any other probe error, or an existing destination that is not a regular file
+///   (a symlink, a directory, a device): the publish fails before anything is
+///   changed.
 ///
 /// The access-control step receives the decision rather than probing again, so the
 /// two can never disagree.
@@ -1275,67 +1277,124 @@ fn publish_staged_checked(
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 format!(
-                    "{} exists and is not a regular file; refusing to replace it",
+                    "{} exists and is not a regular file (a symlink, directory or special file); refusing to replace it",
                     dest.display()
                 ),
             ));
         }
     }
     preserve(staged, dest, existing.as_ref())?;
-    if existing.is_some() {
-        replace_existing(staged, dest)
-    } else {
-        move_without_replacing(staged, dest)
+    match &existing {
+        Some(validated) => replace_existing(staged, dest, validated),
+        None => move_without_replacing(staged, dest),
     }
 }
 
-/// Replace `dest`, which existed at the probe, with `staged`; fail if it is gone.
+/// Replace `dest`, a regular file at the probe (`validated`), with `staged`.
 ///
-/// Linux swaps the two names with `renameat2(RENAME_EXCHANGE)`, which fails with
-/// `ENOENT` if `dest` has vanished, and then removes the staging name (which now
-/// holds the replaced file).  Where the kernel or filesystem lacks the flag, and on
-/// other Unix systems, the fallback checks that `dest` still exists and renames
-/// over it; that check is not atomic, but it closes the window in practice and
-/// still never lets a vanished target be published as a replacement.
+/// Linux swaps the two names with `renameat2(RENAME_EXCHANGE)`, which, unlike
+/// `rename`, fails with `ENOENT` if `dest` has vanished (so a vanished target is
+/// not recreated), and then checks what landed at the staging name
+/// ([`finish_exchange`]).  The exchange is used for that existence guarantee: a
+/// plain `rename(2)` would create the file if the target had gone.  The kernel
+/// allows exchanging objects of different types, so the check is what keeps a
+/// directory, a symlink or another writer's file from being displaced.
+///
+/// Where the kernel or the filesystem lacks the flag, and on other Unix systems,
+/// the fallback is a plain `rename`.  It is atomic and the kernel refuses to
+/// rename a file over a directory, but it does NOT detect a target that vanished
+/// or was swapped for another file or a symlink in the gap: it replaces whatever
+/// regular file or symlink is at `dest`, or creates the file if nothing is.
 #[cfg(unix)]
-fn replace_existing(staged: &Path, dest: &Path) -> io::Result<()> {
+fn replace_existing(staged: &Path, dest: &Path, validated: &fs::Metadata) -> io::Result<()> {
     #[cfg(target_os = "linux")]
     {
-        use std::os::unix::ffi::OsStrExt;
-        let from = CString::new(staged.as_os_str().as_bytes()).map_err(io::Error::other)?;
-        let to = CString::new(dest.as_os_str().as_bytes()).map_err(io::Error::other)?;
-        // SAFETY: both strings are NUL-terminated and outlive the call.
-        let status = unsafe {
-            libc::renameat2(
-                libc::AT_FDCWD,
-                from.as_ptr(),
-                libc::AT_FDCWD,
-                to.as_ptr(),
-                libc::RENAME_EXCHANGE,
-            )
-        };
-        if status == 0 {
-            if let Err(error) = fs::remove_file(staged) {
-                tracing::warn!(
-                    staging = %staged.display(),
-                    %error,
-                    "published, but the replaced file could not be removed from the staging name"
-                );
-            }
-            return Ok(());
-        }
-        let error = io::Error::last_os_error();
-        match error.raw_os_error() {
-            Some(libc::ENOENT) => return Err(disappeared(dest)),
-            Some(libc::ENOSYS | libc::EINVAL | libc::ENOTSUP) => {}
-            _ => return Err(error),
+        match exchange_names(staged, dest) {
+            Ok(()) => return finish_exchange(staged, dest, validated),
+            Err(error) if error.raw_os_error() == Some(libc::ENOENT) => return Err(disappeared(dest)),
+            Err(error) if is_unsupported(&error) => {}
+            Err(error) => return Err(error),
         }
     }
-    match destination_exists(fs::symlink_metadata(dest)) {
-        Ok(true) => fs::rename(staged, dest),
-        Ok(false) => Err(disappeared(dest)),
-        Err(error) => Err(error),
+    #[cfg(not(target_os = "linux"))]
+    let _ = validated;
+    fs::rename(staged, dest)
+}
+
+/// After a successful exchange the replaced object is at `staged`.  If it is the
+/// regular file validated at the probe (same device and inode) it is removed and the
+/// publish is done.  Otherwise something else was at `dest`: it is exchanged back,
+/// the publish fails, and nothing is deleted.
+///
+/// If the exchange back itself fails the other object is moved to a
+/// `.pcai-<hex>.kept` name beside `dest` so that the cleanup of the staging name
+/// cannot delete it, and the error says where it is.
+#[cfg(target_os = "linux")]
+fn finish_exchange(staged: &Path, dest: &Path, validated: &fs::Metadata) -> io::Result<()> {
+    use std::os::unix::fs::MetadataExt;
+    let validated_object = matches!(
+        fs::symlink_metadata(staged),
+        Ok(landed) if landed.is_file() && landed.dev() == validated.dev() && landed.ino() == validated.ino()
+    );
+    if validated_object {
+        if let Err(error) = fs::remove_file(staged) {
+            tracing::warn!(
+                staging = %staged.display(),
+                %error,
+                "published, but the replaced file could not be removed from the staging name"
+            );
+        }
+        return Ok(());
     }
+    match exchange_names(staged, dest) {
+        Ok(()) => Err(io::Error::other(format!(
+            "{} changed while the image was being published (it is no longer the file that was checked); \
+             it was left in place and nothing was published",
+            dest.display()
+        ))),
+        Err(back) => {
+            let aside = staged.with_file_name(format!(".pcai-{:016x}.kept", rand::random::<u64>()));
+            let kept = match move_without_replacing(staged, &aside) {
+                Ok(()) => aside,
+                Err(_) => staged.to_path_buf(),
+            };
+            Err(io::Error::other(format!(
+                "{} changed while the image was being published and could not be put back ({back}); \
+                 the object that was there is at {}",
+                dest.display(),
+                kept.display()
+            )))
+        }
+    }
+}
+
+/// `renameat2(RENAME_EXCHANGE)`: swap two existing names atomically.
+#[cfg(target_os = "linux")]
+fn exchange_names(first: &Path, second: &Path) -> io::Result<()> {
+    use std::os::unix::ffi::OsStrExt;
+    let first = CString::new(first.as_os_str().as_bytes()).map_err(io::Error::other)?;
+    let second = CString::new(second.as_os_str().as_bytes()).map_err(io::Error::other)?;
+    // SAFETY: both strings are NUL-terminated and outlive the call.
+    let status = unsafe {
+        libc::renameat2(
+            libc::AT_FDCWD,
+            first.as_ptr(),
+            libc::AT_FDCWD,
+            second.as_ptr(),
+            libc::RENAME_EXCHANGE,
+        )
+    };
+    if status == 0 {
+        Ok(())
+    } else {
+        Err(io::Error::last_os_error())
+    }
+}
+
+/// Whether `error` says the kernel or filesystem does not support the operation.
+#[cfg(unix)]
+fn is_unsupported(error: &io::Error) -> bool {
+    matches!(error.raw_os_error(), Some(libc::ENOSYS | libc::EINVAL | libc::ENOTSUP))
 }
 
 /// The error for a replacement whose target is no longer there.
@@ -1352,46 +1411,77 @@ fn disappeared(dest: &Path) -> io::Error {
 
 /// Move `staged` to `dest` only if nothing is at `dest`: atomic, never overwrites.
 ///
-/// Linux uses `renameat2(RENAME_NOREPLACE)`.  Where the kernel or the filesystem
-/// does not support the flag, and on other Unix systems, [`move_by_linking`] is
-/// used instead.
+/// `renameat2(RENAME_NOREPLACE)` on Linux.  If that is unsupported (and on other
+/// Unix systems) [`move_by_linking_with`]: `link` then `unlink`, both atomic.  If
+/// hard links are unsupported too the publish FAILS with an explicit error; there
+/// is no check-then-rename fallback, because it cannot keep a vanished or appearing
+/// path from being clobbered or recreated in the gap.
 #[cfg(unix)]
 fn move_without_replacing(staged: &Path, dest: &Path) -> io::Result<()> {
-    #[cfg(target_os = "linux")]
-    {
-        use std::os::unix::ffi::OsStrExt;
-        let from = CString::new(staged.as_os_str().as_bytes()).map_err(io::Error::other)?;
-        let to = CString::new(dest.as_os_str().as_bytes()).map_err(io::Error::other)?;
-        // SAFETY: both strings are NUL-terminated and outlive the call; AT_FDCWD
-        // makes the paths relative to the working directory, as `rename` does.
-        let status = unsafe {
-            libc::renameat2(
-                libc::AT_FDCWD,
-                from.as_ptr(),
-                libc::AT_FDCWD,
-                to.as_ptr(),
-                libc::RENAME_NOREPLACE,
-            )
-        };
-        if status == 0 {
-            return Ok(());
-        }
-        let error = io::Error::last_os_error();
-        match error.raw_os_error() {
-            Some(libc::ENOSYS | libc::EINVAL | libc::ENOTSUP) => {}
-            _ => return Err(not_overwritten(error, dest)),
-        }
-    }
-    move_by_linking(staged, dest)
+    move_without_replacing_with(staged, dest, rename_noreplace, |from, to| fs::hard_link(from, to))
 }
 
-/// No-replace move for systems without `renameat2`: `link(staged, dest)` fails if
-/// `dest` exists, then the staging name is removed.  A failure to remove it leaves
-/// a second name for the published file; that is logged, not reported, because the
-/// image is published.
 #[cfg(unix)]
-fn move_by_linking(staged: &Path, dest: &Path) -> io::Result<()> {
-    fs::hard_link(staged, dest).map_err(|error| not_overwritten(error, dest))?;
+fn move_without_replacing_with(
+    staged: &Path,
+    dest: &Path,
+    primary: impl FnOnce(&Path, &Path) -> io::Result<()>,
+    link: impl FnOnce(&Path, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    match primary(staged, dest) {
+        Ok(()) => Ok(()),
+        Err(error) if is_unsupported(&error) => move_by_linking_with(staged, dest, link),
+        Err(error) => Err(not_overwritten(error, dest)),
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
+    use std::os::unix::ffi::OsStrExt;
+    let from = CString::new(from.as_os_str().as_bytes()).map_err(io::Error::other)?;
+    let to = CString::new(to.as_os_str().as_bytes()).map_err(io::Error::other)?;
+    // SAFETY: both strings are NUL-terminated and outlive the call.
+    let status = unsafe {
+        libc::renameat2(
+            libc::AT_FDCWD,
+            from.as_ptr(),
+            libc::AT_FDCWD,
+            to.as_ptr(),
+            libc::RENAME_NOREPLACE,
+        )
+    };
+    if status == 0 {
+        Ok(())
+    } else {
+        Err(io::Error::last_os_error())
+    }
+}
+
+#[cfg(all(unix, not(target_os = "linux")))]
+fn rename_noreplace(_from: &Path, _to: &Path) -> io::Result<()> {
+    Err(io::Error::from_raw_os_error(libc::ENOSYS))
+}
+
+#[cfg(unix)]
+fn move_by_linking_with(
+    staged: &Path,
+    dest: &Path,
+    link: impl FnOnce(&Path, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    link(staged, dest).map_err(|error| {
+        if matches!(error.raw_os_error(), Some(libc::EPERM | libc::ENOSYS | libc::ENOTSUP)) {
+            io::Error::new(
+                io::ErrorKind::Unsupported,
+                format!(
+                    "cannot publish {} without risking an overwrite: the filesystem supports neither \
+                     renameat2(RENAME_NOREPLACE) nor hard links ({error}); refusing to publish",
+                    dest.display()
+                ),
+            )
+        } else {
+            not_overwritten(error, dest)
+        }
+    })?;
     if let Err(error) = fs::remove_file(staged) {
         tracing::warn!(staging = %staged.display(), %error, "published, but the staging file could not be removed");
     }
@@ -4257,12 +4347,13 @@ mod tests {
         let staged = tmp.path().join("staged.partial");
         let dest = tmp.path().join("dest.png");
         fs::write(&staged, b"first").unwrap();
-        move_by_linking(&staged, &dest).expect("a free name is filled");
+        move_by_linking_with(&staged, &dest, |from, to| fs::hard_link(from, to)).expect("a free name is filled");
         assert_eq!(fs::read(&dest).unwrap(), b"first");
         assert!(!staged.exists(), "the staging name was removed");
 
         fs::write(&staged, b"second").unwrap();
-        let error = move_by_linking(&staged, &dest).expect_err("an occupied name is refused");
+        let error = move_by_linking_with(&staged, &dest, |from, to| fs::hard_link(from, to))
+            .expect_err("an occupied name is refused");
         assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
         assert_eq!(fs::read(&dest).unwrap(), b"first", "the destination is untouched");
         assert_eq!(fs::read(&staged).unwrap(), b"second", "the staged file is untouched");
@@ -4648,6 +4739,215 @@ mod tests {
             ["async.png", "sync.png"],
             "no staging file left"
         );
+    }
+
+    /// Publish over `dest` through the real access-control step, then run `between`,
+    /// which stands in for another process acting after the destination was validated
+    /// and before the replacement is published.  Returns the request's status and text.
+    #[cfg(unix)]
+    fn publish_after_validation(dest: &Path, between: impl FnOnce(&Path)) -> (i32, Option<String>) {
+        let id = register_request(MediaRequestStatus::Pending);
+        let encode = encode_for(dest);
+        execute_async_request_staged(
+            id,
+            dest.to_string_lossy().into_owned(),
+            mock_image,
+            encode,
+            |staged, dest| {
+                publish_staged_with(staged, dest, |staged, dest, existing| {
+                    copy_access_control(staged, dest, existing)?;
+                    between(dest);
+                    Ok(())
+                })
+            },
+        );
+        poll_full(id)
+    }
+
+    // Protects: a directory that takes the destination's name after validation is never
+    //   swapped out of place: the request is Failed, the directory and its contents are
+    //   still at the destination path, and the staging file is removed.  `rename(2)` of a
+    //   file over a directory fails; the exchange primitive does not, so the publish checks
+    //   what it moved and exchanges back.
+    // Detects: an exchange without the type and identity check, which reports success while
+    //   the unrelated directory sits at the staging name (the cleanup cannot remove it).
+    // Needs: Linux (renameat2 RENAME_EXCHANGE); the substitution is injected between the
+    //   validation and the publish.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_directory_substituted_after_validation_is_not_exchanged() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o640)).unwrap();
+        let (status, text) = publish_after_validation(&dest, |dest| {
+            fs::remove_file(dest).unwrap();
+            fs::create_dir(dest).unwrap();
+            fs::write(dest.join("keep.txt"), b"inside").unwrap();
+        });
+        assert_eq!(status, 3, "no success is reported for a replaced destination");
+        assert!(text.expect("failure message").contains("changed"));
+        assert!(dest.is_dir(), "the directory is still at the destination path");
+        assert_eq!(
+            fs::read(dest.join("keep.txt")).unwrap(),
+            b"inside",
+            "its contents are intact"
+        );
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["private.png"],
+            "nothing left at the staging name"
+        );
+    }
+
+    // Protects: a different regular file that replaces the validated one (another writer,
+    //   new inode) is not displaced either: Failed, that file is back at the destination
+    //   with its bytes, and the staging file is removed.
+    // Detects: an exchange that checks only the file type, not the identity (dev and inode)
+    //   recorded at validation.
+    // Needs: Linux; the substitute is created under another name first and renamed over the
+    //   destination, so it cannot reuse the old inode number.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_other_regular_file_substituted_after_validation_is_left_alone() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let (status, text) = publish_after_validation(&dest, |dest| {
+            let other = dest.with_file_name("other.new");
+            fs::write(&other, b"another writer").unwrap();
+            fs::rename(&other, dest).unwrap();
+        });
+        assert_eq!(status, 3);
+        assert!(text.expect("failure message").contains("changed"));
+        assert_eq!(
+            fs::read(&dest).unwrap(),
+            b"another writer",
+            "the other writer's file is intact"
+        );
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: a symlink that replaces the destination after validation is neither
+    //   followed nor replaced: Failed, the symlink is still at the destination path and still
+    //   points at its target, whose bytes are untouched.
+    // Detects: an exchange that accepts anything at the staging name, or a publish that
+    //   writes through the link.
+    // Needs: Linux; the substitution is injected between validation and publish.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_symlink_substituted_after_validation_is_left_alone() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let target = tmp.path().join("target.png");
+        fs::write(&target, ORIGINAL).unwrap();
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let (status, text) = publish_after_validation(&dest, |dest| {
+            let link = dest.with_file_name("link.new");
+            std::os::unix::fs::symlink(dest.with_file_name("target.png"), &link).unwrap();
+            fs::rename(&link, dest).unwrap();
+        });
+        assert_eq!(status, 3);
+        assert!(text.expect("failure message").contains("changed"));
+        assert!(
+            fs::symlink_metadata(&dest).unwrap().file_type().is_symlink(),
+            "still a symlink"
+        );
+        assert_eq!(fs::read_link(&dest).unwrap(), target, "still points at its target");
+        assert_eq!(fs::read(&target).unwrap(), ORIGINAL, "the target is untouched");
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["private.png", "target.png"],
+            "staging file removed"
+        );
+    }
+
+    // Protects: a destination that already is a symlink is refused, not followed and not
+    //   replaced: the publish returns an explicit error, the link and its target are
+    //   untouched and no staging file is left.  (The destination is classified with
+    //   `symlink_metadata`, so a link is never mistaken for the regular file behind it.)
+    // Detects: a publish that follows the link, or replaces the link with a regular file and
+    //   reports success.
+    // Needs: Unix.
+    #[cfg(unix)]
+    #[test]
+    fn test_symlink_destination_is_refused() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let target = tmp.path().join("target.png");
+        fs::write(&target, ORIGINAL).unwrap();
+        let link = tmp.path().join("link.png");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        let error = write_image_atomically(&image::RgbImage::new(2, 2), &link).expect_err("a symlink is refused");
+        assert!(
+            error.to_string().contains("not a regular file"),
+            "explicit error: {error}"
+        );
+        assert_eq!(fs::read_link(&link).unwrap(), target, "the link is untouched");
+        assert_eq!(fs::read(&target).unwrap(), ORIGINAL, "the target is untouched");
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["link.png", "target.png"],
+            "no staging file left"
+        );
+    }
+
+    // Protects: when `renameat2(RENAME_NOREPLACE)` is unsupported, the no-replace move uses
+    //   `link` followed by `unlink`, which is atomic and never overwrites: a free name is
+    //   filled and the staging name removed; an occupied one is refused with "not
+    //   overwritten" and both files are untouched.
+    // Detects: a fallback that checks and then renames (a vanished path could be recreated
+    //   in the gap), or one that overwrites.
+    // Needs: Unix on a filesystem with hard links (a temporary directory); the unsupported
+    //   primitive is injected.
+    #[cfg(unix)]
+    #[test]
+    fn test_noreplace_falls_back_to_linking_when_renameat2_is_unsupported() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = tmp.path().join("staged.partial");
+        let dest = tmp.path().join("dest.png");
+        let unsupported = |_: &Path, _: &Path| Err(io::Error::from_raw_os_error(libc::ENOTSUP));
+        fs::write(&staged, b"first").unwrap();
+        move_without_replacing_with(&staged, &dest, unsupported, |from, to| fs::hard_link(from, to))
+            .expect("a free name is filled through link");
+        assert_eq!(fs::read(&dest).unwrap(), b"first");
+        assert!(!staged.exists(), "the staging name was removed");
+
+        fs::write(&staged, b"second").unwrap();
+        let error = move_without_replacing_with(&staged, &dest, unsupported, |from, to| fs::hard_link(from, to))
+            .expect_err("an occupied name is refused");
+        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+        assert!(error.to_string().contains("not overwritten"), "explicit error: {error}");
+        assert_eq!(fs::read(&dest).unwrap(), b"first", "the destination is untouched");
+        assert_eq!(fs::read(&staged).unwrap(), b"second", "the staged file is untouched");
+    }
+
+    // Protects: where neither `renameat2(RENAME_NOREPLACE)` nor hard links are available the
+    //   publish fails closed with an explicit error instead of falling back to a check
+    //   followed by a rename: nothing is published and the staged file is untouched.
+    // Detects: a fallback that renames when it cannot link.
+    // Needs: Unix; both primitives are injected as unsupported.
+    #[cfg(unix)]
+    #[test]
+    fn test_noreplace_fails_closed_without_renameat2_or_hard_links() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = tmp.path().join("staged.partial");
+        let dest = tmp.path().join("dest.png");
+        fs::write(&staged, b"first").unwrap();
+        let error = move_without_replacing_with(
+            &staged,
+            &dest,
+            |_, _| Err(io::Error::from_raw_os_error(libc::EINVAL)),
+            |_, _| Err(io::Error::from_raw_os_error(libc::EPERM)),
+        )
+        .expect_err("no no-replace primitive is available");
+        assert_eq!(error.kind(), io::ErrorKind::Unsupported);
+        assert!(error.to_string().contains("neither"), "explicit error: {error}");
+        assert!(!dest.exists(), "nothing was published");
+        assert_eq!(fs::read(&staged).unwrap(), b"first", "the staged file is untouched");
     }
 
     // Protects: every test that touches the process-wide FFI state takes the serial

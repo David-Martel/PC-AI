@@ -1,0 +1,86 @@
+{
+  "SchemaVersion": 1,
+  "SourceBaseline": "5918ad72e84a4fa4a564a752f70e940f9c8351b8",
+  "ReviewedAtUtc": "2026-11-22T19:04:19.1992941+00:00",
+  "HashConvention": "SHA-256 of UTF-8 LF source files and exact Pester It AST extents",
+  "SourceBindings": {
+    "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1": "27605f5fcd28f118f66bc1fee63ce43ec382cf693215fb07614e570645e57083",
+    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "af675e823213c05190123c887603931b87f697d6da1372789352e3a559134128",
+    "Tools/SystemScripts/Networking/README.md": "3bc23527416cb056f8d82cf2f4b154c46a3b030a51a5cbb18e228f1e7b11c374"
+  },
+  "Selectors": [
+    {
+      "Selector": "reconciles an isolated <Scenario> profile by UUID and enables link-local IPv6",
+      "Source": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
+      "Sha256": "0dbb451e5e057b46b97ba3eb112272e51564e275292ea91794757c5d29873a8b",
+      "Protects": "migration of the original isolated profile and repeated configuration.",
+      "Detects": "disabling IPv6 or mutating a profile through an ambiguous connection name.",
+      "Needs": "SSH to a Linux host with Bash, Python 3 and fixture-only nmcli.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "refuses a stored static route before any mutation",
+      "Source": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
+      "Sha256": "0baceb0cc63d0acbbbad1aed219938bd7eb99136bcde4ef682d533ed7ee65cab",
+      "Protects": "existing IPv4 routing policy from profile adoption.",
+      "Detects": "activation of a profile with a foreign static route.",
+      "Needs": "SSH to Linux with Bash, Python 3 and fixture-only nmcli.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "refuses automatic IPv6 before any mutation",
+      "Source": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
+      "Sha256": "b418440bb1ae6c70a6f3be05cb652227e1749a1c7a9394495edb8e4b61883d3f",
+      "Protects": "a link-local profile with no automatic upstream configuration.",
+      "Detects": "adoption of an IPv6 auto profile before any mutation.",
+      "Needs": "SSH to Linux with Bash, Python 3 and fixture-only nmcli.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "refuses stored IPv6 <Field> before any mutation",
+      "Source": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
+      "Sha256": "08b339b96064cbf37940095fd169e161cacc537370beeb5f13ac7931b50c9dc8",
+      "Protects": "custody of IPv6 settings already stored in an existing profile.",
+      "Detects": "migration over a manual IPv6 address, gateway, DNS, or route.",
+      "Needs": "SSH to a Linux host with Bash, Python 3 and fixture-only nmcli.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "refuses duplicate connection names before any mutation",
+      "Source": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
+      "Sha256": "3e820f47dad5027769b9ac4a426aad720d9486bc8df9d9c85a24d19732d00473",
+      "Protects": "unique profile ownership before NetworkManager operations.",
+      "Detects": "adoption or modification of either of two identically named profiles.",
+      "Needs": "SSH to Linux with Bash, Python 3 and fixture-only nmcli.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "creates the isolated manual profile before modifying and activating it",
+      "Source": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
+      "Sha256": "9cbb16e6c323ac7de87f438f1592673b789726cb48e2a7be0e16db46cf41c98e",
+      "Protects": "first installation of a manual IPv4 and link-local IPv6 profile.",
+      "Detects": "a disabled IPv6 default, upstream route enablement, or reversed operation order.",
+      "Needs": "SSH to Linux with Bash, Python 3 and fixture-only nmcli.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    }
+  ],
+  "Validation": "Generated Bash on the assessed Linux LAN host using fixture data. Initial regression run failed four controls. Real NetworkManager 1.54.3 rendered an offline IPv4 manual and IPv6 link-local keyfile."
+}

@@ -4,6 +4,16 @@ Source: `Config/pcai-tools.json`
 
 ## Tools
 
+### pcai_get_machine_capabilities
+Read fresh Windows fleet hardware, device presence, driver candidates and provider capabilities; expectations and stated adapter budgets remain separate from live observations.
+
+Parameters:
+
+### pcai_test_media_toolchain
+Read installed Windows FFmpeg/GStreamer compiled media backends and current GPU inventory. Does not validate runtime encoding, open capture devices, write reports or install software.
+
+Parameters:
+
 ### SearchDocs
 Search vendor documentation for error codes and device guidance.
 

@@ -25,17 +25,19 @@ PC_AI/
 ├── CHAT.md                            # General chat system prompt
 ├── PC-AI.ps1                          # Unified CLI entry point
 ├── Build.ps1                          # Unified build orchestrator
-├── Native/pcai_core/                  # Rust workspace (7-crate monorepo)
+├── Native/pcai_core/                  # Rust workspace (members: Native/pcai_core/Cargo.toml)
 │   ├── pcai_inference/                # LLM inference engine (HTTP + FFI, llama.cpp/mistral.rs)
 │   ├── pcai_core_lib/                 # Shared library (telemetry, fs, search, Windows APIs)
 │   ├── pcai_ollama_rs/                # Ollama benchmark/integration tool
 │   ├── pcai_media/                    # Media processing FFI DLL (Janus-Pro)
 │   ├── pcai_media_model/              # Media model definitions and config
 │   ├── pcai_media_server/             # Media HTTP server (axum)
-│   └── pcai_perf_cli/                 # Performance CLI for PowerShell acceleration
-├── Native/PcaiNative/                 # C# P/Invoke wrapper (20 modules: inference, media, fs, search, optimizer, diagnostics, safety, etc.)
+│   ├── pcai_perf_cli/                 # Performance CLI for PowerShell acceleration
+│   └── pcai_tb_cli/                   # USB4/Thunderbolt peer discovery and routing CLI (pcai-tb)
+├── Native/PcaiNative/                 # C# P/Invoke wrapper (inference, media, fs, search, optimizer, diagnostics, safety, etc.)
 ├── Native/PcaiChatTui/                # C# interactive chat TUI (async backends)
 ├── Native/PcaiServiceHost/            # C# Windows service host for inference
+├── Native/DtmTaskRun/                 # C# hidden launcher for scheduled tasks (preserves child exit codes)
 ├── External: C:\codedev\nukenul\      # Standalone Rust/C# utility for null-file removal
 ├── AI-Media/                          # Python Janus-Pro media agent (CUDA)
 ├── Deploy/                            # Cargo workspace ROOT for the FunctionGemma crates
@@ -60,10 +62,11 @@ PC_AI/
 │   ├── PC-AI.Drivers/                 # Driver inventory, Thunderbolt/USB4 networking
 │   ├── PC-AI.Gpu/                     # NVIDIA GPU inventory, compatibility, software management
 │   ├── PC-AI.Virtualization/          # WSL2, Hyper-V, HVSocket proxy
+│   ├── PC-AI.Reliability/             # Fleet failure ledger, health sweeper, incident dedup, reconciliation playbooks
 │   ├── PcaiInference.psm1             # Inference module (load/generate/stream/async)
 │   └── PcaiMedia.psm1                 # Media processing module (Janus-Pro wrapper)
-├── Tools/                             # ~81 top-level utility/build/diagnostic scripts (245+ incl. subfolders e.g. InputDiagnostics/, SystemScripts/)
-├── Tests/                             # Pester + Rust test suites (80+ test files)
+├── Tools/                             # Utility/build/diagnostic scripts; subfolders such as GitOps/, InputDiagnostics/, SystemScripts/ (catalog: Reports/TOOLS_CATALOG.md)
+├── Tests/                             # Pester + Rust test suites (see Tests/README.md)
 ├── Scripts/                           # Rust analyzer health, CargoTools tests
 ├── Config/
 │   ├── llm-config.json                # Backend + model configuration
@@ -152,7 +155,14 @@ deepwiki-rs.exe -c .litho/litho.toml -p . -v
 
 Config: `.litho/litho.toml` — knowledge categories cover architecture, modules, native code, deployment, tests, reports, and build tools.
 
-> **Status (2026-06-06):** Litho C4 docs have **not yet been generated** for this repo — `docs/auto/` does not exist. Note `Tools\Invoke-DocPipeline.ps1` looks for a binary named `litho`/`~\bin\litho.exe`; the actual usable binary is `deepwiki-rs.exe` (on PATH and at `C:\codedev\.claude\tools\bin\`), so the pipeline's Litho steps currently silently skip. Run the `deepwiki-rs.exe` command above directly to generate. See `Reports/doc-tooling-evaluation-20260606.md`.
+> **Status (2026-11-22):** two different tools share the "litho" name. `deepwiki-rs.exe` (above, configured by
+> `.litho/litho.toml`) writes the C4 architecture docs; `docs/auto/` does not exist, so they have not been generated for
+> this repo. `~\bin\litho.exe` (litho 2.0.0-alpha.1) is a separate CLI with `extract` (tree-sitter AST JSON or summary)
+> and `generate` (Markdown through Codex CLI); `Tools\Invoke-DocPipeline.ps1` calls it (`LithoExtract` in `DocsOnly`
+> and `Full` mode, `LithoDocs` in `Full` mode only), recording `Skipped` when the binary is absent. The pipeline checks
+> the exit code of each call: a failed extract is an `Error` step and a failed generate is a `Warning`, because
+> generation is optional and needs Codex CLI. See
+> `Reports/doc-tooling-evaluation-20260606.md` for the earlier evaluation.
 
 ### Reports Directory
 
@@ -196,7 +206,7 @@ The doc pipeline generates structured reports under `Reports/`:
 .\Build.ps1 -Component mistralrs -Configuration Debug
 ```
 
-**Available `-Component` values:** `all` (default), `inference`, `llamacpp`, `mistralrs`, `functiongemma`, `functiongemma-router-data`, `functiongemma-token-cache`, `functiongemma-train`, `functiongemma-eval`, `media`, `tui`, `pcainative`, `servicehost`, `nukenul`, `native`, `lint`, `format`, `fix`, `deps`
+**Available `-Component` values:** `all` (default), `inference`, `llamacpp`, `mistralrs`, `functiongemma`, `functiongemma-router-data`, `functiongemma-token-cache`, `functiongemma-train`, `functiongemma-eval`, `media`, `media-convert`, `tui`, `pcainative`, `servicehost`, `nukenul`, `native`, `lint`, `format`, `fix`, `deps`, `test`, `benchmark`
 
 `nukenul` is now treated as an external project. `Build.ps1` resolves it from `$env:NUKENUL_ROOT`, then `C:\codedev\nukenul`, and only falls back to the legacy in-repo path if that still exists.
 
@@ -241,7 +251,8 @@ Override artifact location: `$env:PCAI_ARTIFACTS_ROOT = 'D:\build'`
 **Embedded in binaries:**
 
 - `pcai-llamacpp.exe --version` shows full build info
-- `/version` endpoint returns JSON with git hash, timestamp, features
+- `pcai-llamacpp.exe --version-json` prints the build info as JSON (the git hash, build timestamp and enabled features that `build.rs` embeds); the HTTP
+  server has no version route, see "pcai-inference Endpoints" for the routes it serves
 
 ### Direct Backend Build (Advanced)
 
@@ -440,23 +451,38 @@ PowerShell modules, tests, and diagnostics are free to depend on Windows-only cm
 only where a Docker/WSL build, test, or deploy requirement demands it — never as a
 general portability target. Do not add cross-platform gates or "fix" tests to run on
 Linux; a Linux CI job that runs the PowerShell suite is a misconfiguration, not coverage.
-The one sanctioned exception is `linux-ci.yml` (owner direction 2026-10-20): a bounded subset on the vigil1 runner that
-runs only the Pester files already passing on Linux (`Tests/linux-ci-pester.txt`), the portable contracts and the Rust
-workspace. It changes no test and claims no Windows coverage; see CI-CD-GUIDE.md, "Linux self-hosted gate".
+The one sanctioned exception is `linux-ci.yml` (owner direction 2026-10-20): a bounded subset on the repo-scoped
+self-hosted Linux runner (label `pc-ai-local`) that runs only the Pester files already passing on Linux
+(`Tests/linux-ci-pester.txt`), the portable contracts and the Rust workspace. It changes no test and claims no Windows
+coverage; see CI-CD-GUIDE.md, "Linux self-hosted gate".
 
-**CI/CD Workflows (`.github/workflows/`):**
-| Workflow | Trigger |
-|----------|---------|
-| `ci.yml` | PR/push to main — unified gate: security, lint, Rust+PS test, build |
-| `release-cuda.yml` | Tag push (`v*`) — builds 4 CUDA/CPU release ZIPs |
-| `release.yml` | Tag push — PowerShell module release package |
-| `maintenance.yml` | Weekly Monday — security scan, dep health, PS 5.1 + MSRV compat |
-| `changelog.yml` | Push to main — auto-generate CHANGELOG.md via git-cliff |
-| `evaluation-smoke.yml` | Manual — LLM evaluation harness |
-| `tooling-automation.yml` | Manual — doc/FG/LLM tooling |
-| `rust-guidelines.yml` | PR/push (Rust files) — format, clippy, test, audit for .rs/Cargo changes |
-| `nvidia-validation.yml` | PR/push (GPU files) — NVIDIA stack validation for PC-AI.Gpu changes |
-| `jules-review.yml` | Weekly Monday 06:00 UTC + manual — Jules automated review |
+**CI/CD Workflows (`.github/workflows/`):** state as of 2026-11-22 from `gh workflow list --all`. The state is
+repository settings on GitHub, so `Tools/validate-doc-accuracy.ps1` checks only that each workflow file has a row and
+each row has a file, not the State column. Re-check with `gh workflow list --all` before relying on it. Describing a
+disabled workflow as a gate is the drift this table exists to prevent: `ci.yml` runs every job on `windows-latest` and
+the repo has no Windows runner, so `linux-ci.yml` is the gate that runs.
+
+| Workflow file | Trigger | State |
+|----------|---------|-------|
+| `ci.yml` | PR/push to main — unified gate: security, lint, Rust+PS test, build | disabled_manually |
+| `changelog.yml` | Push to main (not `CHANGELOG.md`) or manual — regenerate CHANGELOG.md via git-cliff | disabled_manually |
+| `evaluation-smoke.yml` | Manual — LLM evaluation harness against a mock server | disabled_manually |
+| `jules-review.yml` | Weekly Monday 06:00 UTC, issue label, or manual — Jules automated review | disabled_manually |
+| `maintenance.yml` | Weekly Monday 06:00 UTC or manual — security scan, dep health, PS 5.1 + MSRV compat | disabled_manually |
+| `nvidia-validation.yml` | PR/push touching the GPU stack, or manual — NVIDIA stack validation | disabled_manually |
+| `release-cuda.yml` | Tag push (`v*`) or manual — builds 4 CUDA/CPU release ZIPs | disabled_manually |
+| `release.yml` | Tag push (`v*`) — PowerShell module release package | disabled_manually |
+| `rust-guidelines.yml` | PR/push touching `.rs` or Cargo files — format, clippy, test, audit | disabled_manually |
+| `functiongemma-runtime.yml` | PR/push touching `Deploy/rust-functiongemma-runtime` or the Deploy Cargo files — runtime build and HTTP contract tests | active |
+| `gitops-contracts.yml` | Reusable (`workflow_call`) or manual — GitOps monitor fixture contracts; called by `linux-ci.yml` | active |
+| `linux-ci.yml` | PR/push to main or manual — Linux self-hosted gate: portable contracts, Pester subset, Rust fmt/clippy/test, GitOps contracts | active |
+| `media-upscale.yml` | PR/push touching `pcai_media`, `pcai_media_model` or the workspace manifest — ONNX upscale contracts | active |
+| `native-override-admission.yml` | PR touching `PcaiNative` or the native-override tests, or manual — native override admission | active |
+| `portable-bootstrap.yml` | PR/push touching Common, Acceleration, Native, Deploy Cargo files or `Tests/Portable` — profile-free bootstrap and portable contracts | active |
+| `tooling-automation.yml` | Manual — doc, FunctionGemma and LLM tooling on demand | active |
+| `usb4-lifecycle.yml` | PR touching `pcai_tb_cli` or the USB4 networking scripts, or manual — USB4 lifecycle contracts | active |
+| `usb4-peer-ssh-access.yml` | PR touching the USB4 peer SSH access script, tests or docs, or manual — peer SSH access contracts | active |
+| `usb4-route-verification.yml` | PR/push touching the peer lifecycle script or its route tests — USB4 route verification | active |
 
 ## Diagnostic Categories
 
@@ -488,9 +514,19 @@ workspace. It changes no test and claims no Windows coverage; see CI-CD-GUIDE.md
 
 ### pcai-inference Endpoints
 
+Routes registered in `Native/pcai_core/pcai_inference/src/http/mod.rs` (the host and port below are the code default):
+
 - Health check: `GET http://127.0.0.1:8080/health`
 - Models list: `GET http://127.0.0.1:8080/v1/models`
 - Completion: `POST http://127.0.0.1:8080/v1/completions`
+- Chat completion: `POST http://127.0.0.1:8080/v1/chat/completions`
+
+Which port you reach depends on how the server was started. The binaries take `--config <path>` (default lookup:
+`Config/pcai-inference.json`), and `server.port` in that file wins; without it the code default is 8080
+(`config.rs`, also the `Invoke-PcaiServiceHost` default). `Config/pcai-inference-server.json` sets 8085. The PowerShell
+clients (`Config/llm-config.json`, `Get-PcaiRuntimeConfig`) point at `http://127.0.0.1:18080`, the port the
+`pcai-inference` alias in `Config/hvsock-proxy.conf` forwards. Anything that starts a server must pass the port its
+clients expect; do not assume 8080.
 
 ### Async Inference (FFI)
 
@@ -515,25 +551,29 @@ PowerShell wrappers:
 
 ### Testing
 
-**Rust Unit Tests (65+ in pcai_inference, plus pcai_core_lib and pcai_perf_cli):**
+**Rust Unit Tests** (`#[test]` and `#[tokio::test]` attributes counted per file on 2026-11-22; `pcai_core_lib`,
+`pcai_perf_cli` and the other workspace crates carry their own tests):
 
 ```powershell
 cd Native\pcai_core\pcai_inference
 cargo test --no-default-features --features server,ffi --lib
 ```
 
-| Module                | Tests | Coverage                                                 |
-| --------------------- | ----- | -------------------------------------------------------- |
-| `lib.rs`              | 5     | Error Display + From conversions                         |
-| `config.rs`           | 8     | Serde roundtrip, file I/O, defaults                      |
-| `backends/mod.rs`     | 7     | Request/Response serde, FinishReason                     |
-| `backends/llamacpp.rs`| 2     | llama.cpp backend specifics                              |
-| `backends/mistralrs.rs`| 2    | mistral.rs backend specifics                             |
-| `http/mod.rs`         | 21    | Chat prompt, tokens, stop sequences, chunks, StopTracker |
-| `ffi/mod.rs`          | 17    | FFI edge cases, init/shutdown, error codes               |
-| `version.rs`          | 3     | Build version detection and formatting                   |
+| Module                 | Tests | Coverage                                                 | Built with                  |
+| ---------------------- | ----- | -------------------------------------------------------- | --------------------------- |
+| `lib.rs`               | 5     | Error Display + From conversions                         | always                      |
+| `config.rs`            | 8     | Serde roundtrip, file I/O, defaults                      | always                      |
+| `backends/mod.rs`      | 7     | Request/Response serde, FinishReason                     | always                      |
+| `backends/llamacpp.rs` | 3     | llama.cpp backend specifics                              | feature `llamacpp`          |
+| `backends/mistralrs.rs`| 3     | mistral.rs backend specifics                             | feature `mistralrs-backend` |
+| `http/mod.rs`          | 65    | Chat prompt, tokens, stop sequences, chunks, StopTracker | feature `server`            |
+| `ffi/mod.rs`           | 45    | FFI edge cases, init/shutdown, error codes               | feature `ffi`               |
+| `version.rs`           | 3     | Build version detection and formatting                   | always                      |
 
-**Integration & Functional Tests (80+ test files):**
+The command above builds no backend, so the two backend files do not run in it. Recount with
+`grep -c "#\[test\]\|#\[tokio::test" <file>` before trusting these numbers; they drift as tests are added.
+
+**Integration & Functional Tests:**
 
 ```powershell
 # Run all tests
@@ -559,7 +599,7 @@ Test-Path "$env:USERPROFILE\Desktop\Hardware-Diagnostics-Report.txt"
 
 ### Git Hooks (lefthook)
 
-Pre-commit hooks are managed via `lefthook.yml`. Install: `lefthook install`. On staged Rust files the hooks run `cargo fmt --all --check` (`pcai-rust-fmt`, rooted at `Native/pcai_core/`) plus an ast-grep scan and a TODO-expect check. They do **not** run clippy — that is enforced in CI only (rust-guidelines, nvidia-validation, and `ci.yml` via `Build.ps1 -Component lint`). See `.qa-gate.conf` for why the git-guard Rust gate is off in this repo.
+Pre-commit hooks are managed via `lefthook.yml`. Install: `lefthook install`. On staged Rust files the hooks run `cargo fmt --all --check` (`pcai-rust-fmt`, rooted at `Native/pcai_core/`) plus an ast-grep scan and a TODO-expect check. They do **not** run clippy. In CI, clippy runs in `linux-ci.yml` (job `rust-linux`: `cargo clippy --workspace --all-targets --no-deps --locked -- -D warnings -A clippy::type_complexity`); the older clippy paths (`rust-guidelines.yml`, `nvidia-validation.yml`, and `ci.yml` via `Build.ps1 -Component lint`) are in disabled workflows (see the table above). See `.qa-gate.conf` for why the git-guard Rust gate is off in this repo.
 
 ### PowerShell Requirements
 
@@ -614,20 +654,25 @@ cargo build -p pcai-media --features cuda --release
 
 ### Performance Configuration
 
-```json
-// Config/llm-config.json
+`Config/llm-config.json` configures the PowerShell clients, not the inference server. Its top-level keys are
+`providers` (base URL, default model and timeout per provider: `pcai-inference`, `functiongemma`, `ollama`, `lmstudio`,
+`vllm`), `router` (FunctionGemma base URL, model and `toolsPath`), `ollama` (model names, GPU and sampling options,
+adaptive context and keep-alive settings) and `fallbackOrder`. Abridged:
+
+```jsonc
+// Config/llm-config.json (abridged; see the file for every key)
 {
-  "backend": {
-    "type": "llama_cpp",
-    "n_gpu_layers": 35, // GPU offload (0 = CPU only)
-    "n_ctx": 4096 // Context window
+  "providers": {
+    "pcai-inference": { "baseUrl": "http://127.0.0.1:18080", "defaultModel": "qwen2.5-coder:3b", "timeout": 180000 },
+    "functiongemma":  { "baseUrl": "http://127.0.0.1:8000", "defaultModel": "functiongemma-270m-it" },
+    "ollama":         { "baseUrl": "http://127.0.0.1:11434", "defaultModel": "qwen2.5-coder:3b", "timeout": 180000 }
   },
-  "model": {
-    "path": "Models/model.gguf",
-    "generation": {
-      "max_tokens": 512,
-      "temperature": 0.7
-    }
-  }
+  "router": { "baseUrl": "http://127.0.0.1:8000", "model": "functiongemma-270m-it", "toolsPath": "Config/pcai-tools.json" },
+  "ollama": { "model": "qwen2.5-coder:3b", "num_gpu": -1, "num_ctx": 4096, "temperature": 0.15 },
+  "fallbackOrder": ["ollama", "pcai-inference"]
 }
 ```
+
+The server-side backend and model settings (`backend.type`, `n_gpu_layers`, `n_ctx`, `model.path`, `generation`,
+`server.host/port`) live in `Config/pcai-inference-server.json`, which uses the `InferenceConfig` shape from
+`Native/pcai_core/pcai_inference/src/config.rs`.

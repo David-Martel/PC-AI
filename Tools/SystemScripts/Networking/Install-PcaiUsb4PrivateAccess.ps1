@@ -16,6 +16,10 @@ Rollback uses the original receipt and the same endpoint identity arguments.
 Other enrolled USB4NET adapters attached to the potentially shared Windows
 profile. Apply requires every same-name connection before changing its category.
 
+.PARAMETER AcceptLegacyRule
+Accept the existing enabled inbound legacy rule for this run after reviewing its
+exposure. The installer records acceptance and does not change that rule.
+
 .EXAMPLE
 ./Install-PcaiUsb4PrivateAccess.ps1 @EnrolledLink -Apply -ReceiptPath $receipt
 
@@ -31,6 +35,7 @@ param(
     [string]$PeerAddress,
     [guid[]]$SharedAdapterGuid = @(),
     [string]$ReceiptPath,
+    [switch]$AcceptLegacyRule,
     [switch]$DryRun,
     [switch]$Apply,
     [switch]$Rollback,
@@ -222,7 +227,8 @@ function Get-PcaiUsb4AccessRule([string]$Store, [string]$Alias, [string]$Owner =
 
 function Get-PcaiUsb4LegacyRuleStatus {
     $legacyName = 'PC-AI-USB4-P2P-Allow'
-    $status = [ordered]@{ Name = $legacyName; BlocksApply = $false }
+    $status = [ordered]@{ Name = $legacyName; Accepted = $false; BlocksApply = $false }
+    $hasEnabledInboundAllow = $false
     foreach ($store in @('PersistentStore', 'ActiveStore')) {
         $rules = @(try {
             Get-NetFirewallRule -PolicyStore $store -Name $legacyName
@@ -239,8 +245,10 @@ function Get-PcaiUsb4LegacyRuleStatus {
             State = if ($enabledInboundAllow) { 'EnabledInboundAllow' } elseif ($rules.Count) { 'Present' } else { 'Absent' }
             Count = $rules.Count
         }
-        $status.BlocksApply = $status.BlocksApply -or $enabledInboundAllow
+        $hasEnabledInboundAllow = $hasEnabledInboundAllow -or $enabledInboundAllow
     }
+    $status.Accepted = $hasEnabledInboundAllow -and $AcceptLegacyRule
+    $status.BlocksApply = $hasEnabledInboundAllow -and -not $AcceptLegacyRule
     return [pscustomobject]$status
 }
 
@@ -412,8 +420,9 @@ try {
         $result.State = Undo-PcaiUsb4PrivateAccess $receiptFile $receipt
         return [pscustomobject]$result
     }
-    if ((Get-PcaiUsb4LegacyRuleStatus).BlocksApply) {
-        throw "Legacy inbound firewall rule '$($result.LegacyRule.Name)' must be resolved before Apply."
+    $result.LegacyRule = Get-PcaiUsb4LegacyRuleStatus
+    if ($result.LegacyRule.BlocksApply) {
+        throw "Review legacy inbound firewall rule '$($result.LegacyRule.Name)' before Apply. Use -AcceptLegacyRule to keep it explicitly."
     }
     $currentRule = Get-PcaiUsb4AccessRule 'PersistentStore' $link.Alias
     if ([bool]$currentRule -ne [bool]$rule -or ($rule -and $currentRule.Description -cne $rule.Description)) {
@@ -436,6 +445,7 @@ try {
         alias = $link.Alias; index = $link.Index; profileName = $link.ProfileName; previousCategory = $link.Category
         profileId = $link.ProfileId; sharedGuids = $sharedGuids; profileScope = $scope; profileSnapshot = $snapshot
         localMac = $LocalMac; peerMac = $PeerMac; localAddress = $LocalAddress; peerAddress = $PeerAddress
+        legacyRuleAccepted = $result.LegacyRule.Accepted
         owner = $owner; ruleAdded = -not [bool]$rule; profileWriteStarted = $false; state = 'Pending'
         appliedSnapshot = $null; rollbackSnapshot = $null
     }

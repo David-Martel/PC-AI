@@ -369,6 +369,30 @@ function Test-LegacyAdvisoriesDoNotPreventRollback {
     }
 }
 
+# Protects deliberate acceptance of a pre-existing rule without transferring its custody.
+# Detects disregarding acceptance, omitting it from the receipt, or touching the legacy rule.
+# Needs inert Windows providers. Breadcrumb: Get-PcaiUsb4LegacyRuleStatus and the Apply receipt.
+function Test-ExplicitLegacyAcceptancePreservesRule {
+    Reset-Fixture
+    $fixture.LegacyRules.ActiveStore = [pscustomobject]@{
+        Name = $legacyRuleName; Enabled = 'True'; Direction = 'Inbound'; Action = 'Allow'
+    }
+    $plan = & $installer @options -DryRun -AcceptLegacyRule
+    if (-not $plan.LegacyRule.Accepted -or $plan.LegacyRule.BlocksApply -or $fixture.Mutations.Count) {
+        throw 'The preview did not report the explicit acceptance without a write.'
+    }
+    $applied = & $installer @options -Apply -AcceptLegacyRule -Confirm:$false
+    $receipt = Get-Content -LiteralPath $options.ReceiptPath -Raw | ConvertFrom-Json
+    if ($applied.State -ne 'Applied' -or -not $receipt.legacyRuleAccepted -or
+        $applied.LegacyRule.ActiveStore.State -ne 'EnabledInboundAllow') {
+        throw 'The run did not preserve and record the accepted legacy state.'
+    }
+    $reverted = & $installer @options -Rollback -Confirm:$false
+    if ($reverted.State -ne 'Reverted' -or $fixture.LegacyRules.ActiveStore.Enabled -ne 'True') {
+        throw 'Rollback changed the accepted legacy rule.'
+    }
+}
+
 # Protects visibility of enabled inbound rules that become eligible under Private.
 # Detects counting Any/Public rules or emitting an unbounded list. Needs inert
 # firewall data. Breadcrumb: Get-PcaiUsb4PrivateProfileExposure.
@@ -397,6 +421,7 @@ try {
         'Test-DriftBlocksWrites', 'Test-PartialApplyRestoresOwnedChanges', 'Test-RecoveryPreservesUnownedProfileChange',
         'Test-SharedProfileRequiresExplicitUsb4Scope', 'Test-UnexpectedCategoryChangeRollsBack',
         'Test-LegacyAllowBlocksApplyWithoutChangingIt', 'Test-LegacyAdvisoriesDoNotPreventRollback',
+        'Test-ExplicitLegacyAcceptancePreservesRule',
         'Test-PreviewSummarizesPrivateOnlyExposureWithoutWrites') {
         & $test
         "PASS: $test"

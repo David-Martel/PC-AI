@@ -70,8 +70,10 @@ A default run, `-DryRun` and `-Apply -WhatIf` leave the host and filesystem
 untouched. Review `LegacyRule` and `PrivateProfileExposure` before executing
 Apply. The exposure summary reports the total and up to 20 exact rule names.
 Use the inspection command above for the full list. Apply refuses an enabled
-inbound legacy allow rule in either policy store and leaves removal to the
-operator.
+inbound legacy allow rule in either policy store by default. An administrator
+who has reviewed the existing exposure can pass `-AcceptLegacyRule` on that
+Apply. The receipt records the acceptance. The legacy rule stays in its original
+policy store and Rollback handles only the profile and scoped rule it owns.
 Windows can associate several interfaces with one network
 classification. Inspect `UnapprovedSameNameProfiles` in the plan. If every
 listed interface is an enrolled USB4NET link, pass its verified adapter GUID

@@ -1,15 +1,15 @@
 {
   "SchemaVersion": 1,
-  "SourceBaseline": "fe358409ead05b11d597e9a417789860e93062ec",
-  "ReviewedAtUtc": "2026-11-22T16:21:42.59254-05:00",
+  "SourceBaseline": "264760fd7f2348a4c46c8f83255024da98976fe0",
+  "ReviewedAtUtc": "2026-11-22T21:29:27.7507690+00:00",
   "HashConvention": "SHA-256 of UTF-8 LF. ParseInput over LF text yields the named FunctionDefinitionAst.Extent.Text or Pester It CommandAst.Extent.Text. The CI step spans - name through its last indented line, with no final LF.",
   "SourceBindings": {
-    "Tests/Portable/Test-Usb4PrivateAccess.ps1": "3ed0678317bd00d4333574066760322e4d3f7a825a1e87b51d7051d5314c22c2",
+    "Tests/Portable/Test-Usb4PrivateAccess.ps1": "be9fa4cae86eefec7ce76b26fab96437dd3595e9e18446ac2b1a2daccc9f945a",
     "Tests/Unit/PC-AI.Drivers.Tests.ps1": "3c19ff55bc184d5fee2b65baab3d8e081d132c5b722c5bdf0a8d7cdb650c5f83",
     ".github/workflows/usb4-lifecycle.yml": "e894752618725150253aa300c25fecafd768ddc69d330b73aff6caaf155748d7",
-    "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1": "8514a0b345b5a04448f83a3ebbfc004055344964748fd182f5ba64a60b39004b",
+    "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1": "857a5d1e5c5a3ecbb3b0b917633ccc5d4846e4323ad54a2aecfd01d9f6fce1cc",
     "Modules/PC-AI.Drivers/Public/Register-ThunderboltPeer.ps1": "ad94a9a25cd6022b437ac37b04df43f720c3d0809760c83f55d5b700204b5be2",
-    "docs/usb4/private-access.md": "8dde7ebf3b96f0522324720e671c4d86f9e6c7de17a6907b1fd7659231d72150"
+    "docs/usb4/private-access.md": "50ab88c2be72e5c1f8ab5313bb142a3d6db1f4af1c2ec141290cd5bfd92a5102"
   },
   "Selectors": [
     {
@@ -179,7 +179,19 @@
       "Reviewer": "codex-releaseaudit",
       "ReviewerType": "independent source agent",
       "Disposition": "keep"
+    },
+    {
+      "Selector": "Test-ExplicitLegacyAcceptancePreservesRule",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "ade2e6a7256fe6193b3c46dbe6fab877658db0cffcecc28da3ad2dc5344924a4",
+      "Protects": "Explicit acceptance of existing inbound policy and custody for the owned rule",
+      "Detects": "Missing acceptance, receipt provenance or preservation of the existing policy",
+      "Needs": "PowerShell 7, inert Windows firewall providers and a temporary receipt",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex-private-installer",
+      "ReviewerType": "independent source agent",
+      "Disposition": "keep"
     }
   ],
-  "Validation": "The portable fixtures verify exact-link apply and rollback, legacy handling, and the bounded exposure summary. The Windows Drivers selector passes with the retired rule absent and fails once when its name is inserted into an inert helper. The applied NUC canary verified four directional echo series at 12/12 and a successful scripted rollback before the final application. The follow-up checks inspect both links without changing their receipts."
+  "Validation": "The 12 portable fixtures verify exact-link apply and rollback, legacy handling, explicit acceptance and the bounded exposure summary. The Windows Drivers selector fails when its retired rule name is inserted into an inert helper. The NUC installation verified 12/12 for each of four directed echo series and both final plans preserved their receipts."
 }

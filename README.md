@@ -346,4 +346,6 @@ Windows and peer topology: [license-independent USB4 observation and planning](d
 
 FunctionGemma runtime dependency validation: [build, HTTP contract tests and coverage limits](docs/functiongemma-runtime-validation.md).
 
+See [AI build and workload qualification](docs/ai-build-qualification.md) for CPU, CUDA and Intel GPU admission, model compatibility and functional test selection.
+
 Optional ONNX upscale build/test coverage: [media validation](docs/media-upscale-validation.md).

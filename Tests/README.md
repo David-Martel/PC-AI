@@ -80,6 +80,17 @@ cd C:\codedev\PC_AI\Tests
 .\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -CaseId content-search,full-context
 ```
 
+### Model and hardware functional checks
+
+Use the [AI qualification matrix](../docs/ai-build-qualification.md) to choose a target and record the exact artifact, checkpoint and device. Run the CUDA media workflow explicitly with an installed or staged server and a local Janus checkpoint.
+
+```powershell
+pwsh -NoProfile -File ./Hardware/Invoke-PcaiMediaCudaFunctionalTests.ps1 `
+    -ServerPath ../bin/pcai-media-server.exe -ModelPath ../Models/Janus-Pro-1B -Device cuda:0
+```
+
+The [hardware runner](Hardware/Invoke-PcaiMediaCudaFunctionalTests.ps1) starts a temporary loopback listener and saves its logs and receipt. A startup, inference or cleanup failure exits nonzero. Pester discovers the [functional media tests](Functional/Media.Functional.Tests.ps1) independently of this hardware run.
+
 ### Validated Findings
 
 Results validated on March 7, 2026:

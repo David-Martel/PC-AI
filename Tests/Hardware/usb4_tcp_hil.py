@@ -173,6 +173,32 @@ def qualify(edge, client, server):
                 minimum_met=min(rates) >= edge['min_gbps_each_way'])
 
 
+def receiver_intervals(evidence, key):
+    intervals = evidence['result'].get('intervals')
+    if not isinstance(intervals, list) or len(intervals) > 32:
+        return None
+    rates = []
+    for sample in intervals:
+        summary = sample.get(key) if isinstance(sample, dict) else None
+        if not isinstance(summary, dict) or summary.get('sender') is not False or summary.get('omitted') is not False:
+            continue
+        seconds = summary.get('seconds')
+        rate = summary.get('bits_per_second')
+        if type(seconds) in (int, float) and 0.75 <= seconds <= 1.25 and type(rate) in (int, float) and 0 <= rate < 2**64:
+            rates.append(rate / 1e9)
+    return rates or None
+
+
+def describe_edge(client, server):
+    """Summarize optional endpoint observations without changing admission."""
+    return {
+        'client': {field: client.get(field) for field in ('index', 'mtu', 'link')},
+        'server': {field: server.get(field) for field in ('index', 'mtu', 'link')},
+        'client_to_server_receiver_intervals_gbps': receiver_intervals(server, 'sum'),
+        'server_to_client_receiver_intervals_gbps': receiver_intervals(client, 'sum_bidir_reverse'),
+    }
+
+
 def test_edge(artifacts, edge, allow_firewall):
     test = {'id': edge['id'], 'state': 'Failed', 'threshold_gbps_each_way': edge['min_gbps_each_way']}
     try:
@@ -187,6 +213,7 @@ def test_edge(artifacts, edge, allow_firewall):
             server = listening.result()
         test.update(client=client, server=server)
         test['rates'] = qualify(edge, client, server)
+        test['observations'] = describe_edge(client, server)
         test['state'] = 'Passed' if test['rates']['minimum_met'] else 'Failed'
     except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
         test['error'] = str(error)
@@ -211,7 +238,8 @@ def verify_receipt(receipt, revision, source_digests, profile_digest, edges, now
         rates = qualify(edge, test['client'], test['server'])
         require(test['state'] == 'Passed' and rates['minimum_met'],
                 f"Receipt fails the threshold on {edge['id']}")
-        verified.append({'id': edge['id'], 'threshold_gbps_each_way': edge['min_gbps_each_way'], 'rates': rates})
+        verified.append({'id': edge['id'], 'threshold_gbps_each_way': edge['min_gbps_each_way'], 'rates': rates,
+                         'observations': describe_edge(test['client'], test['server'])})
     return verified
 
 

@@ -1,7 +1,7 @@
 {
   "SchemaVersion": 1,
-  "SourceBaseline": "d7450924cc53a5727414052fd1abccc9aa1d6711",
-  "ReviewedAtUtc": "2026-11-22T20:15:51.4043619+00:00",
+  "SourceBaseline": "7c45a41d4c6a57cf093c6bbb5190671760a3fe29",
+  "ReviewedAtUtc": "2026-11-22T15:15:51.4043619-05:00",
   "HashConvention": "SHA-256 of UTF-8 LF files and exact Pester It AST extents",
   "SourceBindings": {
     "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1": "af3e9618d47fa8727d44301c90b9a764509c817268d55a82a22c5b291d888acb",

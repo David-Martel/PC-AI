@@ -16,6 +16,14 @@ $fixtureBinary = New-TemporaryFile
 $fixtureRunner = @'
 function Invoke-VigilBoundedProcess {
     param($FilePath, $Arguments, $TimeoutSeconds)
+    if ($FilePath -eq [IO.Path]::Combine([Environment]::SystemDirectory, 'ping.exe')) {
+        if ($TimeoutSeconds -ne 3 -or ($Arguments -join ' ') -ne '-6 -S fe80::1%25 -n 1 -w 500 fe80::2%25') {
+            throw 'Neighbor wake must be bounded and scoped.'
+        }
+        $fixtureState.Wakes++
+        if ($fixtureState.RestoreOnWake) { $fixtureState.NeighborIp = 'fe80::2%25' }
+        return @{ ExitCode = 1; Stdout = ''; Stderr = '' }
+    }
     if ($FilePath -ne $fixtureBinary.FullName) { throw 'Unexpected executable.' }
     if ($Arguments -contains '--version') {
         return @{ ExitCode = 0; Stdout = 'iperf 3.22'; Stderr = '' }
@@ -49,7 +57,13 @@ function Get-NetAdapter {
     [pscustomobject]@{
         InterfaceGuid = $fixtureGuid; InterfaceIndex = 25; Status = 'Up'
         PnPDeviceID = 'USB4\D&PROT_USB4NET\P'; MacAddress = '02-00-00-00-00-01'; Name = 'USB4 Fixture'
+        TransmitLinkSpeed = [uint64]20000000000; ReceiveLinkSpeed = [uint64]10000000000; DriverVersion = '10.0.1.2'
     }
+}
+function Get-NetIPv6Protocol {
+    param($ErrorAction)
+    if ($fixtureState.IdentifierQueryFails) { throw 'Fixture provider error' }
+    [pscustomobject]@{ RandomizeIdentifiers = 'Enabled' }
 }
 function Get-NetIPAddress {
     param($InterfaceIndex, $AddressFamily)
@@ -158,6 +172,41 @@ function Test-ClientRejectsWrongNeighborIpOrMac {
         } catch {
             if ($_.Exception.Message -notlike '*expected USB4 peer IP/MAC neighbor*' -or $fixtureState.Transfers -ne 0) { throw }
         }
+    }
+}
+
+# Protects: cold-cache reconnect and peer identity.
+# Detects: unscoped wake, skipping a retry, or trusting the ping over identity.
+# Needs: PowerShell 7, fixture neighbor inventory and an inert process runner.
+# Breadcrumb: Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::Get-Usb4PeerNeighbors.
+function Test-ClientRediscoversOnlyTheEnrolledNeighbor {
+    $fixtureState.NeighborIp = 'fe80::3%25'
+    $fixtureState.RestoreOnWake = $true
+    Invoke-FixtureEndpoint -Role client | Out-Null
+    if ($fixtureState.Wakes -ne 1 -or $fixtureState.Transfers -ne 1) { throw 'The cold-cache link did not recover.' }
+    $fixtureState.NeighborMac = '02-00-00-00-00-03'
+    try {
+        Invoke-FixtureEndpoint -Role client | Out-Null
+        throw 'A conflicting neighbor was accepted.'
+    } catch {
+        if ($_.Exception.Message -notlike '*expected USB4 peer IP/MAC neighbor*' -or
+            $fixtureState.Wakes -ne 1 -or $fixtureState.Transfers -ne 1) { throw }
+    }
+}
+
+# Protects: adapter link rate and host identifier-mode observations.
+# Detects: swapped speed fields, missing driver metadata, and invented identifier mode.
+# Needs: PowerShell 7 and fixture adapter and IPv6 protocol providers.
+# Breadcrumb: Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::link receipt.
+function Test-ClientReportsLinkAndIdentifierMode {
+    $link = (Invoke-FixtureEndpoint -Role client).link
+    if ($link.tx_bps -ne 20000000000 -or $link.rx_bps -ne 10000000000 -or
+        $link.driver_version -ne '10.0.1.2' -or $link.randomize_identifiers -ne 'Enabled') {
+        throw 'Incorrect USB4 link observation.'
+    }
+    $fixtureState.IdentifierQueryFails = $true
+    if ((Invoke-FixtureEndpoint -Role client).link.randomize_identifiers -ne 'Unknown') {
+        throw 'An unavailable identifier mode was not reported as Unknown.'
     }
 }
 
@@ -292,12 +341,14 @@ function Test-ListenerReportsExactRuleWhenFirewallCleanupFails {
 
 try {
     foreach ($selector in @('Test-ClientUsesScopedOnLinkRouteAndCounters', 'Test-ClientRejectsWrongNeighborIpOrMac',
+            'Test-ClientRediscoversOnlyTheEnrolledNeighbor', 'Test-ClientReportsLinkAndIdentifierMode',
             'Test-ClientRejectsFlatReceiveOrTransmitCounter', 'Test-ListenerRemovesScopedFirewallRuleAfterSuccess',
             'Test-ListenerPreservesTimeoutAndRemovesScopedFirewallRule', 'Test-ListenerNamesAndPreservesAbandonedFirewallRules',
             'Test-ListenerRefusesCompetingMutexOwner', 'Test-ListenerReportsExactRuleWhenFirewallCleanupFails')) {
         $fixtureState = @{
             NextHop = '::'; DestinationPrefix = 'fe80::/64'; NeighborIp = 'fe80::2%25'; NeighborMac = '02-00-00-00-00-02'
             Counter = 0; FlatRx = $false; FlatTx = $false; Timeout = $false; Transfers = 0
+            Wakes = 0; RestoreOnWake = $false; IdentifierQueryFails = $false
             Added = 0; Removed = 0; Rules = @{ unrelated = '' }; CleanupFails = $false; LastRule = ''
         }
         & $selector

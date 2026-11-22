@@ -92,6 +92,35 @@ source reviewed. These controls do not qualify physical unplug, reboot or sleep.
 - Fail-closed Windows interface metric hierarchy checks when `entries`/`connected` is empty or any connected `usb4-p2p`/`wired-lan`/`wifi` interface has `metric: None`.
 - Pending TPM intake gates (`PENDING-FABRIC-F09..F13`, `tpm_admission_status: "PENDING_TPM_INTAKE"`, `acceptance_credit: false`) using the closed verdict enum (`PASS`, `FAIL`, `SKIP_NOT_APPLICABLE`, `BLOCKED_MISSING_PROVIDER`, `HOLD_PENDING_TPM_INTAKE`).
 
+## Discovery profiling
+
+From the `Native/pcai_core` workspace:
+
+```bash
+pcai-tb benchmark --iterations 5 --registry ../../Config/thunderbolt-peers.json --compact
+```
+
+[Discovery profiling](src/benchmark.rs) times native platform inventory, native
+peer handshake, and an optional Windows PowerShell/CIM subprocess. The handshake
+and PowerShell pipelines each attempt up to five samples. The PowerShell child
+has a ten-second process deadline and a 4 KiB limit per output stream. Its scope
+includes process startup and adapter/neighbor enumeration. Use `--skip-legacy`
+to omit the PowerShell pipeline.
+
+`LegacyBaselineStatus` distinguishes `NotRequested`, `Unsupported`, `Failed`,
+`Partial`, and `Measured`. `LegacyBaselineAttempts` counts attempted subprocesses.
+The legacy row's `Iterations` counts successful samples, and its statistics use
+only those samples. The `ItemsDiscovered` value comes from the last successful
+sample. Linux reports `Unsupported` for a requested PowerShell/CIM baseline.
+The existing `SpeedupVsLegacyBaselineX` JSON field is `null` because the pipelines
+profile different workloads. Use repeated timings of the same workload on the
+same host to assess a performance change.
+
+Run the [benchmark selectors](src/benchmark.rs) from `Native/pcai_core` with
+`cargo test --locked -p pcai-tb --lib benchmark::tests`. The
+[selector review register](tests/benchmark-review.json) binds the measured-sample
+contract to the source.
+
 ## Deployment limits
 
 The Windows lifecycle power/service provider has a ten-second process deadline
@@ -141,7 +170,9 @@ No throughput, reconnect, DHCP forwarding, bridge-loop protection, or hardware a
 
 ## Source custody and review follow-through
 
-[source-custody.json](source-custody.json) preserves baseline hashes from both Windows development variants alongside the current reconciled candidate file hashes. Files in this candidate include subsequent Linux/Windows reliability fixes and review blocker resolutions, so baseline hashes are historical provenance while `reconciled_candidate` records the current file hashes.
+[source-custody.json](source-custody.json) preserves hashes from both Windows
+development variants and the historical reconciled candidate. The selector
+review registers above bind subsequent changes to their own reviewed sources.
 
 Future addressing work should prioritize explicit IPv6 link-local interface scopes and an allocated fleet ULA prefix, with IPv4 fallback where needed. Do not infer a trusted peer from an unauthenticated hostname, hard-code new addresses, or bridge independent upstream networks without loop/domain admission checks.
 

@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 LF, selector spans its rationale through closing brace and final newline",
+  "base_commit": "ed6547b71e0f512cf4286d3561075e37bdc87e54",
+  "reviews": [
+    {
+      "selector": "benchmark::tests::legacy_samples_respect_handshake_cap_and_exclude_failures",
+      "disposition": "keep",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewer_type": "independent source agent",
+      "reviewed_utc": "2026-11-22T14:41:39.8988502+00:00",
+      "rationale": "Counts all five attempts, retains only successful elapsed times, and checks the latency summary and last successful item count.",
+      "selector_sha256": "4d7d63a3993c1feb3785ef538251a24dc88330fda63126aedf27a7386d4d54d4",
+      "source_files": [
+        {
+          "path": "src/benchmark.rs",
+          "sha256": "8c4c1840d35cfcb7fece3bd3f47a1ad594028d5ca94b055030afdb6b649f07d6"
+        }
+      ]
+    },
+    {
+      "selector": "benchmark::tests::legacy_baseline_reports_skipped_unsupported_and_failed_distinctly",
+      "disposition": "keep",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewer_type": "independent source agent",
+      "reviewed_utc": "2026-11-22T14:41:39.8988502+00:00",
+      "rationale": "Refuses execution on opt-out or an unsupported platform, distinguishes requested total failure, and admits repeated zero-item successes.",
+      "selector_sha256": "3db02453091a25fc58c09dc0ad355697dc53692cfd54cd347142233b2e05cfc5",
+      "source_files": [
+        {
+          "path": "src/benchmark.rs",
+          "sha256": "8c4c1840d35cfcb7fece3bd3f47a1ad594028d5ca94b055030afdb6b649f07d6"
+        }
+      ]
+    },
+    {
+      "selector": "benchmark::tests::legacy_probe_accepts_zero_count_only_on_clean_exit",
+      "disposition": "keep",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewer_type": "independent source agent",
+      "reviewed_utc": "2026-11-22T14:41:39.8988502+00:00",
+      "rationale": "Requires a successful exit and a single valid count, with zero as an admitted result.",
+      "selector_sha256": "b110058b7b7da64434dad266d27fd1b6c54cbecc96ec068742127d659430e8ea",
+      "source_files": [
+        {
+          "path": "src/benchmark.rs",
+          "sha256": "8c4c1840d35cfcb7fece3bd3f47a1ad594028d5ca94b055030afdb6b649f07d6"
+        }
+      ]
+    }
+  ]
+}

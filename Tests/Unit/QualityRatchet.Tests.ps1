@@ -200,6 +200,18 @@ Describe 'PowerShell AST checks' -Tag 'Unit', 'Quality', 'Portable' {
         script:Get-Rules "function F { `$PSNativeCommandUseErrorActionPreference = `$true; git status }" | Should -Not -Contain 'native-exe-exit-code-unchecked'
     }
 
+    # Protects: the dominance rule. An assignment exempts a call only when it is an unconditional statement that
+    # runs before the call: in the same statement list, or straight-line in an enclosing script block.
+    It 'trusts an assignment that shares a statement list with the call, or is straight-line in an enclosing block' -TestCases @(
+        @{ Name = 'same try block'; Code = "try { `$PSNativeCommandUseErrorActionPreference = `$true; git status } catch { Write-Warning `$_ }" }
+        @{ Name = 'same if branch'; Code = "if (`$x) { `$PSNativeCommandUseErrorActionPreference = `$true`n git status }" }
+        @{ Name = 'top-level, call nested in a branch later'; Code = "`$PSNativeCommandUseErrorActionPreference = `$true`nif (`$x) { git status }" }
+        @{ Name = 'function body, call in a loop later'; Code = "function F { `$PSNativeCommandUseErrorActionPreference = `$true`n foreach (`$i in 1..2) { git status } }" }
+    ) {
+        param($Name, $Code)
+        script:Get-Rules $Code | Should -Not -Contain 'native-exe-exit-code-unchecked'
+    }
+
     # Protects: the exemption. A mere mention of the variable used to exempt every native call in the file.
     # Detects: $false assignments, plain reads, a later assignment, an overridden assignment and an assignment
     # in an unrelated scope each wrongly exempting an unchecked call.
@@ -210,6 +222,15 @@ Describe 'PowerShell AST checks' -Tag 'Unit', 'Quality', 'Portable' {
         @{ Name = 'a $true assignment that is switched off before the call'; Code = "`$PSNativeCommandUseErrorActionPreference = `$true`n`$PSNativeCommandUseErrorActionPreference = `$false`ngit status" }
         @{ Name = 'an assignment in a different function'; Code = "function A { `$PSNativeCommandUseErrorActionPreference = `$true }`nfunction B { git status }" }
         @{ Name = 'a non-literal assignment'; Code = "`$PSNativeCommandUseErrorActionPreference = `$someValue`ngit status" }
+        @{ Name = 'an assignment inside if ($x)'; Code = "if (`$x) { `$PSNativeCommandUseErrorActionPreference = `$true }`ngit status" }
+        @{ Name = 'an assignment inside if ($false)'; Code = "if (`$false) { `$PSNativeCommandUseErrorActionPreference = `$true }`ngit --version" }
+        @{ Name = 'an assignment inside else'; Code = "if (`$x) { 1 } else { `$PSNativeCommandUseErrorActionPreference = `$true }`ngit status" }
+        @{ Name = 'an assignment inside try'; Code = "try { `$PSNativeCommandUseErrorActionPreference = `$true } catch { }`ngit status" }
+        @{ Name = 'an assignment inside catch'; Code = "try { 1 } catch { `$PSNativeCommandUseErrorActionPreference = `$true }`ngit status" }
+        @{ Name = 'an assignment inside foreach'; Code = "foreach (`$i in 1..3) { `$PSNativeCommandUseErrorActionPreference = `$true }`ngit status" }
+        @{ Name = 'an assignment inside while'; Code = "while (`$x) { `$PSNativeCommandUseErrorActionPreference = `$true }`ngit status" }
+        @{ Name = 'an assignment inside a switch branch'; Code = "switch (`$x) { 1 { `$PSNativeCommandUseErrorActionPreference = `$true } }`ngit status" }
+        @{ Name = 'a conditional $false between a $true assignment and the call'; Code = "`$PSNativeCommandUseErrorActionPreference = `$true`nif (`$x) { `$PSNativeCommandUseErrorActionPreference = `$false }`ngit status" }
     ) {
         param($Name, $Code)
         script:Get-Rules $Code | Should -Contain 'native-exe-exit-code-unchecked'
@@ -343,7 +364,7 @@ Describe 'Quality ratchet end to end' -Tag 'Unit', 'Quality', 'Portable' {
             $inputs = $run.Result.scan_inputs
             $inputs | Should -Not -BeNullOrEmpty -Because 'the result must record what the analyzers were given'
             @($inputs.ast_grep_files) | Should -Be @('Native/App/Planted.cs', 'Native/lib/src/lib.rs')
-            @($inputs.pssa_directories) | Should -Be @('Modules', 'Tests/Unit')
+            @($inputs.pssa_files) | Should -Be @('Modules/Planted.psm1', 'Tests/Unit/Planted.Tests.ps1')
             $run.Result.counts['ast-grep|unwrap-call|prod'] | Should -Be 1
             $run.Result.counts['pssa|PSAvoidUsingEmptyCatchBlock|prod'] | Should -Be 1
         } finally {
@@ -351,6 +372,31 @@ Describe 'Quality ratchet end to end' -Tag 'Unit', 'Quality', 'Portable' {
             Remove-Item -LiteralPath (Join-Path $script:Fixture 'Modules/target') -Recurse -Force
             Remove-Item -LiteralPath (Join-Path $script:Fixture 'Native/node_modules') -Recurse -Force
         }
+    }
+
+    # Protects: PSScriptAnalyzer inputs. It used to be given a directory, which makes it parse every .ps1/.psm1/.psd1
+    # in it, including an untracked or malformed sibling that is outside the approved inventory.
+    # Detects: any file that is not tracked being handed to (and parsed by) PSScriptAnalyzer.
+    It 'never hands PSScriptAnalyzer an untracked sibling, so a malformed one causes no parse diagnostic' -Skip:(-not ($script:HaveAstGrep -and $script:HavePssa -and [bool](Get-Command git -CommandType Application -ErrorAction SilentlyContinue))) {
+        $repo = Join-Path $TestDrive 'git-tree'
+        script:Write-FixtureFile $repo 'Modules/Tracked.psm1' "try { 1 } catch { }`n"
+        script:Write-FixtureFile $repo 'Modules/Untracked.ps1' "function Broken { if ( `n"
+        script:Write-FixtureFile $repo 'Modules/Untracked.psd1' "@{ Broken = `n"
+        $git = (Get-Command git -CommandType Application | Select-Object -First 1).Source
+        & $git -C $repo init -q
+        if ($LASTEXITCODE -ne 0) { throw 'git init failed' }
+        & $git -C $repo add Modules/Tracked.psm1
+        if ($LASTEXITCODE -ne 0) { throw 'git add failed' }
+        $gitOut = Join-Path $TestDrive 'git-out'
+        [void][System.IO.Directory]::CreateDirectory($gitOut)
+        $data = [ordered]@{ schema_version = 1; tools = [ordered]@{ 'ast-grep' = $script:SgVersion; PSScriptAnalyzer = (Get-Module -ListAvailable PSScriptAnalyzer | Sort-Object Version -Descending | Select-Object -First 1).Version.ToString(); 'pcai-quality-checks' = (Get-PcaiChecksVersion) }; counts = [ordered]@{ 'pssa|PSAvoidUsingEmptyCatchBlock|prod' = 5; 'pcai-ps-ast|empty-catch|prod' = 5 } }
+        [System.IO.File]::WriteAllText((Join-Path $gitOut 'baseline.json'), ($data | ConvertTo-Json -Depth 5))
+        $run = script:Invoke-Ratchet -Fixture $repo -OutDir $gitOut
+        @($run.Result.scan_inputs.pssa_files) | Should -Be @('Modules/Tracked.psm1')
+        ($run.Result.counts.Keys -join ',') | Should -Not -Match 'ParseError'
+        ($run.Result.reasons -join "`n") | Should -Not -Match 'PSScriptAnalyzer'
+        $run.Result.counts['pssa|PSAvoidUsingEmptyCatchBlock|prod'] | Should -Be 1
+        $run.ExitCode | Should -Be 0 -Because $run.Output
     }
 
     It 'splits ast-grep inputs into bounded batches without losing findings' -Skip:(-not ($script:HaveAstGrep -and $script:HavePssa)) {

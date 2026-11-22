@@ -28,11 +28,14 @@
       * "Checked" means any read of $LASTEXITCODE or $? after the end of the call's pipeline inside
         the same enclosing ScriptBlockAst (nested script blocks included). It does not prove the
         read belongs to that call: a later call's check masks an earlier unchecked one.
-      * A call is exempt when `$PSNativeCommandUseErrorActionPreference = $true` (or 1) is the last assignment
-        to that variable that is before the call and in the same or an enclosing script block, because
-        PowerShell 7.4+ then raises an error on a non-zero exit code. A `$false` or non-literal assignment,
-        a later assignment, an assignment in another function and a plain read do not exempt anything. It
-        does not check that $ErrorActionPreference is Stop, so the error may be non-terminating.
+      * A call is exempt when `$PSNativeCommandUseErrorActionPreference = $true` (or 1) is an unconditional
+        statement that dominates it: in the same statement list as the call, or straight-line in an enclosing
+        script block, before the call. PowerShell 7.4+ then raises an error on a non-zero exit code. An
+        assignment inside if/else, switch, try/catch/finally or a loop body, a `$false` or non-literal
+        assignment, a later assignment, an assignment in another function and a plain read do not exempt
+        anything, and a possibly-executed `$false` assignment between the two cancels the exemption. If
+        dominance cannot be proven the call is reported. It does not check that $ErrorActionPreference is
+        Stop, so the error may be non-terminating.
       * A final-statement call whose exit code the caller inspects is still reported.
 
     C# rules (Get-PcaiCSharpCatchFinding), regex over source with comments and string literals
@@ -51,7 +54,7 @@ Set-StrictMode -Version Latest
 
 # Bump when a check's meaning changes. The ratchet records this in the baseline and fails closed on a
 # MAJOR.MINOR mismatch, so a changed check cannot silently move the counts.
-$script:ChecksVersion = '1.1.0'
+$script:ChecksVersion = '1.2.0'
 
 $script:StateChangingVerb = [regex]::new('^(Set|New|Remove|Register|Mount|Install|Enable|Disable|Start|Stop|Restart)-', 'IgnoreCase')
 
@@ -208,8 +211,11 @@ function Get-PcaiPsAstFinding {
     $nodes = $ast.FindAll($interesting, $true)
 
     # $PSNativeCommandUseErrorActionPreference = $true makes PowerShell 7.4+ raise an error on a non-zero exit
-    # code. Only an assignment counts (a read or a mention does not), and it must be effective at the call:
-    # before it, in the same or an enclosing script block, and not switched off by a later assignment.
+    # code. Only an assignment counts (a read or a mention does not), and only one that provably runs before the
+    # call: an unconditional statement in the same statement list as the call, or in the straight-line statements
+    # of an enclosing script block. An assignment inside if/else, switch, try/catch/finally or a loop body is not
+    # in a list that contains the call, so it is never trusted (it may not execute). A possibly-executed $false
+    # assignment in the same script block between the trusted one and the call cancels the exemption.
     $nativePreferenceAssignments = [System.Collections.Generic.List[object]]::new()
     $exitCodeReads = $null
     $nativeCalls = [System.Collections.Generic.List[object]]::new()
@@ -236,10 +242,13 @@ function Get-PcaiPsAstFinding {
                 $scopeAst = $node.Parent
                 while ($null -ne $scopeAst -and $scopeAst -isnot [System.Management.Automation.Language.ScriptBlockAst]) { $scopeAst = $scopeAst.Parent }
                 $value = $node.Right.Extent.Text.Trim()
+                $statementList = $node.Parent
+                if ($statementList -isnot [System.Management.Automation.Language.NamedBlockAst] -and $statementList -isnot [System.Management.Automation.Language.StatementBlockAst]) { $statementList = $null }
                 $nativePreferenceAssignments.Add([pscustomobject]@{
-                        EndOffset = $node.Extent.EndOffset
-                        Enabled   = ($value -ieq '$true' -or $value -eq '1')
-                        Scope     = $scopeAst
+                        EndOffset     = $node.Extent.EndOffset
+                        Enabled       = ($value -ieq '$true' -or $value -eq '1')
+                        Scope         = $scopeAst
+                        StatementList = $statementList
                     })
             }
             continue
@@ -278,14 +287,28 @@ function Get-PcaiPsAstFinding {
         $nativePreferenceAssignments = @($nativePreferenceAssignments | Sort-Object -Property EndOffset)
         $nativeCallPreferenceEnabled = {
             param($callAst)
-            $effective = $null
+            $callStart = $callAst.Extent.StartOffset
+            $callEnd = $callAst.Extent.EndOffset
+            # The last assignment that provably dominates the call.
+            $dominating = $null
             foreach ($assignment in $nativePreferenceAssignments) {
-                if ($assignment.EndOffset -gt $callAst.Extent.StartOffset) { break }
-                $scopeAst = $assignment.Scope
-                if ($null -ne $scopeAst -and ($scopeAst.Extent.StartOffset -gt $callAst.Extent.StartOffset -or $scopeAst.Extent.EndOffset -lt $callAst.Extent.EndOffset)) { continue }
-                $effective = $assignment
+                if ($assignment.EndOffset -gt $callStart) { break }
+                $list = $assignment.StatementList
+                if ($null -eq $list) { continue }
+                if ($list.Extent.StartOffset -gt $callStart -or $list.Extent.EndOffset -lt $callEnd) { continue }
+                $dominating = $assignment
             }
-            return ($null -ne $effective -and $effective.Enabled)
+            if ($null -eq $dominating -or -not $dominating.Enabled) { return $false }
+            # Any other assignment after it and before the call, in a script block that also holds the call, may
+            # have run and switched the preference off. Dominance cannot be proven then, so do not exempt.
+            foreach ($assignment in $nativePreferenceAssignments) {
+                if ($assignment.EndOffset -le $dominating.EndOffset) { continue }
+                if ($assignment.EndOffset -gt $callStart) { break }
+                if ($assignment.Enabled) { continue }
+                $scopeAst = $assignment.Scope
+                if ($null -eq $scopeAst -or ($scopeAst.Extent.StartOffset -le $callStart -and $scopeAst.Extent.EndOffset -ge $callEnd)) { return $false }
+            }
+            return $true
         }
         foreach ($call in $nativeCalls) {
             if (& $nativeCallPreferenceEnabled $call) { continue }

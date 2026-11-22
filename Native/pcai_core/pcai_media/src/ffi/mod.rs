@@ -47,7 +47,10 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, BufWriter, Write};
 use std::os::raw::c_char;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
@@ -506,7 +509,7 @@ pub extern "C" fn pcai_media_generate_image(
     };
 
     // Save to PNG.
-    if let Err(e) = image.save(&out_str) {
+    if let Err(e) = write_image_atomically(&image, Path::new(&out_str)) {
         set_error(
             format!("Failed to save image to '{out_str}': {e}"),
             PcaiMediaErrorCode::IoError,
@@ -718,14 +721,101 @@ pub extern "C" fn pcai_media_generate_image_bytes(
     PcaiMediaErrorCode::Success as i32
 }
 
+// ----------------------------------------------------------------------------
+// Staged output files
+// ----------------------------------------------------------------------------
+//
+// A generated image is never written straight to the caller's destination.
+// It is encoded into a staging file next to the destination, and only
+// published (renamed over the destination) if the request is still live.
+// That way a cancelled request can never create or overwrite the caller's
+// file, and a failed write never leaves a partial file behind.
+
+/// Staging file path next to `dest`: `<dest>.<pid>.<token>.partial`.
+///
+/// The process id keeps a stale file from an earlier process (request ids
+/// restart at 1) from colliding with this one.
+fn staging_path(dest: &Path, token: i64) -> PathBuf {
+    let mut name = dest.as_os_str().to_owned();
+    name.push(format!(".{}.{token}.partial", std::process::id()));
+    PathBuf::from(name)
+}
+
+/// Encoder for `dest`: the image format follows the destination extension,
+/// as `RgbImage::save` did.
+fn encode_for(dest: &Path) -> impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()> {
+    let format = image::ImageFormat::from_path(dest);
+    move |image, file| {
+        let format = format.map_err(io::Error::other)?;
+        let mut writer = BufWriter::new(file);
+        image.write_to(&mut writer, format).map_err(io::Error::other)?;
+        writer.flush()
+    }
+}
+
+/// Encode `image` into a fresh, exclusively created staging file next to
+/// `dest` and flush it to disk.  Any failure removes the staging file.
+fn stage_image(
+    image: &image::RgbImage,
+    dest: &Path,
+    token: i64,
+    encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
+) -> io::Result<PathBuf> {
+    let staged = staging_path(dest, token);
+    let mut file = OpenOptions::new().write(true).create_new(true).open(&staged)?;
+    let written = encode(image, &mut file).and_then(|()| file.sync_all());
+    drop(file);
+    match written {
+        Ok(()) => Ok(staged),
+        Err(error) => {
+            let _ = fs::remove_file(&staged);
+            Err(error)
+        }
+    }
+}
+
+/// Replace `dest` with the staged file.
+///
+/// `std::fs::rename` replaces an existing file on Windows
+/// (`MOVEFILE_REPLACE_EXISTING`) and on Unix; it fails if `dest` is a
+/// directory or is held open without delete sharing.  Callers remove the
+/// staging file on error.
+fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
+    fs::rename(staged, dest)
+}
+
+/// Stage and publish in one step, for the synchronous paths that cannot be
+/// cancelled but must still never leave a partial destination.
+fn write_image_atomically(image: &image::RgbImage, dest: &Path) -> io::Result<()> {
+    let token = NEXT_REQUEST_ID.fetch_add(1, AtomicOrdering::SeqCst);
+    let staged = stage_image(image, dest, token, encode_for(dest))?;
+    publish_staged(&staged, dest).inspect_err(|_| {
+        let _ = fs::remove_file(&staged);
+    })
+}
+
 /// Run one queued async generation request to a terminal status.
 ///
 /// The request stays `Pending` while it waits for the inference gate, so
 /// `pcai_media_cancel` can drop it before any work starts and
 /// `pcai_media_poll_result` reports it truthfully.  The state mutex is taken
 /// only for short status updates: never while waiting for the gate, never
-/// across `generate`, and never across the PNG save.
+/// across `generate`, and never across encoding.  The output is staged and
+/// only published under the state mutex after a final cancellation check, so
+/// cancel and publish cannot interleave.
 fn execute_async_request(id: i64, output_path: String, generate: impl FnOnce() -> anyhow::Result<image::RgbImage>) {
+    let encode = encode_for(Path::new(&output_path));
+    execute_async_request_with(id, output_path, generate, encode);
+}
+
+/// [`execute_async_request`] with an injectable encoder, so tests can use a
+/// slow or failing one.
+fn execute_async_request_with(
+    id: i64,
+    output_path: String,
+    generate: impl FnOnce() -> anyhow::Result<image::RgbImage>,
+    encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
+) {
     let gate = acquire_inference_gate();
 
     // Transition: Pending -> Running, unless cancelled while queued.
@@ -740,18 +830,60 @@ fn execute_async_request(id: i64, output_path: String, generate: impl FnOnce() -
     let result = generate();
     drop(gate);
 
-    let terminal = match result {
-        Ok(image) => match image.save(&output_path) {
-            Ok(()) => MediaRequestStatus::Complete(output_path),
-            Err(e) => MediaRequestStatus::Failed(format!("Save failed: {e}")),
-        },
-        Err(e) => generation_failure_status(&e),
+    let image = match result {
+        Ok(image) => image,
+        Err(e) => {
+            record_terminal_status(id, generation_failure_status(&e));
+            return;
+        }
     };
 
+    // A cancel during generation: do not even create the staging file.
+    if !request_is_running(id) {
+        return;
+    }
+
+    let dest = Path::new(&output_path);
+    let staged = match stage_image(&image, dest, id, encode) {
+        Ok(staged) => staged,
+        Err(e) => {
+            record_terminal_status(id, MediaRequestStatus::Failed(format!("Save failed: {e}")));
+            return;
+        }
+    };
+
+    // Final check and publish in one critical section: a cancel either lands
+    // before it (staging file removed, destination untouched) or finds the
+    // request already Complete.
     let mut guard = lock_state_recovering();
-    // A cancel that arrived mid-generation wins; poll reports it as cancelled.
+    if !matches!(guard.requests.get(&id), Some(MediaRequestStatus::Running)) {
+        drop(guard);
+        let _ = fs::remove_file(&staged);
+        return;
+    }
+    let terminal = match publish_staged(&staged, dest) {
+        Ok(()) => MediaRequestStatus::Complete(output_path),
+        Err(e) => {
+            let _ = fs::remove_file(&staged);
+            MediaRequestStatus::Failed(format!("Save failed: {e}"))
+        }
+    };
+    guard.requests.insert(id, terminal);
+}
+
+/// Whether the request is still `Running` (not cancelled or already polled away).
+fn request_is_running(id: i64) -> bool {
+    matches!(
+        lock_state_recovering().requests.get(&id),
+        Some(MediaRequestStatus::Running)
+    )
+}
+
+/// Store a terminal status unless the request was cancelled mid-flight.
+fn record_terminal_status(id: i64, status: MediaRequestStatus) {
+    let mut guard = lock_state_recovering();
     if matches!(guard.requests.get(&id), Some(MediaRequestStatus::Running)) {
-        guard.requests.insert(id, terminal);
+        guard.requests.insert(id, status);
     }
 }
 
@@ -1725,5 +1857,164 @@ mod tests {
 
         let rc = pcai_media_generate_image(c"a dog".as_ptr(), 0.0, 0.0, c"x.png".as_ptr());
         assert_eq!(rc, PcaiMediaErrorCode::ModelNotLoaded as i32);
+    }
+
+    // ── Staged output: cancel must never touch the destination ────────────
+
+    /// Sorted file names in `dir`, to assert no staging file is left behind.
+    fn dir_listing(dir: &Path) -> Vec<String> {
+        let mut names: Vec<String> = fs::read_dir(dir)
+            .expect("read_dir")
+            .map(|entry| entry.expect("dir entry").file_name().to_string_lossy().into_owned())
+            .collect();
+        names.sort();
+        names
+    }
+
+    /// Poll a request and return its status with any text.
+    fn poll_full(id: i64) -> (i32, Option<String>) {
+        let result = pcai_media_poll_result(id);
+        let text = if result.text.is_null() {
+            None
+        } else {
+            Some(unsafe { CStr::from_ptr(result.text) }.to_string_lossy().into_owned())
+        };
+        pcai_media_free_string(result.text);
+        (result.status, text)
+    }
+
+    const ORIGINAL: &[u8] = b"original destination bytes";
+
+    // Protects: a request cancelled while generating never creates or overwrites
+    //   the caller's destination file, and leaves no staging file.
+    // Detects: encoding straight to the destination before the cancel check.
+    // Needs: a temp directory; the cancel is issued from inside the mock generate.
+    #[test]
+    fn test_cancel_during_generation_leaves_destination_untouched() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.png");
+        fs::write(&existing, ORIGINAL).unwrap();
+        let fresh = tmp.path().join("fresh.png");
+        for dest in [&existing, &fresh] {
+            let id = register_request(MediaRequestStatus::Pending);
+            execute_async_request(id, dest.to_string_lossy().into_owned(), move || {
+                assert_eq!(pcai_media_cancel(id), 0, "request is Running while generating");
+                mock_image()
+            });
+            assert_eq!(poll_status(id), 4, "poll reports the cancellation");
+        }
+        assert_eq!(
+            fs::read(&existing).unwrap(),
+            ORIGINAL,
+            "existing destination keeps its bytes"
+        );
+        assert!(!fresh.exists(), "cancelled request must not create the destination");
+        assert_eq!(dir_listing(tmp.path()), ["existing.png"], "no staging file left");
+    }
+
+    // Protects: a cancel that lands after encoding but before publish still leaves the
+    //   destination untouched and removes the staging file.
+    // Detects: moving the cancellation check after the publish step (the destination
+    //   would be replaced and Complete reported).
+    // Needs: a temp directory; the cancel is issued from inside the mock encoder.
+    #[test]
+    fn test_cancel_after_encode_before_publish_discards_staged_file() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.png");
+        fs::write(&existing, ORIGINAL).unwrap();
+        let fresh = tmp.path().join("fresh.png");
+        for dest in [&existing, &fresh] {
+            let id = register_request(MediaRequestStatus::Pending);
+            let dest_path = dest.to_string_lossy().into_owned();
+            let encode = encode_for(Path::new(&dest_path));
+            execute_async_request_with(id, dest_path, mock_image, move |image, file| {
+                encode(image, file)?;
+                assert_eq!(pcai_media_cancel(id), 0, "request is still Running after encode");
+                Ok(())
+            });
+            assert_eq!(poll_status(id), 4);
+        }
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+        assert!(!fresh.exists());
+        assert_eq!(dir_listing(tmp.path()), ["existing.png"], "staging file removed");
+    }
+
+    // Protects: a normal completion publishes the whole file and removes the staging file.
+    // Detects: a publish that leaves the `.partial` name behind or writes a truncated file.
+    // Needs: a temp directory only.
+    #[test]
+    fn test_completion_publishes_full_file_and_leaves_no_partial() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("out.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest_path = dest.to_string_lossy().into_owned();
+        execute_async_request(id, dest_path.clone(), mock_image);
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 2);
+        assert_eq!(text.as_deref(), Some(dest_path.as_str()));
+        let decoded = image::open(&dest).expect("published file is a complete PNG");
+        assert_eq!(decoded.width(), 1);
+        assert_eq!(dir_listing(tmp.path()), ["out.png"]);
+    }
+
+    // Protects: a failed write reports Failed, leaves no partial file and never touches
+    //   an existing destination; a failed publish does the same.
+    // Detects: encoding in place, or a staging file leaked on the error path.
+    // Needs: a temp directory; the encoder writes some bytes then fails, and a
+    //   directory squatting on the destination makes the rename fail.
+    #[test]
+    fn test_write_and_publish_failures_leave_no_partial_and_keep_destination() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.png");
+        fs::write(&existing, ORIGINAL).unwrap();
+
+        let id = register_request(MediaRequestStatus::Pending);
+        execute_async_request_with(id, existing.to_string_lossy().into_owned(), mock_image, |_, file| {
+            file.write_all(b"half an image")?;
+            Err(io::Error::other("disk full"))
+        });
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3);
+        let text = text.expect("failure carries a message");
+        assert!(text.contains("Save failed") && text.contains("disk full"), "{text}");
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["existing.png"],
+            "no partial after write failure"
+        );
+
+        let blocked = tmp.path().join("blocked.png");
+        fs::create_dir(&blocked).unwrap();
+        let id = register_request(MediaRequestStatus::Pending);
+        execute_async_request(id, blocked.to_string_lossy().into_owned(), mock_image);
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3, "publishing over a directory must fail");
+        assert!(text.expect("message").contains("Save failed"));
+        assert!(blocked.is_dir());
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["blocked.png", "existing.png"],
+            "no partial after publish failure"
+        );
+    }
+
+    // Protects: the synchronous save path is atomic too: a failure keeps the old file.
+    // Detects: `image.save` writing in place and leaving a truncated destination.
+    // Needs: a temp directory; the destination name has no usable image extension.
+    #[test]
+    fn test_sync_write_failure_keeps_existing_destination_and_leaves_no_partial() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.unknownext");
+        fs::write(&existing, ORIGINAL).unwrap();
+        assert!(write_image_atomically(&image::RgbImage::new(1, 1), &existing).is_err());
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+        assert_eq!(dir_listing(tmp.path()), ["existing.unknownext"]);
+
+        let good = tmp.path().join("good.png");
+        write_image_atomically(&image::RgbImage::new(2, 2), &good).expect("png write");
+        assert_eq!(image::open(&good).unwrap().width(), 2);
+        assert_eq!(dir_listing(tmp.path()), ["existing.unknownext", "good.png"]);
     }
 }

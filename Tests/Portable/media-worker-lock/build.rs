@@ -25,7 +25,12 @@ fn main() {
     println!("cargo:rerun-if-env-changed=PCAI_MEDIA_FFI_SOURCE");
     let source = PathBuf::from(env::var_os("PCAI_MEDIA_FFI_SOURCE").expect("set an explicit media FFI source path"));
     println!("cargo:rerun-if-changed={}", source.display());
-    let text = fs::read_to_string(&source).expect("read selected media FFI source");
+    // A Windows checkout with autocrlf hands us CRLF. The extraction below keys on
+    // LF-only markers (a closing brace at column zero), so parse the LF-normalised
+    // text, the same normalisation the hash-bound review register uses.
+    let text = fs::read_to_string(&source)
+        .expect("read selected media FFI source")
+        .replace("\r\n", "\n");
 
     // 1. State acquisition recovers from poison by consuming the held guard.
     let lock = function(&text, "fn lock_state_recovering() -> MutexGuard<'static, MediaState> {");

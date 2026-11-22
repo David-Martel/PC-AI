@@ -13,7 +13,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:13:15.072410+00:00",
+      "reviewed_utc": "2026-11-22T18:24:14.707887+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -27,7 +27,7 @@
         },
         {
           "path": "Tests/Portable/media-worker-lock/build.rs",
-          "sha256": "633e553d04bc98d13112bfb3995edb9406f34845f24bd8cfb8f09bbddc1d9a29"
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
         },
         {
           "path": "Tests/Portable/media-worker-lock/src/main.rs",
@@ -38,7 +38,7 @@
       "review_receipt_sha256": null,
       "review_scope": "Author re-bind after the async worker was restructured (inference gate, staged output, Running->Publishing state machine); the earlier independent approval applied to the previous source.",
       "review_reason": "build.rs now extracts lock_state_recovering and begin_async_request verbatim and asserts into_inner recovery, no panic on poison, and no state lock between begin_async_request and generate() or between begin_publish and finish_publish. The probe checks the transition leaves the lock free (poll/cancel responsive), preserves unrelated requests, and recovers a poisoned mutex without relocking or clearing poison. Negative controls: replacing into_inner with a panic, or taking a global lock across the publish step, fails the build. The earlier independent approval and its receipt hash do not carry over.",
-      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes; two source copies with the regressions above fail at build.rs assertions. Not independently reviewed."
+      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes; two source copies with the regressions above fail at build.rs assertions; the CRLF controls in Tests/Portable/test_media_worker_lock_crlf.py (CRLF source generates identical probe code, regressed CRLF source still refused) pass and failed before build.rs normalised line endings. Not independently reviewed."
     },
     {
       "selector": "MediaWorkerLockTests.test_healthy_cancelled_acquisition_does_not_rewrite_cancellation",
@@ -51,7 +51,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:13:15.072410+00:00",
+      "reviewed_utc": "2026-11-22T18:24:14.707887+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -65,7 +65,7 @@
         },
         {
           "path": "Tests/Portable/media-worker-lock/build.rs",
-          "sha256": "633e553d04bc98d13112bfb3995edb9406f34845f24bd8cfb8f09bbddc1d9a29"
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
         },
         {
           "path": "Tests/Portable/media-worker-lock/src/main.rs",
@@ -76,7 +76,7 @@
       "review_receipt_sha256": null,
       "review_scope": "Author re-bind after the async worker was restructured (inference gate, staged output, Running->Publishing state machine); the earlier independent approval applied to the previous source.",
       "review_reason": "build.rs now extracts lock_state_recovering and begin_async_request verbatim and asserts into_inner recovery, no panic on poison, and no state lock between begin_async_request and generate() or between begin_publish and finish_publish. The probe checks the transition leaves the lock free (poll/cancel responsive), preserves unrelated requests, and recovers a poisoned mutex without relocking or clearing poison. Negative controls: replacing into_inner with a panic, or taking a global lock across the publish step, fails the build. The earlier independent approval and its receipt hash do not carry over.",
-      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes; two source copies with the regressions above fail at build.rs assertions. Not independently reviewed."
+      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes; two source copies with the regressions above fail at build.rs assertions; the CRLF controls in Tests/Portable/test_media_worker_lock_crlf.py (CRLF source generates identical probe code, regressed CRLF source still refused) pass and failed before build.rs normalised line endings. Not independently reviewed."
     },
     {
       "selector": "MediaWorkerLockTests.test_poisoned_acquisition_records_failure_without_relocking",
@@ -89,7 +89,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:13:15.072410+00:00",
+      "reviewed_utc": "2026-11-22T18:24:14.707887+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -103,7 +103,7 @@
         },
         {
           "path": "Tests/Portable/media-worker-lock/build.rs",
-          "sha256": "633e553d04bc98d13112bfb3995edb9406f34845f24bd8cfb8f09bbddc1d9a29"
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
         },
         {
           "path": "Tests/Portable/media-worker-lock/src/main.rs",
@@ -114,7 +114,7 @@
       "review_receipt_sha256": null,
       "review_scope": "Author re-bind after the async worker was restructured (inference gate, staged output, Running->Publishing state machine); the earlier independent approval applied to the previous source.",
       "review_reason": "build.rs now extracts lock_state_recovering and begin_async_request verbatim and asserts into_inner recovery, no panic on poison, and no state lock between begin_async_request and generate() or between begin_publish and finish_publish. The probe checks the transition leaves the lock free (poll/cancel responsive), preserves unrelated requests, and recovers a poisoned mutex without relocking or clearing poison. Negative controls: replacing into_inner with a panic, or taking a global lock across the publish step, fails the build. The earlier independent approval and its receipt hash do not carry over.",
-      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes; two source copies with the regressions above fail at build.rs assertions. Not independently reviewed."
+      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes; two source copies with the regressions above fail at build.rs assertions; the CRLF controls in Tests/Portable/test_media_worker_lock_crlf.py (CRLF source generates identical probe code, regressed CRLF source still refused) pass and failed before build.rs normalised line endings. Not independently reviewed."
     }
   ]
 }

@@ -49,6 +49,17 @@ No process-name or external-PID termination is used. Each build receipt records
 source, fixture and executable hashes. Distinct source inputs require separate
 target directories; automatic discovery creates a private temporary target.
 
+Line endings: the build script parses the LF-normalised source, so a Windows
+checkout with autocrlf (CRLF) generates byte-identical probe code. The
+[CRLF controls](../test_media_worker_lock_crlf.py) build the probe from a CRLF
+copy of the real source and require the same generated code as the LF build, and
+require a regressed CRLF source to be refused as before. Hashes follow two
+conventions on purpose: the hash-bound register uses LF-normalised SHA-256, as
+the rest of the repository does, while the receipt written by the supervisor
+(`sourceSha256`, `artifactSha256`) hashes the raw bytes it actually compiled,
+because a receipt answers "which exact file was built" and CRLF and LF copies
+are different files to the compiler's input.
+
 The healthy controls start a pending request and refuse to start a cancelled
 one, preserve both request states and their count, and require the state lock
 to be free when the transition returns. The poisoned control poisons the

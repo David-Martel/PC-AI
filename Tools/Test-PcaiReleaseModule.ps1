@@ -10,7 +10,10 @@ if (-not (Test-Path -LiteralPath $ReleaseModulePath)) {
     throw "Release module manifest not found: $ReleaseModulePath"
 }
 
-Import-Module -Name $ReleaseModulePath -Force -ErrorAction Stop
+$package = @(Import-Module -Name $ReleaseModulePath -Force -PassThru -ErrorAction Stop)
+if ($package.Count -ne 1) {
+    throw "Expected one imported release module from: $ReleaseModulePath"
+}
 
 $requiredCommands = @(
     'Get-PcaiReleaseInfo',
@@ -23,7 +26,7 @@ $requiredCommands = @(
 
 $missing = @()
 foreach ($commandName in $requiredCommands) {
-    if (-not (Get-Command -Name $commandName -ErrorAction SilentlyContinue)) {
+    if (-not $package[0].ExportedFunctions.ContainsKey($commandName)) {
         $missing += $commandName
     }
 }

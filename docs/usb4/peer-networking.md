@@ -108,6 +108,13 @@ use the following sharing configuration after its own allocation audit:
 The named NAT and prefix must already exist. HNS/IPAM allocations, endpoints,
 static mappings, sessions, host addresses and existing reservations must leave
 the child range available. Missing or ambiguous inventory prevents allocation.
+The [HNS endpoint inventory controls](../../Tests/Portable/Test-Usb4HnsEndpointInventory.ps1)
+distinguish Windows' successful empty collection response from an error or
+malformed record. The [review record](../../Tests/Portable/usb4-hns-endpoint-inventory-review.json)
+binds the controls to the controller source.
+Provider recovery still requires a matching reservation fingerprint and exact
+adapter identity. An interrupted rollback that spans an interface replacement or
+changed uplink requires an explicit review of current forwarding and NAT custody.
 This backend never creates, deletes, renames or reconfigures the NAT object,
 changes WSL/HNS pools, supplies DHCP, or runs a DNS proxy. The provider owns only
 its secondary peer address and specifically approved IPv4 forwarding changes.

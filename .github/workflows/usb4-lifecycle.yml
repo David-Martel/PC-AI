@@ -32,6 +32,8 @@ on:
       - 'Tests/Portable/ssh-process-capture-review.json'
       - 'docs/usb4/ssh-process-capture.md'
       - 'Tests/Portable/Test-Usb4PeerNetwork.ps1'
+      - 'Tests/Portable/Test-Usb4HnsEndpointInventory.ps1'
+      - 'Tests/Portable/usb4-hns-endpoint-inventory-review.json'
       - 'Tests/Portable/Test-Usb4StateAdmission.ps1'
       - 'Tests/Portable/Test-Usb4StatePublication.ps1'
       - 'Tests/Portable/Test-Usb4StateHistoryRetention.ps1'
@@ -134,6 +136,11 @@ jobs:
           ./Tests/Portable/Test-Usb4StateHistoryRetention.ps1
           ./Tests/Portable/Test-Usb4JournalRetirement.ps1
           ./Tests/Portable/Test-Usb4PeerNetworkInstall.ps1
+      # Protects endpoint allocation evidence. Detects lost provider errors and
+      # malformed inventories being treated as empty. Needs pwsh and JSON fixtures.
+      - name: HNS endpoint inventory contracts
+        shell: pwsh
+        run: ./Tests/Portable/Test-Usb4HnsEndpointInventory.ps1
       # Protects file-only installed-release inspection, pointer containment and
       # recovery/freshness truth. Detects unsafe reads and invented readiness.
       # Needs pwsh and owned temporary fixtures; no live task/network collection.

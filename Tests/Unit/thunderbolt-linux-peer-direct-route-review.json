@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "reviewedCommit": "14a3680ebaa60dcc7822aab0f5f0e4768600fe1a",
+  "acceptedCommit": "dda12844d7f0973624a6a3d953abe1f37a5f0f63",
+  "corrects": {
+    "path": "Tests/Unit/thunderbolt-linux-peer-duplex-review.json",
+    "sourceSha256": "685f291368bf803235c7f187628ccc929dcd0bf3ec17205abc7604b1513b76ca"
+  },
+  "hashConvention": "SHA-256 of UTF-8 LF source files and exact Pester It AST extent. Data-driven selectors are reviewed as groups.",
+  "sourceBindings": {
+    "Tools/Invoke-ThunderboltNetworking.ps1": "0343cb4fa2a00e50c84321cba68f093895572d59d476bfd7c85a490461293fce",
+    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "e7b96aac7a9e0a5422eefb1e1f8d0fd2dbc026b9042ac04aebb145dcde5396aa",
+    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "5d5e9562de7fd941a30a7138c4f8ff6529b30bbc6b1ef21c916fb48a9e1ff08a"
+  },
+  "independentFinding": "https://github.com/David-Martel/PC-AI/pull/387#issuecomment-7083259314",
+  "selectors": [
+    {
+      "selector": "checks the source-bound return route before it opens the listener",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "490aa111b048b8d3af4278d57de88efc39e7f197e11de69321de9c8d57fb54c7",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "unreviewed",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": "2026-11-22T18:15:07.089560+00:00",
+      "reviewScope": "Executed or inspected the shared, mode-independent listener script. An invalid source-bound return route is refused before listener startup."
+    },
+    {
+      "selector": "aborts on a route mismatch before the listener line",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "3cc83d69143c7b01c31cfc39c15b4a3cde3368afeac8196c745b7cb57a6e9426",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "unreviewed",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": "2026-11-22T18:15:07.089583+00:00",
+      "reviewScope": "Executed or inspected the shared, mode-independent listener script. An invalid source-bound return route is refused before listener startup."
+    },
+    {
+      "selector": "keeps the listener one-shot, bound, time-limited and cleaned up",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "38846e510be714f2ad2a9f3dc900381855ec1a2040267a1e4ea6c462618d4939",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "unreviewed",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": "2026-11-22T18:15:07.089586+00:00",
+      "reviewScope": "Executed or inspected the shared, mode-independent listener script. An invalid source-bound return route is refused before listener startup."
+    },
+    {
+      "selector": "refuses an invalid return route for the default trial",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "112c1af9008d64b0b805cf2e177da9da733ae75cbe4e0c6834db89ad5864cbac",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "unreviewed",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": "2026-11-22T18:15:07.089588+00:00",
+      "reviewScope": "Executed or inspected the shared, mode-independent listener script. An invalid source-bound return route is refused before listener startup."
+    },
+    {
+      "selector": "requires an unambiguous source and on-link peer route for <Case>",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "79b4b8b8d8dcf7a05b21ebe7dfd3667b47654ae80f9cdafc132586f66a03c0fa",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "unreviewed",
+      "reviewScope": "Two positive direct-route controls and five negative controls. The five negatives failed before admission hardening and passed afterward with fake Windows route and address rows.",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": "2026-11-22T18:15:07.089589+00:00"
+    }
+  ]
+}

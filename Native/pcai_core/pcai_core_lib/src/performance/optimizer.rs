@@ -317,10 +317,19 @@ fn pressure_label(level: u8) -> &'static str {
 ///
 /// This is the single authoritative data-collection path used by all three
 /// public-facing functions.
+///
+/// The FFI report carries its own status, so a failed probe (`System::new_all` is
+/// fallible since sysinfo 0.40) is returned as [`MemoryPressureReport::error`].
 pub fn analyze_memory_pressure() -> MemoryPressureReport {
+    match System::new_all() {
+        Ok(sys) => analyze_memory_pressure_with(sys),
+        Err(error) => MemoryPressureReport::error(PcaiStatus::from(error)),
+    }
+}
+
+fn analyze_memory_pressure_with(mut sys: System) -> MemoryPressureReport {
     let start = Instant::now();
 
-    let mut sys = System::new_all();
     sys.refresh_all();
 
     // Second refresh for accurate CPU figures (matching existing process.rs pattern)
@@ -417,10 +426,15 @@ fn get_handle_count(_pid: u32) -> u64 {
 }
 
 /// Build the per-category aggregation map over the current process list.
-pub fn get_process_categories() -> (u64, HashMap<String, CategoryStats>) {
+///
+/// # Errors
+///
+/// Returns the [`PcaiStatus`] mapped from the sysinfo error when the underlying
+/// `System` cannot be created.
+pub fn get_process_categories() -> Result<(u64, HashMap<String, CategoryStats>), PcaiStatus> {
     let start = Instant::now();
 
-    let mut sys = System::new_all();
+    let mut sys = System::new_all()?;
     sys.refresh_all();
 
     let live_pids: std::collections::HashSet<u32> = sys.processes().keys().map(|p| p.as_u32()).collect();
@@ -453,16 +467,24 @@ pub fn get_process_categories() -> (u64, HashMap<String, CategoryStats>) {
         entry.handle_count += get_handle_count(pid.as_u32());
     }
 
-    (start.elapsed().as_millis() as u64, categories)
+    Ok((start.elapsed().as_millis() as u64, categories))
 }
 
 /// Generate a prioritised list of `OptimizationRecommendation` items from a
 /// `MemoryPressureReport` combined with live category data.
-pub fn get_optimization_recommendations() -> (u64, Vec<OptimizationRecommendation>) {
+///
+/// # Errors
+///
+/// Returns the [`PcaiStatus`] of whichever live probe failed first; recommendations
+/// derived from a zeroed report would otherwise read as "nothing to fix".
+pub fn get_optimization_recommendations() -> Result<(u64, Vec<OptimizationRecommendation>), PcaiStatus> {
     let start = Instant::now();
 
     let report = analyze_memory_pressure();
-    let (_, categories) = get_process_categories();
+    if report.status.is_error() {
+        return Err(report.status);
+    }
+    let (_, categories) = get_process_categories()?;
 
     let mut recs: Vec<OptimizationRecommendation> = Vec::new();
 
@@ -556,14 +578,14 @@ pub fn get_optimization_recommendations() -> (u64, Vec<OptimizationRecommendatio
     // WSL2's vmmemWSL is counted as a single process under sysinfo.
     // Default .wslconfig limit is 50 % of physical RAM.
     let total_bytes = {
-        let mut s = System::new_all();
+        let mut s = System::new_all()?;
         s.refresh_memory();
         s.total_memory()
     };
     let wsl_default_limit_mb = (total_bytes / (1024 * 1024)) / 2;
     // Approximate WSL usage: look for a process named "vmmemWSL" or "vmwp".
     let wsl_usage_mb = {
-        let mut s = System::new_all();
+        let mut s = System::new_all()?;
         s.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
         s.processes()
             .values()
@@ -617,7 +639,7 @@ pub fn get_optimization_recommendations() -> (u64, Vec<OptimizationRecommendatio
             .then(b.estimated_savings_mb.cmp(&a.estimated_savings_mb))
     });
 
-    (start.elapsed().as_millis() as u64, recs)
+    Ok((start.elapsed().as_millis() as u64, recs))
 }
 
 // ── Public entry points (called from mod.rs FFI wrappers) ────────────────────
@@ -696,9 +718,14 @@ mod tests {
         assert!(report.pressure_level <= 3);
     }
 
+    /// Protects: the category scan returns all five standard categories, at least one
+    /// `system_services` process, and a plausible elapsed time.
+    /// Detects: a category map that drops a key, a classifier that buckets no OS service, a
+    /// scan that hangs, or a healthy host surfacing `Err` from the now-fallible `System::new_all`.
+    /// Needs: a supported host with at least one OS service process.
     #[test]
     fn test_get_process_categories_all_keys_present() {
-        let (elapsed_ms, categories) = get_process_categories();
+        let (elapsed_ms, categories) = get_process_categories().expect("process scan succeeds on a supported host");
         // Every standard category key must be present
         for key in &["llm_agents", "browsers", "terminals", "build_tools", "system_services"] {
             assert!(categories.contains_key(*key), "missing category key: {}", key);
@@ -710,9 +737,13 @@ mod tests {
         assert!(elapsed_ms < 60_000, "category scan took unexpectedly long");
     }
 
+    /// Protects: recommendations are ordered by non-decreasing priority (1 is most urgent).
+    /// Detects: an unsorted list, or a healthy host surfacing `Err` from the live probes after
+    /// the sysinfo 0.40 port.
+    /// Needs: a supported host; the list may be empty, in which case ordering holds trivially.
     #[test]
     fn test_optimization_recommendations_are_sorted_by_priority() {
-        let (_, recs) = get_optimization_recommendations();
+        let (_, recs) = get_optimization_recommendations().expect("live probes succeed on a supported host");
         // Priorities must be non-decreasing (1 before 2 before 3 before 4)
         for window in recs.windows(2) {
             assert!(
@@ -724,9 +755,14 @@ mod tests {
         }
     }
 
+    /// Protects: every recommendation carries a category, description and action, and a
+    /// priority in 1-4.
+    /// Detects: a recommendation built with an empty field or an out-of-range priority, or a
+    /// healthy host surfacing `Err` from the live probes after the sysinfo 0.40 port.
+    /// Needs: a supported host; an empty list passes vacuously.
     #[test]
     fn test_recommendation_fields_are_non_empty() {
-        let (_, recs) = get_optimization_recommendations();
+        let (_, recs) = get_optimization_recommendations().expect("live probes succeed on a supported host");
         for rec in &recs {
             assert!(!rec.category.is_empty(), "recommendation has empty category");
             assert!(!rec.description.is_empty(), "recommendation has empty description");

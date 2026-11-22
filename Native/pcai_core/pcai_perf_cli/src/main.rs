@@ -99,9 +99,23 @@ const MAX_FRAME_BYTES: usize = 1024 * 1024;
 const MAX_RESULTS: usize = 10_000;
 const MAX_HASH_PATHS: usize = 4096;
 
+/// Per-worker state reused across requests.
 #[derive(Debug, Default)]
 struct PerfWorkerState {
-    process_sampler: process::ProcessSampler,
+    /// Created on the first `processes` request: `ProcessSampler::new` is fallible since
+    /// sysinfo 0.40, and a worker whose sampler cannot start must still serve other commands.
+    process_sampler: Option<process::ProcessSampler>,
+}
+
+impl PerfWorkerState {
+    fn process_sampler(&mut self) -> Result<&mut process::ProcessSampler> {
+        if self.process_sampler.is_none() {
+            self.process_sampler = Some(process::ProcessSampler::new().context("start process sampler")?);
+        }
+        self.process_sampler
+            .as_mut()
+            .ok_or_else(|| anyhow!("process sampler unavailable"))
+    }
 }
 
 #[derive(Debug, Default)]
@@ -160,7 +174,7 @@ fn run_processes(args: &[String]) -> Result<()> {
         other => bail!("unsupported process sort key: {other}"),
     };
 
-    let rows = collect_process_rows(top, sort_key);
+    let rows = collect_process_rows(top, sort_key)?;
 
     println!("{}", serde_json::to_string(&rows)?);
     Ok(())
@@ -333,7 +347,7 @@ fn make_worker_response(raw: &str, state: &mut PerfWorkerState) -> WorkerRespons
             request_id,
             ok: false,
             result: None,
-            error: Some(err.to_string()),
+            error: Some(format!("{err:#}")),
         },
     }
 }
@@ -407,7 +421,7 @@ fn handle_worker_request(request: &Value, state: &mut PerfWorkerState) -> Result
                 "mem" | "memory" => "memory",
                 _ => bail!("unsupported process sort key"),
             };
-            let (_, processes) = state.process_sampler.get_top_processes(top, sort_key);
+            let (_, processes) = state.process_sampler()?.get_top_processes(top, sort_key);
             Ok(serde_json::to_value(process_rows(processes))?)
         }
         "disk" => {
@@ -486,9 +500,10 @@ fn hash_single_file(path: &str, algorithm: &str) -> HashRow {
     }
 }
 
-fn collect_process_rows(top: usize, sort_key: &str) -> Vec<ProcessRow> {
-    let (_, processes) = process::get_top_processes(top, sort_key);
-    process_rows(processes)
+fn collect_process_rows(top: usize, sort_key: &str) -> Result<Vec<ProcessRow>> {
+    let mut sampler = process::ProcessSampler::new().context("start process sampler")?;
+    let (_, processes) = sampler.get_top_processes(top, sort_key);
+    Ok(process_rows(processes))
 }
 
 fn process_rows(processes: Vec<process::ProcessInfo>) -> Vec<ProcessRow> {

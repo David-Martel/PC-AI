@@ -281,12 +281,17 @@ pub fn get_disk_usage(root_path: &str, top_n: usize) -> io::Result<(DiskUsageSta
     Ok((stats, entries))
 }
 
-/// Get disk space information for all drives
-pub fn get_disk_space() -> Vec<DriveInfo> {
+/// Get disk space information for all drives.
+///
+/// # Errors
+///
+/// Returns the [`PcaiStatus`] mapped from the sysinfo error when the disk list
+/// cannot be created (`Disks::new_with_refreshed_list` is fallible since sysinfo 0.40).
+pub fn get_disk_space() -> Result<Vec<DriveInfo>, PcaiStatus> {
     use sysinfo::Disks;
 
-    let disks = Disks::new_with_refreshed_list();
-    disks
+    let disks = Disks::new_with_refreshed_list()?;
+    Ok(disks
         .iter()
         .map(|disk| DriveInfo {
             name: disk.name().to_string_lossy().to_string(),
@@ -297,7 +302,7 @@ pub fn get_disk_space() -> Vec<DriveInfo> {
             used_bytes: disk.total_space().saturating_sub(disk.available_space()),
             is_removable: disk.is_removable(),
         })
-        .collect()
+        .collect())
 }
 
 /// Drive information structure
@@ -367,9 +372,11 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Covers the sysinfo 0.40 port: the disk list is now built by a fallible
+    /// constructor, so success must still yield a consistent, non-empty drive table.
     #[test]
     fn test_get_disk_space() {
-        let drives = get_disk_space();
+        let drives = get_disk_space().expect("disk list builds on a supported host");
         assert!(!drives.is_empty());
 
         for drive in &drives {

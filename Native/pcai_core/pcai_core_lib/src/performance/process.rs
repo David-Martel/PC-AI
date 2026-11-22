@@ -64,32 +64,34 @@ pub struct ProcessSampler {
     system_cpu_usage: f32,
 }
 
-impl Default for ProcessSampler {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl ProcessSampler {
     /// Creates an uninitialized sampler without enumerating processes.
-    pub fn new() -> Self {
+    ///
+    /// There is no `Default`: `System::new` has been fallible since sysinfo 0.40, so a
+    /// sampler cannot be built infallibly.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`PcaiStatus`] mapped from the sysinfo error when the underlying
+    /// `System` cannot be created.
+    pub fn new() -> Result<Self, PcaiStatus> {
         #[cfg(windows)]
         let system = {
-            let mut system = System::new();
+            let mut system = System::new()?;
             // Establish process CPU normalization without opening PDH counters.
             system.refresh_cpu_list(CpuRefreshKind::nothing());
             system
         };
         #[cfg(not(windows))]
-        let system = System::new();
-        Self {
+        let system = System::new()?;
+        Ok(Self {
             system,
             last_cpu_refresh: None,
             #[cfg(windows)]
             system_cpu_times: None,
             #[cfg(windows)]
             system_cpu_usage: f32::NAN,
-        }
+        })
     }
 
     /// Returns system statistics with a qualified CPU baseline.
@@ -406,20 +408,47 @@ pub fn pack_top_processes_compact(
 }
 
 /// Get system-wide process statistics.
+///
+/// The returned struct carries its own status: a sampler that cannot start yields
+/// zeroed metrics with a non-success `status`.
 pub fn get_process_stats() -> ProcessStats {
-    ProcessSampler::new().get_process_stats()
+    match ProcessSampler::new() {
+        Ok(mut sampler) => sampler.get_process_stats(),
+        Err(status) => ProcessStats {
+            status,
+            ..ProcessStats::default()
+        },
+    }
 }
 
 /// Get top N processes sorted by memory or CPU.
+///
+/// A sampler that cannot start yields an empty list and a non-success `status` in
+/// the returned [`ProcessStats`].
 pub fn get_top_processes(top_n: usize, sort_by: &str) -> (ProcessStats, Vec<ProcessInfo>) {
-    ProcessSampler::new().get_top_processes(top_n, sort_by)
+    match ProcessSampler::new() {
+        Ok(mut sampler) => sampler.get_top_processes(top_n, sort_by),
+        Err(status) => (
+            ProcessStats {
+                status,
+                ..ProcessStats::default()
+            },
+            Vec::new(),
+        ),
+    }
 }
-/// Get process by PID
-pub fn get_process_by_pid(pid: u32) -> Option<ProcessInfo> {
-    let mut sys = System::new();
+
+/// Get process by PID.
+///
+/// # Errors
+///
+/// Returns the [`PcaiStatus`] mapped from the sysinfo error when the underlying
+/// `System` cannot be created. `Ok(None)` means the PID is not visible.
+pub fn get_process_by_pid(pid: u32) -> Result<Option<ProcessInfo>, PcaiStatus> {
+    let mut sys = System::new()?;
     sys.refresh_processes(ProcessesToUpdate::Some(&[Pid::from_u32(pid)]), true);
 
-    sys.process(Pid::from_u32(pid)).map(|process| ProcessInfo {
+    Ok(sys.process(Pid::from_u32(pid)).map(|process| ProcessInfo {
         pid,
         name: process.name().to_string_lossy().to_string(),
         cpu_usage: process.cpu_usage(),
@@ -427,7 +456,7 @@ pub fn get_process_by_pid(pid: u32) -> Option<ProcessInfo> {
         memory_formatted: format_bytes(process.memory()),
         status: format!("{:?}", process.status()),
         exe_path: process.exe().map(|p| p.to_string_lossy().to_string()),
-    })
+    }))
 }
 
 #[cfg(test)]
@@ -463,9 +492,15 @@ mod tests {
         std::hint::black_box(value);
     }
 
+    /// Protects: qualified CPU sampling observes real CPU work from a busy child process,
+    /// not merely sorted zero rows.
+    /// Detects: a refresh that never records per-process CPU (for example losing the CPU
+    /// refresh kind), which would still pass ordering checks over all-zero rows.
+    /// Needs: the test executable re-run as a bounded busy fixture. The only change in the
+    /// sysinfo 0.40 port is the fallible `ProcessSampler::new`.
     #[test]
     fn qualified_interval_observes_positive_cpu_from_a_real_busy_child() {
-        let mut sampler = ProcessSampler::new();
+        let mut sampler = ProcessSampler::new().expect("sampler starts on a supported host");
         sampler.refresh_snapshot(true);
         let mut child = std::process::Command::new(std::env::current_exe().expect("test executable should resolve"))
             .args([
@@ -497,9 +532,15 @@ mod tests {
         );
     }
 
+    /// Protects: one persistent sampler has no CPU baseline until its first refresh, sees a
+    /// spawned child while it runs, forgets it once it exits, and still sees this process.
+    /// Detects: exited processes kept in the snapshot (stale rows), a refresh that fails to
+    /// enumerate processes, or a baseline that exists before any qualified refresh.
+    /// Needs: the test executable re-run as an idle fixture. The only change in the sysinfo
+    /// 0.40 port is the fallible `ProcessSampler::new`.
     #[test]
     fn persistent_sampler_qualifies_cpu_and_refreshes_exited_processes() {
-        let mut sampler = ProcessSampler::new();
+        let mut sampler = ProcessSampler::new().expect("sampler starts on a supported host");
         assert!(sampler.last_cpu_refresh.is_none());
         sampler.refresh_snapshot(true);
         let mut child = std::process::Command::new(std::env::current_exe().expect("test executable should resolve"))
@@ -535,12 +576,18 @@ mod tests {
         assert!(windows_cpu_percent(Some((1, 2, 3)), Some((10, 3, 4))).is_nan());
     }
 
+    /// Protects: whole-host CPU is a value in 0-100 on a single processor-group host and NaN
+    /// on a multi-group host, where GetSystemTimes cannot establish it.
+    /// Detects: a fabricated or out-of-range whole-host CPU figure, or a zero that reads as a
+    /// measurement.
+    /// Needs: Windows. The only change in the sysinfo 0.40 port is the fallible
+    /// `ProcessSampler::new`.
     #[cfg(windows)]
     #[test]
     fn windows_cpu_reports_only_qualified_whole_host_samples() {
         let groups = unsafe { windows::Win32::System::Threading::GetActiveProcessorGroupCount() };
         println!("Windows processor groups: {groups}");
-        let mut sampler = ProcessSampler::new();
+        let mut sampler = ProcessSampler::new().expect("sampler starts on a supported host");
         assert!(!sampler.system.cpus().is_empty());
         let stats = sampler.get_process_stats();
         if groups == 1 {
@@ -550,9 +597,16 @@ mod tests {
         }
     }
 
+    /// Protects: a CPU-sorted request waits out the minimum CPU interval, returns rows in
+    /// descending CPU order, and a repeat call advances the CPU baseline by at least one
+    /// interval.
+    /// Detects: a CPU sort that answers before a qualified sample, an `elapsed_ms` that omits
+    /// the sampling wait, or a baseline reused without a new qualified refresh.
+    /// Needs: a supported host and one real sampling interval. The only change in the
+    /// sysinfo 0.40 port is the fallible `ProcessSampler::new`.
     #[test]
     fn cpu_sort_uses_qualified_refresh_and_elapsed_includes_sampling() {
-        let mut sampler = ProcessSampler::new();
+        let mut sampler = ProcessSampler::new().expect("sampler starts on a supported host");
         let (stats, rows) = sampler.get_top_processes(15, "cpu");
         assert!(stats.elapsed_ms >= MINIMUM_CPU_UPDATE_INTERVAL.as_millis() as u64);
         assert!(rows.windows(2).all(|rows| rows[0].cpu_usage >= rows[1].cpu_usage));
@@ -640,10 +694,15 @@ mod tests {
         assert_eq!(format_bytes(1073741824), "1.00 GB");
     }
 
+    /// Protects: `get_process_by_pid` finds the running test process with its own PID and a
+    /// non-empty name.
+    /// Detects: `Ok(None)` for a live PID (a refresh scoped to the wrong PID), an empty name,
+    /// or a healthy host surfacing `Err` from the now-fallible `System::new`.
+    /// Needs: a supported host.
     #[test]
     fn test_get_current_process() {
         let pid = std::process::id();
-        let process = get_process_by_pid(pid);
+        let process = get_process_by_pid(pid).expect("sysinfo initialises on a supported host");
         assert!(process.is_some());
 
         let p = process.expect("current process should be visible to sysinfo");

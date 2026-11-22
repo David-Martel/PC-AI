@@ -15,7 +15,7 @@ members = [
 version = "0.1.0"
 authors = ["David Martel"]
 edition = "2021"
-# The locked workspace includes sysinfo 0.39 requiring Rust 1.95 and UUID
+# The locked workspace includes sysinfo 0.40 requiring Rust 1.95 and UUID
 # 1.27 requiring 1.89; Candle 0.11 and Mistral 0.8 also require at least 1.88.
 # The older server/FFI subset floor does not describe the complete workspace.
 # Latest-toolchain builds use Rust 1.99; CI reads this declared dependency floor.
@@ -53,7 +53,7 @@ windows-sys = "0.61"
 widestring = "1.1"
 
 # System information (cross-platform)
-sysinfo = "0.39"
+sysinfo = "0.40"
 
 # Directory walking
 walkdir = "2.5"

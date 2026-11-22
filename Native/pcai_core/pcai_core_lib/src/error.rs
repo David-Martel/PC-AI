@@ -117,6 +117,40 @@ impl From<std::io::Error> for PcaiStatus {
     }
 }
 
+impl std::fmt::Display for PcaiStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.description())
+    }
+}
+
+impl std::error::Error for PcaiStatus {}
+
+impl PcaiStatus {
+    /// Converts a `sysinfo` failure to the status the FFI surface reports.
+    ///
+    /// sysinfo 0.40 made system, disk, network and component probes fallible
+    /// (`System::new*`, `Disks::new*`, ...). I/O failures keep their
+    /// [`from_io_error`](Self::from_io_error) classification, a platform
+    /// sysinfo does not support is [`NotImplemented`](Self::NotImplemented), and
+    /// anything else is an [`InternalError`](Self::InternalError).
+    pub fn from_sysinfo_error(error: &sysinfo::Error) -> Self {
+        match error {
+            sysinfo::Error::Io(io) => Self::from_io_error(io),
+            sysinfo::Error::Unsupported => Self::NotImplemented,
+            sysinfo::Error::Other(_) => Self::InternalError,
+        }
+    }
+}
+
+impl From<sysinfo::Error> for PcaiStatus {
+    /// Maps the error and records the detail, which the status code cannot carry.
+    fn from(error: sysinfo::Error) -> Self {
+        let status = Self::from_sysinfo_error(&error);
+        log::warn!("sysinfo probe failed ({status:?}): {error}");
+        status
+    }
+}
+
 // FFI Exports
 
 /// Returns a human-readable description of a status code.
@@ -189,5 +223,44 @@ mod tests {
     #[test]
     fn test_default_is_success() {
         assert_eq!(PcaiStatus::default(), PcaiStatus::Success);
+    }
+
+    /// sysinfo 0.40 made its probes fallible; each error kind must keep a distinct,
+    /// stable FFI status so C# callers can tell "unsupported" from "I/O failed".
+    #[test]
+    fn test_sysinfo_error_maps_to_status() {
+        use std::io::{Error as IoError, ErrorKind};
+
+        assert_eq!(
+            PcaiStatus::from_sysinfo_error(&sysinfo::Error::Unsupported),
+            PcaiStatus::NotImplemented
+        );
+        assert_eq!(
+            PcaiStatus::from_sysinfo_error(&sysinfo::Error::Io(IoError::from(ErrorKind::NotFound))),
+            PcaiStatus::PathNotFound
+        );
+        assert_eq!(
+            PcaiStatus::from_sysinfo_error(&sysinfo::Error::Io(IoError::from(ErrorKind::PermissionDenied))),
+            PcaiStatus::PermissionDenied
+        );
+        assert_eq!(
+            PcaiStatus::from_sysinfo_error(&sysinfo::Error::from("probe failed")),
+            PcaiStatus::InternalError
+        );
+        // The `?` conversion must agree with the pure mapper.
+        assert_eq!(
+            PcaiStatus::from(sysinfo::Error::Unsupported),
+            PcaiStatus::NotImplemented
+        );
+    }
+
+    /// `PcaiStatus` is returned as the `Err` of Rust-side APIs and reaches `anyhow`
+    /// callers (pcai-perf), so it must render its description and be a real error.
+    #[test]
+    fn test_status_is_displayable_error() {
+        fn assert_error<E: std::error::Error + Send + Sync + 'static>(_: &E) {}
+        let status = PcaiStatus::NotImplemented;
+        assert_error(&status);
+        assert_eq!(status.to_string(), status.description());
     }
 }

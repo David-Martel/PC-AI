@@ -1,0 +1,11 @@
+id: let-underscore-send
+language: rust
+severity: hint
+message: "`let _ = ....send(..)` discards the send error, so a closed receiver goes unnoticed; handle or log the Result."
+note: |
+  Matches `let _ = $X.send($$$);` with or without a trailing `.await`. Intentional fire-and-forget
+  sends should say so (`if tx.send(v).is_err() { tracing::debug!(..) }`), which also removes the finding.
+rule:
+  any:
+    - pattern: let _ = $CHANNEL.send($$$ARGS);
+    - pattern: let _ = $CHANNEL.send($$$ARGS).await;

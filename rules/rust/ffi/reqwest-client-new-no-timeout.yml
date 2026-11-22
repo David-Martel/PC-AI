@@ -1,0 +1,12 @@
+id: reqwest-client-new-no-timeout
+language: rust
+severity: warning
+message: reqwest::Client::new() has no request or connect timeout; build the client with Client::builder().timeout(..).connect_timeout(..).
+note: |
+  A default reqwest client waits forever on a stalled peer, which hangs diagnostics and FFI callers.
+  Only fully qualified `reqwest::Client::new()` and `reqwest::blocking::Client::new()` are matched;
+  a bare `Client::new()` is skipped because the type may not be reqwest's.
+rule:
+  any:
+    - pattern: reqwest::Client::new()
+    - pattern: reqwest::blocking::Client::new()

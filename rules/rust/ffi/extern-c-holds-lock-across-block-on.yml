@@ -1,0 +1,28 @@
+id: extern-c-holds-lock-across-block-on
+language: rust
+severity: warning
+message: A .lock() guard is still in scope when this extern "C" function calls block_on; blocking on async work while holding a lock can deadlock the caller.
+note: |
+  Approximation (ast-grep has no data-flow): matches a `let` binding whose initializer calls
+  `.lock()`, inside an `extern "C" fn`, that is followed in the same block by any statement
+  containing a `block_on(` call. It does not understand `drop(guard)` or a guard moved into an
+  inner scope, and it does not see temporaries (`m.lock().unwrap().push(rt.block_on(f))`).
+  Fix: copy what you need out of the guard, drop it (or end its block), then block_on.
+rule:
+  kind: let_declaration
+  regex: '\.lock\(\)'
+  inside:
+    stopBy: end
+    kind: function_item
+    has:
+      kind: function_modifiers
+      has:
+        kind: extern_modifier
+        regex: '^extern\s+"C"'
+  precedes:
+    stopBy: end
+    has:
+      stopBy: end
+      any:
+        - pattern: $FUTURE.block_on($$$ARGS)
+        - pattern: block_on($$$ARGS)

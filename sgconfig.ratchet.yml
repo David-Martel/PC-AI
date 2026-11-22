@@ -1,0 +1,18 @@
+# ast-grep configuration for the static-quality ratchet (Tools/Quality/Invoke-QualityRatchet.ps1).
+#
+# Kept apart from sgconfig.yml on purpose. sgconfig.yml loads only rules/core and is read by
+# lefthook (`sg scan {staged_files}`) and by Build.ps1's pre-build gate; most rules in rules/rust are
+# severity `error`, so widening that file would make every commit and build fail on the existing
+# backlog. This file loads every Rust and C# rule directory and is used only by the ratchet, which
+# compares counts with Config/quality-baseline.json instead of failing on any finding.
+#
+# rules/powershell, rules/python, rules/typescript and rules/security are not listed: ast-grep cannot
+# parse PowerShell, and the other languages are not part of the ratchet scope. The PowerShell intent
+# lives in Tools/Quality/PcaiPsAstChecks.psm1.
+ruleDirs:
+  - ./rules/core
+  - ./rules/rust
+  - ./rules/csharp
+# Rule self-tests: `sg test --config sgconfig.ratchet.yml --skip-snapshot-tests`.
+testConfigs:
+  - testDir: ./rules/tests

@@ -95,7 +95,9 @@
 .PARAMETER LintProfile
     Lint/format profile selector used by lint/format/fix components:
     all, rust-check, rust-clippy, rust-fmt, rust-inference-check,
-    rust-inference-clippy, rust-inference-fmt, dotnet-format, powershell, docs, astgrep, toml.
+    rust-inference-clippy, rust-inference-fmt, dotnet-format, powershell, docs, astgrep, toml,
+    rag-quality, ratchet. `ratchet` runs Tools/Quality/Invoke-QualityRatchet.ps1 (counts of risky
+    patterns versus Config/quality-baseline.json; fails when any count rises).
 
 .PARAMETER DependencyStrategy
     Rust dependency lock behavior:
@@ -108,6 +110,11 @@
 
 .PARAMETER SkipQualityGate
     Skip pre-build ast-grep quality gate for non-lint components.
+
+.PARAMETER AllowMissingTools
+    Local-development escape hatch for lint. By default lint FAILS when ast-grep or PSScriptAnalyzer is
+    not installed, because a check that silently skips cannot fail. With this switch the missing tool's
+    check is skipped with a loud warning and the run can still pass. Never use it in CI.
 
 .PARAMETER Verbose
     Show detailed build output.
@@ -197,12 +204,13 @@ param(
     [switch]$DisableCache,
     [string]$NuGetConfigPath,
     [string[]]$FunctionGemmaArgs = @(),
-    [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality')]
+    [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality', 'ratchet')]
     [string]$LintProfile = 'all',
     [ValidateSet('locked', 'frozen', 'update')]
     [string]$DependencyStrategy = 'locked',
     [switch]$AutoFix,
     [switch]$SkipQualityGate,
+    [switch]$AllowMissingTools,
     [switch]$Quiet
 )
 
@@ -1375,12 +1383,17 @@ function Get-AstGrepRuleDirectories {
 
 function Invoke-AstGrepCheck {
     param(
-        [switch]$EnableAutoFix
+        [switch]$EnableAutoFix,
+        [switch]$AllowMissing
     )
 
     if (-not (Get-Command sg -ErrorAction SilentlyContinue)) {
-        Write-BuildStep 'ast-grep (sg) not found; skipping ast-grep checks' 'warning'
-        return $true
+        if ($AllowMissing) {
+            Write-BuildStep 'ast-grep (sg) not found; ast-grep checks SKIPPED (-AllowMissingTools or pre-build gate). This run proves nothing about ast-grep rules.' 'warning'
+            return $true
+        }
+        Write-BuildStep 'ast-grep (sg) not found: the ast-grep gate cannot run, so it fails. Install it (cargo install ast-grep --locked) or pass -AllowMissingTools for local development only.' 'error'
+        return $false
     }
 
     $scanArgs = @('scan')
@@ -1742,8 +1755,12 @@ function Invoke-PowerShellQuality {
     )
 
     if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) {
-        Write-BuildStep 'PSScriptAnalyzer module not found; skipping PowerShell lint checks' 'warning'
-        return $true
+        if ($AllowMissingTools) {
+            Write-BuildStep 'PSScriptAnalyzer module not found; PowerShell lint SKIPPED (-AllowMissingTools). This run proves nothing about PowerShell quality.' 'warning'
+            return $true
+        }
+        Write-BuildStep 'PSScriptAnalyzer module not found: PowerShell lint cannot run, so it fails. Run: Install-Module PSScriptAnalyzer -Scope CurrentUser (or pass -AllowMissingTools for local development only).' 'error'
+        return $false
     }
 
     Import-Module PSScriptAnalyzer -ErrorAction Stop
@@ -1839,6 +1856,36 @@ function Invoke-PowerShellQuality {
     }
 
     Write-BuildStep 'PowerShell analyzer checks passed' 'success'
+    return $true
+}
+
+function Invoke-QualityRatchetCheck {
+    # Fail-closed static-quality ratchet (Tools/Quality/Invoke-QualityRatchet.ps1). The script itself
+    # fails when ast-grep or PSScriptAnalyzer is missing; -AllowMissingTools turns that into a loud skip.
+    $ratchetScript = Join-Path $script:ProjectRoot 'Tools\Quality\Invoke-QualityRatchet.ps1'
+    if (-not (Test-Path -LiteralPath $ratchetScript)) {
+        Write-BuildStep "Quality ratchet script missing: $ratchetScript" 'error'
+        return $false
+    }
+
+    $missing = @()
+    if (-not ((Get-Command ast-grep -CommandType Application -ErrorAction SilentlyContinue) -or (Get-Command sg -CommandType Application -ErrorAction SilentlyContinue))) { $missing += 'ast-grep' }
+    if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) { $missing += 'PSScriptAnalyzer' }
+    if ($missing.Count -gt 0 -and $AllowMissingTools) {
+        Write-BuildStep "Quality ratchet SKIPPED (-AllowMissingTools): missing $($missing -join ', '). This run proves nothing about the ratchet." 'warning'
+        return $true
+    }
+
+    $pwshExe = (Get-Process -Id $PID).Path
+    if (-not $pwshExe) { $pwshExe = 'pwsh' }
+    Write-BuildStep 'Running quality ratchet (counts vs Config/quality-baseline.json)...' 'running'
+    & $pwshExe -NoProfile -File $ratchetScript
+    $ratchetExit = $LASTEXITCODE
+    if ($ratchetExit -ne 0) {
+        Write-BuildStep "Quality ratchet failed (exit $ratchetExit); see .pcai/assessment/quality.json" 'error'
+        return $false
+    }
+    Write-BuildStep 'Quality ratchet passed' 'success'
     return $true
 }
 
@@ -1955,7 +2002,7 @@ function Invoke-QualityPipeline {
     param(
         [ValidateSet('lint', 'format', 'fix')]
         [string]$Mode,
-        [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality')]
+        [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality', 'ratchet')]
         [string]$Profile
     )
 
@@ -1973,13 +2020,20 @@ function Invoke-QualityPipeline {
         'dotnet-format' { return (Invoke-DotnetFormatQuality -WriteMode:$fixMode) }
         'powershell' { return (Invoke-PowerShellQuality -WriteMode:$fixMode) }
         'docs' { return (Invoke-PrettierQuality -WriteMode:$fixMode) }
-        'astgrep' { return (Invoke-AstGrepCheck -EnableAutoFix:$fixMode) }
+        'astgrep' { return (Invoke-AstGrepCheck -EnableAutoFix:$fixMode -AllowMissing:$AllowMissingTools) }
+        'ratchet' {
+            if ($Mode -ne 'lint') {
+                Write-BuildStep 'Quality ratchet applies to lint only; nothing to do' 'skip'
+                return $true
+            }
+            return (Invoke-QualityRatchetCheck)
+        }
         'toml' { return (Invoke-TomlQuality -WriteMode:$fixMode) }
         'rag-quality' { return (Invoke-RagQuality) }
         default {
             $profiles = @()
             if ($Mode -eq 'lint') {
-                $profiles = @('astgrep', 'rag-quality', 'rust-check', 'rust-clippy', 'rust-fmt', 'dotnet-format', 'powershell', 'docs', 'toml')
+                $profiles = @('astgrep', 'ratchet', 'rag-quality', 'rust-check', 'rust-clippy', 'rust-fmt', 'dotnet-format', 'powershell', 'docs', 'toml')
             } elseif ($Mode -eq 'format') {
                 $profiles = @('rust-fmt', 'dotnet-format', 'powershell', 'docs', 'toml')
             } else {
@@ -2002,6 +2056,7 @@ function Invoke-QualityPipeline {
                 $jobArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $buildScriptPath, '-Component', 'lint', '-LintProfile', $p)
                 if ($AutoFix -or $Mode -eq 'fix') { $jobArgs += '-AutoFix' }
                 if ($SkipQualityGate) { $jobArgs += '-SkipQualityGate' }
+                if ($AllowMissingTools) { $jobArgs += '-AllowMissingTools' }
 
                 $outLog = Join-Path $script:BuildLogsDir "qa_job_$($p)_out.log"
                 $errLog = Join-Path $script:BuildLogsDir "qa_job_$($p)_err.log"
@@ -2036,7 +2091,7 @@ function Test-QualityProfileRequiresRust {
     param(
         [ValidateSet('lint', 'format', 'fix')]
         [string]$Mode,
-        [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality')]
+        [ValidateSet('all', 'rust-check', 'rust-clippy', 'rust-fmt', 'rust-inference-check', 'rust-inference-clippy', 'rust-inference-fmt', 'dotnet-format', 'powershell', 'docs', 'astgrep', 'toml', 'rag-quality', 'ratchet')]
         [string]$Profile
     )
 
@@ -3340,7 +3395,9 @@ Set-ReleaseBuildFlags -Configuration $Configuration -CudaComputeCaps $script:Cud
 
 # Pre-build quality gate
 if (-not $SkipQualityGate) {
-    $qualityGatePassed = Invoke-AstGrepCheck
+    # The pre-build gate stays lenient about a missing sg: a developer building without ast-grep should not
+    # be blocked here. Lint (-Component lint) is the fail-closed path.
+    $qualityGatePassed = Invoke-AstGrepCheck -AllowMissing
     if (-not $qualityGatePassed) {
         exit 1
     }

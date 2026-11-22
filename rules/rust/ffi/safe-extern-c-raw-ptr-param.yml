@@ -1,0 +1,32 @@
+id: safe-extern-c-raw-ptr-param
+language: rust
+severity: warning
+message: Safe extern "C" function takes a raw pointer parameter and dereferences it in an unsafe block; declare it `unsafe extern "C" fn` so callers own the pointer contract.
+note: |
+  Approximation: matches a function that is `extern "C"`, is not marked `unsafe`, has a parameter
+  of raw pointer type (*const T / *mut T), and whose body contains an `unsafe { }` block.
+  Dereferencing a raw pointer is only possible inside unsafe code, so the unsafe block stands in
+  for "is dereferenced"; the rule does not check that the unsafe block uses that very parameter.
+  Clippy's not_unsafe_ptr_arg_deref covers the exact case for pub fns; this rule also reports
+  non-pub exports and gives the ratchet a count that does not depend on a clippy run.
+rule:
+  kind: function_item
+  all:
+    - has:
+        kind: function_modifiers
+        regex: 'extern\s+"C"'
+    - not:
+        has:
+          kind: function_modifiers
+          regex: '\bunsafe\b'
+    - has:
+        field: parameters
+        has:
+          kind: parameter
+          has:
+            kind: pointer_type
+    - has:
+        field: body
+        has:
+          stopBy: end
+          kind: unsafe_block

@@ -1,0 +1,24 @@
+id: extern-c-holds-lock-across-block-on
+valid:
+  - |
+    pub extern "C" fn lock_after_block_on() -> i32 {
+        let r = rt.block_on(async { 1 });
+        let g = GLOBAL.lock().unwrap();
+        r
+    }
+  - |
+    fn not_extern() {
+        let g = M.lock().unwrap();
+        rt.block_on(fut);
+    }
+  - |
+    pub extern "C" fn no_lock() -> i32 {
+        rt.block_on(async { 1 })
+    }
+invalid:
+  - |
+    pub extern "C" fn holds_lock() -> i32 {
+        let g = GLOBAL.lock().unwrap();
+        let r = runtime().block_on(async { 1 });
+        r
+    }

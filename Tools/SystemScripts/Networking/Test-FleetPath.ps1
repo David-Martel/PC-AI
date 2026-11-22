@@ -85,6 +85,16 @@ Path of the inventory JSON. Default: $env:PCAI_FLEET_PATHS if set, else
 committed. Copy Tools/SystemScripts/Networking/fleet-paths.example.json (reserved
 documentation values only) and replace them with your own.
 
+.PARAMETER DualStack
+Opt-in. For every endpoint, also race (RFC 8305, Connect-PcaiEndpoint in PC-AI.Network) the candidates that
+passed the gates above, plus the peer's scoped USB4 IPv6 link-local and ULA addresses (registry peer named like the
+inventory host), and report the winner, its class (LinkLocal, ULA, GUA, IPv4Private, ...), source and timing in a
+DualStack member on each endpoint and DualStackConnected, DualStackWinnerClass, DualStackWinnerSource and DualStackMs
+on each Summary row. The inventory's tailnetV6 address joins the race only when its own route leaves from this node's
+tailnet address. DNS is never consulted and the registry's IPv4 addresses are never dialled, because neither has
+passed the home-LAN or tailnet-egress gate. Without the switch the output is unchanged. The race runs after the
+probes, one endpoint at a time, each bounded by -BudgetMs.
+
 .PARAMETER AsJson
 Emit one JSON document (schema pcai.fleet-path/1) instead of an object, suitable for
 ~/.machine/logs. The tailnet path may include a peer's public endpoint address.
@@ -107,7 +117,8 @@ param(
     [ValidateSet('ssh', 'smb', 'rdp', 'https', 'agentbus')][string[]]$Service,
     [ValidateRange(100, 30000)][int]$BudgetMs = 1500,
     [string]$InventoryPath = $(if ($env:PCAI_FLEET_PATHS) { $env:PCAI_FLEET_PATHS } else { Join-Path $HOME '.machine\fleet-paths.json' }),
-    [switch]$AsJson
+    [switch]$AsJson,
+    [switch]$DualStack
 )
 
 Set-StrictMode -Version Latest
@@ -759,6 +770,56 @@ function Select-FleetRecommendation {
     $eligible | Sort-Object -Property @{ Expression = { Get-FleetCandidateRank $_ } }, @{ Expression = { $_.Order } } | Select-Object -First 1
 }
 
+function Invoke-FleetDualStack {
+    # Opt-in (-DualStack). Races the gated candidates of one endpoint plus the peer's scoped USB4 IPv6 addresses
+    # with Connect-PcaiEndpoint. Never throws: a failure of this extra probe must not break the diagnostic.
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]$Endpoint,
+        [Parameter(Mandatory)][int]$BudgetMs,
+        $TailscaleStatus,
+        [scriptblock]$Connector,
+        [hashtable]$ResolverParameter
+    )
+    try {
+        if (-not (Get-Command -Name Connect-PcaiEndpoint -ErrorAction SilentlyContinue)) {
+            Import-Module (Join-Path $PSScriptRoot '..\..\..\Modules\PC-AI.Network\PC-AI.Network.psd1') -ErrorAction Stop
+        }
+        $fleetHost = $Endpoint.FleetHost
+        $plan = [Collections.Generic.List[object]]::new()
+        # Candidates that already passed the home-LAN, tailnet-egress and MagicDNS-validation gates.
+        foreach ($c in $Endpoint.Candidates) {
+            if ($c.Skipped) { continue }
+            $plan.Add([pscustomobject]@{ Address = [string]$c.ProbeAddress; Source = 'Inventory'; Evidence = "inventory $($c.Kind), gated"; Port = $Endpoint.Port })
+        }
+        # The tailnet IPv6 address of the same node, under the same egress gate (its own route, from our tailnet address).
+        $tailnetV6 = Get-FleetProperty $fleetHost 'TailnetV6'
+        $tailnetGated = @($Endpoint.Candidates | Where-Object { $_.Kind -eq 'tailnet' -and -not $_.Skipped }).Count -gt 0
+        if ($tailnetV6 -and $tailnetGated -and (Test-FleetTailnetEgress -Route (Find-FleetRoute -Address ([string]$tailnetV6)) -Status $TailscaleStatus)) {
+            $plan.Add([pscustomobject]@{ Address = [string]$tailnetV6; Source = 'Inventory'; Evidence = 'inventory tailnetV6, gated'; Port = $Endpoint.Port })
+        }
+        # Scoped USB4 link-local and ULA only. The registry's IPv4 addresses and DNS answers have no gate here.
+        $lookup = @{ PeerId = $fleetHost.Name; Provider = @('KnownPeer', 'Eui64', 'Neighbor'); IncludeIPv6 = $true; Port = $Endpoint.Port }
+        if ($ResolverParameter) { foreach ($key in $ResolverParameter.Keys) { $lookup[$key] = $ResolverParameter[$key] } }
+        foreach ($c in @(Get-PcaiEndpointCandidate @lookup)) {
+            if ($c.Class -in 'LinkLocal', 'ULA') { $plan.Add($c) }
+        }
+        $connect = @{ Candidate = $plan.ToArray(); Port = $Endpoint.Port; TimeoutMs = $BudgetMs }
+        if ($Connector) { $connect.Connector = $Connector }
+        $result = Connect-PcaiEndpoint @connect
+        [pscustomobject]@{
+            Connected = [bool]$result.Connected
+            Winner = if ($result.Winner) { [pscustomobject]@{ Address = $result.Winner.Address; Class = $result.Winner.Class; Source = $result.Winner.Source; InterfaceIndex = $result.Winner.InterfaceIndex } } else { $null }
+            ElapsedMs = $result.ElapsedMs
+            Attempts = @($result.Attempts)
+            Error = $null
+        }
+    }
+    catch {
+        [pscustomobject]@{ Connected = $false; Winner = $null; ElapsedMs = 0; Attempts = @(); Error = $_.Exception.Message }
+    }
+}
+
 function Invoke-FleetPathTest {
     [CmdletBinding()]
     param(
@@ -768,7 +829,11 @@ function Invoke-FleetPathTest {
         [Parameter(Mandatory)][string]$InventoryPath,
         [switch]$AsJson,
         # Test seam: replaces the TCP connect. See the connector contract above.
-        [scriptblock]$Connector
+        [scriptblock]$Connector,
+        [switch]$DualStack,
+        # Test seams for -DualStack: the race connector (IPAddress, Port, Candidate) and the candidate provider sources.
+        [scriptblock]$DualStackConnector,
+        [hashtable]$DualStackResolverParameter
     )
     $clock = [Diagnostics.Stopwatch]::StartNew()
     $stage = { param($Name) Write-Verbose ('{0,6} ms  {1}' -f [math]::Round($clock.Elapsed.TotalMilliseconds), $Name) }
@@ -943,6 +1008,13 @@ function Invoke-FleetPathTest {
         }
         $e.Recommended = Select-FleetRecommendation -Candidates $e.Candidates -OnHomeLan $onHomeLan
     }
+    $dualStackResults = @{}
+    if ($DualStack) {
+        foreach ($e in $endpoints) {
+            $dualStackResults["$($e.FleetHost.Name)|$($e.Service)|$($e.Port)"] = Invoke-FleetDualStack -Endpoint $e -BudgetMs $BudgetMs -TailscaleStatus $tailscaleGate.Status -Connector $DualStackConnector -ResolverParameter $DualStackResolverParameter
+        }
+        & $stage 'dual-stack race done'
+    }
 
     $toRecommendation = {
         param($Candidate)
@@ -961,7 +1033,9 @@ function Invoke-FleetPathTest {
             Tailscale = if ($hostPaths[$h.Name]) { $hostPaths[$h.Name] } else { [pscustomobject]@{ State = 'none'; Display = 'no tailnet address'; Region = $null; Endpoint = $null; Active = $null } }
             Recommended = & $toRecommendation $best
             Endpoints = @($mine | ForEach-Object {
-                    [pscustomobject]@{ Service = $_.Service; Port = $_.Port; Recommended = (& $toRecommendation $_.Recommended); Candidates = $_.Candidates }
+                    $row = [ordered]@{ Service = $_.Service; Port = $_.Port; Recommended = (& $toRecommendation $_.Recommended); Candidates = $_.Candidates }
+                    if ($DualStack) { $row['DualStack'] = $dualStackResults["$($h.Name)|$($_.Service)|$($_.Port)"] }
+                    [pscustomobject]$row
                 })
         }
     }
@@ -969,13 +1043,21 @@ function Invoke-FleetPathTest {
 
     $summary = foreach ($t in $targets) {
         foreach ($e in $t.Endpoints) {
-            [pscustomobject]@{
+            $row = [ordered]@{
                 Target = $t.Name; Service = $e.Service; Port = $e.Port
                 Recommended = if ($e.Recommended) { "$($e.Recommended.Kind) $($e.Recommended.Address)" } else { 'none' }
                 LatencyMs = if ($e.Recommended) { $e.Recommended.LatencyMs } else { $null }
                 Path = if ($e.Recommended) { $e.Recommended.Path } else { $null }
                 Interface = if ($e.Recommended) { $e.Recommended.Interface } else { $null }
             }
+            if ($DualStack) {
+                $dual = $e.DualStack
+                $row['DualStackConnected'] = [bool]$dual.Connected
+                $row['DualStackWinnerClass'] = if ($dual.Winner) { $dual.Winner.Class } else { $null }
+                $row['DualStackWinnerSource'] = if ($dual.Winner) { $dual.Winner.Source } else { $null }
+                $row['DualStackMs'] = $dual.ElapsedMs
+            }
+            [pscustomobject]$row
         }
     }
 
@@ -1004,5 +1086,6 @@ if ($MyInvocation.InvocationName -ne '.') {
     if ($PSBoundParameters.ContainsKey('Target')) { $forward.Target = $Target }
     if ($PSBoundParameters.ContainsKey('Service')) { $forward.Service = $Service }
     if ($AsJson) { $forward.AsJson = $true }
+    if ($DualStack) { $forward.DualStack = $true }
     Invoke-FleetPathTest @forward
 }

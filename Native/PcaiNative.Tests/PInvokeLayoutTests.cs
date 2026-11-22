@@ -13,14 +13,15 @@ namespace PcaiNative.Tests;
 /// write past the buffer (stack or heap corruption). A reordered or retyped field silently
 /// misreads every value after it.
 ///
-/// Detects: a field added, removed, reordered or retyped on the C# side without the matching
-/// Rust change (or the reverse), because the expected sizes and offsets below were derived by
-/// hand from the Rust definitions. The Rust half of the contract lives in
-/// <c>Native/pcai_core/pcai_inference/src/ffi/mod.rs</c> (<c>test_async_result_repr_c</c>);
-/// both sides must be edited together.
+/// Detects: managed-side drift in any of the 23 structs from the hand-derived sizes and offsets
+/// below. The expected numbers come from reading the Rust definitions, so this suite cannot see
+/// Rust-only drift. Exactly one Rust layout is bound by a test of its own:
+/// <c>PcaiAsyncResult</c>, via <c>test_async_result_field_offsets_match_csharp_mirror</c> in
+/// <c>Native/pcai_core/pcai_inference/src/ffi/mod.rs</c>. For the other 22 structs a Rust field
+/// change leaves these tests green until the managed side and this table are updated by hand.
 ///
-/// Scope: the numbers assume the 64-bit Windows ABI that PC-AI ships for. The tests do nothing
-/// in a 32-bit process, where the layouts legitimately differ.
+/// Platform: the numbers are the 64-bit ABI that PcaiNative ships for. The test project targets
+/// x64 and the layout test fails, rather than passing silently, in any other process width.
 /// </summary>
 public class PInvokeLayoutTests
 {
@@ -119,10 +120,8 @@ public class PInvokeLayoutTests
     [MemberData(nameof(MirroredStructs))]
     public void MirroredStructMatchesRustReprCLayout(Type type, int expectedSize, string expectedOffsets)
     {
-        if (!Environment.Is64BitProcess)
-        {
-            return; // Layouts below are the x64 ABI; see the class comment.
-        }
+        // The expected layouts are the x64 ABI. Fail loudly instead of skipping silently.
+        Assert.True(Environment.Is64BitProcess, "ABI layout tests require a 64-bit process.");
 
         Assert.Equal(expectedSize, Marshal.SizeOf(type));
 
@@ -156,15 +155,48 @@ public class PInvokeLayoutTests
     }
 
     [Fact]
-    public void PollResultSurfacesTokenCountsFromTheNativeStruct()
+    public void MapPollResultCopiesStatusTextAndTokenCountsFromTheNativeStruct()
     {
-        // Protects: the managed AsyncPollResult shape that carries TokensGenerated and
-        // PromptTokensEstimated out of PcaiAsyncResult. Detects the counters being dropped again
-        // when the struct is next edited.
-        var result = new InferenceModule.AsyncPollResult(
-            InferenceModule.AsyncRequestStatus.Complete, "ok", 7, 3);
+        // Protects: the mapping from the native PcaiAsyncResult to the managed AsyncPollResult,
+        // including the two token counters that were previously dropped.
+        // Detects: a swapped, dropped or mistyped field, a status cast error, or text being
+        // consumed for a null pointer. Uses a controlled struct; no native library is called.
+        var text = new IntPtr(0x1000);
+        IntPtr? consumed = null;
+        var native = new InferenceModule.PcaiAsyncResult
+        {
+            Status = (int)InferenceModule.AsyncRequestStatus.Complete,
+            Text = text,
+            TokensGenerated = 7,
+            PromptTokensEstimated = 3,
+        };
 
+        var result = InferenceModule.MapPollResult(native, p => { consumed = p; return "done"; });
+
+        Assert.Equal(InferenceModule.AsyncRequestStatus.Complete, result.Status);
+        Assert.Equal("done", result.Text);
         Assert.Equal(7u, result.TokensGenerated);
         Assert.Equal(3u, result.PromptTokensEstimated);
+        Assert.Equal(text, consumed);
+    }
+
+    [Fact]
+    public void MapPollResultDoesNotConsumeTextForANullPointer()
+    {
+        // Protects: pending, running, cancelled and unknown polls, whose Text is null and must
+        // not be read or freed. Detects: a mapping that dereferences or frees a null pointer.
+        var native = new InferenceModule.PcaiAsyncResult
+        {
+            Status = (int)InferenceModule.AsyncRequestStatus.Running,
+            Text = IntPtr.Zero,
+            TokensGenerated = 0,
+            PromptTokensEstimated = 0,
+        };
+
+        var result = InferenceModule.MapPollResult(
+            native, _ => throw new InvalidOperationException("text must not be consumed"));
+
+        Assert.Equal(InferenceModule.AsyncRequestStatus.Running, result.Status);
+        Assert.Null(result.Text);
     }
 }

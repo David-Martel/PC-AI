@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
+    <!-- PcaiNative ships x64 only (its csproj defaults PlatformTarget to x64). The ABI layout tests
+         pin x64 sizes, so run this assembly as x64 and let PInvokeLayoutTests fail loudly on any
+         other process width instead of passing without checking anything. -->
+    <PlatformTarget>x64</PlatformTarget>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
@@ -21,9 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Reference PcaiNative directly so tests can inspect its assembly metadata.
-         InternalsVisibleTo is NOT required — tests only use public types as anchors
-         and reflection to scan for DllImport attributes across all accessibility levels. -->
+    <!-- Reference PcaiNative directly so tests can inspect its assembly metadata. Most tests use
+         public types as anchors and reflection to scan for DllImport attributes; PcaiNative also
+         grants this assembly InternalsVisibleTo for the pure-managed mapping helpers. -->
     <ProjectReference Include="..\PcaiNative\PcaiNative.csproj" />
   </ItemGroup>
 

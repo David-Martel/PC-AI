@@ -372,23 +372,39 @@ namespace PcaiNative
         /// </returns>
         public static AsyncPollResult PollResultDetailed(long requestId)
         {
-            var result = pcai_poll_result(requestId);
-            var status = (AsyncRequestStatus)result.Status;
-            string? text = null;
+            return MapPollResult(pcai_poll_result(requestId), ConsumeNativeText);
+        }
 
-            if (result.Text != IntPtr.Zero)
+        /// <summary>
+        /// Converts the native struct into the managed view. Separated from the native call so the
+        /// field mapping can be tested with a controlled <see cref="PcaiAsyncResult"/> value.
+        /// </summary>
+        /// <param name="native">The struct returned by <c>pcai_poll_result</c>.</param>
+        /// <param name="consumeText">
+        /// Reads and releases a non-null native text pointer. Never called when
+        /// <see cref="PcaiAsyncResult.Text"/> is null.
+        /// </param>
+        internal static AsyncPollResult MapPollResult(PcaiAsyncResult native, Func<IntPtr, string?> consumeText)
+        {
+            var text = native.Text != IntPtr.Zero ? consumeText(native.Text) : null;
+            return new AsyncPollResult(
+                (AsyncRequestStatus)native.Status,
+                text,
+                native.TokensGenerated,
+                native.PromptTokensEstimated);
+        }
+
+        /// <summary>Copies a native UTF-8 string and always frees the native allocation.</summary>
+        private static string? ConsumeNativeText(IntPtr text)
+        {
+            try
             {
-                try
-                {
-                    text = Marshal.PtrToStringUTF8(result.Text);
-                }
-                finally
-                {
-                    pcai_free_string(result.Text);
-                }
+                return Marshal.PtrToStringUTF8(text);
             }
-
-            return new AsyncPollResult(status, text, result.TokensGenerated, result.PromptTokensEstimated);
+            finally
+            {
+                pcai_free_string(text);
+            }
         }
 
         /// <summary>

@@ -55,8 +55,9 @@ not compile this module. Hosted results remain pending until that exact head run
 local Linux execution does not establish Windows qualification.
 
 Independent selector/source review is recorded in
-[the review register](../Tests/Portable/media-upscale-review.json). Existing
-unreviewed tests elsewhere remain outside that disposition.
+[the review register](../Tests/Portable/media-upscale-review.json). The
+[CPU graph review entry](../Tests/Portable/media-upscale-cpu-review.json) binds the
+new selector, fixture and ORT dependency graph.
 
 ## Windows C++ runtime policy
 

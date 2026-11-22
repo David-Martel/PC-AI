@@ -16,12 +16,25 @@ Microsoft's November 19, 2026 announcement still lists the exact Experimental
 build and revision through the optional PublishedBuild parameter. A matching
 build, feature flag, Secure Boot observation and route can reach
 **OperatorReviewRequired**. Review still requires test-signing state, the
-matching NDv2 provider installation and a dedicated lab pair. The preflight
-writes no configuration, installs no provider and runs no network probe.
+matching NDv2 provider registration and a dedicated lab pair. Record the
+Microsoft publication URL and date alongside the exact build supplied to the
+preflight. The preflight accepts the operator's build claim and observes the
+registry flag. Confirm test signing, provider registration and a reboot after
+the flag was set using separate evidence on each host. The preflight writes no
+configuration, installs no provider and runs no network probe.
 [Microsoft USB4 RDMA announcement](https://techcommunity.microsoft.com/blog/microsoftusbblog/introducing-rdma-over-usb4%C2%AE-on-windows-run-larger-local-ai-models-across-pcs/4574602) ·
 [Windows Insider notes](https://blogs.windows.com/windows-insider/2026/11/20/announcing-new-builds-for-20-november-2026/).
 
 ## Test sequence
+
+Start with the [USB4NET TCP baseline](peer-networking.md) on a direct, qualified
+pair. Record both endpoint identities, adapter and driver versions, link rate,
+MTU and tool versions. Run one-way tests in each direction and a simultaneous
+bidirectional test. Capture receiver goodput per direction, latency under load,
+CPU, retransmits and interface counter deltas. Repeat after a cable replug and
+record time to link observation, route recovery and application reconnect
+separately. Keep cable, ports, MTU and workload fixed when comparing transports.
+[iperf3 options and result formats](https://software.es.net/iperf/invoking.html).
 
 1. Use matching builds, drivers and exact provider artifacts on dedicated test
    hosts. Microsoft requires test signing and Secure Boot changes for this
@@ -40,49 +53,55 @@ writes no configuration, installs no provider and runs no network probe.
    It evaluates the local path to the peer. Run it at the other endpoint to
    evaluate the return path.
 3. Confirm each endpoint's provider and adapter with ndprov_install dump
-   and ndadapterinfo. Use bounded ndping, one-shot ndlat and ndtput
+   and ndadapterinfo. The v0.1.0 provider implements two-sided send and receive.
+   Use bounded ndping, one-shot ndlat and ndtput
    listeners, and test both directions. Record Windows build, provider SHA-256,
    host and adapter identity, test flags, payload sizes, latency distribution,
    receiver goodput, CPU and errors. Measure TCP over the same interfaces and
    verify counter deltas. A vendor example, IP reachability or SMB Direct check
    alone supplies a different evidence scope.
+   [v0.1.0 provider scope](https://github.com/microsoft/windows-usb4-rdma/tree/v0.1.0) ·
    [Microsoft benchmark reference](https://github.com/microsoft/windows-usb4-rdma/blob/v0.1.0/docs/test-suite-reference.md).
 4. Repeat after cable removal and reconnection. Measure time to patched route
    observation and application reconnect separately. The preview transport
    leaves reconnection to the application. For distributed model tests keep
    identical branches and binaries, endpoint revision, model quantization,
-   context and split fixed across the TCP and NetworkDirect runs.
+   context and split fixed across the TCP and NetworkDirect runs. Compare both
+   against local-only inference when the model fits. Record time to first token,
+   tokens per second and transport bytes per token. Record a larger model that
+   only fits across the pair as a separate capacity result.
    [Microsoft llama.cpp sample](https://github.com/microsoft/llama.cpp-nd-usb4).
 
 ## Linux and mixed fleets
 
-Windows USB4NET and Linux ThunderboltIP remain the common TCP/UDP path. Linux
-introduced USB4STREAM in 7.2. Test a maintained kernel or distribution backport
-with `CONFIG_USB4_STREAM`. Run `pcai-tb stream-preflight --compact` on each
-endpoint. It reports local visibility of the kernel control directory, module
-entries, and `/dev/tbstreamN` character-device entries. `Absent` means the path
-is absent in the current namespace. An unavailable or incomplete scan stays
-explicit. Device entries can appear before a peer attaches. The probe avoids
-opening a stream device because the first open can allocate DMA rings.
+Windows USB4NET and Linux ThunderboltIP provide the common TCP/UDP path for
+mixed peers. On Linux, choose experiments by what the application needs to test.
 
-Qualify USB4STREAM on two Linux hosts. Use the configured stream's `index` for
-its local device mapping and preserve enrolled peer identity independently of the
-node number. A managed data path needs bounded nonblocking I/O, partial-transfer
-handling, and requalification after a hangup before reopening. Compare concurrent
-receiver goodput, latency, CPU and reconnection with authenticated USB4NET TCP on
-the same physical link. For RXE or SIW, qualify software verbs on the observed
-USB4NET interface. Experimental DMA-ring verbs drivers need matched endpoints and
-platform qualification. Keep IP forwarding and internet passthrough on the
-qualified network transport. Test NetworkDirect interoperability independently.
-For a fleet with supported RDMA Ethernet NICs, validate conventional RoCE
-separately with device-specific transport counters. The Microsoft preview
-preflight returns **UnsupportedPlatform** on Linux.
-[Linux 7.2 USB4 documentation](https://github.com/torvalds/linux/blob/v7.2/Documentation/admin-guide/thunderbolt.rst) ·
+Run `pcai-tb stream-preflight --compact` on each candidate Linux endpoint. It
+reports visibility of the kernel control directory, module entries, and
+`/dev/tbstreamN` character devices. An unavailable or incomplete scan stays
+explicit. Device entries can appear before a peer attaches. The probe leaves
+stream devices unopened because the first open can allocate DMA rings.
+
+| Candidate | Qualification scope |
+| --- | --- |
+| [Upstream USB4STREAM](https://docs.kernel.org/admin-guide/thunderbolt.html#streaming-data-directly-over-thunderbolt-cable) | Raw Linux-to-Linux host streams via `/dev/tbstreamX`. Check the installed kernel's `CONFIG_USB4_STREAM` and match its userspace ABI on both endpoints. Verify payload hashes in both directions and repeat after reconnect. |
+| [Soft-RoCE and Soft-iWARP](https://github.com/linux-rdma/rdma-core/blob/master/MAINTAINERS) | Linux verbs application compatibility over IP on USB4NET. Qualify the software provider on both ends and compare against the same-link TCP baseline. |
+| [Hellas Thunderbolt verbs](https://github.com/hellas-ai/thunderbolt-ibverbs) | Out-of-tree Linux kernel modules and userspace. Pin matching module and userspace revisions on two lab hosts, then verify the selected device and actual verbs traffic. |
+| [Strix Halo USB4 driver](https://github.com/hyukudan/strix-halo-usb4-driver) | Out-of-tree kernel patches for AMD Strix Halo, including an experimental DMA-BUF path. Use the project's exact kernel baseline and matching test hardware. |
+
+Use a maintained kernel or distribution backport for USB4STREAM. Map the
+configured stream's `index` to its local device and preserve enrolled peer
+identity independently of the node number. A managed data path needs bounded
+nonblocking I/O, partial-transfer handling and requalification after hangup.
+Run IP forwarding and internet passthrough on the qualified network transport.
 [USB4STREAM driver](https://github.com/torvalds/linux/blob/v7.2/drivers/thunderbolt/stream.c) ·
 [Maintained Linux releases](https://www.kernel.org/) ·
-[Linux RDMA userspace](https://github.com/linux-rdma/rdma-core) ·
-[Linux USB4 verbs experiment](https://github.com/hellas-ai/thunderbolt-ibverbs) ·
 [Strix Halo peer measurements](https://github.com/jyatesdotdev/strix-rdma#status).
+
+The Microsoft preview preflight returns **UnsupportedPlatform** on Linux.
+Windows NetworkDirect to Linux USB4STREAM or verbs remains unqualified. Keep
+conventional RoCE over an RDMA-capable Ethernet NIC as a separate result.
 
 The [CLI controls](../../Native/pcai_core/pcai_tb_cli/tests/stream_preflight_cli.rs)
 exercise the report and option boundaries on Windows and Linux. The

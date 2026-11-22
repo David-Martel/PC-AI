@@ -159,6 +159,19 @@ host names with `[host]`. Regenerate it in each release PR, before the tag exist
 git-cliff --config cliff.toml --output CHANGELOG.md
 ```
 
+That command lists every commit on the release branch. A squash merge keeps only the pull request's title, so for
+the release PR itself generate from `origin/main` and add that title. git-cliff reads `HEAD`, so point a throwaway
+shared clone at `origin/main` first:
+
+```bash
+git clone --quiet --shared --no-checkout . /tmp/cliff-src
+git -C /tmp/cliff-src update-ref --no-deref HEAD "$(git rev-parse origin/main)"
+git-cliff --repository /tmp/cliff-src --config cliff.toml \
+  --with-commit "docs(release): <release PR title> (#<number>)" --output CHANGELOG.md
+```
+
+The v0.2.0 changelog was generated this way.
+
 Once the tag exists, the same command files those commits under the tag's version and date. Review the output before
 committing, because the repository is public. Search it for IP addresses, tokens, e-mail addresses and host names. If
 a commit subject leaks one, add a `commit_preprocessors` pattern to `cliff.toml` and regenerate; do not edit

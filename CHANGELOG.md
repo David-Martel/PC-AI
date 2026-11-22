@@ -423,7 +423,7 @@ All notable changes to PC-AI are documented here.
 - Record scheduled terminal window repair (#280)
 - **usb4**: Define RDMA qualification baselines (#380)
 - **usb4**: Correct direct route review attribution (#390)
-- **release**: Adopt a versioning policy and set the 0.2.0 baseline
+- **release**: Adopt a versioning policy and set the 0.2.0 baseline (#403)
 
 ### Features
 
@@ -625,6 +625,7 @@ All notable changes to PC-AI are documented here.
 - **usb4**: Observe Linux kernel stream config and configfs (#381)
 - **quality**: Fail-closed static-quality ratchet with committed baseline (#376)
 - **usb4**: Profile receiver intervals and recover cold neighbors (#400)
+- **network**: Dual-stack endpoint candidates and RFC 8305 connector (#402)
 
 ### Miscellaneous
 

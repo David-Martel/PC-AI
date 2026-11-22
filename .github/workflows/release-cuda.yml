@@ -4,25 +4,64 @@ on:
   push:
     tags:
       - 'v*'  # Trigger on version tags (v1.0.0, v0.1.0-beta, etc.)
-  workflow_dispatch:  # Allow manual triggers for testing
-    inputs:
-      tag:
-        description: 'Release tag (e.g., v1.0.0)'
-        required: true
+  workflow_dispatch:  # Build and upload run artifacts from the selected ref.
 
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   test:
     name: Unit Tests
     runs-on: windows-latest
+    permissions:
+      contents: read
+    outputs:
+      source_ref: ${{ steps.source.outputs.source_ref }}
+      source_commit: ${{ steps.source.outputs.source_commit }}
+      release_tag: ${{ steps.source.outputs.release_tag }}
+      release_version: ${{ steps.source.outputs.release_version }}
     steps:
       - uses: actions/checkout@v7
+        id: source_checkout
+        with:
+          persist-credentials: false
+
+      - name: Verify Source Revision
+        id: source
+        shell: pwsh
+        env:
+          PCAI_CHECKOUT_REF: ${{ steps.source_checkout.outputs.ref }}
+          PCAI_CHECKOUT_COMMIT: ${{ steps.source_checkout.outputs.commit }}
+        run: |
+          if ($env:GITHUB_SHA -cnotmatch '\A[0-9a-f]{40}\z' -or $env:PCAI_CHECKOUT_COMMIT -cne $env:GITHUB_SHA) {
+            throw 'The checkout does not match the event source commit.'
+          }
+
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
+            "source_ref=$env:GITHUB_SHA" >> $env:GITHUB_OUTPUT
+            "source_commit=$env:GITHUB_SHA" >> $env:GITHUB_OUTPUT
+            return
+          }
+
+          # The existing build version contract accepts vMAJOR.MINOR.PATCH
+          # and optional SemVer prerelease identifiers.
+          $numeric = '(?:0|[1-9][0-9]*)'
+          $identifier = "(?:$numeric|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+          $tagPattern = "\Av$numeric\.$numeric\.$numeric(?:-$identifier(?:\.$identifier)*)?\z"
+          $tag = $env:GITHUB_REF_NAME
+          $tagRef = "refs/tags/$tag"
+          if ($env:GITHUB_EVENT_NAME -ne 'push' -or $env:GITHUB_REF_TYPE -ne 'tag' -or
+              $tag -cnotmatch $tagPattern -or $env:GITHUB_REF -cne $tagRef -or $env:PCAI_CHECKOUT_REF -cne $tagRef) {
+            throw 'A supported pushed release tag and checkout of that exact ref are required.'
+          }
+
+          "source_ref=$tagRef" >> $env:GITHUB_OUTPUT
+          "source_commit=$env:GITHUB_SHA" >> $env:GITHUB_OUTPUT
+          "release_tag=$tag" >> $env:GITHUB_OUTPUT
+          "release_version=$($tag.Substring(1))" >> $env:GITHUB_OUTPUT
 
       - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -43,6 +82,8 @@ jobs:
     name: Build ${{ matrix.backend }} (${{ matrix.cuda && 'CUDA' || 'CPU' }})
     needs: test
     runs-on: windows-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -50,6 +91,15 @@ jobs:
         cuda: [true, false]
     steps:
       - uses: actions/checkout@v7
+        id: source_checkout
+        with:
+          ref: ${{ needs.test.outputs.source_ref }}
+          persist-credentials: false
+
+      - name: Reject a moved build ref
+        if: steps.source_checkout.outputs.commit != needs.test.outputs.source_commit
+        shell: pwsh
+        run: throw 'Build checkout does not match the verified source commit.'
 
       - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -133,9 +183,14 @@ jobs:
       - name: Set Version Info
         id: version_info
         shell: pwsh
+        env:
+          PCAI_EXPECTED_RELEASE_VERSION: ${{ needs.test.outputs.release_version }}
         run: |
           # Use Get-BuildVersion.ps1 to set version environment variables
           $versionInfo = .\Tools\Get-BuildVersion.ps1 -SetEnv -Quiet
+          if ($env:PCAI_EXPECTED_RELEASE_VERSION -and $versionInfo.SemVer -cne $env:PCAI_EXPECTED_RELEASE_VERSION) {
+            throw 'Native build version does not match the verified release tag.'
+          }
 
           Write-Host "Version: $($versionInfo.Version)" -ForegroundColor Cyan
           Write-Host "Git: $($versionInfo.GitHashShort) ($($versionInfo.GitBranch))" -ForegroundColor Cyan
@@ -292,11 +347,12 @@ jobs:
 
   release:
     name: Create Release
-    needs: build
+    if: github.event_name == 'push' && github.ref_type == 'tag' && needs.test.outputs.release_tag != ''
+    needs: [test, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v7
-
       - name: Download All Artifacts
         uses: actions/download-artifact@v8
         with:
@@ -314,28 +370,14 @@ jobs:
           echo "Collected release assets:"
           ls -la release-assets/
 
-      - name: Determine Version
-        id: version
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.tag }}"
-          else
-            VERSION="${{ github.ref_name }}"
-          fi
-          VERSION="${VERSION#v}"  # Remove 'v' prefix if present
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "TAG=v$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION"
-
       - name: Generate Release Notes
-        id: notes
         shell: bash
+        env:
+          PCAI_RELEASE_VERSION: ${{ needs.test.outputs.release_version }}
+          PCAI_SOURCE_COMMIT: ${{ needs.test.outputs.source_commit }}
         run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-
-          cat > RELEASE_NOTES.md << 'EOF'
-          ## PC-AI Inference Engine v${{ steps.version.outputs.VERSION }}
+          printf '## PC-AI Inference Engine v%s\n\n' "$PCAI_RELEASE_VERSION" > RELEASE_NOTES.md
+          cat >> RELEASE_NOTES.md << 'EOF'
 
           Pre-compiled native binaries for Windows x64.
 
@@ -394,17 +436,33 @@ jobs:
           - `POST /v1/chat/completions` - Chat completions (OpenAI-compatible)
 
           ---
-          Built with GitHub Actions from commit ${{ github.sha }}
           EOF
+          printf 'Built with GitHub Actions from commit %s\n' "$PCAI_SOURCE_COMMIT" >> RELEASE_NOTES.md
+
+      - uses: actions/checkout@v7
+        id: source_checkout
+        with:
+          ref: ${{ needs.test.outputs.source_ref }}
+          path: release-source
+          persist-credentials: false
+
+      - name: Reject a moved release ref
+        if: steps.source_checkout.outputs.commit != needs.test.outputs.source_commit
+        shell: bash
+        run: |
+          echo 'Release tag no longer points to the verified source commit.' >&2
+          exit 1
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.version.outputs.TAG }}
-          name: PC-AI Inference v${{ steps.version.outputs.VERSION }}
+          tag_name: ${{ needs.test.outputs.release_tag }}
+          target_commitish: ${{ needs.test.outputs.source_commit }}
+          name: PC-AI Inference v${{ needs.test.outputs.release_version }}
           body_path: RELEASE_NOTES.md
           files: release-assets/*.zip
+          fail_on_unmatched_files: true
           draft: false
-          prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
+          prerelease: ${{ contains(needs.test.outputs.release_version, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

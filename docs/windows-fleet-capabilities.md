@@ -80,6 +80,25 @@ module's existing component tree so exports reflect those components; copying a
 new repository umbrella does not upgrade installed components. This helper
 installs nothing; `-DryRun`, `-WhatIf`, `-h` and `--help` are available.
 
+## Native release source
+
+The [native Windows release workflow](../.github/workflows/release-cuda.yml)
+builds the exact Git commit selected for a manual dispatch and uploads the
+packages as Actions run artifacts. A release publication starts with a pushed
+`vMAJOR.MINOR.PATCH` tag, with an optional SemVer prerelease. The workflow
+checks the tag and commit before testing, checks the commit again for each
+matrix build and rechecks the tag immediately before publication. Build and
+test jobs get read-only repository access. The publication job gets write
+access after the tests and all matrix builds pass.
+
+Follow the [release signing guide](../CODE_SIGN.md) for signer, tag and artifact
+checks. Run the [native release source contracts](../Tests/Unit/NativeReleaseWorkflow.Tests.ps1)
+with `Invoke-Pester -Path Tests/Unit/NativeReleaseWorkflow.Tests.ps1 -CI` to
+verify dispatch isolation and tag admission on PowerShell 7 with Pester 5.
+These contracts exercise the workflow's source verification with local
+fixtures. A live release still needs runner availability and the native
+build and package results for its exact tag.
+
 ## Unsupported-provider regression review
 
 Reviewed 2026-11-02 against integration base `816038d4` and the exact hashes below.

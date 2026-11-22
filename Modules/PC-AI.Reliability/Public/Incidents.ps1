@@ -92,15 +92,28 @@ function Submit-FleetObservation {
     process {
         $key = Get-FleetIncidentKey -Observation $Observation
         $now = Get-FleetNow
-        $statePath = Join-Path (Get-FleetPath -Kind state) 'incidents.json'
         $bad = @('ok', 'skipped') -notcontains $Observation.Status
         $events = New-Object System.Collections.ArrayList
-        $ctx = @{ transition = 'quiet' }
+        # known: what the readable store said about this key before the update ('open', 'muted' or ''), for
+        # the fallback alert when the update cannot be saved.
+        # committed: the store write succeeded, so a later failure (promoting the staged events) must not send the
+        # fallback; outbox recovery sends the committed events (review of d5d030fd).
+        $ctx = @{ transition = 'quiet'; known = ''; committed = $false }
 
+        # Any failure below (state path, lock, read, staging, save) still throws, but a bad observation first
+        # sends one unsaved alert: a full disk otherwise silenced the alert that reports it (sentinel-utils #1600).
+        # The try body is not re-indented, so the change reads as the two lines that wrap it.
+        try {
+        $statePath = Join-Path (Get-FleetPath -Kind state) 'incidents.json'
         $acquired = $false
         $null = Invoke-FleetWithLock -LockName 'incidents' -TimeoutSeconds 30 -Acquired ([ref]$acquired) -ScriptBlock {
             $all = Read-FleetIncidentStore -Reset
             $s = $all[$key]
+            if ($null -ne $s) {
+                $knownFlap = ConvertFrom-FleetIso $s.flapping_until
+                if ($s.state -eq 'open') { $ctx.known = 'open' }
+                elseif ($null -ne $knownFlap -and $now -lt $knownFlap -and ($knownFlap - $now).TotalHours -le 6) { $ctx.known = 'muted' }
+            }
             if ($Observation.Status -eq 'skipped') { $ctx.transition = 'neutral'; return }
             if ($null -eq $s) {
                 if (-not $bad) { $ctx.transition = 'quiet'; return }
@@ -218,13 +231,45 @@ function Submit-FleetObservation {
                 foreach ($p in $pending) { Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue }
                 throw
             }
+            $ctx.committed = $true
             foreach ($p in $pending) { Move-Item -LiteralPath $p -Destination ($p -replace '\.pending$', '.json') -Force -ErrorAction Stop }
         }
         if (-not $acquired) { throw "fleet incidents: could not lock the incident store; observation for $key not applied" }
+        }
+        catch {
+            if ($bad -and -not $ctx.committed -and @('open', 'muted') -notcontains $ctx.known) { Send-FleetUnsavedAlert -Observation $Observation -Key $key }
+            throw
+        }
         $transition = $ctx.transition
         Invoke-FleetIncidentOutboxFlush
         return [pscustomobject]@{ Key = $key; Transition = $transition; Bad = $bad }
     }
+}
+
+function Send-FleetUnsavedAlert {
+    <#
+    The alert for a bad observation whose incident store could not be read or saved (a full disk, a broken store):
+    one incident-open with details.incident_state = 'unsaved', without the OpenAfter threshold (the bad count cannot
+    advance unsaved). It repeats on every sweep while the store stays unsaved: repetition over silence. It never
+    depends on local storage: the append and the forward are separate steps, so a failed append still forwards, and
+    the forward runs exactly once, since it sends before it records the delivery and a failed record must not send
+    again (review of d5d030fd). Never throws. Mirrors sentinel-utils #1600 (_fl_observe_unsaved).
+    #>
+    param([Parameter(Mandatory)]$Observation, [Parameter(Mandatory)][string]$Key)
+    try {
+        $details = @{}
+        if ($Observation.Details) { foreach ($k in @($Observation.Details.Keys)) { $details[$k] = $Observation.Details[$k] } }
+        $details['incident_state'] = 'unsaved'
+        $ev = New-FleetLedgerEvent -Source $Observation.Source -Name $Observation.Name -Check $Observation.Check `
+            -Kind incident-open -Status $Observation.Status -Severity $Observation.Severity `
+            -Message ('incident state could not be saved, so this alert repeats each sweep: ' + $Observation.Message) `
+            -LogPath $Observation.LogPath -IncidentKey $Key -Details $details
+        try { $null = Write-FleetLedgerEvent -LedgerEvent $ev -NoForward }
+        catch { Write-Warning "fleet incidents: unsaved alert for $Key not appended ($($_.Exception.Message)); forwarding it anyway" }
+        try { $null = Invoke-FleetEventForward -LedgerEvent $ev }
+        catch { Write-Warning "fleet incidents: unsaved alert for $Key forwarded, but its delivery was not recorded: $($_.Exception.Message)" }
+    }
+    catch { Write-Warning "fleet incidents: could not send the unsaved alert for ${Key}: $($_.Exception.Message)" }
 }
 
 function Add-FleetIncidentOutbox {

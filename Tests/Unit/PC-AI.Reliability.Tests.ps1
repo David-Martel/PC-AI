@@ -461,8 +461,14 @@ Describe 'PC-AI.Reliability' {
             Mock -ModuleName PC-AI.Reliability Write-FleetJsonFile -ParameterFilter { $Path -like '*incidents.json' } { throw 'disk full' }
             { Submit-FleetObservation (New-TestObservation -Name 'uncommitted') } | Should -Throw '*disk full*'
             InModuleScope PC-AI.Reliability { Invoke-FleetIncidentOutboxFlush }
-            @(Read-TestLedger | Where-Object { $_.kind -eq 'incident-open' -and $_.name -eq 'uncommitted' }).Count | Should -Be 0
-            @(Get-BusCall 'send').Count | Should -Be 0
+            # The staged transition is never sent. Since the sentinel-utils #1600 twin, the only event that leaves is the
+            # separate unsaved alert, marked incident_state = 'unsaved', so a full disk is no longer silent.
+            $opens = @(Read-TestLedger | Where-Object { $_.kind -eq 'incident-open' -and $_.name -eq 'uncommitted' })
+            $opens.Count | Should -Be 1
+            $opens[0].details.incident_state | Should -Be 'unsaved'
+            $sent = @(Get-BusCall 'send')
+            $sent.Count | Should -Be 1
+            (@(Get-ArgValue $sent[0] '--metadata')[0] | ConvertFrom-Json).details.incident_state | Should -Be 'unsaved'
         }
 
         It 'row 16: a spool replay already in progress is not started a second time' {
@@ -729,6 +735,68 @@ Describe 'PC-AI.Reliability' {
             # Detects the repeat-every-run noise pattern; one incident, one alert.
             (Submit-FleetObservation (New-TestObservation)).Transition | Should -Be 'opened'
             (Submit-FleetObservation (New-TestObservation)).Transition | Should -Be 'still-open'
+            @(Get-BusCall 'send').Count | Should -Be 1
+        }
+
+        It 'still alerts a bad observation when the incident store cannot be saved (sentinel-utils #1600 twin)' {
+            # A failed store write removed the staged events and threw, so a full disk silenced the alert that
+            # reports it. The failure still throws, but one incident-open marked incident_state=unsaved is
+            # sent, even below OpenAfter (the bad count cannot advance unsaved). Controls: an incident already
+            # open in the readable store sends nothing more, and an ok observation sends nothing.
+            Mock -ModuleName PC-AI.Reliability Write-FleetJsonFile { throw 'disk full' } -ParameterFilter { $Path -like '*incidents.json' }
+            $obs = New-FleetObservation -Source disk -Name 'D:' -Check disk-free -Status failed -Severity high -Message 'free space low' -OpenAfter 3
+            { Submit-FleetObservation $obs } | Should -Throw '*disk full*'
+            $sent = @(Get-BusCall 'send')
+            $sent.Count | Should -Be 1
+            $meta = @(Get-ArgValue $sent[0] '--metadata')[0] | ConvertFrom-Json
+            $meta.kind | Should -Be 'incident-open'
+            $meta.details.incident_state | Should -Be 'unsaved'
+            # Unsaved, so the next sweep alerts again: repetition over silence.
+            { Submit-FleetObservation $obs } | Should -Throw
+            @(Get-BusCall 'send').Count | Should -Be 2
+        }
+
+        It 'forwards the unsaved alert directly when the ledger cannot be appended either (a full disk)' {
+            Mock -ModuleName PC-AI.Reliability Write-FleetJsonFile { throw 'disk full' } -ParameterFilter { $Path -like '*incidents.json' }
+            Mock -ModuleName PC-AI.Reliability Write-FleetLedgerEvent { throw 'disk full' } -ParameterFilter { $LedgerEvent.kind -eq 'incident-open' }
+            $obs = New-FleetObservation -Source disk -Name 'D:' -Check disk-free -Status failed -Severity high -Message 'free space low'
+            { Submit-FleetObservation $obs } | Should -Throw '*disk full*'
+            $sent = @(Get-BusCall 'send')
+            $sent.Count | Should -Be 1
+            (@(Get-ArgValue $sent[0] '--metadata')[0] | ConvertFrom-Json).details.incident_state | Should -Be 'unsaved'
+        }
+
+        It 'sends no unsaved alert when the state was saved and only the promotion of its events failed (review of d5d030fd)' {
+            # The store write succeeded, so the opening alert is committed and outbox recovery sends it. An unsaved alert
+            # here announced the same opening twice. Control: once promotion works again, the opening goes out once.
+            $script:FailPromotion = $true
+            Mock -ModuleName PC-AI.Reliability Move-Item { throw 'promotion failed' } -ParameterFilter { $script:FailPromotion -and $LiteralPath -like '*.pending' }
+            { Submit-FleetObservation (New-TestObservation -Name 'promoted') } | Should -Throw '*promotion failed*'
+            @(Get-BusCall 'send').Count | Should -Be 0
+            $script:FailPromotion = $false
+            $null = Submit-FleetObservation (New-TestObservation -Name 'promoted')
+            $sent = @(Get-BusCall 'send')
+            $sent.Count | Should -Be 1
+            $meta = @(Get-ArgValue $sent[0] '--metadata')[0] | ConvertFrom-Json
+            $meta.kind | Should -Be 'incident-open'
+            $meta.details.incident_state | Should -BeNullOrEmpty
+        }
+
+        It 'forwards the unsaved alert once when only recording its delivery fails (review of d5d030fd)' {
+            # Forwarding sends to the bus before it records the delivery; a failed record must not send again.
+            Mock -ModuleName PC-AI.Reliability Write-FleetJsonFile { throw 'disk full' } -ParameterFilter { $Path -like '*incidents.json' }
+            Mock -ModuleName PC-AI.Reliability Write-FleetLedgerEvent { throw 'disk full' } -ParameterFilter { $LedgerEvent.check -eq 'delivery' }
+            $obs = New-FleetObservation -Source disk -Name 'E:' -Check disk-free -Status failed -Severity high -Message 'free space low'
+            { Submit-FleetObservation $obs } | Should -Throw '*disk full*'
+            @(Get-BusCall 'send').Count | Should -Be 1
+        }
+
+        It 'sends no unsaved alert for an incident already open, or for an ok observation, when the save fails' {
+            $null = Submit-FleetObservation (New-TestObservation)
+            @(Get-BusCall 'send').Count | Should -Be 1
+            Mock -ModuleName PC-AI.Reliability Write-FleetJsonFile { throw 'disk full' } -ParameterFilter { $Path -like '*incidents.json' }
+            { Submit-FleetObservation (New-TestObservation) } | Should -Throw
+            { Submit-FleetObservation (New-TestObservation -Status ok) } | Should -Throw
             @(Get-BusCall 'send').Count | Should -Be 1
         }
 

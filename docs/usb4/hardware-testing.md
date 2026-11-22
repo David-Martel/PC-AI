@@ -2,6 +2,8 @@
 
 Use the [HIL coordinator](../../Tests/Hardware/usb4_tcp_hil.py) from a trusted PC-AI checkout to qualify Windows USB4NET cables for simultaneous bidirectional TCP. CI runs the [receipt controls](../../Tests/Portable/test_usb4_tcp_hil.py) and [endpoint controls](../../Tests/Portable/Test-Usb4TcpEndpoint.ps1) on Windows and Linux. The physical run needs Python 3.10+, Git, OpenSSH for remote management, and PowerShell 7 and iperf3 3.11+ on each endpoint. The examples use uv to select Python.
 
+The [custody controls](../../Tests/Portable/usb4-tcp-hil-custody-review.json) check listener contention and the cleanup time available within the SSH deadline.
+
 ## Describe the cables
 
 Keep the site profile and run receipts on an access-controlled local path. Use the actual Windows computer name, interface GUID, MAC and preferred IPv6 link-local address of each USB4NET adapter. `Get-NetAdapter -IncludeHidden`, `Get-NetIPAddress -AddressFamily IPv6`, and `Get-NetNeighbor -AddressFamily IPv6` provide these values. Supply a local iperf3 path on each endpoint and a free TCP port approved for the trial. The optional `management` field names a pinned SSH endpoint. Omit it when the coordinator is running on that endpoint. Management can run over an existing LAN connection. TCP measurements bind to the USB4 link-local addresses and use the live Windows interface index to scope them.

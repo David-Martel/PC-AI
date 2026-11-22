@@ -1,0 +1,41 @@
+{
+  "SchemaVersion": 1,
+  "SourceBaseline": "0fc498ccd8a03c314a965afee5a36cab1104d38e",
+  "ReviewedAtUtc": "2026-11-22T19:11:09.004476+00:00",
+  "HashConvention": "UTF-8 LF sources; complete Python test method lines; PowerShell rationale through closing brace and LF",
+  "SourceBindings": {
+    "Tests/Portable/Test-Usb4TcpEndpoint.ps1": "15db4ab91e3d862512e7d8d20fc5774f715c918e0d0fd2549b210713abb019a1",
+    "Tests/Portable/test_usb4_tcp_hil.py": "892ef4173352e9c7e3b3085d4b75c1330b23e220fe44d668cce6af6c99ccbb0c",
+    "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1": "be06d9a964fd7a2909f089f6fe90b925668d7de25c1fe971e420eecb4b2198a5",
+    "Tests/Hardware/usb4_tcp_hil.py": "e7ee3301f58f27ccca6dcd55fb7c85b26db187d9afb6b5e4310e59ee393cfa87",
+    "docs/usb4/hardware-testing.md": "e299dfec1982b5bbc8a29784bed8fc04477a7f18c7d95ee3a6f38cd5ece7b48e"
+  },
+  "Selectors": [
+    {
+      "Selector": "Test-ListenerRefusesCompetingMutexOwner",
+      "Source": "Tests/Portable/Test-Usb4TcpEndpoint.ps1",
+      "Sha256": "7517f77cc0f6669646e84464a6cb9d1312061a04e0bf91c85777fff0d2855f99",
+      "Protects": "Exclusive listener firewall custody",
+      "Detects": "A second host listener enters while another owns the mutex",
+      "Needs": "PowerShell 7 and an isolated kernel mutex",
+      "Breadcrumb": "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::listener mutex",
+      "Reviewer": "codex/hilendpoint",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "Windows and WSL passed. Removing the mutex guard failed the selector."
+    },
+    {
+      "Selector": "test_remote_listener_deadline_leaves_time_for_owned_cleanup",
+      "Source": "Tests/Portable/test_usb4_tcp_hil.py",
+      "Sha256": "0e2284b38cf31f5dd9d4b20d0f729200831427d92cc40a1217febd5a6b1b7149",
+      "Protects": "SSH cleanup time extends beyond the bounded receiver job",
+      "Detects": "Coordinator deadline can kill the SSH session before receiver cleanup",
+      "Needs": "Python 3.10+ and mocked SSH subprocess",
+      "Breadcrumb": "Tests/Hardware/usb4_tcp_hil.py::run_endpoint",
+      "Reviewer": "codex/hilendpoint",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "Windows passed. Both shortened deadline mutations failed."
+    }
+  ]
+}

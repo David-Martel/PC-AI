@@ -398,6 +398,99 @@ Describe 'documentation accuracy gate positive controls' -Tag 'Unit', 'Portable'
     }
 }
 
+Describe 'documentation accuracy gate file inventory' -Tag 'Unit', 'Portable' {
+    # Protects: a check never passes because its inputs silently went missing, and a stale local file never stands in
+    #   for a committed one.
+    # Detects: (1) a Git inventory that fails (unreadable repository, git absent) being swallowed into a recursive
+    #   fallback that finds nothing, after which every check "passes"; (2) a walk that descends into excluded trees or
+    #   follows junctions and symlinks (the shared RustCache link under target/); (3) an untracked file satisfying a
+    #   committed link; (4) a check that examined zero inputs reporting pass.
+    # Needs: PowerShell 7 and TestDrive; git for the two real-repository controls (skipped when git is absent).
+    # Breadcrumb: Tools/validate-doc-accuracy.ps1 Get-RepoFileList and the zero-input handling in the run loop.
+    It 'fails explicitly, and runs no check, when the Git inventory cannot be read' {
+        $root = New-DocFixture 'inv-badgit'
+        # A .git file naming a repository that does not exist: `git ls-files` exits nonzero.
+        Write-FixtureFile $root '.git' "gitdir: $(Join-Path $TestDrive 'no-such-gitdir')`n"
+        $r = Invoke-Gate -Root $root
+        $r.Exit | Should -Be 1
+        $inv = @($r.Report.checks | Where-Object { $_.id -eq 'inventory' })
+        $inv.Count | Should -Be 1
+        $inv[0].status | Should -Be 'fail'
+        @($r.Report.checks | Where-Object status -EQ 'pass').Count | Should -Be 0
+    }
+
+    It 'does not walk excluded trees or follow junctions and symlinks when there is no Git inventory' {
+        $outside = Join-Path $TestDrive 'inv-outside'
+        $null = New-Item -ItemType Directory -Path $outside -Force
+        Write-FixtureFile $outside 'bad.md' "[dead](nowhere.md)`n"
+        $root = New-DocFixture 'inv-walk' {
+            param($r)
+            foreach ($d in 'target', 'node_modules', 'worktrees/other', 'Native/pcai_core/target/debug') {
+                Write-FixtureFile $r "$d/bad.md" "[dead](nowhere.md)`n"
+            }
+        }
+        $linkType = if ($IsWindows) { 'Junction' } else { 'SymbolicLink' }
+        try {
+            $null = New-Item -ItemType $linkType -Path (Join-Path $root 'linked') -Target $outside -ErrorAction Stop
+        } catch {
+            Set-ItResult -Skipped -Because "cannot create a $linkType here: $($_.Exception.Message)"
+            return
+        }
+        $r = Invoke-Gate -Root $root -Check 'relative-links'
+        $r.Exit | Should -Be 0
+        @(Get-Findings $r 'relative-links' 'fail').Count | Should -Be 0
+        # Positive control: the same dead link in a normal directory is found.
+        Write-FixtureFile $root 'docs/bad.md' "[dead](nowhere.md)`n"
+        (Invoke-Gate -Root $root -Check 'relative-links').Exit | Should -Be 1
+    }
+
+    It 'reports skip with a reason, never pass, for a check that examined no inputs' {
+        $root = Join-Path $TestDrive 'inv-empty'
+        Write-FixtureFile $root 'notes.txt' "nothing the gate reads`n"
+        $r = Invoke-Gate -Root $root
+        @($r.Report.checks | Where-Object status -EQ 'pass').Count | Should -Be 0
+        foreach ($id in 'relative-links', 'module-exports', 'tool-schema', 'workflows', 'retired-hosts') {
+            $c = @($r.Report.checks | Where-Object id -EQ $id)
+            $c.Count | Should -BeGreaterThan 0
+            $c[0].status | Should -BeIn @('skip', 'fail')
+        }
+        @($r.Report.checks | Where-Object { $_.id -eq 'relative-links' })[0].actual | Should -Match 'no inputs'
+    }
+
+    Context 'in a real Git repository' {
+        BeforeAll {
+            $script:HasGit = [bool](Get-Command git -ErrorAction SilentlyContinue)
+        }
+        It 'fails a link whose only target is untracked, and passes once the target is in the index' {
+            if (-not $script:HasGit) { Set-ItResult -Skipped -Because 'git is not available'; return }
+            $root = Join-Path $TestDrive 'inv-untracked'
+            $null = New-Item -ItemType Directory -Path $root -Force
+            & git -C $root init --quiet 2>&1 | Out-Null
+            Write-FixtureFile $root 'README.md' "See [the guide](docs/guide.md).`n"
+            Write-FixtureFile $root 'docs/guide.md' "# Guide`n"
+            # Only the linking document is tracked (staged); no commit is made so no hooks or signing are involved.
+            & git -C $root add README.md 2>&1 | Out-Null
+            $r = Invoke-Gate -Root $root -Check 'relative-links'
+            $r.Exit | Should -Be 1
+            (Get-Findings $r 'relative-links' 'fail').claim | Should -Be 'docs/guide.md'
+            (Get-Findings $r 'relative-links' 'fail').fix_hint | Should -Match 'not tracked'
+            & git -C $root add docs/guide.md 2>&1 | Out-Null
+            (Invoke-Gate -Root $root -Check 'relative-links').Exit | Should -Be 0
+        }
+        It 'does not accept a git-ignored untracked file as a link target' {
+            if (-not $script:HasGit) { Set-ItResult -Skipped -Because 'git is not available'; return }
+            $root = Join-Path $TestDrive 'inv-ignored'
+            $null = New-Item -ItemType Directory -Path $root -Force
+            & git -C $root init --quiet 2>&1 | Out-Null
+            Write-FixtureFile $root '.gitignore' "ignored/`n"
+            Write-FixtureFile $root 'README.md' "See [x](ignored/x.md).`n"
+            Write-FixtureFile $root 'ignored/x.md' "# x`n"
+            & git -C $root add README.md .gitignore 2>&1 | Out-Null
+            (Invoke-Gate -Root $root -Check 'relative-links').Exit | Should -Be 1
+        }
+    }
+}
+
 Describe 'documentation accuracy gate is deterministic and idempotent' -Tag 'Unit', 'Portable' {
     # Protects: the gate is safe to run in any hook or CI job: same input gives the same report, and nothing but
     #   -OutputPath is written.

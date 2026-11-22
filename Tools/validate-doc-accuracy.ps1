@@ -9,9 +9,12 @@
     component lists that no longer matched the code) because the previous version of this script printed mismatches
     and always exited 0. This version exits 1 when any check fails.
 
-    The gate is deterministic, offline and idempotent: it reads the working tree (tracked and untracked-but-not-ignored
-    files when .git exists, otherwise a filesystem walk), never calls the network or gh, and writes nothing except the
-    optional -OutputPath JSON report. PowerShell cmdlets and module exports are resolved by parsing source with the
+    The gate is deterministic, offline and idempotent: it reads the working tree, never calls the network or gh, and
+    writes nothing except the optional -OutputPath JSON report. The set of valid link and file targets is the tracked
+    set (`git ls-files`) when .git exists, so an untracked local file cannot hide a broken committed link; only a tree
+    without .git is walked, with excluded trees and every junction or symlink pruned before descending. If the
+    inventory cannot be built the gate fails with an `inventory` entry and runs no check. A check that examined no
+    inputs reports skip, never pass. PowerShell cmdlets and module exports are resolved by parsing source with the
     PowerShell AST, never by Import-Module or Get-Command, so results are the same on Windows and Linux.
 
     Checks (ids accepted by -Check):
@@ -93,6 +96,9 @@ $script:CurrentCheck = ''
 $script:CheckSummary = ''
 $script:LineCache = @{}
 $script:FuncCache = @{}
+$script:InventoryError = $null
+$script:InventorySource = 'unknown'
+$script:CheckInputs = 0
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Plumbing
@@ -140,32 +146,68 @@ function Read-RepoLines {
 }
 
 function Get-RepoFileList {
+    # The inventory is the set of paths a documentation claim may legitimately point at. Two sources, never mixed:
+    #   git        - `git ls-files` (tracked, i.e. in the index) when RepoRoot has a .git entry. Untracked files are NOT
+    #                valid targets: a stale local file must not hide a link that is broken in the committed tree.
+    #   filesystem - a pruned walk, only when RepoRoot has no .git (a fixture or an exported tree).
+    # Any failure to build the inventory sets $script:InventoryError and returns an empty set; the run loop then fails
+    # the gate explicitly. Nothing here falls back silently from one source to the other.
     $set = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
-    $viaGit = $false
+    $script:InventoryError = $null
     if (Test-Path -LiteralPath (Join-Path $RepoRoot '.git')) {
+        $script:InventorySource = 'git'
         $git = Get-Command git -ErrorAction SilentlyContinue
-        if ($git) {
-            try {
-                $out = & git -C $RepoRoot -c core.quotepath=off ls-files --cached --others --exclude-standard 2>$null
-                if ($LASTEXITCODE -eq 0 -and $out) {
-                    foreach ($p in $out) {
-                        if ($p -and [System.IO.File]::Exists((Get-FullPath $p))) { [void]$set.Add($p) }
-                    }
-                    $viaGit = $true
-                }
-            } catch {
-                $viaGit = $false
+        if (-not $git) {
+            $script:InventoryError = "$RepoRoot has a .git entry but git is not on PATH"
+            return , $set
+        }
+        $errFile = [System.IO.Path]::GetTempFileName()
+        try {
+            $out = & git -C $RepoRoot -c core.quotepath=off ls-files --cached 2>$errFile
+            $code = $LASTEXITCODE
+            if ($code -ne 0) {
+                $msg = (Get-Content -LiteralPath $errFile -Raw -ErrorAction SilentlyContinue)
+                $script:InventoryError = "git ls-files failed (exit $code): $(([string]$msg).Trim())"
+                return , $set
+            }
+        } catch {
+            $script:InventoryError = "git ls-files could not run: $($_.Exception.Message)"
+            return , $set
+        } finally {
+            Remove-Item -LiteralPath $errFile -Force -ErrorAction SilentlyContinue
+        }
+        foreach ($p in @($out)) {
+            # A tracked path deleted from the working tree is not readable, so it cannot satisfy a claim either.
+            if ($p -and [System.IO.File]::Exists((Get-FullPath $p))) { [void]$set.Add($p) }
+        }
+        if ($set.Count -eq 0) { $script:InventoryError = "git ls-files listed no readable tracked files under $RepoRoot" }
+        return , $set
+    }
+
+    $script:InventorySource = 'filesystem'
+    # Pruned BEFORE descending, never filtered afterwards: target/ may hold a junction into the shared cargo cache, and
+    # worktrees/ holds other checkouts. Reports/ is not pruned so that this walk lists the same files as git would.
+    $prune = '^(\.git|target|node_modules|worktrees|\.pcai)$'
+    $stack = [System.Collections.Generic.Stack[string]]::new()
+    $stack.Push($RepoRoot)
+    while ($stack.Count -gt 0) {
+        $dir = $stack.Pop()
+        try {
+            $entries = @([System.IO.DirectoryInfo]::new($dir).EnumerateFileSystemInfos())
+        } catch {
+            $script:InventoryError = "cannot enumerate ${dir}: $($_.Exception.Message)"
+            return , $set
+        }
+        foreach ($e in $entries) {
+            if ($e.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { continue }
+            if ($e -is [System.IO.DirectoryInfo]) {
+                if ($e.Name -cnotmatch $prune) { $stack.Push($e.FullName) }
+            } else {
+                [void]$set.Add($e.FullName.Substring($RepoRoot.Length + 1).Replace('\', '/'))
             }
         }
     }
-    if (-not $viaGit) {
-        $skipDirs = '(^|/)(\.git|target|node_modules|worktrees)(/|$)'
-        foreach ($f in Get-ChildItem -LiteralPath $RepoRoot -Recurse -File -Force -ErrorAction SilentlyContinue) {
-            $rel = $f.FullName.Substring($RepoRoot.Length + 1).Replace('\', '/')
-            if ($rel -notmatch $skipDirs) { [void]$set.Add($rel) }
-        }
-    }
-    return $set
+    return , $set
 }
 
 function ConvertTo-GlobRegex {
@@ -268,6 +310,7 @@ function Test-BuildComponents {
         Add-Finding -Status fail -File 'CLAUDE.md' -Claim 'CLAUDE.md lists the -Component values' -Actual 'no "-Component values" line' `
             -FixHint 'Add an "Available -Component values" line listing each value in backticks.'
     }
+    $script:CheckInputs = $actual.Count
     $script:CheckSummary = "$($actual.Count) Build.ps1 components match the CLAUDE.md list"
 }
 
@@ -330,6 +373,7 @@ function Test-RustCrates {
         Add-Finding -Status fail -Claim 'CLAUDE.md or README.md shows the Native/pcai_core crate tree' -Actual 'no tree found' `
             -FixHint 'Restore the Native/pcai_core/ tree in the project-structure block.'
     }
+    $script:CheckInputs = $members.Count + $docsSeen
     $script:CheckSummary = "$($members.Count) workspace members match the documented trees"
 }
 
@@ -392,6 +436,7 @@ function Test-Workflows {
             }
         }
     }
+    $script:CheckInputs = $files.Count
     $script:CheckSummary = "$($files.Count) workflow files match the CLAUDE.md table and CI-CD-GUIDE.md; README workflow references exist (enabled state not checked offline)"
 }
 
@@ -437,6 +482,7 @@ function Test-Endpoints {
             }
         }
     }
+    $script:CheckInputs = $claims
     $script:CheckSummary = "$claims documented endpoint claims resolve to $($routes.Count) routes"
 }
 
@@ -503,6 +549,7 @@ function Test-ToolSchema {
             Add-Finding -Status fail -File $schemaRel -Claim "$name has a pcai_mapping" -Actual 'neither cmdlet nor script' -FixHint 'Add one.'
         }
     }
+    $script:CheckInputs = $schemaNames.Count
     $script:CheckSummary = "$($schemaNames.Count) schema tools match TOOLS.md and resolve to cmdlets or scripts ($external external commands not verified)"
 }
 
@@ -559,11 +606,15 @@ function Test-RelativeLinks {
                 } elseif ($resolved -and -not ($FileSet.Contains($resolved) -or $dirs.Contains($resolved))) {
                     $hint = 'Fix the path or restore the target.'
                     if ($lower.ContainsKey($resolved.ToLowerInvariant())) { $hint = 'Case mismatch; actual path is ' + $lower[$resolved.ToLowerInvariant()] }
+                    elseif ([System.IO.File]::Exists((Get-FullPath $resolved)) -or [System.IO.Directory]::Exists((Get-FullPath $resolved))) {
+                        $hint = 'The target exists locally but is not tracked by git; git add it, or fix the link.'
+                    }
                     Add-Finding -Status fail -File $doc -Line $row.Number -Claim $raw -Actual "no such path: $resolved" -FixHint $hint
                 }
             }
         }
     }
+    $script:CheckInputs = $checked
     $script:CheckSummary = "$checked relative links in $($docs.Count) markdown files resolve"
 }
 
@@ -613,6 +664,7 @@ function Test-ModuleExports {
             }
         }
     }
+    $script:CheckInputs = $exports
     $script:CheckSummary = "$exports exported functions across $($manifests.Count) manifests are defined"
 }
 
@@ -641,6 +693,7 @@ function Test-RetiredHosts {
             }
         }
     }
+    $script:CheckInputs = $scoped.Count
     $script:CheckSummary = "$($scoped.Count) scoped files name no retired host"
 }
 
@@ -672,6 +725,7 @@ function Test-TrainingData {
             }
         }
     }
+    $script:CheckInputs = $total
     $script:CheckSummary = "$total training examples call only schema tools"
 }
 
@@ -682,9 +736,19 @@ function Test-TrainingData {
 $selected = if ($Check) { @($script:AllChecks | Where-Object { $_ -in $Check }) } else { $script:AllChecks }
 $fileSet = Get-RepoFileList
 
+if ($script:InventoryError) {
+    # Without a trustworthy inventory every check would see no inputs. Fail explicitly and run none of them, so no
+    # check can report pass (or even skip) on the strength of an empty tree.
+    $script:CurrentCheck = 'inventory'
+    Add-Finding -Status fail -Claim "The $($script:InventorySource) file inventory of $RepoRoot can be built" -Actual $script:InventoryError `
+        -FixHint 'Run from a readable checkout (git ls-files must succeed), or from a tree without .git for a filesystem walk.'
+    $selected = @()
+}
+
 foreach ($id in $selected) {
     $script:CurrentCheck = $id
     $script:CheckSummary = ''
+    $script:CheckInputs = 0
     $before = $script:Results.Count
     switch ($id) {
         'build-components' { Test-BuildComponents }
@@ -698,12 +762,18 @@ foreach ($id in $selected) {
         'training-data' { Test-TrainingData }
     }
     if ($script:Results.Count -eq $before) {
-        Add-Finding -Status pass -Claim $script:CheckSummary -Actual 'documentation matches the repository'
+        if ($script:CheckInputs -le 0) {
+            # A check that examined nothing proves nothing: never pass.
+            Add-Finding -Status skip -Claim "$id examined no inputs" -Actual 'no inputs were found, so nothing was verified' `
+                -FixHint 'Check that the files this check reads exist and are tracked.'
+        } else {
+            Add-Finding -Status pass -Claim $script:CheckSummary -Actual 'documentation matches the repository'
+        }
     }
 }
 
 # Deterministic order: canonical check order, then file, then line.
-$order = @{}
+$order = @{ 'inventory' = -1 }
 for ($i = 0; $i -lt $script:AllChecks.Count; $i++) { $order[$script:AllChecks[$i]] = $i }
 $sorted = @($script:Results | Sort-Object -Property @{ Expression = { $order[$_.id] } }, @{ Expression = { [string]$_.file } }, @{ Expression = { [int]$_.line } },
     @{ Expression = { [string]$_.claim } }, @{ Expression = { [string]$_.actual } })
@@ -724,6 +794,7 @@ if (Test-Path -LiteralPath (Join-Path $RepoRoot '.git')) {
 $report = [ordered]@{
     schema_version = 1
     repo_head      = $repoHead
+    inventory      = $script:InventorySource
     generated_at   = [DateTime]::UtcNow.ToString('o')
     checks         = $sorted
     summary        = $summary

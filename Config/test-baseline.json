@@ -44,8 +44,9 @@
         "PcaiMedia": 70.0
       },
       "known_failures": {
-        "max_failed_containers": 1,
-        "max_failed_blocks": 25,
+        "containers": [
+          "Set-LLMProviderOrder.Tests.ps1"
+        ],
         "tests_by_file": {
           "EnrichedSystemPromptMetrics.Tests.ps1": 31,
           "PC-AI.USB.Tests.ps1": 23,
@@ -56,13 +57,18 @@
           "PerformanceConsumerContracts.Tests.ps1": 1,
           "Set-LLMProviderOrder.Tests.ps1": 13,
           "Virtualization-Fallback.Tests.ps1": 3
+        },
+        "blocks_by_file": {
+          "PC-AI.USB.Tests.ps1": 12,
+          "PC-AI.Virtualization.Tests.ps1": 13
         }
       },
       "measured": {
         "pct": 48.69,
         "files_analyzed": 244,
         "module_files_total": 245,
-        "failed_tests": 114
+        "failed_tests": 114,
+        "failed_blocks": 25
       }
     }
   }

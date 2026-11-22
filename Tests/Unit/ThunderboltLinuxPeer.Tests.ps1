@@ -101,54 +101,50 @@ Describe 'Thunderbolt TCP benchmark modes' -Tag 'Unit', 'Portable' {
     }
 }
 
-Describe 'Duplex listener script text' -Tag 'Unit', 'Portable' {
+Describe 'USB4 listener script text' -Tag 'Unit', 'Portable' {
     # Protects: the remote script that opens the unauthenticated iperf3 listener keeps its safety shape.
     # Detects: removing or reordering the return-route check, or weakening the bound, time-limited, cleaned-up listener.
     # Needs: PowerShell only. New-TbIperfServerScript is a pure text builder; no ssh, bash or network is used.
     # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
     BeforeAll {
         $peer = @{ sshAlias = 'test-peer'; expectedHostname = 'test-peer'; localAddress = '172.31.240.1'; peerAddress = '172.31.240.2' }
-        $render = { param([string[]]$Options) (New-TbIperfServerScript -Profile $peer -RemoteInterface 'thunderbolt0' -Seconds 4 -ServerPort 55201 -ClientOptions $Options).Replace("`r`n", "`n") }
-        $duplexScript = & $render @('--bidir')
+        $serverScript = (New-TbIperfServerScript -Profile $peer -RemoteInterface 'thunderbolt0' -Seconds 4 -ServerPort 55201).Replace("`r`n", "`n")
         $routeCheck = "ip -j -4 route get '172.31.240.1' from '172.31.240.2'"
     }
 
     # Protects: the return path is proven direct before anything listens, so a reply cannot leave through the LAN.
     # Detects: deleting the `ip -j route get ... from <peer>` check or moving it after the `iperf3 -s` line.
-    # Needs: the rendered duplex script as text; compares string positions only.
+    # Needs: the rendered server script as text; compares string positions only.
     # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
-    It 'checks the source-bound return route before it opens the duplex listener' {
-        $check = $duplexScript.IndexOf($routeCheck, [StringComparison]::Ordinal)
-        $listener = $duplexScript.IndexOf('iperf3 -s', [StringComparison]::Ordinal)
+    It 'checks the source-bound return route before it opens the listener' {
+        $check = $serverScript.IndexOf($routeCheck, [StringComparison]::Ordinal)
+        $listener = $serverScript.IndexOf('iperf3 -s', [StringComparison]::Ordinal)
         $check | Should -BeGreaterThan -1
         $listener | Should -BeGreaterThan $check
     }
 
     # Protects: a route mismatch ends the remote script with a nonzero status before the listener line.
     # Detects: dropping `set -e`/pipefail, dropping the refusal exits, or binding the check to a different interface.
-    # Needs: the rendered duplex script as text. The bash tests below execute these same lines.
+    # Needs: the rendered server script as text. The bash tests below execute these same lines.
     # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
     It 'aborts on a route mismatch before the listener line' {
-        $listener = $duplexScript.IndexOf('iperf3 -s', [StringComparison]::Ordinal)
-        $duplexScript.Split("`n")[0] | Should -Be 'set -euo pipefail'
-        foreach ($refusal in 'sys.exit("Expected exactly one source-bound duplex return route")',
-            'sys.exit("Duplex return route is not direct on the selected interface")') {
-            $at = $duplexScript.IndexOf($refusal, [StringComparison]::Ordinal)
+        $listener = $serverScript.IndexOf('iperf3 -s', [StringComparison]::Ordinal)
+        $serverScript.Split("`n")[0] | Should -Be 'set -euo pipefail'
+        foreach ($refusal in 'sys.exit("Expected exactly one source-bound USB4 return route")',
+            'sys.exit("USB4 return route is not direct on the selected interface")') {
+            $at = $serverScript.IndexOf($refusal, [StringComparison]::Ordinal)
             $at | Should -BeGreaterThan -1 -Because $refusal
             $at | Should -BeLessThan $listener -Because $refusal
         }
-        $duplexScript | Should -BeLike "*' 'thunderbolt0'`n*" -Because 'the check compares the route device with the selected interface'
+        $serverScript | Should -BeLike "*' 'thunderbolt0'`n*" -Because 'the check compares the route device with the selected interface'
     }
 
     # Protects: the listener stays one-shot, bound to the peer /30 address, time-limited and killed on every exit path.
     # Detects: an unbound or unbounded listener, a lost trap, or a lost readiness handshake after refactoring the builder.
-    # Needs: the rendered script as text for the duplex and the default modes.
+    # Needs: the rendered server script as text.
     # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
-    It 'keeps the <Mode> listener one-shot, bound, time-limited and cleaned up' -ForEach @(
-        @{ Mode = 'duplex'; Options = @('--bidir') }
-        @{ Mode = 'default'; Options = @() }
-    ) {
-        $lines = (& $render $Options).Split("`n")
+    It 'keeps the listener one-shot, bound, time-limited and cleaned up' {
+        $lines = $serverScript.Split("`n")
         $lines | Should -Contain "timeout --kill-after=3s 19s iperf3 -s -1 -B '172.31.240.2' -p 55201 &"
         $lines | Should -Contain 'trap ''kill "$child" 2>/dev/null || true'' EXIT HUP INT TERM'
         $lines | Should -Contain 'kill -0 "$child"'
@@ -156,18 +152,6 @@ Describe 'Duplex listener script text' -Tag 'Unit', 'Portable' {
         $lines | Should -Contain 'wait "$child"'
     }
 
-    # Protects: non-duplex benchmarks keep their original remote script, with no return-route lookup or Python.
-    # Detects: the duplex-only check leaking into the forward or reverse trials.
-    # Needs: the rendered script as text for the forward and reverse client options.
-    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
-    It 'adds no return-route check for the <Mode> trial' -ForEach @(
-        @{ Mode = 'forward'; Options = @() }
-        @{ Mode = 'reverse'; Options = @('-R') }
-    ) {
-        $script = & $render $Options
-        $script | Should -Not -Match 'route get'
-        $script | Should -Not -Match 'python3'
-    }
 }
 
 Describe 'Duplex return-route guard executed under bash' -Tag 'Unit', 'Portable' {
@@ -179,9 +163,7 @@ Describe 'Duplex return-route guard executed under bash' -Tag 'Unit', 'Portable'
     BeforeAll {
         $peer = @{ sshAlias = 'test-peer'; expectedHostname = 'test-peer'; localAddress = '172.31.240.1'; peerAddress = '172.31.240.2' }
         $isWindowsHost = [Environment]::OSVersion.Platform -eq 'Win32NT'
-        $newScript = { param([string[]]$Options) (New-TbIperfServerScript -Profile $peer -RemoteInterface 'thunderbolt0' -Seconds 4 -ServerPort 55201 -ClientOptions $Options).Replace("`r`n", "`n") }
-        $duplexScript = & $newScript @('--bidir')
-        $defaultScript = & $newScript @()
+        $duplexScript = (New-TbIperfServerScript -Profile $peer -RemoteInterface 'thunderbolt0' -Seconds 4 -ServerPort 55201).Replace("`r`n", "`n")
         $directRoute = '[{"dst":"172.31.240.1","dev":"thunderbolt0","prefsrc":"172.31.240.2","flags":[],"uid":1000,"cache":[]}]'
 
         function Find-TbFixtureTool {
@@ -315,16 +297,16 @@ esac
         if ($Reason) { $run.Stderr | Should -BeLike $Reason }
     }
 
-    # Protects: forward and reverse trials never consult the duplex return route.
-    # Detects: the duplex check leaking into the default benchmark, which would change non-duplex behaviour.
-    # Needs: the bash fixture host. `ip route get` fails and prints garbage here; the default script must not care.
+    # Protects: the default benchmark stops before listening if the return route cannot be read.
+    # Detects: leaving default sequential traffic without the same return-path proof used for duplex.
+    # Needs: the bash fixture host. Only the stub `ip route get` fails and prints garbage.
     # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
-    It 'does not consult the return route outside duplex mode' {
+    It 'refuses an invalid return route for the default trial' {
         if ($fixtureHost.Reason) { Set-ItResult -Skipped -Because $fixtureHost.Reason; return }
-        $run = Invoke-TbBashFixture -Bash $fixtureHost.Bash -Python $fixtureHost.Python -WorkDir $fixtureHost.WorkDir -Script $defaultScript -RouteJson 'garbled {' -IpExit 7
-        $run.ExitCode | Should -Be 0 -Because $run.Stderr
-        $run.Stdout | Should -Match 'PCAI_IPERF_READY'
-        @($run.ListenerCalls).Count | Should -Be 1
+        $run = Invoke-TbBashFixture -Bash $fixtureHost.Bash -Python $fixtureHost.Python -WorkDir $fixtureHost.WorkDir -Script $duplexScript -RouteJson 'garbled {' -IpExit 7
+        $run.ExitCode | Should -Not -Be 0
+        $run.Stdout | Should -Not -Match 'PCAI_IPERF_READY'
+        @($run.ListenerCalls).Count | Should -Be 0
     }
 }
 
@@ -600,10 +582,40 @@ public static class VigilProcessCustodyFixture {
         { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Throw '*does not use*'
     }
     It 'rejects missing local configured source address' {
-        Mock Find-NetRoute { @([pscustomobject]@{ InterfaceIndex = 42 }) }
+        Mock Find-NetRoute {
+            [pscustomobject]@{ InterfaceIndex = 42; IPAddress = '172.31.240.1' }
+            [pscustomobject]@{ InterfaceIndex = 42; DestinationPrefix = '172.31.240.0/30'; NextHop = '0.0.0.0' }
+        }
         Mock Get-NetIPAddress { @() }
         $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
         { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Throw '*address is missing*'
+    }
+    # Protects: receiver traffic is admitted only on the selected USB4 link and source.
+    # Detects: a same-index gateway, default route, stale source or ambiguous provider rows.
+    # Needs: fake Windows route and address rows. Breadcrumb: Invoke-ThunderboltLinuxPeer.ps1::Assert-TbBenchmarkRoute.
+    It 'requires an unambiguous source and on-link peer route for <Case>' -ForEach @(
+        @{ Case = 'connected subnet'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $true }
+        @{ Case = 'direct host route'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.2/32'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $true }
+        @{ Case = 'gateway on the same interface'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.2/32'; Hop = '172.31.240.2'; Extra = $false; State = 'Preferred'; Admit = $false }
+        @{ Case = 'unrelated default route'; SelectedSource = '172.31.240.1'; Prefix = '0.0.0.0/0'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $false }
+        @{ Case = 'different source'; SelectedSource = '172.31.240.2'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $false }
+        @{ Case = 'ambiguous route rows'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $true; State = 'Preferred'; Admit = $false }
+        @{ Case = 'tentative local address'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $false; State = 'Tentative'; Admit = $false }
+    ) {
+        $rows = @(
+            [pscustomobject]@{ InterfaceIndex = 42; IPAddress = $SelectedSource }
+            [pscustomobject]@{ InterfaceIndex = 42; DestinationPrefix = $Prefix; NextHop = $Hop }
+        )
+        if ($Extra) { $rows += $rows[1] }
+        $live = [pscustomobject]@{ InterfaceIndex = 42; IPAddress = '172.31.240.1'; PrefixLength = 30; AddressState = $State }
+        Mock Find-NetRoute { $rows }
+        Mock Get-NetIPAddress { $live }
+        $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
+        if ($Admit) {
+            { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Not -Throw
+        } else {
+            { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Throw '*Benchmark refused*'
+        }
     }
     It 'surfaces actual native nonzero exit and stderr' {
         { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', '[Console]::Error.WriteLine("controlled failure"); exit 7') } | Should -Throw '*exited 7*controlled failure*'

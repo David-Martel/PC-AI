@@ -265,8 +265,21 @@ function Assert-TbBenchmarkRoute {
     if (-not $selected.Count -or @($selected | Where-Object InterfaceIndex -NE $Adapter.ifIndex).Count) {
         throw 'Benchmark refused: source-bound route does not use the selected Thunderbolt interface.'
     }
+    $sources = @($selected | Where-Object { $_.PSObject.Properties['IPAddress'] -and -not $_.PSObject.Properties['NextHop'] })
+    $routes = @($selected | Where-Object { $_.PSObject.Properties['NextHop'] -and -not $_.PSObject.Properties['IPAddress'] })
+    if ($selected.Count -ne 2 -or $sources.Count -ne 1 -or $routes.Count -ne 1 -or $sources[0].IPAddress -ne $Profile.localAddress) {
+        throw 'Benchmark refused: Windows did not select one route and the exact USB4 source address.'
+    }
+    $subnetBytes = ([Net.IPAddress]::Parse($Profile.peerAddress)).GetAddressBytes()
+    $subnetBytes[3] = $subnetBytes[3] -band 252
+    $subnet = [Net.IPAddress]::new($subnetBytes)
+    if ($routes[0].NextHop -ne '0.0.0.0' -or $routes[0].DestinationPrefix -notin @("$subnet/30", "$($Profile.peerAddress)/32")) {
+        throw 'Benchmark refused: the selected route is not directly on-link to the USB4 peer.'
+    }
     $source = @(Get-NetIPAddress -InterfaceIndex $Adapter.ifIndex -AddressFamily IPv4 | Where-Object IPAddress -EQ $Profile.localAddress)
-    if ($source.Count -ne 1 -or $source[0].PrefixLength -ne 30) { throw 'Benchmark refused: local /30 address is missing.' }
+    if ($source.Count -ne 1 -or $source[0].PrefixLength -ne 30 -or $source[0].AddressState -ne 'Preferred') {
+        throw 'Benchmark refused: a preferred local /30 address is missing.'
+    }
 }
 
 function Test-TbSshEndpoint {
@@ -293,29 +306,24 @@ ip -j -4 route get '$($Profile.localAddress)' | python3 -c 'import json,sys; r=j
 
 function New-TbIperfServerScript {
     [CmdletBinding()]
-    param([hashtable]$Profile, [string]$RemoteInterface, [int]$Seconds, [int]$ServerPort, [string[]]$ClientOptions = @())
+    param([hashtable]$Profile, [string]$RemoteInterface, [int]$Seconds, [int]$ServerPort)
     # Pure text builder, extracted from Invoke-TbBenchmarkTrial so the remote guards can be tested without ssh.
     # Callers normalize line endings before piping it to 'bash -s'.
-    $returnRouteCheck = if ($ClientOptions -contains '--bidir') {
-        @"
+    @"
+set -euo pipefail
+test "`$(hostname)" = '$($Profile.expectedHostname)'
+ip -4 addr show dev '$RemoteInterface' | grep -Fq 'inet $($Profile.peerAddress)/30 '
 ip -j -4 route get '$($Profile.localAddress)' from '$($Profile.peerAddress)' | python3 -c '
 import json
 import sys
 
 routes = json.load(sys.stdin)
 if len(routes) != 1:
-    sys.exit("Expected exactly one source-bound duplex return route")
+    sys.exit("Expected exactly one source-bound USB4 return route")
 route = routes[0]
 if route.get("dev") != sys.argv[1] or route.get("gateway") or route.get("via"):
-    sys.exit("Duplex return route is not direct on the selected interface")
+    sys.exit("USB4 return route is not direct on the selected interface")
 ' '$RemoteInterface'
-"@
-    }
-    @"
-set -euo pipefail
-test "`$(hostname)" = '$($Profile.expectedHostname)'
-ip -4 addr show dev '$RemoteInterface' | grep -Fq 'inet $($Profile.peerAddress)/30 '
-$returnRouteCheck
 timeout --kill-after=3s $($Seconds + 15)s iperf3 -s -1 -B '$($Profile.peerAddress)' -p $ServerPort &
 child=`$!
 trap 'kill "`$child" 2>/dev/null || true' EXIT HUP INT TERM
@@ -344,7 +352,7 @@ function Invoke-TbBenchmarkTrial {
         if (-not $server.Start()) { throw 'Could not start benchmark SSH server.' }
         $serverStarted = $true
         $serverErr = $server.StandardError.ReadToEndAsync()
-        $serverScript = New-TbIperfServerScript -Profile $Profile -RemoteInterface $RemoteInterface -Seconds $Seconds -ServerPort $ServerPort -ClientOptions $ClientOptions
+        $serverScript = New-TbIperfServerScript -Profile $Profile -RemoteInterface $RemoteInterface -Seconds $Seconds -ServerPort $ServerPort
         $server.StandardInput.Write($serverScript.Replace("`r`n", "`n"))
         $server.StandardInput.Close()
         $ready = $false

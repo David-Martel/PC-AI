@@ -87,8 +87,11 @@ component results; they do not establish fleet or physical acceptance.
 - [ ] Obtain the existing Sunshine provider reference and affected seat/firewall
   scope from its owner, then validate authenticated video/input/reconnect and the
   full VIGIL UI with matching production ROS message packages.
-- [ ] Identify a Thunderbolt peer and measure its actual throughput; no peer NIC
-  is observed through the current CalDigit topology.
+- [x] Identify direct USB4NET peers and measure simultaneous TCP throughput on
+  both edges. Use the [USB4 TCP hardware test](docs/usb4/hardware-testing.md)
+  for repeatable underlay measurements and release evidence.
+- [ ] Qualify the CalDigit path separately and investigate the direct-link
+  duplex asymmetry before raising the affected edge's performance baseline.
 - [ ] Validate eduroam/MWireless using usable supported credentials, provision
   AMT with its own management credentials/network, and qualify physical HIL paths.
 - [ ] Validate original-user/browser behavior and remaining Cog revision provenance

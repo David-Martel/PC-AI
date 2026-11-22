@@ -62,3 +62,4 @@ LinuxCiGate.Tests.ps1
 # Fleet failure ledger, sweeper and playbooks; Portable-tagged blocks verified on Linux pwsh 7.6.7 + Pester 5.7.1
 # (WSL Ubuntu, 2026-11-21). DPAPI, Task Scheduler priority and Windows-path cases are not tagged Portable.
 PC-AI.Reliability.Tests.ps1
+DocAccuracy.Tests.ps1

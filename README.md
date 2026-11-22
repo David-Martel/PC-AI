@@ -4,8 +4,7 @@
     Local LLM-powered PC diagnostics and optimization for Windows
   </p>
   <p align="center">
-    <a href="https://github.com/David-Martel/PC-AI/actions/workflows/powershell-tests.yml"><img src="https://github.com/David-Martel/PC-AI/actions/workflows/powershell-tests.yml/badge.svg" alt="PowerShell Tests"></a>
-    <a href="https://github.com/David-Martel/PC-AI/actions/workflows/rust-inference.yml"><img src="https://github.com/David-Martel/PC-AI/actions/workflows/rust-inference.yml/badge.svg" alt="Rust Build"></a>
+    <a href="https://github.com/David-Martel/PC-AI/actions/workflows/linux-ci.yml"><img src="https://github.com/David-Martel/PC-AI/actions/workflows/linux-ci.yml/badge.svg" alt="CI (Linux self-hosted)"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
     <img src="https://img.shields.io/badge/PowerShell-7.0%2B-blue?logo=powershell" alt="PowerShell 7+">
     <img src="https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6?logo=windows" alt="Windows">
@@ -245,7 +244,8 @@ script folders, and `unifi_api` startup folders now live under
 
 ## Build System
 
-The unified `Build.ps1` orchestrator supports 20+ components:
+The unified `Build.ps1` orchestrator builds one component per `-Component` value (the list is the `ValidateSet` in
+`Build.ps1`, mirrored in CLAUDE.md):
 
 ```powershell
 .\Build.ps1 -Component inference -EnableCuda   # LLM backends with GPU
@@ -282,19 +282,23 @@ exercise the actual FFI lock/error block with bounded, model-free Rust children.
 ```
 PC-AI/
 +-- PC-AI.ps1                    # Unified CLI entry point
-+-- Build.ps1                    # Build orchestrator (20+ components)
-+-- Modules/                     # PowerShell diagnostic modules
++-- Build.ps1                    # Build orchestrator (-Component selects what to build)
++-- Modules/                     # PowerShell diagnostic modules (one directory per PC-AI.* module)
 |   +-- PC-AI.Hardware/          #   Device, disk, USB, network
 |   +-- PC-AI.Acceleration/      #   Native FFI + CLI tool wrappers
 |   +-- PC-AI.Performance/       #   Resource monitoring + optimizer
 |   +-- PC-AI.LLM/               #   LLM integration layer
 |   +-- PC-AI.Cleanup/           #   PATH, temp, duplicate cleanup
-|   +-- ...                      #   (8 modules total)
+|   +-- ...                      #   (the rest: see Modules/)
 +-- Native/
-|   +-- pcai_core/               # Rust workspace (6 crates)
+|   +-- pcai_core/               # Rust workspace (members: Native/pcai_core/Cargo.toml)
 |   |   +-- pcai_inference/      #   LLM engine (llama.cpp + mistral.rs)
 |   |   +-- pcai_core_lib/       #   Shared lib (search, perf, telemetry)
+|   |   +-- pcai_perf_cli/       #   Performance CLI for PowerShell acceleration
+|   |   +-- pcai_tb_cli/         #   USB4/Thunderbolt peer discovery and routing CLI
 |   |   +-- pcai_media/          #   Media processing (Janus-Pro)
+|   |   +-- pcai_media_model/    #   Janus-Pro model definitions
+|   |   +-- pcai_media_server/   #   Media HTTP server
 |   |   +-- pcai_ollama_rs/      #   Ollama benchmarking
 |   +-- PcaiNative/              # C# P/Invoke bridge (.NET 8)
 |   +-- PcaiChatTui/             # Interactive chat TUI
@@ -303,7 +307,7 @@ PC-AI/
 |   +-- rag-database/            # RAG pipeline (PostgreSQL + pgvector)
 +-- Config/                      # Runtime configuration
 +-- Tests/                       # Pester + Rust test suites
-+-- Tools/                       # 89 utility scripts
++-- Tools/                       # Utility scripts (catalog: Reports/TOOLS_CATALOG.md)
 ```
 
 ## Requirements

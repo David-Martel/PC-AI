@@ -29,8 +29,9 @@ if (-not (Test-Path $reportDir)) {
     New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
 }
 
-$toolSchemaPath = Join-Path $RepoRoot 'Config\pcai-tools.json'
-$toolMappingPath = Join-Path $RepoRoot 'Modules\PC-AI.LLM\Public\Invoke-FunctionGemmaReAct.ps1'
+# Forward slashes: a backslash is a literal filename character on Linux, so 'Config\pcai-tools.json' would never resolve there.
+$toolSchemaPath = Join-Path $RepoRoot 'Config/pcai-tools.json'
+$toolMappingPath = Join-Path $RepoRoot 'Modules/PC-AI.LLM/Public/Invoke-FunctionGemmaReAct.ps1'
 
 if (-not (Test-Path $toolSchemaPath)) { throw "Missing tool schema: $toolSchemaPath" }
 if (-not (Test-Path $toolMappingPath)) { throw "Missing tool mapping: $toolMappingPath" }
@@ -40,9 +41,23 @@ $schemaTools = @($toolData.tools | ForEach-Object { $_.function.name })
 
 $mappedTools = @()
 
-# Primary: extract tool names that have pcai_mapping in the schema JSON itself
+# Primary: extract tool names that have a usable pcai_mapping in the schema JSON itself.
+# A mapping is usable when it names a cmdlet, or a script that exists. Mappings take either shape (and a tool may have
+# none), so every property is read through PSObject.Properties: under Set-StrictMode, reading an absent property such
+# as `.cmdlet` on a `script` mapping throws and used to abort the whole run.
 foreach ($tool in $toolData.tools) {
-    if ($tool.pcai_mapping -and $tool.pcai_mapping.cmdlet) {
+    $mappingProp = $tool.PSObject.Properties['pcai_mapping']
+    if (-not $mappingProp -or $null -eq $mappingProp.Value) { continue }
+    $mapping = $mappingProp.Value
+    $cmdletProp = $mapping.PSObject.Properties['cmdlet']
+    $scriptProp = $mapping.PSObject.Properties['script']
+    $hasCmdlet = $cmdletProp -and $cmdletProp.Value
+    $hasScript = $false
+    if ($scriptProp -and $scriptProp.Value) {
+        $scriptPath = Join-Path $RepoRoot ([string]$scriptProp.Value)
+        $hasScript = Test-Path -LiteralPath $scriptPath -PathType Leaf
+    }
+    if ($hasCmdlet -or $hasScript) {
         $mappedTools += $tool.function.name
     }
 }
@@ -82,7 +97,7 @@ $reportMd = Join-Path $reportDir 'TOOL_SCHEMA_REPORT.md'
 $backendJson = Join-Path $reportDir 'TOOL_BACKEND_COVERAGE.json'
 $backendMd = Join-Path $reportDir 'TOOL_BACKEND_COVERAGE.md'
 
-$accelModulePath = Join-Path $RepoRoot 'Modules\PC-AI.Acceleration\PC-AI.Acceleration.psm1'
+$accelModulePath = Join-Path $RepoRoot 'Modules/PC-AI.Acceleration/PC-AI.Acceleration.psm1'
 $backendCoverage = @()
 if (Test-Path $accelModulePath) {
     Import-Module $accelModulePath -Force

@@ -4,242 +4,150 @@ This document describes the Continuous Integration and Continuous Deployment (CI
 
 ## Overview
 
-The PC_AI project uses **GitHub Actions** for automated testing, security scanning, and releases. The pipeline is optimized for PowerShell-based Windows applications with cross-version compatibility testing.
+The PC_AI project uses **GitHub Actions** for automated testing, security scanning, and releases. The workflow files are
+the source of truth: this guide is rebuilt from `.github/workflows/*.yml`, and `Tools/validate-doc-accuracy.ps1` (check
+`workflows`) fails when a workflow file is missing from this guide or when the guide names a workflow that does not exist.
+
+**Which workflows run.** Workflow state is a repository setting on GitHub, not something the files record. As of
+2026-11-22 (`gh workflow list --all`) these nine are `disabled_manually`: `changelog`, `ci`, `evaluation-smoke`,
+`jules-review`, `maintenance`, `nvidia-validation`, `release-cuda`, `release` and `rust-guidelines`. The other ten are
+active. The disabled `ci.yml` was the broad gate; every job in it runs on `windows-latest` and the repository has no
+Windows runner. `linux-ci.yml` is the gate that runs today, on the default branch `main` (there is no `develop` branch).
+The validator cannot see enabled state offline, so re-check with `gh workflow list --all` before relying on the table.
 
 ## Pipeline Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Git Push/PR                          │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-          ┌───────────┴───────────┐
-          │                       │
-          ▼                       ▼
-    ┌──────────┐          ┌────────────┐
-    │   Lint   │          │  Security  │
-    │ (PSAnalyzer) │     │   Scan     │
-    └─────┬────┘          └─────┬──────┘
-          │                     │
-          │     ┌───────────────┘
-          │     │
-          ▼     ▼
-    ┌──────────────┐
-    │   Tests      │
-    │ (PS 5.1/7.4) │
-    └──────┬───────┘
-           │
-           ▼
-    ┌────────────────┐
-    │  Integration   │
-    │   Tests        │
-    └──────┬─────────┘
-           │
-           ▼
-    ┌────────────────┐
-    │   Coverage     │
-    │   Report       │
-    └────────────────┘
+                 Pull request / push to main
+                              |
+      +-----------------------+------------------------+
+      |                                                |
+ always (no path filter)                     path-filtered contract workflows
+ linux-ci.yml                                functiongemma-runtime, media-upscale,
+   portable-contracts                        native-override-admission, portable-bootstrap,
+   pester-lint                               usb4-lifecycle, usb4-peer-ssh-access,
+   rust-linux                                usb4-route-verification
+   gitops-contracts  (calls gitops-contracts.yml)
+   ci-gate           (hosted runner, needs the four above)
 ```
+
+Manual and scheduled workflows sit outside this path: `tooling-automation` is active; `evaluation-smoke`,
+`maintenance`, `jules-review`, `release`, `release-cuda`, `changelog`, `nvidia-validation`, `rust-guidelines` and `ci`
+are disabled.
 
 ## Workflows
 
 ### Workflow Inventory
 
-- **PowerShell Tests**: `.github/workflows/powershell-tests.yml`
-- **Rust Inference Build & Test**: `.github/workflows/rust-inference.yml`
-- **CUDA/CPU Native Releases**: `.github/workflows/release-cuda.yml`
-- **Documentation Pipeline**: `.github/workflows/docs-pipeline.yml`
-- **Evaluation Smoke**: `.github/workflows/evaluation-smoke.yml`
-- **Tooling Automation**: `.github/workflows/tooling-automation.yml`
-- **Security Scan**: `.github/workflows/security.yml`
-- **Release**: `.github/workflows/release.yml`
-- **Scheduled Checks**: `.github/workflows/scheduled-checks.yml`
+| Workflow file | Trigger | State (2026-11-22) |
+|---|---|---|
+| `.github/workflows/linux-ci.yml` | PR and push to `main`, manual | active |
+| `.github/workflows/gitops-contracts.yml` | `workflow_call` (from `linux-ci.yml`), manual | active |
+| `.github/workflows/portable-bootstrap.yml` | PR and push, path-filtered | active |
+| `.github/workflows/functiongemma-runtime.yml` | PR and push, path-filtered | active |
+| `.github/workflows/media-upscale.yml` | PR and push, path-filtered | active |
+| `.github/workflows/native-override-admission.yml` | PR (path-filtered), manual | active |
+| `.github/workflows/usb4-lifecycle.yml` | PR (path-filtered), manual | active |
+| `.github/workflows/usb4-peer-ssh-access.yml` | PR (path-filtered), manual | active |
+| `.github/workflows/usb4-route-verification.yml` | PR and push, path-filtered | active |
+| `.github/workflows/tooling-automation.yml` | Manual with toggles | active |
+| `.github/workflows/ci.yml` | PR and push to `main` | disabled_manually |
+| `.github/workflows/rust-guidelines.yml` | PR and push touching Rust or Cargo files | disabled_manually |
+| `.github/workflows/nvidia-validation.yml` | PR and push touching the GPU stack, manual | disabled_manually |
+| `.github/workflows/maintenance.yml` | Monday 06:00 UTC, manual | disabled_manually |
+| `.github/workflows/jules-review.yml` | Monday 06:00 UTC, issue label, manual | disabled_manually |
+| `.github/workflows/evaluation-smoke.yml` | Manual | disabled_manually |
+| `.github/workflows/release.yml` | Tags `v*` | disabled_manually |
+| `.github/workflows/release-cuda.yml` | Tags `v*`, manual | disabled_manually |
+| `.github/workflows/changelog.yml` | Push to `main` (not `CHANGELOG.md`), manual | disabled_manually |
 
-### 1. PowerShell Tests (`.github/workflows/powershell-tests.yml`)
+Contract workflows run Linux legs on the `pc-ai-local` self-hosted runner when `PCAI_LINUX_RUNNER_ENABLED` is `true`
+for trusted (non-fork) pull requests, and on `ubuntu-latest` otherwise; their Windows legs use `windows-latest`.
 
-**Triggers:**
-- Push to `main` or `develop` branches
-- Pull requests to `main` branch
+### Active workflows
 
-**Jobs:**
+#### `linux-ci.yml` (CI (Linux self-hosted))
 
-#### Lint Job
-- Runs PSScriptAnalyzer with custom rules
-- Validates PowerShell syntax
-- Fails on errors and warnings
+The gate. Jobs `portable-contracts`, `pester-lint`, `rust-linux`, `gitops-contracts` and `ci-gate`. See "Linux
+self-hosted gate" below for what each checks and what it does not cover.
 
-```powershell
-# Run locally:
-Invoke-ScriptAnalyzer -Path . -Recurse -Settings PSScriptAnalyzerSettings.psd1
-```
+#### `gitops-contracts.yml` (GitOps monitor contracts)
 
-#### Test Job
-- Matrix strategy: PowerShell 5.1 and 7.4
-- Runs Pester tests with coverage
-- Uploads coverage to Codecov
+Job `contracts` on a Linux and a Windows leg. Runs the GitOps monitor fixture contracts
+(`Tests/Unit/GitOpsMonitors.Tests.ps1`) with job-local Pester. Called by `linux-ci.yml` and runnable by hand.
 
-```powershell
-# Run locally:
-.\Tests\.pester.ps1 -CI
-```
+#### `portable-bootstrap.yml` (Portable bootstrap)
 
-#### Integration Job
-- Tests module imports
-- Validates script syntax
-- Verifies end-to-end functionality
+Job `bootstrap`: profile-free bootstrap, Rust-tool discovery, module-manifest and benchmark-admission contracts and the
+Python admission tests, on Linux and Windows legs, when Common, Acceleration, Native, Deploy Cargo or `Tests/Portable`
+paths change. Details: [portable bootstrap](docs/portable-bootstrap.md).
 
-```powershell
-# Run locally:
-Get-ChildItem -Path Modules -Directory | ForEach-Object {
-    Import-Module (Join-Path $_.FullName "$($_.Name).psd1") -Force
-}
-```
+#### `functiongemma-runtime.yml` (FunctionGemma runtime)
 
-### 2. Security Scan (`.github/workflows/security.yml`)
+Job `runtime-tests`: build and HTTP contract tests for `Deploy/rust-functiongemma-runtime`. Details:
+[runtime validation](docs/functiongemma-runtime-validation.md).
 
-**Triggers:**
-- Push to `main` or `develop` branches
-- Pull requests
-- Weekly schedule (Monday at midnight UTC)
+#### `media-upscale.yml` (Media upscale contracts)
 
-**Security Checks:**
+Job `upscale-contracts`: optional ONNX upscale build and tests for `pcai_media` and `pcai_media_model`. Details:
+[media upscale validation](docs/media-upscale-validation.md).
 
-1. **Hardcoded Credentials**
-   - Scans for password patterns
-   - Detects API keys and secrets
-   - Checks for plain text credentials
+#### `native-override-admission.yml` (Native override admission)
 
-2. **File Permissions**
-   - Validates executable scripts
-   - Checks for overly permissive files
+Job `admission`: builds the host native core and runs the native-override admission contracts in fresh processes.
+Details: [native override admission](docs/native-override-admission.md).
 
-3. **Module Manifests**
-   - Validates `.psd1` files
-   - Ensures proper metadata
+#### USB4 workflows
 
-4. **Dangerous Commands**
-   - Detects `Invoke-Expression`
-   - Flags destructive operations
-   - Warns about privilege escalation
+- `usb4-lifecycle.yml` (job `lifecycle`): lifecycle contracts for `pcai_tb_cli` and the USB4 networking scripts.
+- `usb4-peer-ssh-access.yml` (job `fixtures`): peer SSH access fixture contracts.
+- `usb4-route-verification.yml` (job `route-postcondition`): route postcondition verification. Details:
+  [route verification](docs/usb4-route-verification.md).
 
-5. **Dependency Audit**
-   - Lists required modules
-   - Checks for known vulnerabilities
+#### `tooling-automation.yml` (Tooling Automation)
 
-```powershell
-# Run locally:
-# Check for credentials
-Select-String -Path *.ps1 -Pattern "password\s*=\s*['\"][^'\"]+['\"]"
+Manual dispatch with toggles on `windows-latest`. Runs helper tooling in `Tools/` on demand: documentation generation
+and `validate-doc-accuracy.ps1`, help and tool-coverage scripts, FunctionGemma preparation and LLM validation helpers.
 
-# Validate manifests
-Get-ChildItem -Recurse -Filter *.psd1 | ForEach-Object {
-    Test-ModuleManifest $_.FullName
-}
-```
+### Disabled workflows
 
-### 3. Rust Inference Build & Test (`.github/workflows/rust-inference.yml`)
+These files stay in the repository and run again if re-enabled; do not treat them as current gates.
 
-**Triggers:**
-- Push to `main`/`develop` for inference code paths
-- PRs to `main`
+- **`ci.yml`** (CI): jobs `security-scan`, `rust-fmt`, `powershell-lint`, `rust-check`, `rust-test`, `powershell-test`,
+  `build-llamacpp`, `integration-tests`, `dotnet-build`, `deploy-runtime` and `gate`, all on `windows-latest`. Stays
+  disabled until a Windows runner for this repository exists.
+- **`rust-guidelines.yml`** (Rust Guidelines): format check, clippy with the guideline lints, unit tests, `cargo audit`
+  and a compliance scan for Rust and Cargo changes. Clippy now runs in `linux-ci.yml`.
+- **`nvidia-validation.yml`** (NVIDIA Stack Validation): jobs `powershell-tests`, `rust-nvml-check` and
+  `registry-validation` for the `PC-AI.Gpu` module and the NVIDIA and driver registries.
+- **`maintenance.yml`** (Weekly Maintenance): jobs `security-scan` (credential scan, manifest validation, `cargo audit`),
+  `dependency-health`, `compatibility` (PowerShell 5.1 tests, Rust MSRV), `documentation` and `health-report`.
+- **`jules-review.yml`** (Jules Review): weekly, issue-label and manual Jules review jobs.
+- **`evaluation-smoke.yml`** (Evaluation Smoke): manual run of `Tests/Evaluation/Invoke-InferenceEvaluation.ps1` against
+  a local mock OpenAI-compatible server (`-Backend http`), uploading `.pcai/evaluation/runs/**`.
+- **`release.yml`** (Release): on a `v*` tag, extracts the version, runs tests, builds the module release ZIP and its
+  generated `Install.ps1`, writes release notes and creates the GitHub release.
+- **`release-cuda.yml`** (Release Native Binaries): on a `v*` tag or manual dispatch, builds and tests via `Build.ps1`,
+  builds CPU and CUDA binaries for `llamacpp` and `mistralrs`, packages `.pcai/build/artifacts` and uploads release
+  assets.
+- **`changelog.yml`** (Changelog): regenerates `CHANGELOG.md` with git-cliff on pushes to `main`.
 
-**Jobs:**
-- Cargo checks/clippy/fmt for `Native/pcai_core/pcai_inference`
-- Windows MSVC build + test via `Build.ps1`
-- Optional CUDA build (push only) via `Build.ps1 -EnableCuda`
-- Integration tests for the inference DLL
-
-### 4. CUDA/CPU Native Releases (`.github/workflows/release-cuda.yml`)
-
-**Triggers:**
-- Version tags (`v*`) and manual dispatch
-
-**What it does:**
-- Runs unified build/test phases via `Build.ps1`
-- Builds CPU + CUDA binaries for `llamacpp` and `mistralrs`
-- Packages artifacts from `.pcai/build/artifacts`
-- Uploads release assets
-
-### 5. Documentation Pipeline (`.github/workflows/docs-pipeline.yml`)
-
-**Triggers:**
-- Pushes that affect docs or tooling
-- Manual dispatch
-
-**What it does:**
-- Runs `Tools/Invoke-DocPipeline.ps1 -Mode DocsOnly`
-- Runs `Tools/generate-auto-docs.ps1 -BuildDocs`
-- Generates API signature report
-- Uploads `Reports/**` and `.pcai/**` artifacts
-
-### 6. Evaluation Smoke (`.github/workflows/evaluation-smoke.yml`)
-
-**Triggers:**
-- Manual dispatch
-
-**What it does:**
-- Starts a local mock OpenAI-compatible server
-- Runs `Tests/Evaluation/Invoke-InferenceEvaluation.ps1` against `-Backend http`
-- Uploads `.pcai/evaluation/runs/**` outputs
-
-### 7. Tooling Automation (`.github/workflows/tooling-automation.yml`)
-
-**Triggers:**
-- Manual dispatch with toggles
-
-**What it does:**
-- Runs helper tooling in `Tools/` on demand (docs, help coverage, FunctionGemma prep/tests)
-
-### 8. Release (`.github/workflows/release.yml`)
-
-**Triggers:**
-- Git tags matching `v*` (e.g., `v1.0.0`)
-
-**Release Process:**
-
-1. **Extract Version** - Parse version from tag
-2. **Run Tests** - Full test suite must pass
-3. **Build Package** - Create release archive with:
-   - All modules
-   - Main scripts
-   - Documentation
-   - Installation script
-4. **Generate Release Notes** - Auto-generated from template
-5. **Create GitHub Release** - Upload artifacts and notes
-
-For native inference binaries (CPU/CUDA), see **release-cuda.yml**.
+Run the equivalent checks locally when a disabled workflow would have covered your change:
 
 ```powershell
-# Create a release:
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-**Release Package Structure:**
-```
-PC-AI-1.0.0/
-├── Modules/
-│   ├── PC-AI.Hardware/
-│   ├── PC-AI.Virtualization/
-│   └── ...
-├── Reports/
-├── Config/
-├── PC-AI.ps1
-├── Install.ps1
-├── DIAGNOSE.md
-├── DIAGNOSE_LOGIC.md
-└── README.md
+Invoke-ScriptAnalyzer -Path . -Recurse -Settings PSScriptAnalyzerSettings.psd1   # lint
+.\Tests\.pester.ps1 -CI                                                         # Pester with CI settings
+pwsh Tests\Invoke-PortableTests.ps1                                             # what linux-ci runs, locally
+pwsh Tools\validate-doc-accuracy.ps1                                             # documentation accuracy gate
 ```
 
 ## Linux self-hosted gate
 
-`.github/workflows/linux-ci.yml` ("CI (Linux self-hosted)") runs on the persistent repo-scoped vigil1 runner
-`vigil1-pc-ai-1` (labels `self-hosted, Linux, X64, vigil1, pc-ai-local`). Its jobs select runners with
-`runs-on: [self-hosted, Linux, X64, pc-ai-local]`: the role label alone, with no host label, so any runner that carries
-`pc-ai-local` can serve them (vigil1 leaves 2026-11-04; dtm-super-nuc runners are being added). It exists because the main `CI` workflow is
-disabled: every job in it runs on `windows-latest` and PC-AI has no Windows runner, so it cannot run on an available
-runner. `CI` stays disabled until a Windows runner for this repo exists.
+`.github/workflows/linux-ci.yml` ("CI (Linux self-hosted)") runs on persistent repo-scoped self-hosted Linux runners.
+Its jobs select runners with `runs-on: [self-hosted, Linux, X64, pc-ai-local]`: the role label `pc-ai-local` and no host
+label, so any runner that carries `pc-ai-local` can serve them. It exists because the main `CI` workflow is disabled:
+every job in it runs on `windows-latest` and PC-AI has no Windows runner, so it cannot run on an available runner.
+`CI` stays disabled until a Windows runner for this repo exists.
 
 | Job | What it checks | Source of the check |
 |---|---|---|
@@ -265,9 +173,9 @@ incremental builds, and an incremental unit is never cached by sccache. The job-
 The runner empties `RUNNER_TEMP` between jobs, so the homes stay job-local. The final step prints per-run
 `sccache --show-stats`; compare `Cache hits (Rust)` across two runs on the same runner to see cross-run reuse.
 `portable-contracts` also uses the job-local Rust action because its Python admission tests compile native Rust fixtures.
-NUC PC-AI runners also apply the committed machine profile's build-job cap while retaining any stricter existing
-Cargo limit. Details and measurements:
-`vigil-utils/docs/rust-build-acceleration.md`, "Runner job environment".
+Runners also apply the committed machine profile's build-job cap while retaining any stricter existing Cargo limit.
+Details and measurements are in the separate vigil-utils repository (`docs/rust-build-acceleration.md`, "Runner job
+environment"); that file is not part of this repository.
 
 **Artifacts.** `pester-lint` uploads `pester-linux.xml` only when the job fails, with `continue-on-error` and a
 1-day retention. Nothing reads it, a passing result is already in the log, and a GitHub artifact quota must not turn a
@@ -289,43 +197,13 @@ fork can edit the workflow, so the repository setting "Approval for running fork
 - Evaluation runs create `.pcai\evaluation\runs\<timestamp-label>\` with `events.jsonl`, `progress.log`, and `summary.json`.
 - CI workflows upload `Reports/**` and `.pcai/**` as artifacts when enabled.
 
-### 9. Scheduled Checks (`.github/workflows/scheduled-checks.yml`)
-
-**Triggers:**
-- Daily at 6 AM UTC
-- Manual workflow dispatch
-
-**Automated Checks:**
-
-1. **Dependency Check**
-   - Checks PowerShell Gallery for updates
-   - Reports outdated modules
-
-2. **Workflow Validation**
-   - Validates YAML syntax
-   - Checks for common issues
-
-3. **Link Check**
-   - Scans documentation for broken links
-   - Validates internal references
-
-4. **Health Report**
-   - Repository statistics
-   - Module coverage
-   - Configuration status
-
-```powershell
-# View health report:
-Get-Content health-report.json | ConvertFrom-Json
-```
-
 ## Pre-Commit Hooks
 
 ### Setup
 
 ```powershell
-# Install pre-commit
-pip install pre-commit
+# Install pre-commit (any isolated tool installer; this repo uses uv)
+uv tool install pre-commit
 
 # Install hooks
 pre-commit install
@@ -401,8 +279,8 @@ Supported editors: VS Code, Visual Studio, JetBrains IDEs, Sublime Text, Atom
 ### 1. Clone and Setup
 
 ```powershell
-git clone https://github.com/yourusername/PC_AI.git
-cd PC_AI
+git clone https://github.com/David-Martel/PC-AI.git
+cd PC-AI
 
 # Install development dependencies
 Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
@@ -455,11 +333,9 @@ gh pr create --title "Add new hardware detection" --body "Description of changes
 
 ### 6. CI Pipeline Runs
 
-- Lint check runs first
-- Tests run on PS 5.1 and 7.4
-- Security scan completes
-- Integration tests verify module imports
-- Coverage report generated
+- `linux-ci.yml` runs on every pull request: portable contracts, the Pester subset, Rust fmt/clippy/tests and GitOps contracts
+- Path-filtered contract workflows run when their paths change (see the Workflow Inventory)
+- Disabled workflows do not run; run their checks locally when your change touches that area
 
 ### 7. Merge
 
@@ -485,11 +361,11 @@ gh pr merge --squash
    git push origin v1.1.0
    ```
 
-3. **GitHub Actions Automatically:**
-   - Runs full test suite
-   - Builds release package
+3. **GitHub Actions (when `release.yml` and `release-cuda.yml` are enabled; both are `disabled_manually` as of 2026-11-22):**
+   - Runs the test suite
+   - Builds the release package
    - Generates release notes
-   - Creates GitHub release
+   - Creates the GitHub release
    - Uploads artifacts
 
 4. **Manual Steps (Optional):**
@@ -518,10 +394,7 @@ v2.0.0  # Breaking change: New diagnostics API
 ### Pre-Commit Hooks Failing
 
 ```powershell
-# Skip hooks temporarily (not recommended)
-git commit --no-verify
-
-# Fix specific hook
+# Hooks are never skipped: fix the failure instead. Fix a specific hook:
 pre-commit run psscriptanalyzer --all-files
 
 # Update hooks
@@ -632,7 +505,7 @@ Describe "Get-HardwareDiagnostics" {
 
 ### Regular Maintenance
 
-- **Weekly:** Review scheduled check reports
+- **Weekly:** Review dependency and security reports (`maintenance.yml` produces them only while it is enabled)
 - **Monthly:** Update dependencies
 - **Quarterly:** Security audit
 - **Annually:** Major version planning

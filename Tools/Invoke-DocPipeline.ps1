@@ -331,9 +331,25 @@ function Invoke-LithoExtraction {
 
     try {
         $lithoCmd = if ($lithoExe -is [System.Management.Automation.ApplicationInfo]) { $lithoExe.Source } else { $lithoExe }
-        & $lithoCmd extract $repoRoot --format json | Out-File (Join-Path $reportsDir 'LITHO_EXTRACT.json') -Encoding utf8
-        & $lithoCmd extract $repoRoot --format summary | Out-File (Join-Path $reportsDir 'LITHO_EXTRACT_SUMMARY.md') -Encoding utf8
-        Add-PipelineStep -Name 'LithoExtract' -Status 'Success' -Output (Join-Path $reportsDir 'LITHO_EXTRACT.json')
+        $extractJson = Join-Path $reportsDir 'LITHO_EXTRACT.json'
+        $extractSummary = Join-Path $reportsDir 'LITHO_EXTRACT_SUMMARY.md'
+        # A native command's failure never throws, so the exit code is the only signal. Write to temporary files and
+        # promote them only when both runs succeed: a failed run must neither report Success nor replace a good report
+        # with partial output.
+        $extractJsonTmp = "$extractJson.tmp"
+        $extractSummaryTmp = "$extractSummary.tmp"
+        try {
+            & $lithoCmd extract $repoRoot --format json | Out-File $extractJsonTmp -Encoding utf8
+            if ($LASTEXITCODE -ne 0) { throw "litho extract --format json exited $LASTEXITCODE" }
+            & $lithoCmd extract $repoRoot --format summary | Out-File $extractSummaryTmp -Encoding utf8
+            if ($LASTEXITCODE -ne 0) { throw "litho extract --format summary exited $LASTEXITCODE" }
+            Move-Item -LiteralPath $extractJsonTmp -Destination $extractJson -Force
+            Move-Item -LiteralPath $extractSummaryTmp -Destination $extractSummary -Force
+        }
+        finally {
+            Remove-Item -LiteralPath $extractJsonTmp, $extractSummaryTmp -Force -ErrorAction SilentlyContinue
+        }
+        Add-PipelineStep -Name 'LithoExtract' -Status 'Success' -Output $extractJson
     }
     catch {
         Add-PipelineStep -Name 'LithoExtract' -Status 'Error' -Error $_.Exception.Message
@@ -366,6 +382,7 @@ function Invoke-LithoDocGeneration {
     try {
         $lithoCmd = if ($lithoExe -is [System.Management.Automation.ApplicationInfo]) { $lithoExe.Source } else { $lithoExe }
         & $lithoCmd generate $repoRoot --provider codex --output $lithoDocsDir
+        if ($LASTEXITCODE -ne 0) { throw "litho generate exited $LASTEXITCODE" }
         Add-PipelineStep -Name 'LithoDocs' -Status 'Success' -Output $lithoDocsDir
     }
     catch {

@@ -146,6 +146,31 @@ Describe 'PC-AI.Reliability' {
             ([string](New-FleetObservation -Source task -Name n -Check run -Status failed -Message $py).Message).Contains($script:Pw) | Should -BeFalse
         }
 
+        It 'redacts every auth-param of a Digest Authorization header, not only the first (sentinel-utils #1600 twin)' {
+            # Only the first Digest field was masked, so response=, cnonce= and the other auth-params kept their values.
+            # The quoted JSON Basic, single-quoted Proxy-Authorization and JSON-escaped Digest forms are regression controls:
+            # they were already redacted whole. The word after the header survives (control).
+            $q = '"'
+            $resp = 'resp' + 'Hash' + ('1' * 8)
+            $cnonce = 'cnon' + 'Val' + ('2' * 8)
+            $basic = 'dXNl' + 'cjpw' + 'YXNz'
+            $proxy = 'cHJv' + 'eHk6'
+            $escResp = 'esc' + 'Resp' + ('3' * 8)
+            $digest = 'Author' + 'ization: Digest username=' + $q + 'svc' + $q + ', realm=' + $q + 'api' + $q + ', nonce=' + $q + 'n1' + $q +
+                ', uri=' + $q + '/x' + $q + ', response=' + $q + $resp + $q + ', cnonce=' + $q + $cnonce + $q + ', qop=auth, nc=00000001 after-header'
+            $jsonBasic = '{' + $q + 'Author' + 'ization' + $q + ': ' + $q + 'Basic ' + $basic + $q + ', ' + $q + 'user' + $q + ': ' + $q + 'deploy-bot' + $q + '}'
+            $proxySingle = "{'Proxy-Author" + "ization': 'Basic " + $proxy + "'}"
+            $jsonDigest = '{' + $q + 'author' + 'ization' + $q + ':' + $q + 'Digest username=\' + $q + 'svc\' + $q + ', response=\' + $q + $escResp + '\' + $q + $q + '}'
+            $text = "request failed $digest $jsonBasic $proxySingle $jsonDigest end"
+            $ev = New-FleetLedgerEvent -Source task -Name n -Kind incident-open -Status failed -Severity high -Message $text
+            $o = New-FleetObservation -Source task -Name n -Check run -Status failed -Message $text
+            foreach ($m in @([string]$ev.message, [string]$o.Message)) {
+                foreach ($x in @($resp, $cnonce, $basic, $proxy, $escResp)) { $m.Contains($x) | Should -BeFalse -Because "an Authorization value survived: $m" }
+                $m | Should -Match 'after-header'
+                $m | Should -Match 'deploy-bot'
+            }
+        }
+
         It 'row 18 (P1): a failing job''s credential output never reaches the ledger, incident state or agent-bus' {
             $script:Fake.Task = @{ FilePath = 'C:\fake\job.exe'; ExitCode = 0; StdOut = "[ERROR] $($script:SecretText)`n" }
             Invoke-FleetTask -Name '\t\job' -FilePath 'C:\fake\job.exe' | Should -Be 1

@@ -17,7 +17,23 @@ fn stream_preflight_reports_capabilities_without_qualifying_a_transfer() {
     assert_eq!(report["transfer_qualification"], "NotTested");
     if cfg!(target_os = "linux") {
         assert_eq!(report["status"], "LocalObservation");
-        assert!(report["linux"].is_object());
+        let linux = &report["linux"];
+        assert!(linux.is_object());
+        let config = &linux["stream_config"];
+        match config["state"].as_str() {
+            Some("BuiltIn" | "Module" | "Disabled" | "Unspecified") => {
+                assert!(matches!(
+                    config["source"].as_str(),
+                    Some("ProcConfigGzip" | "BootConfig")
+                ));
+            }
+            Some("Unavailable") => assert!(config.get("source").is_some_and(Value::is_null)),
+            state => panic!("unexpected stream configuration state {state:?}"),
+        }
+        assert!(matches!(
+            linux["configfs_mount"].as_str(),
+            Some("Mounted" | "Absent" | "UnexpectedType" | "Unavailable")
+        ));
     } else {
         assert_eq!(report["status"], "UnsupportedPlatform");
         assert!(report["linux"].is_null());

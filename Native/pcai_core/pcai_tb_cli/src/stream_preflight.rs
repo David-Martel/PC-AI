@@ -1,4 +1,6 @@
 //! Observe Linux USB4STREAM kernel surfaces without opening a stream.
+//!
+//! See [Linux USB4STREAM preflight](../../../../docs/usb4/rdma-preview.md#linux-and-mixed-fleets).
 
 use serde::Serialize;
 
@@ -15,12 +17,46 @@ pub struct StreamPreflight {
 #[derive(Debug, Serialize)]
 struct LinuxStreamObservation {
     kernel_release: Option<String>,
+    stream_config: StreamConfig,
+    configfs_mount: ConfigfsMount,
     stream_control: Visibility,
     stream_module: Visibility,
     usb4net_module: Visibility,
     rxe_module: Visibility,
     siw_module: Visibility,
     device_scan: DeviceScan,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+struct StreamConfig {
+    state: StreamConfigState,
+    source: Option<StreamConfigSource>,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+enum StreamConfigState {
+    BuiltIn,
+    Module,
+    Disabled,
+    Unspecified,
+    Unavailable,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+enum StreamConfigSource {
+    ProcConfigGzip,
+    BootConfig,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+enum ConfigfsMount {
+    Mounted,
+    Absent,
+    UnexpectedType,
+    Unavailable,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -70,20 +106,49 @@ pub fn observe_stream_preflight() -> StreamPreflight {
 
 #[cfg(target_os = "linux")]
 mod linux {
-    use super::{DeviceScan, LinuxStreamObservation, ScanCoverage, Visibility};
-    use std::fs;
-    use std::io::ErrorKind;
-    use std::os::unix::fs::FileTypeExt;
+    use super::{
+        ConfigfsMount, DeviceScan, LinuxStreamObservation, ScanCoverage, StreamConfig, StreamConfigSource,
+        StreamConfigState, Visibility,
+    };
+    use flate2::bufread::GzDecoder;
+    use std::fs::{self, OpenOptions};
+    use std::io::{ErrorKind, Read};
+    use std::os::unix::fs::{FileTypeExt, OpenOptionsExt};
     use std::path::Path;
 
     const MAX_DIRECTORY_ENTRIES: usize = 4096;
     const MAX_STREAM_NODES: usize = 64;
+    const MAX_KERNEL_LABEL_BYTES: usize = 256;
+    const MAX_KERNEL_CONFIG_BYTES: usize = 2 * 1024 * 1024;
+    const MAX_MOUNTINFO_BYTES: usize = 2 * 1024 * 1024;
+    const STREAM_SYMBOL: &str = "CONFIG_USB4_STREAM";
+    const CONFIGFS_PATH: &[u8] = b"/sys/kernel/config";
+
+    fn read_limited(reader: impl Read, limit: usize) -> Option<Vec<u8>> {
+        let mut bytes = Vec::new();
+        reader.take(limit as u64 + 1).read_to_end(&mut bytes).ok()?;
+        (bytes.len() <= limit).then_some(bytes)
+    }
+
+    fn read_regular_file(path: &Path, limit: usize) -> Option<Vec<u8>> {
+        if !fs::symlink_metadata(path).ok()?.is_file() {
+            return None;
+        }
+        let file = OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+            .open(path)
+            .ok()?;
+        if !file.metadata().ok()?.is_file() {
+            return None;
+        }
+        read_limited(file, limit)
+    }
 
     fn read_kernel_label(path: &str) -> Option<String> {
-        fs::read_to_string(path)
-            .ok()
-            .map(|text| text.trim().to_owned())
-            .filter(|text| !text.is_empty())
+        let bytes = read_regular_file(Path::new(path), MAX_KERNEL_LABEL_BYTES)?;
+        let text = std::str::from_utf8(&bytes).ok()?.trim();
+        (!text.is_empty()).then(|| text.to_owned())
     }
 
     pub(super) fn hostname() -> Option<String> {
@@ -91,8 +156,16 @@ mod linux {
     }
 
     pub(super) fn observe() -> LinuxStreamObservation {
+        let kernel_release = read_kernel_label("/proc/sys/kernel/osrelease");
+        let stream_config = observe_stream_config(
+            Path::new("/proc/config.gz"),
+            Path::new("/boot"),
+            kernel_release.as_deref(),
+        );
         LinuxStreamObservation {
-            kernel_release: read_kernel_label("/proc/sys/kernel/osrelease"),
+            kernel_release,
+            stream_config,
+            configfs_mount: observe_configfs_mount(Path::new("/proc/self/mountinfo")),
             stream_control: directory_visibility(Path::new("/sys/kernel/config/thunderbolt/stream")),
             stream_module: directory_visibility(Path::new("/sys/module/thunderbolt_stream")),
             usb4net_module: directory_visibility(Path::new("/sys/module/thunderbolt_net")),
@@ -100,6 +173,144 @@ mod linux {
             siw_module: directory_visibility(Path::new("/sys/module/siw")),
             device_scan: scan_device_nodes(Path::new("/dev"), MAX_DIRECTORY_ENTRIES),
         }
+    }
+
+    fn valid_kernel_release(release: &str) -> bool {
+        release.len() <= 64
+            && release.as_bytes().first().is_some_and(u8::is_ascii_digit)
+            && release
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || b"._+-".contains(&byte))
+    }
+
+    fn parse_stream_config(bytes: &[u8]) -> Option<StreamConfigState> {
+        let text = std::str::from_utf8(bytes).ok()?;
+        if text.contains('\0') || !text.ends_with('\n') {
+            return None;
+        }
+        let mut stream_state = None;
+        let mut saw_symbol = false;
+        for line in text.lines().filter(|line| !line.is_empty()) {
+            let (symbol, value) =
+                if let Some(comment) = line.strip_prefix("# ").filter(|text| text.starts_with("CONFIG_")) {
+                    if let Some(symbol) = comment.strip_suffix(" is not set") {
+                        (symbol, "n")
+                    } else if comment.split_ascii_whitespace().next() == Some(STREAM_SYMBOL) {
+                        return None;
+                    } else {
+                        continue;
+                    }
+                } else if line.starts_with('#') {
+                    continue;
+                } else {
+                    line.split_once('=')?
+                };
+            let name = symbol.strip_prefix("CONFIG_")?;
+            if name.is_empty() || !name.bytes().all(|byte| byte.is_ascii_alphanumeric() || byte == b'_') {
+                return None;
+            }
+            saw_symbol = true;
+            if symbol == STREAM_SYMBOL {
+                if stream_state.is_some() {
+                    return None;
+                }
+                stream_state = Some(match value {
+                    "y" => StreamConfigState::BuiltIn,
+                    "m" => StreamConfigState::Module,
+                    "n" => StreamConfigState::Disabled,
+                    _ => return None,
+                });
+            }
+        }
+        saw_symbol.then_some(stream_state.unwrap_or(StreamConfigState::Unspecified))
+    }
+
+    fn read_proc_config(path: &Path) -> Option<StreamConfigState> {
+        let compressed = read_regular_file(path, MAX_KERNEL_CONFIG_BYTES)?;
+        let mut decoder = GzDecoder::new(compressed.as_slice());
+        let config = read_limited(&mut decoder, MAX_KERNEL_CONFIG_BYTES)?;
+        if !decoder.into_inner().is_empty() {
+            return None;
+        }
+        parse_stream_config(&config)
+    }
+
+    fn observe_stream_config(proc_config: &Path, boot: &Path, release: Option<&str>) -> StreamConfig {
+        if let Some(state) = read_proc_config(proc_config) {
+            return StreamConfig {
+                state,
+                source: Some(StreamConfigSource::ProcConfigGzip),
+            };
+        }
+        if let Some(release) = release.filter(|release| valid_kernel_release(release)) {
+            let path = boot.join(format!("config-{release}"));
+            if let Some(state) = read_regular_file(&path, MAX_KERNEL_CONFIG_BYTES)
+                .as_deref()
+                .and_then(parse_stream_config)
+            {
+                return StreamConfig {
+                    state,
+                    source: Some(StreamConfigSource::BootConfig),
+                };
+            }
+        }
+        StreamConfig {
+            state: StreamConfigState::Unavailable,
+            source: None,
+        }
+    }
+
+    fn parse_mountinfo(bytes: &[u8]) -> Option<ConfigfsMount> {
+        let records = bytes.strip_suffix(b"\n")?;
+        let mut mount = None;
+        for record in records.split(|byte| *byte == b'\n') {
+            let mut fields = record.split(|byte| *byte == b' ');
+            // The first six fields are required; optional fields end at a standalone hyphen.
+            let mount_id = fields.next()?;
+            let parent_id = fields.next()?;
+            let mut device = fields.next()?.split(|byte| *byte == b':');
+            let root = fields.next()?;
+            let path = fields.next()?;
+            let options = fields.next()?;
+            let decimal = |field: &[u8]| !field.is_empty() && field.iter().all(u8::is_ascii_digit);
+            if !decimal(mount_id)
+                || !decimal(parent_id)
+                || !decimal(device.next()?)
+                || !decimal(device.next()?)
+                || device.next().is_some()
+                // Namespace bind mounts can report a root such as net:[inode].
+                || root.is_empty()
+                || !path.starts_with(b"/")
+                || options.is_empty()
+            {
+                return None;
+            }
+            fields.find(|field| *field == b"-")?;
+            let filesystem = fields.next()?;
+            let source = fields.next()?;
+            let super_options = fields.next()?;
+            if filesystem.is_empty() || source.is_empty() || super_options.is_empty() || fields.next().is_some() {
+                return None;
+            }
+            if path == CONFIGFS_PATH {
+                if mount.is_some() {
+                    return None;
+                }
+                mount = Some(if filesystem == b"configfs" {
+                    ConfigfsMount::Mounted
+                } else {
+                    ConfigfsMount::UnexpectedType
+                });
+            }
+        }
+        Some(mount.unwrap_or(ConfigfsMount::Absent))
+    }
+
+    fn observe_configfs_mount(path: &Path) -> ConfigfsMount {
+        read_regular_file(path, MAX_MOUNTINFO_BYTES)
+            .as_deref()
+            .and_then(parse_mountinfo)
+            .unwrap_or(ConfigfsMount::Unavailable)
     }
 
     fn directory_visibility(path: &Path) -> Visibility {
@@ -160,7 +371,182 @@ mod linux {
     #[cfg(test)]
     mod tests {
         use super::*;
+        use flate2::{write::GzEncoder, Compression};
+        use std::io::Write;
         use std::os::unix::fs::symlink;
+
+        fn gzip(bytes: &[u8]) -> Vec<u8> {
+            let mut encoder = GzEncoder::new(Vec::new(), Compression::fast());
+            encoder.write_all(bytes).expect("compress fixture");
+            encoder.finish().expect("finish fixture gzip")
+        }
+
+        // Protects exact CONFIG_USB4_STREAM tri-state evidence. Detects drift from other
+        // symbols and false qualifications from invalid/conflicting values. Needs no hardware.
+        // Breadcrumb: parse_stream_config.
+        #[test]
+        fn stream_config_distinguishes_tristate_from_missing_and_invalid_evidence() {
+            for (bytes, expected) in [
+                (&b"CONFIG_USB4_STREAM=y\n"[..], Some(StreamConfigState::BuiltIn)),
+                (b"CONFIG_USB4_STREAM=m\r\n", Some(StreamConfigState::Module)),
+                (b"# CONFIG_USB4_STREAM is not set\n", Some(StreamConfigState::Disabled)),
+                (b"CONFIG_USB4_STREAM=n\n", Some(StreamConfigState::Disabled)),
+                (b"CONFIG_USB4_STREAM_DEBUG=y\n", Some(StreamConfigState::Unspecified)),
+                (
+                    b"# CONFIG_MTD_NETtel is not set\n",
+                    Some(StreamConfigState::Unspecified),
+                ),
+                (b"# CONFIG_USB4_NET is not set\n", Some(StreamConfigState::Unspecified)),
+                (b"CONFIG_USB4_NET=y\n# CONFIG_USB4_STREAM is set\n", None),
+                (b"CONFIG_USB4_STREAM=\"y\"\n", None),
+                (b"CONFIG_USB4_STREAM=y\nCONFIG_USB4_STREAM=m\n", None),
+                (b"CONFIG_USB4_STREAM=y\n# CONFIG_USB4_STREAM is not set\n", None),
+                (b"CONFIG_USB4_STREAM=y", None),
+                (b"CONFIG_USB4_STREAM=y\n\xff\n", None),
+                (b"# commentary only\n", None),
+            ] {
+                assert_eq!(parse_stream_config(bytes), expected, "{bytes:?}");
+            }
+        }
+
+        // Protects precedence of running-kernel evidence and release-bound fallback.
+        // Detects fallback overriding valid proc evidence or accepting a path-like release.
+        // Needs Linux temporary files and gzip encoder. Breadcrumb: observe_stream_config.
+        #[test]
+        fn stream_config_prefers_proc_and_falls_back_only_to_validated_boot_file() {
+            let dir = tempfile::tempdir().expect("create config fixture root");
+            let proc = dir.path().join("config.gz");
+            let release = "7.2.0-test+1";
+            let boot = dir.path().join(format!("config-{release}"));
+            fs::write(&boot, b"CONFIG_USB4_STREAM=m\n").expect("write boot config");
+            let expected_boot = StreamConfig {
+                state: StreamConfigState::Module,
+                source: Some(StreamConfigSource::BootConfig),
+            };
+            assert_eq!(observe_stream_config(&proc, dir.path(), Some(release)), expected_boot);
+
+            fs::write(&proc, gzip(b"CONFIG_USB4_STREAM=y\n")).expect("write proc config");
+            assert_eq!(
+                observe_stream_config(&proc, dir.path(), Some(release)),
+                StreamConfig {
+                    state: StreamConfigState::BuiltIn,
+                    source: Some(StreamConfigSource::ProcConfigGzip)
+                },
+            );
+            fs::write(&proc, gzip(b"CONFIG_USB4_NET=y\n")).expect("replace proc config");
+            assert_eq!(
+                observe_stream_config(&proc, dir.path(), Some(release)),
+                StreamConfig {
+                    state: StreamConfigState::Unspecified,
+                    source: Some(StreamConfigSource::ProcConfigGzip)
+                },
+            );
+            fs::write(&proc, b"invalid gzip").expect("replace proc with corrupt data");
+            assert_eq!(observe_stream_config(&proc, dir.path(), Some(release)), expected_boot);
+
+            let unavailable = StreamConfig {
+                state: StreamConfigState::Unavailable,
+                source: None,
+            };
+            for invalid in ["", "7/tmp", "7\\tmp", "../7.2", "7.2 more", &"7".repeat(65)] {
+                assert!(!valid_kernel_release(invalid), "{invalid:?}");
+                assert_eq!(
+                    observe_stream_config(&proc, dir.path(), Some(invalid)),
+                    unavailable,
+                    "{invalid:?}"
+                );
+            }
+            for unknown_release in [None, Some("7.2-other")] {
+                assert_eq!(observe_stream_config(&proc, dir.path(), unknown_release), unavailable);
+            }
+            fs::rename(&boot, dir.path().join("moved-config")).expect("move regular boot fixture");
+            symlink(dir.path().join("moved-config"), boot).expect("create boot config alias");
+            assert_eq!(observe_stream_config(&proc, dir.path(), Some(release)), unavailable);
+        }
+
+        // Protects complete, bounded kernel-config reads. Detects oversized input or output,
+        // missing gzip trailer, and trailing input accepted as current-kernel evidence. Needs
+        // Linux temporary files and gzip encoder. Breadcrumb: read_proc_config, read_regular_file.
+        #[test]
+        fn stream_config_rejects_oversized_and_corrupt_sources() {
+            let dir = tempfile::tempdir().expect("create compressed config fixture root");
+            let proc = dir.path().join("config.gz");
+            let release = "7.2.0-test";
+            let boot = dir.path().join(format!("config-{release}"));
+
+            let mut data = b"CONFIG_USB4_STREAM=y\n# ".to_vec();
+            data.resize(MAX_KERNEL_CONFIG_BYTES, b'x');
+            data[MAX_KERNEL_CONFIG_BYTES - 1] = b'\n';
+            fs::write(&proc, gzip(&data)).expect("write maximum size config");
+            assert_eq!(read_proc_config(&proc), Some(StreamConfigState::BuiltIn));
+
+            for corrupt in [
+                {
+                    data.push(b'\n');
+                    gzip(&data)
+                },
+                {
+                    let mut bytes = gzip(b"CONFIG_USB4_STREAM=y\n");
+                    bytes.pop();
+                    bytes
+                },
+                {
+                    let mut bytes = gzip(b"CONFIG_USB4_STREAM=y\n");
+                    bytes.extend_from_slice(b"tail");
+                    bytes
+                },
+                vec![b'x'; MAX_KERNEL_CONFIG_BYTES + 1],
+            ] {
+                fs::write(&proc, corrupt).expect("write bad proc source");
+                assert_eq!(read_proc_config(&proc), None);
+            }
+            fs::write(boot, data).expect("write oversized boot config");
+            assert_eq!(
+                observe_stream_config(&proc, dir.path(), Some(release)),
+                StreamConfig {
+                    state: StreamConfigState::Unavailable,
+                    source: None
+                },
+            );
+        }
+
+        // Protects exact mount-point and filesystem classification. Detects prefix/source
+        // look-alikes, stacked records, partial listings and oversized or missing mountinfo.
+        // Needs Linux temporary files. Breadcrumb: observe_configfs_mount, parse_mountinfo.
+        #[test]
+        fn configfs_mount_needs_exact_type_from_complete_mountinfo() {
+            let dir = tempfile::tempdir().expect("create mountinfo fixture root");
+            let path = dir.path().join("mountinfo");
+            assert_eq!(observe_configfs_mount(&path), ConfigfsMount::Unavailable);
+            let exact = b"11 10 0:47 / /sys/kernel/config rw shared:10 - configfs none rw\n";
+            let prefix = b"11 10 0:47 / /sys/kernel/config-copy rw - configfs none rw\n";
+            let other = b"11 10 0:47 / /sys/kernel/config rw - tmpfs configfs rw\n";
+            let stacked = b"12 11 0:48 / /sys/kernel/config rw - tmpfs none rw\n";
+            let non_unicode = b"12 10 0:48 / /mnt/\xff rw - tmpfs none rw\n";
+            let nsfs = b"13 10 0:5 net:[123] /run/docker/netns/test rw - nsfs nsfs rw\n";
+            for (bytes, expected) in [
+                (exact.to_vec(), ConfigfsMount::Mounted),
+                ([non_unicode.as_slice(), exact].concat(), ConfigfsMount::Mounted),
+                ([nsfs.as_slice(), exact].concat(), ConfigfsMount::Mounted),
+                (prefix.to_vec(), ConfigfsMount::Absent),
+                (other.to_vec(), ConfigfsMount::UnexpectedType),
+                ([exact.as_slice(), stacked].concat(), ConfigfsMount::Unavailable),
+                (exact[..exact.len() - 1].to_vec(), ConfigfsMount::Unavailable),
+                (
+                    b"11 10 0:47 / /sys/kernel/config rw - configfs\n".to_vec(),
+                    ConfigfsMount::Unavailable,
+                ),
+            ] {
+                fs::write(&path, bytes).expect("write mountinfo fixture");
+                assert_eq!(observe_configfs_mount(&path), expected);
+            }
+            let mut oversized = b"11 10 0:47 / /sys/kernel/config rw extension:".to_vec();
+            oversized.resize(MAX_MOUNTINFO_BYTES, b'x');
+            oversized.extend_from_slice(b" - configfs none rw\n");
+            assert_eq!(parse_mountinfo(&oversized), Some(ConfigfsMount::Mounted));
+            fs::write(&path, oversized).expect("write oversized mountinfo fixture");
+            assert_eq!(observe_configfs_mount(&path), ConfigfsMount::Unavailable);
+        }
 
         // Protects distinction between a missing control surface and a directory impostor.
         // Detects path-name-only qualification. Needs temp files; breadcrumb: directory_visibility.

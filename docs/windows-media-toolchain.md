@@ -10,6 +10,8 @@ Compiled codec lists do not prove that a connected GPU can use them.
 .\Tools\Test-PcaiMediaToolchain.ps1
 # Optional: 16 synthetic black 320x240 frames, Intel QSV, discarded output.
 .\Tools\Test-PcaiMediaToolchain.ps1 -ValidateIntelQsv
+# Optional: 16 synthetic black 320x240 frames, NVIDIA NVENC H.264, discarded output.
+.\Tools\Test-PcaiMediaToolchain.ps1 -ValidateNvidiaNvenc
 # Optional: DirectShow device metadata only; its expected nonzero exit is retained.
 .\Tools\Test-PcaiMediaToolchain.ps1 -ListCaptureDevices
 ```
@@ -43,11 +45,19 @@ OpenCV wheel variants are reported as a conflict and cv2 is not imported. A
 stock CPU wheel's cv2.cuda namespace does not establish CUDA capability. Keep
 the exact repository's selected dependencies in its own environment.
 
-The current Windows FFmpeg build includes QSV/NVENC/D3D11 options. NVENC still
-requires a supported connected NVIDIA GPU and driver; this tool never attempts
-an NVIDIA runtime workload. The CUDA toolkit is not required merely to run a
-prebuilt FFmpeg binary. RTX5060Ti (Blackwell, sm_120) supports AV1 encode; RTX
-A2000 (Ampere, sm_86) does not, despite supporting AV1 decode.
+The opt-in NVIDIA probe requests the compiled `h264_nvenc` encoder and requires
+a connected display controller with NVIDIA's PCI vendor ID. It feeds 16
+synthetic 320x240 frames to FFmpeg's default eligible NVIDIA encoder and
+discards encoded packets through the null muxer. Read
+`nvidiaRuntime.status` for the result. `Validated` means FFmpeg exited
+successfully and its final progress record confirms all 16 frames. A failed
+probe retains its timeout or exit code and error output. Missing encoder
+support and failed encoder enumeration have separate statuses.
+
+This verifies one H.264 hardware encode session using a prebuilt FFmpeg
+binary and the NVIDIA driver. The driver provides CUDA APIs used by FFmpeg for
+device access. Per-adapter identity, other codecs, decoding, or LLM accelerator
+qualification require separate workloads.
 
 GStreamer 1.28.8 uses a unified Inno Setup EXE. Select MSVC x86_64 runtime or
 development installation to match the application. The tool searches PATH,
@@ -61,7 +71,7 @@ Primary references:
 - [GStreamer current Windows downloads](https://gstreamer.freedesktop.org/download/)
 - [OpenCV wheel variants and CPU-only builds](https://github.com/opencv/opencv-python/blob/4.x/README.md)
 - [NVIDIA codec hardware matrix](https://developer.nvidia.com/video-encode-decode-support-matrix)
-- [NVIDIA FFmpeg setup](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.0/ffmpeg-with-nvidia-gpu/index.html)
+- [NVIDIA FFmpeg setup](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/ffmpeg-with-nvidia-gpu/index.html#software-setup)
 
 Qualification checks do not replace physical device/HIL acceptance or prove a
 remedy for whole-PC freezes. Review the investigation's power and firmware
@@ -131,3 +141,30 @@ were incorrectly `Enumerated`, and optional absence had no explicit inventory.
 The corrected report retains every process result. The Windows missing-element
 metadata control independently produced the exact absent-element diagnostic and
 exit `-1`. No crash fixture executes a native plugin, encode or capture workload.
+
+## NVIDIA encode regression review
+
+The Pester controls exercise FFmpeg selection, terminal progress and the
+reported verdict without running an encode. The DryRun fixture also checks
+CLI flag forwarding and the absence of a written output report.
+
+Author qualification by codex-gpu-lane on 2026-11-22 against base
+`40929a943559f3a7fb0c01623d7df35f25e5171f` used 34 passing mocked controls.
+The codex-gen9-pcai-fleet author-family review checked the fixed FFmpeg
+arguments, exact terminal frame accounting, negative outcomes, and DryRun.
+On Windows with an RTX PRO 2000 Blackwell Laptop GPU, the exact script reported
+`Validated` and 16 observed frames from `h264_nvenc`, with FFmpeg exit 0.
+That result qualifies the encoder on one host. Selector hashes cover each
+complete PowerShell AST `It` extent as UTF-8 with LF newlines.
+
+- [Qualification source](../Tools/Test-PcaiMediaToolchain.ps1) SHA-256 `060376d3bbd91acce778585ece45f298de109559dc3591f8d91ee82f9fc5da47`
+- [Pester fixture source](../Tests/Boot/MediaToolchain.Tests.ps1) SHA-256 `f0807bf2ca018b515629c3a11f40c9e396690cf3aecaa87235b3c3f48503464b`
+
+| Selector | SHA-256 | Disposition |
+| --- | --- | --- |
+| does no process, provider, discovery or output work in DryRun | `cc0874d34266b041cf36307379140c30c50ca4995a3c8a7553324ace4c3914b8` | keep |
+| separates compiled NVIDIA support from runtime and does not encode by default | `428336536137faaafb84fdc78cd161c8c1ddc823cc7d872bf6d8e74a207aee7b` | keep |
+| qualifies a completed NVENC encode with the exact synthetic workload | `b49e885333679249fc4582c5665db51622e154927dbb27e5f0d8ac0a023eada9` | keep |
+| retains NVENC &lt;Case&gt; without reporting validation | `638187626d96a1f6cce7994740b2f66ee3b77d87a4da767af2cdc5dd521f8239` | keep |
+| does not encode when encoder inventory is &lt;ListStatus&gt; and no NVENC was found | `6611be5e7c431663137cad370dc968a674e64589e2612726ba4693acd1692f7f` | keep |
+| does not encode when GPU inventory is &lt;InventoryStatus&gt; without a matched device | `11cc60116a399dae38f7e03c622d66b113834f48c9be72a895a1f8666aa144b1` | keep |

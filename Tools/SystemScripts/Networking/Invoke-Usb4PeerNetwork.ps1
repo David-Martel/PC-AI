@@ -479,6 +479,51 @@ function Get-Usb4ObjectProperty {
     $null
 }
 
+function Get-Usb4HnsEndpointInventory {
+    <# .SYNOPSIS Read the authoritative, local HNS endpoint collection. #>
+    $api = New-Object -ComObject hns.1 -ErrorAction Stop
+    try { $response = $api.Request2('GET', '/endpoints', '') }
+    finally {
+        if ([Runtime.InteropServices.Marshal]::IsComObject($api)) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($api) }
+    }
+    # The inbox PowerShell wrapper discards Success and projects missing Output as null.
+    if ($response -isnot [string] -or [string]::IsNullOrWhiteSpace($response)) { throw 'HNS endpoint response is missing.' }
+    try { $envelope = ConvertFrom-Json -InputObject $response -AsHashtable -NoEnumerate -ErrorAction Stop }
+    catch { throw 'HNS endpoint response is not valid JSON.' }
+    if ($envelope -isnot [Collections.IDictionary] -or 'Success' -cnotin $envelope.Keys -or
+        $envelope['Success'] -isnot [bool] -or -not $envelope['Success'] -or $envelope.Contains('Error')) {
+        throw 'HNS endpoint response did not establish a successful collection read.'
+    }
+    if ($envelope.Count -eq 1) { return } # Native GET /endpoints returns just Success for an empty collection.
+    if ($envelope.Count -ne 2 -or 'Output' -cnotin $envelope.Keys -or $envelope['Output'] -isnot [array]) {
+        throw 'HNS endpoint response contains an unknown collection shape.'
+    }
+
+    $endpoints = @(foreach ($endpoint in $envelope['Output']) {
+            if ($endpoint -isnot [Collections.IDictionary]) { throw 'HNS endpoint reservation is not an object.' }
+            $id = Get-Usb4ObjectProperty $endpoint @('Id', 'ID')
+            $addresses = [Collections.Generic.List[string]]::new()
+            $ip = Get-Usb4ObjectProperty $endpoint @('IPAddress', 'IpAddress')
+            if ($null -ne $ip -and $ip -isnot [string]) { throw 'HNS endpoint address is not a string.' }
+            if ($ip) { $addresses.Add($ip) }
+            foreach ($configuration in @(Get-Usb4ObjectProperty $endpoint @('IpConfigurations', 'IPConfigurations'))) {
+                if ($null -eq $configuration) { continue }
+                $ip = Get-Usb4ObjectProperty $configuration @('IpAddress', 'IPAddress')
+                if ($ip -isnot [string] -or [string]::IsNullOrWhiteSpace($ip)) { throw 'HNS endpoint IP configuration is unknown.' }
+                $addresses.Add($ip)
+            }
+            if ($id -isnot [string] -or [string]::IsNullOrWhiteSpace($id) -or $addresses.Count -eq 0) {
+                throw 'HNS endpoint reservation is unknown.'
+            }
+            foreach ($address in $addresses) {
+                $parsedAddress = $null
+                if (-not [Net.IPAddress]::TryParse($address, [ref]$parsedAddress)) { throw 'HNS endpoint address is invalid.' }
+            }
+            @{ id = $id; addresses = @($addresses | Sort-Object -Unique) }
+        })
+    $endpoints
+}
+
 function Get-Usb4ExistingNatInventory {
     <# .SYNOPSIS
     Read existing NAT configuration and all HNS/allocation reservations without mutation.
@@ -494,7 +539,7 @@ function Get-Usb4ExistingNatInventory {
             }
             $values
         })
-    if (-not (Get-Command Get-HnsNetwork -ErrorAction SilentlyContinue) -or -not (Get-Command Get-HnsEndpoint -ErrorAction SilentlyContinue)) {
+    if (-not (Get-Command Get-HnsNetwork -ErrorAction SilentlyContinue)) {
         $module = Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/Modules/HostNetworkingService/HostNetworkingService.psd1'
         if (-not (Test-Path -LiteralPath $module -ErrorAction Stop)) { throw 'HNS allocation inventory is unavailable; existing NAT sharing is not admitted.' }
         Import-Module $module -ErrorAction Stop
@@ -524,18 +569,7 @@ function Get-Usb4ExistingNatInventory {
             if ($prefixes.Count -eq 0 -and $type -notin @('Transparent', 'L2Bridge', 'L2Tunnel')) { throw 'HNS network has unknown address allocations.' }
             @{ id = [string]$id; type = [string]$type; prefixes = @($prefixes | Sort-Object -Unique) }
         })
-    $endpoints = @(foreach ($endpoint in @(Get-HnsEndpoint -ErrorAction Stop)) {
-            $id = Get-Usb4ObjectProperty $endpoint @('Id', 'ID'); $addresses = [Collections.Generic.List[string]]::new()
-            $ip = Get-Usb4ObjectProperty $endpoint @('IPAddress')
-            if ($ip) { $addresses.Add([string]$ip) }
-            foreach ($configuration in @(Get-Usb4ObjectProperty $endpoint @('IpConfigurations'))) {
-                if ($null -eq $configuration) { continue }
-                $ip = Get-Usb4ObjectProperty $configuration @('IpAddress', 'IPAddress')
-                if (-not $ip) { throw 'Unknown HNS endpoint IP configuration.' }; $addresses.Add([string]$ip)
-            }
-            if (-not $id -or $addresses.Count -eq 0) { throw 'HNS endpoint reservation is unknown.' }
-            @{ id = [string]$id; addresses = @($addresses | Sort-Object -Unique) }
-        })
+    $endpoints = @(Get-Usb4HnsEndpointInventory)
     $mappings = @(Get-NetNatStaticMapping -ErrorAction Stop | ForEach-Object {
             $address = Get-Usb4ObjectProperty $_ @('InternalIPAddress')
             if (-not $address) { throw 'Static NAT mapping reservation is unknown.' }

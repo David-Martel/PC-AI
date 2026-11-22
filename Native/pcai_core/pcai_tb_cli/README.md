@@ -42,6 +42,7 @@ portable tests do not qualify installed USB4 hardware or a runnable session.
 
 ```bash
 pcai-tb status --compact
+pcai-tb stream-preflight --compact
 pcai-tb identity --computer dtm-p1gen9 --peer dtm-super-nuc --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb discover --timeout-ms 220 --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb register --peer dtm-super-nuc --registry ../../../Config/thunderbolt-peers.json --compact
@@ -52,6 +53,10 @@ pcai-tb vnv --registry ../../../Config/thunderbolt-peers.json --output vnv-evide
 pcai-tb route-plan --input observation.json --policy route-policy.json --registry ../../../Config/thunderbolt-peers.json
 pcai-tb unregister --peer dtm-p1gen9 --adapter 02-00-00-0B-00-19 --registry ../../../Config/thunderbolt-peers.json
 ```
+
+Use `stream-preflight` to check local Linux USB4STREAM control and device visibility.
+It reads kernel metadata and reports transfer qualification as `NotTested`.
+Windows returns `UnsupportedPlatform`. See [USB4 transport qualification](../../../docs/usb4/rdma-preview.md#linux-and-mixed-fleets).
 
 `route-plan` plans /30 addressing, host routes and transit forwarding for hosts joined through hubs or an intermediate host. It only prints commands; see [multi-hop routing](../../../docs/usb4/multi-hop-routing.md).
 `unregister` is the inverse of `register`. Without `--apply` it only plans. It recomputes ownership from the registry: this host's deterministic LLA and ULA addresses, the derived pairwise /30 for a fleet peer, and that peer's /128 ULA routes. A peer counts as present on the link if its /30, a neighbor entry or one of its routes is there, or if it is named with `--peer`. Routes are read from the interface's route table, so routes registered without a /30 are found too. Nothing else is touched. MTU and interface metric are left unchanged, because `register` records no preimage; the report's `Notes` give the manual restore command. A route delete that fails is accepted as already absent only after re-reading the route table.

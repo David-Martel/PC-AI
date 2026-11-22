@@ -191,6 +191,11 @@ readiness. Use the [native client guide](docs/usb4/native-peer-client.md) and
 `Native/pcai_core`. The installed legacy controller, recovery journal and working
 vendor session remain separate; do not deploy or reset them to try a plan.
 
+`pcai-tb stream-preflight` reports Linux USB4STREAM kernel surfaces and leaves
+transfer qualification as `NotTested`. Run `cargo test --locked -p pcai-tb
+--test stream_preflight_cli` from `Native/pcai_core`. See the
+[USB4 transport guide](docs/usb4/rdma-preview.md#linux-and-mixed-fleets).
+
 ## Prompt and routing contracts
 
 - Diagnose mode uses `DIAGNOSE.md` + `DIAGNOSE_LOGIC.md`

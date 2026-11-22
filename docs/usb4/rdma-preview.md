@@ -57,15 +57,38 @@ writes no configuration, installs no provider and runs no network probe.
 ## Linux and mixed fleets
 
 Windows USB4NET and Linux ThunderboltIP remain the common TCP/UDP path. Linux
-7.2's USB4STREAM exposes raw direct streams through /dev/tbstreamX. Validate
-it on two matching Linux hosts as a separate transport. Experimental Linux
-USB4 verbs drivers require their own matched endpoint and kernel qualification.
+introduced USB4STREAM in 7.2. Test a maintained kernel or distribution backport
+with `CONFIG_USB4_STREAM`. Run `pcai-tb stream-preflight --compact` on each
+endpoint. It reports local visibility of the kernel control directory, module
+entries, and `/dev/tbstreamN` character-device entries. `Absent` means the path
+is absent in the current namespace. An unavailable or incomplete scan stays
+explicit. Device entries can appear before a peer attaches. The probe avoids
+opening a stream device because the first open can allocate DMA rings.
+
+Qualify USB4STREAM on two Linux hosts. Use the configured stream's `index` for
+its local device mapping and preserve enrolled peer identity independently of the
+node number. A managed data path needs bounded nonblocking I/O, partial-transfer
+handling, and requalification after a hangup before reopening. Compare concurrent
+receiver goodput, latency, CPU and reconnection with authenticated USB4NET TCP on
+the same physical link. For RXE or SIW, qualify software verbs on the observed
+USB4NET interface. Experimental DMA-ring verbs drivers need matched endpoints and
+platform qualification. Keep IP forwarding and internet passthrough on the
+qualified network transport. Test NetworkDirect interoperability independently.
 For a fleet with supported RDMA Ethernet NICs, validate conventional RoCE
 separately with device-specific transport counters. The Microsoft preview
 preflight returns **UnsupportedPlatform** on Linux.
 [Linux 7.2 USB4 documentation](https://github.com/torvalds/linux/blob/v7.2/Documentation/admin-guide/thunderbolt.rst) ·
+[USB4STREAM driver](https://github.com/torvalds/linux/blob/v7.2/drivers/thunderbolt/stream.c) ·
+[Maintained Linux releases](https://www.kernel.org/) ·
+[Linux RDMA userspace](https://github.com/linux-rdma/rdma-core) ·
 [Linux USB4 verbs experiment](https://github.com/hellas-ai/thunderbolt-ibverbs) ·
-[NVIDIA Spark networking](https://docs.nvidia.com/dgx/dgx-spark/spark-clustering.html).
+[Strix Halo peer measurements](https://github.com/jyatesdotdev/strix-rdma#status).
+
+The [CLI controls](../../Native/pcai_core/pcai_tb_cli/tests/stream_preflight_cli.rs)
+exercise the report and option boundaries on Windows and Linux. The
+[Linux fixtures](../../Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs)
+exercise kernel-path and device-entry classification without a live stream.
+[Native test review](../../Native/pcai_core/pcai_tb_cli/tests/stream-preflight-review.json).
 
 The [preflight unit tests](../../Tests/Unit/PcaiUsb4RdmaReadiness.Tests.ps1) use
 a sanitized route-plan fixture and simulated Windows interfaces. They require

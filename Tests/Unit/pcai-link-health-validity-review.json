@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T16:16:25.0218554Z",
+  "reviewer": "codex",
+  "reviewerType": "independent source agent",
+  "sourceBaseline": "1aa6f468fed6dd3f19ed499af84958fc6723c9ff",
+  "hashConvention": "SHA-256 of UTF-8 LF source files and exact Pester It AST extent. Data-driven selectors are reviewed as groups.",
+  "sourceBindings": {
+    "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1": "a1e50b0f2b30bf11e7c7c09b7077bf9b07e0ea4376bb33682054d9829c1052ad",
+    "Tests/Unit/PcaiLinkHealth.Tests.ps1": "9fefeefe514de94ec8abcdb76c85007560fd35a8a752cb0a076ecac6191d6074"
+  },
+  "selectors": [
+    {
+      "selector": "renders the guard before any apply line, and the script parses",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "4a75e185762df9dd13a885427b28fd1ec859542b2895b59b839548b656b641ce",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "The generated script is syntactically valid and expiry checks precede both example action types."
+    },
+    {
+      "selector": "classifies the route plan window as <Expected>",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "0d6d1c129a9a6a8e10d0df692c4a1d940a56b2e373254193a6e7c238de42096c",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Evaluates declared windows against a fixed clock. No network or system settings are used."
+    },
+    {
+      "selector": "refuses a saved apply script whose validity has elapsed before any network command runs",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "5fef39256d877523227f17f6dcf8529a3b78a44d7ec0557a88e5dd3d3b4b06e8",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Invokes the rendered guard with an expired window and an inert command sentinel."
+    },
+    {
+      "selector": "applies only for Drift with a current plan, guards matching, elevated, and enabled",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "3ab188bd6b5caba22f92bc412063fe7a1fa99e6327cf85c12b00aec7b30002f4",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Confirms fresh Drift can be admitted and missing window refuses once other conditions hold."
+    },
+    {
+      "selector": "reports <Expected> drift without rendering or applying the stale plan",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "e8b5e24a5b3443cb653dd5166735a587d1b7fe96ecbaf5053a6da5c8d4e4164b",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Exercises real watcher flow with mocked adapters and process runner. Invalid plans retain local comparison and publish no actionable script."
+    }
+  ]
+}

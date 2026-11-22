@@ -79,15 +79,18 @@ The policy names transit hosts explicitly
 ```
 
 For each host, run `guard`, then `preflight` (read-only; keep the output), then
-each action's `apply`. Each apply creates its address, route or forwarding setting
-only if it is absent, and records what it created in a per-plan journal at
+each action's `apply`. Each apply checks the host's UTC clock against the plan's
+evaluation and expiry times. It checks again just before making a network change.
+Regenerate the plan if either check fails. Each apply creates its address, route
+or forwarding setting only if it is absent, and records it in a per-plan journal at
 `%ProgramData%\pcai-usb4\route-plan\<plan-id>.journal`. State that existed before
 apply is reported as "not owned". To undo, run the `rollback` lines in reverse
-order; each one acts only if its key is in that host's journal, so rollback never
-removes state that predated the plan.
+order. Rollback is available after expiry and requires a matching key in the host's
+journal, which preserves state that predates the plan.
+[Route expiry test review](../../Native/pcai_core/pcai_tb_cli/tests/route-plan-validity-review.json).
 
-The journal is what authorizes rollback, so every apply and rollback line first
-checks where it lives. `route-plan` must be owned by Administrators or SYSTEM, must
+Every apply and rollback line checks the journal's location before accessing it.
+`route-plan` must be owned by Administrators or SYSTEM, must
 not be a junction or symbolic link, and must grant no other account write, delete or
 permission rights. Its parent `pcai-usb4` must be admin-owned and not a reparse
 point; it may keep the inherited right of Users to add files. Apply creates missing

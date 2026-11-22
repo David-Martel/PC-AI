@@ -43,7 +43,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Management.Automation" Version="7.4.6" />
+    <PackageReference Include="System.Management.Automation" Version="7.4.22" />
     <PackageReference Include="System.Text.Json" Version="10.0.15" />
   </ItemGroup>
 

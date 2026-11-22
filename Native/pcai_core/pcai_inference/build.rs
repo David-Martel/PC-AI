@@ -16,11 +16,60 @@ fn main() {
 
     // Rerun build script if these change
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=.git/HEAD");
-    println!("cargo:rerun-if-changed=.git/index");
+    emit_git_rerun_paths();
     println!("cargo:rerun-if-env-changed=PCAI_VERSION");
     println!("cargo:rerun-if-env-changed=PCAI_GIT_HASH");
     println!("cargo:rerun-if-env-changed=PCAI_BUILD_TIMESTAMP");
+}
+
+/// Runs git in the crate directory and returns trimmed stdout, or `None` when git is absent or fails.
+fn git_output(args: &[&str]) -> Option<String> {
+    let manifest_dir = env::var_os("CARGO_MANIFEST_DIR")?;
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(&manifest_dir)
+        .args(args)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8(output.stdout).ok()?.trim().to_string();
+    if text.is_empty() {
+        None
+    } else {
+        Some(text)
+    }
+}
+
+/// Tells Cargo to rerun this script when the commit or the tags behind the embedded version change.
+///
+/// The paths come from `git rev-parse --git-path`, which resolves them for the repository this crate is in: a plain
+/// checkout keeps them under `<root>/.git/`, a linked worktree keeps `HEAD` and its reflog in
+/// `.git/worktrees/<name>/` and the refs in the common directory. The previous literal `.git/HEAD` was resolved
+/// against this crate's directory, where no such file exists, and Cargo reruns a build script on every build when a
+/// `rerun-if-changed` path is missing. Only paths that exist are emitted for the same reason, and nothing is emitted
+/// when git is unavailable (for example in a source archive), so `build.rs` stays the only trigger there.
+/// `.git/index` is no longer watched: nothing this script embeds depends on the index, and it changes on every
+/// `git add` and status refresh.
+fn emit_git_rerun_paths() {
+    let mut relative = vec![
+        "HEAD".to_string(),      // branch switches and detached checkouts
+        "logs/HEAD".to_string(), // every commit, reset or checkout in this worktree
+        "packed-refs".to_string(),
+        "refs/tags".to_string(), // a new tag changes `git describe`
+    ];
+    if let Some(head_ref) = git_output(&["symbolic-ref", "-q", "HEAD"]) {
+        relative.push(head_ref); // the loose branch ref, when it is not packed
+    }
+    for rel in relative {
+        let Some(path) = git_output(&["rev-parse", "--path-format=absolute", "--git-path", &rel]) else {
+            continue;
+        };
+        if Path::new(&path).exists() {
+            println!("cargo:rerun-if-changed={path}");
+        }
+    }
 }
 
 fn generate_version_info() {
@@ -32,7 +81,9 @@ fn generate_version_info() {
         .or_else(|_| env::var("PCAI_BUILD_VERSION"))
         .unwrap_or_else(|_| get_version_from_git());
 
-    let semver = env::var("PCAI_SEMVER").unwrap_or_else(|_| "0.1.0".to_string());
+    // The crate version is the workspace (product) version, so an untagged build falls back to it rather than to a
+    // literal that has to be kept in step by hand. See docs/VERSIONING.md.
+    let semver = env::var("PCAI_SEMVER").unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string());
 
     let git_hash = env::var("PCAI_GIT_HASH").unwrap_or_else(|_| get_git_hash());
 
@@ -224,7 +275,7 @@ fn get_version_from_git() -> String {
         });
 
     if let Some(desc) = describe {
-        // Parse: v0.1.0-5-gabcdef or just abcdef
+        // Parse: v0.2.0-5-gabcdef or just abcdef
         if desc.contains('-') {
             // Has tag info
             let parts: Vec<&str> = desc.rsplitn(3, '-').collect();
@@ -238,14 +289,14 @@ fn get_version_from_git() -> String {
                     format!("{}.{}+{}", tag, commits, hash)
                 }
             } else {
-                format!("0.1.0+{}", &desc[..7.min(desc.len())])
+                format!("{}+{}", env!("CARGO_PKG_VERSION"), &desc[..7.min(desc.len())])
             }
         } else {
             // Just a hash
-            format!("0.1.0+{}", &desc[..7.min(desc.len())])
+            format!("{}+{}", env!("CARGO_PKG_VERSION"), &desc[..7.min(desc.len())])
         }
     } else {
-        "0.1.0+unknown".to_string()
+        format!("{}+unknown", env!("CARGO_PKG_VERSION"))
     }
 }
 

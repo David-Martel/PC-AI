@@ -31,6 +31,12 @@
       retired-hosts     Names of hosts that left the fleet must not appear in the scoped docs. Reported as warn by
                         default; -RetiredHostSeverity fail makes it fail.
       training-data     Tool calls in the FunctionGemma training data name tools that exist in the schema.
+      versioning        docs/VERSIONING.md rules: the Native/pcai_core [workspace.package] version is the latest v* tag
+                        or the next version after it (the declared baseline when no tag exists yet), and every
+                        documented build-version format and example (Get-BuildVersion.ps1 header, CLAUDE.md "Version
+                        Information", docs/VERSIONING.md) matches the one pattern Get-BuildVersion emits. Tags are read
+                        with local git only; in a shallow clone or a tree without .git the tag rule weakens to "not
+                        below the baseline" and the summary says so.
 
     Result JSON: schema_version, repo_head, generated_at, checks[] {id,status,file,line,claim,actual,fix_hint},
     summary {pass,fail,warn,skip}. A check with no findings yields one pass entry; each finding is its own entry.
@@ -84,7 +90,7 @@ $RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot).TrimEnd('\', '/')
 if (-not (Test-Path -LiteralPath $RepoRoot -PathType Container)) { throw "RepoRoot not found: $RepoRoot" }
 
 $script:AllChecks = @('build-components', 'rust-crates', 'workflows', 'endpoints', 'tool-schema', 'relative-links',
-    'module-exports', 'retired-hosts', 'training-data')
+    'module-exports', 'retired-hosts', 'training-data', 'versioning')
 # `pwsh -File` passes "a,b" as one string, so split commas here instead of relying on a ValidateSet array.
 if ($Check) {
     $Check = @($Check | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
@@ -729,6 +735,210 @@ function Test-TrainingData {
     $script:CheckSummary = "$total training examples call only schema tools"
 }
 
+# Why the versioning check exists: before docs/VERSIONING.md the repository had no tag, a workspace version (0.1.0) that
+# no release used, and three different descriptions of the build-version string (the Get-BuildVersion.ps1 header said
+# {semver}-{commits}+{hash}.{timestamp}, the code emitted {semver}.{commits}+{hash}[.dirty], CLAUDE.md agreed with the
+# code). Nothing failed when they disagreed. This is the one definition of the emitted string: a template for prose
+# and the pattern it stands for. Tests/Unit/DocAccuracy.Tests.ps1 reads $script:BuildVersionPattern from this file and
+# matches it against the live output of Tools/Get-BuildVersion.ps1, so the gate and the script cannot drift apart.
+$script:BuildVersionTemplate = '{semver}[.{commits}]+{hash}[.dirty]'
+$script:BuildVersionPattern = '^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\.\d+)?\+(?:[0-9a-f]{7,40}|unknown)(?:\.dirty)?$'
+
+function ConvertTo-VersionParts {
+    # Parses X.Y.Z or X.Y.Z-pre (an optional leading v is accepted for tags); $null when the text is not that shape.
+    param([string]$Text)
+    $m = [regex]::Match($Text, '^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$')
+    if (-not $m.Success) { return $null }
+    return [pscustomobject]@{
+        Major = [int]$m.Groups[1].Value; Minor = [int]$m.Groups[2].Value; Patch = [int]$m.Groups[3].Value
+        Pre = $m.Groups[4].Value; Core = "$($m.Groups[1].Value).$($m.Groups[2].Value).$($m.Groups[3].Value)"
+    }
+}
+
+function Compare-VersionParts {
+    # SemVer precedence, simplified for this repository's tags: core first, then a release outranks any pre-release,
+    # then pre-release identifiers compare ordinally.
+    param($A, $B)
+    foreach ($field in 'Major', 'Minor', 'Patch') {
+        if ($A.$field -ne $B.$field) { return [Math]::Sign($A.$field - $B.$field) }
+    }
+    if ($A.Pre -eq $B.Pre) { return 0 }
+    if (-not $A.Pre) { return 1 }
+    if (-not $B.Pre) { return -1 }
+    return [Math]::Sign([string]::CompareOrdinal($A.Pre, $B.Pre))
+}
+
+function Get-WorkspacePackageVersion {
+    # The version key of [workspace.package] in Native/pcai_core/Cargo.toml: {Value, Line}, '' when absent, $null when
+    # the manifest is missing.
+    $toml = Read-RepoLines 'Native/pcai_core/Cargo.toml'
+    if ($null -eq $toml) { return $null }
+    $inSection = $false
+    for ($i = 0; $i -lt $toml.Count; $i++) {
+        $t = $toml[$i].Trim()
+        if ($t.StartsWith('[')) { $inSection = ($t -eq '[workspace.package]'); continue }
+        if ($inSection -and $t -match '^version\s*=\s*"([^"]*)"') { return [pscustomobject]@{ Value = $Matches[1]; Line = $i + 1 } }
+    }
+    return ''
+}
+
+function Get-ReleaseTagState {
+    # Local git only (no fetch). State: 'tags' (Tags holds the v* tags merged into HEAD), 'none' (a complete history has
+    # no such tag), or 'unknown' (no .git, git failed, or a shallow clone, which does not carry tags by default).
+    if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot '.git'))) { return [pscustomobject]@{ State = 'unknown'; Tags = @(); Reason = 'no .git' } }
+    try {
+        $tagText = & git -C $RepoRoot tag --list 'v*' --merged HEAD 2>$null
+        if ($LASTEXITCODE -ne 0) { return [pscustomobject]@{ State = 'unknown'; Tags = @(); Reason = 'git tag failed' } }
+        $tags = @($tagText | Where-Object { $_ } | ForEach-Object { ([string]$_).Trim() } | Where-Object { ConvertTo-VersionParts $_ })
+        if ($tags.Count -gt 0) { return [pscustomobject]@{ State = 'tags'; Tags = $tags; Reason = '' } }
+        $shallow = & git -C $RepoRoot rev-parse --is-shallow-repository 2>$null
+        if ($LASTEXITCODE -ne 0) { return [pscustomobject]@{ State = 'unknown'; Tags = @(); Reason = 'git rev-parse failed' } }
+        if (([string]$shallow).Trim() -eq 'true') { return [pscustomobject]@{ State = 'unknown'; Tags = @(); Reason = 'shallow clone' } }
+        return [pscustomobject]@{ State = 'none'; Tags = @(); Reason = '' }
+    } catch {
+        return [pscustomobject]@{ State = 'unknown'; Tags = @(); Reason = "git unavailable: $($_.Exception.Message)" }
+    }
+}
+
+function Get-VersionDocClaims {
+    # Collects "Version Format:" templates and "Example:" versions from one block of lines.
+    param([string]$File, [object[]]$Rows)
+    $templates = [System.Collections.Generic.List[object]]::new()
+    $examples = [System.Collections.Generic.List[object]]::new()
+    foreach ($row in $Rows) {
+        $t = [regex]::Match($row.Text, 'Version Format:\**\s*`?(?<t>[^`\s]+)')
+        if ($t.Success) { $templates.Add([pscustomobject]@{ File = $File; Line = $row.Number; Value = $t.Groups['t'].Value }) }
+        # Case-sensitive and colon-terminated, so comment-help .EXAMPLE blocks are not examples of the version string.
+        $e = [regex]::Match($row.Text, '(?<![A-Za-z.])Example:\s*`?(?<v>[^`\s]+)')
+        if ($e.Success) { $examples.Add([pscustomobject]@{ File = $File; Line = $row.Number; Value = $e.Groups['v'].Value }) }
+    }
+    return [pscustomobject]@{ Templates = $templates; Examples = $examples }
+}
+
+function Test-Versioning {
+    $inputs = 0
+    $notes = [System.Collections.Generic.List[string]]::new()
+
+    # (a) The workspace version against the tags, or against the baseline before the first tag.
+    $policyRel = 'docs/VERSIONING.md'
+    $policy = Read-RepoLines $policyRel
+    $baseline = $null
+    if ($null -eq $policy) {
+        Add-Finding -Status fail -File $policyRel -Claim 'The versioning policy exists and declares the baseline version' -Actual 'file missing' `
+            -FixHint 'Restore docs/VERSIONING.md with a "Baseline version: `X.Y.Z`" line.'
+    } else {
+        $b = [regex]::Match(($policy -join "`n"), 'Baseline version:\**\s*`?(\d+\.\d+\.\d+)`?')
+        if ($b.Success) { $baseline = ConvertTo-VersionParts $b.Groups[1].Value } else {
+            Add-Finding -Status fail -File $policyRel -Claim 'docs/VERSIONING.md declares "Baseline version: `X.Y.Z`"' -Actual 'no baseline line' `
+                -FixHint 'Add the baseline line; the version check reads it.'
+        }
+    }
+    $ws = Get-WorkspacePackageVersion
+    $cargoRel = 'Native/pcai_core/Cargo.toml'
+    if ($null -eq $ws) {
+        Add-Finding -Status skip -File $cargoRel -Claim 'Native/pcai_core/Cargo.toml present' -Actual 'missing'
+    } elseif (-not $ws) {
+        Add-Finding -Status fail -File $cargoRel -Claim '[workspace.package] declares version' -Actual 'no version key' `
+            -FixHint 'Set [workspace.package] version; workspace crates inherit it with version.workspace = true.'
+    } else {
+        $inputs++
+        $wsParts = ConvertTo-VersionParts $ws.Value
+        if (-not $wsParts -or $wsParts.Pre) {
+            Add-Finding -Status fail -File $cargoRel -Line $ws.Line -Claim 'The workspace version is a plain X.Y.Z' -Actual "version = `"$($ws.Value)`"" `
+                -FixHint 'Pre-release identity lives in the tag (vX.Y.Z-rc.N), not in the workspace version.'
+        } elseif ($baseline) {
+            if ((Compare-VersionParts $wsParts $baseline) -lt 0) {
+                Add-Finding -Status fail -File $cargoRel -Line $ws.Line -Claim "The workspace version is not below the baseline $($baseline.Core)" `
+                    -Actual "version = `"$($ws.Value)`"" -FixHint 'Raise [workspace.package] version; versions never go backwards.'
+            }
+            $tagState = Get-ReleaseTagState
+            if ($tagState.State -eq 'tags') {
+                $latestTag = $null
+                $latest = $null
+                foreach ($tag in $tagState.Tags) {
+                    $p = ConvertTo-VersionParts $tag
+                    if (-not $latest -or (Compare-VersionParts $p $latest) -gt 0) { $latest = $p; $latestTag = $tag }
+                }
+                $allowed = @($latest.Core, "$($latest.Major).$($latest.Minor).$($latest.Patch + 1)", "$($latest.Major).$($latest.Minor + 1).0",
+                    "$($latest.Major + 1).0.0")
+                if ($wsParts.Core -notin $allowed) {
+                    Add-Finding -Status fail -File $cargoRel -Line $ws.Line -Claim "The workspace version is the latest tag $latestTag or the next version after it" `
+                        -Actual "version = `"$($ws.Value)`"; allowed: $($allowed -join ', ')" `
+                        -FixHint 'Bump [workspace.package] version only in the release PR, to the version that PR will tag.'
+                }
+                $notes.Add("latest tag $latestTag")
+            } elseif ($tagState.State -eq 'none') {
+                if ($wsParts.Core -ne $baseline.Core) {
+                    Add-Finding -Status fail -File $cargoRel -Line $ws.Line -Claim "No v* tag exists yet, so the workspace version is the baseline $($baseline.Core)" `
+                        -Actual "version = `"$($ws.Value)`"" -FixHint 'Set the workspace version to the baseline, or tag the baseline release first.'
+                }
+                $notes.Add("no v* tag; baseline $($baseline.Core)")
+            } else {
+                $notes.Add("tags not visible ($($tagState.Reason)), so only 'not below baseline $($baseline.Core)' was checked")
+            }
+        }
+    }
+
+    # (b) and (c): every documented format and example against the emitted pattern.
+    $sources = @()
+    $gbvRel = 'Tools/Get-BuildVersion.ps1'
+    $gbv = Read-RepoLines $gbvRel
+    if ($null -eq $gbv) {
+        Add-Finding -Status fail -File $gbvRel -Claim 'Get-BuildVersion.ps1 exists' -Actual 'file missing' -FixHint 'Restore Tools/Get-BuildVersion.ps1.'
+    } else {
+        $header = [System.Collections.Generic.List[object]]::new()
+        for ($i = 0; $i -lt $gbv.Count; $i++) {
+            $header.Add([pscustomobject]@{ Number = $i + 1; Text = $gbv[$i] })
+            if ($gbv[$i] -match '^\s*#>') { break }
+        }
+        $sources += [pscustomobject]@{ File = $gbvRel; Rows = $header.ToArray() }
+    }
+    $claude = Read-RepoLines 'CLAUDE.md'
+    if ($null -ne $claude) {
+        $section = [System.Collections.Generic.List[object]]::new()
+        $inSection = $false
+        # Fence-aware: the section's own code block has "# comment" lines that are not headings.
+        foreach ($row in @(Get-FencedLines $claude)) {
+            if (-not $row.InFence -and $row.Text -match '^#{1,3}\s') { $inSection = ($row.Text -match '^###\s+Version Information\s*$'); continue }
+            if ($inSection) { $section.Add([pscustomobject]@{ Number = $row.Number; Text = $row.Text }) }
+        }
+        $sources += [pscustomobject]@{ File = 'CLAUDE.md'; Rows = $section.ToArray() }
+    }
+    if ($null -ne $policy) {
+        $rows = for ($i = 0; $i -lt $policy.Count; $i++) { [pscustomobject]@{ Number = $i + 1; Text = $policy[$i] } }
+        $sources += [pscustomobject]@{ File = $policyRel; Rows = @($rows) }
+    }
+    $exampleCount = 0
+    foreach ($source in $sources) {
+        $file = $source.File
+        $claims = Get-VersionDocClaims -File $file -Rows $source.Rows
+        if ($claims.Templates.Count -eq 0 -or $claims.Examples.Count -eq 0) {
+            Add-Finding -Status fail -File $file -Claim 'Documents the build-version format and at least one example' `
+                -Actual "templates: $($claims.Templates.Count), examples: $($claims.Examples.Count)" `
+                -FixHint "Add 'Version Format: $($script:BuildVersionTemplate)' and an 'Example:' line."
+        }
+        foreach ($t in $claims.Templates) {
+            $inputs++
+            if ($t.Value -cne $script:BuildVersionTemplate) {
+                Add-Finding -Status fail -File $file -Line $t.Line -Claim "The documented format is $($script:BuildVersionTemplate)" -Actual $t.Value `
+                    -FixHint 'Document the format Get-BuildVersion emits (see docs/VERSIONING.md).'
+            }
+        }
+        foreach ($e in $claims.Examples) {
+            $inputs++
+            $exampleCount++
+            if ($e.Value -cnotmatch $script:BuildVersionPattern) {
+                Add-Finding -Status fail -File $file -Line $e.Line -Claim 'The example is a version Get-BuildVersion can emit' -Actual $e.Value `
+                    -FixHint "Use the shape $($script:BuildVersionTemplate), for example 0.2.0.15+abc1234."
+            }
+        }
+    }
+
+    $script:CheckInputs = $inputs
+    $wsText = if ($ws) { $ws.Value } else { '?' }
+    $script:CheckSummary = "workspace version $wsText ($($notes -join '; ')); $exampleCount documented examples match $($script:BuildVersionTemplate)"
+}
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------------------------------------------------
@@ -760,6 +970,7 @@ foreach ($id in $selected) {
         'module-exports' { Test-ModuleExports -FileSet $fileSet }
         'retired-hosts' { Test-RetiredHosts -FileSet $fileSet }
         'training-data' { Test-TrainingData }
+        'versioning' { Test-Versioning }
     }
     if ($script:Results.Count -eq $before) {
         if ($script:CheckInputs -le 0) {

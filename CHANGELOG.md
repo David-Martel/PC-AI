@@ -1,0 +1,833 @@
+# Changelog
+
+All notable changes to PC-AI are documented here.
+
+## [Unreleased]
+
+### Bug Fixes
+
+- **usb**: Require PowerShell 5.1 instead of 7.0
+- **network**: Update WSL connectivity tests for unit testing
+- **llm**: Improve test mocking and add default config
+- **modules**: Improve test coverage for Cleanup, Hardware, Performance
+- **modules**: Add native DLL integration and fix Ollama detection
+- **rust**: Resolve clippy errors and warnings in pcai_core_lib
+- **docs**: Resolve self-recursion and accuracy bugs in documentation pipeline
+- **rust-train**: Fix compilation and test issues
+- **rust**: Fix runtime Cargo.toml edition to 2021
+- **csharp**: Fix yield-in-try-catch and PowerShell host snap-in compat
+- **ffi**: Fix GlobalState destructuring and repr(C) test alignment
+- **inference**: Eliminate 3 compiler warnings in http module
+- **ci**: Correct rust-inference workflow paths and feature flags
+- Remove hardcoded paths and align tool schema
+- **native**: Improve C# async patterns and Rust HTTP handler
+- **security**: Remove hardcoded user paths and fix repo metadata
+- **media**: Resolve GPU OOM via KV cache detach and VRAM optimizations
+- **tools**: Fix tool coverage report to read pcai_mapping from JSON
+- **gpu**: Fix operator precedence in nvidia-smi args + format string crash
+- **security**: Replace Invoke-Expression with safe netsh invocation in Optimize-VSock
+- **gpu**: Review fixes for PC-AI.Gpu module (Phases 2-3)
+- **gpu**: SDK detection for NVML/Warp/Nsight Graphics + registry v1.3.0
+- 4 actionable bugs + Rust guideline compliance (M-LINT-OVERRIDE-EXPECT)
+- **media**: Eliminate ring crate by disabling ureq in hf-hub
+- **media**: Eliminate ring by converting hub.rs to async HF Hub API
+- **inference**: Fix prompt_tokens_est scoping + PcaiAsyncResult size test
+- **media**: Restore true multinomial sampling for image generation
+- GGUF converter supports 7B + dynamic naming + benchmark update
+- **media**: Resolve RoPE dtype mismatch in GGUF quantized inference
+- **media**: Resolve all dtype mismatches in GGUF quantized inference
+- **media**: Use BF16 KV cache dtype for quantized GGUF inference
+- **media**: RmsNorm weight dtype must match input for GGUF quantized path
+- **media**: Return F32 hidden states from quantized forward methods
+- **media**: Complete GGUF quantized inference dtype chain
+- **jules**: Fix batch review error handling for non-JSON script output
+- **tests**: Correct tier tags — mocked CIM tests are Portable, not Windows
+- **media**: Resolve GGUF VQ decode failure — dtype mismatch in non-LLM weights
+- Benchmark gate StrictMode null-safe .Count with @() wrapper
+- Validation agent fixes for portable tests and module issues
+- **llm**: Fix NumCtx=0 crash + reduce default context from 128K to 8K
+- **llm**: Stop Invoke-OllamaChat from auto-enabling tools (loads 20B model)
+- Null-safe .Count fixes + dual-GPU LLM benchmark results
+- **csharp**: Correct SafeHandle usage — static strings use IntPtr
+- **preflight**: Fix FFI null pointer marshaling + Pester test skip logic
+- Clippy errors, pre-commit scope, sccache + lld-link activation
+- Doctest failure + remove expect() from CLI roofline handler
+- **functiongemma**: Critical training bugs — causal mask, NaN guard, build
+- **functiongemma**: Training fixes — dropout, dead code, convergence, eval
+- **functiongemma**: Checkpoint resume CLI + gradient VRAM leak
+- **tests**: Modernize ModuleLoading + GPU tests — 22/22 pass
+- **tests**: Resolve all 34 integration test failures — 0 failures
+- **tests**: Resolve last 2 failures — timeout guard + FG health check
+- **cleanup**: PS 5.1 compat + ShouldProcess + REG_EXPAND_SZ preservation (#21)
+- **modules**: Add PowerShellVersion=5.1 to PC-AI.LLM manifest
+- **lint**: Resolve last 3 PSScriptAnalyzer blockers (IEX + SuppressMessageAttr)
+- **gitops**: Correct GitHub Actions bypass to User actor + harden error handling
+- **gitops**: Clean temp file on all paths; address PR #41 bot review
+- **gitops**: Launch monitors via dedicated script (non-blocking pre-push)
+- **gitops**: Fully detach monitor (redirect child IO) so pre-push never hangs
+- **gitops**: Use repo-relative path in lefthook pre-push (not {root})
+- **gitops**: Orphan monitor via Win32_Process.Create so pre-push returns instantly
+- Harden performance disk usage tooling (#54)
+- **build**: Place --locked/--frozen before the cargo `--` separator
+- **lint**: Resolve PowerShell parse errors blocking the PS Lint gate
+- **lint**: Resolve 21 PSScriptAnalyzer findings across workstation tooling
+- **build**: Route `--`-separated cargo commands past the pwsh -File wrapper
+- **deps**: Align candle-core/transformers/flash-attn to 0.10 (media tree)
+- **lint**: Resolve workspace clippy -D warnings across pcai_core
+- **test**: Resolve Pester Run.Path from repo root, not cwd-relative
+- **tools**: Drop the redirection operator from the MSVC verification args
+- **ci**: Repair five checks that had never actually run
+- **ci**: Remove empty ${{ }} in a comment that broke workflow loading
+- **ci**: Clear the four failures the repaired maintenance gate exposed
+- **compat**: Make two manifests stop advertising PowerShell 5.1 they cannot run
+- **deps**: Clear the 3 RUSTSEC advisories the repaired audit step exposed
+- **ci**: End every PowerShell step with an explicit exit; reconcile the ledgers
+- **lint**: Apply the workspace lint policy that Cargo was silently discarding
+- **ci**: Stop the 5.1 compatibility gate from measuring runner speed
+- **todo**: Correct the Process Lasso evidence row -- mtime is not evidence date
+- **ci**: Retire the second credential scanner; record what really holds CI red
+- **config**: Strip UTF-8 BOMs that silently disabled all 31 router tools
+- **llm**: Stop Set-LLMConfig writing a BOM, and stop its tests rewriting the repo config
+- **test**: Mock the native probes PC-AI.Hardware tries before CIM
+- **hardware**: Surface data-source failures instead of reporting a clean bill of health
+- **test**: Skip media FFI tests when the stub loses the type-loading race; fix a wrong contract
+- **build**: Repair the llamacpp backend and stop the build script hiding why
+- **tests**: Validate arguments before credentials, and skip absent model weights
+- **deploy**: Make the FunctionGemma Cargo workspace actually resolve
+- **encoding**: Finish the BOM sweep and delete an orphaned config duplicate
+- **build**: Ask cargo where its output goes instead of guessing wrong every time
+- **ci**: Stop the llamacpp job shipping an empty artifact and caching nothing
+- **build**: Wrap pipeline results before reading .Count under inherited StrictMode
+- **build**: Build the cdylib that every FFI consumer loads
+- **test**: Gate the no-backend FFI test out of backend builds
+- **gpu**: Stop the GPU module deciding on a stale exit code
+- **build**: Give Get-BuildVersion one shape instead of two
+- **test**: Let two FFI suites use the skips they already had
+- **ci**: Make NVIDIA Stack Validation able to pass at all
+- **test**: Stop the CUDA side-by-side test depending on the host's CUDA install
+- **test**: Four unit tests that asserted against the host, not the mock
+- **ci**: Point powershell-test at Tests/Unit, completing 15f999a
+- **test**: Three tests that encoded this workstation's environment
+- **test**: Unload the acceleration stack a test suite left in the session
+- **test**: Restore the session after dot-sourcing the CLI into it
+- **ci**: Stop Portable CI launching a Linux daemon, and pin its Pester
+- **reports**: Make the evidence collectors write valid JSON, artifacts untouched (#74)
+- **ci**: Stop a diagnostic artifact upload from failing the gate (#104)
+- **sync**: Break abandoned profile-log sync locks instead of deadlocking forever (#108)
+- **boot**: Move the cloud cache onto internal storage and make F: self-heal (#106)
+- **tests**: The read-only AST check was blind to variable-invoked commands (#110)
+- **credentials**: Maintain protected Bitwarden archive workflow (#113)
+- **boot**: Hide the governor watchdog terminal (#114)
+- **boot**: Restore shared disk and safe mount validation (#117)
+- **setup**: Report a clean PSScriptAnalyzer run instead of a StrictMode false failure
+- **pcai_core_lib**: Document FFI exports, recover poisoned search mutexes (#133)
+- **setup**: Report a clean PSScriptAnalyzer run instead of a StrictMode false failure (#130)
+- **drivers**: Stop network snapshot failing on adapters with no IP interface (#139)
+- **jules**: Make `List -State` work, and emit [] for an empty list (#143)
+- **jules**: Make the PR dashboard find Jules PRs; stop key lookup hanging (#150)
+- **pcai_core_lib**: Enable missing_docs so the per-module allows mean something (#153)
+- **jules**: Stop auto-approving plans on a keyword match; harden the workflow (#151)
+- **credentials**: Launch the secrets logon task by absolute pwsh path (#154)
+- **input**: Preserve qualified keyboard and profile diagnostics (#116)
+- **inference**: Repair FFI callers and feature-specific backend guards (#164)
+- **deploy**: Patch TLS dependency and require workspace CI (#165)
+- **evidence**: Preserve exact [host] custody bytes through Git (#167)
+- **media**: Preserve errors and validate tensor ownership changes (#166)
+- **acceleration**: Resolve probe paths from the active checkout (#170)
+- **startup**: Preserve unknown approval states and dry-run safety (#171)
+- **task-health**: Fail closed on unavailable inspection (#173)
+- **gitops**: Preserve worker credentials and report inspection failures (#174)
+- **machine**: Repair archive ACL writes and CI uploads (#175)
+- **machine**: Validate Bitwarden unlock and failure exits (#176)
+- **native**: Marshal JSON validation boolean as one byte (#181)
+- **ci**: Qualify absent media tools and native MSRV lints
+- **fleet**: Preserve unknown counters and host build policy
+- **storage**: Bind archive and cache repair to native identity (#187)
+- **storage**: Qualify cache identity and cloud mount startup (#188)
+- **native**: Reject authoritative override fallback
+- **native**: Enforce required-export admission and isolate environment test collection
+- Make cache and tool bootstrap portable across hosts
+- **pcai-tb**: Resolve 7 review blockers, enforce pending-intake V&V gates and fail-closed custody
+- **pcai-tb**: Require explicit network_ready null, resolve root helper symlinks, bound helper pipe drains
+- Reject failed USB4 route postcondition queries
+- **usb4**: Require positive adapter custody before route withdrawal
+- Reject incomplete and stale benchmark admission evidence
+- **benchmarks**: Verify scalar-correct token work before timing
+- **benchmarks**: Bind estimator body across nested script scopes
+- **tests**: Return manifest fixture status instead of expected child failure
+- Release temporary native admission handles and enforce real-core CI
+- **tooling**: Validate manifests portably and refresh runner reviews
+- Enforce native test child deadlines with concurrent output draining
+- Scope USB4 alternate route cleanup to bound edge custody
+- **media**: Qualify optional ORT upscaler on Linux and Windows
+- **build**: Align Windows C++ runtime with ONNX Runtime
+- **ci**: Align native dependency lock with deployment workspace (#213)
+- **tb**: Report only present Windows USB4 instances
+- **usb4**: Preserve boot failures and bind SFTP mount paths (#217)
+- **usb4**: Qualify Windows peers over PowerShell SSH
+- **tb**: Gate PeerPlatform import to Linux and tests
+- **usb4**: Reconcile Windows leases through enrolled partners
+- **profile**: Integrate guarded startup repair independently (#221)
+- **tb**: Fail closed in headless Windows registration
+- Unblock Linux portable CI prerequisites and results (#225)
+- **network**: Bind Gen9 canary expectation to current wired LAN (#227)
+- **ci**: Bump proposed astral-sh/setup-uv from 7.6.0 to 10.3.1 (#226)
+- **network**: Keep empty USB4 neighbor tables in host inventory (#228)
+- **media**: Give the first GStreamer registry scan its own deadline (#229)
+- Integrate credential custody and coherent backup publication (#230)
+- Resolve omitted secret machine identity from the native host (#231)
+- **acceleration**: Preserve Unicode scalars in token fallback (#232)
+- Reject aliased module deployment path components (#234)
+- Preserve captured evidence bytes across checkouts (#250)
+- **cli**: Admit empty command-map manifest collections (#251)
+- Parse staged PowerShell source without executing it (#252)
+- Repair evaluation smoke lifecycle (#254)
+- Restore evaluation consumer and endpoint execution (#255)
+- Permit volume root writers during receipt custody (#256)
+- Preserve captured module reports during updates (#257)
+- Isolate staged syntax checks from module autoload (#258)
+- Keep runtime helper discovery inside loaded commands (#259)
+- Align declared performance and Defender public APIs (#261)
+- Reject conflicting ZIP headers in Candle archives (#263)
+- **boot**: Track shared-dev.vhdx at its new T: location (#265)
+- **native**: Reject partial cores before public diagnostics (#269)
+- **media**: Avoid relocking poisoned model state (#273)
+- **diagnostics**: Retain probe failures and reject malformed mount pins (#272)
+- **ci**: Provision isolated Rust for self-hosted jobs (#281)
+- **deps**: Port the functiongemma runtime to sysinfo 0.40 (#282)
+- **ci**: Provision Rust for portable contract fixtures (#283)
+- **usb4**: Bound providers and require observed topology (#286)
+- **usb4**: Report failed Linux operations to automation (#290)
+- **usb4**: Validate release binding before controller execution (#291)
+- Retain validated GitOps repository diagnostics (#296)
+- Preserve workflow and billing inspection contracts (#297)
+- **usb4**: Refuse malformed persisted ownership state (#306)
+- Bind private USB4 SSH access to exact peer enrollment (#309)
+- Isolate inherited Windows OpenSSH stdio metadata (#308)
+- **usb4**: Preserve journal generations and retire absent custody explicitly (#307)
+- **ci**: Set up job-local Rust on the self-hosted pool runners (#310)
+- **deps**: Move rustix to 1.1.6 for RUSTSEC-2026-0486 (#312)
+- **functiongemma**: MiniJinja 3.0.5 with a serde chat context (#311)
+- **ci**: Keep sccache keys stable across job-local Rust homes (#324)
+- **ci**: Cancel superseded pull-request runs in seven workflows (#323)
+- **telemetry**: Return the CPU check directly so clippy 1.100 passes (#325)
+- **native**: Pair PcaiNative.dll with a core from the same directory (#326)
+- **acceleration**: Honor explicit duplicate scan roots (#327)
+- **native**: Keep explicit PC-AI native pairs together (#331)
+- **profile**: Fast path for agent homes, lazy WinGet hook, minimal private profile (#333)
+- **usb4**: Bound the collector's neighbor cache after filtering (#334)
+- **profile**: Register the WinGet hook after private profile delegation (#338)
+- **monitor**: UDP socket monitor heartbeat never fired; failures looked healthy (#342)
+- **profile**: Count only real profile errors and stop dropping debounced runs (#348)
+- **profile**: Report a checkout reached through a junction once (#350)
+- **reliability**: Redact structured event data by key, at any depth (#351)
+- **reliability**: Redact every Digest auth-param in Authorization headers (#352)
+- **reliability**: Alert a bad observation when the incident store cannot be saved (#353)
+- **usb4**: Verify link health on the planned route (#354)
+- **ci**: Keep NuGet updates compatible with net8 (#355)
+- **release**: Bind native assets to pushed version tags (#356)
+- **usb4**: Qualify legacy discovery benchmark samples (#365)
+- **usb4**: Require explicit LAN peer selection (#370)
+- **usb4**: Preserve status when adapter collection fails (#371)
+- **deps**: Port pcai_core to sysinfo 0.40 (#367)
+- **ffi**: Match C# PcaiAsyncResult to the Rust repr(C) layout (#372)
+- **common**: Stop PC-AI.Common from shadowing Write-Error and Write-Warning (#373)
+- **ffi**: Never hold the inference state lock across generation (#374)
+- **docs**: Make doc-accuracy validation a failing gate and fix drift (#375)
+- **usb4**: Tolerate unrelated malformed mountinfo records in stream preflight (#385)
+- **release**: Validate functions exported by the staged module (#391)
+- **usb4**: Enable link-local IPv6 on isolated Linux profiles (#394)
+- **usb4**: Preserve authoritative empty HNS inventory (#396)
+- **usb4**: Avoid reactivating a healthy Linux peer link (#398)
+
+### Build
+
+- **native**: Add pcai_fs to build pipeline and deploy to .NET runtime
+- **pcai-inference**: Add CMake toolchain for MSVC
+- **cmake**: Enhance MSVC toolchain with auto-detection
+- **pcai-inference**: Add CUDA/MSVC toolchain for llama.cpp
+- **rust**: Update Cargo workspace and build configuration
+- Improve build scripts with version embedding and formatting
+- **cuda**: Use CUDA 12.6 env overrides for nvcc compatibility
+- **functiongemma**: Update crate deps and GPU config for CUDA 12.6
+- Unify orchestration under Build.ps1 across native and functiongemma flows
+- **functiongemma**: CUDA 13.2 support — cudarc 0.19.4 + CCCL preprocessor fix
+
+### CI/CD
+
+- Add GitHub Actions workflow for Rust inference
+- Add automation workflows for docs, evaluation, and tooling
+- Add unit test gate to release workflow and update project docs
+- **sdlc**: Refactor CI/CD into unified SDLC pipeline
+- Fix evaluation smoke workflow YAML
+- Bound every job with a timeout and finish the rust-cache path correction
+- Pin Pester to 5.x, which -MinimumVersion never did
+- Linux self-hosted gate (inert until the [host] runner is registered) (#224)
+- Keep the pcai-inference DLL artifact for 2 days (#262)
+- Run the ubuntu matrix legs on the [host] self-hosted runner (#264)
+- **linux-ci**: Upload the Pester result only on failure, best-effort, 1 day (#266)
+- Make the hosted-runner artifact uploads best-effort with 1-day retention (#267)
+- Select runners by role label only, drop host label [host] from runs-on (#271)
+- **usb4**: Exercise standalone peer contracts on both platforms (#289)
+- **usb4**: Check ARM64 targets on matching operating systems (#292)
+- Require GitOps contracts on Windows and Linux (#298)
+
+### Data
+
+- **eval**: Add LLM evaluation results and notebooks
+
+### Dependencies
+
+- **deps**: Bump System.Text.Json from 8.0.6 to 10.0.5
+- **deps**: Bump sysinfo from 0.38.0 to 0.38.4 in /Native/pcai_core
+- **deps**: Bump tempfile from 3.24.0 to 3.27.0 in /Native/pcai_core
+- **deps**: Bump tokio from 1.49.0 to 1.50.0 in /Native/pcai_core
+- **deps**: Bump dirs from 5.0.1 to 6.0.0 in /Native/pcai_core
+- **deps**: Bump tokenizers from 0.20.4 to 0.22.2 in /Native/pcai_core
+- **deps**: Bulk security + patch updates, resolves 9 Dependabot alerts
+- **deps**: Merge Dependabot security updates
+- **deps**: Bump openssl from 0.10.78 to 0.10.80 in /Native/pcai_core (#40)
+- **deps**: Bump uuid from 1.20.0 to 1.23.1 in /Native/pcai_core (#37)
+- **deps**: Bump rand from 0.8.6 to 0.9.3 in /Native/pcai_core (#36)
+- **deps**: Bump chrono from 0.4.43 to 0.4.44 in /Native/pcai_core (#35)
+- **deps**: Bump mimalloc from 0.1.48 to 0.1.50 in /Native/pcai_core (#34)
+- **deps**: Bump candle-nn from 0.9.2 to 0.10.2 in /Native/pcai_core (#33)
+- **deps**: Bump System.Text.Json from 10.0.7 to 10.0.9 (#44)
+- **deps**: Bump serde_with from 3.16.1 to 3.21.0 in /Native/pcai_core (#56)
+- **deps**: Take the four .NET test-package majors as one change (#86)
+- **deps**: Hold sha2 on the 0.10 line (#87)
+- **deps**: Land the 17-update grouped bump, fixing the ollama-rs deprecation (#85)
+- **deps**: Take Microsoft.NET.Test.Sdk 18.9.0 across both test projects (#94)
+- **deps**: Take four pcai_core majors and the grouped ignore patch (#105)
+- **deps**: Bump the nuget-servicehost group with 1 update (#124)
+- **deps**: Bump Microsoft.NET.Test.Sdk from 18.9.0 to 18.10.1 (#137)
+- **deps**: Bump Microsoft.NET.Test.Sdk from 18.9.0 to 18.10.1 (#135)
+- **deps**: Bump the cargo-pcai-core group across 1 directory with 2 updates (#136)
+- **deps**: Move the pcai_core candle crates as one dependabot group (#138)
+- **deps**: Bump dirs from 6.0.0 to 7.0.0 in /Native/pcai_core (#128)
+- **deps**: Bump tower-http from 0.6.8 to 0.7.1 in /Native/pcai_core (#125)
+- **deps**: Bump the nuget-chattui-tests group with 1 update (#140)
+- **deps**: Bump sysinfo from 0.38.4 to 0.39.6 in /Native/pcai_core (#142)
+- **deps**: Move mistralrs and mistralrs-core as one dependabot group (#144)
+- **deps**: Bump safetensors from 0.7.0 to 0.8.0 in /Native/pcai_core (#149)
+- **deps**: Bump the nuget-chattui-tests group with 1 update (#161)
+- **deps**: Bump the nuget-pcainative-tests group with 1 update (#160)
+- **deps**: Bump nvml-wrapper in /Native/pcai_core (#147)
+- **deps**: Bump reqwest from 0.12.28 to 0.13.5 in /Deploy (#120)
+- **deps**: Bump the cargo-deploy group across 1 directory with 4 updates (#179)
+- **deps**: Bump the cargo-pcai-core group (#180)
+- **deps**: Bump serde_json in /Deploy in the cargo-deploy group (#209)
+- **deps**: Bump the cargo-pcai-core group across 1 directory with 4 updates
+- **deps**: Bump tokio (#210)
+- **deps**: Bump the nuget-chattui-tests group with 3 updates (#195)
+- **deps**: Bump the nuget-pcainative-tests group with 3 updates (#194)
+- **deps**: Bump rand from 0.8.8 to 0.10.2 in /Deploy (#193)
+- **deps**: Bump the nuget-pcainative group with 1 update (#191)
+- **deps**: Bump the nuget-servicehost group with 1 update (#190)
+- **deps**: Bump minijinja from 2.24.0 to 3.0.0 in /Deploy (#189)
+- **deps**: Bump the cargo-deploy group in /Deploy with 2 updates (#215)
+- **deps**: Bump libc in /Native/pcai_core in the cargo-pcai-core group (#216)
+- **deps**: Coordinated candle 0.10 -> 0.11 bump in pcai_media (#156)
+- **deps**: Bump parking_lot from 0.12.5 to 0.13.0 in /Native/pcai_core (#247)
+- **deps**: Bump rustls from 0.23.45 to 0.23.46 in /Native/pcai_core (#249)
+- **deps**: Bump rustls from 0.23.45 to 0.23.46 in /Deploy (#248)
+- **deps**: Bump the nuget-servicehost group with 1 update (#246)
+- **deps**: Bump the cargo-deploy group across 1 directory with 3 updates (#237)
+- **deps**: Bump Microsoft.NET.Test.Sdk from 18.11.0 to 18.12.0 (#316)
+- **deps**: Bump the nuget-dtmtaskrun-tests group with 1 update (#330)
+- **deps**: Bump the cargo-deploy group across 1 directory with 4 updates (#340)
+- **deps**: Bump the nuget-servicehost group with 1 update (#360)
+- **deps**: Bump coverlet.collector and Microsoft.NET.Test.Sdk (#369)
+- **deps**: Bump coverlet.collector and Microsoft.NET.Test.Sdk (#368)
+- **deps**: Refresh five stable native dependencies (#389)
+- **deps**: Isolate the stable flate2 update (#397)
+
+### Documentation
+
+- Add project context for agent coordination
+- Add code signing and C#/Rust interop documentation
+- Add native acceleration architecture and usage guide
+- Update context files and project documentation
+- Add agent guidance and architecture documentation
+- **context**: Add rust-analyzer memory analysis findings
+- **plans**: Add rust LLM tooling enhancement plan and fix documentation
+- **reports**: Add security and lint report
+- Update documentation status after pipeline run
+- **pc-ai**: Add comprehensive native inference integration guide
+- Update project context and documentation
+- Update project documentation and context
+- Update project documentation
+- Update LLM agent prompts with pcai-inference compilation details
+- Update build system documentation
+- Update LLM agent prompts with unified build system
+- Add FunctionGemma parallel remediation implementation plan
+- Update documentation, config, and add FunctionGemma eval reports
+- Save FFI torture test context and update index
+- Save session context for TDD completion and CUDA 13.1 update
+- Update architecture, DIAGNOSE_LOGIC, and tool docs
+- Save toolchain integration session context
+- Update CLAUDE.md, reports, config, and add litho context
+- Update CLAUDE.md with current architecture and build components
+- Save session context and optimization notes
+- Save commit-cluster analysis context and git-cluster optimization findings
+- **reports**: Add backend coverage, optimization proposal, and perf data
+- Update project documentation, agents, architecture, and optimization plan
+- **context**: Save session context for rust toolchain optimization
+- Overhaul README, add CONTRIBUTING and PR template for public release
+- **reports**: Add Janus-Pro generated demo images and benchmarks
+- Update CLAUDE.md with CUDA guidance + Build.ps1 media integration
+- LLM optimization context (ctx-20260319)
+- Update benchmark results — 43.8 tok/s (2.45x vs baseline)
+- Update TODO with multi-token research and phase tracking
+- Save context (ctx-20260319-v2) — quality fix, multi-token research
+- Add RTX 5060 Ti benchmarks + path-to-200-tok/s roadmap
+- Update TODO with GGUF progress, build accel, phase renumbering
+- Update CLAUDE.md with PC-AI.Gpu module, nvidia workflow, fix counts
+- Add LLM inference optimization design spec (Sub-project C)
+- Add LLM optimization research report with prioritized action items
+- Add high-performance inference proposal targeting 200+ tok/s
+- Backend acceleration research — validated Ollama, llama-server, tuning
+- MoE model research — qwen3:30b optimal, Nemotron analysis
+- Local LLM quality assessment — 3B/7B/30B task-model matrix
+- Physics-based analysis — 7B at 150 tok/s requires smaller quant or MoE
+- Update llm.TODO.md with completed performance items
+- FunctionGemma training pipeline diagnostic report — 12 issues found
+- Update llm.TODO.md — all-backend optimizations complete
+- Mark checkpoint resume + grad VRAM fix complete
+- **reports**: Capture OneDrive sync triage investigation evidence
+- **reports**: Capture touchpad glitch investigation evidence
+- **reports**: Capture workstation audit (PATHEXT, http50443, sync health)
+- **reliability**: Update boot/reliability ledgers and session context
+- Reconcile CLAUDE.md accuracy and evaluate doc-automation tooling
+- **reports**: Add boot-diagnostics startup inventory evidence
+- **plans**: Git/gpg/github signing robustness proposal
+- Record vss cleanup result (#55)
+- Record workstation profile remediation (#59)
+- **todo**: Record the PowerShell suite repair and what is deliberately left open
+- **todo**: Record the build/CI plumbing defects the reachable build job exposed
+- **todo**: Reconcile four items against what actually happened (#95)
+- **boot**: Record what still needs a reboot, and what turned out not to (#111)
+- **claude**: Replace benchmark claims with measured ranges (#155)
+- **fleet**: Reconcile reviewed integrations and remaining validation gates (#168)
+- **fleet**: Record validated cleanup and restored services (#169)
+- **maintenance**: Record CPU profiling and home-network access evidence (#172)
+- **profiling**: Qualify the completed workload baseline (#178)
+- Record fleet merge and remaining integration boundaries
+- Align historical coverage note with current PR182 gate
+- Normalize portable review hashes across checkout endings
+- **network**: Align cross-platform and multimodal topology contracts
+- **usb4**: Bind independent observer test review
+- Bind original syntax cases to independent renewal (#260)
+- **boot**: Preserve evidence for the D: task repoints (#268)
+- Record scheduled terminal window repair (#280)
+- **usb4**: Define RDMA qualification baselines (#380)
+- **usb4**: Correct direct route review attribution (#390)
+
+### Features
+
+- Initial commit - PC-AI local LLM diagnostics framework
+- **legacy**: Archive WSL/Docker startup and health scripts
+- **virtualization**: Add Get-WSLEnvironmentHealth function
+- **native**: Add Rust core FFI library
+- **native**: Add Rust search module with parallel operations
+- **native**: Add C# P/Invoke wrapper for Rust DLLs
+- **build**: Add unified build and test infrastructure
+- **native**: Add Phase 3 Performance Module with FFI integration
+- **native**: Add Phase 4 System Module with PATH analysis and log search
+- **native**: Add Phase 4 System Module with expanded FFI
+- **native**: Add NukeNul cleanup utility
+- **native**: Add PcaiChatTui and ServiceHost applications
+- **deploy**: Add Docker configurations for LLM inference
+- **llm**: Enhance PC-AI.LLM module with tool integration
+- **virtualization**: Add HVSock and VSock bridge support
+- **modules**: Update Performance, Cleanup, Acceleration, Hardware
+- **llm**: Add routed chat and log search capabilities
+- **usb**: Add native USB diagnostics support
+- **virtualization**: Enhance WSL/Docker health checks
+- **modules**: Add CLI module and update manifests
+- **deploy**: Enhance FunctionGemma training pipeline
+- **training**: Add centralized config with env var support
+- **docker**: Multi-GPU vLLM config with tensor parallelism
+- **llm**: Add dynamic path resolution with env var support
+- **training**: Add LR scheduling, QLoRA, validation split, checkpoint resume
+- **llm**: Add provider health caching with 30s TTL
+- **llm**: Add error handling with categorization, retry, and structured reporting
+- **llm**: Add graceful degradation when FunctionGemma router unavailable
+- **llm**: Add structured JSON logging module with configurable log levels
+- **modules**: Add PC-AI.Common module and tool parameter validation
+- **training**: Enhance FunctionGemma training with Docker and profiling
+- **training**: Add Rust-based FunctionGemma trainer
+- **rust**: Implement CargoTools rust-analyzer singleton integration
+- **rust**: Add rust-functiongemma workspace and build tooling
+- **rust**: Add rust-functiongemma-runtime server
+- **rust**: Enhance rust-functiongemma-train with router dataset
+- **ci**: Add documentation pipeline verification to scheduled checks
+- **rust**: Enhance FunctionGemma training pipeline with router dataset
+- **rust**: Add FunctionGemma runtime and workspace tooling
+- **native**: Add FunctionGemma module stubs to pcai_core
+- **rust**: Enhance FunctionGemma runtime with OpenAI API compatibility
+- **train**: Add checkpoint save/resume functionality
+- **train**: Add early stopping with patience and min_delta
+- **tests**: Add code coverage reporting script
+- **train**: Integrate LoRA config into TrainerConfig
+- **train**: Add PEFT-compatible adapter output format
+- **train**: Integrate scheduler and checkpoint into training loop
+- **native**: Add pcai_fs FFI exports for .NET interop
+- **llm**: Enhance LLM module with improved routing and diagnostics
+- **build**: Add CUDA environment configuration for Rust builds
+- **rust**: Enable CUDA support for FunctionGemma training
+- **pcai-inference**: Scaffold dual-backend inference crate
+- **pcai-inference**: Implement llama_cpp-rs backend
+- **pcai-inference**: Implement mistralrs backend wrapper
+- **pcai-inference**: Complete FFI exports for PowerShell
+- **pc-ai**: Integrate native Rust inference via FFI
+- **pcai-inference**: Add OpenAI-compatible models endpoint
+- **tui**: Add native inference backend selection
+- **virtualization**: Update service health and host for Rust backend
+- **pcai-inference**: Enhance HTTP server with full OpenAI compatibility
+- **tui**: Add InferenceBackend enum and inference tests
+- **pcai-inference**: Extend FFI exports and OpenAI HTTP server
+- **llm**: Update PowerShell modules for native inference backend
+- **inference**: Add C# native inference library with P/Invoke bindings
+- **inference**: Fix PowerShell FFI module path resolution
+- **evaluation**: Add inference evaluation framework
+- **llm**: Enhance command routing and provider fallback
+- **acceleration**: Add capabilities detection and native init
+- **virtualization**: Add service health and diagnostics
+- **rust**: Enhance FunctionGemma runtime and trainer
+- **config**: Add native inference tools and configuration
+- **inference**: Update pcai-inference build configuration
+- **tools**: Update build and development tools
+- **build**: Add unified build system with git-based versioning
+- **ci**: Add CUDA release workflow and update to CUDA 13.1
+- **eval**: Enhance LLM evaluation module
+- **inference**: Expand PcaiInference module
+- **modules**: Update evaluation and inference modules
+- **core**: Extract shared PcaiError and PcaiConfig types into rust-functiongemma-core
+- **core**: Add shared GPU, safetensors, LoRA, and prompt utilities
+- **train**: Enhance training pipeline with router dataset, eval, and core consolidation
+- **inference**: Improve HTTP/FFI backends, build scripts, and test harness
+- **modules**: Add FunctionGemma PowerShell wrappers and update C# bindings
+- **tools**: Add FunctionGemma tooling, model discovery, and test improvements
+- Add AI-Media Janus model scaffold for image generation
+- **native**: Add async FFI P/Invoke and C# modernization
+- **pcai-media-model**: Scaffold Janus-Pro crate in workspace (Task 1)
+- **pcai-media-model**: Implement JanusConfig with 1B/7B presets (Task 2)
+- **pcai-media-model**: Migrate tensor_utils.rs from AI-Media (Task 3)
+- **pcai-media-model**: Implement VQ-VAE decoder for Janus-Pro image generation (Task 4)
+- **media-model**: Implement GenerationHead and MlpAligner (Task 5)
+- **media-model**: Assemble JanusModel facade in lib.rs (Task 6)
+- **pcai-media**: Scaffold pcai_media crate with config, ffi, and understand placeholders (Task 7)
+- **pcai-media**: Implement hub.rs for model download and weight loading (Task 8)
+- **pcai-media**: Implement generate.rs text-to-image pipeline with CFG (Task 9)
+- **pcai-media**: Implement image-to-text UnderstandingPipeline (Task 10)
+- **pcai-media**: Implement FFI C ABI layer for pcai_media
+- **pcai-media-server**: Scaffold HTTP server crate for Janus-Pro media inference
+- **pcai-media**: Add PcaiMedia.psm1 PowerShell FFI wrapper module
+- **pcai-native**: Add C# P/Invoke wrapper MediaModule.cs for pcai_media.dll
+- **media**: Add build integration, config, FFI device fix, and design docs
+- **media**: Complete FFI and HTTP API surface
+- CUDA 13.1 restore, media hardening, LLVM toolchain support
+- **modules**: Improve LLM, Evaluation, Virtualization, and Common modules
+- Add RAG database scripts and absolute-path lint rules
+- **native**: Update Rust workspace config and C# host programs
+- **build**: Update build orchestrator, dev tooling, and test scripts
+- **ollama**: Add Ollama benchmark crate, config, and reports
+- **native**: Enhance Rust search engine and add optimizer module
+- **native**: Add C# optimizer module and extend search interop
+- **performance**: Add optimizer cmdlets and memory pressure monitoring
+- **media**: Integrate media commands into PC-AI CLI
+- **diagnose**: Add visual/screenshot analysis branch
+- **tools**: Add Janus-Pro model download script
+- **media**: Add gen_image example and refine pipeline config/FFI
+- **tooling**: Expand acceleration benchmarks and driver workflows
+- **drivers**: Add Thunderbolt/USB4 networking and expand benchmarks
+- **rust**: Enforce Microsoft Pragmatic Rust Guidelines (M-STATIC-VERIFICATION, M-LINT-OVERRIDE-EXPECT, M-MIMALLOC-APPS)
+- **inference**: Add token counting to FFI + rustfmt across all crates
+- **gpu**: Add PC-AI.Gpu NVIDIA software management module
+- **rust**: Add NVML GPU monitoring module via nvml-wrapper 0.12
+- **media**: Cuda:auto GPU fallback + minor Rust fixes across crates
+- **media**: PcaiMedia PowerShell module + media test suites
+- **tools**: Add Janus GPU smoke test + NVIDIA update orchestrator
+- Jules batch — tests, refactors, C# test project + ONNX converter
+- **media**: Add RealESRGAN ONNX conversion tool + model
+- **gpu**: NVML FFI integration + CUDA 13.2 env fix + SDK detection
+- **ci**: NVIDIA validation workflow + Rust NVML cuda:auto optimization
+- **media**: CUDA feature forwarding for pcai-media-server + functional tests
+- **build**: Add cuDNN + cuda-optimized features + Build.ps1 defaults
+- **media**: PreAllocKvCache ring buffer + understanding pipeline fix + cuDNN docs
+- **media**: Repetition penalty + GPU Gumbel sampling + benchmark update
+- Self-speculative decoding + FunctionGemma cleanup
+- Speculative decoding CLI + telemetry framework + benchmark update
+- GGUF conversion + speculative bug fixes + config updates
+- Switch to Janus-Pro-7B on RTX 5060 Ti (TB4 eGPU)
+- **media**: GGUF quantized inference backend for 200+ tok/s target
+- **config**: Enable GGUF Q4_K_M quantized inference for 7B
+- **llm**: Add Get-PCDiagnosisPrompt from Jules session
+- **server**: Add --gguf CLI arg for quantized model loading
+- **build**: Overhaul Build.ps1 with media components + build acceleration
+- **jules**: Full Jules AI agent integration stack
+- Add cross-platform test harness for remote agent compatibility
+- Add benchmark regression gate and Rust profiling tools (Sub-project B)
+- Add LLM evaluation datasets + regression runner (Sub-project D)
+- **llm**: Increase default context to 32K and output to 16K tokens
+- Add code quality benchmark with composite scoring
+- Add local LLM code review tool for synergistic multi-agent workflows
+- Add ast-grep LLM auto-fix tool for automated code repair
+- **preflight**: Add GPU readiness module with GGUF memory estimation
+- **perf**: Add GPU roofline model for LLM inference performance analysis
+- **perf**: Add performance regression detection + preflight in eval harness
+- **functiongemma**: Add training performance telemetry
+- **perf**: Unified benchmark runner, FG eval harness, QLoRA analysis
+- Preflight VRAM checks in all backends + OOM error enrichment
+- **perf**: Add profiling test suite with statistical benchmarking
+- **cleanup**: Optimize-PathCompression for sub-2KB PATH + REG_EXPAND_SZ (#18)
+- **scripts**: Auto-sync Bitwarden vault on unlock when stale
+- **diagnostics**: Add input-stack diagnostics and repair tooling
+- **diagnostics**: Input-stack root-cause investigation + Gate-C eval harness
+- **gitops**: SSH-signing standard + branch-protection ruleset automation
+- **gitops**: Non-blocking CI-health + upstream-review monitors on push (directive 3)
+- **profile**: Track sanitized PowerShell bootstrap (#60)
+- Salvage the vLLM cache pinning and rclone cleanup tool from #57, with review fixes (#72)
+- **tools**: Add a health surface for Scheduled Tasks (#107)
+- **tools**: Add a hardware health surface, and enable task telemetry (#109)
+- **network**: GUID-stable adapter resolution, USB NIC recovery, path localisation (#112)
+- **network**: Add guarded fleet transport and [host] validation (#163)
+- **profiling**: Capture bounded workload resource evidence (#177)
+- Qualify Windows fleet hardware and media tooling
+- Publish bounded crash diagnostics and fleet closeout
+- **hardware**: Add profile-free USB descriptor inventory
+- **native,benchmarks**: Cross-platform production native loader and fail-closed benchmark gate
+- **network**: Import portable Thunderbolt CLI with fail-closed validation
+- **usb4**: Add lifecycle states, expiring evidence, identity canary, and bounded standby recovery
+- **usb4-lifecycle**: Codify 5 USB4 acceptance gates, 40BA dock FW inventory, and codex review fixes
+- **usb4**: Add enrolled read-only discovery service
+- **usb4**: Qualify enrolled edges and recover owned profiles
+- **tb,boot**: Add RustCache Dev Drive boot mount task and fix pcai-tb install/ULA idempotency (#212)
+- **tasks**: Dtm-task-run hidden launcher that keeps exit codes, task registry, health check (#223)
+- **usb4**: Plan fresh device-bound topology without Share (#287)
+- **usb4**: Inspect deployment evidence without live probes (#293)
+- **usb4**: Scope SSH access to an enrolled peer (#294)
+- Add offline native USB4 client plans (#295)
+- **usb4**: Add unregister and select hub adapters by GUID or MAC (#336)
+- **networking**: Add read-only Test-FleetPath fleet path diagnostic (#332)
+- **usb4**: Plan routes across hubs and intermediate hosts (#335)
+- **machine**: PATH policy, audit, repair and tests (#343)
+- **usb4**: Re-validate USB4 links on boot, logon, replug and network change (#344)
+- **profile**: Validate the profile chain, tool shims and tooling repos on logon (#345)
+- **profile**: Add an installer for the public profile shim with backups (#349)
+- **reliability**: Fleet failure ledger, semantic health sweeper and bounded playbooks (#346)
+- **usb4**: Add NetworkDirect preview preflight (#357)
+- **usb4**: Benchmark simultaneous peer throughput (#377)
+- **usb4**: Inspect Linux stream readiness natively (#378)
+- **usb4**: Observe Linux kernel stream config and configfs (#381)
+- **quality**: Fail-closed static-quality ratchet with committed baseline (#376)
+- **usb4**: Profile receiver intervals and recover cold neighbors (#400)
+
+### Miscellaneous
+
+- Add tooling scripts and generated reports
+- Update config, CLI, and miscellaneous files
+- **config**: Update LLM and tool configurations
+- Update reports and tooling scripts
+- Add prompt tests and update gitignore
+- Update gitignore and rgignore patterns
+- Update context and configuration files
+- **context**: Save session context for 2026-01-28
+- **context**: Save session 2 context with agent slices
+- **training**: Add safety gate to FunctionGemma Docker training
+- **rust**: Add router data preparation script and update TODO
+- **reports**: Regenerate documentation with fixed pipeline
+- **context**: Save session 3 context with doc accuracy fixes
+- Update config, tests, and API signature tooling
+- Ignore Windows nul device in gitignore
+- **rust-train**: Remove unused imports
+- **docs**: Update documentation pipeline and reports
+- **context**: Update project context and planning docs
+- **context**: Save session 1 context - Rust fixes complete
+- **context**: Save session 2 context - CUDA integration complete
+- **config**: Align LLM config with pcai-inference backend
+- **config**: Update project configuration for native inference
+- **reports**: Update documentation pipeline reports
+- **config**: Update git and build configuration for GitHub Releases
+- Remove stray error log file
+- Update ignore patterns for build artifacts and training outputs
+- Update repository URL to David-Martel/PC-AI
+- Realign build/docs paths, release install flow, and module portability
+- **ci**: Update build system, CI workflows, and dev tooling
+- Add litho config, ast-grep rules, formatting, and reports
+- **rules**: Reorganize ast-grep rules into language subdirectories
+- **tools**: Update build system, doc pipeline, and dev tooling
+- **release**: Remove Release/PowerShell staging directory
+- **config**: Update runtime config and ignore patterns
+- Add tooling benchmarks config and optimization notes
+- **tools**: Add performance data collectors and optimizer test scripts
+- **benchmarks**: Add tooling benchmark run outputs (20260307-20260308)
+- Prepare repository for public release
+- **tools**: Add media pipeline scripts, CUDA env setup, and configs
+- Ignore test-generated image artifacts
+- Gitignore tooling benchmark reports (generated artifacts)
+- Add lefthook.yml for declarative git hook management
+- Jules review cleanup — remaining Rust code quality fixes
+- Commit remaining validation agent changes
+- Sync config and reports after dual-GPU benchmarking
+- **gitignore**: Re-ignore .NET bin/obj + Claude local settings
+- **ci**: Unblock remaining gate rot — clippy expect + PSScriptAnalyzer
+- **ci**: Exclude PSAvoidGlobalVars + PSUseApprovedVerbs from lint gate
+- Add boot and OneDrive diagnostics tooling
+- Track Claude project context
+- Centralize workstation scripts
+- Ignore sensitive workstation evidence artifacts
+- **deploy**: Pin ollama compose resources and external model dir
+- **reports**: Refresh Process Lasso governor watchdog run
+- Ignore input-glitch eval output and incidental evidence dumps
+- **qa**: Provision git-guard repo-level Rust quality gate
+- Ignore worktrees, Codex session state, and dry-run report logs
+- **reports**: Refresh the Process Lasso governor watchdog snapshot
+- **ci**: Lock in the measured 5.1 baseline; correct two claims about hooks
+- **deps+ci**: Consolidate the dependabot backlog, fix dead CI triggers, drop the Linux gate (#71)
+- Save session context and track the untracked cloud boot-gating scripts (#75)
+- **reports**: Stop tracking the live Process Lasso watchdog status file (#152)
+- **ci**: Bump codecov/codecov-action from 4 to 7 (#239)
+- **ci**: Bump actions/setup-dotnet from 4 to 6 (#244)
+- **ci**: Bump actions/upload-artifact from 4 to 7 (#243)
+- **ci**: Bump actions/checkout from 4 to 7 (#240)
+- Normalize workflow storage for clean checkouts (#253)
+- **ci**: Bump Jimver/cuda-toolkit from 0.2.30 to 0.2.36 in the github-actions group across 1 directory (#238)
+- **ci**: Bump actions/cache from 4 to 6 (#277)
+- **ci**: Bump softprops/action-gh-release from 2 to 3 (#276)
+- Integrate safe preserve-branch fixes (#288)
+- **dependabot**: Hold System.Text.Json on 10.x for the net8.0 projects (#314)
+- **dependabot**: Drop retired reviewers keys; CODEOWNERS already assigns review (#315)
+- **ci**: Bump actions/download-artifact from 4 to 8 (#278)
+- **ci**: Local CI mirror, changed-file lint, faster dev profile (#337)
+
+### Other
+
+- Apply Jules recommendations across TUI, tooling, and diagnostics
+- CUDA-first mistralrs integration, build/toolchain hardening, and PowerShell acceleration sync
+- Fix ollama provider routing and dll alias staging for PcaiInference
+- Add runtime CUDA variant selection and vendor ggml-sys
+- ⚡ [performance improvement] optimize pcai-media tensor allocations and fix VQ decode edge cases
+- Shift-key HIL diagnostics + investigation findings (P1 Gen7) (#45)
+- FunctionGemma runtime config + CUDA build hardening + ServiceHost (#46)
+- Input-stack + workstation-audit evidence bundles + diagnostic tooling (#47)
+- CI gate fixes: externalize Bitwarden secret + fix rust-fmt wrapper (#48)
+- Merge PR #58: restore the CI gate on main, and the checks that were hiding behind it
+- Reconcile PC_AI upstream for Windows fleet tooling
+- Merge PR #183: Windows fleet capabilities and honest native telemetry
+- Merge PR #184: Record fleet reconciliation and remaining work
+- Fix cloud client startup ordering and VHDX identity checks (#186)
+- Reconcile accepted main and canonical benchmark validation
+- Reconcile accepted developer-hook documentation into native integration
+- Publish link-health payloads atomically (#366)
+- Refuse expired USB4 topology changes (#379)
+- Inspect pinned legacy USB4 release declarations (#382)
+- Require direct USB4 paths for mixed-peer benchmarks (#387)
+- Test direct USB4 TCP on enrolled hardware (#388)
+- Qualify ONNX Runtime rc.15 with a CPU inference test (#393)
+
+### Performance
+
+- **modules**: Apply Jules optimization patches
+- **drivers**: Rewrite Find-ThunderboltPeer to eliminate PS 5.1 subprocess
+- **native**: Enable thin-LTO in Rust release profile
+- **rust**: Eliminate unnecessary string clones + add upscale tests
+- **media**: 4x inference optimization — flash attn, GPU sampling, KV cache
+- **functiongemma**: Enable flash-attn by default + from_slice optimization
+- **media**: Wire PreAllocKvCache + GPU sampling + image preprocess optimization
+- **media**: Eliminate prefill_hidden clone at step 0
+- Apply Jules patches — string clone fix + mistralrs RequestLike
+- O(N^2) fix, WMI hoist, clone removal, function extraction
+- **llm**: Validated dual-GPU inference — 122 tok/s on 3B, 66 tok/s on 7B
+- Llama-bench validates 144.6 tok/s ceiling on RTX 5060 Ti
+- Comprehensive model benchmark — MoE qwen3:30b at 72 tok/s
+- **functiongemma**: Add NVML GPU discovery + preflight VRAM check
+- **functiongemma**: Add pre-allocated KV cache ring buffer
+- Optimize inference config across all backends
+- **ci**: Stop Portable CI compiling the candle stack twice
+- **ci**: Stop rebuilding cargo-audit on every Rust Guidelines run (#93)
+- **media**: Optimize tensor allocations and add 4D test coverage (#131)
+- **ci**: Give job-local Rust homes a fixed path so sccache hits (#339)
+- **ci**: Run the ci-gate aggregator on a hosted runner (#341)
+
+### Refactoring
+
+- **scripts**: Migrate legacy scripts to Legacy directory
+- **native**: Split PcaiNative.cs into modular components
+- **rust**: Modularize telemetry into submodules
+- **cli**: Simplify PC-AI.ps1 entry point
+- **rust**: Consolidate pcai crates into pcai_core_lib modules
+- **csharp**: Update native modules for Rust consolidation
+- **deploy**: Restore FunctionGemma tooling to Deploy directory
+- Remove duplicate model.rs from training, import from core
+- **runtime**: Decompose lib.rs into modules and consolidate with core
+- **functiongemma**: Consolidate shared utilities into core crate
+- **rust**: Code quality sweep across pcai_core crates
+- **acceleration**: Update PC-AI.Acceleration module
+- **cli**: Update PC-AI.CLI and PC-AI.Common modules
+- **evaluation**: Update PC-AI.Evaluation module
+- **llm**: Update PC-AI.LLM module
+- **virtualization**: Update PC-AI.Virtualization module
+- Update module helpers, C# interop, and Rust search layer
+- **common**: Extend shared module helpers and cache utilities
+- **acceleration**: Update native FFI search wrappers and capabilities
+- **media-model**: Enhance JanusConfig, VQ decoder, and model facade
+- **native**: Remove legacy NukeNul subtree
+- **rust**: Replace 288 expect("TODO: Verify unwrap") with descriptive messages
+- **functiongemma**: Improve error handling with map_err over expect
+- **evaluation**: Externalize safety test cases to JSON dataset
+- Jules review — PS module hardening + Rust code quality
+- Address code review findings — reuse, quality, efficiency
+- **inference**: Mark pointer-dereferencing FFI functions unsafe; keep pcai_media move/clone wins (#132)
+
+### Security
+
+- Fix CVE-2025-4565 and modernize dependencies
+- Enforce SHA256 validation for downloaded inference DLLs
+- Replace hardcoded developer paths with env var lookups
+
+### Style
+
+- **build**: Normalize string quoting and add CUDA build env helper
+
+### Testing
+
+- Enhance test infrastructure and fixtures
+- **ffi**: Add Pester integration tests for native DLLs
+- Add integration tests and benchmarks
+- Add comprehensive test suite
+- Update FFI tests and add new integration tests
+- Add Invoke-RustBuild parameter validation tests
+- **ffi**: Add comprehensive pcai_fs FFI tests
+- **train**: Add full training pipeline integration test
+- Add FFI filesystem, Rust build, and Cargo tools tests
+- **pcai-inference**: Add integration tests
+- **e2e**: Add inference end-to-end tests
+- Add FFI and inference test suite
+- Update integration tests for new directory structure
+- **ffi**: Fix integration tests and add 21-test stress suite
+- **inference**: Add 42 unit tests across pcai_inference crate
+- Update evaluation harness and test infrastructure
+- Update test harness, helpers, and evaluation infrastructure
+- **benchmarks**: Add tooling benchmark test script
+- **benchmarks**: Refactor tooling benchmarks and add native search tests
+- **media**: Add media pipeline test scaffolding and benchmarks
+- **drivers**: Add PC-AI.Drivers Pester test suite (43 tests)
+- **media**: Add Initialize-PcaiMediaFFI unit tests
+- **gpu**: Add hardware integration tests for PC-AI.Gpu module
+- Apply Jules patches — tests + HVSock optimization
+- Add 60 unit tests from Jules sessions + training config refactor
+- Update GPU source assertion for NVML FFI path
+- Align provider order coverage with config writes
+- **inference**: Raise line coverage 44% -> 78%, clearing the CI coverage gate
+- **credentials**: Cover native Bitwarden command selection (#115)
+- Require honest VNV outcomes when hosted providers are absent
+- **native**: Canonicalize owned override fixture paths (#270)
+- Measure retry backoff with a monotonic clock (#284)
+- **ci**: Assemble credential-scan canaries from pieces (#347)
+- **usb4**: Cover duplex return-route refusal and zero receiver rate (#383)
+- **usb4**: Cover listener contention and SSH cleanup margins (#395)
+
+---
+Generated by [git-cliff](https://git-cliff.org/)

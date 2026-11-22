@@ -12,9 +12,9 @@ body = """
 {% endif %}\
 {% for group, commits in commits | group_by(attribute="group") %}
     ### {{ group | upper_first }}
-    {% for commit in commits %}
+    {% for commit in commits | unique(attribute="message") %}
         - {% if commit.scope %}**{{ commit.scope }}**: {% endif %}\
-            {{ commit.message | upper_first }}\
+            {{ commit.message | split(pat="\n") | first | trim | upper_first }}\
             {% if commit.breaking %} [**BREAKING**]{% endif %}\
     {% endfor %}
 {% endfor %}\n
@@ -27,9 +27,24 @@ trim = true
 
 [git]
 conventional_commits = true
-filter_unconventional = true
+# Unconventional subjects are kept and filed under "Other" by the last parser instead of being dropped: several squash
+# merges carry a plain title ("Qualify ONNX Runtime rc.15 with a CPU inference test (#393)"), and dropping them left
+# real changes out of the changelog. Merge commits and session-checkpoint commits ("context: ...") are skipped
+# explicitly because they record no change of their own. See docs/VERSIONING.md.
+filter_unconventional = false
 split_commits = false
+# The repository is public. Commit subjects that name a fleet machine are rewritten to a neutral placeholder so the
+# generated changelog does not republish host names. Add a pattern here, rather than editing CHANGELOG.md by hand,
+# when the scan described in docs/VERSIONING.md finds another one.
+commit_preprocessors = [
+    # Some early commits were made with `-m "subject\n\nbody"`, which stores a literal backslash-n rather than a line
+    # break, so the whole body (and its Co-Authored-By trailer) would render as the subject. Cut at the first one.
+    { pattern = '(?s)\\n.*', replace = "" },
+    { pattern = '(?i)\b(vigil1|milly|millylaptop1|asuspro13|spark-\d+|minisforum-ms01|dtm-(p1gen\d+|work|super-nuc))\b', replace = "[host]" },
+]
 commit_parsers = [
+    { message = "^Merge (pull request|branch|remote-tracking branch) ", skip = true },
+    { message = "^context:", skip = true },
     { message = "^feat", group = "Features" },
     { message = "^fix", group = "Bug Fixes" },
     { message = "^refactor", group = "Refactoring" },
@@ -40,6 +55,10 @@ commit_parsers = [
     { message = "^chore", group = "Miscellaneous" },
     { message = "^ci", group = "CI/CD" },
     { message = "^build", group = "Build" },
+    { message = "^security", group = "Security" },
+    { message = "^style", group = "Style" },
+    { message = "^data", group = "Data" },
+    { message = ".*", group = "Other" },
 ]
 filter_commits = false
 tag_pattern = "v[0-9]*"

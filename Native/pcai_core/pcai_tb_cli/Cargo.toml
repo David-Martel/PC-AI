@@ -31,6 +31,9 @@ tokio.workspace = true
 chrono.workspace = true
 libc.workspace = true
 
+[target.'cfg(target_os = "linux")'.dependencies]
+flate2 = "1.1.8"
+
 [target.'cfg(windows)'.dependencies]
 windows-sys = { workspace = true, features = [
     "Win32_Foundation",

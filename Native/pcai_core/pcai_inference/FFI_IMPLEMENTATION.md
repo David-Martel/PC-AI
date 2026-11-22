@@ -10,16 +10,27 @@ The `pcai-inference` library now provides a complete C FFI layer enabling direct
 
 ```rust
 struct GlobalState {
-    runtime: Runtime,                    // Tokio async runtime
-    backend: Option<Box<dyn InferenceBackend>>,  // Active backend
+    runtime: Result<Runtime, String>,            // Tokio runtime (error reported per call)
+    backend: RwLock<Option<Box<dyn InferenceBackend>>>,
+    generation_gate: Mutex<()>,                  // one generation at a time
+    has_backend: AtomicBool,                     // lock-free status mirrors
+    model_loaded: AtomicBool,
+    async_engine: AsyncEngine,                   // request table + single worker
 }
 
-static GLOBAL_STATE: OnceLock<Mutex<GlobalState>>;  // Thread-safe singleton
+static GLOBAL_STATE: OnceLock<GlobalState>;      // Thread-safe singleton
 ```
 
 **Design Decisions:**
 - **OnceLock**: Ensures runtime is created exactly once
-- **Mutex**: Provides thread-safe access to backend
+- **RwLock + generation gate**: generating takes the gate, then a read lock on the
+  backend; init / load / shutdown take the write lock. Generations stay serialised.
+- **Separate async request table**: `pcai_poll_result` and `pcai_cancel` only touch a
+  short-lived mutex on the table, never the backend or the gate, so they return in
+  microseconds while a generation runs. See `src/ffi/async_engine.rs` for the request
+  life cycle, cancellation semantics (llama.cpp stops per token; other backends
+  discard the late result), the bounded queue (16) and the eviction rules (terminal
+  entries are freed on poll, evicted after 10 minutes, table capped at 256).
 - **Tokio Runtime**: Bridges async backend methods to synchronous FFI calls
 
 ### Error Handling
@@ -278,7 +289,8 @@ cargo build --features ffi,llamacpp --release
 
 ### FFI Layer
 - ✅ All functions are thread-safe
-- ✅ Global state protected by Mutex
+- ✅ Backend behind an RwLock; async request table behind its own short-lived Mutex
+- ✅ Poll and cancel never wait for a running generation
 - ✅ Errors are thread-local
 
 ### Backend Implementations
@@ -290,7 +302,7 @@ cargo build --features ffi,llamacpp --release
 
 ### Overhead
 - **Runtime creation:** One-time ~10ms cost
-- **Mutex lock:** ~100ns per call
+- **Request table lock (poll/cancel):** sub-microsecond uncontended
 - **FFI call:** ~50ns overhead
 - **String marshaling:** O(n) for prompt/response
 

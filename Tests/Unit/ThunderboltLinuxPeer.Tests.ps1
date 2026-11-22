@@ -101,6 +101,253 @@ Describe 'Thunderbolt TCP benchmark modes' -Tag 'Unit', 'Portable' {
     }
 }
 
+Describe 'USB4 listener script text' -Tag 'Unit', 'Portable' {
+    # Protects: the remote script that opens the unauthenticated iperf3 listener keeps its safety shape.
+    # Detects: removing or reordering the return-route check, or weakening the bound, time-limited, cleaned-up listener.
+    # Needs: PowerShell only. New-TbIperfServerScript is a pure text builder; no ssh, bash or network is used.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
+    BeforeAll {
+        $peer = @{ sshAlias = 'test-peer'; expectedHostname = 'test-peer'; localAddress = '172.31.240.1'; peerAddress = '172.31.240.2' }
+        $serverScript = (New-TbIperfServerScript -Profile $peer -RemoteInterface 'thunderbolt0' -Seconds 4 -ServerPort 55201).Replace("`r`n", "`n")
+        $routeCheck = "ip -j -4 route get '172.31.240.1' from '172.31.240.2'"
+    }
+
+    # Protects: the return path is proven direct before anything listens, so a reply cannot leave through the LAN.
+    # Detects: deleting the `ip -j route get ... from <peer>` check or moving it after the `iperf3 -s` line.
+    # Needs: the rendered server script as text; compares string positions only.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
+    It 'checks the source-bound return route before it opens the listener' {
+        $check = $serverScript.IndexOf($routeCheck, [StringComparison]::Ordinal)
+        $listener = $serverScript.IndexOf('iperf3 -s', [StringComparison]::Ordinal)
+        $check | Should -BeGreaterThan -1
+        $listener | Should -BeGreaterThan $check
+    }
+
+    # Protects: a route mismatch ends the remote script with a nonzero status before the listener line.
+    # Detects: dropping `set -e`/pipefail, dropping the refusal exits, or binding the check to a different interface.
+    # Needs: the rendered server script as text. The bash tests below execute these same lines.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
+    It 'aborts on a route mismatch before the listener line' {
+        $listener = $serverScript.IndexOf('iperf3 -s', [StringComparison]::Ordinal)
+        $serverScript.Split("`n")[0] | Should -Be 'set -euo pipefail'
+        foreach ($refusal in 'sys.exit("Expected exactly one source-bound USB4 return route")',
+            'sys.exit("USB4 return route is not direct on the selected interface")') {
+            $at = $serverScript.IndexOf($refusal, [StringComparison]::Ordinal)
+            $at | Should -BeGreaterThan -1 -Because $refusal
+            $at | Should -BeLessThan $listener -Because $refusal
+        }
+        $serverScript | Should -BeLike "*' 'thunderbolt0'`n*" -Because 'the check compares the route device with the selected interface'
+    }
+
+    # Protects: the listener stays one-shot, bound to the peer /30 address, time-limited and killed on every exit path.
+    # Detects: an unbound or unbounded listener, a lost trap, or a lost readiness handshake after refactoring the builder.
+    # Needs: the rendered server script as text.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
+    It 'keeps the listener one-shot, bound, time-limited and cleaned up' {
+        $lines = $serverScript.Split("`n")
+        $lines | Should -Contain "timeout --kill-after=3s 19s iperf3 -s -1 -B '172.31.240.2' -p 55201 &"
+        $lines | Should -Contain 'trap ''kill "$child" 2>/dev/null || true'' EXIT HUP INT TERM'
+        $lines | Should -Contain 'kill -0 "$child"'
+        $lines | Should -Contain 'echo PCAI_IPERF_READY'
+        $lines | Should -Contain 'wait "$child"'
+    }
+
+}
+
+Describe 'Duplex return-route guard executed under bash' -Tag 'Unit', 'Portable' {
+    # Protects: the rendered remote script refuses to open the listener unless the return route is direct on the USB4 interface.
+    # Detects: a guard that is present as text but does not stop the script, for example a lost pipefail or a loose interface match.
+    # Needs: bash with a working python3, found by a functional probe. hostname, ip, timeout and iperf3 are stubs placed first on
+    #        PATH inside the script's own shell, so no real route, listener or host is touched. Skipped with a reason otherwise.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
+    BeforeAll {
+        $peer = @{ sshAlias = 'test-peer'; expectedHostname = 'test-peer'; localAddress = '172.31.240.1'; peerAddress = '172.31.240.2' }
+        $isWindowsHost = [Environment]::OSVersion.Platform -eq 'Win32NT'
+        $duplexScript = (New-TbIperfServerScript -Profile $peer -RemoteInterface 'thunderbolt0' -Seconds 4 -ServerPort 55201).Replace("`r`n", "`n")
+        $directRoute = '[{"dst":"172.31.240.1","dev":"thunderbolt0","prefsrc":"172.31.240.2","flags":[],"uid":1000,"cache":[]}]'
+
+        function Find-TbFixtureTool {
+            param([string[]]$Name, [string[]]$Exclude = @(), [scriptblock]$Accept = { $true })
+            foreach ($candidate in $Name) {
+                foreach ($command in @(Get-Command $candidate -CommandType Application -All -ErrorAction SilentlyContinue)) {
+                    if ($Exclude | Where-Object { $command.Source -like $_ }) { continue }
+                    if (& $Accept $command.Source) { return $command.Source }
+                }
+            }
+        }
+
+        function Invoke-TbBashFixture {
+            param([string]$Bash, [string]$Python, [string]$WorkDir, [string]$Script, [string]$RouteJson = '[]', [int]$IpExit = 0)
+            $stub = Join-Path $WorkDir ([guid]::NewGuid().ToString('N'))
+            New-Item -ItemType Directory -Path $stub | Out-Null
+            $marker = Join-Path $stub 'listener-calls.txt'
+            $pythonPath = ($Python -replace '\\', '/').Replace("'", "'\''")
+            $stubs = [ordered]@{
+                hostname = "#!/bin/sh`necho 'test-peer'"
+                ip       = @'
+#!/bin/sh
+case "$*" in
+  *'addr show'*) echo '    inet 172.31.240.2/30 brd 172.31.240.3 scope global thunderbolt0' ;;
+  *'route get'*) cat "$PCAI_FIXTURE_ROUTE"; exit "$PCAI_FIXTURE_IP_EXIT" ;;
+  *) echo "unexpected ip call: $*" >&2; exit 99 ;;
+esac
+'@
+                timeout  = "#!/bin/sh`necho `"timeout `$*`" >> `"`$PCAI_FIXTURE_MARKER`"`nsleep 2"
+                iperf3   = "#!/bin/sh`necho `"iperf3 `$*`" >> `"`$PCAI_FIXTURE_MARKER`"`nsleep 2"
+                python3  = "#!/bin/sh`nexec '$pythonPath' `"`$@`""
+            }
+            foreach ($name in $stubs.Keys) {
+                $file = Join-Path $stub $name
+                [IO.File]::WriteAllText($file, ($stubs[$name].Replace("`r`n", "`n") + "`n"), [Text.UTF8Encoding]::new($false))
+                if (-not $isWindowsHost) { [IO.File]::SetUnixFileMode($file, [IO.UnixFileMode]'UserRead, UserWrite, UserExecute') }
+            }
+            $routeFile = Join-Path $stub 'route.json'
+            [IO.File]::WriteAllText($routeFile, $RouteJson, [Text.UTF8Encoding]::new($false))
+
+            $start = [Diagnostics.ProcessStartInfo]::new($Bash)
+            $start.ArgumentList.Add('-s')
+            $start.UseShellExecute = $false
+            $start.RedirectStandardInput = $true
+            $start.RedirectStandardOutput = $true
+            $start.RedirectStandardError = $true
+            $start.Environment['PCAI_FIXTURE_ROUTE'] = $routeFile -replace '\\', '/'
+            $start.Environment['PCAI_FIXTURE_MARKER'] = $marker -replace '\\', '/'
+            $start.Environment['PCAI_FIXTURE_IP_EXIT'] = "$IpExit"
+            # Put the stub directory first on PATH from inside the shell, whatever order this bash flavour gives PATH.
+            $prelude = 'S=''' + ($stub -replace '\\', '/') + '''; if command -v cygpath >/dev/null 2>&1; then S="$(cygpath -u "$S")"; fi; PATH="$S:$PATH"; export PATH' + "`n"
+            $process = [Diagnostics.Process]::Start($start)
+            try {
+                $stdout = $process.StandardOutput.ReadToEndAsync()
+                $stderr = $process.StandardError.ReadToEndAsync()
+                $process.StandardInput.Write($prelude + $Script)
+                $process.StandardInput.Close()
+                $finished = $process.WaitForExit(30000)
+                if (-not $finished) { $process.Kill($true); $process.WaitForExit(5000) | Out-Null }
+                [pscustomobject]@{
+                    TimedOut = -not $finished
+                    ExitCode = $(if ($finished) { $process.ExitCode } else { -1 })
+                    Stdout = $stdout.GetAwaiter().GetResult()
+                    Stderr = $stderr.GetAwaiter().GetResult()
+                    ListenerCalls = @($(if (Test-Path -LiteralPath $marker) { [IO.File]::ReadAllLines($marker) }))
+                }
+            }
+            finally { $process.Dispose() }
+        }
+
+        # Find a bash and a python3 that can run the stubs; otherwise explain why the tests are skipped.
+        $fixtureHost = @{ Bash = $null; Python = $null; WorkDir = $TestDrive; Reason = $null }
+        $python = Find-TbFixtureTool -Name $(if ($isWindowsHost) { 'python3.exe', 'python.exe' } else { 'python3', 'python' }) -Accept {
+            param($path) & $path -c 'import json, sys; sys.exit(0 if sys.version_info[0] == 3 else 1)' 2>$null; $LASTEXITCODE -eq 0 }
+        if (-not $python) { $fixtureHost.Reason = 'no working python3 was found; the guard under test is Python-based' }
+        else {
+            $fixtureHost.Python = $python
+            $bashNames = if ($isWindowsHost) { 'bash.exe' } else { 'bash' }
+            $known = if ($isWindowsHost) { @("$env:ProgramFiles\Git\bin\bash.exe", "$env:ProgramFiles\Git\usr\bin\bash.exe", "${env:ProgramFiles(x86)}\Git\bin\bash.exe") | Where-Object { $_ -and (Test-Path -LiteralPath $_) } }
+            $probe = "test `"`$(hostname)`" = 'test-peer'`necho '[]' | python3 -c 'import json, sys; json.load(sys.stdin); print(`"PROBE_OK`")'`n"
+            $candidates = @(@($known) + @(Get-Command $bashNames -CommandType Application -All -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Source -notlike '*\System32\*' -and $_.Source -notlike '*\WindowsApps\*' } | ForEach-Object Source) | Where-Object { $_ })
+            $failures = @()
+            foreach ($candidate in $candidates) {
+                $result = Invoke-TbBashFixture -Bash $candidate -Python $python -WorkDir $TestDrive -Script $probe
+                if ($result.ExitCode -eq 0 -and $result.Stdout -match 'PROBE_OK') { $fixtureHost.Bash = $candidate; break }
+                $failures += "$candidate exited $($result.ExitCode): $($result.Stderr.Trim())"
+            }
+            if (-not $fixtureHost.Bash) {
+                $fixtureHost.Reason = $(if ($failures) { 'no bash could run the stub probe: ' + ($failures -join '; ') } else { 'bash is not available' })
+            }
+        }
+    }
+
+    # Protects: a direct source-bound route on the USB4 interface still reaches the listener, with the bound and time limit intact.
+    # Detects: a guard so strict that it blocks the supported topology, which would also make every refusal test below vacuous.
+    # Needs: the bash fixture host described above; this is the positive control for the refusal cases.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
+    It 'lets a direct route on thunderbolt0 through to the bounded listener' {
+        if ($fixtureHost.Reason) { Set-ItResult -Skipped -Because $fixtureHost.Reason; return }
+        $run = Invoke-TbBashFixture -Bash $fixtureHost.Bash -Python $fixtureHost.Python -WorkDir $fixtureHost.WorkDir -Script $duplexScript -RouteJson $directRoute
+        $run.TimedOut | Should -BeFalse
+        $run.ExitCode | Should -Be 0 -Because $run.Stderr
+        $run.Stdout | Should -Match 'PCAI_IPERF_READY'
+        @($run.ListenerCalls).Count | Should -Be 1
+        $run.ListenerCalls[0] | Should -Be 'timeout --kill-after=3s 19s iperf3 -s -1 -B 172.31.240.2 -p 55201'
+    }
+
+    # Protects: every unsafe or unreadable return route stops the script before the listener, and for the stated reason.
+    # Detects: deleting the check, loosening the interface comparison, accepting a gateway, or ignoring a failed or garbled `ip`.
+    # Needs: the bash fixture host; fixture JSON stands in for `ip -j -4 route get`. A stub marker proves the listener never ran.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
+    It 'refuses <Case> before opening the listener' -ForEach @(
+        @{ Case = 'a route through the LAN NIC'; Json = '[{"dst":"172.31.240.1","gateway":"192.168.1.1","dev":"enp3s0","prefsrc":"192.168.1.20"}]'; IpExit = 0; Reason = '*not direct*' }
+        @{ Case = 'a gateway on the USB4 interface'; Json = '[{"dst":"172.31.240.1","gateway":"172.31.240.9","dev":"thunderbolt0","prefsrc":"172.31.240.2"}]'; IpExit = 0; Reason = '*not direct*' }
+        @{ Case = 'a via route on the USB4 interface'; Json = '[{"dst":"172.31.240.1","via":{"family":"inet","host":"172.31.240.9"},"dev":"thunderbolt0"}]'; IpExit = 0; Reason = '*not direct*' }
+        @{ Case = 'a route with no interface'; Json = '[{"dst":"172.31.240.1","prefsrc":"172.31.240.2"}]'; IpExit = 0; Reason = '*not direct*' }
+        @{ Case = 'an interface named thunderbolt00'; Json = '[{"dst":"172.31.240.1","dev":"thunderbolt00","prefsrc":"172.31.240.2"}]'; IpExit = 0; Reason = '*not direct*' }
+        @{ Case = 'an empty route list'; Json = '[]'; IpExit = 0; Reason = '*exactly one*' }
+        @{ Case = 'two candidate routes'; Json = '[{"dst":"172.31.240.1","dev":"thunderbolt0"},{"dst":"172.31.240.1","dev":"thunderbolt0"}]'; IpExit = 0; Reason = '*exactly one*' }
+        @{ Case = 'garbled route JSON'; Json = 'garbled {'; IpExit = 0; Reason = '*JSON*' }
+        @{ Case = 'no route output from a failing ip'; Json = ''; IpExit = 2; Reason = '*JSON*' }
+        @{ Case = 'a failing ip that already printed a direct route'; Json = '[{"dst":"172.31.240.1","dev":"thunderbolt0","prefsrc":"172.31.240.2","flags":[],"uid":1000,"cache":[]}]'; IpExit = 1; Reason = $null }
+    ) {
+        if ($fixtureHost.Reason) { Set-ItResult -Skipped -Because $fixtureHost.Reason; return }
+        $run = Invoke-TbBashFixture -Bash $fixtureHost.Bash -Python $fixtureHost.Python -WorkDir $fixtureHost.WorkDir -Script $duplexScript -RouteJson $Json -IpExit $IpExit
+        $run.TimedOut | Should -BeFalse
+        $run.ExitCode | Should -Not -Be 0
+        $run.Stdout | Should -Not -Match 'PCAI_IPERF_READY'
+        @($run.ListenerCalls).Count | Should -Be 0 -Because "the listener ran: $($run.ListenerCalls -join '; ')"
+        if ($Reason) { $run.Stderr | Should -BeLike $Reason }
+    }
+
+    # Protects: the default benchmark stops before listening if the return route cannot be read.
+    # Detects: leaving default sequential traffic without the same return-path proof used for duplex.
+    # Needs: the bash fixture host. Only the stub `ip route get` fails and prints garbage.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, New-TbIperfServerScript.
+    It 'refuses an invalid return route for the default trial' {
+        if ($fixtureHost.Reason) { Set-ItResult -Skipped -Because $fixtureHost.Reason; return }
+        $run = Invoke-TbBashFixture -Bash $fixtureHost.Bash -Python $fixtureHost.Python -WorkDir $fixtureHost.WorkDir -Script $duplexScript -RouteJson 'garbled {' -IpExit 7
+        $run.ExitCode | Should -Not -Be 0
+        $run.Stdout | Should -Not -Match 'PCAI_IPERF_READY'
+        @($run.ListenerCalls).Count | Should -Be 0
+    }
+}
+
+Describe 'Duplex receiver rate guard' -Tag 'Unit', 'Portable' {
+    # Protects: a duplex result needs a strictly positive receiver rate on both rows.
+    # Detects: accepting a zero or negative bits_per_second as measurement evidence, for example by relaxing `-le 0` to `-lt 0`.
+    # Needs: mocked trial output and tool versions; no process, network or hardware.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, Invoke-TbBenchmark.
+    BeforeEach {
+        $benchmarkProfile = @{ sshAlias = 'test-peer'; expectedHostname = 'test-peer'; localAddress = '172.31.240.1'; peerAddress = '172.31.240.2' }
+        $session = @{ Profile = $benchmarkProfile; Adapter = $adapter; RemoteInterface = 'thunderbolt0'; Executable = 'test-iperf3'; Seconds = 4; ServerPort = 55201 }
+        Mock Assert-TbBenchmarkRoute {}
+        Mock Invoke-TbNative { 'iperf 3.16 (cJSON 1.7.15)' }
+        Mock Invoke-TbSsh { 'iperf 3.16 (cJSON 1.7.15)' }
+    }
+
+    # Protects: the exact row and field are named when a receiver reports no throughput, and no result object escapes.
+    # Detects: zero or negative rates passing, or being reported against the wrong summary.
+    # Needs: mocked one-shot trial JSON in which only the named row is invalid.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1, Invoke-TbBenchmark.
+    It 'rejects a bits_per_second of <Rate> in <Row> with no result' -ForEach @(
+        @{ Row = 'sum_received'; Rate = 0 }
+        @{ Row = 'sum_received'; Rate = -1 }
+        @{ Row = 'sum_received_bidir_reverse'; Rate = 0 }
+        @{ Row = 'sum_received_bidir_reverse'; Rate = -1 }
+    ) {
+        $good = '{"bits_per_second":8000,"bytes":4000,"seconds":4}'
+        $bad = '{"bits_per_second":' + $Rate + ',"bytes":4000,"seconds":4}'
+        $forward = if ($Row -eq 'sum_received') { $bad } else { $good }
+        $reverse = if ($Row -eq 'sum_received') { $good } else { $bad }
+        $payload = '{"end":{"sum_received":' + $forward + ',"sum_received_bidir_reverse":' + $reverse + '}}'
+        Mock Invoke-TbBenchmarkTrial { $payload }
+        $result = $null
+        $failure = $null
+        try { $result = @(Invoke-TbBenchmark @session -FullDuplex) } catch { $failure = $_ }
+        $failure | Should -Not -BeNullOrEmpty -Because 'a non-positive receiver rate must not become a measurement'
+        $failure.Exception.Message | Should -Be "iperf3 full-duplex JSON has invalid end.$Row.bits_per_second."
+        $result | Should -BeNullOrEmpty
+    }
+}
+
 Describe 'Thunderbolt profile safety' {
     It 'uses separate isolated /30 profiles at conservative MTU' {
         $milly = Get-TbProfile -Path $profilePath -Name millylaptop1
@@ -335,10 +582,40 @@ public static class VigilProcessCustodyFixture {
         { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Throw '*does not use*'
     }
     It 'rejects missing local configured source address' {
-        Mock Find-NetRoute { @([pscustomobject]@{ InterfaceIndex = 42 }) }
+        Mock Find-NetRoute {
+            [pscustomobject]@{ InterfaceIndex = 42; IPAddress = '172.31.240.1' }
+            [pscustomobject]@{ InterfaceIndex = 42; DestinationPrefix = '172.31.240.0/30'; NextHop = '0.0.0.0' }
+        }
         Mock Get-NetIPAddress { @() }
         $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
         { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Throw '*address is missing*'
+    }
+    # Protects: receiver traffic is admitted only on the selected USB4 link and source.
+    # Detects: a same-index gateway, default route, stale source or ambiguous provider rows.
+    # Needs: fake Windows route and address rows. Breadcrumb: Invoke-ThunderboltLinuxPeer.ps1::Assert-TbBenchmarkRoute.
+    It 'requires an unambiguous source and on-link peer route for <Case>' -ForEach @(
+        @{ Case = 'connected subnet'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $true }
+        @{ Case = 'direct host route'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.2/32'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $true }
+        @{ Case = 'gateway on the same interface'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.2/32'; Hop = '172.31.240.2'; Extra = $false; State = 'Preferred'; Admit = $false }
+        @{ Case = 'unrelated default route'; SelectedSource = '172.31.240.1'; Prefix = '0.0.0.0/0'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $false }
+        @{ Case = 'different source'; SelectedSource = '172.31.240.2'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $false }
+        @{ Case = 'ambiguous route rows'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $true; State = 'Preferred'; Admit = $false }
+        @{ Case = 'tentative local address'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $false; State = 'Tentative'; Admit = $false }
+    ) {
+        $rows = @(
+            [pscustomobject]@{ InterfaceIndex = 42; IPAddress = $SelectedSource }
+            [pscustomobject]@{ InterfaceIndex = 42; DestinationPrefix = $Prefix; NextHop = $Hop }
+        )
+        if ($Extra) { $rows += $rows[1] }
+        $live = [pscustomobject]@{ InterfaceIndex = 42; IPAddress = '172.31.240.1'; PrefixLength = 30; AddressState = $State }
+        Mock Find-NetRoute { $rows }
+        Mock Get-NetIPAddress { $live }
+        $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
+        if ($Admit) {
+            { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Not -Throw
+        } else {
+            { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Throw '*Benchmark refused*'
+        }
     }
     It 'surfaces actual native nonzero exit and stderr' {
         { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', '[Console]::Error.WriteLine("controlled failure"); exit 7') } | Should -Throw '*exited 7*controlled failure*'
@@ -407,15 +684,29 @@ public static class VigilProcessCustodyFixture {
             $owned.Dispose()
         }
     }
+    # Protects: a stdin write the child never reads is ended by the operation's own timeout, and the child that was started is terminated.
+    # Detects: removing the timeout or the process kill, or losing the process-tree cleanup; a timeout that fires without killing.
+    # Needs: PowerShell 7 and a Windows job object. The runner is compiled before timing, so the outer bound covers the operation
+    #        and its teardown only. The 8 s operational timeout is asserted separately from the generous elapsed upper bound.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1, Invoke-TbNative.
     It 'bounds a large stdin write when the actual child never reads it' {
+        $timeoutSeconds = 8
+        $slackSeconds = 10
         $pidFile = Join-Path $TestDrive 'nonreading-child.pid'
-        $child = '$PID | Set-Content -LiteralPath ''' + $pidFile.Replace("'", "''") + '''; Start-Sleep 15'
+        # The child records its PID and start time, then sleeps 40 s, far longer than timeout plus slack, so only a real kill ends it.
+        $child = '$me = [Diagnostics.Process]::GetCurrentProcess(); [string]::Join('','', $me.Id, $me.StartTime.ToUniversalTime().Ticks) | Set-Content -LiteralPath ''' + $pidFile.Replace("'", "''") + '''; Start-Sleep 40'
+        Initialize-VigilBoundedProcessRunner
         $timer = [Diagnostics.Stopwatch]::StartNew()
-        { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $child) -InputText ('x' * 1048576) -TimeoutSeconds 2 } | Should -Throw '*timed out*'
-        $timer.Elapsed.TotalSeconds | Should -BeLessThan 5
-        Test-Path -LiteralPath $pidFile | Should -BeTrue
-        $childId = [int](Get-Content -LiteralPath $pidFile)
-        Get-Process -Id $childId -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', $child) -InputText ('x' * 1048576) -TimeoutSeconds $timeoutSeconds } |
+            Should -Throw "*timed out after $timeoutSeconds seconds; process tree terminated*"
+        $timer.Stop()
+        $timer.Elapsed.TotalSeconds | Should -BeGreaterOrEqual $timeoutSeconds -Because 'the operation timeout, not an early exit, ended the call'
+        $timer.Elapsed.TotalSeconds | Should -BeLessThan ($timeoutSeconds + $slackSeconds) -Because 'teardown on a loaded host needs slack, but the 40 s child must not run to completion'
+        Test-Path -LiteralPath $pidFile | Should -BeTrue -Because 'the child must have started before the timeout for its termination to be provable'
+        $childId, $startTicks = (Get-Content -LiteralPath $pidFile -Raw).Trim() -split ','
+        $survivor = Get-Process -Id ([int]$childId) -ErrorAction SilentlyContinue |
+            Where-Object { $_.StartTime.ToUniversalTime().Ticks -eq [long]$startTicks }
+        $survivor | Should -BeNullOrEmpty -Because 'the exact child process that was started must be gone'
     }
     It 'preserves large stdin and simultaneous output without deadlock' {
         $text = 'z' * 1048576
@@ -428,7 +719,7 @@ public static class VigilProcessCustodyFixture {
 $info = [Diagnostics.ProcessStartInfo]::new('__SHELL__')
 $info.UseShellExecute = $false
 $info.CreateNoWindow = $true
-foreach ($argument in @('-NoLogo','-NoProfile','-Command','Start-Sleep 30')) { $info.ArgumentList.Add($argument) }
+foreach ($argument in @('-NoLogo','-NoProfile','-Command','Start-Sleep 40')) { $info.ArgumentList.Add($argument) }
 $owned = [Diagnostics.Process]::Start($info)
 $witness = @{ Id = $owned.Id; StartTicks = $owned.StartTime.ToUniversalTime().Ticks } | ConvertTo-Json
 [IO.File]::WriteAllText('__WITNESS__', $witness)

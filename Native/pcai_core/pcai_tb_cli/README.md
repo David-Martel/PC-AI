@@ -55,7 +55,12 @@ pcai-tb unregister --peer dtm-p1gen9 --adapter 02-00-00-0B-00-19 --registry ../.
 ```
 
 Use `stream-preflight` to check local Linux USB4STREAM control and device visibility.
-It reads kernel metadata and reports transfer qualification as `NotTested`.
+It reports the observed `CONFIG_USB4_STREAM` setting from `/proc/config.gz` or
+the boot configuration for the running release. `Unspecified` means a readable
+configuration omits the symbol. `Unavailable` means neither source supplied
+usable evidence. The separate configfs result describes the exact mount at
+`/sys/kernel/config` in the caller's namespace. Transfer qualification stays
+`NotTested`.
 Windows returns `UnsupportedPlatform`. See [USB4 transport qualification](../../../docs/usb4/rdma-preview.md#linux-and-mixed-fleets).
 
 `route-plan` plans /30 addressing, host routes and transit forwarding for hosts joined through hubs or an intermediate host. It only prints commands; see [multi-hop routing](../../../docs/usb4/multi-hop-routing.md).

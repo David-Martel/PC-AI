@@ -28,6 +28,27 @@ into a native snapshot. [Link health](link-health.md) and the
 [native benchmark](../../Native/pcai_core/pcai_tb_cli/README.md) describe the
 current entrypoints and qualification boundaries.
 
+## Physical USB4 and overlay traffic
+
+Windows USB4NET and Linux ThunderboltIP expose the physical peer link as a
+network interface. PC-AI qualifies that interface, its numeric peer address,
+and the selected route before handing the path to applications. A Headscale
+or Tailscale management alias may reach a peer to start a benchmark listener.
+Benchmark data uses the numeric peer address and an explicit local source on
+USB4. The mixed Windows/Linux benchmark requires on-link routes in both
+directions before reporting USB4 goodput, including for its sequential trials.
+Compare physical USB4 and overlay counter deltas when both interfaces are active.
+The legacy `ms01UplinkCapMbps` registry field describes an uplink in lifecycle
+output. It supplies no socket or interface rate limit.
+
+Record the nominal port rating, reported adapter rate, and measured TCP
+receiver goodput separately. For Windows-to-Windows measurements use the
+[Microsoft USB4NET NTTTCP procedure](https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/usb4-interdomain-connections#throughput-testing)
+as a native baseline, with the receiver address and sender NIC explicitly
+selected. Record MTU, endpoint CPU and receiver bytes for each stream count
+and direction. Record any benchmark rate cap alongside the result. For
+simultaneous traffic report each direction and its aggregate.
+
 ## Current architecture checks
 
 The [USB4 workflow](../../.github/workflows/usb4-lifecycle.yml) retains native x64 contract execution and adds `cargo check --all-targets` for the matching host's ARM64 target. Windows uses `aarch64-pc-windows-msvc`; Linux uses `aarch64-unknown-linux-gnu`. This is deliberately not a Linux-to-MSVC build. Installing a Rust target supplies its standard library, not every SDK/linker. Check-only runs can still execute host build scripts or require native prerequisites; failures are not converted to unsupported success.

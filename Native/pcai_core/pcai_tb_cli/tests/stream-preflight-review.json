@@ -1,20 +1,22 @@
 {
   "schemaVersion": 1,
-  "reviewedAtUtc": "2026-11-22T16:16:24.7844851Z",
-  "reviewer": "interop_research",
-  "reviewerType": "independent source agent",
-  "sourceBaseline": "1aa6f468fed6dd3f19ed499af84958fc6723c9ff",
-  "hashConvention": "SHA-256 of UTF-8 LF file text and Rust function from fn through the closing brace and newline.",
+  "reviewedAtUtc": "2026-11-22T16:54:13.731945Z",
+  "reviewer": "codex",
+  "reviewerType": "source review independent of implementation with live Linux corroboration",
+  "sourceBaseline": "805ade5aea13fd7cbe515953137f15f017479ce8",
+  "hashConvention": "SHA-256 of UTF-8 LF files and Rust selectors dedented from fn through the matching closing brace and final newline.",
   "sourceBindings": {
-    "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs": "7cf1efe0ed0938b3d781054a8fe54199eea4540080c68f9d8e9d8f3e6ce45e7f",
-    "Native/pcai_core/pcai_tb_cli/tests/stream_preflight_cli.rs": "bf9e897a621f70cbd36686756a242581f5a2bf99a7bc1666564deef456a131e9",
-    "Native/pcai_core/pcai_tb_cli/src/main.rs": "005db3e060a6e1f56359ec27efea597e9cf35439aff6fe18883d73ee2a415da5"
+    "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs": "0d8143a927368a7d59fb94b8af55a7a72a6bab7e13699c961a5d4d120d07440c",
+    "Native/pcai_core/pcai_tb_cli/tests/stream_preflight_cli.rs": "ae5795521e0af655aaf3cdd399dc8204a12ee198f9f090108b0cc06ebd97bd48",
+    "Native/pcai_core/pcai_tb_cli/src/main.rs": "005db3e060a6e1f56359ec27efea597e9cf35439aff6fe18883d73ee2a415da5",
+    "Native/pcai_core/pcai_tb_cli/Cargo.toml": "f6eae1229b50702ce650d52a1c86834331c4e001af274a33c925b97f99d31480",
+    "Native/pcai_core/Cargo.lock": "32798a3fe85d18d8e745f98e32478fe7c7b8cb69a35a5d78bfa334ae2faa77eb"
   },
   "selectors": [
     {
       "selector": "control_path_requires_an_observed_directory",
       "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
-      "sha256": "4d08cfcb9ce31ba0d7c22e57622b1f41be8a60d5385a6ff6eb041b359e9bcc54",
+      "sha256": "96c3411c21b23eb6f512813e9382fe7a853cb8360bc653f69cbb1b5e5bc0f039",
       "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
       "disposition": "keep",
       "reviewScope": "Checks absent, present and unexpected object types with temporary Linux filesystem entries."
@@ -22,7 +24,7 @@
     {
       "selector": "device_scan_rejects_non_devices_and_keeps_missing_scan_unknown",
       "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
-      "sha256": "8e9016fd3c0dc5fea4ee1bad34b7de90b4efb10e2a82aff4850c31106fc315a8",
+      "sha256": "711b48ffc9cd81649c242e0a9bc4b669feaaea5fb742b00c34e94e607fb0dbd7",
       "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
       "disposition": "keep",
       "reviewScope": "Checks type refusal, unavailable directory and an explicit entry budget. Real-device visibility and the separate device cap require their own evidence."
@@ -30,7 +32,7 @@
     {
       "selector": "stream_preflight_reports_capabilities_without_qualifying_a_transfer",
       "source": "Native/pcai_core/pcai_tb_cli/tests/stream_preflight_cli.rs",
-      "sha256": "57fa7e28f790f3cc1c04c3936a8e7f7d7166cfcd17ad04e1881c79f9de5bc870",
+      "sha256": "026c816a27420ab03ca8986054f4d4273b8b1b78ab6b5c32fb9924e4c7c8eee7",
       "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
       "disposition": "keep",
       "reviewScope": "Pins a single JSON envelope and untested transfer status across supported platforms without opening hardware."
@@ -42,6 +44,93 @@
       "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/main.rs",
       "disposition": "keep",
       "reviewScope": "Runs the actual binary against mutation, output and override flags. Confirms rejection before success output and no external file creation."
+    },
+    {
+      "selector": "stream_config_distinguishes_tristate_from_missing_and_invalid_evidence",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "c452cfc1ddf854a20479910ad77887dc37efaabbf2b30ec9b8af37c1f513a22d",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewScope": "Checks exact Kconfig tristate, conflicting and invalid data and a mixed-case kernel symbol seen in a running Ubuntu distribution."
+    },
+    {
+      "selector": "stream_config_prefers_proc_and_falls_back_only_to_validated_boot_file",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "d587af8b74e739182aeafbf48dc1ff0a5c7d48e1ddc92521ecd4ca05cdbe062d",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewScope": "Confirms proc precedence, release-scoped /boot fallback, invalid paths and rejection of alternate file types without using real device paths."
+    },
+    {
+      "selector": "stream_config_rejects_oversized_and_corrupt_sources",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "5ade6dfe0e2dc5835b254d7098e244f32f1df301b1b3592b5f42bfd235f51f52",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewScope": "Checks input and decompressed limits, missing gzip trailer and trailing bytes with Linux temporary files."
+    },
+    {
+      "selector": "configfs_mount_needs_exact_type_from_complete_mountinfo",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "adba2edb768d012f69d125fc3b43b7da2e0bc8aac4b399d1281d1d4d0405e7c1",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewScope": "Checks real-shaped namespace mount rows, exact mountpoint and filesystem type, duplicate rows, malformed and over-budget input."
+    },
+    {
+      "selector": "configfs_is_found_beside_a_9p_record_with_unescaped_space_in_super_options",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "80248543ff59eaba6afa3e09a6bc457da9db727b13b2836a723426e8a00cf30c",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent of the implementation",
+      "reviewScope": "Real-shaped WSL2 mountinfo with a 9p drvfs record whose super-options hold an unescaped space, in both orders around the configfs record. Confirms Mounted, Absent without configfs, and UnexpectedType for a wrong type."
+    },
+    {
+      "selector": "malformed_records_for_other_mount_points_are_skipped",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "31ce1ce85a2fd8b4d992bf24ae3923611679311ae327b51fefd58e8202686c2d",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent of the implementation",
+      "reviewScope": "Missing separator, too few fields, non-decimal identifiers, missing source and blank lines for other mount points neither hide nor invent a configfs answer."
+    },
+    {
+      "selector": "malformed_or_conflicting_configfs_records_still_fail_closed",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "47b46d978ecdcf35bd01ee2b5ca66002c34b5eb7bb61572a3a6ff353339ffb33",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent of the implementation",
+      "reviewScope": "Extra, missing or non-decimal fields, a missing separator, a shifted mount point, a truncated record and stacked or damaged duplicate configfs records stay Unavailable."
+    },
+    {
+      "selector": "absence_needs_at_least_one_usable_record",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "b667379857db21f156ba7eb61837fbc49a61cc0be14a3c79353b5411d15e2f03",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent of the implementation",
+      "reviewScope": "An empty or entirely damaged listing stays Unavailable instead of becoming Absent; a listing with one tolerated record is Absent."
+    },
+    {
+      "selector": "rows_without_a_first_super_options_field_are_not_usable",
+      "source": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "sha256": "febaaef73ff65d21f454908791a09f1eb5157185be0a5dbe0983472eacda203e",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/stream_preflight.rs",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent of the implementation",
+      "reviewScope": "A row that stops after the source or leaves the first super-options field empty is not usable evidence, so a listing of only such rows stays Unavailable (the one-row case Codex reported); such a row is skipped beside configfs, and rows with extra trailing fields stay usable."
     }
-  ]
+  ],
+  "execution": {
+    "windows": "Two CLI controls passed; strict platform result maintained.",
+    "ms01": "Two new real-shaped assertions failed initially. The corrected source passed six Linux unit and two CLI controls. The live 7.0.0-43-generic host reported Unspecified via BootConfig and configfs Mounted, with no eligible stream nodes.",
+    "wsl2-mountinfo-tolerance": "Author run on WSL2 kernel 6.18.58.1-microsoft-standard-WSL2 with rustc 1.100.0. Three of the four first new tests failed on the previous parser (a 9p drvfs record with an unescaped space discarded the whole listing), and the live host then reported configfs Mounted. Codex review found that a row with no first super-options field still counted as usable, so a one-row listing became Absent; rows_without_a_first_super_options_field_are_not_usable failed on that revision and passed after the fix, and all eleven Linux stream_preflight unit tests pass. Mutations (skip malformed configfs rows, absent without a usable row, allow stacked configfs, count rows without the field, count rows with an empty field, allow extra fields on configfs) were each caught by a test. Author self-review only; an independent review of the five new selectors is still outstanding."
+  }
 }

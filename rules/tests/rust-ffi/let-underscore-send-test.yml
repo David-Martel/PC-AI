@@ -1,0 +1,13 @@
+id: let-underscore-send
+valid:
+  - |
+    tx.send(2).unwrap();
+  - |
+    let _ = rx.recv();
+  - |
+    if tx.send(1).is_err() { log(); }
+invalid:
+  - |
+    let _ = tx.send(1);
+  - |
+    let _ = tx.send(1).await;

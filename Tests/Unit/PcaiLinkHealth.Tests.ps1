@@ -13,6 +13,7 @@ BeforeAll {
     $journal = "Add-Content -LiteralPath (Join-Path `$d '0123456789abcdef.journal') -Value 'x'"
     $script:Plan = [pscustomobject]@{
         schema = 'pcai.usb4-route-plan/v1'
+        evaluated_at_utc = '2026-11-21T11:50:17Z'
         expires_at_utc = '2026-11-21T11:51:17Z'
         edges = @([pscustomobject]@{
                 subnet = '172.31.255.20/30'
@@ -228,13 +229,71 @@ Describe 'Plan helpers' -Tag 'Unit', 'Portable' {
     It 'lists only this host''s reachability targets' {
         @(Get-PcaiReachabilityTarget -Plan $Plan -HostName 'hosta' | ForEach-Object { $_ } | ForEach-Object Address) | Should -Be @('172.31.255.22', '172.31.248.197')
     }
+    # Protects: hardware identity and plan validity are checked before each generated mutation.
+    # Detects: rendering a malformed script or moving deadline enforcement after an apply line.
+    # Needs: a planner fixture and the PowerShell parser. Breadcrumb: Invoke-PcaiLinkHealth.ps1::New-PcaiHostApplyScript.
     It 'renders the guard before any apply line, and the script parses' {
-        $text = New-PcaiHostApplyScript -PlanHost $Plan.hosts[0] -PlanId '0123456789abcdef' -Source 'test'
+        $text = New-PcaiHostApplyScript -PlanHost $Plan.hosts[0] -PlanId '0123456789abcdef' -Source 'test' `
+            -EvaluatedAtUtc ([DateTimeOffset]$Plan.evaluated_at_utc) -ExpiresAtUtc ([DateTimeOffset]$Plan.expires_at_utc)
         $text.IndexOf('Get-NetAdapter -InterfaceIndex 28') | Should -BeLessThan $text.IndexOf('# EdgeAddress')
+        $text | Should -Match '(?m)^# EdgeAddress[^\r\n]*\r?\nAssert-PcaiPlanWindow\r?$'
+        $text | Should -Match '(?m)^# HostRoute[^\r\n]*\r?\nAssert-PcaiPlanWindow\r?$'
         $text | Should -Match '#Requires -RunAsAdministrator'
         $tokens = $null; $errors = $null
         [void][Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$errors)
         @($errors).Count | Should -Be 0
+    }
+}
+
+Describe 'Route plan validity' -Tag 'Unit', 'Portable' {
+    # Protects: only a current planner observation may authorize route mutation.
+    # Detects: accepting future, boundary-expired, incomplete or invalid windows, or dropping planner nanoseconds.
+    # Needs: in-memory planner timestamps and a fixed UTC clock.
+    # Breadcrumb: Invoke-PcaiLinkHealth.ps1::Get-PcaiRoutePlanWindow.
+    It 'classifies the route plan window as <Expected>' -ForEach @(
+        @{ Start = '2026-11-21T11:50:17.123456789Z'; End = '2026-11-21T11:51:17Z'; Now = '2026-11-21T11:50:18Z'; Expected = 'Fresh' }
+        @{ Start = '2026-11-21T11:50:17Z'; End = '2026-11-21T11:51:17Z'; Now = '2026-11-21T11:50:17Z'; Expected = 'Fresh' }
+        @{ Start = '2026-11-21T11:50:17Z'; End = '2026-11-21T11:51:17Z'; Now = '2026-11-21T11:51:17Z'; Expected = 'Expired' }
+        @{ Start = '2026-11-21T11:50:17Z'; End = '2026-11-21T11:51:17Z'; Now = '2026-11-21T11:50:16Z'; Expected = 'Future' }
+        @{ Start = '2026-11-21T11:50:17'; End = '2026-11-21T11:51:17Z'; Now = '2026-11-21T11:50:18Z'; Expected = 'Malformed' }
+        @{ Start = '2026-11-21T11:50:17Z'; End = $null; Now = '2026-11-21T11:50:18Z'; Expected = 'Malformed' }
+        @{ Start = '2026-11-21T11:50:17Z'; End = 'invalid'; Now = '2026-11-21T11:50:18Z'; Expected = 'Malformed' }
+        @{ Start = '2026-11-21T11:50:17Z'; End = '2026-11-21T11:50:17Z'; Now = '2026-11-21T11:50:18Z'; Expected = 'Malformed' }
+        @{ Start = '2026-11-21T11:50:17Z'; End = '2026-11-21T11:55:18Z'; Now = '2026-11-21T11:50:18Z'; Expected = 'Malformed' }
+    ) {
+        $fixture = @{ evaluated_at_utc = $Start }
+        if ($null -ne $End) { $fixture.expires_at_utc = $End }
+        $decoded = $fixture | ConvertTo-Json | ConvertFrom-Json
+        (Get-PcaiRoutePlanWindow -Plan $decoded -NowUtc ([DateTimeOffset]$Now)).State | Should -Be $Expected
+    }
+
+    # Protects: a saved script proceeds only while its observation window is current.
+    # Detects: accepting an expired or future plan, blocking a current plan, or checking validity after preflight.
+    # Needs: a generated script containing fixture-only guards and commands, with no network or elevation.
+    # Breadcrumb: Invoke-PcaiLinkHealth.ps1::New-PcaiHostApplyScript.
+    It 'checks a saved apply script in the <Case> observation window before fixture commands' -ForEach @(
+        @{ Case = 'expired'; StartOffset = -120; ExpiryOffset = -60; AllowsFixture = $false }
+        @{ Case = 'future'; StartOffset = 60; ExpiryOffset = 120; AllowsFixture = $false }
+        @{ Case = 'current'; StartOffset = -60; ExpiryOffset = 60; AllowsFixture = $true }
+    ) {
+        $hostFixture = [pscustomobject]@{
+            host = 'fixture'
+            guard = @('$null = $fixtureCalls.Add("adapter check")')
+            preflight = @()
+            actions = @([pscustomobject]@{ kind = 'HostRoute'; interface_index = 1; target = 'fixture'; apply = '$null = $fixtureCalls.Add("route change")' })
+        }
+        $now = [DateTimeOffset]::UtcNow
+        $text = New-PcaiHostApplyScript -PlanHost $hostFixture -PlanId '0123456789abcdef' `
+            -EvaluatedAtUtc ($now.AddSeconds($StartOffset)) -ExpiresAtUtc ($now.AddSeconds($ExpiryOffset))
+        $body = ($text -split '\r?\n' | Where-Object { $_ -notlike '#Requires*' }) -join "`n"
+        $fixtureCalls = [Collections.Generic.List[string]]::new()
+        if ($AllowsFixture) {
+            & ([scriptblock]::Create($body))
+            @($fixtureCalls) | Should -Be @('adapter check', 'route change')
+        } else {
+            { & ([scriptblock]::Create($body)) } | Should -Throw '*outside its validity window*'
+            $fixtureCalls.Count | Should -Be 0
+        }
     }
 }
 
@@ -256,8 +315,13 @@ Describe 'Auto-apply stays off unless every condition holds' -Tag 'Unit', 'Porta
     It 'never applies from a non-elevated process' -Skip:(-not $IsWindows) {
         (Get-PcaiAutoApplyDecision -RunMode 'Apply' -Elevated $false -Policy $enabled -Comparison $drift).Apply | Should -BeFalse
     }
-    It 'applies only for Drift with guards matching, elevated, and enabled' -Skip:(-not $IsWindows) {
-        (Get-PcaiAutoApplyDecision -RunMode 'Apply' -Elevated $true -Policy $enabled -Comparison $drift).Apply | Should -BeTrue
+    # Protects: valid elected Windows repairs still run, while callers without freshness evidence fail closed.
+    # Detects: unconditionally refusing Drift, or authorizing it without a current observation.
+    # Needs: Windows and a fixed fixture timestamp. Breadcrumb: Invoke-PcaiLinkHealth.ps1::Get-PcaiAutoApplyDecision.
+    It 'applies only for Drift with a current plan, guards matching, elevated, and enabled' -Skip:(-not $IsWindows) {
+        $fresh = Get-PcaiRoutePlanWindow -Plan $Plan -NowUtc ([DateTimeOffset]'2026-11-21T11:50:30Z')
+        (Get-PcaiAutoApplyDecision -RunMode 'Apply' -Elevated $true -Policy $enabled -Comparison $drift -PlanWindow $fresh).Apply | Should -BeTrue
+        (Get-PcaiAutoApplyDecision -RunMode 'Apply' -Elevated $true -Policy $enabled -Comparison $drift).Apply | Should -BeFalse
     }
     It 'ignores a policy file that a standard user owns' -Skip:(-not $IsWindows) {
         $dir = Join-Path $TestDrive 'policy'
@@ -316,7 +380,11 @@ Describe 'Trust checks walk every ancestor' -Tag 'Unit' {
 Describe 'Invoke-PcaiLinkHealth side effects' -Tag 'Unit', 'Portable' {
     BeforeAll {
         $planFile = Join-Path $TestDrive 'plan.json'
-        $Plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planFile
+        $freshPlan = $Plan | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+        $now = [DateTimeOffset]::UtcNow
+        $freshPlan.evaluated_at_utc = $now.AddSeconds(-1).ToString('o')
+        $freshPlan.expires_at_utc = $now.AddSeconds(290).ToString('o')
+        $freshPlan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $planFile
     }
     BeforeEach {
         Mock Get-PcaiUsb4Adapter { , @(New-TestAdapter -Ipv4 @()) }
@@ -343,6 +411,36 @@ Describe 'Invoke-PcaiLinkHealth side effects' -Tag 'Unit', 'Portable' {
         Test-Path -LiteralPath (Join-Path $root 'status.json') | Should -BeTrue
         Test-Path -LiteralPath (Join-Path $root 'pending-apply-0123456789abcdef.ps1') | Should -BeTrue
         Test-Path -LiteralPath (Join-Path $root 'apply') | Should -BeFalse
+        Should -Invoke Invoke-PcaiBoundedCommand -Times 0 -Exactly
+    }
+    # Protects: a noncurrent plan remains visible for diagnosis without being reissued for elevated execution.
+    # Detects: handing a stale, future or malformed plan to an apply subprocess or emitting a new review script.
+    # Needs: a fixture plan, temporary status root, and mocked Windows custody and network calls.
+    # Breadcrumb: Invoke-PcaiLinkHealth.ps1::Invoke-PcaiLinkHealth.
+    It 'reports <Expected> drift without rendering or applying the stale plan' -ForEach @(
+        @{ StartOffset = -90; ExpiryOffset = -30; Expected = 'Expired' }
+        @{ StartOffset = 30; ExpiryOffset = 90; Expected = 'Future' }
+        @{ StartOffset = -30; ExpiryOffset = $null; Expected = 'Malformed' }
+    ) {
+        $plan = $Plan | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+        $now = [DateTimeOffset]::UtcNow
+        $plan.evaluated_at_utc = $now.AddSeconds($StartOffset).ToString('o')
+        $plan.expires_at_utc = if ($null -ne $ExpiryOffset) { $now.AddSeconds($ExpiryOffset).ToString('o') } else { 'not-a-time' }
+        $badPlanPath = Join-Path $TestDrive "plan-$Expected.json"
+        $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $badPlanPath
+        Mock Get-PcaiAutoApplyPolicy { [pscustomobject]@{ Enabled = $true; Reason = 'fixture'; PlanPath = $badPlanPath } }
+        Mock Test-PcaiAdminOwnedPath { $true }
+        Mock Test-PcaiElevated { $true }
+        foreach ($mode in 'Observe', 'Apply') {
+            $root = Join-Path $TestDrive "status-$Expected-$mode"
+            $null = New-Item -ItemType Directory -Path $root
+            $status = Invoke-PcaiLinkHealth -RunMode $mode -Root $root -Plan $badPlanPath -SkipBus | Where-Object { $_ -isnot [string] }
+            Test-Path -LiteralPath (Join-Path $root 'pending-apply-0123456789abcdef.ps1') | Should -BeFalse
+            Test-Path -LiteralPath (Join-Path $root 'apply') | Should -BeFalse
+            $status.state | Should -Be 'Drift'
+            $status.plan.validity | Should -Be $Expected
+            $status.severity | Should -Be 'warn'
+        }
         Should -Invoke Invoke-PcaiBoundedCommand -Times 0 -Exactly
     }
     It 'waits out the minimum interval and still checks, so a quick reconnect is not dropped' {
@@ -778,7 +876,7 @@ Describe 'Service recovery leaves disabled and mutating tasks alone' -Tag 'Unit'
 Describe 'Notification fingerprint' -Tag 'Unit', 'Portable' {
     It 'ignores timestamps and changes with the state' {
         $base = [ordered]@{ state = 'InSync'; severity = 'ok'; adapters = @(New-TestAdapter); comparison = [pscustomobject]@{ Findings = @() }
-            reachability = @(); services = @(); plan = [ordered]@{ planId = 'p' }; evaluatedAtUtc = '2026-11-21T00:00:00Z' }
+            reachability = @(); services = @(); plan = [ordered]@{ planId = 'p'; validity = 'Fresh' }; evaluatedAtUtc = '2026-11-21T00:00:00Z' }
         $a = Get-PcaiLinkHealthFingerprint -Status ([pscustomobject]$base)
         $base.evaluatedAtUtc = '2026-11-22T00:00:00Z'
         Get-PcaiLinkHealthFingerprint -Status ([pscustomobject]$base) | Should -Be $a

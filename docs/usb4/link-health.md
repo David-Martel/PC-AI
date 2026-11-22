@@ -130,12 +130,15 @@ routes, attempting recovery or replacing `status.json`. The saved observation
 keeps its original timestamp. Use its age and the scheduler result together when
 reading it after an error. A successful enumeration with zero USB4 adapters
 still produces an ordinary observation. See the [adapter error test review](../../Tests/Unit/pcai-link-health-adapter-error-review.json).
+The [route validity test review](../../Tests/Unit/pcai-link-health-validity-review.json)
+records the watcher and saved-script expiry controls.
 
 ### Drift and the auto-apply switch
 
-The default is Observe. On `Drift` the check writes this host's guard, preflight and apply
-lines from the plan to `pending-apply-<plan-id>.ps1` under the status root and prints the
-command to run it elevated. It changes nothing itself.
+The default is Observe. On `Drift` with a current plan, the check writes this host's guard,
+preflight and apply lines to `pending-apply-<plan-id>.ps1` under the status root and prints
+the command to run it elevated. The generated script checks the validity window before
+preflight and before each mutation. Discard older generated scripts that lack this check.
 
 Apply mode runs only in the SYSTEM task, and only when all of these hold:
 
@@ -169,7 +172,9 @@ Apply mode runs only in the SYSTEM task, and only when all of these hold:
   Authenticated Users Modify, and that host has no machine-wide PowerShell 7 (checked
   2026-11-21), so `-System` refuses there until the MSI is installed. The NUC, dtm-work and
   Gen7 have the MSI install, owned by SYSTEM;
-- the state is `Drift`, so every guard (ifIndex, MAC, GUID) still matches.
+- the state is `Drift`, so every guard (ifIndex, MAC, GUID) still matches;
+- the plan includes valid, timezone-qualified `evaluated_at_utc` and `expires_at_utc` values,
+  its effective validity is at most 300 seconds, and the current time is within that window.
 
 It then runs the plan's own guard and apply lines, which create state only when absent and
 journal it (`%ProgramData%\pcai-usb4\route-plan\<plan-id>.journal`), and re-validates. Rollback
@@ -196,9 +201,11 @@ The check reads an optional `config.json` in its status root and refuses unknown
 
 - The plan is IPv4 and Windows-only, so Linux hosts get discovery, link state and reachability
   but no plan comparison or apply.
-- A plan's observation TTL is not enforced for comparison or apply; the per-ifIndex MAC and GUID
-  guards are what bind it to the hardware. Regenerate after any replug that changes them.
+- Expired, future or malformed plan windows appear in `status.json` under `plan.validity`.
+  Read-only comparison remains available for diagnosis. The watcher neither emits a fresh
+  apply script nor attempts auto-apply until a current plan is supplied. The existing
+  journal and identity checks still govern owned rollback.
 - The probe checks local egress and transport reachability. Use a pinned SSH host key
   and verify both directions for authenticated peer readiness.
-- The Linux Pester list (`Tests/linux-ci-pester.txt`) does not include these files yet; the
-  Windows CI runs all of `Tests/Unit`.
+- The [Linux Pester allowlist](../../Tests/linux-ci-pester.txt) covers portable watcher
+  fixtures. Windows CI runs all of `Tests/Unit`.

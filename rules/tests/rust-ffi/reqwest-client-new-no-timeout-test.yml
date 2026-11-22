@@ -1,0 +1,11 @@
+id: reqwest-client-new-no-timeout
+valid:
+  - |
+    let c = reqwest::Client::builder().timeout(Duration::from_secs(5)).build()?;
+  - |
+    let c = other::Client::new();
+invalid:
+  - |
+    let c = reqwest::Client::new();
+  - |
+    let c = reqwest::blocking::Client::new();

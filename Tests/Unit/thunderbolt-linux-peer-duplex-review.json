@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "reviewedAtUtc": "2026-11-22T16:16:25.0393770Z",
+  "reviewedAtUtc": "2026-11-22T16:16:25.039377Z",
   "reviewer": "codex",
   "reviewerType": "independent source agent",
-  "sourceBaseline": "1aa6f468fed6dd3f19ed499af84958fc6723c9ff",
+  "sourceBaseline": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
   "hashConvention": "SHA-256 of UTF-8 LF source files and exact Pester It AST extent. Data-driven selectors are reviewed as groups.",
   "sourceBindings": {
     "Tools/Invoke-ThunderboltNetworking.ps1": "0343cb4fa2a00e50c84321cba68f093895572d59d476bfd7c85a490461293fce",
-    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "9d804ba0051508e593691925b00ffe68e899094896e47637530ad812295c44f1",
-    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "16a054c286c895c3fe33988d9fd82652a7a55dc40f9e8a988a42a64aed8bafea"
+    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "e7b96aac7a9e0a5422eefb1e1f8d0fd2dbc026b9042ac04aebb145dcde5396aa",
+    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "5d5e9562de7fd941a30a7138c4f8ff6529b30bbc6b1ef21c916fb48a9e1ff08a"
   },
   "selectors": [
     {
@@ -65,6 +65,113 @@
       ],
       "disposition": "keep",
       "reviewScope": "Verifies the planner describes requested simultaneous mode and does not start a trial."
+    },
+    {
+      "selector": "checks the source-bound return route before it opens the listener",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "490aa111b048b8d3af4278d57de88efc39e7f197e11de69321de9c8d57fb54c7",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Executed or inspected the shared, mode-independent listener script. An invalid source-bound return route is refused before listener startup."
+    },
+    {
+      "selector": "aborts on a route mismatch before the listener line",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "3cc83d69143c7b01c31cfc39c15b4a3cde3368afeac8196c745b7cb57a6e9426",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Executed or inspected the shared, mode-independent listener script. An invalid source-bound return route is refused before listener startup."
+    },
+    {
+      "selector": "keeps the listener one-shot, bound, time-limited and cleaned up",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "38846e510be714f2ad2a9f3dc900381855ec1a2040267a1e4ea6c462618d4939",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Executed or inspected the shared, mode-independent listener script. An invalid source-bound return route is refused before listener startup."
+    },
+    {
+      "selector": "lets a direct route on thunderbolt0 through to the bounded listener",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "932157c5e8248793ce957897774c6a7458178e6c5b525dae33d9c1531f6c40fa",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Runs the rendered script under bash with stubbed hostname, ip, timeout, iperf3 and the real python3; positive control for the refusal cases."
+    },
+    {
+      "selector": "refuses <Case> before opening the listener",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "145332c521b7c9ab937aa6c3c303a31ee3d60b3d3ab627d77aa68bd49725018d",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Runs the rendered script under bash against LAN NIC, gateway, via, missing device, thunderbolt00, empty, duplicate, garbled and failing-ip route fixtures; asserts nonzero exit, no readiness line and no listener call. Data-driven rows are reviewed as a group."
+    },
+    {
+      "selector": "refuses an invalid return route for the default trial",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "112c1af9008d64b0b805cf2e177da9da733ae75cbe4e0c6834db89ad5864cbac",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Executed or inspected the shared, mode-independent listener script. An invalid source-bound return route is refused before listener startup."
+    },
+    {
+      "selector": "rejects a bits_per_second of <Rate> in <Row> with no result",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "3326d6d7cebb707b5ee00e7563db0c902645e010c7d1cc34dc131fd98b17a521",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "pending-independent-review",
+      "reviewer": "claude",
+      "reviewerType": "author self-review; not independent",
+      "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
+      "reviewScope": "Checks that zero and negative receiver rates in either summary row throw the named error and produce no result object. Data-driven rows are reviewed as a group."
+    },
+    {
+      "selector": "requires an unambiguous source and on-link peer route for <Case>",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "79b4b8b8d8dcf7a05b21ebe7dfd3667b47654ae80f9cdafc132586f66a03c0fa",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Two positive direct-route controls and five negative controls. The five negatives failed before admission hardening and passed afterward with fake Windows route and address rows."
     }
-  ]
+  ],
+  "directPathFollowUp": {
+    "sourceBaseline": "16b74161290c4b0601aad9a271b087727cf6859b",
+    "scope": "Every trial shares the same Linux return-path check. Removed the prior expectation that forward and reverse skip the check.",
+    "regression": "Both forward/reverse text controls initially reproduced the missing gate, then the shared builder and executed bash fixtures passed.",
+    "validation": "Windows 72 passed; Ubuntu WSL 29 portable cases passed. IPv4 physical Linux pair unavailable for this fixture."
+  }
 }

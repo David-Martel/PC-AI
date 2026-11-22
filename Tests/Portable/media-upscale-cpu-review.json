@@ -1,12 +1,12 @@
 {
   "SchemaVersion": 1,
-  "SourceBaseline": "0fc498ccd8a03c314a965afee5a36cab1104d38e",
+  "SourceBaseline": "88c904c4a991c6079c21145966a535ce0167f9a3",
   "HashConvention": "UTF-8 LF sources and complete test function from #[test]; raw binary ONNX fixture. The workflow selector includes its rationale and the full step through final LF.",
   "SourceBindings": {
     "Native/pcai_core/pcai_media/tests/upscale_cpu_inference.rs": "a999fa73cd70a684e2ce683d6737e7a79d8f32e1ac6653994937049657085d3b",
     "Native/pcai_core/pcai_media/tests/fixtures/tile-4x.onnx.pb": "206823dd028a1db7966ed003d472d45b98e6bc11df092448c1260457fa13f661",
     "Native/pcai_core/pcai_media/tests/fixtures/generate_tile_4x.py": "0057f01b239886b1e55a4dc8c88c8567fee2bad95def84677b61ef156262ba5e",
-    "Native/pcai_core/Cargo.lock": "3f567b2ba2e891587721839e6b5a637ea35d81ed5e6d0866d4b7a9d615076f6b",
+    "Native/pcai_core/Cargo.lock": "4afc13e976a30271b846cabffff7ed25f2db00b7285b92b481b93ef33f974eb7",
     ".github/workflows/media-upscale.yml": "1df0f40afe34b23bdf6c4e95eddf4a8885f396b70f8cad99d2fc3fad1bcd71a1",
     "docs/media-upscale-validation.md": "9e94b2056dae26efa1e8bd85d431ea3d3a16a7071291536c97a98f9c9df24b09",
     "Native/pcai_core/pcai_media/src/upscale.rs": "190493eb47be17ab1757be89c874af913549fe56eb145ceb1fcf37e84ae79aca"

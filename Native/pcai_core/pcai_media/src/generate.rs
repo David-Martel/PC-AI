@@ -97,8 +97,8 @@ fn required_generation_metadata(config: &JanusConfig, quantized_llama: bool) -> 
         "hidden size and attention head counts must be positive for metadata preflight"
     );
     anyhow::ensure!(
-        config.hidden_size % config.num_attention_heads == 0
-            && config.num_attention_heads % config.num_key_value_heads == 0,
+        config.hidden_size.is_multiple_of(config.num_attention_heads)
+            && config.num_attention_heads.is_multiple_of(config.num_key_value_heads),
         "attention dimensions are incompatible for metadata preflight"
     );
     let shapes = Arc::new(Mutex::new(BTreeMap::new()));
@@ -444,9 +444,11 @@ impl GenerationPipeline {
             // loading. Loading an empty VarMap leaves the later model random.
             let model = JanusModel::new_with_quantized_llama(quantized_llama, vb, model_config)
                 .map_err(|e| anyhow::anyhow!("JanusModel (GGUF) construction failed: {e}"))?;
-            let (loaded, aligner_loaded) =
-                Self::load_generation_weights(varmap.as_ref().unwrap(), shards, dtype, device)
-                    .context("failed to load non-LLM weights from safetensors")?;
+            let registered = varmap
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("variable map was released before weights were loaded"))?;
+            let (loaded, aligner_loaded) = Self::load_generation_weights(registered, shards, dtype, device)
+                .context("failed to load non-LLM weights from safetensors")?;
             tracing::info!(shards = shards.len(), tensors_loaded = loaded, "non-LLM weights loaded");
             Ok((model, aligner_loaded))
         } else {
@@ -454,9 +456,11 @@ impl GenerationPipeline {
             let mut m = JanusModel::new(vb, model_config)
                 .map_err(|e| anyhow::anyhow!("JanusModel construction failed: {e}"))?;
 
-            let (loaded, aligner_loaded) =
-                Self::load_generation_weights(varmap.as_ref().unwrap(), shards, dtype, device)
-                    .context("failed to load model weights from safetensors")?;
+            let registered = varmap
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("variable map was released before weights were loaded"))?;
+            let (loaded, aligner_loaded) = Self::load_generation_weights(registered, shards, dtype, device)
+                .context("failed to load model weights from safetensors")?;
             tracing::info!(shards = shards.len(), tensors_loaded = loaded, "weights loaded");
 
             // On CUDA, offload the token embedding table to CPU to save VRAM, then
@@ -537,8 +541,9 @@ impl GenerationPipeline {
         };
 
         Self::preflight_generation_weights(&model_config, &shards, &model_path, config.gguf_path.is_some())?;
-        let mut varmap = Some(VarMap::new());
-        let vb = VarBuilder::from_varmap(varmap.as_ref().unwrap(), non_llm_dtype, &device);
+        let registry = VarMap::new();
+        let vb = VarBuilder::from_varmap(&registry, non_llm_dtype, &device);
+        let mut varmap = Some(registry);
         let (model, aligner_loaded) = Self::build_janus_model(
             config.gguf_path.as_deref(),
             &mut varmap,
@@ -1729,6 +1734,9 @@ mod tests {
     use super::*;
     use candle_core::{DType, Device};
 
+    // Protects: the metadata probe describes 7B tensor shapes without allocating them.
+    // Detects: a probe that materializes real payloads (tens of GiB) or answers presence queries as true.
+    // Needs: CPU only; one scalar tensor.
     #[test]
     fn test_generation_metadata_probe_uses_scalar_storage_for_7b_shape() {
         use candle_nn::var_builder::SimpleBackend;
@@ -1758,6 +1766,9 @@ mod tests {
         assert!(queried_presence.load(Ordering::Relaxed));
     }
 
+    // Protects: the derived 7B required-tensor schema keeps every generation component and drops the aligner and GGUF backbone.
+    // Detects: constructor changes that silently remove a required tensor from the preflight, or leak optional ones into it.
+    // Needs: CPU only; constructor metadata, no weights.
     #[test]
     fn test_generation_metadata_7b_schema_preserves_required_components() {
         let config = JanusConfig::janus_pro_7b();
@@ -1774,6 +1785,9 @@ mod tests {
         assert!(quantized.contains_key("gen_vision_model.decoder.conv_out.weight"));
     }
 
+    // Protects: invalid head counts fail as an error instead of a divide-by-zero or a wrong schema.
+    // Detects: removal of the divisibility guards in required_generation_metadata.
+    // Needs: CPU only.
     #[test]
     fn test_generation_metadata_rejects_invalid_attention_dimensions() {
         for (heads, kv_heads) in [(0, 16), (16, 0), (15, 16), (16, 15)] {
@@ -1784,6 +1798,9 @@ mod tests {
         }
     }
 
+    // Protects: a nonempty but incomplete 7B checkpoint is refused before the VarMap or GGUF is touched, in both load modes.
+    // Detects: a preflight that is skipped or reordered after allocation (this would try to allocate a 7B model).
+    // Needs: temp directory; no model download, GPU or GGUF file.
     #[test]
     fn test_load_rejects_nonempty_partial_7b_checkpoint_before_allocation() {
         let tmp = tempfile::tempdir().unwrap();
@@ -1813,6 +1830,9 @@ mod tests {
         }
     }
 
+    // Protects: generation-only checkpoints load while understanding stays unavailable.
+    // Detects: treating a missing vision tower or aligner as a fatal generation error, or as loaded.
+    // Needs: CPU only; tiny safetensors fixture.
     #[test]
     fn test_generation_weights_load_without_optional_vision() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -1848,6 +1868,9 @@ mod tests {
         assert!(vision.is_none(), "untrained vision must remain unavailable");
     }
 
+    // Protects: aligner readiness is reported true only when every aligner tensor is present.
+    // Detects: a partial aligner being reported as ready (random aligner weights would then reach understanding).
+    // Needs: CPU only; tiny safetensors fixture.
     #[test]
     fn test_generation_weights_report_complete_understanding_aligner() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -1873,6 +1896,9 @@ mod tests {
         );
     }
 
+    // Protects: a checkpoint with only aligner tensors cannot pass as a generation checkpoint.
+    // Detects: optional components masking missing required generation tensors.
+    // Needs: CPU only; tiny safetensors fixture.
     #[test]
     fn test_generation_weights_require_generation_with_complete_aligner() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -1889,6 +1915,9 @@ mod tests {
         assert!(error.to_string().contains("gen_embed.weight"));
     }
 
+    // Protects: a model directory with no safetensors shards fails for both safetensors and GGUF loads.
+    // Detects: the old behaviour of warning and running with random weights.
+    // Needs: temp directory only.
     #[test]
     fn test_load_rejects_missing_generation_weights_in_both_modes() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -1909,6 +1938,9 @@ mod tests {
         }
     }
 
+    // Protects: a safetensors archive with zero tensors is rejected before any allocation.
+    // Detects: an empty archive being treated as present weights.
+    // Needs: temp directory only.
     #[test]
     fn test_load_rejects_empty_generation_archive_before_allocation() {
         let tmp = tempfile::tempdir().expect("tempdir");

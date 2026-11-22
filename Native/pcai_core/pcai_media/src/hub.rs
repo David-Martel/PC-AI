@@ -384,6 +384,9 @@ mod tests {
         .into()
     }
 
+    // Protects: header preflight accepts a complete checkpoint that mixes plain and "model."-prefixed names.
+    // Detects: prefix detection that rejects valid real-world checkpoints.
+    // Needs: temp directory only.
     #[test]
     fn test_weight_metadata_accepts_complete_mixed_prefix_headers() {
         let tmp = tempfile::tempdir().unwrap();
@@ -398,6 +401,9 @@ mod tests {
         validate_weight_metadata(&[path], &required_metadata()).unwrap();
     }
 
+    // Protects: header preflight reports missing tensors with a typed IncompleteWeights error.
+    // Detects: a preflight that checks only some tensors or loses the typed error.
+    // Needs: temp directory only.
     #[test]
     fn test_weight_metadata_rejects_partial_headers() {
         let tmp = tempfile::tempdir().unwrap();
@@ -408,6 +414,9 @@ mod tests {
         assert!(error.to_string().contains("second.weight"));
     }
 
+    // Protects: a tensor with the wrong shape is refused from the header alone.
+    // Detects: preflight comparing names but not shapes.
+    // Needs: temp directory only.
     #[test]
     fn test_weight_metadata_rejects_wrong_shape_headers() {
         let tmp = tempfile::tempdir().unwrap();
@@ -418,6 +427,9 @@ mod tests {
         assert!(error.to_string().contains("first.weight"));
     }
 
+    // Protects: loading into an empty VarMap is an error, not a silent no-op that leaves a later model random.
+    // Detects: a load_weights that returns Ok(0) for an empty registry.
+    // Needs: temp directory only.
     #[test]
     fn test_load_weights_rejects_unregistered_variables() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -427,6 +439,9 @@ mod tests {
         assert!(error.to_string().contains("before model variables are registered"));
     }
 
+    // Protects: an empty archive cannot satisfy required variables.
+    // Detects: the removed one-third-found heuristic returning success.
+    // Needs: temp directory only.
     #[test]
     fn test_load_weights_rejects_empty_archive() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -437,6 +452,9 @@ mod tests {
         assert!(error.to_string().contains("missing 2 of 2"));
     }
 
+    // Protects: a partial archive fails before any variable is overwritten.
+    // Detects: check-and-set interleaving that leaves a half-loaded model after an error.
+    // Needs: temp directory only.
     #[test]
     fn test_load_weights_rejects_partial_archive_before_mutation() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -452,6 +470,9 @@ mod tests {
         );
     }
 
+    // Protects: a complete archive with mixed prefixes loads every variable with the right values.
+    // Detects: prefix handling regressions and HashSet-order-dependent prefix detection.
+    // Needs: temp directory only.
     #[test]
     fn test_load_weights_accepts_complete_mixed_prefix_archive() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -477,6 +498,9 @@ mod tests {
         );
     }
 
+    // Protects: a wrong-shaped tensor is an error naming the tensor.
+    // Detects: shape mismatches being cast or truncated into the variable.
+    // Needs: temp directory only.
     #[test]
     fn test_load_weights_rejects_wrong_shape() {
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -485,6 +509,53 @@ mod tests {
         let error = load_weights(&required_variables(), &[path], DType::F32, &Device::Cpu)
             .expect_err("mismatched shape must fail");
         assert!(format!("{error:#}").contains("first.weight"));
+    }
+
+    // Protects: a corrupt or truncated checkpoint is a typed error at preflight and at
+    //   load, never a panic and never a silently random-weight model.
+    // Detects: header parsing that unwraps, or a loader that treats an unreadable archive
+    //   as "no tensors present, use random weights".
+    // Needs: a temp directory only; no model, GPU or network.
+    #[test]
+    fn test_corrupt_and_truncated_safetensors_are_rejected() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let corrupt = tmp.path().join("corrupt.safetensors");
+        fs::write(&corrupt, b"this is not a safetensors archive at all").expect("write corrupt fixture");
+
+        let valid = tmp.path().join("valid.safetensors");
+        weight_fixture(
+            &valid,
+            &[("first.weight", vec![1.0, 2.0]), ("second.weight", vec![3.0, 4.0])],
+        );
+        let bytes = fs::read(&valid).expect("read valid fixture");
+        let truncated = tmp.path().join("truncated.safetensors");
+        fs::write(&truncated, &bytes[..bytes.len() - 6]).expect("write truncated fixture");
+
+        for path in [corrupt, truncated] {
+            let preflight = validate_weight_metadata(std::slice::from_ref(&path), &required_metadata());
+            assert!(preflight.is_err(), "preflight must reject {}", path.display());
+            let vars = required_variables();
+            let loaded = load_weights(&vars, &[path], DType::F32, &Device::Cpu);
+            assert!(loaded.is_err(), "load must reject a damaged archive");
+            let data = vars.data().lock().expect("varmap lock");
+            assert_eq!(
+                data["first.weight"].as_tensor().to_vec1::<f32>().unwrap(),
+                vec![-1.0, -1.0],
+                "a rejected archive must not touch the model variables"
+            );
+        }
+    }
+
+    // Protects: the metadata preflight itself refuses to run with nothing to check.
+    // Detects: an empty expected-tensor map making every checkpoint pass vacuously.
+    // Needs: a temp directory only.
+    #[test]
+    fn test_weight_metadata_rejects_empty_requirements() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path = tmp.path().join("model.safetensors");
+        weight_fixture(&path, &[("first.weight", vec![1.0, 2.0])]);
+        let error = validate_weight_metadata(&[path], &std::collections::BTreeMap::new()).unwrap_err();
+        assert!(error.to_string().contains("no required generation tensor metadata"));
     }
 
     /// An empty directory produces an empty shard list.

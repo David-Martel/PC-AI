@@ -919,6 +919,9 @@ mod tests {
     /// Set `PCAI_TEST_GGUF_WEIGHTS` to a Llama GGUF with standard metadata.
     /// Test-only limits bound allocations; this is loader coverage, not
     /// trained Janus generation or output-quality acceptance.
+    // Protects: the quantized backbone loads from an explicitly supplied tiny GGUF and decodes one CPU step.
+    // Detects: GGUF metadata or tensor-name drift in from_gguf.
+    // Needs: PCAI_TEST_GGUF_WEIGHTS pointing at a Llama GGUF of at most 64 MiB; skipped otherwise.
     #[test]
     #[ignore = "requires explicit tiny GGUF fixture in PCAI_TEST_GGUF_WEIGHTS"]
     fn test_from_gguf_smoke() {

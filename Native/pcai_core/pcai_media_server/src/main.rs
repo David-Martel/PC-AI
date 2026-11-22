@@ -267,9 +267,15 @@ async fn generate_image(
     // a blocking thread pool to avoid stalling the Tokio runtime.
     let image = {
         // A read guard preserves responsive health checks while the separate
-        // admission permit serializes generation and understanding.
+        // admission permit serializes generation and understanding.  Nothing
+        // takes the write lock at runtime; if a writer is ever added, tokio's
+        // write-preferring RwLock would queue health checks behind this
+        // long-held read guard, so share the pipeline through an Arc instead.
         let guard = state.read().await;
-        let pipeline = guard.pipeline.as_ref().expect("pipeline presence checked above");
+        let pipeline = guard
+            .pipeline
+            .as_ref()
+            .ok_or_else(|| (StatusCode::SERVICE_UNAVAILABLE, "model not loaded".to_string()))?;
 
         tokio::task::block_in_place(|| {
             generate_request_image(&req, |prompt, cfg_scale, temperature| {
@@ -347,7 +353,10 @@ async fn understand_image(
         let temperature = req.temperature as f32;
 
         let guard = state.read().await;
-        let pipeline = guard.pipeline.as_ref().expect("pipeline presence checked above");
+        let pipeline = guard
+            .pipeline
+            .as_ref()
+            .ok_or_else(|| (StatusCode::SERVICE_UNAVAILABLE, "model not loaded".to_string()))?;
 
         tokio::task::block_in_place(|| {
             UnderstandingPipeline::understand_with_fallback(
@@ -489,6 +498,9 @@ mod tests {
         }))
     }
 
+    // Protects: HTTP cfg_scale and temperature reach the pipeline call unchanged, defaults included.
+    // Detects: overrides being dropped at the request boundary.
+    // Needs: no model; a closure stands in for the pipeline.
     #[test]
     fn test_generate_boundary_forwards_request_overrides() {
         for (cfg_scale, temperature) in [(Some(7.5), Some(0.9)), (None, None)] {
@@ -508,6 +520,9 @@ mod tests {
         }
     }
 
+    // Protects: a second inference request queues while one is active, health stays responsive, and the permit is released.
+    // Detects: a lock held across generation that blocks /health, or a leaked permit.
+    // Needs: no model; the admission semaphore is exercised directly.
     #[tokio::test]
     async fn test_shared_inference_admission_preserves_health_and_releases() {
         use std::future::Future;
@@ -534,6 +549,9 @@ mod tests {
         assert_eq!(state.read().await.inference_admission.available_permits(), 1);
     }
 
+    // Protects: a failing generation releases the admission permit.
+    // Detects: an early return that leaks the single permit and wedges the server.
+    // Needs: no model; an injected failing closure.
     #[tokio::test]
     async fn test_inference_admission_released_on_generation_error() {
         async fn failing_inference(state: &SharedState) -> Result<(), (StatusCode, String)> {
@@ -560,6 +578,9 @@ mod tests {
             .is_ok());
     }
 
+    // Protects: invalid requests are rejected without waiting for admission.
+    // Detects: validation moved after the queue, letting bad requests wait behind a long generation.
+    // Needs: no model; the test holds the only permit.
     #[tokio::test]
     async fn test_invalid_requests_fail_before_inference_admission() {
         let state = unloaded_state();

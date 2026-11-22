@@ -166,6 +166,9 @@ mod tests {
         );
     }
 
+    // Protects: a model output whose height or width differs from the expectation is refused.
+    // Detects: the old check that compared only batch and channel dimensions.
+    // Needs: linked ONNX Runtime (feature `upscale`); no model file.
     #[test]
     fn test_tensor_to_image_rejects_wrong_spatial_shape() {
         let output = ort::value::Tensor::from_array(([1usize, 3, 2, 2], vec![0.5_f32; 12]))
@@ -175,6 +178,9 @@ mod tests {
         assert!(error.to_string().contains("unexpected output shape"));
     }
 
+    // Protects: overflowing output dimensions fail instead of wrapping or allocating.
+    // Detects: unchecked multiplication of height and width.
+    // Needs: linked ONNX Runtime (feature `upscale`); no model file.
     #[test]
     fn test_tensor_to_image_rejects_oversized_expected_dimensions() {
         let output = ort::value::Tensor::from_array(([1usize, 3, 1, 1], vec![0.5_f32; 3]))
@@ -183,6 +189,9 @@ mod tests {
         assert!(UpscalePipeline::tensor_to_image(&output, usize::MAX, usize::MAX).is_err());
     }
 
+    // Protects: planar CHW output is converted to the right RGB pixels.
+    // Detects: plane-order or clamping regressions in tensor_to_image.
+    // Needs: linked ONNX Runtime (feature `upscale`); no model file.
     #[test]
     fn test_tensor_to_image_preserves_rgb_planes() {
         let output = ort::value::Tensor::from_array(([1usize, 3, 1, 2], vec![1.0_f32, 0.0, 0.0, 1.0, 0.5, 0.25]))

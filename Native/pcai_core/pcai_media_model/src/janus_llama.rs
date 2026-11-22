@@ -1154,6 +1154,9 @@ mod tests {
     }
 
     /// GPU-enabled builds must preserve the CPU fallback in both cache paths.
+    // Protects: a flash-attn build still runs on CPU for both cache types.
+    // Detects: the use_flash_attn path being taken without a CUDA device.
+    // Needs: CPU only; the flash-attn feature itself is exercised on CUDA hosts.
     #[test]
     fn test_cpu_forward_with_flash_requested() {
         let vm = VarMap::new();

@@ -117,6 +117,11 @@ the units as enabled.
    tags `repo:PC-AI` and `host:<name>`, sender `pcai-link-health-<host>`).
 
 Exit codes: 0 when the severity is ok, 2 when there is something to report, 1 on an error.
+If Windows cannot enumerate network adapters, the run exits 1 before comparing
+routes, attempting recovery or replacing `status.json`. The saved observation
+keeps its original timestamp. Use its age and the scheduler result together when
+reading it after an error. A successful enumeration with zero USB4 adapters
+still produces an ordinary observation. See the [adapter error test review](../../Tests/Unit/pcai-link-health-adapter-error-review.json).
 
 ### Drift and the auto-apply switch
 

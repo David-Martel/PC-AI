@@ -23,7 +23,47 @@ SETTINGS = None
 ARTIFACT = None
 
 
+PROBE_PACKAGE = "pcai-media-worker-lock-probe"
+
+
 def build_probe(settings) -> Path:
+    """Build the probe and return its executable."""
+    return build_probe_with_out_dir(settings)[0]
+
+
+def probe_out_dir(cargo_json: str, target: Path) -> Path:
+    """Return the probe build script's OUT_DIR from cargo's JSON messages.
+
+    Fails closed: exactly one `build-script-executed` message for the probe
+    package, whose OUT_DIR exists inside `target`, or a RuntimeError.
+    """
+    out_dirs = []
+    for line in cargo_json.splitlines():
+        item = json.loads(line)
+        if item.get("reason") == "build-script-executed" and PROBE_PACKAGE in item.get(
+            "package_id", ""
+        ):
+            out_dirs.append(Path(item["out_dir"]))
+    if len(out_dirs) != 1:
+        raise RuntimeError(
+            "cargo reported no single build-script-executed message for the "
+            f"{PROBE_PACKAGE} package (found {len(out_dirs)}); cannot locate the generated probe source"
+        )
+    out_dir = out_dirs[0].resolve(strict=True)
+    if not out_dir.is_relative_to(target):
+        raise RuntimeError("probe OUT_DIR must be inside the owned target directory")
+    return out_dir
+
+
+def build_probe_with_out_dir(settings) -> tuple[Path, Path]:
+    """Build the probe; return its executable and its build script's OUT_DIR.
+
+    The OUT_DIR comes from cargo's own `build-script-executed` message for the
+    probe package, never from a path glob: the directory layout differs with
+    CARGO_BUILD_TARGET (a target-triple directory), the profile and the target
+    directory, and a glob that finds nothing proves nothing. Fails closed when
+    cargo reports no such message.
+    """
     manifest = Path(__file__).with_name("media-worker-lock") / "Cargo.toml"
     cargo = settings.cargo or shutil.which("cargo")
     if not cargo:
@@ -73,6 +113,7 @@ def build_probe(settings) -> Path:
             artifacts.append(Path(item["executable"]).resolve(strict=True))
     if len(artifacts) != 1:
         raise RuntimeError("one exact probe executable is required")
+    out_dir = probe_out_dir(result.stdout, target)
     executable = artifacts[0]
     if not executable.is_relative_to(target) or executable.is_symlink():
         raise RuntimeError("probe executable must be a regular owned target artifact")
@@ -101,7 +142,7 @@ def build_probe(settings) -> Path:
     }
     settings.receipt.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(receipt), flush=True)
-    return executable
+    return executable, out_dir
 
 
 class MediaWorkerLockTests(unittest.TestCase):

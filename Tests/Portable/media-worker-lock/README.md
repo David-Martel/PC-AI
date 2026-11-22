@@ -60,6 +60,14 @@ the rest of the repository does, while the receipt written by the supervisor
 because a receipt answers "which exact file was built" and CRLF and LF copies
 are different files to the compiler's input.
 
+The CRLF controls find the generated probe source from cargo's own
+`build-script-executed` message for the probe package, not from a `target/debug`
+path glob. The path depends on `CARGO_BUILD_TARGET` (a target-triple directory),
+the profile and the target directory, and the glob matched nothing on the hosted
+Linux runner. The lookup fails closed: no message, several messages, a foreign
+package or an `OUT_DIR` outside the owned target directory is an error, never a
+skip (`probe_out_dir` in the [supervisor](../test_media_worker_lock.py)).
+
 The healthy controls start a pending request and refuse to start a cancelled
 one, preserve both request states and their count, and require the state lock
 to be free when the transition returns. The poisoned control poisons the
@@ -71,7 +79,12 @@ recovered state. A copy of the source that replaces `into_inner` with a panic,
 or takes a global lock across the publish step, fails the build. See the
 [hash-bound review register](../media-worker-lock-review.json) for the exact
 source and selector disposition; its entries were re-bound to the current
-sources by the change author and await independent re-review.
+sources by the change author and await independent re-review. The Rust tests
+this change adds or edits in the media crates are bound one by one in the
+[Rust selector register](../media-weight-safety-review.json), and
+[test_media_register_custody.py](../test_media_register_custody.py) recomputes
+every hash in both registers, so a drifted or unbound test fails instead of
+reading as reviewed. Both registers record author self-review only.
 
 The mutex remains poisoned. Existing public polling can still return `-1`.
 These controls do not establish public failure delivery, state recovery beyond

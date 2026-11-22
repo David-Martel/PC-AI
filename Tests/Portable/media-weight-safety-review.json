@@ -1,0 +1,1092 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 LF; the selector span is its contiguous leading comment block, any attributes and the function through its closing brace plus a final newline; source_files hash the whole file",
+  "base_commit": "eb921585d04010d16a32319fae42e069c8263ba7",
+  "scope": "Every Rust test selector in the media crates that is new or whose text changed since base_commit on the claude/media-weight-safety branch. Bound individually; author self-review only, so nothing here is marked independently reviewed or covered.",
+  "verifier": "Tests/Portable/test_media_register_custody.py recomputes every hash and fails on drift",
+  "reviews": [
+    {
+      "selector": "ffi::tests::test_async_requests_are_serialized_and_all_complete",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "one generation at a time, so model and KV-cache memory stay bounded.",
+      "detects": "removing the inference gate lets queued async requests overlap.",
+      "needs": "no model or GPU; a temp directory for the PNG outputs.",
+      "selector_sha256": "1d21e425aeaaf93ca45ee57489a29739ad499a97d033c8ba2b62cf64f0c047ea",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_poll_and_cancel_respond_during_generation_and_cancel_skips_queued_work",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "poll, cancel, init and shutdown stay responsive during a generation.",
+      "detects": "holding the state mutex across generation (poll would time out here), a queued request leaving Pending before it owns the gate, a cancelled queued request still running.",
+      "needs": "no model or GPU; the in-flight generation is a mock blocked on a channel.",
+      "selector_sha256": "941fa769c2b9d5e5d6854ccd96d52097a3c91050c5493b08aaf13f2eb56f2772",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_sync_entry_points_queue_behind_gate_without_blocking_status",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "every synchronous inference entry point (generate, bytes, understand, load) queues behind the gate, so model replacement cannot race a generation.",
+      "detects": "an entry point that skips acquire_inference_gate, or one that holds the state mutex while waiting for it (the status calls below would then hang).",
+      "needs": "no model loaded in this process; the gate is held by the test as a stand-in for a running generation.",
+      "selector_sha256": "634a21df2795b2c29ab96e2bc81b69b88413b45a4f1ec5004c959b11107bdba9",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_load_model_rejects_incomplete_checkpoint_and_stays_unloaded",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "an incomplete checkpoint is refused at the FFI boundary with an existing status code and a diagnostic naming the missing tensors, and leaves no model loaded.",
+      "detects": "a weight-completeness check that is bypassed or whose typed error is flattened into a success; a half-loaded pipeline left behind after failure.",
+      "needs": "a temp directory only; the 7B constructor metadata uses scalar-backed views, so nothing large is allocated and no GPU or download is involved.",
+      "selector_sha256": "348f6a2ae3af97e111d4bfd9089a2c109884132e7f4f2cc2a47422616adbaf59",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_cancel_during_generation_leaves_destination_untouched",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a request cancelled while generating never creates or overwrites the caller's destination file, and leaves no staging file.",
+      "detects": "encoding straight to the destination before the cancel check.",
+      "needs": "a temp directory; the cancel is issued from inside the mock generate.",
+      "selector_sha256": "f3135f0ac6b66446455e500fdce706d4d3af4ef25a165fbff5e3367be468e122",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_cancel_after_encode_before_publish_discards_staged_file",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a cancel that lands after encoding but before publish still leaves the destination untouched and removes the staging file.",
+      "detects": "moving the cancellation check after the publish step (the destination would be replaced and Complete reported).",
+      "needs": "a temp directory; the cancel is issued from inside the mock encoder.",
+      "selector_sha256": "ced8b1427728b88ba03a516d29bdffcfed44fc6cccc7e248cbf7b84075c8fa34",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_completion_publishes_full_file_and_leaves_no_partial",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a normal completion publishes the whole file and removes the staging file.",
+      "detects": "a publish that leaves the `.partial` name behind or writes a truncated file.",
+      "needs": "a temp directory only.",
+      "selector_sha256": "03481b548216050cf29021661e0f355afc5a8b951f3b4efeed304d2abb2c613c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_write_and_publish_failures_leave_no_partial_and_keep_destination",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a failed write reports Failed, leaves no partial file and never touches an existing destination; a failed publish does the same.",
+      "detects": "encoding in place, or a staging file leaked on the error path.",
+      "needs": "a temp directory; the encoder writes some bytes then fails, and a directory squatting on the destination makes the rename fail.",
+      "selector_sha256": "8edd564ce263a7743e165d41bf9d44b1cc544082fb555c705cdd0183dc8cc70d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_sync_write_failure_keeps_existing_destination_and_leaves_no_partial",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the synchronous save path is atomic too: a failure keeps the old file.",
+      "detects": "`image.save` writing in place and leaving a truncated destination.",
+      "needs": "a temp directory; the destination name has no usable image extension.",
+      "selector_sha256": "e5a254f74d97df21302cd1ce81eec3a24bce4695c525e8d1446c5c1758c065c5",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_long_valid_destination_name_publishes_on_both_paths",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a destination near the 255-character component limit still publishes, on both the asynchronous and synchronous paths.",
+      "detects": "a staging name derived from the destination basename (248 + suffix exceeds 255 and the exclusive create fails with an invalid-name error).",
+      "needs": "a temp directory on a filesystem with a 255-character component limit.",
+      "selector_sha256": "299bbae694ad4c9e1b24bd18b952290a7698c74faff59d3ef4f5c5ce83a0de4f",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_staging_path_is_short_unique_and_beside_destination",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "staging names are short, independent of the destination, unique per call and live next to the destination.",
+      "detects": "a name that embeds the destination basename or repeats between calls.",
+      "needs": "nothing on disk.",
+      "selector_sha256": "81e88541247864769c3031d37d937ce65c40fb0319c13ac9ed88b153f28671fa",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_shutdown_during_load_discards_the_stale_model",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "shutdown during an in-flight load is final: the finished model is discarded (outside the slot lock) and nothing is loaded afterwards.",
+      "detects": "an unconditional install after load (the pre-fix behaviour), or a stale model freed while the slot lock is held.",
+      "needs": "no model; the paused load is a closure blocked on a channel.",
+      "selector_sha256": "0efa2576d9277094caa6233acf73eab8d66fb64ac3f042440f059acc109f5922",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_load_after_shutdown_installs_and_replacement_drops_outside_lock",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the reverse ordering still works: shutdown, then a new load, installs normally, and replacing a model frees the old one outside the lock.",
+      "detects": "an epoch check that rejects every load after the first shutdown.",
+      "needs": "no model.",
+      "selector_sha256": "0c0c00c20d643ec34220315ea362692dc891f173fb7859e3a24fbb97917de71d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_failed_load_keeps_existing_model",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a failed load leaves the slot, and the epoch, alone.",
+      "detects": "an error path that clears a previously loaded model.",
+      "needs": "no model.",
+      "selector_sha256": "34e5f4dfc6bf636ecbbedd052c0e59e648e3728ad6fee7c5830d8b057a8bcf6b",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_exported_shutdown_bumps_the_global_epoch",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the exported pcai_media_shutdown invalidates in-flight loads of the real global slot (not just the generic helper).",
+      "detects": "shutdown that stops touching MODEL_SLOT, or only clears the handle without bumping the epoch.",
+      "needs": "no model.",
+      "selector_sha256": "6bbcae22064f1e19f089913fa1e11b3b5ae80f828d4c0954b5e73508f693bb9f",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_slow_publish_does_not_block_status_of_other_requests",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a publish on slow or stalled storage blocks nobody else: poll and cancel of other requests answer within 100 ms while one request sits in its rename.",
+      "detects": "the rename (or any file IO) running under the global request-table lock.",
+      "needs": "no model; the rename is a mock publish step blocked on a channel.",
+      "selector_sha256": "f2734dd4290fdfdb4f86d1d3459e33d214f110b089fde80c0f0a0f2e9efc216e",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_failed_publish_step_reports_failed_and_cleans_up",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a failing rename while publishing reports Failed, removes the staging file and leaves the destination alone, again without the global lock.",
+      "detects": "an error path that leaves the request Publishing or leaks the partial file.",
+      "needs": "a temp directory; the publish step is a mock that fails.",
+      "selector_sha256": "8ffb06d9b08568c82aaf49181c562de37c2da52d47fbf08e038e2399837a539c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_metadata_probe_uses_scalar_storage_for_7b_shape",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the metadata probe describes 7B tensor shapes without allocating them.",
+      "detects": "a probe that materializes real payloads (tens of GiB) or answers presence queries as true.",
+      "needs": "CPU only; one scalar tensor.",
+      "selector_sha256": "685adbf55b8e511b01d90c61f27bfc7fc7d7cd4aa19e43f42d56cdc7883767ab",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_metadata_7b_schema_preserves_required_components",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the derived 7B required-tensor schema keeps every generation component and drops the aligner and GGUF backbone.",
+      "detects": "constructor changes that silently remove a required tensor from the preflight, or leak optional ones into it.",
+      "needs": "CPU only; constructor metadata, no weights.",
+      "selector_sha256": "8cc42851bb3363092edcef0710ed45468a660d133c1d8e1df0f664190801d90d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_metadata_rejects_invalid_attention_dimensions",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "invalid head counts fail as an error instead of a divide-by-zero or a wrong schema.",
+      "detects": "removal of the divisibility guards in required_generation_metadata.",
+      "needs": "CPU only.",
+      "selector_sha256": "07a97826e48df12706dc38fab3646542854184b95ee3fe649ffca4871235df73",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_load_rejects_nonempty_partial_7b_checkpoint_before_allocation",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a nonempty but incomplete 7B checkpoint is refused before the VarMap or GGUF is touched, in both load modes.",
+      "detects": "a preflight that is skipped or reordered after allocation (this would try to allocate a 7B model).",
+      "needs": "temp directory; no model download, GPU or GGUF file.",
+      "selector_sha256": "7cc0804df9148caa03afa5b9d11e59bef727655327e9e9b2dea24741bbef113f",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_load_refuses_pytorch_only_directory_with_conversion_command",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a model directory holding only PyTorch weights is refused with the exact conversion command for that directory, not a bare \"no shards\" message.",
+      "detects": "the refusal losing its preparation guidance, or load proceeding to allocate.",
+      "needs": "a temp directory only; no model, GPU or network.",
+      "selector_sha256": "a6b18cedee6984b379aebc388d8064b39afb710424cbf2c7c07f907b6b2f7888",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_weights_load_without_optional_vision",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "generation-only checkpoints load while understanding stays unavailable.",
+      "detects": "treating a missing vision tower or aligner as a fatal generation error, or as loaded.",
+      "needs": "CPU only; tiny safetensors fixture.",
+      "selector_sha256": "a0663fd2cff2dc9a568310caf7f96dbcc8cacfbaa621f1b209cc2c548a6c43b9",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_weights_report_complete_understanding_aligner",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "aligner readiness is reported true only when every aligner tensor is present.",
+      "detects": "a partial aligner being reported as ready (random aligner weights would then reach understanding).",
+      "needs": "CPU only; tiny safetensors fixture.",
+      "selector_sha256": "21e59c1e73163e9947270a9e6b79fead766758a7ef5621b9e8ace0035013ce38",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_weights_require_generation_with_complete_aligner",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a checkpoint with only aligner tensors cannot pass as a generation checkpoint.",
+      "detects": "optional components masking missing required generation tensors.",
+      "needs": "CPU only; tiny safetensors fixture.",
+      "selector_sha256": "3fac6f69dbd3be35c8f1d50f9253278bf51aeffe7687122968913c8c9d7c1545",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_load_rejects_missing_generation_weights_in_both_modes",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a model directory with no safetensors shards fails for both safetensors and GGUF loads.",
+      "detects": "the old behaviour of warning and running with random weights.",
+      "needs": "temp directory only.",
+      "selector_sha256": "d821e1a43470cf07e4837264dd63923803666483a14a14b4207f6aaa914b276b",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_load_rejects_empty_generation_archive_before_allocation",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a safetensors archive with zero tensors is rejected before any allocation.",
+      "detects": "an empty archive being treated as present weights.",
+      "needs": "temp directory only.",
+      "selector_sha256": "dc35f7cc47e4a188df4e7d19ac4a4a3f6c5d597c9ded91fedf67928015e5deeb",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_gguf_quantization_path_routing",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "build_janus_model selects the GGUF loader when a GGUF path is supplied",
+      "detects": "Routing to the safetensors loader, or accepting a non-GGUF dummy file; the test now targets the model-build helper because the pipeline loader preflights checkpoint metadata first",
+      "needs": "temporary directory; no model weights",
+      "selector_sha256": "cae4898e94f5c669be23799c39dff67dc7b98e46b2c6726fcb63093b2f495897",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_weight_metadata_accepts_complete_mixed_prefix_headers",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "header preflight accepts a complete checkpoint that mixes plain and \"model.\"-prefixed names.",
+      "detects": "prefix detection that rejects valid real-world checkpoints.",
+      "needs": "temp directory only.",
+      "selector_sha256": "f0b45db59b12235b6f1f2f2ebb569f4ad4bcbe20af1fbb37075ddb1722816cc4",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_weight_metadata_rejects_partial_headers",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "header preflight reports missing tensors with a typed IncompleteWeights error.",
+      "detects": "a preflight that checks only some tensors or loses the typed error.",
+      "needs": "temp directory only.",
+      "selector_sha256": "93caf6f8a2bbf8960569678ab1e6fc069fcf564e8cc880d862d0a74d89a2faff",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_weight_metadata_rejects_wrong_shape_headers",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a tensor with the wrong shape is refused from the header alone.",
+      "detects": "preflight comparing names but not shapes.",
+      "needs": "temp directory only.",
+      "selector_sha256": "1129df8e85a0f2405a08ff9abb215776f1e90d0e9e31bd6855d9fea26c55cc6e",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_load_weights_rejects_unregistered_variables",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "loading into an empty VarMap is an error, not a silent no-op that leaves a later model random.",
+      "detects": "a load_weights that returns Ok(0) for an empty registry.",
+      "needs": "temp directory only.",
+      "selector_sha256": "0f1a7b6146162cc4b21ca220deb03f8a53c039aa5efc01fd828e7909026f910d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_load_weights_rejects_empty_archive",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "an empty archive cannot satisfy required variables.",
+      "detects": "the removed one-third-found heuristic returning success.",
+      "needs": "temp directory only.",
+      "selector_sha256": "4105848eff0678a37950c080521440ff8d86911f9ab3df2e890ecaeea042953d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_load_weights_rejects_partial_archive_before_mutation",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a partial archive fails before any variable is overwritten.",
+      "detects": "check-and-set interleaving that leaves a half-loaded model after an error.",
+      "needs": "temp directory only.",
+      "selector_sha256": "e508fcb7b3a25e616c4725dba37b8678afc8b4bba8177efb387b293183bf560d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_load_weights_accepts_complete_mixed_prefix_archive",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a complete archive with mixed prefixes loads every variable with the right values.",
+      "detects": "prefix handling regressions and HashSet-order-dependent prefix detection.",
+      "needs": "temp directory only.",
+      "selector_sha256": "b5f297f84e419ebe3a3902a5cf0ddf39cf7e1c4c35c541c2edd20d4936161dbe",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_load_weights_rejects_wrong_shape",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a wrong-shaped tensor is an error naming the tensor.",
+      "detects": "shape mismatches being cast or truncated into the variable.",
+      "needs": "temp directory only.",
+      "selector_sha256": "7559672ed9e11ab5a630d44505fccdb717a4dd5adc8a14aead5fa20203263b56",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_missing_explicit_path_is_an_error_not_a_prepared_fallback",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a mistyped or missing explicit path is an error naming that path, never a fallback to the official prepared model that shares its last component.",
+      "detects": "the basename fallback, which silently loaded Models/Janus-Pro-1B for `<missing dir>/Janus-Pro-1B` or a typo'd absolute path, and any download attempt.",
+      "needs": "temp directories; the downloader fails the test if called.",
+      "selector_sha256": "c58b55b138a3dc97015edb46f44a63e66e76cfbda1dabb208794e031f1333c02",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_only_exact_supported_ids_resolve_to_prepared_copy",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "only the exact supported DeepSeek ids resolve to a prepared copy; a third-party repo or a case variant goes to the normal download path (and then to the SafeTensors refusal), never to the local official model.",
+      "detects": "matching on the last component or ignoring case, which would load the wrong model. Rule: exact, case-sensitive (see PREPARED_MODEL_IDS).",
+      "needs": "a temp directory; the downloader is a mock that records its calls.",
+      "selector_sha256": "53ae4674a8bb7933705d51b15eac0392684414d4719004660bad4749d6fcb125",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_preparation_commands_are_runnable_and_match_the_documentation",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the emitted refusal text and docs/media-weight-preparation.md carry the same runnable commands: -SkipAuth for the public DeepSeek repos (no Bitwarden prompt) and explicit uv dependencies for the converter.",
+      "detects": "either side drifting from the shared command constants, or a command that only works in an environment that already has torch, safetensors and numpy.",
+      "needs": "the repository docs directory (read through CARGO_MANIFEST_DIR).",
+      "selector_sha256": "511ab4f93f51b5d984168a381326fb88298021f79af894096ef94f56fa1ea4f7",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_prepared_copy_resolves_without_network",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the cold-cache path for the default model id: a prepared SafeTensors copy is used without touching the network.",
+      "detects": "resolution that downloads (or fails) even though Models/<name> is ready.",
+      "needs": "a temp directory; the downloader is a mock that fails the test if called.",
+      "selector_sha256": "fd3acdbe52ac1bbbdb40c19e91d8bd481014a2c233530f12493257c6913e4e7e",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_cold_cache_falls_back_to_download_and_hint_names_the_commands",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a cold cache (nothing prepared) falls back to the downloader, and the resulting config-only directory yields an actionable hint naming the repo's tools.",
+      "detects": "a hint that omits the download or convert command, the target directory, or the way to point the loader at the result; an incomplete prepared directory (no tokenizer) being treated as usable.",
+      "needs": "temp directories; the downloader is a mock returning a config-only cache dir.",
+      "selector_sha256": "65e7ec0b74259d8b880453e18e97fbce4a497be2415658f574fe6830c5acfafd",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_local_pytorch_directory_hint_converts_in_place",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a local directory that already has PyTorch weights gets an in-place convert command and no download step; an existing local directory is never replaced by a prepared copy.",
+      "detects": "telling the user to re-download what is already on disk, or a hint that names the wrong directory.",
+      "needs": "a temp directory.",
+      "selector_sha256": "64111e8be3dfa194c56ccce2eb9ec586eddb309539841e565e1e0a702e6522a6",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_corrupt_and_truncated_safetensors_are_rejected",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a corrupt or truncated checkpoint is a typed error at preflight and at load, never a panic and never a silently random-weight model.",
+      "detects": "header parsing that unwraps, or a loader that treats an unreadable archive as \"no tensors present, use random weights\".",
+      "needs": "a temp directory only; no model, GPU or network.",
+      "selector_sha256": "93ee459c91c06809f6ea3f43096ec762c04ea1de3e5e741b866e1bb98b86c9a0",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_weight_metadata_rejects_empty_requirements",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the metadata preflight itself refuses to run with nothing to check.",
+      "detects": "an empty expected-tensor map making every checkpoint pass vacuously.",
+      "needs": "a temp directory only.",
+      "selector_sha256": "12177b6f74ccd9d86a8763fe0465309230921061464457f36786ab91542ed86b",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "upscale::tests::test_tensor_to_image_rejects_wrong_spatial_shape",
+      "test_path": "Native/pcai_core/pcai_media/src/upscale.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a model output whose height or width differs from the expectation is refused.",
+      "detects": "the old check that compared only batch and channel dimensions.",
+      "needs": "linked ONNX Runtime (feature `upscale`); no model file.",
+      "selector_sha256": "cf967783af122eb786c56a74a47199e8d80723bf0e5b1dcf146f8442d21c45f6",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/upscale.rs",
+          "sha256": "f0d208b9312b376c3590c68b48c5924d9485d07b9d0aac88bf96c8bc04361374"
+        }
+      ]
+    },
+    {
+      "selector": "upscale::tests::test_tensor_to_image_rejects_oversized_expected_dimensions",
+      "test_path": "Native/pcai_core/pcai_media/src/upscale.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "overflowing output dimensions fail instead of wrapping or allocating.",
+      "detects": "unchecked multiplication of height and width.",
+      "needs": "linked ONNX Runtime (feature `upscale`); no model file.",
+      "selector_sha256": "8b6503479fc1f3030194aff8656cc72f00ace61a23d3b124cd97c989c96a2ca9",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/upscale.rs",
+          "sha256": "f0d208b9312b376c3590c68b48c5924d9485d07b9d0aac88bf96c8bc04361374"
+        }
+      ]
+    },
+    {
+      "selector": "upscale::tests::test_tensor_to_image_preserves_rgb_planes",
+      "test_path": "Native/pcai_core/pcai_media/src/upscale.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "planar CHW output is converted to the right RGB pixels.",
+      "detects": "plane-order or clamping regressions in tensor_to_image.",
+      "needs": "linked ONNX Runtime (feature `upscale`); no model file.",
+      "selector_sha256": "17fa1da6e91a30fa032f6f82a00618a1f58cbddf318943f88ff030eb7b0ac61a",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/upscale.rs",
+          "sha256": "f0d208b9312b376c3590c68b48c5924d9485d07b9d0aac88bf96c8bc04361374"
+        }
+      ]
+    },
+    {
+      "selector": "upscale::tests::test_image_to_tensor_shape",
+      "test_path": "Native/pcai_core/pcai_media/src/upscale.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "image_to_tensor yields the planar CHW element count for a 6x8 RGB image",
+      "detects": "A wrong plane count or layout; the edit only removes a clippy identity_op multiplication (1 * 3 * 6 * 8 became 3 * 6 * 8) with the same value",
+      "needs": "no model weights or GPU",
+      "selector_sha256": "3d4ca4d5040d4a897a794f318f78956790d01b0a5af027c3a7ab2ab338637143",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/upscale.rs",
+          "sha256": "f0d208b9312b376c3590c68b48c5924d9485d07b9d0aac88bf96c8bc04361374"
+        }
+      ]
+    },
+    {
+      "selector": "janus_llama::tests::test_cpu_forward_with_flash_requested",
+      "test_path": "Native/pcai_core/pcai_media_model/src/janus_llama.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a flash-attn build still runs on CPU for both cache types.",
+      "detects": "the use_flash_attn path being taken without a CUDA device.",
+      "needs": "CPU only; the flash-attn feature itself is exercised on CUDA hosts.",
+      "selector_sha256": "faf5f9f1e94fd5fba5f1c052a5d073d93aa945dff5ac54a575ccdc0302ae4251",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_model/src/janus_llama.rs",
+          "sha256": "d99e62456270258d95a0f8b011ba68e7cc7642d5adfaef9a3dfc0c322c2da78b"
+        }
+      ]
+    },
+    {
+      "selector": "janus_llama_quantized::tests::test_from_gguf_smoke",
+      "test_path": "Native/pcai_core/pcai_media_model/src/janus_llama_quantized.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the quantized backbone loads from an explicitly supplied tiny GGUF and decodes one CPU step",
+      "detects": "GGUF metadata or tensor-name drift in from_gguf, or a malformed header requesting a large dequantization buffer; the test stays ignored unless PCAI_TEST_GGUF_WEIGHTS is set",
+      "needs": "PCAI_TEST_GGUF_WEIGHTS pointing at a Llama GGUF of at most 64 MiB; skipped (ignored) otherwise, so it is not exercised here",
+      "selector_sha256": "bb9db4b456cecdfef6456d9e52e05f2908617fa9304db7262aa0f01c7587cee1",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_model/src/janus_llama_quantized.rs",
+          "sha256": "bb53c43a5ca25af05443855afa3e5373826dbb9ad3fb78b8c65821462bcbd87c"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_janus_model_construct",
+      "test_path": "Native/pcai_core/pcai_media_model/src/lib.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the full Janus-Pro 7B constructor smoke test is only run on purpose",
+      "detects": "Nothing new: the edit corrects the ignore reason and doc comment to tens of GiB of F32 parameters; the body is unchanged",
+      "needs": "tens of GiB of memory; ignored by default and not exercised here",
+      "selector_sha256": "3393d09105ff7775e72c52461126a3d89037f0c4f47b6a479d6d2853a2b0e241",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_model/src/lib.rs",
+          "sha256": "c8aeb56867eb65e071ab273a6a65d81509bce6b2e2654b2d51ebef78863b9464"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_janus_model_construct_1b",
+      "test_path": "Native/pcai_core/pcai_media_model/src/lib.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the 1B Janus constructor smoke test is only run on purpose",
+      "detects": "Nothing new: the edit corrects the ignore reason and doc comment to several GiB of F32 parameters; the body is unchanged",
+      "needs": "several GiB of memory; ignored by default and not exercised here",
+      "selector_sha256": "b8a6928d35f9865930fee9d933490501c9a6d26c81bfaf6fa87bcacf29b710c0",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_model/src/lib.rs",
+          "sha256": "c8aeb56867eb65e071ab273a6a65d81509bce6b2e2654b2d51ebef78863b9464"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_generate_boundary_forwards_request_overrides",
+      "test_path": "Native/pcai_core/pcai_media_server/src/main.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "HTTP cfg_scale and temperature reach the pipeline call unchanged, defaults included.",
+      "detects": "overrides being dropped at the request boundary.",
+      "needs": "no model; a closure stands in for the pipeline.",
+      "selector_sha256": "eebf16ad1930f22eef1796986cc8d99013b099c3452bb3bd8598eea037f4be78",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_server/src/main.rs",
+          "sha256": "16b10e32e42ad1a479935024b81f8a10468128b1ec00267de7c9020da93fd1d0"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_shared_inference_admission_preserves_health_and_releases",
+      "test_path": "Native/pcai_core/pcai_media_server/src/main.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a second inference request queues while one is active, health stays responsive, and the permit is released.",
+      "detects": "a lock held across generation that blocks /health, or a leaked permit.",
+      "needs": "no model; the admission semaphore is exercised directly.",
+      "selector_sha256": "9142754de5108f13b4eeea5a8967482de643edda78965035410a1cd32c41ec17",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_server/src/main.rs",
+          "sha256": "16b10e32e42ad1a479935024b81f8a10468128b1ec00267de7c9020da93fd1d0"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_inference_admission_released_on_generation_error",
+      "test_path": "Native/pcai_core/pcai_media_server/src/main.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "a failing generation releases the admission permit.",
+      "detects": "an early return that leaks the single permit and wedges the server.",
+      "needs": "no model; an injected failing closure.",
+      "selector_sha256": "b05fee99560ccbbf233be45afc62c9ef49c04da92707d3a574808bf50b164acd",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_server/src/main.rs",
+          "sha256": "16b10e32e42ad1a479935024b81f8a10468128b1ec00267de7c9020da93fd1d0"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_invalid_requests_fail_before_inference_admission",
+      "test_path": "Native/pcai_core/pcai_media_server/src/main.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "invalid requests are rejected without waiting for admission.",
+      "detects": "validation moved after the queue, letting bad requests wait behind a long generation.",
+      "needs": "no model; the test holds the only permit.",
+      "selector_sha256": "269748619747ea8669ab66fcd2fb0bd52203dc9a9b557765203fbe6614e3430a",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_server/src/main.rs",
+          "sha256": "16b10e32e42ad1a479935024b81f8a10468128b1ec00267de7c9020da93fd1d0"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_health_response_serde",
+      "test_path": "Native/pcai_core/pcai_media_server/src/main.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "protects": "the media server health response serialises the new native_understanding_available field",
+      "detects": "A health payload that drops or renames native_understanding_available",
+      "needs": "no model weights or GPU",
+      "selector_sha256": "4287497a95232d4c0cbfa44893869b3f892d4b59d24cc725f0e076c7430cb19c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_server/src/main.rs",
+          "sha256": "16b10e32e42ad1a479935024b81f8a10468128b1ec00267de7c9020da93fd1d0"
+        }
+      ]
+    }
+  ]
+}

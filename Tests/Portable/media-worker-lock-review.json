@@ -5,7 +5,7 @@
     {
       "selector": "MediaWorkerLockTests.test_healthy_running_acquisition_preserves_existing_states",
       "test_path": "Tests/Portable/test_media_worker_lock.py",
-      "test_sha256": "559111fd4fd0b17f6b5d6ec9c7c785473bd1bd027a39bb14ad54f70b496e4a29",
+      "test_sha256": "e675fd0bd13fb53c37dd28441f8eebc41a855c5d800e602ae01a8c0fd7b465b2",
       "selector_sha256": "37d5c3f996db44dae61edbb753716d49adfdb3fc167e7dfdb156defec47b9f68",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
       "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
@@ -13,7 +13,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:24:14.707887+00:00",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -38,12 +38,12 @@
       "review_receipt_sha256": null,
       "review_scope": "Author re-bind after the async worker was restructured (inference gate, staged output, Running->Publishing state machine); the earlier independent approval applied to the previous source.",
       "review_reason": "build.rs now extracts lock_state_recovering and begin_async_request verbatim and asserts into_inner recovery, no panic on poison, and no state lock between begin_async_request and generate() or between begin_publish and finish_publish. The probe checks the transition leaves the lock free (poll/cancel responsive), preserves unrelated requests, and recovers a poisoned mutex without relocking or clearing poison. Negative controls: replacing into_inner with a panic, or taking a global lock across the publish step, fails the build. The earlier independent approval and its receipt hash do not carry over.",
-      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes; two source copies with the regressions above fail at build.rs assertions; the CRLF controls in Tests/Portable/test_media_worker_lock_crlf.py (CRLF source generates identical probe code, regressed CRLF source still refused) pass and failed before build.rs normalised line endings. Not independently reviewed."
+      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes. build_probe now delegates to build_probe_with_out_dir (executable plus build-script OUT_DIR); the selector bodies are unchanged and their selector hashes were re-verified. Not independently reviewed."
     },
     {
       "selector": "MediaWorkerLockTests.test_healthy_cancelled_acquisition_does_not_rewrite_cancellation",
       "test_path": "Tests/Portable/test_media_worker_lock.py",
-      "test_sha256": "559111fd4fd0b17f6b5d6ec9c7c785473bd1bd027a39bb14ad54f70b496e4a29",
+      "test_sha256": "e675fd0bd13fb53c37dd28441f8eebc41a855c5d800e602ae01a8c0fd7b465b2",
       "selector_sha256": "10cf94ffa0c671f66f618513822b99f6c23b803973e572fe6ef65ea4777ca19b",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
       "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
@@ -51,7 +51,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:24:14.707887+00:00",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -76,12 +76,12 @@
       "review_receipt_sha256": null,
       "review_scope": "Author re-bind after the async worker was restructured (inference gate, staged output, Running->Publishing state machine); the earlier independent approval applied to the previous source.",
       "review_reason": "build.rs now extracts lock_state_recovering and begin_async_request verbatim and asserts into_inner recovery, no panic on poison, and no state lock between begin_async_request and generate() or between begin_publish and finish_publish. The probe checks the transition leaves the lock free (poll/cancel responsive), preserves unrelated requests, and recovers a poisoned mutex without relocking or clearing poison. Negative controls: replacing into_inner with a panic, or taking a global lock across the publish step, fails the build. The earlier independent approval and its receipt hash do not carry over.",
-      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes; two source copies with the regressions above fail at build.rs assertions; the CRLF controls in Tests/Portable/test_media_worker_lock_crlf.py (CRLF source generates identical probe code, regressed CRLF source still refused) pass and failed before build.rs normalised line endings. Not independently reviewed."
+      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes. build_probe now delegates to build_probe_with_out_dir (executable plus build-script OUT_DIR); the selector bodies are unchanged and their selector hashes were re-verified. Not independently reviewed."
     },
     {
       "selector": "MediaWorkerLockTests.test_poisoned_acquisition_records_failure_without_relocking",
       "test_path": "Tests/Portable/test_media_worker_lock.py",
-      "test_sha256": "559111fd4fd0b17f6b5d6ec9c7c785473bd1bd027a39bb14ad54f70b496e4a29",
+      "test_sha256": "e675fd0bd13fb53c37dd28441f8eebc41a855c5d800e602ae01a8c0fd7b465b2",
       "selector_sha256": "364f524ca52df3b29325442555f465c7084239c793ab098fc6b7f2c43f988820",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
       "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
@@ -89,7 +89,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:24:14.707887+00:00",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -114,7 +114,133 @@
       "review_receipt_sha256": null,
       "review_scope": "Author re-bind after the async worker was restructured (inference gate, staged output, Running->Publishing state machine); the earlier independent approval applied to the previous source.",
       "review_reason": "build.rs now extracts lock_state_recovering and begin_async_request verbatim and asserts into_inner recovery, no panic on poison, and no state lock between begin_async_request and generate() or between begin_publish and finish_publish. The probe checks the transition leaves the lock free (poll/cancel responsive), preserves unrelated requests, and recovers a poisoned mutex without relocking or clearing poison. Negative controls: replacing into_inner with a panic, or taking a global lock across the publish step, fails the build. The earlier independent approval and its receipt hash do not carry over.",
-      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes; two source copies with the regressions above fail at build.rs assertions; the CRLF controls in Tests/Portable/test_media_worker_lock_crlf.py (CRLF source generates identical probe code, regressed CRLF source still refused) pass and failed before build.rs normalised line endings. Not independently reviewed."
+      "validation": "Windows x64 native Rust: python -m unittest discover -s Tests/Portable -p test_media_worker_lock.py, 3 passes. build_probe now delegates to build_probe_with_out_dir (executable plus build-script OUT_DIR); the selector bodies are unchanged and their selector hashes were re-verified. Not independently reviewed."
+    },
+    {
+      "selector": "CrlfContractTests.test_crlf_source_generates_the_same_probe_as_lf",
+      "test_path": "Tests/Portable/test_media_worker_lock_crlf.py",
+      "test_sha256": "771ff86ded948e3141003784114384bd2582b69def6840d1f893dae6b8b75ed2",
+      "selector_sha256": "9269a76bc09c5e428c9dd2838abafd1290b0a2813842ff8e7d559977cde9f974",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/test_media_worker_lock.py",
+          "sha256": "e675fd0bd13fb53c37dd28441f8eebc41a855c5d800e602ae01a8c0fd7b465b2"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the CI fix round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: Windows autocrlf checkouts build the lock contract: a CRLF copy of the FFI source generates byte-identical probe code to the LF copy and the poisoned scenario passes. Detects: build.rs matching raw LF brace markers (function end not found at column zero in CRLF), or a CRLF probe that differs from the LF one. The generated source is located from cargo's build-script-executed message, so it holds under CARGO_BUILD_TARGET and any target dir. Needs: native Cargo and a linker; no model, DLL, GPU or network.",
+      "validation": "Windows x64: passes with and without CARGO_BUILD_TARGET set; the first test failed with the hosted symptom (0 generated probe sources) under CARGO_BUILD_TARGET before the lookup used cargo's message. Linux (WSL, Ubuntu, stable rustup in a scratch home): passes. Not independently reviewed."
+    },
+    {
+      "selector": "CrlfContractTests.test_crlf_regressed_source_is_still_refused",
+      "test_path": "Tests/Portable/test_media_worker_lock_crlf.py",
+      "test_sha256": "771ff86ded948e3141003784114384bd2582b69def6840d1f893dae6b8b75ed2",
+      "selector_sha256": "1e4fe8fe6f21d786c3eb62fa799cd069f00112b97868cb04a21000916c419b84",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/test_media_worker_lock.py",
+          "sha256": "e675fd0bd13fb53c37dd28441f8eebc41a855c5d800e602ae01a8c0fd7b465b2"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the CI fix round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: CRLF normalisation does not weaken the structural assertions. Detects: A regression (panic instead of into_inner) accepted because the CRLF copy is parsed more loosely than the LF copy. Needs: native Cargo and a linker; no model, DLL, GPU or network.",
+      "validation": "Windows x64: passes with and without CARGO_BUILD_TARGET set; the first test failed with the hosted symptom (0 generated probe sources) under CARGO_BUILD_TARGET before the lookup used cargo's message. Linux (WSL, Ubuntu, stable rustup in a scratch home): passes. Not independently reviewed."
+    },
+    {
+      "selector": "CrlfContractTests.test_missing_build_script_message_fails_closed",
+      "test_path": "Tests/Portable/test_media_worker_lock_crlf.py",
+      "test_sha256": "771ff86ded948e3141003784114384bd2582b69def6840d1f893dae6b8b75ed2",
+      "selector_sha256": "e50ab101320e9df720088c19263194f0351ef110e6f686c5c0c14eef7c20643c",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/test_media_worker_lock.py",
+          "sha256": "e675fd0bd13fb53c37dd28441f8eebc41a855c5d800e602ae01a8c0fd7b465b2"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the CI fix round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: The generated-source lookup never passes on an empty result. Detects: A lookup that guesses a path or returns success when cargo reports no, several, or foreign build-script-executed messages for the probe package, or an OUT_DIR outside the owned target directory. Needs: native Cargo and a linker; no model, DLL, GPU or network.",
+      "validation": "Windows x64: passes with and without CARGO_BUILD_TARGET set; the first test failed with the hosted symptom (0 generated probe sources) under CARGO_BUILD_TARGET before the lookup used cargo's message. Linux (WSL, Ubuntu, stable rustup in a scratch home): passes. Not independently reviewed."
     }
   ]
 }

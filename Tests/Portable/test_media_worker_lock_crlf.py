@@ -7,6 +7,9 @@ controls build the probe from a CRLF copy of the real source and require the
 same generated probe source as the LF build, and the same refusals for a
 regressed source.
 
+The generated source is located from cargo's `build-script-executed` message,
+not a path glob, so the test holds under CARGO_BUILD_TARGET and any target dir.
+
 Needs: native Cargo and a linker, as for test_media_worker_lock; no model,
 media DLL, GPU or network.
 """
@@ -14,6 +17,7 @@ media DLL, GPU or network.
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -44,10 +48,10 @@ class CrlfContractTests(unittest.TestCase):
             receipt=scratch / f"receipt-{name}.json",
             cargo=None,
         )
-        executable = contract.build_probe(settings)
-        generated = list(target.glob("debug/build/*/out/worker_acquisition.rs"))
-        self.assertEqual(len(generated), 1, "one generated probe source")
-        return executable, generated[0]
+        executable, out_dir = contract.build_probe_with_out_dir(settings)
+        generated = out_dir / "worker_acquisition.rs"
+        self.assertTrue(generated.is_file(), f"build script wrote no {generated}")
+        return executable, generated
 
     def test_crlf_source_generates_the_same_probe_as_lf(self):
         """Protects: Windows autocrlf checkouts build the lock contract.
@@ -97,6 +101,40 @@ class CrlfContractTests(unittest.TestCase):
             with self.assertRaises(RuntimeError) as raised:
                 self.build(Path(scratch_name), "regressed", crlf(regressed))
         self.assertIn("poisoned-lock recovery must use into_inner", str(raised.exception))
+
+    def test_missing_build_script_message_fails_closed(self):
+        """Protects: the generated-source lookup never passes on an empty result.
+
+        Detects: a lookup that returns a guessed path or skips when cargo reports
+        no build-script-executed message for the probe package (for example a
+        cached build, or messages for other packages only).
+        Needs: no cargo; synthetic cargo JSON.
+        Breadcrumb: Tests/Portable/test_media_worker_lock.py probe_out_dir
+        """
+        with tempfile.TemporaryDirectory(prefix="pcai-media-lock-outdir-") as name:
+            target = Path(name).resolve()
+            out = target / "x" / "out"
+            out.mkdir(parents=True)
+            other = json.dumps(
+                {"reason": "build-script-executed", "package_id": "other-crate 1.0.0", "out_dir": str(out)}
+            )
+            mine = json.dumps(
+                {
+                    "reason": "build-script-executed",
+                    "package_id": f"path+file:///w#{contract.PROBE_PACKAGE}@0.1.0",
+                    "out_dir": str(out),
+                }
+            )
+            with self.assertRaisesRegex(RuntimeError, "no single build-script-executed"):
+                contract.probe_out_dir("", target)
+            with self.assertRaisesRegex(RuntimeError, "no single build-script-executed"):
+                contract.probe_out_dir(other, target)
+            with self.assertRaisesRegex(RuntimeError, "no single build-script-executed"):
+                contract.probe_out_dir(mine + "\n" + mine, target)
+            self.assertEqual(contract.probe_out_dir(other + "\n" + mine, target), out.resolve())
+            outside = Path(name).parent.resolve()
+            with self.assertRaisesRegex(RuntimeError, "inside the owned target"):
+                contract.probe_out_dir(mine, outside / "elsewhere")
 
 
 if __name__ == "__main__":

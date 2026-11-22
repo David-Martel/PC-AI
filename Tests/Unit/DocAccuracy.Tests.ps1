@@ -18,9 +18,25 @@ BeforeAll {
     $script:Pipeline = Join-Path $script:RepoRoot 'Tools/Invoke-DocPipeline.ps1'
     $script:Utf8 = [System.Text.UTF8Encoding]::new($false)
 
+    # Every fixture write goes through this guard. Why: a scratch mutation script for PR #403 called Invoke-Pester and
+    # then wrote to its own $p. Pester 5.7.1's Invoke-InNewScriptScope (Pester.psm1) dot-sources a wrapper declared
+    # param($private:p, $private:d) into the caller's scope, so $p had become Pester's own Pester.ps1, and the write
+    # replaced the installed Pester with Tools/Get-BuildVersion.ps1. A destination is therefore always an absolute
+    # path checked against TestDrive at the moment of writing, never a variable that survived an Invoke-Pester call,
+    # and never a relative path handed to [System.IO.File] (which resolves against the process directory, not $PWD).
+    function Resolve-FixturePath {
+        param([string]$Root, [string]$Relative)
+        if (-not [System.IO.Path]::IsPathRooted($Root)) { throw "Fixture root must be absolute: '$Root'" }
+        $full = [System.IO.Path]::GetFullPath((Join-Path $Root $Relative))
+        $drive = [System.IO.Path]::GetFullPath($TestDrive).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+        $comparison = if ($IsWindows) { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
+        if (-not $full.StartsWith($drive, $comparison)) { throw "Refusing to write outside TestDrive: '$full'" }
+        return $full
+    }
+
     function Write-FixtureFile {
         param([string]$Root, [string]$Relative, [string]$Text)
-        $full = Join-Path $Root $Relative
+        $full = Resolve-FixturePath $Root $Relative
         $dir = Split-Path -Parent $full
         if (-not (Test-Path -LiteralPath $dir)) { $null = New-Item -ItemType Directory -Path $dir -Force }
         # Here-strings take the line endings of this file (CRLF in a Windows checkout); fixtures are always LF.
@@ -142,12 +158,12 @@ fn router() {
 
     function Add-FixtureText {
         param([string]$Root, [string]$Relative, [string]$Text)
-        [System.IO.File]::AppendAllText((Join-Path $Root $Relative), $Text, $script:Utf8)
+        [System.IO.File]::AppendAllText((Resolve-FixturePath $Root $Relative), $Text, $script:Utf8)
     }
 
     function Edit-FixtureText {
         param([string]$Root, [string]$Relative, [string]$Old, [string]$New)
-        $full = Join-Path $Root $Relative
+        $full = Resolve-FixturePath $Root $Relative
         $text = [System.IO.File]::ReadAllText($full)
         if (-not $text.Contains($Old)) { throw "fixture text not found in ${Relative}: $Old" }
         [System.IO.File]::WriteAllText($full, $text.Replace($Old, $New), $script:Utf8)
@@ -669,7 +685,7 @@ Describe 'versioning check against real tags' -Tag 'Unit', 'Portable' {
         if (-not $script:HasGit) { Set-ItResult -Skipped -Because 'git is not available'; return }
         $repo = New-VersionRepo 'ver-shallow' '0.3.0'
         # A shallow clone is a repository whose .git/shallow lists its cut-off commits.
-        [System.IO.File]::WriteAllText((Join-Path $repo.Root '.git/shallow'), "$($repo.Commit)`n", $script:Utf8)
+        [System.IO.File]::WriteAllText((Resolve-FixturePath $repo.Root '.git/shallow'), "$($repo.Commit)`n", $script:Utf8)
         $r = Invoke-Gate -Root $repo.Root -Check 'versioning'
         $r.Exit | Should -Be 0
         (Get-Findings $r 'versioning' 'pass').claim | Should -Match 'tags not visible \(shallow clone\)'
@@ -831,6 +847,37 @@ Describe 'documentation accuracy gate is deterministic and idempotent' -Tag 'Uni
         @(& git -C $script:RepoRoot status --porcelain) | Should -Be $before
         $r1.Report.checks.Count | Should -Be $r2.Report.checks.Count
         ($r1.Report.checks | ConvertTo-Json -Depth 8) | Should -Be ($r2.Report.checks | ConvertTo-Json -Depth 8)
+    }
+}
+
+Describe 'fixture writes stay inside TestDrive' -Tag 'Unit', 'Portable' {
+    # Protects: the machine outside the test. Every fixture writer in this file resolves its destination through
+    #   Resolve-FixturePath, which refuses anything outside TestDrive.
+    # Detects: a writer that bypasses the guard or a guard that cannot fail; the incident behind it overwrote the
+    #   installed Pester.ps1 (see Resolve-FixturePath).
+    # Needs: PowerShell 7 and TestDrive. The probe destinations sit next to TestDrive, in the temp directory, so even a
+    #   broken guard would write only a throwaway file there.
+    # Breadcrumb: Resolve-FixturePath in this file's top-level BeforeAll.
+    It 'refuses a destination outside TestDrive and writes nothing' {
+        $outside = Join-Path ([System.IO.Path]::GetTempPath()) ('pcai-guard-probe-' + [guid]::NewGuid().ToString('N'))
+        { Write-FixtureFile $outside 'probe.txt' 'must not be written' } | Should -Throw '*outside TestDrive*'
+        Test-Path -LiteralPath (Join-Path $outside 'probe.txt') | Should -BeFalse
+    }
+
+    It 'refuses a path that climbs out of TestDrive with ..' {
+        $name = 'pcai-guard-escape-' + [guid]::NewGuid().ToString('N') + '.txt'
+        { Write-FixtureFile $TestDrive "../$name" 'must not be written' } | Should -Throw '*outside TestDrive*'
+        Test-Path -LiteralPath (Join-Path (Split-Path -Parent $TestDrive) $name) | Should -BeFalse
+    }
+
+    It 'refuses a relative root, which [System.IO.File] would resolve against the process directory' {
+        { Write-FixtureFile 'relative-root' 'probe.txt' 'must not be written' } | Should -Throw '*must be absolute*'
+        { Add-FixtureText 'relative-root' 'probe.txt' 'x' } | Should -Throw '*must be absolute*'
+    }
+
+    It 'writes a destination inside TestDrive (positive control)' {
+        Write-FixtureFile $TestDrive 'guard/inside.txt' 'ok'
+        [System.IO.File]::ReadAllText((Join-Path $TestDrive 'guard/inside.txt')) | Should -Be 'ok'
     }
 }
 

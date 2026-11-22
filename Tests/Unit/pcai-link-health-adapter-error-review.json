@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T15:31:06.5106931Z",
+  "reviewer": "publication_review",
+  "reviewerType": "independent source agent",
+  "sourceBaseline": "78c48688cda246b7a1a89fb8b5525ed2131d1c7d",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent.",
+  "sourceBindings": {
+    "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1": "6071974e306b481db7e5aaaaf7ba280e84854e1c370f7497aae53804f7fe0c2f",
+    "Tests/Unit/PcaiLinkHealth.Tests.ps1": "1fa55b195ba0e87bfa24fb1c2e3febc22e9ffe93638bc1b6b77cbf7ca47a7247"
+  },
+  "selectors": [
+    {
+      "selector": "preserves the last observation when the Windows adapter provider fails",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "a4302ecd3d7625d904abd3a24b746326861658f340bd229e32341c945a8e06fc",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1",
+      "disposition": "keep",
+      "reviewScope": "The old provider swallow behavior failed under the real watcher entry function. The updated function throws, preserves the existing status, leaves history absent, and skips routing and recovery. The lock and debounce timestamp still record the attempt."
+    }
+  ]
+}

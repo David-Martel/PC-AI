@@ -157,7 +157,7 @@ function Get-PcaiUsb4Adapter {
     param()
     $result = [Collections.Generic.List[object]]::new()
     if ($IsWindows) {
-        $adapters = @(Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.InterfaceDescription -match 'USB4|Thunderbolt' })
+        $adapters = @(Get-NetAdapter -ErrorAction Stop | Where-Object { $_.InterfaceDescription -match 'USB4|Thunderbolt' })
         foreach ($a in $adapters) {
             $ipv4 = @(Get-NetIPAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue |
                     ForEach-Object { '{0}/{1}' -f $_.IPAddress, $_.PrefixLength })

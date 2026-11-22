@@ -40,6 +40,29 @@ BeforeAll {
     $script:Route = @([pscustomobject]@{ InterfaceIndex = 28; DestinationPrefix = '172.31.248.197/32'; NextHop = '172.31.255.22' })
 }
 
+Describe 'Link health adapter collection' -Tag 'Unit' {
+    # Protects: the last observation remains available if Windows cannot enumerate adapters.
+    # Detects: publishing an empty topology or planning recovery from a provider failure.
+    # Needs: Windows, mocked network and service providers, and temporary status files.
+    # Breadcrumb: Invoke-PcaiLinkHealth.ps1::Get-PcaiUsb4Adapter and Invoke-PcaiLinkHealth.
+    It 'preserves the last observation when the Windows adapter provider fails' -Skip:(-not $IsWindows) {
+        Mock Get-NetAdapter { Write-Error 'provider fixture failed' }
+        Mock Get-PcaiIpv4HostRoute {}
+        Mock Get-PcaiUsb4Service {}
+        Mock Invoke-PcaiServiceRecovery {}
+        Mock Get-PcaiAutoApplyPolicy { [pscustomobject]@{ Enabled = $false; Reason = 'fixture'; PlanPath = $null } }
+        $root = Join-Path $TestDrive 'unavailable-adapter-provider'
+        $null = New-Item -ItemType Directory -Path $root
+        $status = Join-Path $root 'status.json'
+        Set-Content -LiteralPath $status -Value '{"state":"InSync"}' -NoNewline
+        { Invoke-PcaiLinkHealth -Root $root -SkipBus | Out-Null } | Should -Throw '*provider fixture failed*'
+        Get-Content -LiteralPath $status -Raw | Should -BeExactly '{"state":"InSync"}'
+        Test-Path -LiteralPath (Join-Path $root 'history.jsonl') | Should -BeFalse
+        Should -Invoke Get-PcaiIpv4HostRoute -Times 0 -Exactly
+        Should -Invoke Invoke-PcaiServiceRecovery -Times 0 -Exactly
+    }
+}
+
 Describe 'Compare-PcaiLinkPlan classifies the live USB4 state against the plan' -Tag 'Unit', 'Portable' {
     It 'reports InSync when guards match and every planned address and route is present' {
         $r = Compare-PcaiLinkPlan -Plan $Plan -HostName 'hosta' -Adapter @(New-TestAdapter) -Route $Route

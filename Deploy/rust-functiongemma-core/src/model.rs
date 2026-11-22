@@ -2,6 +2,7 @@ use candle_core::quantized::{GgmlDType, QMatMul, QTensor};
 use candle_core::safetensors::MmapedSafetensors;
 use candle_core::{DType, Device, Module, Result, Tensor};
 use candle_nn::{Activation, Linear, VarBuilder};
+#[cfg(feature = "cuda")]
 use qlora_rs::{dequantize_nf4, QLoraConfig, QLoraLayer, QuantizedLinear};
 use serde::Deserialize;
 use std::cell::Cell;
@@ -54,16 +55,20 @@ pub struct LoraLinear {
     scale: f64,
     dropout: f64,
     training: Cell<bool>,
+    #[cfg(feature = "cuda")]
     qlora: Option<QuantizedLinear>,
     qmatmul: Option<QMatMul>,
 }
 
 impl std::fmt::Debug for LoraLinear {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("LoraLinear")
+        let mut debug = f.debug_struct("LoraLinear");
+        debug
             .field("has_base", &self.base.is_some())
-            .field("has_lora", &(self.lora_a.is_some() && self.lora_b.is_some()))
-            .field("has_qlora", &self.qlora.is_some())
+            .field("has_lora", &(self.lora_a.is_some() && self.lora_b.is_some()));
+        #[cfg(feature = "cuda")]
+        debug.field("has_qlora", &self.qlora.is_some());
+        debug
             .field("has_qmatmul", &self.qmatmul.is_some())
             .field("scale", &self.scale)
             .field("dropout", &self.dropout)
@@ -80,12 +85,15 @@ impl LoraLinear {
     }
 
     pub fn new_with_base(base_weight: Tensor, settings: LoraSettings, vb: VarBuilder) -> Result<Self> {
+        settings.validate_backend()?;
+        #[cfg(feature = "cuda")]
         let base_weight = if settings.use_4bit && base_weight.dtype() != DType::F32 {
             base_weight.to_dtype(DType::F32)?
         } else {
             base_weight
         };
         let (out_dim, in_dim) = base_weight.dims2()?;
+        #[cfg(feature = "cuda")]
         if settings.use_4bit {
             let qlora_cfg = settings.qlora_config()?;
             let qlora = QuantizedLinear::from_weight_with_varbuilder(&base_weight, None, &qlora_cfg, vb)
@@ -132,6 +140,7 @@ impl LoraLinear {
             scale: settings.scale(),
             dropout: settings.dropout,
             training: Cell::new(false),
+            #[cfg(feature = "cuda")]
             qlora: None,
             qmatmul,
         })
@@ -140,6 +149,7 @@ impl LoraLinear {
     pub fn merge(&mut self) -> Result<()> {
         // QLoRA merge: dequantize NF4 base, add LoRA delta, store as plain Linear.
         // LoRA weights live inside the QuantizedLinear, not in self.lora_a/b.
+        #[cfg(feature = "cuda")]
         if let Some(qlora) = self.qlora.take() {
             let ql = QLoraLayer::new(qlora);
             let base_f32 = dequantize_nf4(ql.quantized_weight(), ql.device())
@@ -196,6 +206,7 @@ impl LoraLinear {
 
 impl Module for LoraLinear {
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
+        #[cfg(feature = "cuda")]
         if let Some(qlora) = &self.qlora {
             let x_fp32 = if x.dtype() != DType::F32 {
                 x.to_dtype(DType::F32)?
@@ -451,6 +462,14 @@ impl LoraSettings {
         }
     }
 
+    fn validate_backend(&self) -> Result<()> {
+        if self.use_4bit && !cfg!(feature = "cuda") {
+            return Err(candle_core::Error::msg("4-bit QLoRA requires the cuda feature"));
+        }
+        Ok(())
+    }
+
+    #[cfg(feature = "cuda")]
     fn qlora_alpha_usize(&self) -> usize {
         if !self.alpha.is_finite() || self.alpha <= 0.0 {
             1
@@ -459,6 +478,7 @@ impl LoraSettings {
         }
     }
 
+    #[cfg(feature = "cuda")]
     fn qlora_config(&self) -> Result<QLoraConfig> {
         if self.r == 0 {
             return Err(candle_core::Error::msg("QLoRA requires lora_r > 0"));
@@ -1289,6 +1309,7 @@ fn dequantize_tensor_int8(tensor: &Tensor, scale: f32, dtype: DType) -> Result<T
 
 impl Model {
     pub fn new(cfg: &Config, lora: LoraSettings, vb: VarBuilder, tie_embeddings: bool) -> Result<Self> {
+        lora.validate_backend()?;
         let embed_tokens = candle_nn::embedding(cfg.vocab_size, cfg.hidden_size, vb.pp("model.embed_tokens"))?;
 
         let mut layers = Vec::with_capacity(cfg.num_hidden_layers);
@@ -1321,6 +1342,7 @@ impl Model {
         device: &Device,
         dtype: DType,
     ) -> Result<Self> {
+        lora.validate_backend()?;
         let embed_weight = load_weight(st, "model.embed_tokens.weight", device, dtype)?;
         let embed_tokens = candle_nn::Embedding::new(embed_weight, cfg.hidden_size);
 
@@ -1573,6 +1595,25 @@ mod tests {
     use super::*;
     use candle_core::{DType, Device, Result, Tensor};
     use candle_nn::VarMap;
+
+    // Protects: CPU builds preserve full-precision weights and reject unavailable 4-bit QLoRA explicitly.
+    // Detects: silently loading a 4-bit request as a full-precision layer or breaking the ordinary CPU path.
+    // Needs: core built without the cuda feature and an in-memory 2×2 weight tensor.
+    // Breadcrumb: model::LoraLinear::new_with_base and model::LoraSettings::validate_backend.
+    #[cfg(not(feature = "cuda"))]
+    #[test]
+    fn cpu_layer_rejects_qlora_and_runs_full_precision() -> Result<()> {
+        let device = Device::Cpu;
+        let base = Tensor::ones((2, 2), DType::F32, &device)?;
+        let vb = VarBuilder::zeros(DType::F32, &device);
+        let error = LoraLinear::new_with_base(base.clone(), LoraSettings::new(0, 1.0, 0.0, true), vb.clone())
+            .expect_err("CPU builds must reject 4-bit QLoRA");
+        assert!(error.to_string().contains("4-bit QLoRA requires the cuda feature"));
+
+        let layer = LoraLinear::new_with_base(base.clone(), LoraSettings::new(0, 1.0, 0.0, false), vb)?;
+        assert_eq!(layer.forward(&base)?.to_vec2::<f32>()?, vec![vec![2.0; 2]; 2]);
+        Ok(())
+    }
 
     #[test]
     fn test_rmsnorm() -> Result<()> {

@@ -5,7 +5,7 @@
   "hashConvention": "SHA-256 of UTF-8 LF text. Selector extents include the tokio::test attribute through the closing brace and final LF.",
   "sourceBindings": {
     "Deploy/rust-functiongemma-runtime/src/lib.rs": "db7b59b9b4ca6f16324a79a419848739210a4f3b4ce7caec68441302f1cbac37",
-    "docs/functiongemma-runtime-validation.md": "7af2383abad494f8fa69b58afbcb2823d7492df9beab3f0f941a6cb096c5b902"
+    "docs/functiongemma-runtime-validation.md": "9a4f32de537b71d522a5878c8aab2cf708e82483c696b76789a839abd7159302"
   },
   "selectors": [
     {

@@ -121,9 +121,18 @@ PATCH, MINOR or MAJOR after it.
   `.pcai/build/artifacts/manifest.json` records `pcaiVersion`, `semver`, `releaseTag`, `gitCommit` and `buildType`
   next to the artifact hashes. Native bundles record the same in `bundle.buildinfo.json`.
 - **[pcai_inference/build.rs](../Native/pcai_core/pcai_inference/build.rs)** embeds `PCAI_VERSION` when `Build.ps1` sets
-  it. Otherwise it derives the version from `git describe`, falling back to the crate (product) version. It reruns
-  only when HEAD, the HEAD reflog, the branch ref, `packed-refs` or `refs/tags` change, using paths resolved with
-  `git rev-parse --git-path`, so linked worktrees resolve too. `pcai-llamacpp --version-json` and
+  it (or `PCAI_BUILD_VERSION`). Otherwise it derives the version from `git describe`, falling back to the crate
+  (product) version. Cargo caches the script, so it reruns only when one of its inputs changes:
+  - every environment variable it embeds (`PCAI_VERSION`, `PCAI_BUILD_VERSION`, `PCAI_SEMVER`, `PCAI_GIT_HASH`,
+    `PCAI_GIT_HASH_SHORT`, `PCAI_GIT_BRANCH`, `PCAI_BUILD_TIMESTAMP`, `PCAI_BUILD_TYPE`, `CUDA_PATH`, `CUDA_HOME`),
+    each read through `tracked_env`, which declares it to Cargo whether or not it is set;
+  - `PATH`, but only while CUDA is configured, because the script then runs the `nvcc` found on `PATH`;
+  - HEAD, the HEAD reflog, the branch ref, `packed-refs` and `refs/tags`, resolved with
+    `git rev-parse --git-path` so linked worktrees resolve too.
+
+  [test_inference_build_metadata.py](../Tests/Portable/test_inference_build_metadata.py) changes each input alone
+  in a warm build and checks that the embedded constant changed, and that an unchanged rebuild stays cached.
+  `pcai-llamacpp --version-json` and
   `pcai-mistralrs --version-json` print the embedded build info, and the FFI export `pcai_version` returns the crate
   version.
 - **[pcai_core_lib/build.rs](../Native/pcai_core/pcai_core_lib/build.rs)** embeds `PCAI_BUILD_VERSION`, falling back to

@@ -4,22 +4,37 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
-    // Detect CUDA installation
-    if env::var("CUDA_PATH").is_ok() || env::var("CUDA_HOME").is_ok() {
+    // Detect CUDA installation. Both variables are read (and so declared) on every run, set or not: CUDA_PATH set
+    // later must rerun this script, which a declaration made only when one of them was already set did not do.
+    let cuda_path = tracked_env("CUDA_PATH");
+    let cuda_home = tracked_env("CUDA_HOME");
+    let has_cuda = cuda_path.is_some() || cuda_home.is_some();
+    if has_cuda {
         println!("cargo:rustc-cfg=has_cuda");
-        println!("cargo:rerun-if-env-changed=CUDA_PATH");
-        println!("cargo:rerun-if-env-changed=CUDA_HOME");
+        // get_cuda_version runs the nvcc found on PATH, so PATH is an input whenever CUDA is configured. It is not
+        // declared otherwise: PATH differs between shells and build wrappers, and nothing else here depends on it.
+        println!("cargo:rerun-if-env-changed=PATH");
     }
 
     // Generate version information
-    generate_version_info();
+    generate_version_info(has_cuda, cuda_path.as_deref());
 
     // Rerun build script if these change
     println!("cargo:rerun-if-changed=build.rs");
     emit_git_rerun_paths();
-    println!("cargo:rerun-if-env-changed=PCAI_VERSION");
-    println!("cargo:rerun-if-env-changed=PCAI_GIT_HASH");
-    println!("cargo:rerun-if-env-changed=PCAI_BUILD_TIMESTAMP");
+}
+
+/// Reads an environment variable the generated metadata depends on, after declaring it to Cargo.
+///
+/// Every external input of this script goes through here, so the declaration cannot be forgotten. Since the Git
+/// watch paths were fixed (PR #403) Cargo caches this script, and an input without `rerun-if-env-changed` leaves the
+/// previous value embedded after a rebuild: changing only `PCAI_BUILD_VERSION` used to keep the old version.
+/// Variables Cargo sets for build scripts (`OUT_DIR`, `TARGET`, `PROFILE`, `CARGO_*`) are read directly: a change to
+/// any of them already gives this script a new run. Tests/Portable/test_inference_build_metadata.py checks both the
+/// declarations and a warm rebuild per input.
+fn tracked_env(name: &str) -> Option<String> {
+    println!("cargo:rerun-if-env-changed={name}");
+    env::var(name).ok()
 }
 
 /// Runs git in the crate directory and returns trimmed stdout, or `None` when git is absent or fails.
@@ -72,22 +87,23 @@ fn emit_git_rerun_paths() {
     }
 }
 
-fn generate_version_info() {
+fn generate_version_info(has_cuda: bool, cuda_path: Option<&str>) {
     let out_dir = env::var_os("OUT_DIR").expect("build script: required operation failed");
     let dest_path = Path::new(&out_dir).join("build_info.rs");
 
-    // Try to get version from environment (set by Build.ps1)
-    let version = env::var("PCAI_VERSION")
-        .or_else(|_| env::var("PCAI_BUILD_VERSION"))
-        .unwrap_or_else(|_| get_version_from_git());
+    // Try to get version from environment (set by Build.ps1). Both names are read eagerly so both stay declared
+    // even while PCAI_VERSION takes precedence.
+    let pcai_version = tracked_env("PCAI_VERSION");
+    let pcai_build_version = tracked_env("PCAI_BUILD_VERSION");
+    let version = pcai_version.or(pcai_build_version).unwrap_or_else(get_version_from_git);
 
     // The crate version is the workspace (product) version, so an untagged build falls back to it rather than to a
     // literal that has to be kept in step by hand. See docs/VERSIONING.md.
-    let semver = env::var("PCAI_SEMVER").unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string());
+    let semver = tracked_env("PCAI_SEMVER").unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
 
-    let git_hash = env::var("PCAI_GIT_HASH").unwrap_or_else(|_| get_git_hash());
+    let git_hash = tracked_env("PCAI_GIT_HASH").unwrap_or_else(get_git_hash);
 
-    let git_hash_short = env::var("PCAI_GIT_HASH_SHORT").unwrap_or_else(|_| {
+    let git_hash_short = tracked_env("PCAI_GIT_HASH_SHORT").unwrap_or_else(|| {
         if git_hash.len() >= 7 {
             git_hash[..7].to_string()
         } else {
@@ -95,12 +111,12 @@ fn generate_version_info() {
         }
     });
 
-    let git_branch = env::var("PCAI_GIT_BRANCH").unwrap_or_else(|_| get_git_branch());
+    let git_branch = tracked_env("PCAI_GIT_BRANCH").unwrap_or_else(get_git_branch);
 
-    let build_timestamp = env::var("PCAI_BUILD_TIMESTAMP")
-        .unwrap_or_else(|_| chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string());
+    let build_timestamp = tracked_env("PCAI_BUILD_TIMESTAMP")
+        .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string());
 
-    let build_type = env::var("PCAI_BUILD_TYPE").unwrap_or_else(|_| "dev".to_string());
+    let build_type = tracked_env("PCAI_BUILD_TYPE").unwrap_or_else(|| "dev".to_string());
 
     let target = env::var("TARGET").unwrap_or_else(|_| "unknown".to_string());
     let profile = env::var("PROFILE").unwrap_or_else(|_| "unknown".to_string());
@@ -127,10 +143,9 @@ fn generate_version_info() {
     }
     let features_str = features.join(",");
 
-    // Check for CUDA
-    let has_cuda = env::var("CUDA_PATH").is_ok() || env::var("CUDA_HOME").is_ok();
+    // CUDA state comes from main, which declared CUDA_PATH and CUDA_HOME.
     let cuda_version = if has_cuda {
-        get_cuda_version()
+        get_cuda_version(cuda_path)
     } else {
         "none".to_string()
     };
@@ -300,7 +315,7 @@ fn get_version_from_git() -> String {
     }
 }
 
-fn get_cuda_version() -> String {
+fn get_cuda_version(cuda_path: Option<&str>) -> String {
     // Try nvcc --version
     Command::new("nvcc")
         .args(["--version"])
@@ -326,9 +341,8 @@ fn get_cuda_version() -> String {
             }
         })
         .unwrap_or_else(|| {
-            // Fallback: check CUDA_PATH
-            env::var("CUDA_PATH")
-                .ok()
+            // Fallback: the CUDA_PATH value main already read and declared
+            cuda_path
                 .and_then(|path| {
                     // Extract version from path like "C:\...\CUDA\v13.1"
                     path.split(['\\', '/'])

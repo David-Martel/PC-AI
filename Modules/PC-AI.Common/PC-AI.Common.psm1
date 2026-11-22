@@ -18,8 +18,6 @@ if (Test-Path $publicPath) {
 
 Export-ModuleMember -Function @(
     'Write-Success',
-    'Write-Warning',
-    'Write-Error',
     'Write-Info',
     'Write-Header',
     'Write-SubHeader',

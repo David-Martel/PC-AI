@@ -3,6 +3,7 @@
 Use the [HIL coordinator](../../Tests/Hardware/usb4_tcp_hil.py) from a trusted PC-AI checkout to qualify Windows USB4NET cables for simultaneous bidirectional TCP. CI runs the [receipt controls](../../Tests/Portable/test_usb4_tcp_hil.py) and [endpoint controls](../../Tests/Portable/Test-Usb4TcpEndpoint.ps1) on Windows and Linux. The physical run needs Python 3.10+, Git, OpenSSH for remote management, and PowerShell 7 and iperf3 3.11+ on each endpoint. The examples use uv to select Python.
 
 The [custody controls](../../Tests/Portable/usb4-tcp-hil-custody-review.json) check listener contention and the cleanup time available within the SSH deadline.
+The [observation controls](../../Tests/Portable/usb4-tcp-hil-observation-review.json) cover neighbor rediscovery and directional rate sampling.
 
 ## Describe the cables
 
@@ -45,5 +46,18 @@ uv run --no-project python Tests/Hardware/usb4_tcp_hil.py --profile $profile --v
 The receiver login needs read access to Windows Firewall's `PersistentStore`. If it needs a firewall exception, use `--allow-temporary-firewall` with a login authorized to write that store. The [Windows endpoint](../../Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1) scopes its rule to the peer, adapter, executable and port and removes the exact rule on exit. A forced process or host shutdown can interrupt cleanup. The next receiver trial refuses a leftover HIL rule and reports its name for review. With the flag omitted, the receiver uses existing host policy.
 
 Each trial requires reciprocal neighbor identity, an on-link route, scoped sockets, and receiver throughput above the declared floor in each direction. Both adapter counter increases must cover the measured receiver payload. Adapter counters include other traffic on the same interface, so record a quiet link when measuring performance. Any incomplete edge fails the run. Exit codes are `0` for success, `1` for a failed edge, and `2` for an invalid input or receipt. A dry run returns `Planned`.
+
+After a replug, the endpoint resolves the enrolled GUID to the current interface
+index. An empty or incomplete neighbor entry allows one bounded IPv6 echo using
+the scoped USB4 source and peer addresses. The endpoint then requires a fresh
+match for the enrolled neighbor IP and MAC before running iperf3. A conflicting
+neighbor blocks the run. A port or hub change that presents a different hardware
+identity requires refreshed enrollment evidence.
+
+The receipt records the adapter-reported transmit and receive rates, driver,
+MTU, current interface index, and Windows IPv6 identifier mode. Identifier mode
+is a host-wide observation. Receiver samples span 0.75 to 1.25 seconds to compare
+startup, sustained goodput and directional dips. Missing observations appear as
+null or `Unknown`. Collect latency and UDP jitter separately from these TCP rates.
 
 For release review, retain the trusted original receipt, profile, and source revision. Offline verification checks the revision and source hashes, profile, observation age, every edge, and both measured directions. Its `Verified` output reports each edge's floor and receiver rates. Capture and distribute receipts through an authenticated channel. The receipt qualifies direct Windows USB4NET TCP for the recorded conditions. Record reconnect, multi-hop, authenticated file transfers and RDMA with separate trials. See [deployment and measurement](fabric-deployment.md) for the broader release sequence and [Microsoft's USB4 throughput method](https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/usb4-interdomain-connections#throughput-testing) for transport testing guidance.

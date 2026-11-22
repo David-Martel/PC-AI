@@ -1,0 +1,51 @@
+{
+  "SchemaVersion": 1,
+  "SourceBaseline": "edb871d1f11ff6cc09ad78f386fee6e500941720",
+  "ReviewedAtUtc": "2026-11-22T20:07:15.1411670+00:00",
+  "HashConvention": "SHA-256 of UTF-8 LF files, PowerShell function AST extents and the complete Python selector from def without the trailing newline",
+  "SourceBindings": {
+    "Tests/Hardware/usb4_tcp_hil.py": "4069bbe6b62b6187aa4838fa1bc183df901ee4c7d93accf9041a2df8421e8227",
+    "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1": "9a8c4890054ece296d722efd03114415ee052201d9b37ab9d383eb15d3e5fb31",
+    "Tests/Portable/test_usb4_tcp_hil.py": "df85fce16cff12da810cdae0e778de7b859e7880b744fa919315afd8528d7291",
+    "Tests/Portable/Test-Usb4TcpEndpoint.ps1": "e51cb64b6291ca6fcfb2a27cbd1a463938db783ca09057d79f216f2f9fa8a86e",
+    "docs/usb4/hardware-testing.md": "dee09d445d0248140e8533fdd74733c1568b3594de70aed8527585e32b83ce88"
+  },
+  "Selectors": [
+    {
+      "Selector": "Test-ClientRediscoversOnlyTheEnrolledNeighbor",
+      "Source": "Tests/Portable/Test-Usb4TcpEndpoint.ps1",
+      "Sha256": "26d609d214faf65bb259745f0cdc09dba60afe24eb46142174d644640bf4d115",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "Protects": "cold-cache reconnect and peer identity.",
+      "Detects": "unscoped wake, skipping a retry, or trusting the ping over identity.",
+      "Needs": "PowerShell 7, fixture neighbor inventory and an inert process runner.",
+      "Breadcrumb": "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::Get-Usb4PeerNeighbors."
+    },
+    {
+      "Selector": "Test-ClientReportsLinkAndIdentifierMode",
+      "Source": "Tests/Portable/Test-Usb4TcpEndpoint.ps1",
+      "Sha256": "f4033c3c3961bd1a0a44931cfd24b0b4e61acbdda48170476d088f0af84c3c7c",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "Protects": "adapter link rate and host identifier-mode observations.",
+      "Detects": "swapped speed fields, missing driver metadata, and invented identifier mode.",
+      "Needs": "PowerShell 7 and fixture adapter and IPv6 protocol providers.",
+      "Breadcrumb": "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::link receipt."
+    },
+    {
+      "Selector": "test_profile_uses_only_full_receiver_intervals_and_preserves_link_metadata",
+      "Source": "Tests/Portable/test_usb4_tcp_hil.py",
+      "Sha256": "c47d55814156174d18909cad4863c21435e192fd4e44a475feed59b310f36d11",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "Protects": "Directional TCP profiling and null link observations.",
+      "Detects": "Treating sender, omitted or partial bins as full receiver measurements, or dropping link evidence.",
+      "Needs": "Python and synthetic iperf JSON.",
+      "Breadcrumb": "Tests/Hardware/usb4_tcp_hil.py::describe_edge."
+    }
+  ]
+}

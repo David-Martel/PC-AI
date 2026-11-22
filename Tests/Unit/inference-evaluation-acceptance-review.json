@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T23:10:36Z",
+  "sourceBaseline": "6b394b04d62323106c4ed8e6ccd0b40e03f00ca3",
+  "hashConvention": "SHA-256 of UTF-8 LF source. Pester extents include indentation and final LF. Workflow step extents run from the name through the blank line before the next step.",
+  "sourceBindings": {
+    "Tests/Evaluation/Invoke-InferenceEvaluation.ps1": "5c21c0b2a6107e87d0711a122037e6beb09a85d12c5d5f012d9c4c57b3206222",
+    "Modules/PC-AI.Evaluation/Private/Invoke-SingleTestCase.ps1": "86d0688a60cece16e424eb17f55a9c20c7b452db7f75d92bff89479b67e7cd5b",
+    ".github/workflows/evaluation-smoke.yml": "f333a835184124678e6e73f6b3b9589283db3ba66f1f6af0e0b193e6aaa3a13b",
+    "Tests/Unit/InferenceEvaluationAcceptance.Tests.ps1": "c62dad4f41c3c332fedb0b04bf921ee594974477b3191a815a664a450c7fa1df",
+    "Tests/Unit/EvaluationSuiteType.Tests.ps1": "2138751d145d7e48a52e379db2d357453edb7acda9a379aa37fe50d0e26b46f4"
+  },
+  "selectors": [
+    {
+      "selector": "returns <Reason> for <Case>",
+      "source": "Tests/Unit/InferenceEvaluationAcceptance.Tests.ps1",
+      "sha256": "45a2f5035ec201e391a303507a982e714e015fd278bde2b900e59792f1686cc8",
+      "reviewer": "codex-media-rereview",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Rejects unavailable, cancelled, empty, partial and errored evaluations. It also checks exact threshold equality, the transport-only threshold and rounding boundaries."
+    },
+    {
+      "selector": "records a case error for empty <Backend> output",
+      "source": "Tests/Unit/EvaluationSuiteType.Tests.ps1",
+      "sha256": "eb32a4ff38b32a29bb87d5947c26ca499c0b91983e545ac7edfcc3e84bc89b48",
+      "reviewer": "codex-media-rereview",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "The real module dispatcher reports whitespace-only HTTP or Ollama replies as errors. The HTTP case requires the expected ordered completion and chat fallback calls."
+    },
+    {
+      "selector": "Run Evaluation Smoke",
+      "source": ".github/workflows/evaluation-smoke.yml",
+      "sha256": "552dc631d3241eb6aa89d6908311a8f81a617f25a1ef5ce2bdece54b0f73791a",
+      "reviewer": "codex-media-rereview",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "The healthy loopback mock has to complete a real inference case without a case error. Threshold zero keeps the fixture focused on transport."
+    },
+    {
+      "selector": "Verify failed evaluation leaves its report",
+      "source": ".github/workflows/evaluation-smoke.yml",
+      "sha256": "27dd3c196c379f1bc19b152f8c283138d55f69b697eee9607c9b60b84a183b0f",
+      "reviewer": "codex-media-rereview",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Healthy mock readiness is followed by a completion error. The actual CLI must exit nonzero and the report must retain the CaseErrors verdict and counts."
+    }
+  ]
+}

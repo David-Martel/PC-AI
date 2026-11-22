@@ -57,6 +57,9 @@ $report = & $module[0] {
         if ($Endpoint -eq 'chat fallback' -and $Uri.AbsolutePath -eq '/v1/completions') {
             return @{ choices = @(@{ text = ''; message = $null }) }
         }
+        if ($Endpoint -eq 'empty completion') {
+            return @{ choices = @(@{ text = ' '; message = @{ content = ' ' } }); response = ' ' }
+        }
         return @{ choices = @(@{ text = 'transport-response'; message = @{ content = 'transport-response' } }); response = 'transport-response' }
     }
     $case = New-EvaluationTestCase -Id 'endpoint-contract' -Prompt 'hello'
@@ -151,5 +154,22 @@ Describe 'Evaluation endpoint construction' -Tag 'Unit', 'Portable' {
         $result.Response | Should -Be 'transport-response'
         @($result.Uris).Count | Should -Be $ExpectedUris.Count
         ($result.Uris -join '|') | Should -BeExactly ($ExpectedUris -join '|')
+    }
+
+    # Protects: acceptance requires actual generated text across backends.
+    # Detects: accepting HTTP or Ollama responses carrying only whitespace.
+    # Needs: PowerShell 7 and a fresh module consumer with local transport mocks.
+    # Breadcrumb: Invoke-SingleTestCase.ps1 completion and chat fallback.
+    It 'records a case error for empty <Backend> output' -TestCases @(
+        @{ Backend = 'http'; ExpectedUris = 'http://localhost:39991/v1/completions|http://localhost:39991/v1/chat/completions' }
+        @{ Backend = 'ollama'; ExpectedUris = 'http://localhost:39992/api/generate' }
+    ) {
+        param($Backend, $ExpectedUris)
+        $result = Invoke-EvaluationConsumerProbe -ScriptPath $script:EndpointChild -Arguments @(
+            '-ModulePath', $script:EvaluationScriptModule, '-Endpoint', 'empty completion', '-Backend', $Backend
+        )
+        $result.Response | Should -BeNullOrEmpty
+        $result.ErrorMessage | Should -BeExactly "Backend '$Backend' returned an empty completion."
+        ($result.Uris -join '|') | Should -BeExactly $ExpectedUris
     }
 }

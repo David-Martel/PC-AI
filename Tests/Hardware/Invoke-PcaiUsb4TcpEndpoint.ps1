@@ -53,6 +53,12 @@ function Get-Usb4Counters {
     $statistics[0]
 }
 
+function Get-Usb4PeerNeighbors {
+    Get-NetNeighbor -InterfaceIndex $index -AddressFamily IPv6 | Where-Object {
+        ($_.IPAddress -split '%', 2)[0] -eq "$peerAddress"
+    }
+}
+
 function Get-TemporaryFirewallRule([string]$Name) {
     try {
         Get-NetFirewallRule -PolicyStore PersistentStore -Name $Name
@@ -149,18 +155,26 @@ if ($Request.role -eq 'ready') {
     return
 }
 
-$neighbors = @(Get-NetNeighbor -InterfaceIndex $index -AddressFamily IPv6 | Where-Object {
-    ($_.IPAddress -split '%', 2)[0] -eq "$peerAddress" -and
-    (ConvertTo-MacKey $_.LinkLayerAddress) -eq $peerMac -and
-    $_.State -in @('Reachable', 'Stale', 'Delay', 'Probe', 'Permanent')
-})
-if ($neighbors.Count -ne 1) { throw 'The selected interface does not have the expected USB4 peer IP/MAC neighbor.' }
 Assert-DirectRoute
+. ([scriptblock]::Create($ProcessRunnerSource))
+$neighbors = @(Get-Usb4PeerNeighbors)
+if ($neighbors.Count -eq 0 -or ($neighbors.Count -eq 1 -and
+        $neighbors[0].State -in @('Incomplete', 'Unreachable') -and
+        (ConvertTo-MacKey $neighbors[0].LinkLayerAddress) -in @('', '000000000000', $peerMac))) {
+    # A reconnect can empty the neighbor cache. Use the scope and source already
+    # selected by Windows, then require the ordinary IP/MAC evidence again.
+    $ping = [IO.Path]::Combine([Environment]::SystemDirectory, 'ping.exe')
+    $null = Invoke-VigilBoundedProcess -FilePath $ping -Arguments @('-6', '-S', $source, '-n', '1', '-w', '500', $target) -TimeoutSeconds 3
+    $neighbors = @(Get-Usb4PeerNeighbors)
+}
+if ($neighbors.Count -ne 1 -or (ConvertTo-MacKey $neighbors[0].LinkLayerAddress) -ne $peerMac -or
+        $neighbors[0].State -notin @('Reachable', 'Stale', 'Delay', 'Probe', 'Permanent')) {
+    throw 'The selected interface does not have the expected USB4 peer IP/MAC neighbor.'
+}
 $interfaces = @(Get-NetIPInterface -InterfaceIndex $index -AddressFamily IPv6)
 if ($interfaces.Count -ne 1 -or $interfaces[0].NlMtu -lt 1280) { throw 'Expected one usable IPv6 link MTU.' }
 $mtu = [int]$interfaces[0].NlMtu
 
-. ([scriptblock]::Create($ProcessRunnerSource))
 $binaryHash = (Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash.ToLowerInvariant()
 $versionProcess = Invoke-VigilBoundedProcess -FilePath $executable -Arguments @('--version') -TimeoutSeconds 4
 if ($versionProcess.ExitCode -ne 0 -or $versionProcess.Stdout -notmatch '(?m)^iperf (\d+\.\d+(?:\.\d+)?)\b' -or
@@ -226,6 +240,11 @@ try {
     }
 }
 
+$identifierMode = try {
+    $mode = [string](Get-NetIPv6Protocol -ErrorAction Stop).RandomizeIdentifiers
+    if ($mode -in @('Enabled', 'Disabled')) { $mode } else { 'Unknown' }
+} catch { 'Unknown' }
+
 @{
     role = $Request.role
     host = [Environment]::MachineName
@@ -235,6 +254,12 @@ try {
     version = $version
     binary_sha256 = $binaryHash
     mtu = $mtu
+    link = @{
+        tx_bps = if ($adapter.TransmitLinkSpeed -gt 0) { [uint64]$adapter.TransmitLinkSpeed }
+        rx_bps = if ($adapter.ReceiveLinkSpeed -gt 0) { [uint64]$adapter.ReceiveLinkSpeed }
+        driver_version = if ($adapter.DriverVersion) { [string]$adapter.DriverVersion }
+        randomize_identifiers = $identifierMode
+    }
     rx_delta = $after.ReceivedBytes - $before.ReceivedBytes
     tx_delta = $after.SentBytes - $before.SentBytes
     result = $result

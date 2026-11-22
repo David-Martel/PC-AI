@@ -46,6 +46,31 @@ def evidence(edge, side):
 
 
 class Usb4HilControls(unittest.TestCase):
+    # Protects directional profiling. Detects sender samples, omitted and partial
+    # intervals, and relabeling absent link evidence as zero. Needs synthetic
+    # iperf JSON. Breadcrumb: Tests/Hardware/usb4_tcp_hil.py::describe_edge.
+    def test_profile_uses_only_full_receiver_intervals_and_preserves_link_metadata(self):
+        edge = hil.profile(sample_profile())[0]
+        client, server = evidence(edge, 'client'), evidence(edge, 'server')
+
+        def interval(rate, *, elapsed=1.0, sender=False, omitted=False):
+            return {'seconds': elapsed, 'bits_per_second': rate * 1e9,
+                    'sender': sender, 'omitted': omitted}
+
+        client['result']['intervals'] = [{'sum_bidir_reverse': sample} for sample in (
+            interval(3), interval(5), interval(30, elapsed=0.1), interval(90, sender=True),
+            interval(77, omitted=True), interval(0))]
+        server['result']['intervals'] = [{'sum': sample} for sample in (interval(2), interval(6))]
+        client['link'] = {'tx_bps': 20_000_000_000, 'rx_bps': 20_000_000_000,
+                          'driver_version': '10.0.2.3', 'randomize_identifiers': 'Enabled'}
+        profile = hil.describe_edge(client, server)
+        self.assertEqual(profile['client']['link'], client['link'])
+        self.assertIsNone(profile['server']['link'])
+        self.assertEqual(profile['client_to_server_receiver_intervals_gbps'], [2.0, 6.0])
+        self.assertEqual(profile['server_to_client_receiver_intervals_gbps'], [3.0, 5.0, 0.0])
+        del client['result']['intervals']
+        self.assertIsNone(hil.describe_edge(client, server)['server_to_client_receiver_intervals_gbps'])
+
     # Protects machine-neutral enrollment. Detects inferred endpoints, unsafe SSH arguments,
     # non-link-local addresses and duplicate physical edges. Needs Python, no adapters.
     # Breadcrumb: Tests/Hardware/usb4_tcp_hil.py::profile and endpoint.

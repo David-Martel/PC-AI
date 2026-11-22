@@ -342,7 +342,7 @@ Describe 'Integration Tests' {
             . $scriptPath
         }
 
-        It 'Should sync credentials with mocked dependencies' {
+        It 'Should sync credentials with mocked dependencies' -Skip {
             # Mock all dependencies
             $env:BW_SESSION = 'test_session'
 
@@ -370,8 +370,6 @@ Describe 'Integration Tests' {
                 return ''
             }
 
-            # This is an integration test that requires full setup
-            Set-ItResult -Skipped -Because 'Integration test requires real credential helper setup'
 
             $env:BW_SESSION = $null
         }

@@ -16,9 +16,11 @@
         Enabled = $true
         OutputFormat = 'JaCoCo'
         OutputPath = 'TestResults/coverage.xml'
+        # A directory plus RecursePaths, not './Modules/**/*.ps1'. Pester treats '**' like '*', so the glob
+        # analysed only files two levels down (17 of 241 module files, measured 2026-11). Tests/coverage-report.ps1
+        # fails when fewer than 95% of the module files are analysed, so this cannot silently narrow again.
         Path = @(
-            './Modules/**/*.ps1'
-            './Modules/**/*.psm1'
+            './Modules'
         )
         ExcludeTests = $true
         RecursePaths = $true

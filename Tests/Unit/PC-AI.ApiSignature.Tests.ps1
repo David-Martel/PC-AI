@@ -8,10 +8,13 @@
 BeforeAll {
     $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $ToolsScript = Join-Path $RepoRoot 'Tools\generate-api-signature-report.ps1'
+    # Protects: a clean checkout stays clean after the suite. Detects: the generator rewriting the tracked
+    # Reports/API_SIGNATURE_REPORT.{json,md} from this BeforeAll, which dirtied every checkout that ran the tests.
+    $ReportDir = Join-Path $TestDrive 'api-signature'
     if (Test-Path $ToolsScript) {
-        & $ToolsScript -RepoRoot $RepoRoot | Out-Null
+        & $ToolsScript -RepoRoot $RepoRoot -OutputDir $ReportDir | Out-Null
     }
-    $ReportPath = Join-Path $RepoRoot 'Reports\API_SIGNATURE_REPORT.json'
+    $ReportPath = Join-Path $ReportDir 'API_SIGNATURE_REPORT.json'
     if (Test-Path $ReportPath) {
         $script:Report = Get-Content $ReportPath -Raw | ConvertFrom-Json
     }

@@ -24,7 +24,7 @@ Describe 'Invoke-PcaiCi plan' -Tag 'Unit', 'Portable' {
         $quick = Get-Plan
         $full = Get-Plan @{ Tier = 'Full' }
         $quick.Id | Should -Be @('CredentialScan', 'WorkflowSyntax', 'PowerShellLintChanged', 'RustFmt')
-        $full.Id | Should -Be @('CredentialScan', 'WorkflowSyntax', 'PowerShellLint', 'RustFmt', 'RustCheck', 'RustClippy', 'RustTest', 'PesterUnitBoot')
+        $full.Id | Should -Be @('CredentialScan', 'WorkflowSyntax', 'PowerShellLint', 'RustFmt', 'RustCheck', 'RustClippy', 'RustTest', 'PesterUnitBoot', 'TestAssessment')
     }
 
     It 'runs nothing in plan mode' {
@@ -40,6 +40,23 @@ Describe 'Invoke-PcaiCi plan' -Tag 'Unit', 'Portable' {
         # A Full-tier step requested from the default tier must run, not vanish.
         (Get-Plan @{ Only = @('RustCheck') }).Id | Should -Be @('RustCheck')
         { Get-Plan @{ Skip = @('CredentialScan', 'WorkflowSyntax', 'PowerShellLintChanged', 'RustFmt') } } | Should -Throw '*No steps selected*'
+    }
+}
+
+Describe 'Invoke-PcaiCi local-only steps' -Tag 'Unit', 'Portable' {
+    # Protects: "every step mirrors ci.yml" staying true except where a step says otherwise. Detects: a step with no
+    # CiCommand that nobody decided to make local-only (it would run a check CI never runs, unannounced). A local-only
+    # step declares an empty CiCommand, and this list is the one place that approves it.
+    It 'only the approved steps are local-only' {
+        $localOnly = @(@(Get-Plan) + @(Get-Plan @{ Tier = 'Full' }) | Where-Object { -not $_.CiCommand } | ForEach-Object Id | Select-Object -Unique)
+        $localOnly | Should -Be @('PowerShellLintChanged', 'TestAssessment') -Because 'PowerShellLintChanged is a Quick-tier accelerator; TestAssessment is the ratcheted test gate'
+    }
+
+    It 'wires the assessment step to Tests/coverage-report.ps1 on the Portable tier' {
+        $step = (Get-Plan @{ Tier = 'Full' }) | Where-Object Id -eq 'TestAssessment'
+        $step.Command | Should -Contain (Join-Path $script:RepoRoot 'Tests/coverage-report.ps1')
+        $step.Command[-2..-1] | Should -Be @('-Tier', 'Portable')
+        $step.RequiresModule | Should -Be @('Pester')
     }
 }
 

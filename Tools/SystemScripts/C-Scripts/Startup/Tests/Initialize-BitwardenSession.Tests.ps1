@@ -77,21 +77,9 @@ Describe 'Get-StoredCredentialPassword' {
 
     Context 'Happy Path' {
 
-        It 'Should retrieve credential from Windows Credential Manager' {
-            # This test requires actual credentials to be set up
-            # For unit testing, we mock the underlying calls
-            Mock cmdkey {
-                return "Target: bitwarden/client_id`nType: Generic`nUser: bitwarden"
-            }
-
-            # Skip if function doesn't exist (script not dot-sourced)
-            if (Get-Command Get-StoredCredentialPassword -ErrorAction SilentlyContinue) {
-                # Mock would need P/Invoke mock which is complex
-                # This is more of an integration test
-                Set-ItResult -Skipped -Because 'Requires Windows Credential Manager integration'
-            } else {
-                Set-ItResult -Skipped -Because 'Function not exported'
-            }
+        # Static skip: the old body skipped itself on both branches, so it never asserted anything. It stays visible
+        # as a skip until Get-StoredCredentialPassword has a Credential Manager seam that can be mocked.
+        It 'Should retrieve credential from Windows Credential Manager' -Skip {
         }
     }
 
@@ -469,7 +457,7 @@ Describe 'Integration Tests' {
             . (Join-Path (Split-Path $PSScriptRoot -Parent) 'Initialize-BitwardenSession.ps1')
         }
 
-        It 'Should complete full initialization with mocked dependencies' {
+        It 'Should complete full initialization with mocked dependencies' -Skip {
             # Mock all external dependencies
             Mock Get-Command {
                 [PSCustomObject]@{ Name = 'bw'; Source = 'bw.exe' }
@@ -499,30 +487,6 @@ Describe 'Integration Tests' {
 
             Mock cmdkey { "Target: bitwarden/client_id" }
 
-            # This is an integration test that would need real credentials
-            Set-ItResult -Skipped -Because 'Integration test requires real Windows Credential Manager setup'
-        }
-    }
-}
-
-Describe 'Security Tests' {
-
-    Context 'Credential Handling' {
-
-        It 'Should not log sensitive credentials' {
-            $logFile = 'C:\Scripts\Startup\bitwarden-session.log'
-
-            # Run initialization (would need mocking)
-            # Then verify log file doesn't contain secrets
-
-            Set-ItResult -Skipped -Because 'Requires full integration test setup'
-        }
-
-        It 'Should clear credentials from memory after use' {
-            # Verify garbage collection is called
-            # This is more of a code review item
-
-            Set-ItResult -Skipped -Because 'Memory verification requires specialized tooling'
         }
     }
 }

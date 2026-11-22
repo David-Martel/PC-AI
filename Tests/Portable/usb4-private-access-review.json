@@ -1,15 +1,15 @@
 {
   "SchemaVersion": 1,
-  "SourceBaseline": "7c45a41d4c6a57cf093c6bbb5190671760a3fe29",
-  "ReviewedAtUtc": "2026-11-22T20:56:07.5868307+00:00",
-  "HashConvention": "SHA-256 of UTF-8 LF sources, PowerShell command and function AST extents, and the CI step with no final newline",
+  "SourceBaseline": "fe358409ead05b11d597e9a417789860e93062ec",
+  "ReviewedAtUtc": "2026-11-22T16:21:42.59254-05:00",
+  "HashConvention": "SHA-256 of UTF-8 LF. ParseInput over LF text yields the named FunctionDefinitionAst.Extent.Text or Pester It CommandAst.Extent.Text. The CI step spans - name through its last indented line, with no final LF.",
   "SourceBindings": {
-    "Tests/Portable/Test-Usb4PrivateAccess.ps1": "9b17c8bf1dbbffb82e731d21c1af0f60d33c95a20c2b1ae4e4859d5b9936bc8d",
-    "Tests/Unit/PC-AI.Drivers.Tests.ps1": "8ff649e5ffe4e2a804b64117ba79cd086483e0ad2a39fd8e19addfb8b94bdc63",
-    ".github/workflows/usb4-lifecycle.yml": "bb06b486887d78dfb1c0282daaf9ecf12349bcf07e88516192c839adf78b84db",
-    "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1": "4874881cbfb5b9e4031b40044f79a57e0f46b1722263a94246b893c7448c8b69",
+    "Tests/Portable/Test-Usb4PrivateAccess.ps1": "3ed0678317bd00d4333574066760322e4d3f7a825a1e87b51d7051d5314c22c2",
+    "Tests/Unit/PC-AI.Drivers.Tests.ps1": "3c19ff55bc184d5fee2b65baab3d8e081d132c5b722c5bdf0a8d7cdb650c5f83",
+    ".github/workflows/usb4-lifecycle.yml": "e894752618725150253aa300c25fecafd768ddc69d330b73aff6caaf155748d7",
+    "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1": "8514a0b345b5a04448f83a3ebbfc004055344964748fd182f5ba64a60b39004b",
     "Modules/PC-AI.Drivers/Public/Register-ThunderboltPeer.ps1": "ad94a9a25cd6022b437ac37b04df43f720c3d0809760c83f55d5b700204b5be2",
-    "docs/usb4/private-access.md": "f82c042a959f5d6d9420cdde4d248bf8c73ae78c4cc038a63ce028af1f2447b5"
+    "docs/usb4/private-access.md": "8dde7ebf3b96f0522324720e671c4d86f9e6c7de17a6907b1fd7659231d72150"
   },
   "Selectors": [
     {
@@ -109,16 +109,52 @@
       "Disposition": "unreviewed"
     },
     {
+      "Selector": "Test-LegacyAllowBlocksApplyWithoutChangingIt",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "5390a9051abe85fc97eee61f9f04a1134c2a04708aaebb2ceb1dd4d62220890e",
+      "Protects": "Explicit migration of the broad legacy rule",
+      "Detects": "An enabled legacy allow rule permitting a write or a disabled rule causing refusal",
+      "Needs": "PowerShell 7, inert Windows firewall providers and a temporary receipt directory.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex-gen9-pcai-fleet",
+      "ReviewerType": "independent source agent",
+      "Disposition": "keep"
+    },
+    {
+      "Selector": "Test-LegacyAdvisoriesDoNotPreventRollback",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "fcbbf7cd9986a2de644d2b9845f7e09f36bf3078da698a8097c49c79fe0a2869",
+      "Protects": "Always-available recovery of owned changes",
+      "Detects": "A legacy rule or an advisory lookup preventing Rollback",
+      "Needs": "PowerShell 7, inert Windows firewall providers and a temporary receipt directory.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex-gen9-pcai-fleet",
+      "ReviewerType": "independent source agent",
+      "Disposition": "keep"
+    },
+    {
+      "Selector": "Test-PreviewSummarizesPrivateOnlyExposureWithoutWrites",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "70249f67652df7536b8afec22e0c49367de7ea704185a4ec9a73806275faaa81",
+      "Protects": "Bounded exposure evidence in preview",
+      "Detects": "Incorrect Public/Private filter, more than 20 rules shown, or a write from preview",
+      "Needs": "PowerShell 7, inert Windows firewall providers and a temporary receipt directory.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex-gen9-pcai-fleet",
+      "ReviewerType": "independent source agent",
+      "Disposition": "keep"
+    },
+    {
       "Selector": "does not provision firewall rules during legacy USB4 registration",
       "Source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
-      "Sha256": "ae57efab8385bd9c31b4fd3736cbbb9c17525c700c05748819d6efadbc595d51",
+      "Sha256": "54fe728bed2f9afd70d18cf05c90d25667446f7c2232a634503443a41f29653a",
       "Protects": "Separation of legacy discovery from inbound firewall policy",
-      "Detects": "Firewall creation during legacy enrollment",
+      "Detects": "Direct creation or the retired rule name moved into a Drivers helper",
       "Needs": "PowerShell 7 and Pester with the repository Drivers module",
       "Breadcrumb": "Modules/PC-AI.Drivers/Public/Register-ThunderboltPeer.ps1",
-      "Reviewer": "codex",
-      "ReviewerType": "author self-review",
-      "Disposition": "unreviewed"
+      "Reviewer": "codex-releaseaudit",
+      "ReviewerType": "independent source agent",
+      "Disposition": "keep"
     },
     {
       "Selector": "USB4 private access contracts",
@@ -131,7 +167,19 @@
       "Reviewer": "codex",
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "Windows legacy USB4 registration firewall contract",
+      "Source": ".github/workflows/usb4-lifecycle.yml",
+      "Sha256": "1db06560df9492134d196939a0576063e3157eeab6ffc2282f328c1b9b0d9556",
+      "Protects": "Repeatable registration firewall regression control",
+      "Detects": "A missing, failing, or bypassed Drivers selector",
+      "Needs": "Windows, PowerShell 7 and Pester 5.7.1",
+      "Breadcrumb": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "Reviewer": "codex-releaseaudit",
+      "ReviewerType": "independent source agent",
+      "Disposition": "keep"
     }
   ],
-  "Validation": "Eight installer controls passed on Windows and Ubuntu WSL. Legacy broad-rule detector failed before removal then passed. On hardware, both selected USB4 profiles moved to Private, both exact peer ICMPv6 rules read back in the effective store, and all four directional echo series passed 12/12. The original canary rollback restored both categories. The shared-scope rollback controls use inert providers."
+  "Validation": "The portable fixtures verify exact-link apply and rollback, legacy handling, and the bounded exposure summary. The Windows Drivers selector passes with the retired rule absent and fails once when its name is inserted into an inert helper. The applied NUC canary verified four directional echo series at 12/12 and a successful scripted rollback before the final application. The follow-up checks inspect both links without changing their receipts."
 }

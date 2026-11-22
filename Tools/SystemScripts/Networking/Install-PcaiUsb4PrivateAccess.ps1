@@ -220,6 +220,44 @@ function Get-PcaiUsb4AccessRule([string]$Store, [string]$Alias, [string]$Owner =
     return $rules[0]
 }
 
+function Get-PcaiUsb4LegacyRuleStatus {
+    $legacyName = 'PC-AI-USB4-P2P-Allow'
+    $status = [ordered]@{ Name = $legacyName; BlocksApply = $false }
+    foreach ($store in @('PersistentStore', 'ActiveStore')) {
+        $rules = @(try {
+            Get-NetFirewallRule -PolicyStore $store -Name $legacyName
+        } catch {
+            if ($_.FullyQualifiedErrorId -cne 'CmdletizationQuery_NotFound_InstanceID,Get-NetFirewallRule') { throw }
+        })
+        if (@($rules | Where-Object Name -NE $legacyName).Count) {
+            throw "Firewall policy returned an unexpected name for '$legacyName' in $store."
+        }
+        $enabledInboundAllow = @($rules | Where-Object {
+            [string]$_.Enabled -eq 'True' -and [string]$_.Direction -eq 'Inbound' -and [string]$_.Action -eq 'Allow'
+        }).Count -gt 0
+        $status[$store] = [pscustomobject]@{
+            State = if ($enabledInboundAllow) { 'EnabledInboundAllow' } elseif ($rules.Count) { 'Present' } else { 'Absent' }
+            Count = $rules.Count
+        }
+        $status.BlocksApply = $status.BlocksApply -or $enabledInboundAllow
+    }
+    return [pscustomobject]$status
+}
+
+function Get-PcaiUsb4PrivateProfileExposure {
+    $sampleLimit = 20
+    $names = @(Get-NetFirewallRule -PolicyStore ActiveStore -Enabled True -Direction Inbound -Action Allow |
+        Where-Object {
+            $profiles = ([string]$_.Profile -split ',').Trim()
+            'Private' -in $profiles -and 'Public' -notin $profiles
+        } | Select-Object -ExpandProperty Name | Sort-Object)
+    return [pscustomobject]@{
+        Total = $names.Count
+        RuleNames = @($names | Select-Object -First $sampleLimit)
+        Truncated = $names.Count -gt $sampleLimit
+    }
+}
+
 function Get-PcaiUsb4ReceiptFile {
     if (-not $ReceiptPath -or -not [IO.Path]::IsPathFullyQualified($ReceiptPath) -or
         ($IsWindows -and $ReceiptPath -notmatch '^[A-Za-z]:[/\\]') -or $ReceiptPath -match ':.*:') {
@@ -345,6 +383,8 @@ $result = [ordered]@{
     SharedAdapterGuid = $sharedGuids
     UnapprovedSameNameProfiles = $otherProfiles
     WillCreateRule = -not [bool]$rule; ReceiptPath = $ReceiptPath
+    LegacyRule = if (-not $Rollback) { Get-PcaiUsb4LegacyRuleStatus }
+    PrivateProfileExposure = if (-not $Rollback) { Get-PcaiUsb4PrivateProfileExposure }
 }
 if (-not ($Apply -or $Rollback)) { return [pscustomobject]$result }
 $receiptFile = Get-PcaiUsb4ReceiptFile
@@ -371,6 +411,9 @@ try {
         if ($receipt -isnot [hashtable]) { throw 'The USB4 receipt must be a JSON object.' }
         $result.State = Undo-PcaiUsb4PrivateAccess $receiptFile $receipt
         return [pscustomobject]$result
+    }
+    if ((Get-PcaiUsb4LegacyRuleStatus).BlocksApply) {
+        throw "Legacy inbound firewall rule '$($result.LegacyRule.Name)' must be resolved before Apply."
     }
     $currentRule = Get-PcaiUsb4AccessRule 'PersistentStore' $link.Alias
     if ([bool]$currentRule -ne [bool]$rule -or ($rule -and $currentRule.Description -cne $rule.Description)) {

@@ -4,8 +4,11 @@ Run the [private access installer](../../Tools/SystemScripts/Networking/Install-
 from an elevated PowerShell 7 session on the receiver. It changes one enrolled
 USB4NET connection profile to Private and adds an inbound IPv6 echo-request
 rule for the two enrolled link-local addresses on that interface. Windows
-uses the Private profile to classify the link and can also activate existing
-rules assigned to Private. Inspect those effective rules before applying.
+can also activate existing Private-profile inbound rules on the link. Examples
+include File and Printer Sharing, Network Discovery, Remote Assistance and
+other installed services. A `LocalSubnet` address filter can include a USB4
+link-local peer. Inspect the rules before applying and approve the profile
+change only when that exposure is suitable for every enrolled link.
 [Microsoft USB4 interdomain testing](https://learn.microsoft.com/windows-hardware/design/component-guidelines/usb4-interdomain-connections#testing)
 
 ## Inspect and apply
@@ -18,6 +21,32 @@ requires an on-link route with the intended source, and checks the peer
 IP and MAC against Windows' cache. That cache proves observed adjacency.
 Use the [direct SSH guide](peer-ssh-access.md) to authenticate the remote
 service with a pinned key.
+
+Older registrations can leave a broad inbound allow rule active for multiple
+interfaces and address ranges. Query its exact name in both policy stores and
+inspect the configured Private-only inbound allow rules before promotion.
+
+```powershell
+$legacy = 'PC-AI-USB4-P2P-Allow'
+Get-NetFirewallRule -Name $legacy -PolicyStore PersistentStore -ErrorAction SilentlyContinue
+Get-NetFirewallRule -Name $legacy -PolicyStore ActiveStore -ErrorAction SilentlyContinue
+
+Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Action Allow -Enabled True |
+    Where-Object {
+        $profiles = [string]$_.Profile -split ',\s*'
+        $profiles -contains 'Private' -and $profiles -notcontains 'Public'
+    } | Select-Object Name, DisplayName, Profile, PolicyStoreSourceType
+```
+
+Use `Get-NetFirewallAddressFilter`, `Get-NetFirewallInterfaceFilter`, and
+`Get-NetFirewallPortFilter` on rules from that query to inspect their link,
+address and service restrictions. If the legacy rule is local, verify existing
+service access dependencies and remove it by exact name from an elevated
+session. If policy supplies it, have the policy owner remove it at the source.
+
+```powershell
+Remove-NetFirewallRule -Name 'PC-AI-USB4-P2P-Allow' -PolicyStore PersistentStore
+```
 
 The following values are examples. Replace them with the enrolled link's
 identities and select a receipt location in an existing, operator-controlled
@@ -38,13 +67,20 @@ $receipt = Join-Path $env:USERPROFILE 'usb4-private-receiver.json'
 ```
 
 A default run, `-DryRun` and `-Apply -WhatIf` leave the host and filesystem
-untouched. Windows can associate several interfaces with one network
+untouched. Review `LegacyRule` and `PrivateProfileExposure` before executing
+Apply. The exposure summary reports the total and up to 20 exact rule names.
+Use the inspection command above for the full list. Apply refuses an enabled
+inbound legacy allow rule in either policy store and leaves removal to the
+operator.
+Windows can associate several interfaces with one network
 classification. Inspect `UnapprovedSameNameProfiles` in the plan. If every
 listed interface is an enrolled USB4NET link, pass its verified adapter GUID
 in `-SharedAdapterGuid`. Apply refuses to change category when a same-name
 profile connection remains outside the authorized scope. It captures the
 complete category snapshot and verifies the result after the change. Each
-run installs only the echo rule for the primary adapter and peer.
+run installs one echo rule for the primary adapter and peer. Windows may
+assign a newly attached adapter to that same network later. Review adapter
+membership after a hardware or topology change.
 [Windows Network List Manager](https://learn.microsoft.com/windows/win32/api/netlistmgr/nn-netlistmgr-inetwork)
 
 A successful Apply reads back the connection profile and the rule in
@@ -54,8 +90,9 @@ An existing rule at the deterministic name with a different owner, scope
 or filter blocks the operation.
 
 The added rule covers ICMPv6 echo-request type 128, with Private, exact source
-and destination addresses and the enrolled interface alias. It adds zero
-TCP or UDP service rules. See the [USB4 hardware test guide](hardware-testing.md)
+and destination addresses and the enrolled interface alias. Existing rules
+determine TCP and UDP access after promotion. Verify each required service
+under its own host policy. See the [USB4 hardware test guide](hardware-testing.md)
 for scoped connectivity validation and the separate temporary benchmark rules.
 
 ## Roll back

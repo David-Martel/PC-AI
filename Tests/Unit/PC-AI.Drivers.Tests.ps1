@@ -1087,7 +1087,7 @@ Describe "Get-ThunderboltPeerIdentity" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'F
 
 Describe "Register-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Fast', 'Portable' {
     # Protects: separation of legacy discovery from authenticated inbound policy.
-    # Detects: automatic broad firewall provisioning by legacy registration.
+    # Detects: direct automatic firewall provisioning and the retired broad rule even when moved to a helper.
     # Needs: PowerShell and the imported Drivers module. No live network provider.
     # Breadcrumb: Modules/PC-AI.Drivers/Public/Register-ThunderboltPeer.ps1.
     It 'does not provision firewall rules during legacy USB4 registration' {
@@ -1097,6 +1097,10 @@ Describe "Register-ThunderboltPeer" -Tag 'Unit', 'Drivers', 'Thunderbolt', 'Fast
                 $node.GetCommandName() -match '(^|\\)New-NetFirewallRule$'
         }, $true)
         $commands.Count | Should -Be 0
+        $moduleRoot = (Get-Module PC-AI.Drivers -ErrorAction Stop).ModuleBase
+        $legacyReferences = @(Get-ChildItem -LiteralPath $moduleRoot -Recurse -File -Include '*.ps1', '*.psm1', '*.psd1' |
+                Select-String -Pattern 'PC-AI-USB4-P2P-Allow' -SimpleMatch)
+        $legacyReferences.Count | Should -Be 0
     }
 
     Context "When multiple USB4 P2P adapters are active simultaneously on one host" {

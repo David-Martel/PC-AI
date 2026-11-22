@@ -11,6 +11,7 @@ if (-not $source.Contains($platformGuard)) { throw 'The fixture cannot isolate t
 $installer = [scriptblock]::Create($source.Replace($platformGuard, ''))
 $guid = [guid]::NewGuid()
 $ruleName = 'PC-AI-USB4-Private-Echo-' + $guid.ToString('N')
+$legacyRuleName = 'PC-AI-USB4-P2P-Allow'
 $testDir = [IO.Directory]::CreateTempSubdirectory('pcai-usb4-fixture-')
 
 function Reset-Fixture {
@@ -34,6 +35,9 @@ function Reset-Fixture {
         SharedProfile = $null
         UnexpectedProfileChange = $false
         Rule = $null
+        LegacyRules = @{}
+        FailFirewallAdvisories = $false
+        PrivateRules = @()
         SuppressEffectiveRule = $false
         ThrowAfterProfileChange = $false
         ChangeProfileBeforeOwnWrite = $false
@@ -88,7 +92,24 @@ function Set-NetConnectionProfile {
     if ($fixture.ThrowAfterProfileChange -and $NetworkCategory -eq 'Private') { throw 'Provider failed after setting profile.' }
 }
 function Get-NetFirewallRule {
-    [CmdletBinding()]param([string]$PolicyStore, [string]$Name)
+    [CmdletBinding()]param([string]$PolicyStore, [string]$Name, [string]$Enabled, [string]$Direction, [string]$Action)
+    if ($Name -ceq $legacyRuleName -or -not $Name) {
+        if ($fixture.FailFirewallAdvisories) { throw 'Advisory firewall inventory unavailable.' }
+        if ($Name) {
+            if ($PolicyStore -notin @('PersistentStore','ActiveStore')) { throw 'Legacy lookup used an unexpected store.' }
+            $legacy = $fixture.LegacyRules[$PolicyStore]
+            if (-not $legacy) {
+                $PSCmdlet.ThrowTerminatingError([Management.Automation.ErrorRecord]::new(
+                    [Management.Automation.ItemNotFoundException]::new('No fixture legacy rule.'),
+                    'CmdletizationQuery_NotFound_InstanceID', [Management.Automation.ErrorCategory]::ObjectNotFound, $Name))
+            }
+            return $legacy
+        }
+        if ($PolicyStore -ne 'ActiveStore' -or $Enabled -ne 'True' -or $Direction -ne 'Inbound' -or $Action -ne 'Allow') {
+            throw 'Exposure lookup used unexpected filters.'
+        }
+        return $fixture.PrivateRules
+    }
     if ($PolicyStore -notin @('PersistentStore','ActiveStore') -or $Name -ne "$ruleName*") { throw 'Wrong store or rule lookup in fixture.' }
     if ($fixture.Rule -and -not ($PolicyStore -eq 'ActiveStore' -and $fixture.SuppressEffectiveRule)) { $fixture.Rule }
 }
@@ -299,10 +320,84 @@ function Test-UnexpectedCategoryChangeRollsBack {
     Assert-ReceiptState Reverted
 }
 
+# Protects explicit migration from the previous broad firewall policy.
+# Detects a missing or wildcard legacy lookup, refusing a disabled rule, or
+# mutating while an enabled inbound allow remains in either store.
+# Needs inert firewall providers. Breadcrumb: Get-PcaiUsb4LegacyRuleStatus.
+function Test-LegacyAllowBlocksApplyWithoutChangingIt {
+    foreach ($store in 'PersistentStore', 'ActiveStore') {
+        Reset-Fixture
+        $fixture.LegacyRules[$store] = [pscustomobject]@{
+            Name = $legacyRuleName; Enabled = 'True'; Direction = 'Inbound'; Action = 'Allow'
+        }
+        $plan = & $installer @options -DryRun
+        $other = if ($store -eq 'PersistentStore') { 'ActiveStore' } else { 'PersistentStore' }
+        if ($plan.LegacyRule.Name -cne $legacyRuleName -or -not $plan.LegacyRule.BlocksApply -or
+            $plan.LegacyRule.$store.State -ne 'EnabledInboundAllow' -or $plan.LegacyRule.$other.State -ne 'Absent') {
+            throw 'DryRun did not distinguish the exact legacy rule in both stores.'
+        }
+        if ((& $installer @options -Apply -WhatIf).State -ne 'Planned') { throw 'WhatIf did not report the blocked plan.' }
+        Assert-FixtureFailure { & $installer @options -Apply -Confirm:$false } $legacyRuleName
+        if ($fixture.Mutations.Count -or [IO.File]::Exists($options.ReceiptPath) -or
+            $fixture.LegacyRules[$store].Enabled -ne 'True') { throw 'The legacy policy refusal mutated state.' }
+
+        $fixture.LegacyRules[$store].Enabled = 'False'
+        $disabled = & $installer @options -DryRun
+        if ($disabled.LegacyRule.BlocksApply -or $disabled.LegacyRule.$store.State -ne 'Present') {
+            throw 'The disabled legacy rule was not reported as present and non-blocking.'
+        }
+        if ((& $installer @options -Apply -Confirm:$false).State -ne 'Applied') {
+            throw 'A disabled legacy rule blocked installation.'
+        }
+    }
+}
+
+# Protects fail-safe operator reversal even when a legacy rule or lookup error appears.
+# Detects a new admission check preventing an already-owned rollback. Needs inert
+# providers and a temporary receipt. Breadcrumb: private access rollback dispatch.
+function Test-LegacyAdvisoriesDoNotPreventRollback {
+    Reset-Fixture
+    & $installer @options -Apply -Confirm:$false | Out-Null
+    $fixture.LegacyRules.ActiveStore = [pscustomobject]@{
+        Name = $legacyRuleName; Enabled = 'True'; Direction = 'Inbound'; Action = 'Allow'
+    }
+    $fixture.FailFirewallAdvisories = $true
+    if ((& $installer @options -Rollback -Confirm:$false).State -ne 'Reverted' -or
+        $fixture.Profile.NetworkCategory -ne 'Public' -or $fixture.Rule -or
+        -not $fixture.LegacyRules.ActiveStore) {
+        throw 'Rollback did not restore owned changes while preserving other policy.'
+    }
+}
+
+# Protects visibility of enabled inbound rules that become eligible under Private.
+# Detects counting Any/Public rules or emitting an unbounded list. Needs inert
+# firewall data. Breadcrumb: Get-PcaiUsb4PrivateProfileExposure.
+function Test-PreviewSummarizesPrivateOnlyExposureWithoutWrites {
+    Reset-Fixture
+    $fixture.PrivateRules = @(
+        22..0 | ForEach-Object {
+            [pscustomobject]@{ Name = ('FixturePrivate-{0:D2}' -f $_); Profile = 'Domain, Private' }
+        }
+        [pscustomobject]@{ Name = 'FixtureAny'; Profile = 'Any' }
+        [pscustomobject]@{ Name = 'FixtureDomain'; Profile = 'Domain' }
+        [pscustomobject]@{ Name = 'FixturePublic'; Profile = 'Public' }
+        [pscustomobject]@{ Name = 'FixturePrivatePublic'; Profile = 'Private, Public' }
+    )
+    $plan = & $installer @options -DryRun
+    $summary = $plan.PrivateProfileExposure
+    if ($summary.Total -ne 23 -or -not $summary.Truncated -or $summary.RuleNames.Count -ne 20 -or
+        $summary.RuleNames[0] -cne 'FixturePrivate-00' -or $summary.RuleNames[-1] -cne 'FixturePrivate-19') {
+        throw 'DryRun did not count and bound the Private-only active-rule inventory.'
+    }
+    if ($fixture.Mutations.Count -or [IO.File]::Exists($options.ReceiptPath)) { throw 'Exposure inventory caused a write.' }
+}
+
 try {
     foreach ($test in 'Test-PreviewHasNoSideEffects', 'Test-InvalidLinkCannotApply', 'Test-ApplyIsIdempotentAndRollbackRestoresProfile',
         'Test-DriftBlocksWrites', 'Test-PartialApplyRestoresOwnedChanges', 'Test-RecoveryPreservesUnownedProfileChange',
-        'Test-SharedProfileRequiresExplicitUsb4Scope', 'Test-UnexpectedCategoryChangeRollsBack') {
+        'Test-SharedProfileRequiresExplicitUsb4Scope', 'Test-UnexpectedCategoryChangeRollsBack',
+        'Test-LegacyAllowBlocksApplyWithoutChangingIt', 'Test-LegacyAdvisoriesDoNotPreventRollback',
+        'Test-PreviewSummarizesPrivateOnlyExposureWithoutWrites') {
         & $test
         "PASS: $test"
     }

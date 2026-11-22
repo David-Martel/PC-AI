@@ -309,6 +309,12 @@ release evidence from enrolled Windows USB4NET edges.
 Keep functioning Thunderbolt Share sessions intact. Neighbor reciprocity is
 observed adjacency, not authentication, service readiness or bridge authority.
 
+Use the [Windows USB4 private-access installer](docs/usb4/private-access.md)
+with explicit peer and adapter identities. Shared Windows network profiles need
+an explicit list of their enrolled USB4 members. Run
+`pwsh -NoProfile -File Tests/Portable/Test-Usb4PrivateAccess.ps1` for scope and
+rollback fixtures. Verify live packet flow through the separate USB4 HIL path.
+
 At minimum, choose the narrowest relevant validation path:
 
 - Pester for PowerShell module behavior

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T14:26:20.2441697Z",
+  "sourceBaseline": "03103fd3c38331a6a8e42c40e6ae68d216570361",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent. Parameterized selectors are reviewed as groups.",
+  "sourceBindings": {
+    "Tools/SystemScripts/Networking/Get-PcaiUsb4RdmaReadiness.ps1": "83e361e1250ad912aafd73c0f3c6f780a8669d387dbca63c6cf7b62634f218f1",
+    "Tests/Unit/PcaiUsb4RdmaReadiness.Tests.ps1": "6d785ec8365c4b9ec1ea8779567236268fcc74ae218d0012c99e5c7e83ff38c4"
+  },
+  "selectors": [
+    {
+      "selector": "extracts the distinct source and destination of the direct /30 edge",
+      "source": "Tests/Unit/PcaiUsb4RdmaReadiness.Tests.ps1",
+      "sha256": "9215ff4047a28168f9f6ca3205c1f2fd9c397fd87054abb95650ef89f50bc9b5",
+      "reviewer": "codex/rdmawindows",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "Reproduced the local time-zone failure on raw planner fixture, verified fixing representation, reviewed direct address and route identity, reparse and unsupported gates, and independently passed all five selectors."
+    },
+    {
+      "selector": "accepts the unmodified planner JSON times during their observation window",
+      "source": "Tests/Unit/PcaiUsb4RdmaReadiness.Tests.ps1",
+      "sha256": "df6de6c6d373aa82061264389a58222e12dc3357b83722b2b74f5f4938b91b2d",
+      "reviewer": "codex/rdmawindows",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "Reproduced the local time-zone failure on raw planner fixture, verified fixing representation, reviewed direct address and route identity, reparse and unsupported gates, and independently passed all five selectors."
+    },
+    {
+      "selector": "refuses both routed paths and expired topology",
+      "source": "Tests/Unit/PcaiUsb4RdmaReadiness.Tests.ps1",
+      "sha256": "49b5493fd867f2a90484c82ac99e00ca72639c359ebcb21f334dd9fceb2e723f",
+      "reviewer": "codex/rdmawindows",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "Reproduced the local time-zone failure on raw planner fixture, verified fixing representation, reviewed direct address and route identity, reparse and unsupported gates, and independently passed all five selectors."
+    },
+    {
+      "selector": "accepts only the identity-matched adapter and on-link source route",
+      "source": "Tests/Unit/PcaiUsb4RdmaReadiness.Tests.ps1",
+      "sha256": "d3d0a18ca071e43e345e193e0b838decc8ea92513b0eb6e2103a04f8dabcfa9a",
+      "reviewer": "codex/rdmawindows",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "Reproduced the local time-zone failure on raw planner fixture, verified fixing representation, reviewed direct address and route identity, reparse and unsupported gates, and independently passed all five selectors."
+    },
+    {
+      "selector": "keeps undeclared builds and Secure Boot visible as blockers",
+      "source": "Tests/Unit/PcaiUsb4RdmaReadiness.Tests.ps1",
+      "sha256": "4f37cc461243411ccdacd9e36aad07c67a576744962b8a7d2ee2ed381f93d287",
+      "reviewer": "codex/rdmawindows",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "Reproduced the local time-zone failure on raw planner fixture, verified fixing representation, reviewed direct address and route identity, reparse and unsupported gates, and independently passed all five selectors."
+    }
+  ]
+}

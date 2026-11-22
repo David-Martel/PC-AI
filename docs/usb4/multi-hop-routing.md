@@ -7,6 +7,8 @@ prints the commands for the owner to review and run. It changes nothing itself.
 The [planner](../../Native/pcai_core/pcai_tb_cli/src/route_plan.rs) and its
 [CLI entrypoint](../../Native/pcai_core/pcai_tb_cli/src/main.rs) refuse `--apply`.
 
+For a directly cabled Windows pair, see the separate [USB4 NetworkDirect preview preflight](rdma-preview.md).
+
 ## Why hub topologies broke
 
 The fleet's USB4 links run Gen7 to the NUC to Gen9. Gen9's adapter sits behind a

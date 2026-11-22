@@ -14,4 +14,5 @@ pub mod nm_edge;
 pub mod platform;
 pub mod route_plan;
 pub mod status_record;
+pub mod stream_preflight;
 pub mod switch;

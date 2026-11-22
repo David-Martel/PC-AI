@@ -9,6 +9,7 @@ use pcai_tb::identity::{load_peer_registry, resolve_peer_identity};
 use pcai_tb::lifecycle::run_usb4_lifecycle_evaluation;
 use pcai_tb::platform::collect_platform_snapshot;
 use pcai_tb::route_plan::{build_route_plan, RoutePolicy};
+use pcai_tb::stream_preflight::observe_stream_preflight;
 use pcai_tb::switch::{
     collect_switch_status, collect_switch_status_with_options, run_switch_observe, run_vnv_verification,
 };
@@ -31,6 +32,7 @@ SUBCOMMANDS:
   unregister      Plan (or with --apply, remove) the addresses and /128 routes that register owns; MTU/metric untouched
   lifecycle       Evaluate USB4 lifecycle states (asleep/disconnected/probing/ready), TTL, standby 506/507, and stale route withdrawal
   topology-plan   Project fresh bilateral USB4 observations into separate segments; never changes networking
+  stream-preflight Observe local Linux USB4STREAM surfaces without opening a stream device
   route-plan      Plan /30 addressing, host routes and transit forwarding across USB4 hops and hubs; emits commands, never applies
   switch          Inspect SFP+ switch custody, USB4 router trees, shared 10.* routes (--apply provisions routes)
   verify-custody  Enforce SFP+ switch, USB4 veth symmetry, and metric hierarchy invariants (exits non-zero on violation)
@@ -278,6 +280,13 @@ async fn main() -> Result<()> {
     }
 
     let parsed = parse_cli_args(&args)?;
+
+    if parsed.subcommand == "stream-preflight" {
+        if args[1..].iter().any(|arg| arg != "--compact") {
+            anyhow::bail!("stream-preflight is read-only; only --compact is accepted");
+        }
+        return emit_json(&observe_stream_preflight(), parsed.compact);
+    }
 
     if parsed.subcommand == "topology-plan" {
         let mut index = 1;

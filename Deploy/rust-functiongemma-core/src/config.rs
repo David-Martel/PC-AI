@@ -275,6 +275,49 @@ impl Default for PcaiConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::OsString;
+    use std::sync::{Mutex, MutexGuard};
+
+    static ROUTER_ENV_LOCK: Mutex<()> = Mutex::new(());
+    const ROUTER_ENV_KEYS: [&str; 2] = ["PCAI_ROUTER_ADDR", "PCAI_ROUTER_MODEL"];
+
+    // Protects: isolation of all config-loading fixtures that use router environment overrides.
+    // Detects: inheriting an operator override or observing a concurrent test's override.
+    // Needs: the test process environment. The JSON-loading tests also use the checked-in config.
+    // Breadcrumb: PcaiConfig::load_from and PcaiConfig::apply_env_overrides.
+    // Selectors: load_real_config_file, real_config_train_section_is_object, missing_file_returns_defaults,
+    // env_override_router_addr, env_override_router_model, and empty_env_var_does_not_override.
+    struct RouterTestEnv {
+        _guard: MutexGuard<'static, ()>,
+        previous: [Option<OsString>; ROUTER_ENV_KEYS.len()],
+    }
+
+    impl RouterTestEnv {
+        fn isolate() -> Self {
+            let guard = ROUTER_ENV_LOCK
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let previous = ROUTER_ENV_KEYS.map(std::env::var_os);
+            for key in ROUTER_ENV_KEYS {
+                std::env::remove_var(key);
+            }
+            Self {
+                _guard: guard,
+                previous,
+            }
+        }
+    }
+
+    impl Drop for RouterTestEnv {
+        fn drop(&mut self) {
+            for (key, previous) in ROUTER_ENV_KEYS.into_iter().zip(&self.previous) {
+                match previous {
+                    Some(value) => std::env::set_var(key, value),
+                    None => std::env::remove_var(key),
+                }
+            }
+        }
+    }
 
     /// Path to the real config file, relative to the crate root at compile time.
     ///
@@ -289,6 +332,7 @@ mod tests {
 
     #[test]
     fn load_real_config_file() {
+        let _env = RouterTestEnv::isolate();
         let path = PathBuf::from(REAL_CONFIG_RELATIVE);
         if !path.exists() {
             eprintln!("skipping: config file not found at {}", path.display());
@@ -306,6 +350,7 @@ mod tests {
 
     #[test]
     fn real_config_train_section_is_object() {
+        let _env = RouterTestEnv::isolate();
         let path = PathBuf::from(REAL_CONFIG_RELATIVE);
         if !path.exists() {
             return;
@@ -323,51 +368,32 @@ mod tests {
     // Env var overrides
     // ------------------------------------------------------------------
 
-    /// Run a closure with a specific env var set, then restore the original
-    /// value.  Using a process-level lock avoids data races when tests run in
-    /// parallel threads.
-    fn with_env_var<F: FnOnce()>(key: &str, value: &str, f: F) {
-        // SAFETY: only one thread modifies env vars at a time via the mutex.
-        use std::sync::Mutex;
-        static ENV_LOCK: Mutex<()> = Mutex::new(());
-        let _guard = ENV_LOCK
-            .lock()
-            .expect("env-var test mutex poisoned by a previous panic");
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        f();
-        match old {
-            Some(v) => std::env::set_var(key, v),
-            None => std::env::remove_var(key),
-        }
-    }
-
     #[test]
     fn env_override_router_addr() {
-        with_env_var("PCAI_ROUTER_ADDR", "0.0.0.0:9999", || {
-            // Load from a non-existent path to get defaults, then apply env.
-            let cfg = PcaiConfig::load_from(Path::new("/nonexistent/config.json"))
-                .expect("should return defaults on missing file");
-            assert_eq!(cfg.runtime.router_addr, "0.0.0.0:9999");
-        });
+        let _env = RouterTestEnv::isolate();
+        std::env::set_var("PCAI_ROUTER_ADDR", "0.0.0.0:9999");
+        // Load from a non-existent path to get defaults, then apply env.
+        let cfg = PcaiConfig::load_from(Path::new("/nonexistent/config.json"))
+            .expect("should return defaults on missing file");
+        assert_eq!(cfg.runtime.router_addr, "0.0.0.0:9999");
     }
 
     #[test]
     fn env_override_router_model() {
-        with_env_var("PCAI_ROUTER_MODEL", "my-custom-model", || {
-            let cfg = PcaiConfig::load_from(Path::new("/nonexistent/config.json"))
-                .expect("should return defaults on missing file");
-            assert_eq!(cfg.runtime.router_model, "my-custom-model");
-        });
+        let _env = RouterTestEnv::isolate();
+        std::env::set_var("PCAI_ROUTER_MODEL", "my-custom-model");
+        let cfg = PcaiConfig::load_from(Path::new("/nonexistent/config.json"))
+            .expect("should return defaults on missing file");
+        assert_eq!(cfg.runtime.router_model, "my-custom-model");
     }
 
     #[test]
     fn empty_env_var_does_not_override() {
-        with_env_var("PCAI_ROUTER_ADDR", "", || {
-            let cfg = PcaiConfig::load_from(Path::new("/nonexistent/config.json")).expect("defaults");
-            // Empty override must not replace the default.
-            assert_eq!(cfg.runtime.router_addr, RuntimeConfig::default().router_addr);
-        });
+        let _env = RouterTestEnv::isolate();
+        std::env::set_var("PCAI_ROUTER_ADDR", "");
+        let cfg = PcaiConfig::load_from(Path::new("/nonexistent/config.json")).expect("defaults");
+        // Empty override must not replace the default.
+        assert_eq!(cfg.runtime.router_addr, RuntimeConfig::default().router_addr);
     }
 
     // ------------------------------------------------------------------
@@ -389,6 +415,7 @@ mod tests {
 
     #[test]
     fn missing_file_returns_defaults() {
+        let _env = RouterTestEnv::isolate();
         let cfg = PcaiConfig::load_from(Path::new("/nonexistent/path/config.json"))
             .expect("should return defaults, not an error");
         assert_eq!(cfg.runtime.router_addr, RuntimeConfig::default().router_addr);

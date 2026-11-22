@@ -7,7 +7,7 @@ local observation. Repeat across both endpoints and keep application and
 transport results with the exact source and binary hashes.
 
     pwsh -NoProfile -File Tools/SystemScripts/Networking/Get-PcaiUsb4RdmaReadiness.ps1
-    pwsh -NoProfile -File Tools/SystemScripts/Networking/Get-PcaiUsb4RdmaReadiness.ps1 -PlanPath ./fresh-route-plan.json -PeerHost dtm-super-nuc
+    pwsh -NoProfile -File Tools/SystemScripts/Networking/Get-PcaiUsb4RdmaReadiness.ps1 -PlanPath ./fresh-route-plan.json -PeerHost $peer
 
 Microsoft's November 19, 2026 announcement still lists the exact Experimental
 (Future Platforms) Windows build as forthcoming. The November 20 notes for build
@@ -27,7 +27,7 @@ configuration, installs no provider and runs no network probe.
 
 ## Test sequence
 
-Start with the [USB4NET TCP baseline](peer-networking.md) on a direct, qualified
+Start with the [USB4NET TCP hardware test](hardware-testing.md) on a direct, qualified
 pair. Record both endpoint identities, adapter and driver versions, link rate,
 MTU and tool versions. Run one-way tests in each direction and a simultaneous
 bidirectional test. Capture receiver goodput per direction, latency under load,

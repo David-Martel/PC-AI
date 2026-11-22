@@ -1,6 +1,6 @@
 # USB4 TCP hardware testing
 
-Use the [HIL coordinator](../../Tests/Hardware/usb4_tcp_hil.py) from a trusted PC-AI checkout to qualify Windows USB4NET cables for simultaneous bidirectional TCP. CI runs the [portable controls](../../Tests/Portable/test_usb4_tcp_hil.py) on Windows and Linux. The physical run needs Python 3.10+, Git, OpenSSH for remote management, and PowerShell 7 and iperf3 3.11+ on each endpoint.
+Use the [HIL coordinator](../../Tests/Hardware/usb4_tcp_hil.py) from a trusted PC-AI checkout to qualify Windows USB4NET cables for simultaneous bidirectional TCP. CI runs the [receipt controls](../../Tests/Portable/test_usb4_tcp_hil.py) and [endpoint controls](../../Tests/Portable/Test-Usb4TcpEndpoint.ps1) on Windows and Linux. The physical run needs Python 3.10+, Git, OpenSSH for remote management, and PowerShell 7 and iperf3 3.11+ on each endpoint.
 
 ## Describe the cables
 
@@ -27,6 +27,8 @@ Keep the site profile and run receipts on an access-controlled local path. Use t
 ```
 
 In a hub or mesh, describe each cable as a separate edge. Use a measured baseline for each edge's floor. The sample floor detects connectivity failure and is too low to qualify a 40 Gbps-class link for a throughput release. Run from a host with a stable management route and schedule the trial to avoid contention with active transfers.
+
+If one direction misses the floor, repeat with the same ports, MTU and tool versions, then swap the `client` and `server` definitions. Record whether the slower direction follows the physical sender or the benchmark role. Keep a separate one-way native baseline to help isolate transport and benchmark effects. A combined rate can hide a failing direction.
 
 ## Run and review
 

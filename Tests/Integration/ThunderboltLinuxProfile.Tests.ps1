@@ -31,7 +31,7 @@ nmcli() {
         case "$4" in
             GENERAL.CON-UUID)
                 case "$scenario" in
-                    ready|live-*|stored-mtu) printf '11111111-1111-1111-1111-111111111111\n';;
+                    ready|live-*|stored-*) printf '11111111-1111-1111-1111-111111111111\n';;
                     other-active) printf '22222222-2222-2222-2222-222222222222\n';;
                     *) printf '%s\n' '--';;
                 esac;;
@@ -39,6 +39,8 @@ nmcli() {
             IP6.ADDRESS) if [ "$scenario" != live-v6 ]; then printf 'fe80::2/64\n'; fi;;
             IP4.GATEWAY) if [ "$scenario" = live-v4-gateway ]; then printf '172.31.240.1\n'; else printf '%s\n' '--'; fi;;
             IP6.GATEWAY) if [ "$scenario" = live-gateway ]; then printf 'fe80::1\n'; else printf '%s\n' '--'; fi;;
+            IP4.DNS) if [ "$scenario" = live-v4-dns ]; then printf '172.31.240.1\n'; fi;;
+            IP6.DNS) if [ "$scenario" = live-v6-dns ]; then printf 'fe80::1\n'; fi;;
             *) return 99;;
         esac
     elif [ "$1" = -t ]; then
@@ -55,6 +57,8 @@ nmcli() {
             ipv4.method) printf 'manual\n';;
             ipv4.addresses) printf '172.31.240.2/30\n';;
             ipv6.method) case "$scenario" in ipv6) printf 'auto\n';; legacy) printf 'disabled\n';; *) printf 'link-local\n';; esac;;
+            ipv6.addr-gen-mode) if [ "$scenario" = stored-iid ]; then printf 'stable-privacy\n'; else printf 'eui64\n'; fi;;
+            ipv6.token) if [ "$scenario" = ipv6-token ]; then printf '::1234\n'; fi;;
             ipv6.addresses) if [ "$scenario" = ipv6-address ]; then printf 'fd00::2/64\n'; fi;;
             ipv4.routes) if [ "$scenario" = routes ]; then printf '10.0.0.0/8 172.31.240.1\n'; fi;;
             ipv6.gateway) if [ "$scenario" = ipv6-gateway ]; then printf 'fe80::1\n'; fi;;
@@ -109,7 +113,8 @@ Describe 'Generated Linux profile logic executed by Bash' {
     It 'reconciles a profile with <Scenario> drift instead of declaring a ready link' -ForEach @(
         @{ Scenario = 'other-active' }, @{ Scenario = 'live-mtu' }, @{ Scenario = 'stored-mtu' },
         @{ Scenario = 'live-v4' }, @{ Scenario = 'live-v6' },
-        @{ Scenario = 'live-v4-gateway' }, @{ Scenario = 'live-gateway' }
+        @{ Scenario = 'live-v4-gateway' }, @{ Scenario = 'live-gateway' },
+        @{ Scenario = 'stored-iid' }, @{ Scenario = 'live-v4-dns' }, @{ Scenario = 'live-v6-dns' }
     ) {
         $r = Invoke-ProfileFixture $Scenario
         $r.exitCode | Should -Be 0
@@ -126,7 +131,7 @@ Describe 'Generated Linux profile logic executed by Bash' {
         $r = Invoke-ProfileFixture $Scenario
         $r.exitCode | Should -Be 0
         $r.events.Count | Should -Be 2
-        $r.events[0] | Should -Be 'connection modify uuid 11111111-1111-1111-1111-111111111111 802-3-ethernet.mtu 1500 ipv4.gateway  ipv4.dns  ipv4.never-default yes ipv4.ignore-auto-routes yes ipv4.ignore-auto-dns yes ipv6.method link-local'
+        $r.events[0] | Should -Be 'connection modify uuid 11111111-1111-1111-1111-111111111111 802-3-ethernet.mtu 1500 ipv4.gateway  ipv4.dns  ipv4.never-default yes ipv4.ignore-auto-routes yes ipv4.ignore-auto-dns yes ipv6.method link-local ipv6.addr-gen-mode eui64'
         $r.events[1] | Should -Be 'connection up uuid 11111111-1111-1111-1111-111111111111 ifname thunderbolt0'
     }
     # Protects: existing IPv4 routing policy from profile adoption.
@@ -159,6 +164,16 @@ Describe 'Generated Linux profile logic executed by Bash' {
         $r.events.Count | Should -Be 0
         $r.error | Should -Match 'unexpected ipv6.never-default'
     }
+    # Protects: owner-selected IPv6 tokens from migration or silent EUI-64 override.
+    # Detects: activation or changes when a stored token overrides hardware-derived generation.
+    # Needs: Linux Bash, Python 3 and fixture-only nmcli. Windows runs through SSH.
+    # Breadcrumb: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript.
+    It 'refuses a stored IPv6 token before writing a managed EUI-64 profile' {
+        $r = Invoke-ProfileFixture ipv6-token
+        $r.exitCode | Should -Be 1
+        $r.events.Count | Should -Be 0
+        $r.error | Should -Match 'unexpected ipv6.token'
+    }
     # Protects: custody of IPv6 settings already stored in an existing profile.
     # Detects: migration over a manual IPv6 address, gateway, DNS, or route.
     # Needs: SSH to a Linux host with Bash, Python 3 and fixture-only nmcli.
@@ -190,7 +205,7 @@ Describe 'Generated Linux profile logic executed by Bash' {
         $r = Invoke-ProfileFixture new
         $r.exitCode | Should -Be 0
         $r.events.Count | Should -Be 3
-        $r.events[0] | Should -Be 'connection add type ethernet ifname thunderbolt0 con-name pcai-tb-fixture-peer ipv4.method manual ipv4.addresses 172.31.240.2/30 ipv4.never-default yes ipv4.ignore-auto-routes yes ipv4.ignore-auto-dns yes ipv6.method link-local ipv6.never-default yes connection.autoconnect yes'
+        $r.events[0] | Should -Be 'connection add type ethernet ifname thunderbolt0 con-name pcai-tb-fixture-peer ipv4.method manual ipv4.addresses 172.31.240.2/30 ipv4.never-default yes ipv4.ignore-auto-routes yes ipv4.ignore-auto-dns yes ipv6.method link-local ipv6.addr-gen-mode eui64 ipv6.never-default yes connection.autoconnect yes'
         $r.events[2] | Should -Be 'connection up id pcai-tb-fixture-peer ifname thunderbolt0'
     }
 }

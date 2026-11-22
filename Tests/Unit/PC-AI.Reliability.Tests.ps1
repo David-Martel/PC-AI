@@ -766,6 +766,31 @@ Describe 'PC-AI.Reliability' {
             (@(Get-ArgValue $sent[0] '--metadata')[0] | ConvertFrom-Json).details.incident_state | Should -Be 'unsaved'
         }
 
+        It 'sends no unsaved alert when the state was saved and only the promotion of its events failed (review of d5d030fd)' {
+            # The store write succeeded, so the opening alert is committed and outbox recovery sends it. An unsaved alert
+            # here announced the same opening twice. Control: once promotion works again, the opening goes out once.
+            $script:FailPromotion = $true
+            Mock -ModuleName PC-AI.Reliability Move-Item { throw 'promotion failed' } -ParameterFilter { $script:FailPromotion -and $LiteralPath -like '*.pending' }
+            { Submit-FleetObservation (New-TestObservation -Name 'promoted') } | Should -Throw '*promotion failed*'
+            @(Get-BusCall 'send').Count | Should -Be 0
+            $script:FailPromotion = $false
+            $null = Submit-FleetObservation (New-TestObservation -Name 'promoted')
+            $sent = @(Get-BusCall 'send')
+            $sent.Count | Should -Be 1
+            $meta = @(Get-ArgValue $sent[0] '--metadata')[0] | ConvertFrom-Json
+            $meta.kind | Should -Be 'incident-open'
+            $meta.details.incident_state | Should -BeNullOrEmpty
+        }
+
+        It 'forwards the unsaved alert once when only recording its delivery fails (review of d5d030fd)' {
+            # Forwarding sends to the bus before it records the delivery; a failed record must not send again.
+            Mock -ModuleName PC-AI.Reliability Write-FleetJsonFile { throw 'disk full' } -ParameterFilter { $Path -like '*incidents.json' }
+            Mock -ModuleName PC-AI.Reliability Write-FleetLedgerEvent { throw 'disk full' } -ParameterFilter { $LedgerEvent.check -eq 'delivery' }
+            $obs = New-FleetObservation -Source disk -Name 'E:' -Check disk-free -Status failed -Severity high -Message 'free space low'
+            { Submit-FleetObservation $obs } | Should -Throw '*disk full*'
+            @(Get-BusCall 'send').Count | Should -Be 1
+        }
+
         It 'sends no unsaved alert for an incident already open, or for an ok observation, when the save fails' {
             $null = Submit-FleetObservation (New-TestObservation)
             @(Get-BusCall 'send').Count | Should -Be 1

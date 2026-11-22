@@ -104,16 +104,96 @@ function Get-PcaiHealthFile {
     return $files.ToArray()
 }
 
-function Get-PcaiContentVersion {
-    <# First 12 hex digits of SHA-256 over the names and bytes of the files, in name order. #>
+function Get-PcaiHealthPayload {
+    <# Capture the installed bytes once, including the Linux text normalization. #>
     [CmdletBinding()]
-    param([Parameter(Mandatory)][object[]]$File)
+    param([Parameter(Mandatory)][object[]]$File, [switch]$NormalizeText)
     $sha = [Security.Cryptography.IncrementalHash]::CreateHash([Security.Cryptography.HashAlgorithmName]::SHA256)
-    foreach ($f in @($File | Sort-Object Name)) {
-        $sha.AppendData([Text.Encoding]::UTF8.GetBytes($f.Name + "`n"))
-        $sha.AppendData([IO.File]::ReadAllBytes($f.Source))
+    try {
+        $files = @(foreach ($f in @($File | Sort-Object Name)) {
+                if ($NormalizeText) {
+                    $bytes = [Text.Encoding]::UTF8.GetBytes([IO.File]::ReadAllText($f.Source).Replace("`r`n", "`n"))
+                } else { $bytes = [IO.File]::ReadAllBytes($f.Source) }
+                $sha.AppendData([Text.Encoding]::UTF8.GetBytes($f.Name + "`n"))
+                $sha.AppendData($bytes)
+                [pscustomobject]@{ Name = $f.Name; Bytes = $bytes; Sha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant() }
+            })
+        return [pscustomobject]@{ Version = [Convert]::ToHexString($sha.GetHashAndReset()).Substring(0, 12).ToLowerInvariant(); Files = $files }
+    } finally { $sha.Dispose() }
+}
+
+function Assert-PcaiHealthPayload {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Directory, [Parameter(Mandatory)]$Payload, [switch]$SystemTask)
+    $conflict = "Cannot use health payload $Directory. The directory, permissions, manifest or bytes differ from the expected payload. Preserve it for inspection."
+    $dir = Get-Item -LiteralPath $Directory -Force
+    if (-not $dir.PSIsContainer -or ($dir.Attributes -band [IO.FileAttributes]::ReparsePoint) -or
+        ($SystemTask -and -not (Test-PcaiSystemTrustedPath -Path $Directory))) { throw $conflict }
+    $entries = @(Get-ChildItem -LiteralPath $Directory -Force)
+    $expectedNames = @($Payload.Files.Name) + 'manifest.json'
+    if ($entries.Count -ne $expectedNames.Count) { throw $conflict }
+    foreach ($entry in $entries) {
+        if ($entry.Name -cnotin $expectedNames -or $entry.PSIsContainer -or ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -or
+            ($SystemTask -and -not (Test-PcaiSystemTrustedPath -Path $entry.FullName))) { throw $conflict }
     }
-    return [Convert]::ToHexString($sha.GetHashAndReset()).Substring(0, 12).ToLowerInvariant()
+    try { $manifest = Get-Content -LiteralPath (Join-Path $Directory 'manifest.json') -Raw | ConvertFrom-Json -AsHashtable }
+    catch { throw $conflict }
+    if ($manifest -isnot [Collections.IDictionary] -or $manifest['version'] -cne $Payload.Version -or
+        @($manifest['files']).Count -ne $Payload.Files.Count) { throw $conflict }
+    foreach ($file in $Payload.Files) {
+        $matches = @($manifest['files'] | Where-Object { $_ -is [Collections.IDictionary] -and $_['name'] -ceq $file.Name })
+        $path = Join-Path $Directory $file.Name
+        if ($matches.Count -ne 1 -or $matches[0]['sha256'] -ne $file.Sha256 -or (Get-FileHash -LiteralPath $path).Hash -ne $file.Sha256) {
+            throw $conflict
+        }
+        if ($IsLinux -and $file.Name.EndsWith('.sh')) {
+            & test -x $path
+            if ($LASTEXITCODE -ne 0) { throw $conflict }
+        }
+    }
+}
+
+function Publish-PcaiHealthPayload {
+    <# Publish a complete version once. No task or unit points to the private stage. #>
+    [CmdletBinding()]
+    param([string]$Root, [string]$Directory, [string]$StagingParent = (Split-Path -Parent $Directory), $Payload, [switch]$SystemTask)
+    if (Get-Item -LiteralPath $Directory -Force -ErrorAction SilentlyContinue) {
+        Assert-PcaiHealthPayload -Directory $Directory -Payload $Payload -SystemTask:$SystemTask
+        return
+    }
+    $stage = Join-Path $StagingParent ('.pcai-health-stage-' + [guid]::NewGuid().ToString('N'))
+    try {
+        if ($SystemTask) { New-PcaiProtectedDirectory -Path $stage }
+        else { $null = New-Item -ItemType Directory -Path $stage }
+        foreach ($file in $Payload.Files) {
+            $path = Join-Path $stage $file.Name
+            [IO.File]::WriteAllBytes($path, $file.Bytes)
+            if ($IsLinux -and $file.Name.EndsWith('.sh')) {
+                & chmod 0755 $path
+                if ($LASTEXITCODE -ne 0) { throw "Could not make the staged health payload executable: $path" }
+            }
+        }
+        $commit = $null
+        try { $commit = (& git -C $Root rev-parse HEAD 2>$null) } catch { $commit = $null }
+        [ordered]@{ version = $Payload.Version; installedAtUtc = [DateTime]::UtcNow.ToString('o'); sourceRoot = $Root; sourceCommit = $commit
+            files = @($Payload.Files | ForEach-Object { [ordered]@{ name = $_.Name; sha256 = $_.Sha256 } })
+        } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $stage 'manifest.json')
+        if ($SystemTask) { Protect-PcaiSystemFile -Directory $stage }
+        Assert-PcaiHealthPayload -Directory $stage -Payload $Payload -SystemTask:$SystemTask
+        try { [IO.Directory]::Move($stage, $Directory) }
+        catch [IO.IOException] {
+            # A concurrent installer can publish the same content first. Check its bytes before reuse.
+            if (-not (Get-Item -LiteralPath $Directory -Force -ErrorAction SilentlyContinue)) { throw }
+        }
+        Assert-PcaiHealthPayload -Directory $Directory -Payload $Payload -SystemTask:$SystemTask
+    } finally {
+        # Delete only our known staged leaf files. Never traverse substitute directories or links.
+        $leftover = Get-Item -LiteralPath $stage -Force -ErrorAction SilentlyContinue
+        if ($leftover -and $leftover.PSIsContainer -and -not ($leftover.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            foreach ($name in (@($Payload.Files.Name) + 'manifest.json')) { [IO.File]::Delete((Join-Path $stage $name)) }
+            [IO.Directory]::Delete($stage)
+        }
+    }
 }
 
 function Test-PcaiSystemTrustedPath {
@@ -421,8 +501,8 @@ function Install-PcaiHealthWindows {
     $present = @($files | ForEach-Object Component | Sort-Object -Unique)
     foreach ($c in $Components) { if ($c -notin $present) { Write-Output "skipped component $c`: its script is not in $Root" } }
     if (-not $files) { throw "No health scripts found under $Root" }
-    $version = Get-PcaiContentVersion -File $files
-    $bin = Join-Path $Target $version
+    $payload = Get-PcaiHealthPayload -File $files
+    $bin = Join-Path $Target $payload.Version
     if ($IsDryRun) {
         # A dry run refuses an untrusted interpreter exactly as the real install would.
         if ($SystemTask) { $pwsh = Resolve-PcaiSystemPwsh; Write-Output "would run the SYSTEM task with $pwsh" }
@@ -431,6 +511,7 @@ function Install-PcaiHealthWindows {
         foreach ($s in $specs) { Write-Output "would register $($script:PcaiTaskFolder)$($s.Name)" }
         return
     }
+    $stageParent = $Target
     if ($SystemTask) {
         # The interpreter runs as SYSTEM before any script check, so it needs the same custody.
         # Resolved before anything below creates, protects or rebuilds a directory, so a refusal
@@ -441,6 +522,8 @@ function Install-PcaiHealthWindows {
         # account created first (it could otherwise swap the scripts the task runs).
         $linkRoot = Split-Path -Parent $Target
         $usb4Root = Split-Path -Parent $linkRoot
+        # Keep partial stages outside the tree inspected by a running SYSTEM watcher.
+        $stageParent = $usb4Root
         # Everything above pcai-usb4 is checked before any directory is created or re-permissioned: a
         # junction or replaceable ancestor there would point the ACL changes below into another tree
         # (codex review of #344 at 77bcc55c).
@@ -456,6 +539,9 @@ function Install-PcaiHealthWindows {
             if ($owner -notin $script:PcaiAdminSids) { throw "$dir is owned by $owner, not Administrators or SYSTEM; review it, then: icacls `"$dir`" /setowner *S-1-5-32-544" }
         }
         if (-not (Test-Path -LiteralPath $usb4Root)) { New-PcaiProtectedDirectory -Path $usb4Root }
+        if (-not (Test-PcaiSystemTrustedPath -Path $stageParent)) {
+            throw "The SYSTEM health payload staging parent ($stageParent) must be protected against writes by other accounts. Review its ownership and ACL before rerunning -System."
+        }
         New-PcaiProtectedDirectory -Path $linkRoot
         New-PcaiProtectedDirectory -Path $Target
         # The install root's own chain first: below an untrusted ancestor nothing inside can be trusted.
@@ -467,28 +553,14 @@ function Install-PcaiHealthWindows {
         # directory let users create files must not survive into a SYSTEM install. That covers bin\backup
         # too, which the install below protects and cleans: a junction planted there would carry those ACL
         # changes and deletions outside the tree (codex review of #344 at 4ec06bb1). Get-ChildItem does not
-        # follow a junction, and the trust check refuses a reparse point. Only this version's own directory
-        # is skipped: it is checked for a reparse point and rebuilt from scratch below.
+        # follow a junction, and the trust check refuses a reparse point. Publication checks this
+        # version's directory separately, including its custody, manifest and contents.
         $planted = @(Get-ChildItem -LiteralPath $linkRoot -Recurse -Force -ErrorAction SilentlyContinue |
                 Where-Object { $_.FullName -ne $bin -and -not $_.FullName.StartsWith($bin + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -and -not (Test-PcaiSystemTrustedPath -Path $_.FullName) })
         if ($planted) {
             throw "$linkRoot holds entries that are not admin-owned and protected: $(@($planted | Select-Object -First 5 | ForEach-Object FullName) -join '; '). Review and remove them, then rerun -System."
         }
-        # A version directory that already exists may predate the protection (or hold files a user
-        # planted while it was writable), and a content hash names only what we meant to copy. The
-        # SYSTEM task never runs a directory it did not just create: rebuild it from scratch.
-        if (Test-Path -LiteralPath $bin) {
-            if ((Get-Item -LiteralPath $bin -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$bin is a reparse point; review and remove it" }
-            Remove-Item -LiteralPath $bin -Recurse -Force
-        }
-        New-PcaiProtectedDirectory -Path $bin
         New-PcaiProtectedDirectory -Path $backupDir
-        # The protections above cover only the last levels. A custom -InstallRoot under a directory
-        # a user controls would still let that user replace the whole subtree, so the full chain
-        # up to the volume root must be trusted before a SYSTEM task points into it.
-        if (-not (Test-PcaiSystemTrustedPath -Path $bin)) {
-            throw "$bin is not trusted for a SYSTEM task: it or an ancestor up to the volume root has an untrusted owner, is a reparse point or lets another account replace it. Use the default %ProgramData% root or fix the ACLs."
-        }
         # A baseline a user planted while the tree was writable would later be restored elevated.
         foreach ($f in @(Get-ChildItem -LiteralPath $backupDir -File -Force -ErrorAction SilentlyContinue)) {
             if (-not (Test-PcaiSystemTrustedPath -Path $f.FullName)) {
@@ -498,14 +570,8 @@ function Install-PcaiHealthWindows {
         }
     }
     $specs = Get-PcaiTaskSpec -BinDir $bin -Pwsh $pwsh -UserId $userId -Components $present -SystemTask:$SystemTask
-    $null = New-Item -ItemType Directory -Force -Path $bin, $backupDir
-    foreach ($f in $files) { Copy-Item -LiteralPath $f.Source -Destination (Join-Path $bin $f.Name) -Force }
-    $commit = $null
-    try { $commit = (& git -C $Root rev-parse HEAD 2>$null) } catch { $commit = $null }
-    [ordered]@{ version = $version; installedAtUtc = [DateTime]::UtcNow.ToString('o'); sourceRoot = $Root; sourceCommit = $commit
-        files = @($files | ForEach-Object { [ordered]@{ name = $_.Name; sha256 = (Get-FileHash -LiteralPath (Join-Path $bin $_.Name)).Hash.ToLowerInvariant() } })
-    } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $bin 'manifest.json')
-    if ($SystemTask) { Protect-PcaiSystemFile -Directory $bin }
+    $null = New-Item -ItemType Directory -Force -Path $Target, $backupDir
+    Publish-PcaiHealthPayload -Root $Root -Directory $bin -Payload $payload -StagingParent $stageParent -SystemTask:$SystemTask
     foreach ($s in $specs) {
         $existing = Get-ScheduledTask -TaskPath $script:PcaiTaskFolder -TaskName $s.Name -ErrorAction SilentlyContinue
         # The first install records the pre-install baseline once (a definition, or a marker that
@@ -598,27 +664,16 @@ function Install-PcaiHealthLinux {
     $files = @(Get-PcaiHealthFile -Root $Root -Components $Components | Where-Object { Test-Path -LiteralPath $_.Source })
     if (-not $files) { throw "No health scripts found under $Root" }
     $present = @($files | ForEach-Object Component | Sort-Object -Unique)
-    $version = Get-PcaiContentVersion -File $files
-    $bin = Join-Path $Target $version
+    $payload = Get-PcaiHealthPayload -File $files -NormalizeText
+    $bin = Join-Path $Target $payload.Version
     $units = Get-PcaiSystemdUnit -BinDir $bin -Pwsh $pwsh -Components $present
     if ($IsDryRun) {
         Write-Output "would install $($files.Count) file(s) to $bin"
         foreach ($u in $units.Keys) { Write-Output "would write and enable $u" }
         return
     }
-    $null = New-Item -ItemType Directory -Force -Path $bin, $backupDir, $unitDir
-    foreach ($f in $files) {
-        $dest = Join-Path $bin $f.Name
-        # Repository checkouts on Windows may carry CRLF; bash and systemd need LF.
-        $text = (Get-Content -LiteralPath $f.Source -Raw) -replace "`r`n", "`n"
-        [IO.File]::WriteAllText($dest, $text, [Text.UTF8Encoding]::new($false))
-        if ($dest -like '*.sh') { & chmod 0755 $dest }
-    }
-    $commit = $null
-    try { $commit = (& git -C $Root rev-parse HEAD 2>$null) } catch { $commit = $null }
-    [ordered]@{ version = $version; installedAtUtc = [DateTime]::UtcNow.ToString('o'); sourceRoot = $Root; sourceCommit = $commit
-        files = @($files | ForEach-Object { [ordered]@{ name = $_.Name; sha256 = (Get-FileHash -LiteralPath (Join-Path $bin $_.Name)).Hash.ToLowerInvariant() } })
-    } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $bin 'manifest.json')
+    $null = New-Item -ItemType Directory -Force -Path $Target, $backupDir, $unitDir
+    Publish-PcaiHealthPayload -Root $Root -Directory $bin -Payload $payload
     $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')
     foreach ($u in $units.Keys) {
         $path = Join-Path $unitDir $u

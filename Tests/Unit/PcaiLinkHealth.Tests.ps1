@@ -394,7 +394,11 @@ Describe 'Linux reconnect monitor' -Tag 'Unit', 'Portable' {
 }
 
 Describe 'SYSTEM install never trusts a pre-existing version directory' -Tag 'Unit' {
-    It 'rebuilds the version directory so a planted file does not survive' -Skip:(-not $IsWindows) {
+    # Protects: a live payload stays intact when a conflicting directory exists.
+    # Detects: rebuilding a version that may still be referenced by a SYSTEM task.
+    # Needs: Windows and mocked Task Scheduler/ACL providers.
+    # Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Install-PcaiHealthWindows.
+    It 'refuses a planted file without changing the version or registering a task' -Skip:(-not $IsWindows) {
         Mock Get-ScheduledTask { }
         Mock Register-ScheduledTask { }
         Mock Start-ScheduledTask { }
@@ -403,16 +407,163 @@ Describe 'SYSTEM install never trusts a pre-existing version directory' -Tag 'Un
         Mock Test-PcaiSystemTrustedPath { $true }
         Mock Protect-PcaiSystemFile { }
         $target = Join-Path $TestDrive 'pcai-usb4/link-health/bin'
-        $files = @(Get-PcaiHealthFile -Root $repoRoot -Components @('LinkHealth') | Where-Object { Test-Path -LiteralPath $_.Source })
-        $bin = Join-Path $target (Get-PcaiContentVersion -File $files)
+        $preview = @(Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask -IsDryRun)
+        $bin = ($preview | Where-Object { $_ -like 'would install *' }) -replace '^would install \d+ file\(s\) to ', ''
         $null = New-Item -ItemType Directory -Force -Path $bin
         Set-Content -LiteralPath (Join-Path $bin 'planted.ps1') -Value 'evil'
+        { Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask | Out-Null } |
+            Should -Throw '*payload*'
+        Get-Content -LiteralPath (Join-Path $bin 'planted.ps1') | Should -Be 'evil'
+        Should -Invoke Register-ScheduledTask -Times 0 -Exactly
+    }
+
+    # Protects: SYSTEM reuse requires trusted custody of the version directory and each published file.
+    # Detects: accepting hash-matching content after a directory or script loses trusted ownership or ACLs.
+    # Needs: Windows, a real temporary payload, and mocked task and ACL providers.
+    # Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Assert-PcaiHealthPayload.
+    It 'refuses reuse when the matching SYSTEM <TargetKind> is untrusted' -Skip:(-not $IsWindows) -ForEach @(
+        @{ TargetKind = 'version directory'; Leaf = '' }
+        @{ TargetKind = 'payload entry'; Leaf = 'Invoke-PcaiLinkHealth.ps1' }
+    ) {
+        Mock Get-ScheduledTask {}
+        Mock Register-ScheduledTask {}
+        Mock Get-Acl { [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = 'S-1-5-32-544' } } -PassThru }
+        Mock New-PcaiProtectedDirectory { $null = New-Item -ItemType Directory -Force -Path $Path }
+        Mock Test-PcaiSystemTrustedPath { $true }
+        Mock Protect-PcaiSystemFile {}
+        $target = Join-Path $TestDrive 'reuse-custody/link-health/bin'
+        $null = New-Item -ItemType Directory -Force -Path $target
+        $files = @(Get-PcaiHealthFile -Root $repoRoot -Components @('LinkHealth') | Where-Object { Test-Path -LiteralPath $_.Source })
+        $payload = Get-PcaiHealthPayload -File $files
+        $bin = Join-Path $target $payload.Version
+        Publish-PcaiHealthPayload -Root $repoRoot -Directory $bin -Payload $payload
+        $paths = @(Get-ChildItem -LiteralPath $bin -File -Force | Sort-Object Name | ForEach-Object FullName)
+        $before = @(Get-FileHash -LiteralPath $paths).Hash
+        $denied = if ($Leaf) { Join-Path $bin $Leaf } else { $bin }
+        Mock Test-PcaiSystemTrustedPath { $false } -ParameterFilter { $Path -eq $denied }
+        { Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask | Out-Null } |
+            Should -Throw '*Cannot use health payload*'
+        @(Get-FileHash -LiteralPath $paths).Hash | Should -Be $before
+        Should -Invoke Register-ScheduledTask -Times 0 -Exactly
+    }
+
+    # Protects: a write-restricted parent holds the SYSTEM payload while it is staged.
+    # Detects: treating permission to create children as safe for a staging parent.
+    # Needs: Windows and mocked task and ACL providers.
+    # Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Install-PcaiHealthWindows.
+    It 'refuses a SYSTEM staging parent that allows other accounts to create children' -Skip:(-not $IsWindows) {
+        Mock Get-ScheduledTask {}
+        Mock Register-ScheduledTask {}
+        Mock Get-Acl { [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = 'S-1-5-32-544' } } -PassThru }
+        Mock New-PcaiProtectedDirectory { $null = New-Item -ItemType Directory -Force -Path $Path }
+        Mock Test-PcaiSystemTrustedPath { $true }
+        Mock Test-PcaiSystemTrustedPath { $false } -ParameterFilter { $Path -eq $usb4Root -and -not $AncestorOnly }
+        Mock Protect-PcaiSystemFile {}
+        $usb4Root = Join-Path $TestDrive 'writable-usb4'
+        $null = New-Item -ItemType Directory -Path $usb4Root
+        $target = Join-Path $usb4Root 'link-health/bin'
+        { Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask } |
+            Should -Throw '*staging parent*'
+        @(Get-ChildItem -LiteralPath $usb4Root -Force).Count | Should -Be 0
+        Should -Invoke Register-ScheduledTask -Times 0 -Exactly
+    }
+
+    # Protects: a running SYSTEM observer never sees the partial payload or a premature task update.
+    # Detects: staging under link-health, publishing before ACL protection, or registering before publication.
+    # Needs: Windows, temporary storage and mocked task and ACL providers.
+    # Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Publish-PcaiHealthPayload.
+    It 'protects the complete SYSTEM stage outside link-health before registering its task' -Skip:(-not $IsWindows) {
+        Mock Get-ScheduledTask {}
+        Mock Register-ScheduledTask {
+            @(Get-ChildItem -LiteralPath $target -Directory | Where-Object Name -ne 'backup').Count | Should -Be 1
+            [IO.File]::Exists((Join-Path $target "$expectedVersion/manifest.json")) | Should -BeTrue
+            Should -Invoke Protect-PcaiSystemFile -Times 1 -Exactly -ParameterFilter { $Directory -like "$usb4Root*stage-*" }
+        }
+        Mock Get-Acl { [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = 'S-1-5-32-544' } } -PassThru }
+        Mock New-PcaiProtectedDirectory { $null = New-Item -ItemType Directory -Force -Path $Path }
+        Mock Test-PcaiSystemTrustedPath { $true }
+        Mock Protect-PcaiSystemFile {
+            if ((Split-Path -Leaf $Directory) -like '.pcai-health-stage-*') {
+                (Split-Path -Parent $Directory) | Should -BeExactly $usb4Root
+                @(Get-ChildItem -LiteralPath $Directory -File).Name | Should -Contain 'manifest.json'
+                Test-Path -LiteralPath (Join-Path $target $expectedVersion) | Should -BeFalse
+            }
+        }
+        $usb4Root = Join-Path $TestDrive 'protected-usb4'
+        $target = Join-Path $usb4Root 'link-health/bin'
+        $files = @(Get-PcaiHealthFile -Root $repoRoot -Components @('LinkHealth') | Where-Object { Test-Path -LiteralPath $_.Source })
+        $expectedVersion = (Get-PcaiHealthPayload -File $files).Version
         Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask | Out-Null
-        Test-Path -LiteralPath (Join-Path $bin 'planted.ps1') | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path $bin 'Invoke-PcaiLinkHealth.ps1') | Should -BeTrue
-        Should -Invoke New-PcaiProtectedDirectory -ParameterFilter { $Path -eq $bin }
-        # Copied scripts and the manifest get Administrators as owner before the task is registered.
-        Should -Invoke Protect-PcaiSystemFile -ParameterFilter { $Directory -contains $bin }
+        Should -Invoke Register-ScheduledTask -Times 1 -Exactly
+    }
+}
+
+Describe 'Health payload publication' -Tag 'Unit', 'Portable' {
+    # Protects: reinstall keeps live bytes and their original provenance.
+    # Detects: writing an existing content version while a task can be running.
+    # Needs: Windows and mocked scheduled task operations.
+    # Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Install-PcaiHealthWindows.
+    It 'reuses a matching installed payload without opening its files for writing' -Skip:(-not $IsWindows) {
+        Mock Get-ScheduledTask {}
+        Mock Register-ScheduledTask {}
+        $target = Join-Path $TestDrive 'repeat-install'
+        Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') | Out-Null
+        $bin = Get-ChildItem -LiteralPath $target -Directory | Where-Object Name -ne 'backup'
+        $payload = Join-Path $bin.FullName 'Invoke-PcaiLinkHealth.ps1'
+        $manifest = Join-Path $bin.FullName 'manifest.json'
+        $before = Get-Content -LiteralPath $manifest -Raw
+        $held = [IO.File]::Open($payload, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+        try {
+            { Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') | Out-Null } |
+                Should -Not -Throw
+        } finally { $held.Dispose() }
+        Get-Content -LiteralPath $manifest -Raw | Should -BeExactly $before
+    }
+
+    # Protects: the Linux directory identity describes the bytes systemd will execute.
+    # Detects: separate versions for CRLF and LF copies of identical Linux payloads.
+    # Needs: PowerShell, owned temporary files and the write-free Linux installer plan.
+    # Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Install-PcaiHealthLinux.
+    It 'plans the same Linux version for LF and CRLF source bytes' {
+        $root = Join-Path $TestDrive 'newline-source'
+        $source = Join-Path $root 'Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1'
+        $null = New-Item -ItemType Directory -Force -Path (Split-Path -Parent $source)
+        $target = Join-Path $TestDrive 'newline-target'
+        $lf = [string][char]10
+        $crlf = [string][char]13 + $lf
+        [IO.File]::WriteAllText($source, ('one' + $lf + 'two' + $lf))
+        $first = @(Install-PcaiHealthLinux -Root $root -Target $target -Components @('ToolingHealth') -IsDryRun)
+        [IO.File]::WriteAllText($source, ('one' + $crlf + 'two' + $crlf))
+        $second = @(Install-PcaiHealthLinux -Root $root -Target $target -Components @('ToolingHealth') -IsDryRun)
+        $second[0] | Should -BeExactly $first[0]
+        Test-Path -LiteralPath $target | Should -BeFalse
+    }
+
+    # Protects: executable bytes, manifest integrity and preservation of conflicting payloads.
+    # Detects: stale source rereads, lost execute mode, or writing over a damaged version.
+    # Needs: Linux PowerShell and a user-owned temporary filesystem with Unix file modes.
+    # Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Publish-PcaiHealthPayload.
+    It 'publishes the captured Linux bytes once and preserves a damaged version' -Skip:(-not $IsLinux) {
+        $target = Join-Path $TestDrive 'linux-publish'
+        $null = New-Item -ItemType Directory -Path $target
+        $source = Join-Path $TestDrive 'source.sh'
+        [IO.File]::WriteAllText($source, "#!/bin/sh`r`nexit 0`r`n")
+        $payload = Get-PcaiHealthPayload -File @([pscustomobject]@{ Name = 'monitor.sh'; Source = $source }) -NormalizeText
+        $bin = Join-Path $target $payload.Version
+        [IO.File]::WriteAllText($source, "#!/bin/sh`nexit 1`n")
+        Publish-PcaiHealthPayload -Root $repoRoot -Directory $bin -Payload $payload
+        $installed = Join-Path $bin 'monitor.sh'
+        $manifest = Join-Path $bin 'manifest.json'
+        [IO.File]::ReadAllText($installed) | Should -BeExactly "#!/bin/sh`nexit 0`n"
+        & $installed
+        $LASTEXITCODE | Should -Be 0
+        $before = Get-Content -LiteralPath $manifest -Raw
+        Publish-PcaiHealthPayload -Root $repoRoot -Directory $bin -Payload $payload
+        Get-Content -LiteralPath $manifest -Raw | Should -BeExactly $before
+        [IO.File]::WriteAllText($installed, 'damaged')
+        { Publish-PcaiHealthPayload -Root $repoRoot -Directory $bin -Payload $payload } | Should -Throw '*payload*'
+        [IO.File]::ReadAllText($installed) | Should -BeExactly 'damaged'
+        @(Get-ChildItem -LiteralPath $target -Force).Name | Should -Be $payload.Version
     }
 }
 
@@ -582,8 +733,9 @@ Describe 'Service recovery leaves disabled and mutating tasks alone' -Tag 'Unit'
     }
     # Protects: recovery never starts a task that can change the network. Detects: restarting an
     # allow-listed task by name alone when its action runs -Apply or the startup coordinator, which
-    # applies the enrolled controller (codex review of #344 at c463db6d). Needs: synthetic tasks.
-    It 'leaves an allow-listed task alone when its action is <Name>' -ForEach @(
+    # applies the enrolled controller (codex review of #344 at c463db6d). Needs: Windows and synthetic tasks.
+    # Breadcrumb: Invoke-PcaiLinkHealth.ps1::Invoke-PcaiServiceRecovery.
+    It 'leaves an allow-listed task alone when its action is <Name>' -Skip:(-not $IsWindows) -ForEach @(
         @{ Name = 'an -Apply run'; Action = 'pwsh.exe -File C:\x\Configure-ThunderboltSwitchRoutes.ps1 -Apply' }
         @{ Name = 'the startup coordinator'; Action = 'pwsh.exe -File C:\x\Invoke-ThunderboltStartup.ps1' }
         @{ Name = 'unknown'; Action = '' }
@@ -613,8 +765,11 @@ Describe 'Notification fingerprint' -Tag 'Unit', 'Portable' {
 }
 
 Describe 'Trigger definitions' -Tag 'Unit', 'Portable' {
+    # Protects: event coverage and least privilege for the per-user observer.
+    # Detects: missing or mutating triggers, or a privileged task principal.
+    # Needs: PowerShell and synthetic task XML. Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Get-PcaiTaskSpec.
     It 'registers the user task least-privileged with logon, USB4, network, resume and periodic triggers' {
-        $spec = Get-PcaiTaskSpec -BinDir 'C:\bin\v1' -Pwsh 'C:\pwsh.exe' -UserId 'HOST\user' -Components @('LinkHealth')
+        $spec = Get-PcaiTaskSpec -BinDir $TestDrive -Pwsh 'C:\pwsh.exe' -UserId 'HOST\user' -Components @('LinkHealth')
         $xml = [xml]($spec[0].Xml -replace 'encoding="UTF-16"', '')
         $spec[0].Name | Should -Be 'LinkHealth'
         $xml.Task.Principals.Principal.RunLevel | Should -Be 'LeastPrivilege'
@@ -628,12 +783,18 @@ Describe 'Trigger definitions' -Tag 'Unit', 'Portable' {
         $xml.Task.Triggers.InnerXml | Should -Not -Match 'BootTrigger'
         $xml.Task.Actions.Exec.Arguments | Should -Not -Match '-Mode Apply'
     }
+    # Protects: desktop fallback for hosts missing S4U rights.
+    # Detects: losing the caller's logon type. Needs: PowerShell and synthetic task XML.
+    # Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Get-PcaiTaskSpec.
     It 'can build the interactive-token fallback for hosts without the batch logon right' {
-        $spec = Get-PcaiTaskSpec -BinDir 'C:\bin\v1' -Pwsh 'C:\pwsh.exe' -UserId 'HOST\user' -Components @('ToolingHealth') -LogonType InteractiveToken
+        $spec = Get-PcaiTaskSpec -BinDir $TestDrive -Pwsh 'C:\pwsh.exe' -UserId 'HOST\user' -Components @('ToolingHealth') -LogonType InteractiveToken
         ([xml]($spec[0].Xml -replace 'encoding="UTF-16"', '')).Task.Principals.Principal.LogonType | Should -Be 'InteractiveToken'
     }
+    # Protects: boot-time recovery is scoped to the opt-in SYSTEM principal.
+    # Detects: losing the SYSTEM principal, delay or Apply mode. Needs: PowerShell and synthetic task XML.
+    # Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Get-PcaiTaskSpec.
     It 'gives only the owner''s SYSTEM task a boot trigger and Apply mode' {
-        $spec = Get-PcaiTaskSpec -BinDir 'C:\ProgramData\x' -Pwsh 'C:\pwsh.exe' -UserId 'HOST\user' -Components @('LinkHealth') -SystemTask
+        $spec = Get-PcaiTaskSpec -BinDir $TestDrive -Pwsh 'C:\pwsh.exe' -UserId 'HOST\user' -Components @('LinkHealth') -SystemTask
         $xml = [xml]($spec[0].Xml -replace 'encoding="UTF-16"', '')
         $spec[0].Name | Should -Be 'LinkHealthSystem'
         $xml.Task.Principals.Principal.UserId | Should -Be 'S-1-5-18'
@@ -648,12 +809,17 @@ Describe 'Trigger definitions' -Tag 'Unit', 'Portable' {
         $units['pcai-link-health.timer'] | Should -Match 'OnUnitActiveSec=30min'
         $units['pcai-tooling-health.timer'] | Should -Match 'OnUnitActiveSec=4h'
     }
+    # Protects: new source content selects a new version.
+    # Detects: overwriting a version when only file bytes change.
+    # Needs: PowerShell and an isolated temporary file.
+    # Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Get-PcaiHealthPayload.
     It 'keys the install directory on file content' {
         $f = Join-Path $TestDrive 'a.ps1'
         'one' | Set-Content -LiteralPath $f
-        $v1 = Get-PcaiContentVersion -File @([pscustomobject]@{ Name = 'a.ps1'; Source = $f })
+        $files = @([pscustomobject]@{ Name = 'a.ps1'; Source = $f })
+        $v1 = (Get-PcaiHealthPayload -File $files).Version
         'two' | Set-Content -LiteralPath $f
-        Get-PcaiContentVersion -File @([pscustomobject]@{ Name = 'a.ps1'; Source = $f }) | Should -Not -Be $v1
+        (Get-PcaiHealthPayload -File $files).Version | Should -Not -Be $v1
     }
     It 'keeps the Linux monitor script valid bash' -Skip:(-not (Get-Command bash -ErrorAction SilentlyContinue)) {
         $script = Join-Path $repoRoot 'Tools/SystemScripts/Networking/pcai-link-health-monitor.sh'

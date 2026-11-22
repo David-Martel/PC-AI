@@ -44,6 +44,8 @@ PC-AI.Robustness.Tests.ps1
 PC-AI.Router.Tests.ps1
 PcaiCommandMapEmptyModules.Tests.ps1
 PcaiDeclaredPublicApi.Tests.ps1
+# The Linux payload must publish executable snapshot bytes and preserve conflicting versions.
+PcaiLinkHealth.Tests.ps1
 PcaiRuntimeDiscoveryIsolation.Tests.ps1
 PcaiUsb4RdmaReadiness.Tests.ps1
 ProviderHealthCache.Tests.ps1

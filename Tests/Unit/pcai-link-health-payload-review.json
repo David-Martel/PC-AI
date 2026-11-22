@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T15:20:15.1410945Z",
+  "reviewer": "publication_review",
+  "reviewerType": "independent source agent",
+  "sourceBaseline": "1bbeaad2d1498fa48ee49d658b073d1640588551",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent. ForEach cases are reviewed as a group.",
+  "sourceBindings": {
+    "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1": "f8aa9635ac1e1df1247cd9f3a4c82cafb0576af583a2e5de62684077d8563662",
+    "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1": "163c0d4ba1a92b7e03a45724631cb7e2f96863119a0673a24583b20b515099db",
+    "Tests/Unit/PcaiLinkHealth.Tests.ps1": "b95649ae1711cfcce104ace9a4304e84e6ded8c228cfe05709a246e22c1f7466"
+  },
+  "selectors": [
+    {
+      "selector": "refuses a planted file without changing the version or registering a task",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "31c7451f52f5558859b46585842f66a0d1d7ae8f4995fbe05fcea638b9a48767",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Conflicting SYSTEM directory is preserved and no task is registered. Task and ACL cmdlets are mocked."
+    },
+    {
+      "selector": "refuses a SYSTEM staging parent that allows other accounts to create children",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "f4597423ece4c586e7ba33367bbf1706cd4e0026a801d1ea4e2e5e00abb443d1",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Rejects the parent before populating it, without a task registration. ACL outcomes are mocked."
+    },
+    {
+      "selector": "protects the complete SYSTEM stage outside link-health before registering its task",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "77244b8f825e13fbc07d1f13bf8a50e3e3964a4b45dcc4fda660b3d1699314b2",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Verifies the stage path, protection before exposure and manifest before registration. ACL and scheduler effects are mocked."
+    },
+    {
+      "selector": "reuses a matching installed payload without opening its files for writing",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "a28dafb607c479baa22cf3a84e4b00564427ce05b8b8b9c8ebca506f845455db",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Holds the original file open for reads only and checks manifest reuse. Scheduler calls are mocked."
+    },
+    {
+      "selector": "plans the same Linux version for LF and CRLF source bytes",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "84e58efa9fbb991f6f7c719ddad041bbee632777da4ece59ed96e6d650ae63e1",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Exercises installer planning with both line endings and no target creation."
+    },
+    {
+      "selector": "publishes the captured Linux bytes once and preserves a damaged version",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "eac4ec46237d158bff977bbd8ad0e0ded67d5f133a5952e4d3d6334495fa033b",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Executes the normalized staged bytes on Linux. Covers preservation after damage, with no live service activation."
+    },
+    {
+      "selector": "leaves an allow-listed task alone when its action is <Name>",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "1c45ca4d7eae8852b51f03aee958597972cf3c4272ed8c56ae3e2b1e4495b311",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1",
+      "disposition": "keep",
+      "reviewScope": "Requires Windows for scheduled-task mocking. All three existing refusals remain enabled on Windows."
+    },
+    {
+      "selector": "registers the user task least-privileged with logon, USB4, network, resume and periodic triggers",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "5e3d511e6d1fcd65e25b32a71242bee4076e236cefddf7ec8d2ac5eeaa456658",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Synthetic XML preserves the event, principal and non-mutating action assertions on both platforms."
+    },
+    {
+      "selector": "can build the interactive-token fallback for hosts without the batch logon right",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "dea5407db718a771df2884548197d1f302ed8cd23a67998e5288e734dd22b3a1",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Synthetic XML preserves the caller logon type on both platforms."
+    },
+    {
+      "selector": "gives only the owner's SYSTEM task a boot trigger and Apply mode",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "4856e75dedc54bcf210fbceaa1a3d7fcd518008ae4abeef1e4b565a6d89706e1",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Synthetic XML preserves SYSTEM principal, boot delay and Apply on both platforms."
+    },
+    {
+      "selector": "keys the install directory on file content",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "dd3a5cbede9152ed817faf0484fa129e13975b2861880a5531605cf94581ab57",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Changing source file bytes selects another payload version."
+    },
+    {
+      "selector": "refuses reuse when the matching SYSTEM <TargetKind> is untrusted",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "3d34a9b0a63558bfd68eebe8ba871af1bb529cf01473e1f5e8fa022436d28214",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Both cases preserve a real hash-matching payload and refuse registration when the mocked SYSTEM trust guard denies its directory or the script."
+    }
+  ]
+}

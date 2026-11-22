@@ -13,8 +13,9 @@ PowerShell profile.
 installs, updates and removes those triggers. It also installs the profile and tooling check,
 `Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1`, when that script is present (see
 [the profile README](../../Config/PowerShell/Profile/README.md)). Tests:
-[link health and triggers](../../Tests/Unit/PcaiLinkHealth.Tests.ps1), with a
-[source route test review](../../Tests/Unit/pcai-link-health-source-route-review.json).
+[link health and triggers](../../Tests/Unit/PcaiLinkHealth.Tests.ps1), with
+[source route](../../Tests/Unit/pcai-link-health-source-route-review.json) and
+[payload publication](../../Tests/Unit/pcai-link-health-payload-review.json) reviews.
 
 ## Install, run, remove
 
@@ -28,13 +29,20 @@ pwsh -NoProfile -File Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1 -
 pwsh -NoProfile -File Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1 -Uninstall
 ```
 
-The installer copies the scripts to a directory named after the SHA-256 of their content
-(`%LOCALAPPDATA%\PC-AI\health-bin\<version>` or `~/.local/share/pcai/health-bin/<version>`) and
-points the triggers there, with a `manifest.json` that records the source commit and file
-hashes. A checkout that changes branch therefore never changes what a trigger runs. Replaced
-task definitions and unit files are saved under `backup/` first; the first install also records
-a `baseline` (the pre-install definition, or a `.none` marker), and `-Restore` uses only that. Re-running the installer with
-the same content is a no-op apart from re-registering identical definitions.
+The installer hashes the bytes it will publish, then stages them and their `manifest.json`
+before moving the completed directory into `%LOCALAPPDATA%\PC-AI\health-bin\<version>` or
+`~/.local/share/pcai/health-bin/<version>`. Linux uses UTF-8 with LF line endings, so an
+equivalent Windows checkout selects the same Linux version. The manifest records the source
+commit and per-file hashes at first publication. Reinstallation verifies the existing version
+and reuses its bytes while refreshing the trigger definitions. The checkout can change branch
+without changing what a trigger executes.
+
+Task and service definitions go under `backup/` before replacement. The first install saves
+the pre-install definition or a `.none` marker, and `-Restore` uses that baseline. If an
+existing payload has different bytes, extra files, a bad manifest, or unexpected permissions,
+the installer stops before re-registering triggers and leaves the directory available for
+inspection. Check which tasks or units reference that version and save the evidence before
+restoring a known-good payload.
 
 ## Triggers
 

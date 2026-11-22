@@ -95,14 +95,25 @@ function Get-PcaiInferenceAuthHeader {
     [CmdletBinding()]
     [OutputType([hashtable])]
     param(
-        [Parameter(Mandatory)]
+        [Parameter()]
+        [AllowEmptyString()]
         [string]$ApiUrl
     )
 
     $token = [Environment]::GetEnvironmentVariable('PCAI_INFERENCE_TOKEN')
     if ([string]::IsNullOrWhiteSpace($token)) { return @{} }
 
-    $pcaiUrl = Resolve-PcaiEndpoint -ApiUrl $script:ModuleConfig.PcaiInferenceApiUrl -ProviderName 'pcai-inference'
+    # An unset or "auto" configured URL must not throw (ApiUrl is mandatory in Resolve-PcaiEndpoint);
+    # it simply fails to match, so no header is sent.
+    $configuredUrl = $script:ModuleConfig.PcaiInferenceApiUrl
+    if ([string]::IsNullOrWhiteSpace($configuredUrl)) { $configuredUrl = 'auto' }
+    try {
+        $pcaiUrl = Resolve-PcaiEndpoint -ApiUrl $configuredUrl -ProviderName 'pcai-inference'
+    }
+    catch {
+        return @{}
+    }
+    if ([string]::IsNullOrWhiteSpace($pcaiUrl) -or [string]::IsNullOrWhiteSpace($ApiUrl)) { return @{} }
     if ($ApiUrl.TrimEnd('/') -ne $pcaiUrl.TrimEnd('/')) { return @{} }
 
     return @{ Authorization = "Bearer $($token.Trim())" }

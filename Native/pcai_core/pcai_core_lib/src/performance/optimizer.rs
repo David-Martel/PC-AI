@@ -718,6 +718,11 @@ mod tests {
         assert!(report.pressure_level <= 3);
     }
 
+    /// Protects: the category scan returns all five standard categories, at least one
+    /// `system_services` process, and a plausible elapsed time.
+    /// Detects: a category map that drops a key, a classifier that buckets no OS service, a
+    /// scan that hangs, or a healthy host surfacing `Err` from the now-fallible `System::new_all`.
+    /// Needs: a supported host with at least one OS service process.
     #[test]
     fn test_get_process_categories_all_keys_present() {
         let (elapsed_ms, categories) = get_process_categories().expect("process scan succeeds on a supported host");
@@ -732,6 +737,10 @@ mod tests {
         assert!(elapsed_ms < 60_000, "category scan took unexpectedly long");
     }
 
+    /// Protects: recommendations are ordered by non-decreasing priority (1 is most urgent).
+    /// Detects: an unsorted list, or a healthy host surfacing `Err` from the live probes after
+    /// the sysinfo 0.40 port.
+    /// Needs: a supported host; the list may be empty, in which case ordering holds trivially.
     #[test]
     fn test_optimization_recommendations_are_sorted_by_priority() {
         let (_, recs) = get_optimization_recommendations().expect("live probes succeed on a supported host");
@@ -746,6 +755,11 @@ mod tests {
         }
     }
 
+    /// Protects: every recommendation carries a category, description and action, and a
+    /// priority in 1-4.
+    /// Detects: a recommendation built with an empty field or an out-of-range priority, or a
+    /// healthy host surfacing `Err` from the live probes after the sysinfo 0.40 port.
+    /// Needs: a supported host; an empty list passes vacuously.
     #[test]
     fn test_recommendation_fields_are_non_empty() {
         let (_, recs) = get_optimization_recommendations().expect("live probes succeed on a supported host");

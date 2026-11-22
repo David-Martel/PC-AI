@@ -8,7 +8,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Maps each sysinfo::Error kind (Unsupported, Io NotFound, Io PermissionDenied, Other) to its distinct PcaiStatus and checks that From agrees with the pure mapper.",
       "selector_sha256": "143a0fbdc0ee47d9d8851126736aede87c9eb954ed4e8415b13e12c0024b4381",
       "source_files": [
@@ -23,7 +23,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Requires PcaiStatus to be a Send + Sync std error whose Display equals description(), which pcai-perf relies on for anyhow context.",
       "selector_sha256": "ecd1a3afc874ad263da05c8b094ab431523188e2ed333efc6125b14d0368fb80",
       "source_files": [
@@ -38,7 +38,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Injects failing then succeeding constructors: the error propagates, the slot stays empty, the retry fills it, and a later failing constructor is not consulted.",
       "selector_sha256": "e62da9ed0c434e9cdb9f7ae04bea37586b2bdc809690f09cb9370eb2bd92a9dc",
       "source_files": [
@@ -53,7 +53,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Injects a failing System constructor into a local slot: NotImplemented propagates, the slot stays None, a healthy constructor fills it, and the filled slot is reused.",
       "selector_sha256": "105b8514e436c2aac5f895a4af9baebbc4a550ba9f589bf86af89a6dc28f3595",
       "source_files": [
@@ -68,7 +68,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Live call only: the public entry point returns real memory on a supported host. It is not a failure control.",
       "selector_sha256": "8838df554a81cb4a36e6552e20a0d9fd1b49f716b19012a94063054aae8e15a0",
       "source_files": [
@@ -83,13 +83,13 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
-      "rationale": "Same failure/retry/reuse contract for the CPU sampler slot, with the first healthy reading still WarmingUp.",
-      "selector_sha256": "5f4cd27f604fff5b566762d73a1a730ae28ba4d03d0da95097c8641f965c627a",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
+      "rationale": "Same failure/retry/reuse contract for the CPU sampler slot. Timing-free: it no longer asserts WarmingUp or sample age (warm-up is owned by cpu_usage_requires_a_real_sampling_interval); reuse is proven by a failing constructor that must not be called.",
+      "selector_sha256": "28d3f00b939ce8bd923019730df204f5df51ca30d609e23868e37533d35df73b",
       "source_files": [
         {
           "path": "src/system/mod.rs",
-          "sha256": "1d4fa76d544fe01948cc86c17b67852448d997cc3a8cc81b8c1d1fce6c9f4592"
+          "sha256": "90a6921a63289d6fc10f065eb87d3998f30185eed813a282e6e19f8e7f7a7910"
         }
       ]
     },
@@ -98,13 +98,13 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Live call only: the summary builds from the four fallible sysinfo constructors and reports a CPU and memory.",
       "selector_sha256": "4266ec39aa3c839a5481d95024169de66c7b340c421ac48d5740382f341d9c8b",
       "source_files": [
         {
           "path": "src/system/mod.rs",
-          "sha256": "1d4fa76d544fe01948cc86c17b67852448d997cc3a8cc81b8c1d1fce6c9f4592"
+          "sha256": "90a6921a63289d6fc10f065eb87d3998f30185eed813a282e6e19f8e7f7a7910"
         }
       ]
     },
@@ -113,13 +113,13 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Modified for the fallible CpuSampler::new and Cpu::usage rename; still requires None until a real sampling interval has elapsed.",
       "selector_sha256": "5c50e99af5945ab33ed86a007e12e78a610bd9d6bcdd645f1ff19885c9c13d01",
       "source_files": [
         {
           "path": "src/system/mod.rs",
-          "sha256": "1d4fa76d544fe01948cc86c17b67852448d997cc3a8cc81b8c1d1fce6c9f4592"
+          "sha256": "90a6921a63289d6fc10f065eb87d3998f30185eed813a282e6e19f8e7f7a7910"
         }
       ]
     },
@@ -128,7 +128,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Injected failing constructor yields a non-Success status with zeroed metrics instead of Success.",
       "selector_sha256": "463e70bf77e3002380e483a8ae6685aa737001e643124e84a969ca697ed13f9a",
       "source_files": [
@@ -143,7 +143,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Injected failing constructor makes the pressure check return Err, not Ok(false).",
       "selector_sha256": "0dd5d6839e7b2df3476b26a2239b48c5c95664516506870b7a2a424a95471a4e",
       "source_files": [
@@ -158,7 +158,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Modified rationale: live Success path and used <= total after the port; not a failure control.",
       "selector_sha256": "748dd34694f1bb9827a844516bac6bfb87410d3923f47c17700d5478447dff46",
       "source_files": [
@@ -173,7 +173,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Modified for the Result return; live call that the formatted view builds with a percentage in range.",
       "selector_sha256": "eb70f3015cb205948299a7b0535cab9662dade273368613f94152cbb47105cc6",
       "source_files": [
@@ -188,7 +188,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Modified for the Result return; live call that the public wrapper succeeds. The error contract is the injected test.",
       "selector_sha256": "d1756d9f1658f6ab92d1172793800e42d38b811b6aaddcaa4c88e2607b9773e1",
       "source_files": [
@@ -203,7 +203,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Modified for the Result return; live call that consumers are returned sorted by memory.",
       "selector_sha256": "e019ec81c28aae957af1a6c8e47afc16cb59a0c8fa9b7faa095c286f324f4322",
       "source_files": [
@@ -218,7 +218,7 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
       "rationale": "Modified for the fallible Disks constructor; live call that drives are listed and used equals total minus available.",
       "selector_sha256": "209f9ca31a55750c0f97bbc4fead38c1bfe72c824eb610a0709e2527f78cf27b",
       "source_files": [
@@ -233,13 +233,13 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
-      "rationale": "Modified for the Result return of get_process_by_pid; the current process must still be visible.",
-      "selector_sha256": "6af07aa96da973a54ff8bc0d1cfc55cfc5b1ca4d8f216de21c61e750bdb312d7",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
+      "rationale": "Standalone rationale added: the live test process is found by PID with a non-empty name. The code change is unwrapping the new Result.",
+      "selector_sha256": "c7032afb3b08aaede54109e45f234284837cd2dca3faf867bb83c61ff0d2766a",
       "source_files": [
         {
           "path": "src/performance/process.rs",
-          "sha256": "8675904920b43d656ed2598da9f152365f12d76762fff2eda13ea328016c7a81"
+          "sha256": "40079e4dd0e6eaddf71932f4b03d8fa9405c62444c78235044e6f95cd8b084b0"
         }
       ]
     },
@@ -248,13 +248,13 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
-      "rationale": "Only the constructor changed (ProcessSampler::new is fallible); the CPU assertions are untouched.",
-      "selector_sha256": "f25a2c6000c6b8e9d5078062c5c3b9ed0816147acea403bda3907a5539f81025",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
+      "rationale": "Standalone rationale added: qualified sampling must observe real CPU from a busy child, not sorted zero rows. The only code change is the fallible ProcessSampler::new.",
+      "selector_sha256": "7ccf3eb794fd305b2603008a0ea5f30821d59402b1dd5b287a3d27fa451442d7",
       "source_files": [
         {
           "path": "src/performance/process.rs",
-          "sha256": "8675904920b43d656ed2598da9f152365f12d76762fff2eda13ea328016c7a81"
+          "sha256": "40079e4dd0e6eaddf71932f4b03d8fa9405c62444c78235044e6f95cd8b084b0"
         }
       ]
     },
@@ -263,13 +263,13 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
-      "rationale": "Only the constructor changed (ProcessSampler::new is fallible); the sampler assertions are untouched.",
-      "selector_sha256": "0f9f7fcc36bedaa64d7213d6c4de5de2da5e57af900b52abc45239d8641c82d2",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
+      "rationale": "Standalone rationale added: a persistent sampler has no baseline before its first refresh, sees a running child, forgets it after exit. The only code change is the fallible ProcessSampler::new.",
+      "selector_sha256": "786c3432b33342af0dd77be4db5bf81d89ec8164795bdf3f1addc41eea20d1f1",
       "source_files": [
         {
           "path": "src/performance/process.rs",
-          "sha256": "8675904920b43d656ed2598da9f152365f12d76762fff2eda13ea328016c7a81"
+          "sha256": "40079e4dd0e6eaddf71932f4b03d8fa9405c62444c78235044e6f95cd8b084b0"
         }
       ]
     },
@@ -278,13 +278,13 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
-      "rationale": "Only the constructor changed (ProcessSampler::new is fallible); the whole-host CPU assertions are untouched.",
-      "selector_sha256": "f3e32275e08e6734141df612caa07eeefd77bbcd91479a8b2007e7a248774f6a",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
+      "rationale": "Standalone rationale added: whole-host CPU is 0-100 on a single processor group and NaN on multiple. The only code change is the fallible ProcessSampler::new.",
+      "selector_sha256": "b3b13717266f442b42f936b301e0e0a2b89cd7655420188d3d0e9e4df2119d6f",
       "source_files": [
         {
           "path": "src/performance/process.rs",
-          "sha256": "8675904920b43d656ed2598da9f152365f12d76762fff2eda13ea328016c7a81"
+          "sha256": "40079e4dd0e6eaddf71932f4b03d8fa9405c62444c78235044e6f95cd8b084b0"
         }
       ]
     },
@@ -293,13 +293,13 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
-      "rationale": "Only the constructor changed (ProcessSampler::new is fallible); the CPU sort assertions are untouched.",
-      "selector_sha256": "b89e019206ca919636a814ac1d43987b61433febed1d13a5ac05106f364b2659",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
+      "rationale": "Standalone rationale added: CPU sort waits a qualified interval, sorts descending and advances the baseline. The only code change is the fallible ProcessSampler::new.",
+      "selector_sha256": "154edbbfc2966e776eff270f2ea2b014f5ab94bfb294fde4e451c6f2e2712596",
       "source_files": [
         {
           "path": "src/performance/process.rs",
-          "sha256": "8675904920b43d656ed2598da9f152365f12d76762fff2eda13ea328016c7a81"
+          "sha256": "40079e4dd0e6eaddf71932f4b03d8fa9405c62444c78235044e6f95cd8b084b0"
         }
       ]
     },
@@ -308,13 +308,13 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
-      "rationale": "Modified for the Result return of get_process_categories; category keys and system_services count assertions are untouched.",
-      "selector_sha256": "11f97ddc69e67ba548e7305ed22de7b492367408e00d99f852726718268fc81a",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
+      "rationale": "Standalone rationale added: all five categories present, system_services nonzero, plausible elapsed. The code change is unwrapping the new Result.",
+      "selector_sha256": "4a0fa7e06fa0eac23908ca51e00297a49a139c4729c46cbb8cd187e8994fbab8",
       "source_files": [
         {
           "path": "src/performance/optimizer.rs",
-          "sha256": "4f28dfe1180c0a1c2ce11902e687a12e6af74ecaeb4367f0b7a7ab02e6d27362"
+          "sha256": "95b32acabdf949519ed2b9e557364fd10f1e1576610d2b3a14b045b88090bdd5"
         }
       ]
     },
@@ -323,13 +323,13 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
-      "rationale": "Modified for the Result return of get_optimization_recommendations; the priority ordering assertion is untouched.",
-      "selector_sha256": "5bd99b650826e4aca4e518b347a9b6f6f679583d0d647f3e9f81e53c5b52d0e7",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
+      "rationale": "Standalone rationale added: recommendations are ordered by non-decreasing priority. The code change is unwrapping the new Result.",
+      "selector_sha256": "e26ae09e04197a3b71bdb7040699faa702b67f14878b340bba6d09108e983852",
       "source_files": [
         {
           "path": "src/performance/optimizer.rs",
-          "sha256": "4f28dfe1180c0a1c2ce11902e687a12e6af74ecaeb4367f0b7a7ab02e6d27362"
+          "sha256": "95b32acabdf949519ed2b9e557364fd10f1e1576610d2b3a14b045b88090bdd5"
         }
       ]
     },
@@ -338,13 +338,13 @@
       "disposition": "keep",
       "reviewer": "claude-sonnet-5.5-pcai-sysinfo040",
       "reviewer_type": "author self-review; independent review pending",
-      "reviewed_utc": "2026-11-22T15:27:52.324959+00:00",
-      "rationale": "Modified for the Result return of get_optimization_recommendations; the field assertions are untouched.",
-      "selector_sha256": "b108b56b0e243d7443e253e3981c14d98481b87903600612adbba0188b2abb76",
+      "reviewed_utc": "2026-11-22T15:36:43.814359+00:00",
+      "rationale": "Standalone rationale added: every recommendation has a category, description, action and priority 1-4. The code change is unwrapping the new Result.",
+      "selector_sha256": "66efa924ee66096d48d2621d90d9b8794b2623f5877da2541642f5de402af989",
       "source_files": [
         {
           "path": "src/performance/optimizer.rs",
-          "sha256": "4f28dfe1180c0a1c2ce11902e687a12e6af74ecaeb4367f0b7a7ab02e6d27362"
+          "sha256": "95b32acabdf949519ed2b9e557364fd10f1e1576610d2b3a14b045b88090bdd5"
         }
       ]
     }

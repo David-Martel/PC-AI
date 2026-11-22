@@ -492,6 +492,12 @@ mod tests {
         std::hint::black_box(value);
     }
 
+    /// Protects: qualified CPU sampling observes real CPU work from a busy child process,
+    /// not merely sorted zero rows.
+    /// Detects: a refresh that never records per-process CPU (for example losing the CPU
+    /// refresh kind), which would still pass ordering checks over all-zero rows.
+    /// Needs: the test executable re-run as a bounded busy fixture. The only change in the
+    /// sysinfo 0.40 port is the fallible `ProcessSampler::new`.
     #[test]
     fn qualified_interval_observes_positive_cpu_from_a_real_busy_child() {
         let mut sampler = ProcessSampler::new().expect("sampler starts on a supported host");
@@ -526,6 +532,12 @@ mod tests {
         );
     }
 
+    /// Protects: one persistent sampler has no CPU baseline until its first refresh, sees a
+    /// spawned child while it runs, forgets it once it exits, and still sees this process.
+    /// Detects: exited processes kept in the snapshot (stale rows), a refresh that fails to
+    /// enumerate processes, or a baseline that exists before any qualified refresh.
+    /// Needs: the test executable re-run as an idle fixture. The only change in the sysinfo
+    /// 0.40 port is the fallible `ProcessSampler::new`.
     #[test]
     fn persistent_sampler_qualifies_cpu_and_refreshes_exited_processes() {
         let mut sampler = ProcessSampler::new().expect("sampler starts on a supported host");
@@ -564,6 +576,12 @@ mod tests {
         assert!(windows_cpu_percent(Some((1, 2, 3)), Some((10, 3, 4))).is_nan());
     }
 
+    /// Protects: whole-host CPU is a value in 0-100 on a single processor-group host and NaN
+    /// on a multi-group host, where GetSystemTimes cannot establish it.
+    /// Detects: a fabricated or out-of-range whole-host CPU figure, or a zero that reads as a
+    /// measurement.
+    /// Needs: Windows. The only change in the sysinfo 0.40 port is the fallible
+    /// `ProcessSampler::new`.
     #[cfg(windows)]
     #[test]
     fn windows_cpu_reports_only_qualified_whole_host_samples() {
@@ -579,6 +597,13 @@ mod tests {
         }
     }
 
+    /// Protects: a CPU-sorted request waits out the minimum CPU interval, returns rows in
+    /// descending CPU order, and a repeat call advances the CPU baseline by at least one
+    /// interval.
+    /// Detects: a CPU sort that answers before a qualified sample, an `elapsed_ms` that omits
+    /// the sampling wait, or a baseline reused without a new qualified refresh.
+    /// Needs: a supported host and one real sampling interval. The only change in the
+    /// sysinfo 0.40 port is the fallible `ProcessSampler::new`.
     #[test]
     fn cpu_sort_uses_qualified_refresh_and_elapsed_includes_sampling() {
         let mut sampler = ProcessSampler::new().expect("sampler starts on a supported host");
@@ -669,6 +694,11 @@ mod tests {
         assert_eq!(format_bytes(1073741824), "1.00 GB");
     }
 
+    /// Protects: `get_process_by_pid` finds the running test process with its own PID and a
+    /// non-empty name.
+    /// Detects: `Ok(None)` for a live PID (a refresh scoped to the wrong PID), an empty name,
+    /// or a healthy host surfacing `Err` from the now-fallible `System::new`.
+    /// Needs: a supported host.
     #[test]
     fn test_get_current_process() {
         let pid = std::process::id();

@@ -40,9 +40,10 @@ Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Action Allow -E
 
 Use `Get-NetFirewallAddressFilter`, `Get-NetFirewallInterfaceFilter`, and
 `Get-NetFirewallPortFilter` on rules from that query to inspect their link,
-address and service restrictions. If the legacy rule is local, verify existing
-service access dependencies and remove it by exact name from an elevated
-session. If policy supplies it, have the policy owner remove it at the source.
+address and service restrictions. Keeping the legacy rule is an operator choice.
+If the operator chooses to retire a locally owned rule, first verify its service
+dependencies, then use the exact name from an elevated session. If central
+policy owns the rule, only the policy owner should change it at the source.
 
 ```powershell
 Remove-NetFirewallRule -Name 'PC-AI-USB4-P2P-Allow' -PolicyStore PersistentStore

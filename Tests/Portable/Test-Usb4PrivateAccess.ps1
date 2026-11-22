@@ -9,6 +9,13 @@ $source = Get-Content -LiteralPath $SourcePath -Raw
 $platformGuard = 'if (-not $IsWindows) { throw ''USB4 private access installation requires Windows.'' }'
 if (-not $source.Contains($platformGuard)) { throw 'The fixture cannot isolate the platform admission check.' }
 $installer = [scriptblock]::Create($source.Replace($platformGuard, ''))
+$unguardedProviders = $installer.Ast.FindAll({
+        param($node)
+        $node -is [Management.Automation.Language.CommandAst] -and
+        ($node.InvocationOperator -in 'Ampersand', 'Dot' -or
+            $node.GetCommandName() -match '\\(?:\w+-NetFirewall\w*|\w+-NetGPO|\w+-NetConnectionProfile|Get-NetAdapter|Get-NetIPAddress|Get-NetNeighbor|Find-NetRoute)$')
+    }, $true)
+if ($unguardedProviders.Count) { throw 'A qualified provider or dynamic command would bypass the inert fixture.' }
 $guid = [guid]::NewGuid()
 $ruleName = 'PC-AI-USB4-Private-Echo-' + $guid.ToString('N')
 $legacyRuleName = 'PC-AI-USB4-P2P-Allow'
@@ -168,6 +175,43 @@ function Remove-NetFirewallRule {
     }
     $fixture.Rule = $null
     $fixture.Mutations.Add('RemoveRule')
+}
+
+function Stop-FixtureFirewallMutation {
+    throw "Unexpected firewall mutation in fixture: $($MyInvocation.InvocationName)."
+}
+
+# Only the scoped New and Remove above can mutate firewall rules during a test.
+# Guard all rule setters and associated filters even on hosts without NetSecurity.
+$unexpectedFirewallWrites = @(
+    'Copy-NetFirewallRule', 'Disable-NetFirewallRule', 'Enable-NetFirewallRule', 'Rename-NetFirewallRule', 'Save-NetGPO'
+    foreach ($subject in 'Rule', 'AddressFilter', 'ApplicationFilter', 'InterfaceFilter', 'InterfaceTypeFilter',
+        'PortFilter', 'SecurityFilter', 'ServiceFilter', 'Profile', 'Setting') { "Set-NetFirewall$subject" }
+    foreach ($subject in 'DynamicKeywordAddress', 'HyperVProfile', 'HyperVRule', 'HyperVVMSetting') {
+        "New-NetFirewall$subject"
+        "Remove-NetFirewall$subject"
+    }
+    'Update-NetFirewallDynamicKeywordAddress', 'Disable-NetFirewallHyperVRule', 'Enable-NetFirewallHyperVRule',
+    'Rename-NetFirewallHyperVRule', 'Set-NetFirewallHyperVProfile', 'Set-NetFirewallHyperVRule', 'Set-NetFirewallHyperVVMSetting'
+)
+foreach ($command in $unexpectedFirewallWrites) {
+    Set-Alias -Name $command -Value Stop-FixtureFirewallMutation -Scope Script
+}
+
+function Get-FixtureLegacyRuleSnapshot {
+    $snapshot = [ordered]@{}
+    foreach ($store in 'PersistentStore', 'ActiveStore') {
+        $rule = Get-NetFirewallRule -Name $legacyRuleName -PolicyStore $store
+        $snapshot[$store] = [ordered]@{
+            Rule = $rule
+            Address = $rule | Get-NetFirewallAddressFilter
+            Port = $rule | Get-NetFirewallPortFilter
+            Interface = $rule | Get-NetFirewallInterfaceFilter
+            Application = $rule | Get-NetFirewallApplicationFilter
+            Service = $rule | Get-NetFirewallServiceFilter
+        }
+    }
+    ConvertTo-Json -InputObject $snapshot -Depth 8 -Compress
 }
 
 function Assert-ReceiptState([string]$Expected) {
@@ -374,21 +418,31 @@ function Test-LegacyAdvisoriesDoNotPreventRollback {
 # Needs inert Windows providers. Breadcrumb: Get-PcaiUsb4LegacyRuleStatus and the Apply receipt.
 function Test-ExplicitLegacyAcceptancePreservesRule {
     Reset-Fixture
-    $fixture.LegacyRules.ActiveStore = [pscustomobject]@{
-        Name = $legacyRuleName; Enabled = 'True'; Direction = 'Inbound'; Action = 'Allow'
+    foreach ($store in 'PersistentStore', 'ActiveStore') {
+        $fixture.LegacyRules[$store] = [pscustomobject]@{
+            Name = $legacyRuleName; Description = "Owner rule in $store"; Profile = 'Any'
+            Enabled = 'True'; Direction = 'Inbound'; Action = 'Allow'
+            AddressFilter = [pscustomobject]@{ LocalAddress = @('Any'); RemoteAddress = @('fe80::/10', '192.0.2.0/24') }
+            PortFilter = [pscustomobject]@{ Protocol = 'Any'; LocalPort = 'Any'; RemotePort = 'Any' }
+            InterfaceFilter = [pscustomobject]@{ InterfaceAlias = @('Any') }
+            ApplicationFilter = [pscustomobject]@{ Program = 'Any'; Package = 'Any' }
+            ServiceFilter = [pscustomobject]@{ Service = 'Any' }
+        }
     }
+    $before = Get-FixtureLegacyRuleSnapshot
     $plan = & $installer @options -DryRun -AcceptLegacyRule
-    if (-not $plan.LegacyRule.Accepted -or $plan.LegacyRule.BlocksApply -or $fixture.Mutations.Count) {
+    if (-not $plan.LegacyRule.Accepted -or $plan.LegacyRule.BlocksApply -or $fixture.Mutations.Count -or
+        (Get-FixtureLegacyRuleSnapshot) -cne $before) {
         throw 'The preview did not report the explicit acceptance without a write.'
     }
     $applied = & $installer @options -Apply -AcceptLegacyRule -Confirm:$false
     $receipt = Get-Content -LiteralPath $options.ReceiptPath -Raw | ConvertFrom-Json
     if ($applied.State -ne 'Applied' -or -not $receipt.legacyRuleAccepted -or
-        $applied.LegacyRule.ActiveStore.State -ne 'EnabledInboundAllow') {
+        $applied.LegacyRule.ActiveStore.State -ne 'EnabledInboundAllow' -or (Get-FixtureLegacyRuleSnapshot) -cne $before) {
         throw 'The run did not preserve and record the accepted legacy state.'
     }
     $reverted = & $installer @options -Rollback -Confirm:$false
-    if ($reverted.State -ne 'Reverted' -or $fixture.LegacyRules.ActiveStore.Enabled -ne 'True') {
+    if ($reverted.State -ne 'Reverted' -or (Get-FixtureLegacyRuleSnapshot) -cne $before) {
         throw 'Rollback changed the accepted legacy rule.'
     }
 }

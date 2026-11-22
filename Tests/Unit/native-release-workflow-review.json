@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T14:26:20.3194449Z",
+  "sourceBaseline": "03103fd3c38331a6a8e42c40e6ae68d216570361",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent. Parameterized selectors are reviewed as groups.",
+  "sourceBindings": {
+    ".github/workflows/release-cuda.yml": "ee904246f9bcead0e996f281dcbad4045e05736d957d9feafb87d8b7b3876506",
+    "Tests/Unit/NativeReleaseWorkflow.Tests.ps1": "84226c9f153c0b6ad3383961d2821fbe9a9ed9441eb55f25f9c176de9a54fcd9"
+  },
+  "selectors": [
+    {
+      "selector": "accepts a checked-out tag and source commit for <Tag>",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "264d0f4dd4ea41202c2631af1e5891602ac47b5bd1537187e85e862ad28ebd59",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "Reviewed workflow source gating, failing baseline, test data groups and job permission wiring. Windows and Linux unit contracts cover pushed tags, mismatched refs, dispatch and publication boundary."
+    },
+    {
+      "selector": "refuses publication inputs when <Case>",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "e4e15e75dc972bf8375ee8bf670210ccb13f3928e47324ffac6e7c08ad2b8ba2",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "Reviewed workflow source gating, failing baseline, test data groups and job permission wiring. Windows and Linux unit contracts cover pushed tags, mismatched refs, dispatch and publication boundary."
+    },
+    {
+      "selector": "admits a manual build without emitting a publication tag",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "ece63c3e80479a1783f82d572534d055ac452fc0baae710711b85dade1985901",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "Reviewed workflow source gating, failing baseline, test data groups and job permission wiring. Windows and Linux unit contracts cover pushed tags, mismatched refs, dispatch and publication boundary."
+    },
+    {
+      "selector": "limits write access and publication to the checked tag after test and build",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "10e962551aa7db501ccdc8e4b0bb543017c7f5ab94abfa30adb686f4e246a60a",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "independent source agent",
+      "disposition": "keep",
+      "reviewScope": "Reviewed workflow source gating, failing baseline, test data groups and job permission wiring. Windows and Linux unit contracts cover pushed tags, mismatched refs, dispatch and publication boundary."
+    }
+  ]
+}

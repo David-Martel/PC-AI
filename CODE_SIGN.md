@@ -1,28 +1,58 @@
-The Reality Check: Trust vs. PrivilegeIt is important to clarify a critical security distinction: Code Signing does not grant Administrator privileges.Privilege (Admin Rights) is the ability to touch protected system files.Trust (Code Signing) is the proof that the code hasn't been tampered with and comes from you.However, signing "smooths" execution in three distinct ways:Silences "SmartScreen": Prevents Windows Defender from blocking your custom Rust/C# tools as "Unknown Malware."Cleaner UAC Prompts: Changes the scary yellow "Unknown Publisher" warning to a cleaner blue "Verified Publisher" prompt.Automation Whitelisting: Allows you to set up Scheduled Tasks or JEA (Just Enough Administration) endpoints that run as Admin but are triggered by you (standard user) without a password prompt.Phase 1: Generate & Trust Your Local CertificateYou need a certificate that supports "Code Signing." You can generate this yourself in PowerShell.1. Create the CertificateRun this in PowerShell (requires Admin one time to add to the machine store):PowerShell# 1. Create a self-signed certificate for Code Signing
-$cert = New-SelfSignedCertificate `
-    -Subject "CN=MyLocalDev_CodeSigning" `
-    -Type CodeSigningCert `
-    -CertStoreLocation "Cert:\CurrentUser\My" `
-    -FriendlyName "My Local Development Code Signing"
+# PC-AI release signing and provenance
 
-# 2. Export public key (for trust)
-Export-Certificate -Cert $cert -FilePath "$env:TEMP\MyDevCert.cer"
+Use the accepted Git revision and the artifact hashes to identify a PC-AI
+release. Git signatures identify the source author or tag signer.
+Authenticode identifies the publisher of an individual Windows file. Artifact
+attestations tie the final archive to the repository and workflow that built it.
+Windows privileges remain governed by account, ACL, and task policy.
 
-# 3. Trust it on the Local Machine
-# Without this, Windows will say "The certificate chain is not trusted"
-Import-Certificate -FilePath "$env:TEMP\MyDevCert.cer" -CertStoreLocation "Cert:\LocalMachine\Root"
-Import-Certificate -FilePath "$env:TEMP\MyDevCert.cer" -CertStoreLocation "Cert:\LocalMachine\TrustedPublisher"
-Phase 2: Signing the Hybrid ToolYou must sign both the unmanaged Rust DLL and the C# Executable.Step A: Sign the Rust DLL & C# EXEYou need signtool.exe (part of the Windows SDK). If you have Visual Studio installed, run this in the Developer Command Prompt.DOS:: 1. Sign the Rust Core (The Engine)
-signtool sign /fd SHA256 /a /n "MyLocalDev_CodeSigning" /t http://timestamp.digicert.com "path\to\nuker_core.dll"
+## Source and version
 
-:: 2. Sign the C# Wrapper (The Driver)
-signtool sign /fd SHA256 /a /n "MyLocalDev_CodeSigning" /t http://timestamp.digicert.com "path\to\NukeNul.exe"
-Step B: Embed the "Require Admin" ManifestTo smooth the elevation experience, the C# tool should know it needs Admin rights and ask for them politely immediately upon launch, rather than crashing halfway through.In your C# Project, add a new item: Application Manifest File (app.manifest).Find the <requestedExecutionLevel> tag and change it:XML<requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
-Rebuild the C# app.Re-sign the new .exe using signtool (Step A).Result: When you double-click NukeNul.exe, Windows checks the signature. Seeing it is trusted, it gives a Blue User Account Control (UAC) prompt (Verified) instead of Yellow (Unknown), and immediately grants the token needed to delete system files.Phase 3: The "Zero-Prompt" Automation (The Real Power)If you want to run this tool repeatedly without clicking "Yes" on a UAC prompt every time, you use the signature to create a Trusted Task.Since the binary is now signed and unchangeable (tampering breaks the signature), you can safely set it up as a Scheduled Task that runs with highest privileges, but is triggerable by you.One-Time Setup (requires Admin):PowerShell$Action = New-ScheduledTaskAction -Execute "C:\Path\To\NukeNul.exe" -Argument "C:\Target\Dir"
-$Principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-$Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+Use an annotated, signed SemVer release tag with the prefix v. Verify the tag
+signature against the authorized release signer and resolve the tag to an
+accepted main commit before pushing it. Keep tag updates and deletion restricted.
+Both the [native release workflow](.github/workflows/release-cuda.yml) and the
+[PowerShell release workflow](.github/workflows/release.yml) react to version
+tags. Inventory both sets of assets before a production tag is pushed. Keep
+manual native workflow runs for artifact testing.
 
-# Register the task
-Register-ScheduledTask -TaskName "RunNukeNul" -Action $Action -Principal $Principal -Settings $Settings
-The "Smooth" Execution (Standard User):Now, you can trigger this admin-level tool from your standard PowerShell session without any UAC prompt:PowerShellStart-ScheduledTask -TaskName "RunNukeNul"
-Why Signing Matters Here:If you update NukeNul.exe, you must re-sign it. If a malicious actor replaces NukeNul.exe with malware, the signature breaks. If you configured the Scheduled Task (via stricter policies) to only run signed binaries from "MyLocalDev_CodeSigning," the OS prevents the malware replacement from executing with SYSTEM privileges.Summary of BenefitsScenarioUnsigned BehaviorSigned (Local Cert) BehaviorDouble ClickSmartScreen Warning ("Don't run this").Launches immediately.UAC PromptYellow "Unknown Publisher". Scary.Blue "Verified Publisher". Professional.PowerShellBlocked if ExecutionPolicy is AllSigned.Allowed to execute.AutomationHard to elevate without interactive prompt.Can be triggered via Scheduled Task cleanly.
+    git verify-tag v1.2.3
+    git rev-parse "v1.2.3^{commit}"
+
+For organization-backed signing, the DTMVentures Artifact Signing account needs
+a verified identity and a certificate profile. Give the release workflow
+the profile-level Artifact Signing Certificate Profile Signer role through
+short-lived federated identity. Scope that identity to the protected release
+workflow and environment. Keep signing privileges and key material away from PR
+jobs and ordinary workstation accounts.
+[Artifact Signing integrations](https://learn.microsoft.com/en-us/azure/artifact-signing/how-to-signing-integrations) ·
+[profile roles](https://learn.microsoft.com/en-us/azure/artifact-signing/tutorial-assign-roles).
+
+## Windows payloads and cross-platform archives
+
+Sign the final Windows EXE, DLL and PowerShell files after building, staging and
+choosing their final encodings. Apply a trusted timestamp and verify each file
+with a fresh Windows process before packaging. Record the observed publisher,
+certificate chain, timestamp and SHA-256. Admit a verified publisher through
+organization policy and manage certificate rotation there. Changing a signed
+script's encoding or line endings requires a new signature. System task actions
+still require protected directories, interpreter and configuration.
+
+    signtool verify /pa /all /v .\pcai-tb.exe
+    Get-AuthenticodeSignature -LiteralPath .\Invoke-PcaiLinkHealth.ps1
+
+Use the [module package builder](Tools/New-PcaiPowerShellRelease.ps1) to produce
+the release payload. Verify the final archive after compression. Publish SHA-256
+checksums and build attestations for Windows and Linux archives with their source
+commit, architecture, and workflow reference. In a future single-publisher
+pipeline, assemble all required assets on a draft before publishing an immutable
+release. ZIP verification remains an admission check at deployment.
+[PowerShell signature verification](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-authenticodesignature) ·
+[GitHub artifact attestations](https://docs.github.com/en/actions/concepts/security/artifact-attestations) ·
+[immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases).
+
+DTMVentures profile access and installer-side Authenticode enforcement require
+a verified identity, a signing credential and a signed acceptance artifact.
+A build from a signed Git commit can be tracked with hashes during a
+controlled rollout. Its Windows files still need the separate publisher
+signature for Authenticode admission.

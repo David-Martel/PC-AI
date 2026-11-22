@@ -47,11 +47,11 @@ function Invoke-SingleTestCase {
                 $response = Invoke-RestMethod -Uri "$($script:EvaluationConfig.HttpBaseUrl)/v1/completions" `
                     -Method Post -Body $body -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec
                 $text = $response.choices[0].text
-                if (-not $text -and $response.choices[0].message) {
+                if ([string]::IsNullOrWhiteSpace($text) -and $response.choices[0].message) {
                     $text = $response.choices[0].message.content
                 }
 
-                if (-not $text) {
+                if ([string]::IsNullOrWhiteSpace($text)) {
                     $chatBody = @{
                         messages = @(
                             @{
@@ -125,6 +125,9 @@ function Invoke-SingleTestCase {
             }
         }
 
+        if ([string]::IsNullOrWhiteSpace($result.Response)) {
+            throw "Backend '$Backend' returned an empty completion."
+        }
         if (-not $result.Model) {
             $result.Model = if ($Model) { $Model } else { $Backend }
         }

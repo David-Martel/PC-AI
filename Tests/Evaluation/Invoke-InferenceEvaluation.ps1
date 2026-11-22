@@ -30,6 +30,12 @@
 .PARAMETER OutputPath
     Path to save evaluation results
 
+.PARAMETER MinimumPassRate
+    Require one backend to complete a nonempty evaluation without case errors,
+    with at least this percentage of cases passing (0 through 100). The batch
+    summary records acceptance before the command reports an unsuccessful run.
+    Use 0 to require completion and transport only.
+
 .PARAMETER OutputRoot
     Root folder for evaluation run outputs (defaults to .pcai/evaluation/runs)
 
@@ -81,6 +87,9 @@ param(
 
     [string]$RunLabel,
 
+    [ValidateRange(0, 100)]
+    [double]$MinimumPassRate,
+
     [int]$MaxTokens = 512,
 
     [float]$Temperature = 0.7,
@@ -124,6 +133,14 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+$requireAcceptance = $PSBoundParameters.ContainsKey('MinimumPassRate')
+if ($requireAcceptance -and ($ABTest -or $Backend -eq 'all')) {
+    throw 'MinimumPassRate requires a single backend. Evaluate each backend separately.'
+}
+if ($requireAcceptance -and [double]::IsNaN($MinimumPassRate)) {
+    throw 'MinimumPassRate must be a number from 0 through 100.'
+}
 
 if (-not $PSBoundParameters.ContainsKey('ExerciseCSharpFfi')) {
     $ExerciseCSharpFfi = $true
@@ -458,6 +475,38 @@ function Invoke-BackendEvaluation {
     }
 }
 
+function Get-EvaluationAcceptance {
+    param(
+        [hashtable]$Evaluation,
+        [double]$MinimumPassRate
+    )
+
+    $summary = if ($Evaluation) { $Evaluation.Results }
+    $expected = if ($Evaluation) { $Evaluation.Suite.TestCases.Count } else { 0 }
+    $completed = if ($summary) { [int]$summary.TotalTests } else { 0 }
+    $passed = if ($summary) { [int]$summary.Passed } else { 0 }
+    $errors = if ($summary) { [int]$summary.Errors } else { 0 }
+    $rate = if ($completed -gt 0) { 100.0 * $passed / $completed } else { $null }
+
+    $reason = if ($null -eq $summary) { 'BackendUnavailable' }
+              elseif ($summary.Cancelled) { 'Cancelled' }
+              elseif ($expected -lt 1 -or $completed -ne $expected) { 'Incomplete' }
+              elseif ($errors -ne 0) { 'CaseErrors' }
+              elseif ($rate -lt $MinimumPassRate) { 'BelowMinimumPassRate' }
+              else { 'Accepted' }
+
+    return @{
+        Accepted = $reason -eq 'Accepted'
+        Reason = $reason
+        ExpectedCases = $expected
+        CompletedCases = $completed
+        PassedCases = $passed
+        ErrorCases = $errors
+        PassRate = $rate
+        MinimumPassRate = $MinimumPassRate
+    }
+}
+
 function Invoke-ABTestEvaluation {
     param(
         [string]$VariantSpec,
@@ -558,6 +607,7 @@ function Invoke-ABTestEvaluation {
 
 $startTime = [datetime]::UtcNow
 $allResults = @{}
+$acceptance = $null
 
 try {
     # A/B Test Mode
@@ -596,11 +646,15 @@ try {
                 -StopSignalPath $StopSignalPath `
                 -ExerciseCSharpFfi:$ExerciseCSharpFfi
 
+            if ($requireAcceptance) {
+                $acceptance = Get-EvaluationAcceptance -Evaluation $evalResult -MinimumPassRate $MinimumPassRate
+            }
+
             if ($evalResult) {
                 $allResults[$be] = $evalResult
 
                 # Create baseline if requested
-                if ($CreateBaseline -and $evalResult.Suite) {
+                if ($CreateBaseline -and $evalResult.Suite -and ($null -eq $acceptance -or $acceptance.Accepted)) {
                     Write-Section "Creating Baseline: $CreateBaseline"
                     $baseline = New-BaselineSnapshot -Name "$CreateBaseline-$be" `
                         -Suite $evalResult.Suite `
@@ -609,7 +663,7 @@ try {
                 }
 
                 # Compare to baseline if requested
-                if ($CompareBaseline -and $evalResult.Suite) {
+                if ($CompareBaseline -and $evalResult.Suite -and ($null -eq $acceptance -or $acceptance.Accepted)) {
                     Write-Section "Comparing to Baseline: $CompareBaseline"
                     $regression = Test-ForRegression -BaselineName "$CompareBaseline-$be" `
                         -Suite $evalResult.Suite
@@ -677,6 +731,9 @@ try {
             }
         }
 
+        if ($requireAcceptance) {
+            $exportData.Acceptance = $acceptance
+        }
         $exportData | ConvertTo-Json -Depth 10 | Set-Content -Path $OutputPath
         Write-Host "`n  Results saved: $OutputPath" -ForegroundColor Green
     }
@@ -687,6 +744,10 @@ try {
 }
 
 #endregion
+
+if ($requireAcceptance -and -not $acceptance.Accepted) {
+    throw "Evaluation acceptance failed for '$Backend' ($($acceptance.Reason)). See '$OutputPath'."
+}
 
 Write-Host "`n╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
 Write-Host '║                    Evaluation Complete                       ║' -ForegroundColor Cyan

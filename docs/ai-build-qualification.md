@@ -64,4 +64,24 @@ The staged [llama.cpp b12633 release](https://github.com/ggml-org/llama.cpp/rele
 
 Reproduce each route with `llama-bench -m <model> -p 256 -n 64 -r 5 -t 4 -ngl <layers> -dev <device> -o json`. Use `0` and `none` for CPU. Resolve current device names using `--list-devices` before selecting a GPU and use a high offload-layer request. A 15M smoke checkpoint decoded faster on CPU than on either Vulkan GPU in the same audit. Qualify actual model classes and report first-token latency, prefill, decode and peak memory separately. These results qualify the staged upstream binaries on one host. Native PC-AI CUDA builds and reinstall/reattach behavior require their own acceptance slices.
 
-The [PC-AI evaluator](../Tests/Evaluation/Invoke-InferenceEvaluation.ps1) completed one `general` case over a temporary loopback llama.cpp server running the 1.2B model on Intel Vulkan. The server produced 48 tokens. The evaluator scored the case 0.4 with a zero pass rate and exited successfully after writing the report. For release acceptance, check the structured case count and verdict as well as process exit. The sample establishes request and response transport and gives no basis for changing the default model.
+The [PC-AI evaluator](../Tests/Evaluation/Invoke-InferenceEvaluation.ps1) completed one `general` case over a temporary loopback llama.cpp server running the 1.2B model on Intel Vulkan. The server produced 48 tokens. The case failed with a score of 0.4 and a zero pass rate. The sample establishes request and response transport.
+
+For automated acceptance, pass `-MinimumPassRate <0–100>` with one backend.
+The evaluator requires a nonempty, complete run with no case errors and writes
+the `Acceptance` decision before returning failure for an unavailable backend,
+cancellation, incomplete run, case error, or pass rate below the threshold.
+The [mock smoke workflow](../.github/workflows/evaluation-smoke.yml) uses
+`-MinimumPassRate 0` to verify transport and completion. Its negative control
+requires a nonzero evaluator exit and a saved `CaseErrors` report after a
+healthy endpoint rejects a completion. Model promotion uses
+a threshold chosen for the dataset and recorded with the staged artifact.
+The pass rate uses the suite's composite score, which includes performance
+metrics. Verify expected answers independently when qualifying model quality.
+
+With the same staged release and model SHA-256
+`b1b3de114215d9507409a662a501a631095a479a419584e8a2ded6304b19b4f5`,
+the selected NVIDIA CUDA, NVIDIA Vulkan, and Intel Vulkan devices each
+reported 17 of 17 layers offloaded and returned a nonempty completion.
+The single-case strict evaluation produced accepted and rejected reports
+across those runs. This checks device selection, generated output, exit
+status, and report preservation. A single case cannot establish model quality.

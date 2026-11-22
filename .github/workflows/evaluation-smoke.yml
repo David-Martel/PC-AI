@@ -41,13 +41,15 @@ jobs:
                   self.wfile.write(body)
 
               def do_GET(self):
-                  if self.path == "/health":
+                  if self.path in ("/health", "/negative/health"):
                       return self._send(200, {"status": "ready", "backend": "mock"})
                   if self.path == "/v1/models":
                       return self._send(200, {"data": [{"id": "mock-model"}]})
                   return self._send(404, {"error": "not found"})
 
               def do_POST(self):
+                  if self.path == "/negative/v1/completions":
+                      return self._send(500, {"error": "synthetic completion failure"})
                   if self.path == "/v1/completions":
                       length = int(self.headers.get("Content-Length", "0") or 0)
                       if length:
@@ -82,9 +84,28 @@ jobs:
             -BaseUrl $baseUrl `
             -Dataset $dataset `
             -MaxTestCases $max `
+            -MinimumPassRate 0 `
             -RunLabel ci-smoke `
             -ProgressMode stream `
             -OutputRoot .\.pcai\evaluation\runs
+
+      - name: Verify failed evaluation leaves its report
+        shell: pwsh
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          $root = Join-Path $PWD '.pcai/evaluation/runs'
+          $summary = Join-Path $root 'negative-control.json'
+          pwsh -NoProfile -File ./Tests/Evaluation/Invoke-InferenceEvaluation.ps1 `
+            -Backend http -BaseUrl 'http://127.0.0.1:9911/negative' -Dataset general `
+            -MaxTestCases 1 -MinimumPassRate 0 -OutputRoot $root -OutputPath $summary `
+            -ProgressMode silent
+          if ($LASTEXITCODE -eq 0) { throw 'Failed completion returned success.' }
+          $acceptance = (Get-Content -LiteralPath $summary -Raw | ConvertFrom-Json).Acceptance
+          if ($acceptance.Accepted -ne $false -or $acceptance.Reason -ne 'CaseErrors' -or
+              $acceptance.ErrorCases -ne 1 -or $acceptance.CompletedCases -ne 1) {
+            throw 'The failed completion did not produce the expected rejection report.'
+          }
+          exit 0
 
       - name: Stop Mock Server
         if: always()

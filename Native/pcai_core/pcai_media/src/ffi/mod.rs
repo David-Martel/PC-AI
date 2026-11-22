@@ -881,6 +881,52 @@ fn staging_path(dest: &Path) -> PathBuf {
     }
 }
 
+/// Backup path for a `ReplaceFileW` call: `.pcai-<16 hex>.bak` beside `dest`.
+///
+/// ReplaceFileW needs the backup on the same volume as the replaced file, and
+/// the same directory guarantees that.  The short name follows the staging
+/// names, so a destination near the component limit still gets a legal one.
+#[cfg(windows)]
+fn backup_path(dest: &Path) -> PathBuf {
+    let name = format!(".pcai-{:016x}.bak", rand::random::<u64>());
+    match dest.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent.join(name),
+        _ => PathBuf::from(name),
+    }
+}
+
+/// Whether the destination exists, from the result of a metadata call.
+///
+/// Only "not found" (`ERROR_FILE_NOT_FOUND`, `ERROR_PATH_NOT_FOUND`, `ENOENT`)
+/// means the destination is absent.  Any other error (access denied, a sharing
+/// violation, an I/O error) says nothing about whether the file exists, so it is
+/// returned and the publish fails closed instead of treating the destination as
+/// free and overwriting whatever is there.
+#[cfg(any(unix, windows))]
+fn destination_exists(probe: io::Result<fs::Metadata>) -> io::Result<bool> {
+    match probe {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error),
+    }
+}
+
+/// The error for a no-replace move that found the destination occupied.
+#[cfg(any(unix, windows))]
+fn not_overwritten(error: io::Error, dest: &Path) -> io::Error {
+    if error.kind() == io::ErrorKind::AlreadyExists {
+        io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            format!(
+                "{} appeared while the image was being written and was not overwritten",
+                dest.display()
+            ),
+        )
+    } else {
+        error
+    }
+}
+
 /// Encoder for `dest`: the image format follows the destination extension,
 /// as `RgbImage::save` did.
 fn encode_for(dest: &Path) -> impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()> {
@@ -990,10 +1036,57 @@ fn create_private_file(path: &Path) -> io::Result<File> {
 }
 
 /// UTF-16, NUL-terminated copy of `path` for Win32 calls.
+///
+/// `std::fs` lifts the `MAX_PATH` limit by itself; raw Win32 calls such as
+/// `ReplaceFileW` and `MoveFileExW` do not, so a long absolute path is passed in
+/// its `\\?\` form (see [`verbatim_path`]).
 #[cfg(windows)]
 fn wide_path(path: &Path) -> Vec<u16> {
     use std::os::windows::ffi::OsStrExt;
+    let verbatim = verbatim_path(path);
+    let path = verbatim.as_deref().unwrap_or(path);
     path.as_os_str().encode_wide().chain(std::iter::once(0)).collect()
+}
+
+/// The `\\?\` form of a long, absolute, drive or UNC path, or `None` when `path`
+/// is short enough, relative, already verbatim or contains `..` (which verbatim
+/// paths do not resolve).  Separators are normalised to backslashes, because
+/// verbatim paths are not.
+#[cfg(windows)]
+fn verbatim_path(path: &Path) -> Option<PathBuf> {
+    use std::ffi::OsString;
+    use std::path::{Component, Prefix};
+    /// Below `MAX_PATH` (260) with room to spare for a file name and a NUL.
+    const LONG: usize = 240;
+    if path.as_os_str().len() < LONG {
+        return None;
+    }
+    let mut components = path.components();
+    let Some(Component::Prefix(prefix)) = components.next() else {
+        return None;
+    };
+    let mut out = match prefix.kind() {
+        Prefix::Disk(letter) => OsString::from(format!(r"\\?\{}:", char::from(letter))),
+        Prefix::UNC(server, share) => {
+            let mut unc = OsString::from(r"\\?\UNC\");
+            unc.push(server);
+            unc.push(r"\");
+            unc.push(share);
+            unc
+        }
+        _ => return None,
+    };
+    for component in components {
+        match component {
+            Component::RootDir | Component::CurDir => {}
+            Component::Normal(name) => {
+                out.push(r"\");
+                out.push(name);
+            }
+            Component::ParentDir | Component::Prefix(_) => return None,
+        }
+    }
+    Some(PathBuf::from(out))
 }
 
 /// Attempts to find an unused staging name before giving up.
@@ -1080,6 +1173,37 @@ fn has_access_acl(_path: &Path) -> io::Result<bool> {
     Ok(false)
 }
 
+/// Remove `path`'s POSIX access ACL, leaving only its mode bits.
+///
+/// A file created in a directory with a default ACL inherits an access ACL; its
+/// named entries are held back by the mask, which follows the group bits of the
+/// mode.  Raising the group bits (copying a `0640` destination's mode onto a
+/// `0600` staging file) raises the mask and makes those entries effective, so the
+/// staged file would grant named users access the destination never gave.
+/// A filesystem without ACL support has nothing to remove; any other error is
+/// returned, so the publish fails instead of keeping the entries.
+#[cfg(target_os = "linux")]
+fn strip_access_acl(path: &Path) -> io::Result<()> {
+    use std::os::unix::ffi::OsStrExt;
+    let path = CString::new(path.as_os_str().as_bytes()).map_err(io::Error::other)?;
+    // SAFETY: the strings are NUL-terminated and outlive the call.
+    let status = unsafe { libc::removexattr(path.as_ptr(), c"system.posix_acl_access".as_ptr()) };
+    if status == 0 {
+        return Ok(());
+    }
+    let error = io::Error::last_os_error();
+    match error.raw_os_error() {
+        Some(libc::ENODATA | libc::ENOTSUP) => Ok(()),
+        _ => Err(error),
+    }
+}
+
+/// Other Unix systems: ACLs are not inspected here, so there is nothing to strip.
+#[cfg(all(unix, not(target_os = "linux")))]
+fn strip_access_acl(_path: &Path) -> io::Result<()> {
+    Ok(())
+}
+
 /// Replace `dest` with the staged file without widening access to it.
 ///
 /// Unix: the staged file is `0600`.  Before the rename it takes the
@@ -1087,7 +1211,12 @@ fn has_access_acl(_path: &Path) -> io::Result<bool> {
 /// and permission bits, or, for a new destination, the mode a plain
 /// `File::create` would have produced (0666 filtered by the umask).  A
 /// destination with a POSIX access ACL is refused with an explicit error,
-/// because the ACL cannot be carried over.  Every failure is returned before
+/// because the ACL cannot be carried over.  For an existing destination the
+/// access ACL the staged file inherited from the directory's default ACL is
+/// removed first (and its absence checked afterwards), because the mode copy
+/// would otherwise raise the ACL mask and activate the inherited named entries.
+/// For a new destination the inherited ACL is kept, as a plain `File::create`
+/// would have.  Every failure is returned before
 /// anything is renamed, so the destination is left untouched.  The owning user
 /// and extended attributes other than the access ACL are not carried over.
 ///
@@ -1095,19 +1224,90 @@ fn has_access_acl(_path: &Path) -> io::Result<bool> {
 /// Callers remove the staging file on error.
 #[cfg(unix)]
 fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
-    publish_staged_with(staged, dest, copy_access_control)
+    publish_staged_checked(staged, dest, |path| fs::metadata(path), copy_access_control)
 }
 
 /// [`publish_staged`] with the access-control step injected, so tests can make it
 /// fail.  The rename happens only if that step succeeded.
-#[cfg(unix)]
+#[cfg(all(unix, test))]
 fn publish_staged_with(
     staged: &Path,
     dest: &Path,
     preserve: impl FnOnce(&Path, &Path) -> io::Result<()>,
 ) -> io::Result<()> {
+    publish_staged_checked(staged, dest, |path| fs::metadata(path), preserve)
+}
+
+/// [`publish_staged`] with the metadata call and the access-control step injected.
+///
+/// The destination is classified first, with [`destination_exists`]: an error
+/// other than "not found" fails the publish before anything is changed.  An
+/// existing destination is replaced by a rename.  An absent one is filled by
+/// [`move_without_replacing`], so a file created there in the meantime (by
+/// another process, after the check) is never overwritten: the publish fails
+/// with an explicit error and that file is left as it was.
+#[cfg(unix)]
+fn publish_staged_checked(
+    staged: &Path,
+    dest: &Path,
+    probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
+    preserve: impl FnOnce(&Path, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    let existed = destination_exists(probe(dest))?;
     preserve(staged, dest)?;
-    fs::rename(staged, dest)
+    if existed {
+        fs::rename(staged, dest)
+    } else {
+        move_without_replacing(staged, dest)
+    }
+}
+
+/// Move `staged` to `dest` only if nothing is at `dest`: atomic, never overwrites.
+///
+/// Linux uses `renameat2(RENAME_NOREPLACE)`.  Where the kernel or the filesystem
+/// does not support the flag, and on other Unix systems, [`move_by_linking`] is
+/// used instead.
+#[cfg(unix)]
+fn move_without_replacing(staged: &Path, dest: &Path) -> io::Result<()> {
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        let from = CString::new(staged.as_os_str().as_bytes()).map_err(io::Error::other)?;
+        let to = CString::new(dest.as_os_str().as_bytes()).map_err(io::Error::other)?;
+        // SAFETY: both strings are NUL-terminated and outlive the call; AT_FDCWD
+        // makes the paths relative to the working directory, as `rename` does.
+        let status = unsafe {
+            libc::renameat2(
+                libc::AT_FDCWD,
+                from.as_ptr(),
+                libc::AT_FDCWD,
+                to.as_ptr(),
+                libc::RENAME_NOREPLACE,
+            )
+        };
+        if status == 0 {
+            return Ok(());
+        }
+        let error = io::Error::last_os_error();
+        match error.raw_os_error() {
+            Some(libc::ENOSYS | libc::EINVAL | libc::ENOTSUP) => {}
+            _ => return Err(not_overwritten(error, dest)),
+        }
+    }
+    move_by_linking(staged, dest)
+}
+
+/// No-replace move for systems without `renameat2`: `link(staged, dest)` fails if
+/// `dest` exists, then the staging name is removed.  A failure to remove it leaves
+/// a second name for the published file; that is logged, not reported, because the
+/// image is published.
+#[cfg(unix)]
+fn move_by_linking(staged: &Path, dest: &Path) -> io::Result<()> {
+    fs::hard_link(staged, dest).map_err(|error| not_overwritten(error, dest))?;
+    if let Err(error) = fs::remove_file(staged) {
+        tracing::warn!(staging = %staged.display(), %error, "published, but the staging file could not be removed");
+    }
+    Ok(())
 }
 
 /// Give the staged file the access control `dest` has (or will have): see
@@ -1115,8 +1315,10 @@ fn publish_staged_with(
 #[cfg(unix)]
 fn copy_access_control(staged: &Path, dest: &Path) -> io::Result<()> {
     use std::os::unix::fs::MetadataExt;
+    let mut dest_existed = false;
     let permissions = match fs::metadata(dest) {
         Ok(existing) => {
+            dest_existed = true;
             if has_access_acl(dest)? {
                 return Err(io::Error::new(
                     io::ErrorKind::Unsupported,
@@ -1129,12 +1331,26 @@ fn copy_access_control(staged: &Path, dest: &Path) -> io::Result<()> {
             let file = File::open(staged)?;
             std::os::unix::fs::fchown(&file, None, Some(existing.gid()))?;
             drop(file);
+            // The destination has no access ACL (checked above), so the staged
+            // file must not have one either: drop what the directory's default
+            // ACL gave it before the mode copy can make its entries effective.
+            strip_access_acl(staged)?;
             existing.permissions()
         }
         Err(error) if error.kind() == io::ErrorKind::NotFound => plain_create_permissions(dest)?,
         Err(error) => return Err(error),
     };
-    fs::set_permissions(staged, permissions)
+    fs::set_permissions(staged, permissions)?;
+    if dest_existed && has_access_acl(staged)? {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!(
+                "the staged file for {} still carries an access ACL after it was removed; refusing to publish",
+                dest.display()
+            ),
+        ));
+    }
+    Ok(())
 }
 
 /// Replace `dest` with the staged file, keeping the destination's ACL.
@@ -1143,59 +1359,173 @@ fn copy_access_control(staged: &Path, dest: &Path) -> io::Result<()> {
 /// file's attributes, ACL and creation time into it.  It is called WITHOUT
 /// `REPLACEFILE_IGNORE_MERGE_ERRORS`, so a failed merge fails the call and the
 /// publish fails; the destination is never replaced by a file that carries the
-/// wrong ACL.  There is no backup file; if Windows reports
-/// `ERROR_UNABLE_TO_MOVE_REPLACEMENT_2` the replaced file may already be gone,
-/// which is reported as an error like any other failure.
+/// wrong ACL.
+///
+/// The call always names a backup file, `.pcai-<16 hex>.bak` beside the
+/// destination.  Without one, `ERROR_UNABLE_TO_MOVE_REPLACEMENT` (1176) leaves
+/// the replaced file deleted and the replacement under its staging name, which
+/// would lose the user's existing image.  With one, Windows keeps the original
+/// under the backup name while it swaps, and this function undoes a failed swap:
+///
+/// - success: the backup is deleted;
+/// - failure with a backup present (1176 or 1177, whichever the call reports):
+///   the backup is the original, so it is moved back over the destination and
+///   the original error is returned;
+/// - failure with no backup (the documented "files keep their names" case): the
+///   destination was never touched, and the original error is returned;
+/// - the restore itself fails: the backup is KEPT, because it is the user's only
+///   copy, and the error names its path.
 ///
 /// For a new destination the private staging DACL is reset to the directory's
 /// inherited entries first, so the file ends up with what a plain `File::create`
 /// would have given it.  Callers remove the staging file on error.
 #[cfg(windows)]
 fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
-    publish_staged_with(staged, dest, replace_file_keeping_acl)
+    publish_staged_checked(
+        staged,
+        dest,
+        |path| fs::symlink_metadata(path),
+        replace_file_keeping_acl,
+    )
 }
 
 /// [`publish_staged`] with the replace step injected, so tests can make it fail.
-#[cfg(windows)]
+#[cfg(all(windows, test))]
 fn publish_staged_with(
     staged: &Path,
     dest: &Path,
-    replace: impl FnOnce(&Path, &Path) -> io::Result<()>,
+    replace: impl FnOnce(&Path, &Path, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    publish_staged_checked(staged, dest, |path| fs::symlink_metadata(path), replace)
+}
+
+/// [`publish_staged`] with the metadata call and the replace step injected.
+///
+/// The destination is classified first, with [`destination_exists`]: an error
+/// other than "not found" fails the publish before anything is changed.  A new
+/// destination is filled by [`publish_new_destination`], which never replaces, so
+/// a file created there after the check (by another process) is left as it was and
+/// the publish fails with an explicit error instead of overwriting it.
+#[cfg(windows)]
+fn publish_staged_checked(
+    staged: &Path,
+    dest: &Path,
+    probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
+    replace: impl FnOnce(&Path, &Path, &Path) -> io::Result<()>,
 ) -> io::Result<()> {
     const ERROR_FILE_NOT_FOUND: i32 = 2;
-    if fs::symlink_metadata(dest).is_err() {
+    if !destination_exists(probe(dest))? {
         return publish_new_destination(staged, dest);
     }
-    match replace(dest, staged) {
-        Err(error) if error.raw_os_error() == Some(ERROR_FILE_NOT_FOUND) && fs::symlink_metadata(dest).is_err() => {
-            // The destination vanished between the check and the call.
-            publish_new_destination(staged, dest)
+    let backup = backup_path(dest);
+    match replace(dest, staged, &backup) {
+        Ok(()) => {
+            discard_backup(&backup);
+            Ok(())
         }
-        other => other,
+        Err(error) => {
+            let nothing_moved_aside = matches!(destination_exists(fs::symlink_metadata(dest)), Ok(false))
+                && matches!(destination_exists(fs::symlink_metadata(&backup)), Ok(false));
+            if error.raw_os_error() == Some(ERROR_FILE_NOT_FOUND) && nothing_moved_aside {
+                // The destination vanished between the check and the call, and
+                // nothing was moved aside: publish as a new file.
+                return publish_new_destination(staged, dest);
+            }
+            Err(restore_from_backup(dest, &backup, error))
+        }
     }
 }
 
-/// Rename the staged file to a destination that does not exist, after giving it
+/// Delete the backup after a successful replace.
+///
+/// The publish has already succeeded, so a failure to delete the backup is not
+/// reported as one; it is logged with the path, because the file is the user's
+/// previous image and should not be left unmentioned.
+#[cfg(windows)]
+fn discard_backup(backup: &Path) {
+    match fs::remove_file(backup) {
+        Ok(()) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => tracing::warn!(
+            backup = %backup.display(),
+            %error,
+            "published, but the previous image's backup file could not be deleted"
+        ),
+    }
+}
+
+/// Undo a failed `ReplaceFileW` and return the error to report.
+///
+/// `cause` is the error the replace step returned.  If `backup` exists it holds
+/// the original file (ReplaceFileW only creates it by renaming the replaced
+/// file), so it is moved back over `dest`: `fs::rename` replaces an existing
+/// file on Windows (`MOVEFILE_REPLACE_EXISTING`), which covers a replacement
+/// that was already moved into place.  If it does not exist, Windows kept the
+/// original under the destination name and there is nothing to restore.
+///
+/// If the move fails, the backup is left where it is and the returned error
+/// names it, so the original can be recovered by hand; it is never deleted here.
+#[cfg(windows)]
+fn restore_from_backup(dest: &Path, backup: &Path, cause: io::Error) -> io::Error {
+    if matches!(destination_exists(fs::symlink_metadata(backup)), Ok(false)) {
+        return cause;
+    }
+    match fs::rename(backup, dest) {
+        Ok(()) => cause,
+        Err(restore) => io::Error::new(
+            cause.kind(),
+            format!(
+                "replacing {dest} failed ({cause}) and the original could not be moved back ({restore}); \
+                 the original image is kept at {backup}",
+                dest = dest.display(),
+                backup = backup.display(),
+            ),
+        ),
+    }
+}
+
+/// Move the staged file to a destination that does not exist, after giving it
 /// the directory's inherited ACL instead of its private one.
+///
+/// The move is `MoveFileExW` WITHOUT `MOVEFILE_REPLACE_EXISTING`, so it fails with
+/// `ERROR_ALREADY_EXISTS` if a file has appeared at `dest` since it was checked;
+/// that file is never overwritten.
 #[cfg(windows)]
 fn publish_new_destination(staged: &Path, dest: &Path) -> io::Result<()> {
     reset_to_inherited_dacl(staged)?;
-    fs::rename(staged, dest)
+    move_without_replacing(staged, dest)
 }
 
-/// `ReplaceFileW(dest, staged, no backup, no flags)`: the replaced file's ACL is
-/// merged into the replacement, and a merge failure is an error.
+/// `MoveFileExW(staged, dest, 0)`: rename that fails if `dest` exists.
 #[cfg(windows)]
-fn replace_file_keeping_acl(dest: &Path, staged: &Path) -> io::Result<()> {
-    use windows_sys::Win32::Storage::FileSystem::ReplaceFileW;
-    let (replaced, replacement) = (wide_path(dest), wide_path(staged));
+fn move_without_replacing(staged: &Path, dest: &Path) -> io::Result<()> {
+    use windows_sys::Win32::Storage::FileSystem::MoveFileExW;
+    let (from, to) = (wide_path(staged), wide_path(dest));
     // SAFETY: both arguments are NUL-terminated UTF-16 buffers that outlive the
-    // call; the backup, exclude and reserved parameters may be null.
+    // call; flags 0 means no replace, no copy fallback and no write-through.
+    let ok = unsafe { MoveFileExW(from.as_ptr(), to.as_ptr(), 0) };
+    if ok == 0 {
+        Err(not_overwritten(io::Error::last_os_error(), dest))
+    } else {
+        Ok(())
+    }
+}
+
+/// `ReplaceFileW(dest, staged, backup, no flags)`: the replaced file's ACL is
+/// merged into the replacement, and a merge failure is an error.  The original is
+/// kept at `backup` (same directory, unused name); the caller deletes it on
+/// success and restores from it on failure.
+#[cfg(windows)]
+fn replace_file_keeping_acl(dest: &Path, staged: &Path, backup: &Path) -> io::Result<()> {
+    use windows_sys::Win32::Storage::FileSystem::ReplaceFileW;
+    let (replaced, replacement, backup) = (wide_path(dest), wide_path(staged), wide_path(backup));
+    // SAFETY: the three paths are NUL-terminated UTF-16 buffers that outlive the
+    // call; the exclude and reserved parameters may be null.
     let ok = unsafe {
         ReplaceFileW(
             replaced.as_ptr(),
             replacement.as_ptr(),
-            std::ptr::null(),
+            backup.as_ptr(),
             0,
             std::ptr::null(),
             std::ptr::null(),
@@ -2616,7 +2946,8 @@ mod tests {
     }
 
     // Protects: a destination near the 255-character component limit still publishes,
-    //   on both the asynchronous and synchronous paths.
+    //   on both the asynchronous and synchronous paths, new and existing (on Windows the
+    //   full path is over MAX_PATH, so the raw Win32 calls need the verbatim form).
     // Detects: a staging name derived from the destination basename (248 + suffix
     //   exceeds 255 and the exclusive create fails with an invalid-name error).
     // Needs: a temp directory on a filesystem with a 255-character component limit.
@@ -2637,6 +2968,12 @@ mod tests {
 
         write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("sync publish");
         assert_eq!(image::open(&dest).unwrap().width(), 2);
+        assert_eq!(dir_listing(tmp.path()), std::slice::from_ref(&name));
+
+        // Over the now-existing long destination: ReplaceFileW (with its backup) on
+        // Windows, a rename elsewhere.
+        write_image_atomically(&image::RgbImage::new(3, 3), &dest).expect("replace publish");
+        assert_eq!(image::open(&dest).unwrap().width(), 3);
         assert_eq!(dir_listing(tmp.path()), [name]);
     }
 
@@ -3474,7 +3811,9 @@ mod tests {
         let dest_text = dest.to_string_lossy().into_owned();
         let encode = encode_for(&dest);
         execute_async_request_staged(id, dest_text, mock_image, encode, |staged, dest| {
-            publish_staged_with(staged, dest, |_, _| Err(io::Error::other("injected ACL merge failure")))
+            publish_staged_with(staged, dest, |_, _, _| {
+                Err(io::Error::other("injected ACL merge failure"))
+            })
         });
         let (status, text) = poll_full(id);
         assert_eq!(status, 3, "the failed replace is reported as Failed");
@@ -3512,6 +3851,437 @@ mod tests {
         let (status, text) = poll_full(id);
         assert_eq!(status, 3, "the failed preservation is reported as Failed");
         assert!(text.expect("failure message").contains("injected chgrp failure"));
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(unix_mode(&dest), 0o600, "destination mode untouched");
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    /// Run an async request whose publish step uses the injected `replace`, and
+    /// return its final status and text.
+    #[cfg(windows)]
+    fn publish_with_injected_replace(
+        dest: &Path,
+        replace: impl FnOnce(&Path, &Path, &Path) -> io::Result<()>,
+    ) -> (i32, Option<String>) {
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest_text = dest.to_string_lossy().into_owned();
+        let encode = encode_for(dest);
+        execute_async_request_staged(id, dest_text, mock_image, encode, |staged, dest| {
+            publish_staged_with(staged, dest, replace)
+        });
+        poll_full(id)
+    }
+
+    /// Write `ORIGINAL` to `dir/private.png` and cut its ACL down to the current user
+    /// alone, so a replacement carrying any other ACL would be noticed.  Returns the
+    /// path and its normalised ACL entries.
+    #[cfg(windows)]
+    fn owner_only_destination(dir: &Path) -> (PathBuf, Vec<String>) {
+        let dest = dir.join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let user = std::env::var("USERNAME").expect("USERNAME is set");
+        let restrict = std::process::Command::new("icacls")
+            .arg(&dest)
+            .args(["/inheritance:r", "/grant:r", &format!("{user}:(F)")])
+            .output()
+            .expect("run icacls");
+        assert!(restrict.status.success(), "icacls restrict failed: {restrict:?}");
+        let acl = acl_entries(&acl_listing(&dest));
+        (dest, acl)
+    }
+
+    // Protects: a successful publish over an existing destination keeps its ACL and
+    //   leaves neither the ReplaceFileW backup nor the staging file behind.
+    // Detects: a publish that forgets to delete the backup (the user's previous image
+    //   would linger as a hidden `.pcai-*.bak` file), or one that leaks the staging file.
+    // Needs: Windows with icacls on PATH; the real ReplaceFileW runs.
+    #[cfg(windows)]
+    #[test]
+    fn test_successful_replace_leaves_no_backup_or_staging_file() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, acl_before) = owner_only_destination(tmp.path());
+        let id = register_request(MediaRequestStatus::Pending);
+        let encode = encode_for(&dest);
+        execute_async_request_staged(
+            id,
+            dest.to_string_lossy().into_owned(),
+            mock_image,
+            encode,
+            publish_staged,
+        );
+        let (status, _) = poll_full(id);
+        assert_eq!(status, 2, "the publish completes");
+        assert!(
+            image::open(&dest).is_ok(),
+            "destination holds the new image, not the original bytes"
+        );
+        assert_eq!(acl_entries(&acl_listing(&dest)), acl_before, "ACL kept");
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "no backup or staging file");
+    }
+
+    // Protects: `replace_file_keeping_acl` really passes the backup name to ReplaceFileW,
+    //   so Windows keeps the original under that name while it swaps; the failure paths
+    //   below can only restore from a backup that exists.
+    // Detects: a null `lpBackupFileName`: with it ERROR_UNABLE_TO_MOVE_REPLACEMENT
+    //   (1176) deletes the user's image and nothing can bring it back.
+    // Needs: Windows; calls the real ReplaceFileW on throwaway files.
+    #[cfg(windows)]
+    #[test]
+    fn test_replace_file_keeps_the_original_at_the_backup_name() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("image.png");
+        let staged = tmp.path().join("staged.partial");
+        let backup = tmp.path().join("original.bak");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::write(&staged, b"replacement bytes").unwrap();
+        replace_file_keeping_acl(&dest, &staged, &backup).expect("replace");
+        assert_eq!(fs::read(&dest).unwrap(), b"replacement bytes");
+        assert_eq!(
+            fs::read(&backup).unwrap(),
+            ORIGINAL,
+            "the original is kept at the backup name"
+        );
+        assert!(!staged.exists(), "the staged file became the destination");
+    }
+
+    // Protects: ERROR_UNABLE_TO_MOVE_REPLACEMENT (1176) after the replaced file has
+    //   been moved aside leaves the user's original in place: the request is Failed,
+    //   destination bytes and ACL are restored from the backup, and neither the
+    //   staging file nor the backup is left behind.
+    // Detects: a publish that returns the error without moving the backup back (the
+    //   original image is then gone), or that deletes the backup before restoring it.
+    // Needs: Windows with icacls on PATH; the failure state is injected through the
+    //   replace seam (Microsoft Learn, ReplaceFileW: the replaced file is then at the
+    //   backup name and the destination name is free).
+    #[cfg(windows)]
+    #[test]
+    fn test_replace_error_1176_restores_the_original_from_the_backup() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, acl_before) = owner_only_destination(tmp.path());
+        let (status, text) = publish_with_injected_replace(&dest, |dest, _staged, backup| {
+            assert_eq!(
+                backup.parent(),
+                dest.parent(),
+                "backup is in the destination's directory"
+            );
+            let name = backup.file_name().unwrap().to_string_lossy().into_owned();
+            assert!(
+                name.starts_with(".pcai-") && name.ends_with(".bak"),
+                "backup name {name}"
+            );
+            assert!(!backup.exists(), "backup name is unused");
+            fs::rename(dest, backup).unwrap();
+            Err(io::Error::from_raw_os_error(1176))
+        });
+        assert_eq!(status, 3, "the failed replace is reported as Failed");
+        assert!(text.expect("failure message").contains("1176"));
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes restored");
+        assert_eq!(acl_entries(&acl_listing(&dest)), acl_before, "destination ACL restored");
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "no backup or staging file");
+    }
+
+    // Protects: ERROR_UNABLE_TO_MOVE_REPLACEMENT_2 (1177), where the replacement already
+    //   sits under the destination name and the original is at the backup name, ends with
+    //   the original back in place, the replacement gone and no backup left.
+    // Detects: a restore that cannot replace an existing destination (the move fails
+    //   because the replacement is in the way), or that leaves the replacement published.
+    // Needs: Windows with icacls on PATH; the failure state is injected through the
+    //   replace seam.
+    #[cfg(windows)]
+    #[test]
+    fn test_replace_error_1177_restores_the_original_over_the_replacement() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, acl_before) = owner_only_destination(tmp.path());
+        let (status, text) = publish_with_injected_replace(&dest, |dest, staged, backup| {
+            fs::rename(dest, backup).unwrap();
+            fs::rename(staged, dest).unwrap();
+            Err(io::Error::from_raw_os_error(1177))
+        });
+        assert_eq!(status, 3, "the failed replace is reported as Failed");
+        assert!(text.expect("failure message").contains("1177"));
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "the replacement is not published");
+        assert_eq!(acl_entries(&acl_listing(&dest)), acl_before, "destination ACL restored");
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "no backup or staging file");
+    }
+
+    // Protects: any other ReplaceFileW failure (the documented rule is that the files
+    //   keep their names and no backup exists) leaves the destination as it was, with no
+    //   backup name left over; nothing is "restored" from a backup that was never made.
+    // Detects: a publish that treats a missing backup as an error of its own, or that
+    //   moves or deletes the destination while cleaning up.
+    // Needs: Windows with icacls on PATH; the failure is injected through the replace seam.
+    #[cfg(windows)]
+    #[test]
+    fn test_other_replace_errors_leave_the_destination_and_make_no_backup() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, acl_before) = owner_only_destination(tmp.path());
+        let (status, text) = publish_with_injected_replace(&dest, |_, _, _| Err(io::Error::from_raw_os_error(87)));
+        assert_eq!(status, 3);
+        assert!(text.expect("failure message").contains("87"));
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            acl_before,
+            "destination ACL untouched"
+        );
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "no backup or staging file");
+    }
+
+    // Protects: when the restore itself fails, the backup is kept (it is the user's only
+    //   copy) and the error names its path, so the original can be recovered by hand.
+    // Detects: a publish that deletes the backup after a failed restore, or reports the
+    //   failure without the backup's location.
+    // Needs: Windows; the failure state is injected through the replace seam and the move
+    //   is made to fail for real by putting a directory under the destination name, which
+    //   a file cannot replace.  (Holding the backup open instead would also block deleting
+    //   it, so the test could not tell "kept" from "could not delete".)
+    #[cfg(windows)]
+    #[test]
+    fn test_failed_restore_keeps_the_backup_and_names_its_path() {
+        use std::cell::RefCell;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, _acl) = owner_only_destination(tmp.path());
+        let backup_seen: RefCell<Option<PathBuf>> = RefCell::new(None);
+        let (status, text) = publish_with_injected_replace(&dest, |dest, _staged, backup| {
+            fs::rename(dest, backup).unwrap();
+            fs::create_dir(dest).unwrap();
+            *backup_seen.borrow_mut() = Some(backup.to_path_buf());
+            Err(io::Error::from_raw_os_error(1176))
+        });
+        let backup = backup_seen.into_inner().expect("the replace step ran");
+        assert_eq!(status, 3, "the failed replace is reported as Failed");
+        let text = text.expect("failure message");
+        assert!(
+            text.contains(backup.to_string_lossy().as_ref()),
+            "the error names the backup path {backup:?}: {text}"
+        );
+        assert_eq!(
+            fs::read(&backup).unwrap(),
+            ORIGINAL,
+            "the backup still holds the original"
+        );
+        assert!(
+            dest.is_dir(),
+            "the blocker is still in the way, so the restore really failed"
+        );
+        let backup_name = backup.file_name().unwrap().to_string_lossy().into_owned();
+        assert_eq!(
+            dir_listing(tmp.path()),
+            [backup_name, "private.png".to_string()],
+            "only the backup and the blocker remain; the staging file is gone"
+        );
+    }
+
+    /// Run an async request whose publish step is the real one but whose metadata
+    /// check is the injected `probe`, and return its final status and text.
+    #[cfg(any(unix, windows))]
+    fn publish_with_injected_probe(
+        dest: &Path,
+        probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
+    ) -> (i32, Option<String>) {
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest_text = dest.to_string_lossy().into_owned();
+        let encode = encode_for(dest);
+        execute_async_request_staged(id, dest_text, mock_image, encode, |staged, dest| {
+            real_publish_with_probe(staged, dest, probe)
+        });
+        poll_full(id)
+    }
+
+    #[cfg(windows)]
+    fn real_publish_with_probe(
+        staged: &Path,
+        dest: &Path,
+        probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
+    ) -> io::Result<()> {
+        publish_staged_checked(staged, dest, probe, replace_file_keeping_acl)
+    }
+
+    #[cfg(unix)]
+    fn real_publish_with_probe(
+        staged: &Path,
+        dest: &Path,
+        probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
+    ) -> io::Result<()> {
+        publish_staged_checked(staged, dest, probe, copy_access_control)
+    }
+
+    // Protects: the no-replace move fills a free name and, when the name is occupied,
+    //   fails with AlreadyExists and leaves both the destination and the staged file
+    //   exactly as they were.
+    // Detects: a replacing rename on the new-output path: a file that appears after the
+    //   existence check would be overwritten.
+    // Needs: Unix or Windows; plain files in a temporary directory.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_no_replace_move_refuses_an_occupied_destination() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = tmp.path().join("staged.partial");
+        let dest = tmp.path().join("dest.png");
+        fs::write(&staged, b"first").unwrap();
+        move_without_replacing(&staged, &dest).expect("a free name is filled");
+        assert_eq!(fs::read(&dest).unwrap(), b"first");
+        assert!(!staged.exists(), "the staged file was moved");
+
+        fs::write(&staged, b"second").unwrap();
+        let error = move_without_replacing(&staged, &dest).expect_err("an occupied name is refused");
+        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+        assert!(error.to_string().contains("not overwritten"), "explicit error: {error}");
+        assert_eq!(fs::read(&dest).unwrap(), b"first", "the destination is untouched");
+        assert_eq!(fs::read(&staged).unwrap(), b"second", "the staged file is untouched");
+    }
+
+    // Protects: the hard-link fallback (used where `renameat2` is unavailable) has the
+    //   same contract as the primary no-replace move.
+    // Detects: a fallback that overwrites, or that leaves the staging name behind.
+    // Needs: Unix on a filesystem with hard links (a temporary directory).
+    #[cfg(unix)]
+    #[test]
+    fn test_link_fallback_refuses_an_occupied_destination() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = tmp.path().join("staged.partial");
+        let dest = tmp.path().join("dest.png");
+        fs::write(&staged, b"first").unwrap();
+        move_by_linking(&staged, &dest).expect("a free name is filled");
+        assert_eq!(fs::read(&dest).unwrap(), b"first");
+        assert!(!staged.exists(), "the staging name was removed");
+
+        fs::write(&staged, b"second").unwrap();
+        let error = move_by_linking(&staged, &dest).expect_err("an occupied name is refused");
+        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(fs::read(&dest).unwrap(), b"first", "the destination is untouched");
+        assert_eq!(fs::read(&staged).unwrap(), b"second", "the staged file is untouched");
+    }
+
+    // Protects: a file that appears at a new output's path between the existence check
+    //   and the publish is not overwritten: the request is Failed with an explicit error,
+    //   the file keeps its bytes and ACL, and the staging file is removed.
+    // Detects: a replacing rename after "not found" (the other process's private file
+    //   would be clobbered by the generated image).
+    // Needs: Windows with icacls on PATH; the appearance is injected through the metadata
+    //   seam, which reports "not found" and then creates the file.
+    #[cfg(windows)]
+    #[test]
+    fn test_destination_appearing_after_the_check_is_not_overwritten_on_windows() {
+        use std::cell::RefCell;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let acl_before: RefCell<Vec<String>> = RefCell::new(Vec::new());
+        let (status, text) = publish_with_injected_probe(&dest, |path| {
+            let result = fs::symlink_metadata(path);
+            assert!(result.is_err(), "the destination is absent at the check");
+            let (_, acl) = owner_only_destination(tmp.path());
+            *acl_before.borrow_mut() = acl;
+            result
+        });
+        assert_eq!(status, 3, "the publish is Failed, not completed over the new file");
+        assert!(text.expect("failure message").contains("not overwritten"));
+        assert_eq!(
+            fs::read(&dest).unwrap(),
+            ORIGINAL,
+            "the other file's bytes are untouched"
+        );
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            acl_before.into_inner(),
+            "the other file's ACL is untouched"
+        );
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: a metadata error other than "not found" (here access denied) is not read
+    //   as "the destination is absent": the publish fails closed with that error, the
+    //   existing destination keeps its bytes and ACL, and the staging file is removed.
+    // Detects: a check that treats every metadata error as absence and then publishes
+    //   over a file it could not see.
+    // Needs: Windows with icacls on PATH; the error is injected through the metadata seam.
+    #[cfg(windows)]
+    #[test]
+    fn test_metadata_error_other_than_not_found_fails_closed_on_windows() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, acl_before) = owner_only_destination(tmp.path());
+        let (status, text) = publish_with_injected_probe(&dest, |_| {
+            Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "injected metadata failure",
+            ))
+        });
+        assert_eq!(status, 3);
+        assert!(
+            text.expect("failure message").contains("injected metadata failure"),
+            "the metadata error itself is reported"
+        );
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            acl_before,
+            "destination ACL untouched"
+        );
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: as the Windows test of the same name, on Unix: a file that appears at a
+    //   new output's path after the check is not overwritten; the request is Failed with
+    //   an explicit error, the file keeps its bytes and mode, and the staging file is
+    //   removed.
+    // Detects: a replacing rename after "not found".
+    // Needs: Unix; the appearance is injected through the metadata seam.
+    #[cfg(unix)]
+    #[test]
+    fn test_destination_appearing_after_the_check_is_not_overwritten_on_unix() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let (status, text) = publish_with_injected_probe(&dest, |path| {
+            let result = fs::metadata(path);
+            assert!(result.is_err(), "the destination is absent at the check");
+            fs::write(path, ORIGINAL).unwrap();
+            fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
+            result
+        });
+        assert_eq!(status, 3, "the publish is Failed, not completed over the new file");
+        assert!(text.expect("failure message").contains("not overwritten"));
+        assert_eq!(
+            fs::read(&dest).unwrap(),
+            ORIGINAL,
+            "the other file's bytes are untouched"
+        );
+        assert_eq!(unix_mode(&dest), 0o600, "the other file's mode is untouched");
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: as the Windows test of the same name, on Unix: a metadata error other than
+    //   "not found" fails the publish closed, before the access-control step runs.
+    // Detects: a check that treats every metadata error as absence.
+    // Needs: Unix; the error is injected through the metadata seam.
+    #[cfg(unix)]
+    #[test]
+    fn test_metadata_error_other_than_not_found_fails_closed_on_unix() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o600)).unwrap();
+        let (status, text) = publish_with_injected_probe(&dest, |_| {
+            Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "injected metadata failure",
+            ))
+        });
+        assert_eq!(status, 3);
+        assert!(
+            text.expect("failure message").contains("injected metadata failure"),
+            "the metadata error itself is reported"
+        );
         assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
         assert_eq!(unix_mode(&dest), 0o600, "destination mode untouched");
         assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");

@@ -37,6 +37,8 @@ or Tailscale management alias may reach a peer to start a benchmark listener.
 Benchmark data uses the numeric peer address and an explicit local source on
 USB4. The mixed Windows/Linux benchmark requires on-link routes in both
 directions before reporting USB4 goodput, including for its sequential trials.
+The [direct-route review correction](../../Tests/Unit/thunderbolt-linux-peer-direct-route-review.json)
+records the revised test selectors and their review disposition.
 Compare physical USB4 and overlay counter deltas when both interfaces are active.
 The legacy `ms01UplinkCapMbps` registry field describes an uplink in lifecycle
 output. It supplies no socket or interface rate limit.

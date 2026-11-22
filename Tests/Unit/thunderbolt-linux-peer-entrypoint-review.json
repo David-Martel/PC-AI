@@ -6,9 +6,9 @@
   "sourceBaseline": "1bbeaad2d1498fa48ee49d658b073d1640588551",
   "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent. Both entrypoint cases are reviewed as a group.",
   "sourceBindings": {
-    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "de5ca6f43a4f4d4dbc7507200af49b15cca947d75c946d973dc628761b436ce9",
+    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "5d5e9562de7fd941a30a7138c4f8ff6529b30bbc6b1ef21c916fb48a9e1ff08a",
     "Tools/Invoke-ThunderboltNetworking.ps1": "0343cb4fa2a00e50c84321cba68f093895572d59d476bfd7c85a490461293fce",
-    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "ae8b56df1e9d6c92bb83c0c8a3f26686d8ce60729aa6f41596cec66a42393fb6"
+    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "e7b96aac7a9e0a5422eefb1e1f8d0fd2dbc026b9042ac04aebb145dcde5396aa"
   },
   "selectors": [
     {

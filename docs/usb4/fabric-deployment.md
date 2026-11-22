@@ -35,8 +35,9 @@ network interface. PC-AI qualifies that interface, its numeric peer address,
 and the selected route before handing the path to applications. A Headscale
 or Tailscale management alias may reach a peer to start a benchmark listener.
 Benchmark data uses the numeric peer address and an explicit local source on
-USB4. Require an on-link route before reporting USB4 goodput. Comparing physical
-USB4 and overlay counter deltas is useful when both interfaces are active.
+USB4. The mixed Windows/Linux benchmark requires on-link routes in both
+directions before reporting USB4 goodput, including for its sequential trials.
+Compare physical USB4 and overlay counter deltas when both interfaces are active.
 The legacy `ms01UplinkCapMbps` registry field describes an uplink in lifecycle
 output. It supplies no socket or interface rate limit.
 

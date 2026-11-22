@@ -124,7 +124,7 @@ def run_endpoint(artifacts, edge, role, allow_firewall):
                           'runner': artifacts[PROCESS_RUNNER].decode('utf-8-sig'), 'request': request})
     try:
         response = subprocess.run(prefix + ['pwsh', '-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', loader],
-                                  input=payload.encode('utf-8'), capture_output=True, timeout=edge['seconds'] + 48)
+                                  input=payload.encode('utf-8'), capture_output=True, timeout=edge['seconds'] + 90)
     except subprocess.TimeoutExpired:
         raise ValueError(f'{role} endpoint did not finish within its outer deadline') from None
     if response.returncode:
@@ -156,10 +156,11 @@ def measure(edge, side, evidence):
 def qualify(edge, client, server):
     client_end = measure(edge, 'client', client)
     server_end = measure(edge, 'server', server)
-    directions = [(server_end['sum_received'], client, server),
-                  (client_end['sum_received_bidir_reverse'], server, client)]
+    directions = [(server_end.get('sum_received'), client, server),
+                  (client_end.get('sum_received_bidir_reverse'), server, client)]
     rates = []
     for receiver, source, destination in directions:
+        require(isinstance(receiver, dict), 'Missing USB4 receiver sample for one direction')
         elapsed = number(receiver['seconds'], 'receiver seconds')
         require(elapsed >= edge['seconds'] * 0.8, 'Receiver sample stopped early')
         count = integer(receiver['bytes'], 1, 2**63 - 1, 'receiver bytes')
@@ -178,7 +179,10 @@ def test_edge(artifacts, edge, allow_firewall):
         with ThreadPoolExecutor(max_workers=1) as worker:
             listening = worker.submit(run_endpoint, artifacts, edge, 'listen', allow_firewall)
             ready = run_endpoint(artifacts, edge, 'ready', False)
-            require(ready.get('ready') is True, 'USB4 benchmark listener was not ready on its exact address')
+            if ready.get('ready') is not True:
+                # Preserve the receiver's admission error after its bounded job ends.
+                listening.result()
+                raise ValueError('USB4 benchmark listener was not ready on its exact address')
             client = run_endpoint(artifacts, edge, 'client', False)
             server = listening.result()
         test.update(client=client, server=server)
@@ -202,9 +206,13 @@ def verify_receipt(receipt, revision, source_digests, profile_digest, edges, now
     tests = receipt['edges']
     require(isinstance(tests, list) and [test['id'] for test in tests] == [edge['id'] for edge in edges],
             'Receipt does not cover every declared edge in order')
+    verified = []
     for edge, test in zip(edges, tests):
-        require(test['state'] == 'Passed' and qualify(edge, test['client'], test['server'])['minimum_met'],
+        rates = qualify(edge, test['client'], test['server'])
+        require(test['state'] == 'Passed' and rates['minimum_met'],
                 f"Receipt fails the threshold on {edge['id']}")
+        verified.append({'id': edge['id'], 'threshold_gbps_each_way': edge['min_gbps_each_way'], 'rates': rates})
+    return verified
 
 
 def main():
@@ -233,9 +241,9 @@ def main():
             with args.verify_receipt.open('rb') as file:
                 record = file.read(32 * 1024 * 1024 + 1)
             require(len(record) <= 32 * 1024 * 1024, 'Receipt is oversized')
-            verify_receipt(json.loads(record), args.expected_revision, digests, sha256(content), edges,
-                           datetime.now(timezone.utc), timedelta(minutes=max_age))
-            print(json.dumps({'state': 'Verified', 'source_revision': args.expected_revision}))
+            verified = verify_receipt(json.loads(record), args.expected_revision, digests, sha256(content), edges,
+                                      datetime.now(timezone.utc), timedelta(minutes=max_age))
+            print(json.dumps({'state': 'Verified', 'source_revision': args.expected_revision, 'edges': verified}))
             return 0
         require(args.expected_revision is None, '--expected-revision requires --verify-receipt')
         if args.dry_run:

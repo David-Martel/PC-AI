@@ -1,9 +1,13 @@
 """USB4 TCP hardware-profile and release-evidence controls without network access."""
 
 import copy
+from contextlib import redirect_stdout
 from datetime import datetime, timedelta, timezone
 import importlib.util
+import io
+import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
@@ -65,6 +69,14 @@ class Usb4HilControls(unittest.TestCase):
         self.assertEqual(hil.qualify(edge, a, b), {
             'client_to_server_gbps': 2.0, 'server_to_client_gbps': 2.0, 'minimum_met': True})
         self.assertFalse(hil.qualify({**edge, 'min_gbps_each_way': 2.1}, a, b)['minimum_met'])
+        for removed_from_client in False, True:
+            with self.subTest(removed_from_client=removed_from_client):
+                client, server = copy.deepcopy((a, b))
+                receiver = client if removed_from_client else server
+                key = 'sum_received_bidir_reverse' if removed_from_client else 'sum_received'
+                del receiver['result']['end'][key]
+                with self.assertRaisesRegex(ValueError, 'Missing USB4 receiver sample'):
+                    hil.qualify(edge, client, server)
         for field, value in [('tx_delta', 100), ('source', 'fe80::a%7'), ('host', 'some-other-host')]:
             with self.subTest(field=field), self.assertRaises(ValueError):
                 hil.qualify(edge, {**a, field: value}, b)
@@ -90,7 +102,10 @@ class Usb4HilControls(unittest.TestCase):
                    'edges': [{'id': edge['id'], 'state': 'Passed', 'client': evidence(edge, 'client'),
                               'server': evidence(edge, 'server')}]}
         args = ('c' * 40, {'runner': 'a' * 64}, 'b' * 64, [edge], now, timedelta(minutes=5))
-        hil.verify_receipt(receipt, *args)
+        verified, = hil.verify_receipt(receipt, *args)
+        self.assertEqual(verified['id'], edge['id'])
+        self.assertEqual(verified['threshold_gbps_each_way'], 1.0)
+        self.assertEqual(verified['rates']['server_to_client_gbps'], 2.0)
         for field, value in [('source_revision', '1' * 40), ('source_sha256', {}), ('profile_sha256', '1' * 64),
                              ('started_utc', (now - timedelta(minutes=6)).isoformat()), ('edges', [])]:
             with self.subTest(field=field), self.assertRaises(ValueError):
@@ -101,7 +116,8 @@ class Usb4HilControls(unittest.TestCase):
             hil.verify_receipt(false_green, *args)
 
     # Protects harness admission. Detects starting traffic after listener failure or
-    # applying temporary hardware policy to the client. Needs a process mock, no network.
+    # applying temporary hardware policy to the client. Detects lost receiver admission
+    # errors. Needs a process mock, no network.
     # Breadcrumb: Tests/Hardware/usb4_tcp_hil.py::test_edge.
     def test_listener_must_be_ready_and_only_receiver_can_open_firewall(self):
         edge = hil.profile(sample_profile())[0]
@@ -113,6 +129,35 @@ class Usb4HilControls(unittest.TestCase):
         with patch.object(hil, 'run_endpoint', side_effect=lambda _, __, role, ___: values[role]) as run:
             self.assertEqual(hil.test_edge({}, edge, True)['state'], 'Passed')
             self.assertIn(('client', False), [(call.args[2], call.args[3]) for call in run.call_args_list])
+
+        def deny_listener(_, __, role, ___):
+            if role == 'listen':
+                raise ValueError('abandoned firewall rule fixture-name')
+            return {'ready': False}
+
+        with patch.object(hil, 'run_endpoint', side_effect=deny_listener) as run:
+            result = hil.test_edge({}, edge, True)
+            self.assertEqual(result['state'], 'Failed')
+            self.assertIn('fixture-name', result['error'])
+            self.assertNotIn('client', [call.args[2] for call in run.call_args_list])
+
+    # Protects planning as a read-only diagnostic. Detects network execution,
+    # output writes or a false qualified status. Needs a temporary profile only.
+    # Breadcrumb: Tests/Hardware/usb4_tcp_hil.py::main dry-run branch.
+    def test_dry_run_only_reports_planned_edges(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'profile.json'
+            path.write_text(json.dumps(sample_profile()), encoding='utf-8')
+            receipt = path.with_name('receipt.json')
+            args = ['usb4_tcp_hil.py', '--profile', str(path), '--output', str(receipt), '--dry-run']
+            stdout = io.StringIO()
+            with (patch.object(hil.sys, 'argv', args), patch.object(hil, 'load_sources') as load,
+                  patch.object(hil, 'run_endpoint') as run, redirect_stdout(stdout)):
+                self.assertEqual(hil.main(), 0)
+            load.assert_not_called()
+            run.assert_not_called()
+            self.assertFalse(receipt.exists())
+            self.assertEqual(json.loads(stdout.getvalue()), {'state': 'Planned', 'edges': ['bench-pair']})
 
 
 if __name__ == '__main__':

@@ -12,6 +12,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$firewallGroup = 'PC-AI USB4 TCP HIL'
 
 function Get-LinkLocalAddress([string]$Address) {
     $parsed = $null
@@ -31,7 +32,7 @@ function Assert-DirectRoute {
     $addresses = @($rows | Where-Object { $_.IPAddress })
     if ($routes.Count -ne 1 -or $addresses.Count -ne 1 -or
         @($rows | Where-Object InterfaceIndex -NE $index).Count -or
-        $routes[0].NextHop -ne '::' -or $routes[0].DestinationPrefix -eq '::/0' -or
+        $routes[0].NextHop -ne '::' -or $routes[0].DestinationPrefix -notin @('fe80::/64', "$peerAddress/128") -or
         ($addresses[0].IPAddress -split '%', 2)[0] -ne "$localAddress") {
         throw 'Source routing must select the USB4 interface and an on-link peer.'
     }
@@ -60,15 +61,32 @@ function Get-TemporaryFirewallRule([string]$Name) {
     }
 }
 
+function Assert-NoAbandonedFirewallRules {
+    $owned = @(
+        try {
+            Get-NetFirewallRule -PolicyStore PersistentStore -Group $firewallGroup
+        } catch {
+            if ($_.FullyQualifiedErrorId -ne 'CmdletizationQuery_NotFound_RuleGroup,Get-NetFirewallRule') { throw }
+        }
+        # Early versions created these exact generated names without a firewall group.
+        Get-NetFirewallRule -PolicyStore PersistentStore -Name "$firewallGroup *" |
+            Where-Object Name -Match ('^' + [regex]::Escape($firewallGroup) + ' [0-9a-f]{32}$')
+    )
+    if ($owned.Count) {
+        $names = ($owned | Select-Object -ExpandProperty Name -Unique) -join ', '
+        throw "Abandoned USB4 HIL firewall rule(s) in PersistentStore require operator cleanup: $names"
+    }
+}
+
 if (-not $IsWindows -or $Request.role -notin @('listen', 'client', 'ready')) { throw 'Expected a Windows USB4 endpoint role.' }
 if ($Request.local.host -ne [Environment]::MachineName -or -not $Request.peer.host -or
     $Request.peer.host -eq $Request.local.host) { throw 'Endpoint host identity does not match this machine and a distinct peer.' }
 $port = [int]$Request.tcp_port
 $seconds = [int]$Request.seconds
 $streams = [int]$Request.streams
-if ($port -lt 1024 -or $port -gt 65535 -or $seconds -lt 1 -or $seconds -gt 60 -or
-    $streams -lt 1 -or $streams -gt 16 -or $Request.allow_temporary_firewall -isnot [bool]) {
-    throw 'Expected a non-privileged TCP port, 1–60 seconds, 1–16 streams, and an explicit firewall choice.'
+if ($port -lt 1024 -or $port -gt 65535 -or $seconds -lt 2 -or $seconds -gt 15 -or
+    $streams -lt 1 -or $streams -gt 8 -or $Request.allow_temporary_firewall -isnot [bool]) {
+    throw 'Expected a non-privileged TCP port, 2–15 seconds, 1–8 streams, and an explicit firewall choice.'
 }
 $adapterGuid = [guid]$Request.local.adapter_guid
 $localMac = ConvertTo-MacKey $Request.local.mac
@@ -156,13 +174,26 @@ if ($Request.role -eq 'listen') {
     $arguments += @('-c', $target, '--connect-timeout', '4000', '--bidir', '-P', "$streams", '-t', "$seconds")
 }
 $ruleName = $null
+$listenerMutex = $null
+$listenerLocked = $false
 try {
-    if ($Request.role -eq 'listen' -and $Request.allow_temporary_firewall) {
-        if ($adapter.Name.IndexOfAny([char[]]'*?[]') -ge 0) { throw 'An exact firewall interface alias is required.' }
-        $ruleName = 'PC-AI USB4 TCP HIL ' + [guid]::NewGuid().ToString('N')
-        New-NetFirewallRule -PolicyStore PersistentStore -Name $ruleName -DisplayName $ruleName -Direction Inbound `
-            -Action Allow -Protocol TCP -LocalPort $port -LocalAddress "$localAddress" -RemoteAddress "$peerAddress" `
-            -InterfaceAlias $adapter.Name -Program $executable -Profile Any | Out-Null
+    if ($Request.role -eq 'listen') {
+        $listenerMutex = [Threading.Mutex]::new($false, 'Global\PC-AI USB4 TCP HIL Firewall')
+        try {
+            $listenerLocked = $listenerMutex.WaitOne(0)
+        } catch [Threading.AbandonedMutexException] {
+            # WaitOne granted custody. Check PersistentStore before accepting this run.
+            $listenerLocked = $true
+        }
+        if (-not $listenerLocked) { throw 'Another USB4 HIL listener owns the host firewall lock.' }
+        Assert-NoAbandonedFirewallRules
+        if ($Request.allow_temporary_firewall) {
+            if ($adapter.Name.IndexOfAny([char[]]'*?[]') -ge 0) { throw 'An exact firewall interface alias is required.' }
+            $ruleName = "$firewallGroup " + [guid]::NewGuid().ToString('N')
+            New-NetFirewallRule -PolicyStore PersistentStore -Group $firewallGroup -Name $ruleName -DisplayName $ruleName `
+                -Direction Inbound -Action Allow -Protocol TCP -LocalPort $port -LocalAddress "$localAddress" `
+                -RemoteAddress "$peerAddress" -InterfaceAlias $adapter.Name -Program $executable -Profile Any | Out-Null
+        }
     }
     $before = Get-Usb4Counters
     $processResult = Invoke-VigilBoundedProcess -FilePath $executable -Arguments $arguments -TimeoutSeconds ($seconds + 25)
@@ -179,11 +210,16 @@ try {
         throw 'The selected adapter did not report bidirectional counter growth.'
     }
 } finally {
-    if ($ruleName -and (Get-TemporaryFirewallRule $ruleName)) {
-        Remove-NetFirewallRule -PolicyStore PersistentStore -Name $ruleName
-        if (Get-TemporaryFirewallRule $ruleName) {
-            throw 'The temporary USB4 test firewall rule still exists after cleanup.'
+    try {
+        if ($ruleName -and (Get-TemporaryFirewallRule $ruleName)) {
+            Remove-NetFirewallRule -PolicyStore PersistentStore -Name $ruleName
+            if (Get-TemporaryFirewallRule $ruleName) { throw 'The rule still exists after removal.' }
         }
+    } catch {
+        throw "Cleanup failed for USB4 HIL firewall rule '$ruleName' in PersistentStore: $($_.Exception.Message)"
+    } finally {
+        if ($listenerLocked) { $listenerMutex.ReleaseMutex() }
+        if ($listenerMutex) { $listenerMutex.Dispose() }
     }
 }
 

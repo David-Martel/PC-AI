@@ -1,6 +1,6 @@
 # USB4 TCP hardware testing
 
-Use the [HIL coordinator](../../Tests/Hardware/usb4_tcp_hil.py) from a trusted PC-AI checkout to qualify Windows USB4NET cables for simultaneous bidirectional TCP. CI runs the [receipt controls](../../Tests/Portable/test_usb4_tcp_hil.py) and [endpoint controls](../../Tests/Portable/Test-Usb4TcpEndpoint.ps1) on Windows and Linux. The physical run needs Python 3.10+, Git, OpenSSH for remote management, and PowerShell 7 and iperf3 3.11+ on each endpoint.
+Use the [HIL coordinator](../../Tests/Hardware/usb4_tcp_hil.py) from a trusted PC-AI checkout to qualify Windows USB4NET cables for simultaneous bidirectional TCP. CI runs the [receipt controls](../../Tests/Portable/test_usb4_tcp_hil.py) and [endpoint controls](../../Tests/Portable/Test-Usb4TcpEndpoint.ps1) on Windows and Linux. The physical run needs Python 3.10+, Git, OpenSSH for remote management, and PowerShell 7 and iperf3 3.11+ on each endpoint. The examples use uv to select Python.
 
 ## Describe the cables
 
@@ -35,11 +35,13 @@ If one direction misses the floor, repeat with the same ports, MTU and tool vers
 From the checkout root on an authorized coordinator, use the exact reviewed Git revision and private file paths. These commands use PowerShell syntax.
 
 ```powershell
-python Tests/Hardware/usb4_tcp_hil.py --profile $profile --dry-run
-python Tests/Hardware/usb4_tcp_hil.py --profile $profile --output $receipt
-python Tests/Hardware/usb4_tcp_hil.py --profile $profile --verify-receipt $receipt --expected-revision $reviewedCommit
+uv run --no-project python Tests/Hardware/usb4_tcp_hil.py --profile $profile --dry-run
+uv run --no-project python Tests/Hardware/usb4_tcp_hil.py --profile $profile --output $receipt
+uv run --no-project python Tests/Hardware/usb4_tcp_hil.py --profile $profile --verify-receipt $receipt --expected-revision $reviewedCommit
 ```
 
-If the receiver needs a firewall exception, use `--allow-temporary-firewall` with an appropriately privileged receiver login. The [Windows endpoint](../../Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1) creates a rule scoped to the peer, adapter, executable and port, then removes it when the trial ends. Without that flag, existing host policy governs the connection. Each trial requires reciprocal neighbor identity, an on-link route, scoped sockets, positive counters on both USB4 adapters, and receiver throughput above the declared floor in each direction. Any incomplete edge fails the run. Exit codes are `0` for success, `1` for a failed edge, and `2` for an invalid input or receipt.
+The receiver login needs read access to Windows Firewall's `PersistentStore`. If it needs a firewall exception, use `--allow-temporary-firewall` with a login authorized to write that store. The [Windows endpoint](../../Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1) scopes its rule to the peer, adapter, executable and port and removes the exact rule on exit. A forced process or host shutdown can interrupt cleanup. The next receiver trial refuses a leftover HIL rule and reports its name for review. With the flag omitted, the receiver uses existing host policy.
 
-For release review, retain the trusted original receipt, profile, and source revision. Offline verification checks the revision and source hashes, profile, observation age, every edge, and both measured directions. Capture and distribute receipts through an authenticated channel. The receipt qualifies direct Windows USB4NET TCP for the recorded conditions. Record reconnect, multi-hop, authenticated file transfers and RDMA with separate trials. See [deployment and measurement](fabric-deployment.md) for the broader release sequence and [Microsoft's USB4 throughput method](https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/usb4-interdomain-connections#throughput-testing) for transport testing guidance.
+Each trial requires reciprocal neighbor identity, an on-link route, scoped sockets, and receiver throughput above the declared floor in each direction. Both adapter counter increases must cover the measured receiver payload. Adapter counters include other traffic on the same interface, so record a quiet link when measuring performance. Any incomplete edge fails the run. Exit codes are `0` for success, `1` for a failed edge, and `2` for an invalid input or receipt. A dry run returns `Planned`.
+
+For release review, retain the trusted original receipt, profile, and source revision. Offline verification checks the revision and source hashes, profile, observation age, every edge, and both measured directions. Its `Verified` output reports each edge's floor and receiver rates. Capture and distribute receipts through an authenticated channel. The receipt qualifies direct Windows USB4NET TCP for the recorded conditions. Record reconnect, multi-hop, authenticated file transfers and RDMA with separate trials. See [deployment and measurement](fabric-deployment.md) for the broader release sequence and [Microsoft's USB4 throughput method](https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/usb4-interdomain-connections#throughput-testing) for transport testing guidance.

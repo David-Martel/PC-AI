@@ -1,16 +1,16 @@
 {
   "SchemaVersion": 1,
-  "SourceBaseline": "eb921585d04010d16a32319fae42e069c8263ba7",
-  "ReviewedAtUtc": "2026-11-22T18:10:36.750997+00:00",
+  "SourceBaseline": "4563c09c44bc7ba19d5137ff0eed9c414f966e7f",
+  "ReviewedAtUtc": "2026-11-22T18:35:15.276120+00:00",
   "HashConvention": "Whole sources, complete Python test method lines, and PowerShell selectors from Protects comment through closing brace, UTF-8 with LF",
   "SourceBindings": {
-    "Tests/Portable/test_usb4_tcp_hil.py": "dd14d9ed1e913a78527a4989f0d651fb3dba8a47be43cc5fafd2db1fcd84794e",
-    "Tests/Hardware/usb4_tcp_hil.py": "61b3bb0b05950fce86410e3b5f04afbf2572f27ca87b0613d5b5dc5b7d92c6ae",
-    "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1": "b66af2b6267033f113839bb1057492f960906e83af8339042a6a1debf31c307e",
+    "Tests/Portable/test_usb4_tcp_hil.py": "e225108c8581eae15e84b6017de73c079530f48cb94131a3c24a84fd9ab7ed9d",
+    "Tests/Hardware/usb4_tcp_hil.py": "7dba6a7ed138b317b9418687d69ec5dc0d4d9d00ee70cee630806912d39e3642",
+    "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1": "64779e3e8f2095add261d678610d2d3ecea34d487672154070eed39bb0dd2311",
     "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1": "caa89c4ec2e46fc37b56caf911df76b176d918074231213f8cf6c866b9498040",
     ".github/workflows/usb4-lifecycle.yml": "f9198e558c3683c1d3e5c45dd69cb94a8b73e48dbe136c2a73c8bcb5a6f584b2",
-    "docs/usb4/hardware-testing.md": "d5af64fd4cd82b9605b523c8ba80f8d2771596b32a4919582b57857d3c8bf979",
-    "Tests/Portable/Test-Usb4TcpEndpoint.ps1": "fc26cccd415abe65c13d8b7b123c7d3fcf8a1c1105cbee144058b4b210d8a37f"
+    "docs/usb4/hardware-testing.md": "ee505b9f9316228843880b90643cd2a3d0e7211d483c363b103a1cd834bf8625",
+    "Tests/Portable/Test-Usb4TcpEndpoint.ps1": "0b0b377deca6baba695a7afc0ed33015d02a8038644dc38277ee1f14af7fad82"
   },
   "Selectors": [
     {
@@ -28,7 +28,7 @@
     {
       "Selector": "test_qualification_requires_both_receivers_and_counters",
       "Source": "Tests/Portable/test_usb4_tcp_hil.py",
-      "Sha256": "76a56ba96935e7010f53b071af46689a800a981162f8fe773918508a1f87ed67",
+      "Sha256": "333364fcd4c3cff0f686eaa0eb97878a43267f916e9c4f1716b7d0b44a17116e",
       "Protects": "Both directions and underlay custody",
       "Detects": "Incorrect scoped sockets, duration, byte totals and USB4 counter attribution",
       "Needs": "Python 3.10+ standard library and synthetic endpoint records",
@@ -40,7 +40,7 @@
     {
       "Selector": "test_release_verification_fails_closed",
       "Source": "Tests/Portable/test_usb4_tcp_hil.py",
-      "Sha256": "0a2a5fba68903facca1ba69a0bf01a67a9de2f277a03dd77c58abacee86b3491",
+      "Sha256": "0581a77bc2971532a1bf532d918d15dc5cc25f9c40507a0f43a179f8c3a9a9a4",
       "Protects": "Release receipt admission",
       "Detects": "Stale, mismatched, partial, or below-floor evidence",
       "Needs": "Python 3.10+ standard library and synthetic endpoint records",
@@ -52,9 +52,9 @@
     {
       "Selector": "test_listener_must_be_ready_and_only_receiver_can_open_firewall",
       "Source": "Tests/Portable/test_usb4_tcp_hil.py",
-      "Sha256": "2bd2b5732a176d91349ebacdb91da816c802264f787333e340904c8e86f4281c",
+      "Sha256": "5497c42715237e2cfad9323a474ce1f5d2201f1aa947af47d08907193d5aaa84",
       "Protects": "Controlled listener and firewall staging",
-      "Detects": "Sending before readiness or permitting a client-side firewall exception",
+      "Detects": "Sending before readiness, client-side firewall writes or lost receiver admission details",
       "Needs": "Python 3.10+ standard library and synthetic endpoint records",
       "Breadcrumb": "Tests/Hardware/usb4_tcp_hil.py::test_edge",
       "Reviewer": "codex",
@@ -62,13 +62,77 @@
       "Disposition": "unreviewed"
     },
     {
+      "Selector": "test_dry_run_only_reports_planned_edges",
+      "Source": "Tests/Portable/test_usb4_tcp_hil.py",
+      "Sha256": "2031c701cb3cba7f381c0794ee5c91a7b14a8d8dd98179026f6b4ad219bcbd69",
+      "Protects": "Read-only planning",
+      "Detects": "Peer contact, output writes or qualified status from --dry-run",
+      "Needs": "Python 3.10+ standard library and synthetic endpoint records",
+      "Breadcrumb": "Tests/Hardware/usb4_tcp_hil.py::main/dry run",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
       "Selector": "Test-ClientUsesScopedOnLinkRouteAndCounters",
       "Source": "Tests/Portable/Test-Usb4TcpEndpoint.ps1",
-      "Sha256": "e6c6b93e8093d95ed43678ea2a57af60ea4e72005f0cab2c4cf07623eaa68eee",
+      "Sha256": "faaead50eff032a1cc0d25a916c2d5d3834c23b8ef2b0d1e0ec0c2794d3e28cd",
       "Protects": "Scoped on-link duplex underlay",
       "Detects": "Gateway acceptance and unattributed counters",
       "Needs": "PowerShell 7 and synthetic Windows provider responses",
       "Breadcrumb": "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::Assert-DirectRoute/Get-Usb4Counters",
+      "Reviewer": "codex/hilendpoint",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "Passed on Windows and Ubuntu WSL, and failed the matching safeguard-removal mutation"
+    },
+    {
+      "Selector": "Test-ClientRejectsWrongNeighborIpOrMac",
+      "Source": "Tests/Portable/Test-Usb4TcpEndpoint.ps1",
+      "Sha256": "34d5f2180ce9f5dec469bb8c30ca7c8d66da53ce4155d5e97860c199511d253a",
+      "Protects": "Reciprocal peer identity",
+      "Detects": "Unexpected neighbor IP or MAC",
+      "Needs": "PowerShell 7 and synthetic Windows provider responses",
+      "Breadcrumb": "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::neighbor validation",
+      "Reviewer": "codex/hilendpoint",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "Passed on Windows and Ubuntu WSL, and failed the matching safeguard-removal mutation"
+    },
+    {
+      "Selector": "Test-ClientRejectsFlatReceiveOrTransmitCounter",
+      "Source": "Tests/Portable/Test-Usb4TcpEndpoint.ps1",
+      "Sha256": "84427f4824bcd2a463d620c4496c5ede717c1cfe29eb6aa97c0328573fd0f64d",
+      "Protects": "Both adapter byte counters",
+      "Detects": "Flat receive or transmit progress",
+      "Needs": "PowerShell 7 and synthetic Windows provider responses",
+      "Breadcrumb": "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::Get-Usb4Counters",
+      "Reviewer": "codex/hilendpoint",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "Passed on Windows and Ubuntu WSL, and failed the matching safeguard-removal mutation"
+    },
+    {
+      "Selector": "Test-ListenerNamesAndPreservesAbandonedFirewallRules",
+      "Source": "Tests/Portable/Test-Usb4TcpEndpoint.ps1",
+      "Sha256": "89b4a1a7ff57273bf6007d2fd0cbe8da1f24d92cd898b5c482fd03058d2d84fb",
+      "Protects": "Abandoned firewall custody",
+      "Detects": "Startup with prior owned or legacy rule",
+      "Needs": "PowerShell 7 and synthetic Windows provider responses",
+      "Breadcrumb": "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::Assert-NoAbandonedFirewallRules",
+      "Reviewer": "codex/hilendpoint",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "Passed on Windows and Ubuntu WSL, and failed the matching safeguard-removal mutation"
+    },
+    {
+      "Selector": "Test-ListenerReportsExactRuleWhenFirewallCleanupFails",
+      "Source": "Tests/Portable/Test-Usb4TcpEndpoint.ps1",
+      "Sha256": "c0694388a825f3c9ed03bc64ba12ea635a2d16875d4a464976e7860cd9675fb7",
+      "Protects": "Failure recovery details",
+      "Detects": "Cleanup failure missing exact rule identity",
+      "Needs": "PowerShell 7 and synthetic Windows provider responses",
+      "Breadcrumb": "Tests/Hardware/Invoke-PcaiUsb4TcpEndpoint.ps1::listen/finally",
       "Reviewer": "codex/hilendpoint",
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed",

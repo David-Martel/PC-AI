@@ -495,6 +495,78 @@ Describe 'PC-AI.Reliability' {
         }
     }
 
+    Describe 'Structured event data redaction' -Tag 'Portable' {
+        It 'masks values under sensitive keys in Details and Remediation, at any depth and of any type' {
+            # Detects the gap found on the Linux ledger (sentinel-utils #1600, faaa31f6) and shared here: message text was
+            # redacted, but Details and Remediation went to the ledger and agent-bus metadata as given, so a plain value
+            # under a sensitive key matched no text rule. Fake values are assembled from pieces at run time.
+            $pw = 'plain' + 'Pass' + ('4' * 6)
+            $tok = 'plain' + 'Tok' + ('8' * 6)
+            $api = 'plain' + 'Api' + ('2' * 6)
+            $pin = 90004321
+            $inText = 'text' + 'Pw' + ('6' * 6)
+            $details = @{
+                db = @{ password = $pw; host = 'db.example.invalid' }
+                items = @(@{ token = $tok }, @{ name = 'ok' })
+                apiKey = $api
+                client_secret = @{ nested = $pw }
+                pin_secret = $pin
+                user = 'deploy-bot'
+                count = 3
+                note = ('login failed pass' + 'word=' + $inText)
+            }
+            $rem = @{ action = 'restart'; auth = @{ Authorization = $tok }; outcome = 'refused' }
+            $ev = New-FleetLedgerEvent -Source task -Name '\t\job' -Kind incident-open -Status failed -Severity high -Message 'failed' -Details $details -Remediation $rem
+            $null = Write-FleetLedgerEvent -LedgerEvent $ev
+            $ledgerText = Get-Content -Raw -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'ledger\ledger.jsonl')
+            $busText = (@(Get-BusCall 'send') | ForEach-Object { @($_.Args) -join ' ' }) -join "`n"
+            $busText | Should -Not -BeNullOrEmpty
+            foreach ($x in @($pw, $tok, $api, [string]$pin, $inText)) {
+                $ledgerText.Contains($x) | Should -BeFalse -Because "a credential reached the ledger: $x"
+                $busText.Contains($x) | Should -BeFalse -Because "a credential reached agent-bus metadata: $x"
+            }
+            # Non-sensitive members keep their values.
+            $ev.details.user | Should -Be 'deploy-bot'
+            $ev.details.count | Should -Be 3
+            $ev.details.db.host | Should -Be 'db.example.invalid'
+            @($ev.details.items)[1].name | Should -Be 'ok'
+            $ev.details.note | Should -Match 'login failed'
+            $ev.remediation.action | Should -Be 'restart'
+            $ev.remediation.outcome | Should -Be 'refused'
+            # The caller's data is not changed in place.
+            $details.db.password | Should -Be $pw
+        }
+
+        It 'withholds any object that is not a plain value, so a credential object never serializes (review of e62fcadc)' {
+            # Unrecognized types were returned unchanged: a NetworkCredential under details.account was then serialized
+            # by ConvertTo-Json with its plaintext Password into the ledger and agent-bus metadata.
+            $pw = 'obj' + 'Pass' + ('5' * 6)
+            $cred = New-Object System.Net.NetworkCredential(('svc' + '-user'), $pw)
+            $ev = New-FleetLedgerEvent -Source task -Name '\t\job' -Kind incident-open -Status failed -Severity high -Message 'failed' `
+                -Details @{ account = $cred; nested = @{ also = $cred }; when = [datetime]'2026-11-21T12:00:00Z'; id = [guid]'00000000-0000-0000-0000-000000000001'; ratio = 0.5; ok = $true }
+            $null = Write-FleetLedgerEvent -LedgerEvent $ev
+            $ledgerText = Get-Content -Raw -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'ledger\ledger.jsonl')
+            $busText = (@(Get-BusCall 'send') | ForEach-Object { @($_.Args) -join ' ' }) -join "`n"
+            $ledgerText.Contains($pw) | Should -BeFalse -Because 'a credential object reached the ledger'
+            $busText.Contains($pw) | Should -BeFalse -Because 'a credential object reached agent-bus metadata'
+            [string]$ev.details.account | Should -Match '^\[withheld object: System\.Net\.NetworkCredential\]$'
+            [string]$ev.details.nested.also | Should -Match 'withheld object'
+            # Plain values pass through (controls).
+            $ev.details.ratio | Should -Be 0.5
+            $ev.details.ok | Should -BeTrue
+            $ev.details.id | Should -Be ([guid]'00000000-0000-0000-0000-000000000001')
+            ([datetime]$ev.details.when).ToUniversalTime().Year | Should -Be 2026
+        }
+
+        It 'withholds structured data whole when it cannot be redacted' {
+            # Fail closed, as for messages: an error while masking keeps no value from the structure.
+            Mock -ModuleName PC-AI.Reliability Protect-FleetText { throw 'redactor broke' }
+            $secret = 'plain' + 'Sec' + ('3' * 6)
+            $ev = New-FleetLedgerEvent -Source task -Name n -Kind incident-open -Status failed -Severity high -Details @{ note = ('key ' + $secret) }
+            ($ev.details | ConvertTo-Json -Depth 10 -Compress).Contains($secret) | Should -BeFalse
+        }
+    }
+
     Describe 'Ledger events (fleet-ledger/1)' -Tag 'Portable' {
         It 'writes one line carrying every contract field, with nulls instead of missing keys' {
             # Protects the cross-host contract: the bash emitter and the digest read the same fields.

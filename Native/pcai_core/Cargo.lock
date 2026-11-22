@@ -631,7 +631,7 @@ dependencies = [
  "gemm 0.19.0",
  "half",
  "libm",
- "memmap2 0.9.11",
+ "memmap2 0.9.12",
  "num-traits",
  "num_cpus",
  "rand 0.9.3",
@@ -655,7 +655,7 @@ dependencies = [
  "gemm 0.19.0",
  "half",
  "libm",
- "memmap2 0.9.11",
+ "memmap2 0.9.12",
  "num-traits",
  "num_cpus",
  "rand 0.9.3",
@@ -681,7 +681,7 @@ dependencies = [
  "half",
  "libc",
  "libm",
- "memmap2 0.9.11",
+ "memmap2 0.9.12",
  "num-traits",
  "num_cpus",
  "rand 0.9.3",
@@ -2495,9 +2495,9 @@ checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
 name = "globset"
-version = "0.4.20"
+version = "0.4.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07c34a9410465b45bd9787443bc7370f37735bad04b0f0cd57ff1a3186c98988"
+checksum = "f98b0d85522dc0a824cfebbc9594ff4a9b289c568bea0370319dfbdf20ccdd2d"
 dependencies = [
  "aho-corasick 1.1.4",
  "bstr",
@@ -2943,9 +2943,9 @@ dependencies = [
 
 [[package]]
 name = "ignore"
-version = "0.4.33"
+version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00b69833ed729dc5aa7d19541d96d6cf8e9137194207a04916d658e43168402f"
+checksum = "484be5657551d7868d67587df967fb4fcbe9d266a761cc855aaa148fda0b3cc7"
 dependencies = [
  "crossbeam-deque",
  "globset",
@@ -3418,9 +3418,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.34"
+version = "0.4.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
 
 [[package]]
 name = "loop9"
@@ -3568,9 +3568,9 @@ dependencies = [
 
 [[package]]
 name = "memmap2"
-version = "0.9.11"
+version = "0.9.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1219ed1b7f229ee7104d281dd01d6802fe28bb6e95d292942c4daacdeb798c0"
+checksum = "6b0ca1155a9ecc25aa12e8313a119f32edf0255fea2f44839c4ac0a12b2ac157"
 dependencies = [
  "libc",
  "stable_deref_trait",
@@ -3800,7 +3800,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "urlencoding",
- "uuid 1.28.0",
+ "uuid 1.29.3",
  "variantly",
  "vob",
 ]
@@ -3835,7 +3835,7 @@ dependencies = [
  "tokio-tungstenite",
  "tracing",
  "utoipa",
- "uuid 1.28.0",
+ "uuid 1.29.3",
 ]
 
 [[package]]
@@ -3866,7 +3866,7 @@ dependencies = [
  "half",
  "hf-hub 0.4.3",
  "lazy_static",
- "memmap2 0.9.11",
+ "memmap2 0.9.12",
  "paste",
  "rayon",
  "regex",
@@ -4501,7 +4501,7 @@ dependencies = [
  "tower-http 0.7.1",
  "tracing",
  "tracing-subscriber",
- "uuid 1.28.0",
+ "uuid 1.29.3",
 ]
 
 [[package]]
@@ -4515,7 +4515,7 @@ dependencies = [
  "candle-transformers 0.11.0",
  "hf-hub 0.5.0",
  "image",
- "memmap2 0.9.11",
+ "memmap2 0.9.12",
  "ort",
  "pcai-media-model",
  "pcai_core_lib",
@@ -4624,7 +4624,7 @@ dependencies = [
  "ignore",
  "libc",
  "log",
- "memmap2 0.9.11",
+ "memmap2 0.9.12",
  "num_cpus",
  "nvml-wrapper",
  "parking_lot 0.13.0",
@@ -4908,7 +4908,7 @@ dependencies = [
  "byteorder",
  "candle-core 0.9.2",
  "candle-nn 0.9.2",
- "memmap2 0.9.11",
+ "memmap2 0.9.12",
  "peft-rs",
  "serde",
  "serde_json",
@@ -5499,7 +5499,7 @@ dependencies = [
  "candle-transformers 0.9.2",
  "clap",
  "itertools 0.14.0",
- "memmap2 0.9.11",
+ "memmap2 0.9.12",
  "mimalloc",
  "rand 0.10.2",
  "rust-functiongemma-core",
@@ -6564,7 +6564,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.2",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.59.0",
@@ -7201,7 +7201,7 @@ dependencies = [
  "gemm 0.18.2",
  "half",
  "libloading 0.8.9",
- "memmap2 0.9.11",
+ "memmap2 0.9.12",
  "num",
  "num-traits",
  "num_cpus",
@@ -7408,9 +7408,9 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.28.0"
+version = "1.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cc1186384beb7dd8eedea376413fd654937285ea6c9cfbb928dc3043ea4b606"
+checksum = "3c14b15dffa2f4bd712103e857140aa04a4f2ff6e955c77d7eb8e53ee02a3b64"
 dependencies = [
  "getrandom 0.4.2",
  "js-sys",
@@ -7734,7 +7734,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

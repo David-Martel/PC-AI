@@ -1,5 +1,8 @@
 # Thunderbolt Linux peers
 
+For Windows USB4NET endpoints, use the [private-access installer](../../../docs/usb4/private-access.md)
+to set the enrolled adapter's network profile and scoped IPv6 echo policy.
+
 `Invoke-ThunderboltLinuxPeer.ps1` uses an existing LAN SSH alias and verified SSH
 host key to prepare an Ubuntu peer, discover a real Thunderbolt peer interface,
 configure an isolated /30 and measure the actual link. The maintained wrapper is

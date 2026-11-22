@@ -1,0 +1,137 @@
+{
+  "SchemaVersion": 1,
+  "SourceBaseline": "7c45a41d4c6a57cf093c6bbb5190671760a3fe29",
+  "ReviewedAtUtc": "2026-11-22T20:56:07.5868307+00:00",
+  "HashConvention": "SHA-256 of UTF-8 LF sources, PowerShell command and function AST extents, and the CI step with no final newline",
+  "SourceBindings": {
+    "Tests/Portable/Test-Usb4PrivateAccess.ps1": "9b17c8bf1dbbffb82e731d21c1af0f60d33c95a20c2b1ae4e4859d5b9936bc8d",
+    "Tests/Unit/PC-AI.Drivers.Tests.ps1": "8ff649e5ffe4e2a804b64117ba79cd086483e0ad2a39fd8e19addfb8b94bdc63",
+    ".github/workflows/usb4-lifecycle.yml": "bb06b486887d78dfb1c0282daaf9ecf12349bcf07e88516192c839adf78b84db",
+    "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1": "4874881cbfb5b9e4031b40044f79a57e0f46b1722263a94246b893c7448c8b69",
+    "Modules/PC-AI.Drivers/Public/Register-ThunderboltPeer.ps1": "ad94a9a25cd6022b437ac37b04df43f720c3d0809760c83f55d5b700204b5be2",
+    "docs/usb4/private-access.md": "f82c042a959f5d6d9420cdde4d248bf8c73ae78c4cc038a63ce028af1f2447b5"
+  },
+  "Selectors": [
+    {
+      "Selector": "Test-PreviewHasNoSideEffects",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "8ee56a7d012f42630f833c153e04163f2af2bb6c3bd5021bec2e95fffadc7186",
+      "Protects": "Read-only preview",
+      "Detects": "File, profile or firewall writes during preview",
+      "Needs": "PowerShell 7, inert Windows adapters and a temporary receipt directory.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "Test-InvalidLinkCannotApply",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "dc63d68ab2f111502869c1433e3ef3cd006ffa2bba24c6e0a60cc714a40dc9ad",
+      "Protects": "Exact link admission",
+      "Detects": "Wrong adapter, peer or route permitting a write",
+      "Needs": "PowerShell 7, inert Windows adapters and a temporary receipt directory.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "Test-ApplyIsIdempotentAndRollbackRestoresProfile",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "bb3f0f23b440397e585cb56162adc9b48177d2ac87e8c94a7568e501b7060a58",
+      "Protects": "Exact firewall scope and transaction recovery",
+      "Detects": "Broad rule, duplicate apply or incomplete rollback",
+      "Needs": "PowerShell 7, inert Windows adapters and a temporary receipt directory.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "Test-DriftBlocksWrites",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "f1b1338abc7cf5e92c80d0f733a15edccf4e356f8fda1f4d190fb29ee307178c",
+      "Protects": "Live profile, rule and receipt custody",
+      "Detects": "Adoption of modified installation state",
+      "Needs": "PowerShell 7, inert Windows adapters and a temporary receipt directory.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "Test-PartialApplyRestoresOwnedChanges",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "054add83cc188f5b780e8149517bc88d9af2dea8828c726b99f82b8c311f5e26",
+      "Protects": "Rollback after provider errors",
+      "Detects": "An ineffective or partial Apply leaving owned changes",
+      "Needs": "PowerShell 7, inert Windows adapters and a temporary receipt directory.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "Test-RecoveryPreservesUnownedProfileChange",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "89702eb32c79233d46af3d3d015a258f1084c1caa851caef798ffe69954f3c40",
+      "Protects": "External profile-change custody",
+      "Detects": "Reverting a profile change the installer did not own",
+      "Needs": "PowerShell 7, inert Windows adapters and a temporary receipt directory.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "Test-SharedProfileRequiresExplicitUsb4Scope",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "4ad8c9a8b9132595aaad7f1b1d18c85e5aa1b4a3993007ae7f7c6f8b890681f0",
+      "Protects": "Authorization for every shared-profile member",
+      "Detects": "Unenrolled sibling admitted to profile changes",
+      "Needs": "PowerShell 7, inert Windows adapters and a temporary receipt directory.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "Test-UnexpectedCategoryChangeRollsBack",
+      "Source": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Sha256": "a648474830e7f5712b719f87d8872a8bd32af162daef24b2ba48843747fe0b58",
+      "Protects": "Unrelated profile categories",
+      "Detects": "Collateral change after a provider writes the shared category",
+      "Needs": "PowerShell 7, inert Windows adapters and a temporary receipt directory.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "does not provision firewall rules during legacy USB4 registration",
+      "Source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "Sha256": "ae57efab8385bd9c31b4fd3736cbbb9c17525c700c05748819d6efadbc595d51",
+      "Protects": "Separation of legacy discovery from inbound firewall policy",
+      "Detects": "Firewall creation during legacy enrollment",
+      "Needs": "PowerShell 7 and Pester with the repository Drivers module",
+      "Breadcrumb": "Modules/PC-AI.Drivers/Public/Register-ThunderboltPeer.ps1",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "USB4 private access contracts",
+      "Source": ".github/workflows/usb4-lifecycle.yml",
+      "Sha256": "503b3e602fff4da113171a8ecccdda1a32be41beb911ad1d0b480766ba39d907",
+      "Protects": "Repeatable installation scope and rollback tests",
+      "Detects": "Link or firewall scope drift and ineffective transaction recovery",
+      "Needs": "PowerShell 7 and synthetic Windows providers",
+      "Breadcrumb": "Tests/Portable/Test-Usb4PrivateAccess.ps1",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    }
+  ],
+  "Validation": "Eight installer controls passed on Windows and Ubuntu WSL. Legacy broad-rule detector failed before removal then passed. On hardware, both selected USB4 profiles moved to Private, both exact peer ICMPv6 rules read back in the effective store, and all four directional echo series passed 12/12. The original canary rollback restored both categories. The shared-scope rollback controls use inert providers."
+}

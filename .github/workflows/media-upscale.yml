@@ -40,8 +40,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-    # Linux runs on the vigil1 runner (hosted Actions minutes are budget-blocked), except for fork
-    # pull requests and a disabled runner, which keep ubuntu-latest so fork code never reaches
+    # Linux uses the pc-ai-local runner role when enabled. Fork pull requests and repositories
+    # with the role disabled use ubuntu-latest so fork code never reaches
     # self-hosted hardware (the same gate as linux-ci.yml). Windows stays hosted for now.
     runs-on: ${{ matrix.os == 'windows-latest' && 'windows-latest' || (vars.PCAI_LINUX_RUNNER_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON('["self-hosted","Linux","X64","pc-ai-local"]') || 'ubuntu-latest' }}
     timeout-minutes: 30
@@ -49,9 +49,8 @@ jobs:
       CARGO_BUILD_JOBS: '2'
     steps:
       - uses: actions/checkout@v7
-      # The dtm-super-nuc pool image installs no Rust ("cargo: command not found" since the move
-      # off vigil1). A job-local toolchain, as linux-ci.yml and portable-bootstrap.yml use, leaves
-      # the persistent runner's toolchain homes and profiles untouched.
+      # A job-local Rust toolchain keeps runner images independent of host Rust installs
+      # and leaves persistent runner toolchain homes and profiles untouched.
       - name: Set up job-local self-hosted Rust
         if: runner.environment == 'self-hosted'
         uses: ./.github/actions/setup-job-rust

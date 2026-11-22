@@ -3,18 +3,16 @@
 .SYNOPSIS
 Inspect, prepare, configure or benchmark an isolated Linux Thunderbolt peer.
 .DESCRIPTION
-Uses existing key-authenticated LAN SSH with strict host-key checking. Status is
-read-only. Mutations require -Apply and ShouldProcess approval. No gateway, DNS,
+Uses existing key-authenticated LAN SSH with strict host-key checking. Specify a
+reviewed -Peer profile. Status is read-only. Mutations require -Apply and ShouldProcess approval. No gateway, DNS,
 WinRM, global firewall or Thunderbolt security changes are made.
 .EXAMPLE
-./Invoke-ThunderboltLinuxPeer.ps1 -Peer millylaptop1 -Action Configure -DryRun
-.EXAMPLE
-./Invoke-ThunderboltLinuxPeer.ps1 -Peer millylaptop1 -Action Prepare -Apply
+./Invoke-ThunderboltLinuxPeer.ps1 -Peer $ReviewedPeer -Action Configure -DryRun
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [ValidateSet('Status', 'Prepare', 'Configure', 'Benchmark')][string]$Action = 'Status',
-    [string]$Peer = 'millylaptop1',
+    [string]$Peer,
     [string]$ConfigPath = (Join-Path $PSScriptRoot '../../../Config/thunderbolt-peers.json'),
     [string]$InterfaceAlias,
     [string]$LinuxInterface,
@@ -427,6 +425,7 @@ fi
 
 if ($MyInvocation.InvocationName -ne '.') {
     if ($ShowHelp) { Get-Help $PSCommandPath -Detailed; return }
+    if ([string]::IsNullOrWhiteSpace($Peer)) { throw 'Specify -Peer with a reviewed Linux peer profile from -ConfigPath.' }
     Invoke-ThunderboltLinuxPeerMain -SelectedAction $Action -SelectedPeer $Peer -ProfilePath $ConfigPath `
         -WindowsAlias $InterfaceAlias -RemoteInterface $LinuxInterface -EnableApply:$Apply -IsDryRun:$DryRun `
         -Seconds $DurationSeconds -ServerPort $Port -Executable $IperfPath -WhatIf:$WhatIfPreference

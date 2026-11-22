@@ -2,6 +2,31 @@
 
 Status: proposed increment plan; implemented and unqualified behavior are separated below. PC-AI is the code home. Existing Windows and Linux controllers remain the starting point. This document does not authorize clearing retained ownership state or replacing the working Thunderbolt Share connection.
 
+## Fleet deployment scope
+
+Deploy to Windows and Linux machines on the owner's LAN with a verified PC-AI
+checkout and installation. The November 22 fleet readback covered `dtm-p1gen9`,
+`dtm-p1gen7`, `dtm-super-nuc`, `dtm-work` and `minisforum-ms01`. Recheck physical
+site membership and the installed checkout before each rollout. A known LAN
+member can use its existing pinned SSH management alias to retrieve evidence.
+An overlay registration by itself is insufficient to admit a deployment target.
+
+`asuspro13`, `millylaptop1`, `vigil1` and both DGX Sparks left the fleet. The
+[Headscale inventory retirement](https://github.com/David-Martel/headscale-ops/pull/69)
+records removal of the hosts and lab routes. Carbon, Carbon Two and QNAP require
+separate PC-AI installation evidence before inclusion. Keep historical names and
+allocations in the [USB4 peer registry](../../Config/thunderbolt-peers.json) when
+needed for journal and recovery compatibility. Build each rollout target list
+from current site inventory and checkout readback. See [Linux peer operations](../../Tools/SystemScripts/Networking/README.md).
+
+Use one release identity and installation readback across Windows and Linux.
+Keep enrollment and rollback state per host and edge. When consolidating
+installers, compare task or unit arguments, script hashes and preserved baselines
+before replacing an implementation. When consolidating collectors, profile
+process launches and provider time separately before moving repeated inventory
+into a native snapshot. [Link health](link-health.md) and the
+[native benchmark](../../Native/pcai_core/pcai_tb_cli/README.md) describe the
+current entrypoints and qualification boundaries.
 
 ## Current architecture checks
 

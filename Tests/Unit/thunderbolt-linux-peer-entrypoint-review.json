@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T15:16:07.5319697Z",
+  "reviewer": "lan_scope",
+  "reviewerType": "independent source agent",
+  "sourceBaseline": "1bbeaad2d1498fa48ee49d658b073d1640588551",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent. Both entrypoint cases are reviewed as a group.",
+  "sourceBindings": {
+    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "8a381c9872082774c424c8a133bb98c9368f31f62d77d15cb9b71df73b5fc567",
+    "Tools/Invoke-ThunderboltNetworking.ps1": "50587273e27ffbf67f4b7ef998a67db7e01278f66fb7a0257e0083aacf69117b",
+    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "55cb3ec077f2bfc8c3897dae96b8db258145e3aeb82d3cbcb84c9a7ac813bdf1"
+  },
+  "selectors": [
+    {
+      "selector": "refuses an omitted peer before reading a profile through <Entry>",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "002e2cc115a248a8b570ac068ced655aad7f6ca7845ce7c384d52eb85925ab1a",
+      "codeUnderTest": [
+        "Tools/Invoke-ThunderboltNetworking.ps1",
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Both CLI entrypoints stop before profile lookup with no peer specified. The test uses an absent profile and requires no physical link."
+    }
+  ]
+}

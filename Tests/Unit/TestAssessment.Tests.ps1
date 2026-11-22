@@ -56,10 +56,12 @@ foreach ($case in ($CasesJson | ConvertFrom-Json)) {
     if ($case.tag) { $c.Filter.Tag = @($case.tag) }
     try {
         $r = Invoke-Pester -Configuration $c
-        $v = Get-PesterRunVerdict -Result $r
+        $known = @{}
+        if ($case.known) { foreach ($kp in $case.known.PSObject.Properties) { $known[$kp.Name] = [int]$kp.Value } }
+        $v = Get-PesterRunVerdict -Result $r -KnownFailures $known
         $out[$case.name] = [ordered]@{
             verdict = $v
-            raw = [ordered]@{ Result = [string]$r.Result; FailedCount = $r.FailedCount; FailedContainers = $r.FailedContainersCount; PassedCount = $r.PassedCount; TotalCount = $r.TotalCount }
+            raw = [ordered]@{ Result = [string]$r.Result; FailedCount = $r.FailedCount; FailedBlocks = $r.FailedBlocksCount; FailedContainers = $r.FailedContainersCount; PassedCount = $r.PassedCount; TotalCount = $r.TotalCount }
         }
     } catch {
         $out[$case.name] = [ordered]@{ threw = $_.Exception.Message }
@@ -294,7 +296,7 @@ foreach ($mode in 'glob', 'recursive') {
         $script:Baseline = [pscustomobject]@{
             target_coverage_pct = 85; files_analyzed_ratio_min = 0.95
             quality = [pscustomobject]@{}; orphans_allowed = @()
-            tiers = [pscustomobject]@{ Portable = [pscustomobject]@{ coverage_min_pct = 0; per_module_min_pct = [pscustomobject]@{}; known_failures = [pscustomobject]@{ max_failed_containers = 0; max_failed_blocks = 0; tests_by_file = [pscustomobject]@{} } } }
+            tiers = [pscustomobject]@{ Portable = [pscustomobject]@{ coverage_min_pct = 0; per_module_min_pct = [pscustomobject]@{}; known_failures = [pscustomobject]@{ containers = @(); tests_by_file = [pscustomobject]@{}; blocks_by_file = [pscustomobject]@{} } } }
         }
         $script:Static = [ordered]@{ quality = [ordered]@{ no_assertion_it = 0; not_throw_only_it = 0; tautology_it = 0; parse_error_files = 0 }; reach = [ordered]@{ orphans = @() } }
         $script:PassedRun = [pscustomobject]@{ Result = 'Passed'; PassedCount = 4; FailedCount = 0; FailedContainersCount = 0; FailedBlocksCount = 0; TotalCount = 4; Containers = @(); Failed = @() }
@@ -337,7 +339,7 @@ Describe 'Test-AssessmentGate and the baseline ratchet' -Tag 'Unit', 'Portable' 
             }
         }
         $script:PassRun = [pscustomobject]@{ Result = 'Passed'; PassedCount = 4; FailedCount = 0; FailedContainersCount = 0; FailedBlocksCount = 0; TotalCount = 4; Containers = @(); Failed = @() }
-        $script:GateBaseline = '{"schema_version":1,"target_coverage_pct":85,"files_analyzed_ratio_min":0.95,"quality":{"no_assertion_it_max":0,"not_throw_only_it_max":0,"tautology_it_max":2,"parse_error_files_max":0},"orphans_allowed":["a.Tests.ps1"],"tiers":{"Portable":{"coverage_min_pct":48,"per_module_min_pct":{"Alpha":40},"known_failures":{"max_failed_containers":0,"max_failed_blocks":0,"tests_by_file":{}}}}}' | ConvertFrom-Json
+        $script:GateBaseline = '{"schema_version":1,"target_coverage_pct":85,"files_analyzed_ratio_min":0.95,"quality":{"no_assertion_it_max":0,"not_throw_only_it_max":0,"tautology_it_max":2,"parse_error_files_max":0},"orphans_allowed":["a.Tests.ps1"],"tiers":{"Portable":{"coverage_min_pct":48,"per_module_min_pct":{"Alpha":40},"known_failures":{"containers":[],"tests_by_file":{},"blocks_by_file":{}}}}}' | ConvertFrom-Json
     }
 
     It 'fails closed when there is no baseline' {
@@ -369,6 +371,26 @@ Describe 'Test-AssessmentGate and the baseline ratchet' -Tag 'Unit', 'Portable' 
 
     It 'does not evaluate coverage when nothing ran' {
         @(Test-AssessmentGate -Assessment (Get-FakeAssessment -Pct 1 -Orphans 'a.Tests.ps1') -Baseline $script:GateBaseline -Tier Portable -PesterResult $null).Count | Should -Be 0
+    }
+
+    It 'keeps blocks and containers keyed by file when it seeds and ratchets' {
+        $failedBlock = [pscustomobject]@{ Name = 'd'; BlockContainer = [pscustomobject]@{ Item = [IO.FileInfo]::new('C:/x/a.Tests.ps1') } }
+        $run = [pscustomobject]@{
+            Result = 'Failed'; PassedCount = 4; FailedCount = 0; FailedContainersCount = 0; FailedBlocksCount = 2
+            TotalCount = 4; Containers = @(); Failed = @(); FailedBlocks = @($failedBlock, $failedBlock)
+        }
+        $seed = Update-AssessmentBaseline -Baseline $null -Assessment (Get-FakeAssessment) -Tier Portable -PesterResult $run -Ran
+        $seed.tiers.Portable.known_failures.blocks_by_file['a.Tests.ps1'] | Should -Be 2
+        $json = $seed | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+        # Within the budget it passes; one more block in the same file fails even though that file has no failed tests.
+        $verdict = Get-PesterRunVerdict -Result $run -KnownFailedBlocks @{ 'a.Tests.ps1' = 2 }
+        $verdict.Passed | Should -BeTrue
+        $third = [pscustomobject]@{ Result = 'Failed'; PassedCount = 4; FailedCount = 0; FailedContainersCount = 0; FailedBlocksCount = 3; TotalCount = 4; Containers = @(); Failed = @(); FailedBlocks = @($failedBlock, $failedBlock, $failedBlock) }
+        (Get-PesterRunVerdict -Result $third -KnownFailedBlocks @{ 'a.Tests.ps1' = 2 }).Passed | Should -BeFalse
+        # A block in a different file is not covered by a.Tests.ps1's budget.
+        $other = [pscustomobject]@{ Name = 'o'; BlockContainer = [pscustomobject]@{ Item = [IO.FileInfo]::new('C:/x/b.Tests.ps1') } }
+        $moved = [pscustomobject]@{ Result = 'Failed'; PassedCount = 4; FailedCount = 0; FailedContainersCount = 0; FailedBlocksCount = 2; TotalCount = 4; Containers = @(); Failed = @(); FailedBlocks = @($failedBlock, $other) }
+        (Get-PesterRunVerdict -Result $moved -KnownFailedBlocks @{ 'a.Tests.ps1' = 2 }).Passed | Should -BeFalse
     }
 
     It 'ratchets only in the stricter direction' {
@@ -571,7 +593,7 @@ Describe 'Invoke-QualityGate measures or fails, and never moves the live checkou
 
     It 'treats a compile failure as a measurement error, not 0/0' {
         function global:cargo { $global:LASTEXITCODE = 101; 'error[E0432]: unresolved import' }
-        { Measure-RustTests -Root (Join-Path $TestDrive 'qg') } | Should -Throw '*no test results*'
+        { Measure-RustTests -Root (Join-Path $TestDrive 'qg') } | Should -Throw '*build failed*'
     }
 
     It 'counts clippy findings at level error (-D warnings) and treats a silent failure as an error' {
@@ -580,10 +602,11 @@ Describe 'Invoke-QualityGate measures or fails, and never moves the live checkou
             '{"reason":"compiler-message","message":{"level":"error","code":{"code":"clippy::needless_return"},"message":"x"}}'
             '{"reason":"compiler-message","message":{"level":"warning","code":{"code":"unused_variables"},"message":"y"}}'
             '{"reason":"compiler-message","message":{"level":"error","code":null,"message":"aborting due to 1 previous error"}}'
+            '{"reason":"build-finished","success":false}'
         }
         Measure-ClippyFindings -Root (Join-Path $TestDrive 'qg') | Should -Be 2
         function global:cargo { $global:LASTEXITCODE = 101; 'error: could not find Cargo.toml' }
-        { Measure-ClippyFindings -Root (Join-Path $TestDrive 'qg') } | Should -Throw '*no lint diagnostics*'
+        { Measure-ClippyFindings -Root (Join-Path $TestDrive 'qg') } | Should -Throw '*build failed*'
     }
 
     It 'Get-DeltaStatus classifies both directions (the old `return if` threw)' {
@@ -718,10 +741,10 @@ Describe 'Invoke-QualityGate runs end to end in a fixture repo' -Tag 'Unit', 'Po
             $dir = Join-Path $TestDrive $Name
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
             if ($IsWindows) {
-                $body = if ($ExitCode -eq 0) { "@echo off`r`nif ""%1""==""clippy"" exit /b 0`r`necho test result: ok. 2 passed; 0 failed; 0 ignored`r`nexit /b 0`r`n" } else { "@echo off`r`necho error: fake toolchain failure`r`nexit /b $ExitCode`r`n" }
+                $body = if ($ExitCode -eq 0) { "@echo off`r`nif ""%1""==""clippy"" (echo {""reason"":""build-finished"",""success"":true} & exit /b 0)`r`necho test result: ok. 2 passed; 0 failed; 0 ignored`r`nexit /b 0`r`n" } else { "@echo off`r`necho error: fake toolchain failure`r`nexit /b $ExitCode`r`n" }
                 [IO.File]::WriteAllText((Join-Path $dir 'cargo.cmd'), $body)
             } else {
-                $body = if ($ExitCode -eq 0) { "#!/bin/sh`n[ ""`$1"" = clippy ] && exit 0`necho 'test result: ok. 2 passed; 0 failed; 0 ignored'`nexit 0`n" } else { "#!/bin/sh`necho 'error: fake toolchain failure'`nexit $ExitCode`n" }
+                $body = if ($ExitCode -eq 0) { "#!/bin/sh`n[ ""`$1"" = clippy ] && { echo '{""reason"":""build-finished"",""success"":true}'; exit 0; }`necho 'test result: ok. 2 passed; 0 failed; 0 ignored'`nexit 0`n" } else { "#!/bin/sh`necho 'error: fake toolchain failure'`nexit $ExitCode`n" }
                 [IO.File]::WriteAllText((Join-Path $dir 'cargo'), $body)
                 chmod +x (Join-Path $dir 'cargo')
             }
@@ -767,5 +790,398 @@ Describe 'Invoke-QualityGate runs end to end in a fixture repo' -Tag 'Unit', 'Po
         $r = & $script:RunGate (Get-FakeCargoDir 'cargo-ok2' 0) 'badref' 'no-such-ref'
         $r.Exit | Should -Be 1
         $r.Json.overall | Should -Be 'ERROR'
+    }
+}
+
+Describe 'A script that auto-loads Pester with #Requires cannot exit non-zero' -Tag 'Unit', 'Portable' {
+    # Protects: every runner script being able to fail. Detects: `#Requires -Modules Pester` (in any spelling) together
+    # with a top-level `exit <non-zero or variable>`. Measured on pwsh 7.6.7 with Pester 5.7.1, under `pwsh -File`:
+    #   `#Requires -Modules Pester`                      then `exit 3`  ->  exit code 0
+    #   `#Requires -Version 7.0`                         then `exit 3`  ->  3
+    #   `#Requires -Modules Microsoft.PowerShell.Utility` then `exit 3`  ->  3
+    #   `Import-Module Pester`                           then `exit 3`  ->  3
+    # so it is specific to auto-loading Pester through #Requires. Two runners (Tests/Invoke-AllTests.ps1 and
+    # Tools/SystemScripts/C-Scripts/Startup/Tests/Run-Tests.ps1) printed "TEST RUN FAILED" and exited 0 because of it.
+    # Fix: an explicit `Import-Module Pester -MinimumVersion 5.0.0` with its own error and `exit 1` when missing.
+    # `exit` inside a scriptblock value (a Describe/It body, an Invoke-Command block) or a here-string is another
+    # process or another scope and is not flagged. The runtime control below pins the observation itself: if it ever
+    # fails because the directive no longer swallows the code, pwsh fixed the behaviour and this guard can be relaxed.
+    BeforeAll {
+        function script:Get-RequiresPesterExitHazard {
+            param([string]$Path)
+            $errors = $null
+            $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$null, [ref]$errors)
+            if ($null -eq $ast -or $null -eq $ast.ScriptRequirements) { return @() }
+            $names = @($ast.ScriptRequirements.RequiredModules | ForEach-Object { $_.Name })
+            if ('Pester' -notin $names) { return @() }
+            $exits = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.ExitStatementAst] }, $true)
+            foreach ($e in $exits) {
+                # Skip an exit that lives in a scriptblock value; keep top-level code and function bodies (an exit in a
+                # function still ends the script with that code).
+                $inBlock = $false
+                for ($p = $e.Parent; $p; $p = $p.Parent) {
+                    if ($p -is [System.Management.Automation.Language.ScriptBlockExpressionAst]) { $inBlock = $true; break }
+                }
+                if ($inBlock) { continue }
+                $code = $e.Pipeline
+                if ($null -eq $code) { continue }
+                $isZero = $code -is [System.Management.Automation.Language.PipelineAst] -and
+                $code.PipelineElements.Count -eq 1 -and
+                $code.PipelineElements[0] -is [System.Management.Automation.Language.CommandExpressionAst] -and
+                $code.PipelineElements[0].Expression -is [System.Management.Automation.Language.ConstantExpressionAst] -and
+                [int]$code.PipelineElements[0].Expression.Value -eq 0
+                if (-not $isZero) { [pscustomobject]@{ Path = $Path; Line = $e.Extent.StartLineNumber; Exit = $e.Extent.Text } }
+            }
+        }
+        $reqFx = Join-Path $TestDrive 'requires'
+        Write-Utf8 (Join-Path $reqFx 'hazard.ps1') "#Requires -Modules Pester`nexit 3`n"
+        Write-Utf8 (Join-Path $reqFx 'hazard-spec.ps1') "#Requires -Version 7.0`n#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }`nparam()`n`$code = 2`nexit `$code`n"
+        Write-Utf8 (Join-Path $reqFx 'hazard-function.ps1') "#Requires -Modules Pester`nfunction Stop-Run { exit 1 }`nStop-Run`n"
+        Write-Utf8 (Join-Path $reqFx 'safe-import.ps1') "Import-Module Pester -MinimumVersion 5.0.0`nexit 3`n"
+        Write-Utf8 (Join-Path $reqFx 'safe-other-module.ps1') "#Requires -Modules Microsoft.PowerShell.Utility`nexit 3`n"
+        Write-Utf8 (Join-Path $reqFx 'safe-zero.ps1') "#Requires -Modules Pester`nexit 0`n"
+        Write-Utf8 (Join-Path $reqFx 'safe-nested.Tests.ps1') "#Requires -Modules Pester`nDescribe 'd' { It 'i' { `$r = pwsh -NoProfile -Command 'exit 3'; exit `$LASTEXITCODE } }`n`$text = @'`nexit 3`n'@`n"
+    }
+
+    It 'flags the directive plus a non-zero, variable or function-level exit' {
+        @(Get-RequiresPesterExitHazard (Join-Path $reqFx 'hazard.ps1')).Count | Should -Be 1
+        @(Get-RequiresPesterExitHazard (Join-Path $reqFx 'hazard-spec.ps1')).Count | Should -Be 1
+        @(Get-RequiresPesterExitHazard (Join-Path $reqFx 'hazard-function.ps1')).Count | Should -Be 1
+    }
+
+    It 'does not flag an explicit import, another required module, exit 0, or an exit inside a scriptblock or here-string' {
+        foreach ($name in 'safe-import.ps1', 'safe-other-module.ps1', 'safe-zero.ps1', 'safe-nested.Tests.ps1') {
+            @(Get-RequiresPesterExitHazard (Join-Path $reqFx $name)).Count | Should -Be 0 -Because $name
+        }
+    }
+
+    It 'no tracked script combines #Requires -Modules Pester with a top-level non-zero exit' {
+        $files = @(Get-AssessmentFileList -Root $script:RepoRoot | Where-Object { $_ -like '*.ps1' })
+        $hits = @($files | ForEach-Object { Get-RequiresPesterExitHazard (Join-Path $script:RepoRoot $_) })
+        $hits | ForEach-Object { "$($_.Path):$($_.Line) $($_.Exit)" } | Should -BeNullOrEmpty -Because 'such a script reports exit code 0 under pwsh -File; use Import-Module Pester instead'
+    }
+
+    It 'runtime control: an explicit import keeps the exit code, the directive swallows it (pwsh -File)' {
+        pwsh -NoProfile -File (Join-Path $reqFx 'safe-import.ps1') *> $null
+        $LASTEXITCODE | Should -Be 3
+        pwsh -NoProfile -File (Join-Path $reqFx 'safe-other-module.ps1') *> $null
+        $LASTEXITCODE | Should -Be 3
+        pwsh -NoProfile -File (Join-Path $reqFx 'hazard.ps1') *> $null
+        $LASTEXITCODE | Should -Be 0 -Because 'observed on pwsh 7.6.7 / Pester 5.7.1; if this fails the swallow is fixed and the static guard can be relaxed'
+    }
+}
+
+Describe 'Run-Tests.ps1 (startup tests runner) exits non-zero when the suite fails' -Tag 'Unit', 'Portable' {
+    # Protects: Tools/SystemScripts/C-Scripts/Startup/Tests/Run-Tests.ps1 being able to fail. Detects: its `#Requires
+    # -Modules Pester` swallowing `exit 1` (see the Describe above), and its function named New-PesterConfiguration
+    # calling itself instead of Pester's cmdlet, which recursed until the call-depth limit on every run. The script
+    # is copied into a temporary directory because it writes a TestResults folder next to itself.
+    BeforeAll {
+        $script:RunTestsSource = Join-Path $script:RepoRoot 'Tools/SystemScripts/C-Scripts/Startup/Tests/Run-Tests.ps1'
+        function script:Invoke-StartupRunner {
+            param([string]$Name, [string]$TestText)
+            $dir = Join-Path $TestDrive "startup-$Name"
+            Write-Utf8 (Join-Path $dir 'Case.Tests.ps1') $TestText
+            Copy-Item $script:RunTestsSource (Join-Path $dir 'Run-Tests.ps1')
+            pwsh -NoProfile -File (Join-Path $dir 'Run-Tests.ps1') -TestPath (Join-Path $dir 'Case.Tests.ps1') *> $null
+            $LASTEXITCODE
+        }
+    }
+
+    It 'exits 0 for a passing suite' {
+        Invoke-StartupRunner 'pass' "Describe 'p' { It 'a' { (1 + 1) | Should -Be 2 } }`n" | Should -Be 0
+    }
+
+    It 'exits 1 for a failing test' {
+        Invoke-StartupRunner 'fail' "Describe 'f' { It 'a' { (1 + 1) | Should -Be 3 } }`n" | Should -Be 1
+    }
+
+    It 'exits 1 for a test file that does not parse (FailedCount stays 0)' {
+        Invoke-StartupRunner 'broken' "Describe 'b' { It 'a' { 1 | Should -Be 1 }`n" | Should -Be 1
+    }
+
+    It 'exits 1 when nothing executed' {
+        Invoke-StartupRunner 'empty' "Describe 'e' { }`n" | Should -Be 1
+    }
+}
+
+Describe 'Scheduled-task health tests keep their child exit inside a here-string' -Tag 'Unit', 'Portable' {
+    # Protects: the two Tests/Boot files that combine `#Requires -Modules Pester` with an `exit` line. Detects: that
+    # exit moving out of the here-string that is written to a fixture script and run in a child process. There it is
+    # the child's own exit (no #Requires in the fixture), so the swallow does not apply; the static guard above passes
+    # for the same reason.
+    It 'has no flagged top-level exit in either file' {
+        foreach ($name in 'ScheduledTaskHealth.Tests.ps1', 'ScheduledTaskHealthLauncher.Tests.ps1') {
+            @(Get-RequiresPesterExitHazard (Join-Path $script:RepoRoot "Tests/Boot/$name")).Count | Should -Be 0 -Because $name
+        }
+    }
+}
+
+Describe 'A failed AfterAll or BeforeAll is a failure on every verdict path' -Tag 'Unit', 'Portable' {
+    # Protects: no runner, and not the quality gate, passing a run whose only fault is a throwing AfterAll or BeforeAll.
+    # Detects: a real Pester file with one passing It and `AfterAll { throw }`, which gives Result=Failed, FailedCount=0,
+    # FailedContainers=0, FailedBlocks=1. Invoke-QualityGate dropped FailedBlocks (it reported Failed = FailedCount +
+    # FailedContainers = 0), so its ratchet could pass that run. These are real Pester files run by a real Pester,
+    # not mocked result objects. A file-level BeforeAll/AfterAll throw is a failed container instead; both are covered.
+    # Positive control: the same file without the throw passes on every path.
+    BeforeAll {
+        $script:Blocks = Join-Path $TestDrive 'blocks'
+        $script:Good = "Describe 'g' -Tag 'Portable' { It 'ok' { (1 + 1) | Should -Be 2 } }`n"
+        $script:AfterAllThrow = "Describe 'a' -Tag 'Portable' { It 'ok' { (1 + 1) | Should -Be 2 }; AfterAll { throw 'x' } }`n"
+        $script:BeforeAllThrow = "Describe 'b' -Tag 'Portable' { BeforeAll { throw 'x' }; It 'ok' { (1 + 1) | Should -Be 2 } }`n"
+        $script:FileBeforeThrow = "BeforeAll { throw 'x' }`nDescribe 'c' -Tag 'Portable' { It 'ok' { (1 + 1) | Should -Be 2 } }`n"
+        $script:FileAfterThrow = "AfterAll { throw 'x' }`nDescribe 'd' -Tag 'Portable' { It 'ok' { (1 + 1) | Should -Be 2 } }`n"
+        $script:FailPlusAfterAll = "Describe 'm' -Tag 'Portable' { It 'known failure' { (1 + 1) | Should -Be 3 }; It 'ok' { (1 + 1) | Should -Be 2 }; AfterAll { throw 'new block' } }`n"
+        $script:FailOnly = "Describe 'm' -Tag 'Portable' { It 'known failure' { (1 + 1) | Should -Be 3 }; It 'ok' { (1 + 1) | Should -Be 2 } }`n"
+        $cases = [ordered]@{
+            good = $script:Good; afterall = $script:AfterAllThrow; beforeall = $script:BeforeAllThrow
+            filebefore = $script:FileBeforeThrow; fileafter = $script:FileAfterThrow
+            mixed = $script:FailPlusAfterAll; failonly = $script:FailOnly
+        }
+        $list = foreach ($k in $cases.Keys) {
+            Write-Utf8 (Join-Path $script:Blocks "$k/$k.Tests.ps1") $cases[$k]
+            $entry = @{ name = $k; path = (Join-Path $script:Blocks "$k/$k.Tests.ps1") }
+            if ($k -in 'mixed', 'failonly') { $entry.known = @{ 'mixed.Tests.ps1' = 1; 'failonly.Tests.ps1' = 1 } }
+            $entry
+        }
+        $outFile = Join-Path $TestDrive 'blocks-cases.json'
+        pwsh -NoProfile -File $script:ChildRunner -CasesJson ($list | ConvertTo-Json -Depth 5 -Compress) -HelperPath $script:Helper -OutPath $outFile *> $null
+        $script:Real = Get-Content $outFile -Raw | ConvertFrom-Json
+    }
+
+    It 'the real AfterAll fixture has the shape the defect needs: Failed, no failed test, no container, one block' {
+        $r = $script:Real.afterall.raw
+        $r.Result | Should -Be 'Failed'
+        $r.FailedCount | Should -Be 0
+        $r.FailedContainers | Should -Be 0
+        $r.FailedBlocks | Should -Be 1
+        $r.PassedCount | Should -Be 1
+    }
+
+    It 'the verdict fails a throwing AfterAll, a throwing BeforeAll, and file-level throws; it passes the clean file' {
+        $script:Real.good.verdict.Passed | Should -BeTrue
+        foreach ($k in 'afterall', 'beforeall', 'filebefore', 'fileafter') {
+            $script:Real.$k.verdict.Passed | Should -BeFalse -Because $k
+        }
+        $script:Real.afterall.verdict.Violations -join ' ' | Should -Match 'block\(s\) failed outside any test.*afterall\.Tests\.ps1'
+    }
+
+    It 'a new failed block in a file that already has known test failures still fails' {
+        $script:Real.failonly.verdict.Passed | Should -BeTrue -Because 'the known test failure is inside its budget'
+        $script:Real.mixed.verdict.Passed | Should -BeFalse
+        $script:Real.mixed.verdict.Violations -join ' ' | Should -Match 'block\(s\).*mixed\.Tests\.ps1'
+    }
+
+    It 'every runner exits 1 for the AfterAll and BeforeAll fixtures and 0 for the clean one' {
+        $runners = @(
+            @{ Id = 1; Script = 'Invoke-PortableTests.ps1'; Args = { param($r) @('-Section', 'Pester', '-ResultsDir', (Join-Path $r 'r')) }; Dir = 'Tests/Unit' }
+            @{ Id = 2; Script = 'Invoke-AllTests.ps1'; Args = { param($r) @('-Suite', 'Unit') }; Dir = 'Tests/Unit' }
+            @{ Id = 3; Script = 'test.ps1'; Args = { param($r) @('-UnitOnly') }; Dir = 'Tests/Unit' }
+            @{ Id = 4; Script = '.pester.ps1'; Args = { param($r) @('-Type', 'Unit') }; Dir = 'Tests/Unit' }
+        )
+        $run = {
+            param($runner, $name, $text)
+            $repo = Join-Path $TestDrive "blk-$($runner.Id)-$name"
+            New-Item -ItemType Directory -Path (Join-Path $repo 'Tests/Helpers') -Force | Out-Null
+            Copy-Item (Join-Path $script:RepoRoot "Tests/$($runner.Script)") (Join-Path $repo "Tests/$($runner.Script)")
+            Copy-Item $script:Helper (Join-Path $repo 'Tests/Helpers/Get-PesterRunVerdict.ps1')
+            Copy-Item (Join-Path $script:RepoRoot 'Tests/PesterConfiguration.psd1') (Join-Path $repo 'Tests/PesterConfiguration.psd1')
+            New-Item -ItemType Directory -Path (Join-Path $repo 'Modules') -Force | Out-Null
+            Write-Utf8 (Join-Path $repo "$($runner.Dir)/$name.Tests.ps1") $text
+            $arguments = @(& $runner.Args $repo)
+            pwsh -NoProfile -File (Join-Path $repo "Tests/$($runner.Script)") @arguments *> $null
+            $LASTEXITCODE
+        }
+        foreach ($runner in $runners) {
+            (& $run $runner 'good' $script:Good) | Should -Be 0 -Because "$($runner.Script) on the clean fixture"
+            (& $run $runner 'afterall' $script:AfterAllThrow) | Should -Be 1 -Because "$($runner.Script) on AfterAll { throw }"
+            (& $run $runner 'beforeall' $script:BeforeAllThrow) | Should -Be 1 -Because "$($runner.Script) on BeforeAll { throw }"
+        }
+    }
+
+    It 'the assessment tool fails a run whose only fault is a throwing AfterAll, even with a seeded baseline' {
+        $repo = Join-Path $TestDrive 'blk-assess'
+        Write-Utf8 (Join-Path $repo 'Modules/M/F.ps1') "function Get-F { 1 }`n"
+        Write-Utf8 (Join-Path $repo 'Tests/Unit/Case.Tests.ps1') $script:Good
+        $out = Join-Path $TestDrive 'blk-assess.json'
+        pwsh -NoProfile -File $script:Tool -RepoRoot $repo -Tier Portable -UpdateBaseline -OutputPath $out *> $null
+        $LASTEXITCODE | Should -Be 0 -Because 'the clean fixture seeds and passes'
+        pwsh -NoProfile -File $script:Tool -RepoRoot $repo -Tier Portable -OutputPath $out *> $null
+        $LASTEXITCODE | Should -Be 0
+        Write-Utf8 (Join-Path $repo 'Tests/Unit/Case.Tests.ps1') $script:AfterAllThrow
+        pwsh -NoProfile -File $script:Tool -RepoRoot $repo -Tier Portable -OutputPath $out *> $null
+        $LASTEXITCODE | Should -Be 1
+        (Get-Content $out -Raw | ConvertFrom-Json).violations.code | Should -Contain 'pester_run'
+    }
+}
+
+Describe 'Invoke-QualityGate counts failed blocks and rejects unusable child results' -Tag 'Unit', 'Portable' -Skip:(-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {
+    # Protects: the A/B ratchet. Detects: FailedBlocks dropped from the Pester failure metric (the codex review of #384:
+    # a real AfterAll throw gave Failed = 0 and the head-vs-base comparison passed), and a child process whose exit code
+    # or result file is unusable being read as a measurement. The first test runs the whole gate against real Pester
+    # files in a fixture repo; the rest replace `pwsh` with a function that writes a chosen result file and exit code.
+    BeforeAll {
+        $script:QFx = Join-Path $TestDrive 'qg-blocks'
+        Write-Utf8 (Join-Path $script:QFx 'Native/pcai_core/placeholder.txt') "x`n"
+        Write-Utf8 (Join-Path $script:QFx 'Modules/Mod/F.ps1') "function Get-F { 1 }`n"
+        Write-Utf8 (Join-Path $script:QFx 'Tests/Unit/A.Tests.ps1') "Describe 'a' -Tag 'Portable' { It 'a' { (1 + 1) | Should -Be 2 } }`n"
+        New-Item -ItemType Directory -Path (Join-Path $script:QFx 'Tests/Helpers') -Force | Out-Null
+        Copy-Item $script:QualityGate (Join-Path $script:QFx 'Tests/Invoke-QualityGate.ps1')
+        Copy-Item $script:Helper (Join-Path $script:QFx 'Tests/Helpers/Get-PesterRunVerdict.ps1')
+        Invoke-FixtureGit $script:QFx @('init', '-q', '-b', 'main') | Out-Null
+        Invoke-FixtureGit $script:QFx @('add', '-A') | Out-Null
+        Invoke-FixtureGit $script:QFx @('commit', '-q', '-m', 'base') | Out-Null
+        $script:QBase = (Invoke-FixtureGit $script:QFx @('rev-parse', 'HEAD')) -join ''
+        Write-Utf8 (Join-Path $script:QFx 'Tests/Unit/B.Tests.ps1') "Describe 'b' -Tag 'Portable' { It 'b' { (2 + 2) | Should -Be 4 }; AfterAll { throw 'x' } }`n"
+        Invoke-FixtureGit $script:QFx @('add', '-A') | Out-Null
+        Invoke-FixtureGit $script:QFx @('commit', '-q', '-m', 'head') | Out-Null
+        $cargoDir = Join-Path $TestDrive 'qg-blocks-cargo'
+        New-Item -ItemType Directory -Path $cargoDir -Force | Out-Null
+        if ($IsWindows) {
+            [IO.File]::WriteAllText((Join-Path $cargoDir 'cargo.cmd'), "@echo off`r`nif ""%1""==""clippy"" (echo {""reason"":""build-finished"",""success"":true} & exit /b 0)`r`necho test result: ok. 2 passed; 0 failed; 0 ignored`r`nexit /b 0`r`n")
+        } else {
+            [IO.File]::WriteAllText((Join-Path $cargoDir 'cargo'), "#!/bin/sh`n[ ""`$1"" = clippy ] && { echo '{""reason"":""build-finished"",""success"":true}'; exit 0; }`necho 'test result: ok. 2 passed; 0 failed; 0 ignored'`nexit 0`n")
+            chmod +x (Join-Path $cargoDir 'cargo')
+        }
+        $script:QCargo = $cargoDir
+    }
+    AfterEach { Remove-Item function:global:pwsh -ErrorAction SilentlyContinue }
+
+    It 'reports the throwing AfterAll in the head tree as a Pester failure and a regression (exit 1 with -FailOnRegression)' {
+        $results = Join-Path $TestDrive 'qg-blocks-results'
+        $savedPath = $env:PATH
+        try {
+            $env:PATH = "$script:QCargo$([IO.Path]::PathSeparator)$env:PATH"
+            pwsh -NoProfile -File (Join-Path $script:QFx 'Tests/Invoke-QualityGate.ps1') -BaseRef $script:QBase -ResultsDir $results -FailOnRegression *> $null
+            $exit = $LASTEXITCODE
+        } finally { $env:PATH = $savedPath }
+        $json = Get-Content (Get-ChildItem $results -Filter 'quality-gate-*.json' | Select-Object -First 1).FullName -Raw | ConvertFrom-Json
+        $json.deltas.PesterFailed.base | Should -Be 0
+        $json.deltas.PesterFailed.head | Should -BeGreaterThan 0 -Because 'AfterAll { throw } is a failed block, and a gate that drops blocks reports 0'
+        $json.overall | Should -Be 'REGRESSED'
+        $exit | Should -Be 1
+    }
+
+    It 'rejects a child that wrote a result but exited non-zero, wrote nothing, wrote garbage, or omitted a field' {
+        $root = Join-Path $TestDrive 'qg-child-root'
+        New-Item -ItemType Directory -Path (Join-Path $root 'Tests/Unit') -Force | Out-Null
+        $script:ChildMode = ''
+        function global:pwsh {
+            $a = @($args); $i = [array]::IndexOf($a, '-OutPath')
+            $out = $a[$i + 1]
+            $ok = '{"Passed":3,"Failed":0,"FailedContainers":0,"FailedBlocks":0,"Executed":3,"Result":"Passed","Violations":[]}'
+            switch ($script:ChildMode) {
+                'exit7' { [IO.File]::WriteAllText($out, $ok); $global:LASTEXITCODE = 7 }
+                'nothing' { $global:LASTEXITCODE = 0 }
+                'garbage' { [IO.File]::WriteAllText($out, 'not json {'); $global:LASTEXITCODE = 0 }
+                'nofield' { [IO.File]::WriteAllText($out, '{"Passed":3,"Executed":3}'); $global:LASTEXITCODE = 0 }
+                default { [IO.File]::WriteAllText($out, $ok); $global:LASTEXITCODE = 0 }
+            }
+        }
+        $script:ChildMode = 'ok'
+        (Measure-PesterTests -Root $root).Passed | Should -Be 3
+        foreach ($mode in 'exit7', 'nothing', 'garbage', 'nofield') {
+            $script:ChildMode = $mode
+            { Measure-PesterTests -Root $root } | Should -Throw -Because "child mode $mode must not read as a measurement"
+        }
+    }
+
+    It 'counts blocks and an unexplained Failed result in the failure metric' {
+        $root = Join-Path $TestDrive 'qg-child-root'
+        function global:pwsh {
+            $a = @($args); $i = [array]::IndexOf($a, '-OutPath')
+            [IO.File]::WriteAllText($a[$i + 1], $script:ChildJson); $global:LASTEXITCODE = 0
+        }
+        $script:ChildJson = '{"Passed":1,"Failed":0,"FailedContainers":0,"FailedBlocks":1,"Executed":1,"Result":"Failed","Violations":[]}'
+        (Measure-PesterTests -Root $root).Failed | Should -Be 1
+        $script:ChildJson = '{"Passed":1,"Failed":2,"FailedContainers":1,"FailedBlocks":3,"Executed":3,"Result":"Failed","Violations":[]}'
+        (Measure-PesterTests -Root $root).Failed | Should -Be 6
+        $script:ChildJson = '{"Passed":1,"Failed":0,"FailedContainers":0,"FailedBlocks":0,"Executed":1,"Result":"Failed","Violations":[]}'
+        (Measure-PesterTests -Root $root).Failed | Should -Be 1 -Because 'Result Failed with every counter 0 must never read as zero failures'
+    }
+}
+
+Describe 'Invoke-QualityGate treats a rustc build failure as a build failure, not a lint' -Tag 'Unit', 'Portable' {
+    # Protects: the Rust half of the A/B gate. Detects: a `compiler-message` with a true rustc error (E0432, unresolved
+    # import; cargo exits 101 and build-finished reports success:false) counted as one lint, so a tree that does not
+    # compile matches a base that does not compile either and the comparison passes (codex review of #384). Real cargo
+    # and real clippy run against tiny scratch crates with a private CARGO_TARGET_DIR. A crate with exactly one clippy
+    # lint (denied by -D warnings, so cargo also exits 101) is the positive control: it is one lint, not a build failure.
+    # Skipped with a reported reason when cargo or clippy is missing.
+    BeforeAll {
+        $script:HasCargo = [bool](Get-Command cargo -ErrorAction SilentlyContinue)
+        if ($script:HasCargo) { cargo clippy --version *> $null; $script:HasCargo = ($LASTEXITCODE -eq 0) }
+        function script:New-ScratchCrate {
+            param([string]$Root, [string]$LibText)
+            $crate = Join-Path $Root 'Native/pcai_core'
+            Write-Utf8 (Join-Path $crate 'Cargo.toml') "[package]`nname = ""scratch""`nversion = ""0.0.0""`nedition = ""2021""`n[features]`nserver = []`nffi = []`n"
+            Write-Utf8 (Join-Path $crate 'src/lib.rs') $LibText
+            $Root
+        }
+        function script:Use-ScratchCargoEnv {
+            param([scriptblock]$Body)
+            $saved = @{}
+            foreach ($k in 'CARGO_TARGET_DIR', 'RUSTC_WRAPPER', 'CARGO_BUILD_RUSTC_WRAPPER') { $saved[$k] = [Environment]::GetEnvironmentVariable($k) }
+            try {
+                $env:CARGO_TARGET_DIR = Join-Path $TestDrive 'scratch-target'
+                $env:RUSTC_WRAPPER = ''
+                $env:CARGO_BUILD_RUSTC_WRAPPER = ''
+                & $Body
+            } finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) } }
+        }
+        $script:CleanLib = "pub fn f() -> i32 { 1 }`n#[cfg(test)]`nmod t { #[test] fn ok() { assert_eq!(super::f(), 1); } }`n"
+        $script:OneLintLib = "pub fn f() -> i32 {`n    return 1;`n}`n#[cfg(test)]`nmod t { #[test] fn ok() { assert_eq!(super::f(), 1); } }`n"
+        $script:BrokenLib = "use missing_crate::thing;`npub fn f() -> i32 { 1 }`n"
+    }
+
+    It 'counts exactly one clippy lint in a crate that builds, and does not call it a build failure' {
+        if (-not $script:HasCargo) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $root = New-ScratchCrate (Join-Path $TestDrive 'crate-onelint') $script:OneLintLib
+        Use-ScratchCargoEnv { Measure-ClippyFindings -Root $root } | Should -Be 1
+        $clean = New-ScratchCrate (Join-Path $TestDrive 'crate-clean') $script:CleanLib
+        Use-ScratchCargoEnv { Measure-ClippyFindings -Root $clean } | Should -Be 0
+    }
+
+    It 'fails the clippy measurement with a build-failure reason for an unresolved import (E0432)' {
+        if (-not $script:HasCargo) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $root = New-ScratchCrate (Join-Path $TestDrive 'crate-broken') $script:BrokenLib
+        { Use-ScratchCargoEnv { Measure-ClippyFindings -Root $root } } | Should -Throw '*build failed*'
+    }
+
+    It 'fails the Rust test measurement when the crate does not compile, and counts tests when it does' {
+        if (-not $script:HasCargo) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $broken = New-ScratchCrate (Join-Path $TestDrive 'crate-broken-test') $script:BrokenLib
+        { Use-ScratchCargoEnv { Measure-RustTests -Root $broken } } | Should -Throw '*build failed*'
+        $clean = New-ScratchCrate (Join-Path $TestDrive 'crate-clean-test') $script:CleanLib
+        $r = Use-ScratchCargoEnv { Measure-RustTests -Root $clean }
+        $r.Passed | Should -Be 1
+        $r.Failed | Should -Be 0
+    }
+
+    It 'the whole gate fails when base and head fail to build the same way (a matching baseline must not pass)' -Skip:(-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {
+        if (-not $script:HasCargo) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $fx = New-ScratchCrate (Join-Path $TestDrive 'qg-rust-broken') $script:BrokenLib
+        Write-Utf8 (Join-Path $fx 'Modules/Mod/F.ps1') "function Get-F { 1 }`n"
+        Write-Utf8 (Join-Path $fx 'Tests/Unit/A.Tests.ps1') "Describe 'a' -Tag 'Portable' { It 'a' { (1 + 1) | Should -Be 2 } }`n"
+        New-Item -ItemType Directory -Path (Join-Path $fx 'Tests/Helpers') -Force | Out-Null
+        Copy-Item $script:QualityGate (Join-Path $fx 'Tests/Invoke-QualityGate.ps1')
+        Copy-Item $script:Helper (Join-Path $fx 'Tests/Helpers/Get-PesterRunVerdict.ps1')
+        Invoke-FixtureGit $fx @('init', '-q', '-b', 'main') | Out-Null
+        Invoke-FixtureGit $fx @('add', '-A') | Out-Null
+        Invoke-FixtureGit $fx @('commit', '-q', '-m', 'base') | Out-Null
+        $base = (Invoke-FixtureGit $fx @('rev-parse', 'HEAD')) -join ''
+        Write-Utf8 (Join-Path $fx 'Tests/Unit/B.Tests.ps1') "Describe 'b' -Tag 'Portable' { It 'b' { (2 + 2) | Should -Be 4 } }`n"
+        Invoke-FixtureGit $fx @('add', '-A') | Out-Null
+        Invoke-FixtureGit $fx @('commit', '-q', '-m', 'head') | Out-Null
+        $results = Join-Path $TestDrive 'qg-rust-broken-results'
+        Use-ScratchCargoEnv {
+            pwsh -NoProfile -File (Join-Path $fx 'Tests/Invoke-QualityGate.ps1') -BaseRef $base -ResultsDir $results *> $null
+            $script:BrokenExit = $LASTEXITCODE
+        }
+        $script:BrokenExit | Should -Be 1
+        $json = Get-Content (Get-ChildItem $results -Filter 'quality-gate-*.json' | Select-Object -First 1).FullName -Raw | ConvertFrom-Json
+        $json.overall | Should -Be 'ERROR'
+        ($json.measurement_errors -join ' ') | Should -Match 'HEAD.*build failed'
+        ($json.measurement_errors -join ' ') | Should -Match 'BASE.*build failed'
     }
 }

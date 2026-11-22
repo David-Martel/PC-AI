@@ -561,8 +561,12 @@ function Test-AssessmentGate {
     }
     $known = @{}
     if ($tb.known_failures.tests_by_file) { foreach ($p in $tb.known_failures.tests_by_file.PSObject.Properties) { $known[$p.Name] = [int]$p.Value } }
-    $verdict = Get-PesterRunVerdict -Result $PesterResult -KnownFailures $known `
-        -MaxFailedContainers ([int]$tb.known_failures.max_failed_containers) -MaxFailedBlocks ([int]$tb.known_failures.max_failed_blocks)
+    # Blocks and containers are keyed by file too, apart from tests, so a new failed block in a file that already has
+    # known failed tests still fails.
+    $knownBlocks = @{}
+    if ($tb.known_failures.blocks_by_file) { foreach ($p in $tb.known_failures.blocks_by_file.PSObject.Properties) { $knownBlocks[$p.Name] = [int]$p.Value } }
+    $knownContainers = @($tb.known_failures.containers | Where-Object { $_ })
+    $verdict = Get-PesterRunVerdict -Result $PesterResult -KnownFailures $known -KnownFailedBlocks $knownBlocks -KnownFailedContainers $knownContainers
     foreach ($msg in $verdict.Violations) { $v.Add((Get-GateViolation 'pester_run' $msg)) }
 
     $cov = $Assessment.coverage.pester
@@ -648,6 +652,14 @@ function Update-AssessmentBaseline {
             $leaf = Split-Path -Leaf $t.ScriptBlock.File
             $failedByFile[$leaf] = 1 + [int]$failedByFile[$leaf]
         }
+        $blocksByFile = [ordered]@{}
+        foreach ($b in @($PesterResult.FailedBlocks)) {
+            if ($null -eq $b) { continue }
+            $leaf = Get-PesterBlockFileName $b
+            $blocksByFile[$leaf] = 1 + [int]$blocksByFile[$leaf]
+        }
+        $containerNames = @(@($PesterResult.Containers) | Where-Object { $_ -and $_.Result -eq 'Failed' -and @($_.ErrorRecord).Count -gt 0 } |
+                ForEach-Object { Get-PesterBlockFileName $_ } | Sort-Object -Unique)
         $entry = [ordered]@{}
         if ($prev) {
             $entry.coverage_min_pct = [math]::Max([double]$prev.coverage_min_pct, [math]::Floor($cov.pct))
@@ -659,14 +671,21 @@ function Update-AssessmentBaseline {
             }
             $entry.per_module_min_pct = $pm
             $kf = [ordered]@{}
-            $kf.max_failed_containers = [math]::Min([int]$prev.known_failures.max_failed_containers, [int]$PesterResult.FailedContainersCount)
-            $kf.max_failed_blocks = [math]::Min([int]$prev.known_failures.max_failed_blocks, [int]$PesterResult.FailedBlocksCount)
+            $kf.containers = @(@($prev.known_failures.containers) | Where-Object { $_ -and $_ -in $containerNames } | Sort-Object)
             $tbf = [ordered]@{}
             foreach ($leaf in ($prev.known_failures.tests_by_file.Keys | Sort-Object)) {
                 $now = [int]$failedByFile[$leaf]
                 if ($now -gt 0) { $tbf[$leaf] = [math]::Min([int]$prev.known_failures.tests_by_file[$leaf], $now) }
             }
             $kf.tests_by_file = $tbf
+            $bbf = [ordered]@{}
+            if ($prev.known_failures.blocks_by_file) {
+                foreach ($leaf in ($prev.known_failures.blocks_by_file.Keys | Sort-Object)) {
+                    $now = [int]$blocksByFile[$leaf]
+                    if ($now -gt 0) { $bbf[$leaf] = [math]::Min([int]$prev.known_failures.blocks_by_file[$leaf], $now) }
+                }
+            }
+            $kf.blocks_by_file = $bbf
             $entry.known_failures = $kf
         } else {
             $entry.coverage_min_pct = [math]::Floor($cov.pct)
@@ -674,12 +693,12 @@ function Update-AssessmentBaseline {
             foreach ($row in $cov.by_module) { $pm[$row.module] = [math]::Floor($row.pct) }
             $entry.per_module_min_pct = $pm
             $entry.known_failures = [ordered]@{
-                max_failed_containers = [int]$PesterResult.FailedContainersCount
-                max_failed_blocks     = [int]$PesterResult.FailedBlocksCount
-                tests_by_file         = $failedByFile
+                containers     = $containerNames
+                tests_by_file  = $failedByFile
+                blocks_by_file = $blocksByFile
             }
         }
-        $entry.measured = [ordered]@{ pct = $cov.pct; files_analyzed = $cov.files_analyzed; module_files_total = $cov.module_files_total; failed_tests = [int]$PesterResult.FailedCount }
+        $entry.measured = [ordered]@{ pct = $cov.pct; files_analyzed = $cov.files_analyzed; module_files_total = $cov.module_files_total; failed_tests = [int]$PesterResult.FailedCount; failed_blocks = [int]$PesterResult.FailedBlocksCount }
         $tiers[$Tier] = $entry
     }
     $new.tiers = $tiers

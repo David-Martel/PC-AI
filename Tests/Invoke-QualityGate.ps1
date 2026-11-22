@@ -42,6 +42,21 @@ param(
 # --- metric helpers: every one takes the root it measures and throws when it cannot measure --------------------
 
 function Measure-ClippyFindings {
+    <#
+    .SYNOPSIS
+        Counts clippy lints in the cargo JSON stream and fails when the tree does not build.
+    .DESCRIPTION
+        Lints and rustc errors are different things and are told apart, not summed:
+          lint         a `compiler-message` at level warning with a code, or at level error with a non-E#### code
+                       (`-D warnings` denies lints, so a clippy lint arrives at level error, e.g. clippy::needless_return).
+                       The same diagnostic is emitted once per target (lib and lib test), so it is counted once.
+          build error  level error with an E#### code (E0432 unresolved import), or with no code that is not the
+                       `aborting due to` / `could not compile` summary (a syntax error).
+        Any build error, a missing `build-finished` message, or a non-zero cargo exit that lints alone do not explain
+        throws "build failed". A tree that does not compile on both sides must never match its baseline and pass.
+    .PARAMETER Root
+        Repository root (the workspace is Root/Native/pcai_core).
+    #>
     param([Parameter(Mandatory)][string]$Root)
     if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) { throw 'cargo is not on PATH' }
     Push-Location (Join-Path $Root 'Native/pcai_core')
@@ -50,26 +65,52 @@ function Measure-ClippyFindings {
             -- -D warnings -A clippy::type_complexity 2>&1
         $exit = $LASTEXITCODE
     } finally { Pop-Location }
-    # With -D warnings a lint is reported at level "error", so counting "warning" read 0 whatever the code did.
-    # Count every diagnostic that carries a lint or error code, at either level; the trailing "aborting due to"
-    # summary has no code and is not a finding.
-    $findings = 0
-    $parsed = 0
+    $seen = [System.Collections.Generic.HashSet[string]]::new()
+    $lints = 0
+    $errors = [System.Collections.Generic.List[string]]::new()
+    $finished = $null
     foreach ($line in $out) {
         $text = [string]$line
         if (-not $text.StartsWith('{')) { continue }
         try { $msg = $text | ConvertFrom-Json -ErrorAction Stop } catch { continue }
+        if ($msg.reason -eq 'build-finished') { $finished = [bool]$msg.success; continue }
         if ($msg.reason -ne 'compiler-message') { continue }
-        $parsed++
-        if ($msg.message.level -in 'warning', 'error' -and $null -ne $msg.message.code) { $findings++ }
+        $level = [string]$msg.message.level
+        if ($level -notin 'warning', 'error') { continue }
+        $code = if ($msg.message.code) { [string]$msg.message.code.code } else { '' }
+        $primary = @($msg.message.spans | Where-Object { $_.is_primary } | Select-Object -First 1)
+        $where = if ($primary.Count -gt 0 -and $primary[0]) { "$($primary[0].file_name):$($primary[0].line_start):$($primary[0].column_start)" } else { '' }
+        $key = "$level|$code|$($msg.message.message)|$where"
+        if (-not $seen.Add($key)) { continue }
+        if ($level -eq 'warning') {
+            if ($code) { $lints++ }
+        } elseif ($code -match '^E\d{4}$') {
+            $errors.Add("$code $($msg.message.message)")
+        } elseif ($code) {
+            $lints++
+        } elseif ([string]$msg.message.message -notmatch '^(aborting due to|could not compile)') {
+            $errors.Add([string]$msg.message.message)
+        }
     }
-    if ($exit -ne 0 -and $findings -eq 0) {
-        throw "cargo clippy exited $exit with no lint diagnostics (toolchain or build failure): $((@($out) | Select-Object -Last 3) -join ' | ')"
+    if ($errors.Count -gt 0) {
+        throw "build failed: $($errors.Count) rustc error(s), not lints: $((@($errors) | Select-Object -First 3) -join ' | ')"
     }
-    $findings
+    if ($null -eq $finished) {
+        throw "build failed: cargo clippy produced no build-finished message (exit $exit), so this is not a measurement: $((@($out) | Select-Object -Last 3) -join ' | ')"
+    }
+    if (($exit -ne 0 -or -not $finished) -and $lints -eq 0) {
+        throw "build failed: cargo clippy exited $exit (build-finished success=$finished) with no lint or compiler error to explain it: $((@($out) | Select-Object -Last 3) -join ' | ')"
+    }
+    $lints
 }
 
 function Measure-RustTests {
+    <#
+    .SYNOPSIS
+        Sums the Rust test results and fails when the workspace does not compile.
+    .PARAMETER Root
+        Repository root (the workspace is Root/Native/pcai_core).
+    #>
     param([Parameter(Mandatory)][string]$Root)
     if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) { throw 'cargo is not on PATH' }
     Push-Location (Join-Path $Root 'Native/pcai_core')
@@ -77,16 +118,23 @@ function Measure-RustTests {
         $out = & cargo test --workspace --no-default-features --features server,ffi 2>&1
         $exit = $LASTEXITCODE
     } finally { Pop-Location }
+    $lines = @($out | ForEach-Object { [string]$_ })
+    # Compilation must have succeeded before any count means anything: a test binary that built can run while another
+    # target failed to compile.
+    $compileFailures = @($lines | Where-Object { $_ -match '^\s*error(\[E\d{4}\])?: could not compile' -or $_ -match '^\s*error\[E\d{4}\]' })
+    if ($compileFailures.Count -gt 0) {
+        throw "build failed: cargo test did not compile: $((@($compileFailures) | Select-Object -First 3) -join ' | ')"
+    }
     # One `test result:` line per test binary: sum them all. Reading only the last line reported one crate's tests,
     # and a compile failure printed none, which the old code turned into 0/0 and called "unchanged".
-    $passed = 0; $failed = 0; $lines = 0
-    foreach ($line in $out) {
-        if ([string]$line -match 'test result: \w+\.\s+(\d+) passed;\s+(\d+) failed') {
-            $passed += [int]$Matches[1]; $failed += [int]$Matches[2]; $lines++
+    $passed = 0; $failed = 0; $results = 0
+    foreach ($line in $lines) {
+        if ($line -match 'test result: \w+\.\s+(\d+) passed;\s+(\d+) failed') {
+            $passed += [int]$Matches[1]; $failed += [int]$Matches[2]; $results++
         }
     }
-    if ($lines -eq 0 -or ($passed + $failed) -eq 0) {
-        throw "cargo test exited $exit and reported no test results (compile failure or nothing ran): $((@($out) | Select-Object -Last 3) -join ' | ')"
+    if ($results -eq 0 -or ($passed + $failed) -eq 0) {
+        throw "build failed or nothing ran: cargo test exited $exit and reported no test results: $((@($lines) | Select-Object -Last 3) -join ' | ')"
     }
     if ($exit -ne 0 -and $failed -eq 0) {
         throw "cargo test exited $exit with no failed test counted (build error after some tests ran)"
@@ -113,10 +161,22 @@ $r = Invoke-Pester -Configuration $cfg
 $v = Get-PesterRunVerdict -Result $r -MaxFailedTests ([int]::MaxValue) -MaxFailedContainers ([int]::MaxValue) -MaxFailedBlocks ([int]::MaxValue)
 [IO.File]::WriteAllText($OutPath, ([ordered]@{
     Passed = [int]$r.PassedCount; Failed = [int]$r.FailedCount; FailedContainers = [int]$r.FailedContainersCount
+    FailedBlocks = [int]$r.FailedBlocksCount; Result = [string]$r.Result
     Executed = $v.Executed; Violations = $v.Violations } | ConvertTo-Json))
 '@
 
 function Measure-PesterTests {
+    <#
+    .SYNOPSIS
+        Counts passed and failed Portable Pester tests in a child process and fails closed on an unusable child.
+    .DESCRIPTION
+        Failed = failed tests + failed containers (files that did not load) + failed blocks (a throwing
+        BeforeAll/AfterAll). A Result other than Passed with every counter at 0 counts as one failure, so an
+        unexplained failure never reads as zero. A child that exits non-zero, writes no result file, writes
+        something that is not JSON, or omits a field is an error, not a measurement.
+    .PARAMETER Root
+        Repository root whose Tests/Unit is measured.
+    #>
     param([Parameter(Mandatory)][string]$Root)
     if (-not (Get-Module -ListAvailable Pester | Where-Object Version -ge '5.0')) { throw 'Pester 5+ is not installed' }
     if (-not (Test-Path (Join-Path $Root 'Tests/Unit'))) { throw "no Pester path at $(Join-Path $Root 'Tests/Unit')" }
@@ -128,16 +188,23 @@ function Measure-PesterTests {
         [System.IO.File]::WriteAllText($childScript, $script:PesterChildScript)
         $helper = Join-Path $PSScriptRoot 'Helpers/Get-PesterRunVerdict.ps1'
         & pwsh -NoProfile -File $childScript -Root $Root -Helper $helper -OutPath $outPath *> $null
-        if (-not (Test-Path -LiteralPath $outPath)) { throw "the Pester child process wrote no result (exit $LASTEXITCODE)" }
-        $r = Get-Content -LiteralPath $outPath -Raw | ConvertFrom-Json
+        $childExit = $LASTEXITCODE
+        if ($childExit -ne 0) { throw "the Pester child process exited $childExit" }
+        if (-not (Test-Path -LiteralPath $outPath)) { throw 'the Pester child process wrote no result' }
+        try { $r = Get-Content -LiteralPath $outPath -Raw | ConvertFrom-Json -ErrorAction Stop }
+        catch { throw "the Pester child result is not valid JSON: $($_.Exception.Message)" }
     } finally {
         Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
     }
+    foreach ($field in 'Passed', 'Failed', 'FailedContainers', 'FailedBlocks', 'Executed', 'Result') {
+        if ($null -eq $r -or $null -eq $r.PSObject.Properties[$field] -or $null -eq $r.$field) { throw "the Pester child result is missing '$field'" }
+    }
     # Failures are a metric here, not a stop: the gate compares them between refs. Only a run that is not a
-    # measurement at all (nothing executed) is an error. A container that did not load counts as a failure so a
-    # syntax error is a regression instead of invisible.
-    if ($r.Executed -lt 1) { throw "Pester executed no tests: $($r.Violations -join '; ')" }
-    [pscustomobject]@{ Passed = [int]$r.Passed; Failed = [int]$r.Failed + [int]$r.FailedContainers }
+    # measurement at all (nothing executed) is an error.
+    if ([int]$r.Executed -lt 1) { throw "Pester executed no tests: $(@($r.Violations) -join '; ')" }
+    $failed = [int]$r.Failed + [int]$r.FailedContainers + [int]$r.FailedBlocks
+    if ([string]$r.Result -ne 'Passed' -and $failed -eq 0) { $failed = 1 }
+    [pscustomobject]@{ Passed = [int]$r.Passed; Failed = $failed }
 }
 
 function Measure-ScriptAnalyzer {

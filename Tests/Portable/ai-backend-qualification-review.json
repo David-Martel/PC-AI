@@ -5,7 +5,7 @@
   "hashConvention": "SHA-256 of UTF-8 LF sources. Rust selectors span their attributes and function body with no final LF. The hardware selector spans its complete standalone runner.",
   "sourceBindings": {
     "Native/pcai_core/pcai_inference/src/backends/mistralrs.rs": "b6595ae48d124b4fbd03cc2867dd1f7482e537c46464d863a443ad81b2812f5a",
-    "Tests/Hardware/Invoke-PcaiMediaCudaFunctionalTests.ps1": "7cf737a99f3ffd0cc08f2fb844f114288c9b27362e69d05e6ab025ea67af4cd3",
+    "Tests/Hardware/Invoke-PcaiMediaCudaFunctionalTests.ps1": "b00ebe44abfea8a408a26c1b13b6ef6d681d7785fde5e9ea6203867de300657a",
     "Native/pcai_core/pcai_media_server/src/main.rs": "a7d34ca8b7e117c5aa3b744a390c9245966d57d1b92d5889734d145f08c0bb6b"
   },
   "selectors": [
@@ -39,7 +39,7 @@
     {
       "selector": "Explicit CUDA media functional run, five generation and six understanding cases",
       "source": "Tests/Hardware/Invoke-PcaiMediaCudaFunctionalTests.ps1",
-      "sha256": "7cf737a99f3ffd0cc08f2fb844f114288c9b27362e69d05e6ab025ea67af4cd3",
+      "sha256": "b00ebe44abfea8a408a26c1b13b6ef6d681d7785fde5e9ea6203867de300657a",
       "reviewer": "codex-gen9-pcai-fleet",
       "reviewerType": "independent source agent",
       "disposition": "keep",

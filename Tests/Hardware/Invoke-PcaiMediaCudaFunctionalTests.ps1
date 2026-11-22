@@ -66,12 +66,12 @@ function Get-LoopbackPort {
 }
 
 function Wait-MediaModelReady {
-    param([Diagnostics.Process]$Server, [string]$BaseUri)
+    param([Diagnostics.Process]$Server, [string]$BaseUri, [int]$TimeoutSeconds)
 
     $clock = [Diagnostics.Stopwatch]::StartNew()
-    while ($clock.Elapsed.TotalSeconds -lt $ReadyTimeoutSeconds) {
+    while ($clock.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
         if ($Server.HasExited) { throw "Media server exited before readiness with code $($Server.ExitCode)." }
-        $remainingSeconds = [math]::Ceiling($ReadyTimeoutSeconds - $clock.Elapsed.TotalSeconds)
+        $remainingSeconds = [math]::Ceiling($TimeoutSeconds - $clock.Elapsed.TotalSeconds)
         $probeTimeout = [int][math]::Max(1, [math]::Min(2, $remainingSeconds))
         $health = $null
         try {
@@ -87,7 +87,7 @@ function Wait-MediaModelReady {
         }
         Start-Sleep -Milliseconds 150
     }
-    throw "Media server did not become ready within $ReadyTimeoutSeconds seconds."
+    throw "Media server did not become ready within $TimeoutSeconds seconds."
 }
 
 # Protects the media server's public generation and understanding workflows.
@@ -144,7 +144,7 @@ try {
     $server = [Diagnostics.Process]::Start($start)
     $stdout = $server.StandardOutput.ReadToEndAsync()
     $stderr = $server.StandardError.ReadToEndAsync()
-    Wait-MediaModelReady -Server $server -BaseUri $baseUri
+    Wait-MediaModelReady -Server $server -BaseUri $baseUri -TimeoutSeconds $ReadyTimeoutSeconds
 
     foreach ($case in $cases) {
         $clock = [Diagnostics.Stopwatch]::StartNew()

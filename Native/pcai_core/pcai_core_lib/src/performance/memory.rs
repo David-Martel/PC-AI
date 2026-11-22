@@ -80,8 +80,10 @@ fn format_bytes(bytes: u64) -> String {
 }
 
 /// Read memory statistics, reporting why the probe failed instead of hiding it.
-fn read_memory_stats() -> Result<MemoryStats, PcaiStatus> {
-    let mut sys = System::new_all()?;
+///
+/// `make` is the `System` constructor; tests inject a failing one.
+fn read_memory_stats(make: fn() -> Result<System, sysinfo::Error>) -> Result<MemoryStats, PcaiStatus> {
+    let mut sys = make()?;
     sys.refresh_memory();
 
     Ok(MemoryStats {
@@ -101,7 +103,11 @@ fn read_memory_stats() -> Result<MemoryStats, PcaiStatus> {
 /// `System::new_all` is fallible) is reported as zeroed metrics with a non-success
 /// `status`, not as a panic.
 pub fn get_memory_stats() -> MemoryStats {
-    read_memory_stats().unwrap_or_else(|status| MemoryStats {
+    memory_stats_or_status(System::new_all)
+}
+
+fn memory_stats_or_status(make: fn() -> Result<System, sysinfo::Error>) -> MemoryStats {
+    read_memory_stats(make).unwrap_or_else(|status| MemoryStats {
         status,
         ..MemoryStats::default()
     })
@@ -113,7 +119,7 @@ pub fn get_memory_stats() -> MemoryStats {
 ///
 /// Returns the [`PcaiStatus`] for a failed memory probe.
 pub fn get_memory_usage_info() -> Result<MemoryUsageInfo, PcaiStatus> {
-    let stats = read_memory_stats()?;
+    let stats = read_memory_stats(System::new_all)?;
 
     let memory_percent = if stats.total_memory_bytes > 0 {
         (stats.used_memory_bytes as f64 / stats.total_memory_bytes as f64) * 100.0
@@ -145,7 +151,11 @@ pub fn get_memory_usage_info() -> Result<MemoryUsageInfo, PcaiStatus> {
 /// Returns the [`PcaiStatus`] for a failed memory probe, so "unknown" is not
 /// mistaken for "no pressure".
 pub fn is_memory_pressure() -> Result<bool, PcaiStatus> {
-    let stats = read_memory_stats()?;
+    memory_pressure_from(System::new_all)
+}
+
+fn memory_pressure_from(make: fn() -> Result<System, sysinfo::Error>) -> Result<bool, PcaiStatus> {
+    let stats = read_memory_stats(make)?;
     if stats.total_memory_bytes == 0 {
         return Ok(false);
     }
@@ -173,6 +183,34 @@ pub fn get_top_memory_consumers(top_n: usize) -> Result<Vec<super::process::Proc
 mod tests {
     use super::*;
 
+    fn unsupported() -> Result<System, sysinfo::Error> {
+        Err(sysinfo::Error::Unsupported)
+    }
+
+    /// Protects: a failed `System::new_all` is reported through the FFI struct's `status`
+    /// with zeroed metrics, never as `Success`.
+    /// Detects: the port reverting to a hardcoded `Success` status, or panicking on failure.
+    /// Needs: an injected failing constructor; no real sysinfo failure.
+    #[test]
+    fn failed_probe_reports_status_with_zeroed_metrics() {
+        let stats = memory_stats_or_status(unsupported);
+        assert_eq!(stats.status, PcaiStatus::NotImplemented);
+        assert_eq!(stats.total_memory_bytes, 0);
+        assert_eq!(stats.used_memory_bytes, 0);
+    }
+
+    /// Protects: `is_memory_pressure` returns the probe error instead of `Ok(false)`, so
+    /// "unknown" is never read as "no pressure".
+    /// Detects: collapsing the error into the zero-total early return.
+    /// Needs: an injected failing constructor.
+    #[test]
+    fn failed_probe_is_an_error_not_no_pressure() {
+        assert_eq!(memory_pressure_from(unsupported), Err(PcaiStatus::NotImplemented));
+    }
+
+    /// Protects: a healthy host still reports `Success` and real memory after the port.
+    /// Detects: a regression in the live path (live call, not a failure control).
+    /// Needs: a supported host with real memory.
     #[test]
     fn test_get_memory_stats() {
         let stats = get_memory_stats();
@@ -182,8 +220,9 @@ mod tests {
         assert!(stats.used_memory_bytes <= stats.total_memory_bytes);
     }
 
-    /// The sysinfo 0.40 port made this probe fallible; on a supported host it must
-    /// still succeed, so the `Result` is unwrapped here rather than skipped.
+    /// Protects: the formatted usage view builds from the now-fallible probe.
+    /// Detects: a healthy host returning `Err` after the port, or a percentage outside 0-100.
+    /// Needs: a supported host (live call; the failure path is covered by the injected tests).
     #[test]
     fn test_get_memory_usage_info() {
         let info = get_memory_usage_info().expect("memory probe succeeds on a supported host");
@@ -200,12 +239,19 @@ mod tests {
         assert_eq!(format_bytes(1099511627776), "1.00 TB");
     }
 
-    /// A failed probe must surface as `Err`; it must never read as "no pressure".
+    /// Protects: the public pressure check succeeds on a healthy host.
+    /// Detects: the public wrapper failing to pass a real constructor (live call only; the
+    /// error contract is `failed_probe_is_an_error_not_no_pressure`).
+    /// Needs: a supported host.
     #[test]
     fn test_is_memory_pressure() {
         assert!(is_memory_pressure().is_ok());
     }
 
+    /// Protects: top consumers are returned sorted by memory after `ProcessSampler::new`
+    /// became fallible.
+    /// Detects: a healthy host returning `Err`, or a mis-sorted list.
+    /// Needs: a supported host with at least one visible process (live call).
     #[test]
     fn test_get_top_memory_consumers() {
         let consumers = get_top_memory_consumers(5).expect("process sampler starts on a supported host");

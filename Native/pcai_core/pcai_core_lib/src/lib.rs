@@ -32,6 +32,7 @@ pub mod gpu;
 pub mod hash;
 #[allow(missing_docs)] // TODO: Document public items
 pub mod json;
+pub(crate) mod lazy_slot;
 #[allow(missing_docs)] // TODO: Document public items
 pub mod path;
 #[allow(missing_docs)] // TODO: Document public items
@@ -190,8 +191,10 @@ pub extern "C" fn pcai_estimate_tokens(text: *const c_char) -> usize {
 /// FFI export.
 #[no_mangle]
 pub extern "C" fn pcai_check_resource_safety(gpu_limit: f32) -> i32 {
-    // Telemetry that cannot be collected is reported as unsafe (0): the caller asked
-    // whether it may proceed, and an unverified system must not read as safe.
+    // A telemetry probe that returns `Err` (a sysinfo constructor failure) is reported as
+    // unsafe (0), so a failed probe does not read as safe. This does not cover a probe that
+    // succeeds without a real sample: on Windows sysinfo can return `Ok` with a zero global
+    // CPU value before its first qualified refresh, and that still reads as safe.
     match telemetry::check_resource_safety(gpu_limit) {
         Ok(true) => 1,
         Ok(false) | Err(_) => 0,
@@ -257,7 +260,11 @@ pub extern "C" fn pcai_query_full_context_json() -> *mut c_char {
         vmm: vmm_health::VmmHealth,
     }
 
-    let (Ok(system), Ok(telemetry)) = (system::get_system_summary(), telemetry::collect_telemetry()) else {
+    // Sequential, so the shared telemetry sampler is not touched once the summary failed.
+    let Ok(system) = system::get_system_summary() else {
+        return std::ptr::null_mut();
+    };
+    let Ok(telemetry) = telemetry::collect_telemetry() else {
         return std::ptr::null_mut();
     };
     let context = FullContext {

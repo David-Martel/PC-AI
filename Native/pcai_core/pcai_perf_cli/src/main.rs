@@ -347,7 +347,7 @@ fn make_worker_response(raw: &str, state: &mut PerfWorkerState) -> WorkerRespons
             request_id,
             ok: false,
             result: None,
-            error: Some(err.to_string()),
+            error: Some(format!("{err:#}")),
         },
     }
 }

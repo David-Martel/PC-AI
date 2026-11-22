@@ -104,11 +104,17 @@ impl CpuSampler {
 /// instead of being cached forever.
 fn read_cpu_usage() -> Result<CpuReading, PcaiStatus> {
     static SAMPLER: Mutex<Option<CpuSampler>> = Mutex::new(None);
-    let mut slot = SAMPLER.lock().unwrap_or_else(PoisonError::into_inner);
-    let sampler = match slot.as_mut() {
-        Some(sampler) => sampler,
-        None => slot.insert(CpuSampler::new()?),
-    };
+    read_cpu_usage_from(&SAMPLER, CpuSampler::new)
+}
+
+/// [`read_cpu_usage`] over an explicit slot and constructor, so a test can inject a failing
+/// sampler constructor without touching the process-wide sampler.
+fn read_cpu_usage_from(
+    slot: &Mutex<Option<CpuSampler>>,
+    make: fn() -> Result<CpuSampler, PcaiStatus>,
+) -> Result<CpuReading, PcaiStatus> {
+    let mut slot = slot.lock().unwrap_or_else(PoisonError::into_inner);
+    let sampler = crate::lazy_slot::get_or_try_init(&mut slot, make)?;
     Ok(sampler.sample())
 }
 
@@ -382,8 +388,36 @@ mod measurement_tests {
         assert!(value["celsius"].is_null());
     }
 
-    /// The sysinfo 0.40 port made every probe behind the summary fallible; on a
-    /// supported host the summary must still build and report real hardware.
+    /// Protects: a failed CPU sampler construction reaches the caller as the mapped
+    /// `PcaiStatus`, leaves the slot empty, is retried, and a filled slot is reused.
+    /// Detects: caching the failure, swallowing it into a zeroed reading, or rebuilding the
+    /// sampler on every call (which would never leave the warm-up state).
+    /// Needs: injected constructors and a local slot; the process-wide sampler is untouched.
+    #[test]
+    fn failed_cpu_sampler_init_propagates_status_then_retries_and_reuses() {
+        fn unsupported() -> Result<CpuSampler, PcaiStatus> {
+            Err(PcaiStatus::NotImplemented)
+        }
+        let slot = Mutex::new(None);
+
+        let failed = read_cpu_usage_from(&slot, unsupported);
+        assert_eq!(failed.err(), Some(PcaiStatus::NotImplemented));
+        assert!(slot.lock().unwrap_or_else(PoisonError::into_inner).is_none());
+
+        let first = read_cpu_usage_from(&slot, CpuSampler::new).expect("healthy constructor succeeds");
+        assert_eq!(first.sample_status, "WarmingUp");
+        assert!(slot.lock().unwrap_or_else(PoisonError::into_inner).is_some());
+
+        // The failing constructor is never consulted once the slot is filled.
+        let second = read_cpu_usage_from(&slot, unsupported).expect("filled slot is reused");
+        assert!(second.sample_age_milliseconds >= first.sample_age_milliseconds);
+    }
+
+    /// Protects: the summary still builds from the now-fallible system, disk, network and
+    /// component constructors.
+    /// Detects: a healthy host failing after the sysinfo 0.40 port (live call, not a failure
+    /// control; there is no seam for the four sysinfo constructors).
+    /// Needs: a supported host with at least one CPU and real memory.
     #[test]
     fn system_summary_builds_on_a_supported_host() {
         let summary = get_system_summary().expect("summary builds on a supported host");
@@ -391,6 +425,10 @@ mod measurement_tests {
         assert!(summary.memory_total_gb > 0.0);
     }
 
+    /// Protects: CPU usage is `None` until a real sampling interval has elapsed.
+    /// Detects: the 0.40 `Cpu::usage` rename wiring the wrong value, or reporting a first
+    /// reading as a measurement.
+    /// Needs: a supported host and one real `MINIMUM_CPU_UPDATE_INTERVAL` of sleep.
     #[test]
     fn cpu_usage_requires_a_real_sampling_interval() {
         let mut sampler = CpuSampler::new().expect("sampler starts on a supported host");

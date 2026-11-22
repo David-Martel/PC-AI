@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 bytes with CRLF converted to LF (a leading BOM is kept); selector spans its leading comment and attribute lines through the closing brace and final newline",
+  "path_base": "repository root",
+  "base_commit": "78c48688cda246b7a1a89fb8b5525ed2131d1c7d",
+  "reviews": [
+    {
+      "selector": "ffi::tests::test_async_result_field_offsets_match_csharp_mirror",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewer_type": "author self-review",
+      "reviewed_utc": "2026-11-22T15:39:49Z",
+      "independent_disposition": {
+        "status": "pending",
+        "reviewer": "codex"
+      },
+      "review_scope": "Rust half of the PcaiAsyncResult ABI contract: asserts size 24 and offset_of! 0/8/16/20 for status, text, tokens_generated, prompt_tokens_estimated. Binds the Rust layout only; the managed half is the PcaiNative.Tests selectors below. The 22 other mirrored structs have no Rust-side test.",
+      "platform_prerequisites": [
+        "64-bit target (cfg(target_pointer_width = \"64\")); the test does not exist on 32-bit builds",
+        "Rust 1.77 or later for core::mem::offset_of! (workspace rust-version is 1.95)",
+        "cargo test -p pcai-inference --no-default-features --features server,ffi --lib -- ffi (no native library, GPU or model needed)"
+      ],
+      "rationale": "Pins the exact layout the C# mirror must reproduce; a Rust field change breaks this test and points at InferenceModule.PcaiAsyncResult.",
+      "selector_sha256": "5d8616f0bae7dbd5196724458c5e4f50845cbc883e958345c52451ec35874aa1",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_inference/src/ffi/mod.rs",
+          "sha256": "cd4f17b7d3b900b61a65cffee2143aa74efb706d00068d82343f1478344010ad"
+        }
+      ]
+    },
+    {
+      "selector": "PcaiNative.Tests.PInvokeLayoutTests.MirroredStructs",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewer_type": "author self-review",
+      "reviewed_utc": "2026-11-22T15:39:49Z",
+      "independent_disposition": {
+        "status": "pending",
+        "reviewer": "codex"
+      },
+      "review_scope": "Hand-derived expected size and field offsets for 23 managed structs (one row per struct, Rust source named in a comment). The numbers are transcribed from the Rust definitions, so the table cannot detect Rust-only drift except for PcaiAsyncResult, which the Rust selector above binds.",
+      "platform_prerequisites": [
+        "64-bit process; the numbers are the x64 ABI that PcaiNative ships for",
+        "Windows x64 target of the product; the test itself only uses Marshal.SizeOf and Marshal.OffsetOf and loads no native library",
+        ".NET 8 (net8.0), test project built with PlatformTarget x64"
+      ],
+      "rationale": "Every field of every row is pinned, including padding fields, so an added or removed managed field changes the table or fails the field-set check.",
+      "selector_sha256": "a8e427a8d718acbe30321472c76a5eeb81c9a4e35141cefbc2b7f2daf25a1a20",
+      "source_files": [
+        {
+          "path": "Native/PcaiNative.Tests/PInvokeLayoutTests.cs",
+          "sha256": "8e0da2ed1e458bc0fe022d12dfd0f027b69e4a1c54ae18fa1f6d87749a90acc5"
+        },
+        {
+          "path": "Native/PcaiNative/InferenceModule.cs",
+          "sha256": "509d2f0315f632aa679cf6b63d0cc017e337a405d902b592cb101137f07eca70"
+        },
+        {
+          "path": "Native/PcaiNative/MediaModule.cs",
+          "sha256": "0f89e41102909fb82ffdf7d6b0e48169e425702fc8efa9cd5c16c1af015f9991"
+        },
+        {
+          "path": "Native/PcaiNative/Models.cs",
+          "sha256": "1219dcf9a02df46cbda28b7e3227e35c61432599a7ed31a6063465ee0fe32805"
+        },
+        {
+          "path": "Native/PcaiNative/SystemModule.cs",
+          "sha256": "68477c83c2c98cc90f49ca624836f44ac2a67ab757baa026dbe9d43b22e5590a"
+        },
+        {
+          "path": "Native/PcaiNative/SearchModule.cs",
+          "sha256": "b3105a0a4333df7ea8ccec9fea41e0569dcec1d5f09f79ca61aa59878277b822"
+        },
+        {
+          "path": "Native/PcaiNative/PerformanceModule.cs",
+          "sha256": "f53aa9e8418eb6da0f1a15b8c6f29ab75fc924ad2cc8092cc858eddee1f724b1"
+        },
+        {
+          "path": "Native/PcaiNative/OptimizerModule.cs",
+          "sha256": "c090ed5298a792092a658c7c1ac2df072f927e9bae57d816ec2cc80f73dec6ed"
+        }
+      ]
+    },
+    {
+      "selector": "PcaiNative.Tests.PInvokeLayoutTests.MirroredStructMatchesRustReprCLayout",
+      "disposition": "keep",
+      "reviewer": "claude",
+      "reviewer_type": "author self-review",
+      "reviewed_utc": "2026-11-22T15:39:49Z",
+      "independent_disposition": {
+        "status": "pending",
+        "reviewer": "codex"
+      },
+      "review_scope": "Parameterized managed ABI suite over the MirroredStructs table: Marshal.SizeOf, declared-field-set equality and Marshal.OffsetOf per field. Fails, not skips, when the process is not 64-bit. Positive control: removing PcaiAsyncResult.TokensGenerated and PromptTokensEstimated fails it with Expected 24, Actual 16.",
+      "platform_prerequisites": [
+        "64-bit process (asserted); the test project sets PlatformTarget x64",
+        ".NET 8 (net8.0); dotnet test Native/PcaiNative.Tests",
+        "No native DLL required"
+      ],
+      "rationale": "Detects managed-side size, order or type drift in any mirrored struct, which would let the native side write past a caller-allocated return buffer.",
+      "selector_sha256": "defdab80604ab86ee5fc2eaf69f99b75abd8974c801e2eabcfc95b2f13c360b6",
+      "source_files": [
+        {
+          "path": "Native/PcaiNative.Tests/PInvokeLayoutTests.cs",
+          "sha256": "8e0da2ed1e458bc0fe022d12dfd0f027b69e4a1c54ae18fa1f6d87749a90acc5"
+        },
+        {
+          "path": "Native/PcaiNative/InferenceModule.cs",
+          "sha256": "509d2f0315f632aa679cf6b63d0cc017e337a405d902b592cb101137f07eca70"
+        },
+        {
+          "path": "Native/PcaiNative/MediaModule.cs",
+          "sha256": "0f89e41102909fb82ffdf7d6b0e48169e425702fc8efa9cd5c16c1af015f9991"
+        },
+        {
+          "path": "Native/PcaiNative/Models.cs",
+          "sha256": "1219dcf9a02df46cbda28b7e3227e35c61432599a7ed31a6063465ee0fe32805"
+        },
+        {
+          "path": "Native/PcaiNative/SystemModule.cs",
+          "sha256": "68477c83c2c98cc90f49ca624836f44ac2a67ab757baa026dbe9d43b22e5590a"
+        },
+        {
+          "path": "Native/PcaiNative/SearchModule.cs",
+          "sha256": "b3105a0a4333df7ea8ccec9fea41e0569dcec1d5f09f79ca61aa59878277b822"
+        },
+        {
+          "path": "Native/PcaiNative/PerformanceModule.cs",
+          "sha256": "f53aa9e8418eb6da0f1a15b8c6f29ab75fc924ad2cc8092cc858eddee1f724b1"
+        },
+        {
+          "path": "Native/PcaiNative/OptimizerModule.cs",
+          "sha256": "c090ed5298a792092a658c7c1ac2df072f927e9bae57d816ec2cc80f73dec6ed"
+        }
+      ]
+    }
+  ]
+}

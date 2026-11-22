@@ -43,6 +43,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Lets PcaiNative.Tests exercise internal mapping helpers without the native DLLs. -->
+    <InternalsVisibleTo Include="PcaiNative.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Management.Automation" Version="7.4.22" />
     <PackageReference Include="System.Text.Json" Version="10.0.15" />
   </ItemGroup>

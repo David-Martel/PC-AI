@@ -1365,6 +1365,26 @@ mod tests {
         );
     }
 
+    /// Protects: the managed mirror `PcaiNative.InferenceModule.PcaiAsyncResult` (C#), which
+    /// receives this struct by value from `pcai_poll_result`. On Win64 the caller allocates the
+    /// return buffer from the managed declaration, so any size or offset drift here corrupts the
+    /// caller's stack or heap.
+    ///
+    /// Detects: a field added, removed or reordered on the Rust side without the matching change
+    /// in `Native/PcaiNative/InferenceModule.cs`. The C# half is
+    /// `PInvokeLayoutTests.MirroredStructMatchesRustReprCLayout`; edit both together.
+    #[cfg(target_pointer_width = "64")]
+    #[test]
+    fn test_async_result_field_offsets_match_csharp_mirror() {
+        use std::mem::{offset_of, size_of};
+
+        assert_eq!(size_of::<PcaiAsyncResult>(), 24);
+        assert_eq!(offset_of!(PcaiAsyncResult, status), 0);
+        assert_eq!(offset_of!(PcaiAsyncResult, text), 8);
+        assert_eq!(offset_of!(PcaiAsyncResult, tokens_generated), 16);
+        assert_eq!(offset_of!(PcaiAsyncResult, prompt_tokens_estimated), 20);
+    }
+
     #[test]
     fn test_version_returns_valid_string() {
         let ptr = pcai_version();

@@ -114,6 +114,11 @@ that does not parse is quarantined.
   sendable only after the incident state that records them is committed, so a transition whose state write failed is
   never sent. An event that reached the ledger but nobody (bus send and its spool both failed, Discord did not send)
   stays queued and is retried as a forward only, never appended twice.
+- **Unsaved:** when the incident store cannot be read or saved (a full disk, a broken store), a bad observation still
+  sends one `incident-open` with `details.incident_state = 'unsaved'`, without the `OpenAfter` threshold, and the
+  call still throws. It repeats on every sweep until the store saves again (repetition over silence). Nothing extra
+  is sent when the readable store shows the incident already open or muted as flapping. When the ledger append fails
+  as well, the alert is forwarded directly.
 - **Unreadable store:** a corrupt `incidents.json` is never silently replaced. It is preserved as
   `incidents.json.corrupt-<time>-<id>`, a forwarded high-severity `incident-store` event says incidents were reset,
   and the digest reports an unreadable store instead of "still open 0".

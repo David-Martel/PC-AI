@@ -8,7 +8,8 @@
     "Deploy/Cargo.lock": "29305303d42b346d9ce98cbf803d410d682532df3d6364a65b4522a0fc1543ef",
     "Deploy/rust-functiongemma-core/Cargo.toml": "11408bb3a7cf1491f9e0d9c6f8414f8641d212d52b3b1d23ff676eba14cca144",
     "Deploy/rust-functiongemma-core/src/gpu.rs": "3dc8e75dc074bdd91a86feacc510c7266b98ccd925a1eb0c1f11245dfad9026c",
-    "Deploy/rust-functiongemma-core/src/model.rs": "07607583d019323109f7e6a70bc848a0eb8933bd67314559a0b2f8e8ac69dc5f"
+    "Deploy/rust-functiongemma-core/src/model.rs": "07607583d019323109f7e6a70bc848a0eb8933bd67314559a0b2f8e8ac69dc5f",
+    "Deploy/rust-functiongemma-core/src/config.rs": "6d64103c00d85e347698e2c0d2d6ab43a02d1fbd4788441fb6b8cbfe34fbd982"
   },
   "selectors": [
     {
@@ -37,6 +38,60 @@
       "reviewerType": "independent source agent",
       "disposition": "keep",
       "reviewScope": "Requires a specific unavailable-backend error for 4-bit requests and checks a real full-precision forward pass with in-memory weights."
+    },
+    {
+      "selector": "load_real_config_file",
+      "source": "Deploy/rust-functiongemma-core/src/config.rs",
+      "sha256": "b9099913df63a13d54a9d619dc81e4acf24eb79ddc4be633e3e3ca81945f4ed2",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "The guard prevents an inherited or parallel override from being mistaken for the checked-in router configuration."
+    },
+    {
+      "selector": "real_config_train_section_is_object",
+      "source": "Deploy/rust-functiongemma-core/src/config.rs",
+      "sha256": "02b310527fb24438eefda01f94e33a52586ded362316e8f4cb9ae288ce8e5358",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "The fixture takes the same lock while parsing checked-in JSON so it cannot race environment writers in the module."
+    },
+    {
+      "selector": "missing_file_returns_defaults",
+      "source": "Deploy/rust-functiongemma-core/src/config.rs",
+      "sha256": "d63ac10d7fbb31559cb9817ec2a872afa3fdbbe408ca0d6254897c2fc85ece5a",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "An inherited router address deterministically failed this selector at the old head. The guarded fixture tests the fallback with both router overrides cleared."
+    },
+    {
+      "selector": "env_override_router_addr",
+      "source": "Deploy/rust-functiongemma-core/src/config.rs",
+      "sha256": "00c20a3a1842d852217409835c2a693cdab81a5475168c265a2831bf406b03db",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "The fixture sets only its address while holding the same lock as every configuration reader and restores the original process values on unwind."
+    },
+    {
+      "selector": "env_override_router_model",
+      "source": "Deploy/rust-functiongemma-core/src/config.rs",
+      "sha256": "3a6f28c1b5407c3b7d3f00c97c89546f7e510e1f0c16b03add1a3321d3898df4",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "The fixture isolates the model override and proves the value reaches the fallback configuration."
+    },
+    {
+      "selector": "empty_env_var_does_not_override",
+      "source": "Deploy/rust-functiongemma-core/src/config.rs",
+      "sha256": "89365ff4550de550e942d9381ea0882403dc7c2d281ff7e48228916154a6064e",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "The fixture distinguishes an explicitly empty address from a missing value and verifies that the default remains selected."
     }
   ]
 }

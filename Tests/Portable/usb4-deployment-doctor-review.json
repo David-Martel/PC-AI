@@ -7,9 +7,9 @@
     "HashConvention":  "UTF-8 LF whole sources include final LF. Selector begins at four-space Selector group comment and includes the final LF after the exact PASS Write-Output line.",
     "SourceBindings":  {
                            "Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1":  "5610745770554e2ab4447abeeb969ef6b82821497c70f34985d6b1fef99efde6",
-                           "Tests/Portable/Test-Usb4PeerDeployment.ps1":  "f7005aa823725e3d66075a1f2b8bc6e875f14190811b18da586381c482f6fad1",
+                           "Tests/Portable/Test-Usb4PeerDeployment.ps1":  "ad7b9152854faf4553138894858a54b0d1a8198fbb0d3445b3e3ad633aab2267",
                            ".github/workflows/usb4-lifecycle.yml":  "9f8c8c51e69add6a87dae3b492227ebf83ca20ba8874170dba317a423b088f84",
-                           "docs/usb4/peer-networking.md":  "6d0cf80804626b000e963fd3f0457d4a3f76e97388d88fa6eb74dd0e39d7ea90"
+                           "docs/usb4/peer-networking.md":  "5b8bd52878e25e21602a7e57d5c5b986a3477227d975e74d4f88cb78e6fd54e6"
                        },
     "Selectors":  [
                       {
@@ -183,7 +183,7 @@
                         {
                             "Selector": "PinnedLegacyManifestMayOmitBackend",
                             "Source": "Tests/Portable/Test-Usb4PeerDeployment.ps1",
-                            "Sha256": "411030358262915530993548041d1fcd6576508241e377015dad81b3cba5f71a",
+                            "Sha256": "6e80ea98b59dfa7c1a787feb32a08d14e5dc2ce76dad577e7d52cdac10d11dbc",
                             "Protects": "File-only inspection of matching installed v1 receipts without a backend field",
                             "Detects": "False drift from pinned legacy receipts, implied backend authority, unbound omissions and explicit incompatible, malformed or mismatched evidence",
                             "Needs": "PowerShell 7, fixture-local bytes and synthetic Windows identity; no network or scheduled task changes",
@@ -192,7 +192,7 @@
                             "Reviewer": "codex",
                             "ReviewerType": "independent review of delegated implementation",
                             "Disposition": "keep",
-                            "ReviewScope": "Fail-first fixture, then 440 assertions over 13 groups. Ran actual Gen9 r8 file-only: observed pinned bytes, backend absent, NotVerified and InspectionOnly."
+                            "ReviewScope": "Fail-first fixture, then 444 assertions over 13 groups. The schema-v2 admission mutant was rejected. Ran actual Gen9 r8 file-only: observed pinned bytes, backend absent, NotVerified and InspectionOnly."
                         }
                   ],
     "IndependentReview":  {

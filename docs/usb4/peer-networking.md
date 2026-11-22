@@ -197,7 +197,8 @@ rollback remains pending. Manifest byte agreement leaves authenticity
 
 A v1 release manifest may omit `host.backend` when read from the installed
 pointer and its recorded digest and other declaration checks match. The
-inspection leaves backend evidence absent in that case.
+inspection leaves backend evidence absent in that case. Newly packaged Windows
+releases declare `host.backend` as `windows-peer`.
 
 The [doctor controls](../../Tests/Portable/usb4-deployment-doctor-review.json)
 bind the source and detecting fixtures. Windows and Linux CI exercise temporary

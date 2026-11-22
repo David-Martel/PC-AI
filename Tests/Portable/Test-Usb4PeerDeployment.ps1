@@ -366,11 +366,12 @@ try {
     Assert-DeploymentCondition ($data.releaseManifest.selectedBy -ceq 'ExplicitOverride' -and
         $data.sourceIdentity.byteMatched -eq $false) 'An explicit override accepted an unbound backend omission.'
 
-    foreach ($case in @('LegacyRoot', 'MissingDigest', 'MismatchedDigest', 'WrongHost', 'WrongControllerHash',
+    foreach ($case in @('LegacyRoot', 'MissingDigest', 'MismatchedDigest', 'WrongHost', 'WrongControllerHash', 'SchemaV2',
             'NullBackend', 'EmptyBackend', 'ArrayBackend', 'UnexpectedBackend')) {
         $candidate = $legacyHostManifest | ConvertTo-Json -Depth 15 | ConvertFrom-Json -AsHashtable
         $receipt = $pinned | ConvertTo-Json -Depth 10 | ConvertFrom-Json -AsHashtable
         switch ($case) {
+            'SchemaV2' { $candidate.schemaVersion = 2 }
             'WrongHost' { $candidate.host.id = 'unrelated-host' }
             'WrongControllerHash' { $candidate.files[0].sha256 = '0' * 64 }
             'NullBackend' { $candidate.host['BACKEND'] = $null }

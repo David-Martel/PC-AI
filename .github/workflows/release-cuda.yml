@@ -230,38 +230,59 @@ jobs:
       - name: Prepare Artifact
         id: artifact
         shell: pwsh
+        env:
+          PCAI_EXPECTED_SOURCE_COMMIT: ${{ needs.test.outputs.source_commit }}
         run: |
           $backend = '${{ matrix.backend }}'
           $cuda = '${{ matrix.cuda }}' -eq 'true'
           $variant = if ($cuda) { 'cuda' } else { 'cpu' }
           $artifactName = "pcai-inference-$backend-$variant-win64"
 
-          $stagingDir = "staging\$artifactName"
-          New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
-
-          # Copy from .pcai/build/artifacts (unified build output)
+          # Build.ps1 resolves Cargo's real target root and stages the P/Invoke alias here.
           $binName = '${{ steps.features.outputs.BIN_NAME }}'
           $artifactDir = ".pcai\build\artifacts\$binName"
-
-          # Fallback to target dir if Build/artifacts not populated
-          if (-not (Test-Path $artifactDir) -or (Get-ChildItem $artifactDir -ErrorAction SilentlyContinue).Count -eq 0) {
-            $artifactDir = 'Native\pcai_core\pcai_inference\target\release'
+          $payloadNames = @("$binName.exe", 'pcai_inference.dll', 'pcai_inference_lib.dll')
+          foreach ($file in $payloadNames) {
+            $sourcePath = Join-Path $artifactDir $file
+            $sourceFile = Get-Item -LiteralPath $sourcePath -ErrorAction SilentlyContinue
+            if ($null -eq $sourceFile -or $sourceFile.PSIsContainer -or $sourceFile.Length -le 0) {
+              throw "Missing or empty required staged native release file: $sourcePath"
+            }
           }
 
-          # Copy binary
-          Copy-Item "$artifactDir\$binName.exe" -Destination $stagingDir -Force -ErrorAction SilentlyContinue
-          if (-not (Test-Path "$stagingDir\$binName.exe")) {
-            # Direct fallback
-            Copy-Item "Native\pcai_core\pcai_inference\target\release\$binName.exe" -Destination $stagingDir -Force
+          $nativeExecutable = Join-Path $artifactDir "$binName.exe"
+          $versionOutput = & $nativeExecutable --version-json
+          if ($LASTEXITCODE -ne 0) {
+            throw "Staged native version query failed with exit code $LASTEXITCODE."
+          }
+          try {
+            $identity = ($versionOutput -join [Environment]::NewLine) | ConvertFrom-Json -ErrorAction Stop
+          }
+          catch {
+            throw 'Staged native version query did not return JSON.'
+          }
+          if ($env:PCAI_EXPECTED_SOURCE_COMMIT -cnotmatch '\A[0-9a-f]{40}\z' -or
+              $identity.git_hash -isnot [string] -or $identity.git_hash -cne $env:PCAI_EXPECTED_SOURCE_COMMIT) {
+            throw 'Staged native executable source commit does not match the admitted revision.'
+          }
+          if ($identity.target -isnot [string] -or $identity.target -cne 'x86_64-pc-windows-msvc' -or
+              $identity.profile -isnot [string] -or $identity.profile -cne 'release') {
+            throw 'Staged native executable target or profile is incompatible with the Windows x64 release.'
+          }
+          # has_cuda describes the build host's toolkit; Cargo features identify the binary variant.
+          $expectedFeatures = @($backend, 'ffi', 'server')
+          if ($cuda) { $expectedFeatures += "cuda-$backend" }
+          if ($identity.features -isnot [string] -or
+              (($identity.features -csplit ',' | Sort-Object) -join ',') -cne
+                (($expectedFeatures | Sort-Object) -join ',')) {
+            throw 'Staged native executable feature set does not match the requested variant.'
           }
 
-          # Copy DLLs
-          $targetDir = 'Native\pcai_core\pcai_inference\target\release'
-          if (Test-Path "$targetDir\pcai_inference.dll") {
-            Copy-Item "$targetDir\pcai_inference.dll" -Destination $stagingDir -Force
-          }
-          if (Test-Path "$targetDir\pcai_inference_lib.dll") {
-            Copy-Item "$targetDir\pcai_inference_lib.dll" -Destination $stagingDir -Force
+          $stagingDir = "staging\$artifactName"
+          New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
+          $packageFiles = foreach ($file in $payloadNames) {
+            Copy-Item -LiteralPath (Join-Path $artifactDir $file) -Destination $stagingDir -Force
+            Join-Path $stagingDir $file
           }
 
           # Create README.
@@ -272,6 +293,16 @@ jobs:
           # of this step did exactly that, so release-cuda.yml could never be
           # loaded and this release workflow had never run once. Build the text
           # from an indented array instead.
+          $backendConfig = if ($backend -eq 'llamacpp') {
+            @{ type = 'llama_cpp' }
+          } else {
+            [ordered]@{ type = 'mistral_rs'; device = $(if ($cuda) { 'auto' } else { 'cpu' }) }
+          }
+          $configExample = [ordered]@{
+            backend = $backendConfig
+            model = @{ path = 'path/to/model.gguf' }
+            server = [ordered]@{ host = '127.0.0.1'; port = 8080 }
+          } | ConvertTo-Json -Depth 4
           $readmeLines = @(
             "# PC-AI Inference Engine - $backend ($variant)"
             ''
@@ -283,9 +314,14 @@ jobs:
             ''
             '## Usage'
             ''
+            'Create pcai-inference.json beside the executable and set the model path:'
+            '```json'
+            $configExample
+            '```'
+            ''
             'Start the server:'
             '```powershell'
-            ".\$binName.exe --model path\to\model.gguf --port 8080"
+            ".\$binName.exe --config .\pcai-inference.json"
             '```'
             ''
             'Check health:'
@@ -298,8 +334,8 @@ jobs:
             $readmeLines += @(
               ''
               '## CUDA Requirements'
-              '- NVIDIA GPU (RTX 20/30/40 series or newer)'
-              '- CUDA Toolkit 13.x runtime (cudart64_13.dll)'
+              '- Supported NVIDIA GPU and a driver compatible with CUDA 13.x'
+              '- CUDA 13.x runtime libraries available to the executable'
               '- Supported GPU architectures: SM 75 (Turing), SM 80/86 (Ampere), SM 89 (Ada), SM 120 (Blackwell)'
             )
           }
@@ -325,16 +361,52 @@ jobs:
           )
 
           $readme = $readmeLines -join "`r`n"
-          $readme | Out-File -FilePath "$stagingDir\README.txt" -Encoding UTF8
+          $readmePath = Join-Path $stagingDir 'README.txt'
+          $readme | Out-File -LiteralPath $readmePath -Encoding UTF8
+          $packageFiles += $readmePath
 
-          # Create ZIP
-          Compress-Archive -Path "$stagingDir\*" -DestinationPath "$artifactName.zip" -Force
+          # Native archive v1 uses flat names, the admitted commit and the unique artifact name.
+          # The manifest hashes the payload; SHA256SUMS hashes the payload and manifest.
+          $digests = [Collections.Generic.SortedDictionary[string,string]]::new([StringComparer]::Ordinal)
+          foreach ($file in $packageFiles) {
+            $digest = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            $digests.Add((Split-Path -Leaf $file), $digest)
+          }
+          if ($digests['pcai_inference.dll'] -cne $digests['pcai_inference_lib.dll']) {
+            throw 'Staged native P/Invoke alias does not match the Cargo library.'
+          }
+          $manifestPath = Join-Path $stagingDir 'manifest.json'
+          $manifest = [ordered]@{
+            schemaVersion = 1
+            commit = $env:PCAI_EXPECTED_SOURCE_COMMIT
+            variant = $artifactName
+            files = @(
+              foreach ($entry in $digests.GetEnumerator()) {
+                [ordered]@{ path = $entry.Key; sha256 = $entry.Value }
+              }
+            )
+          }
+          $manifest | ConvertTo-Json -Depth 4 |
+            Set-Content -LiteralPath $manifestPath -Encoding utf8NoBOM
+          $manifestDigest = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $digests.Add('manifest.json', $manifestDigest)
+
+          $checksumsPath = Join-Path $stagingDir 'SHA256SUMS'
+          $checksumLines = foreach ($entry in $digests.GetEnumerator()) {
+            '{0}  {1}' -f $entry.Value, $entry.Key
+          }
+          $lineFeed = [string][char]10
+          $checksumText = ($checksumLines -join $lineFeed) + $lineFeed
+          Set-Content -LiteralPath $checksumsPath -Encoding utf8NoBOM -NoNewline -Value $checksumText
+          $packageFiles += @($manifestPath, $checksumsPath)
+
+          Compress-Archive -LiteralPath $packageFiles -DestinationPath "$artifactName.zip" -Force
 
           echo "ARTIFACT_NAME=$artifactName" >> $env:GITHUB_OUTPUT
           echo "ARTIFACT_PATH=$artifactName.zip" >> $env:GITHUB_OUTPUT
 
           Write-Host "Created artifact: $artifactName.zip"
-          Get-ChildItem $stagingDir
+          Get-Item -LiteralPath $packageFiles
 
       # Blocking on purpose: a later job or a release consumes this artifact, so a failed upload
       # must fail here, not publish or test an incomplete set (gemini review, 2026-10-29).
@@ -422,8 +494,8 @@ jobs:
           # Extract the ZIP
           Expand-Archive pcai-inference-llamacpp-cuda-win64.zip -DestinationPath .
 
-          # Start the server
-          .\pcai-llamacpp.exe --model path\to\model.gguf --port 8080
+          # Create pcai-inference.json using the archive README and set the model path.
+          .\pcai-llamacpp.exe --config .\pcai-inference.json
 
           # Test the endpoint
           Invoke-RestMethod http://127.0.0.1:8080/health

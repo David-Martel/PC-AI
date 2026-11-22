@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "reviewedAtUtc": "2026-11-22T14:26:20.3194449Z",
-  "sourceBaseline": "03103fd3c38331a6a8e42c40e6ae68d216570361",
+  "reviewedAtUtc": "2026-11-22T23:59:31.8529043Z",
+  "sourceBaseline": "a8f55809ddd889e8ccb7505bad487c28284c4a8a",
   "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent. Parameterized selectors are reviewed as groups.",
   "sourceBindings": {
-    ".github/workflows/release-cuda.yml": "ee904246f9bcead0e996f281dcbad4045e05736d957d9feafb87d8b7b3876506",
-    "Tests/Unit/NativeReleaseWorkflow.Tests.ps1": "84226c9f153c0b6ad3383961d2821fbe9a9ed9441eb55f25f9c176de9a54fcd9"
+    ".github/workflows/release-cuda.yml": "f9901fb0dfbb437ebf4cb1dbaba238a32e3d37c98e7847855130eb04cb85158b",
+    "Tests/Unit/NativeReleaseWorkflow.Tests.ps1": "fa35248310c4d22c980ab2fe29b0ac1bd89f73622a2e0bfcccee66aa6a2bbd97"
   },
   "selectors": [
     {
@@ -43,6 +43,42 @@
       "reviewerType": "independent source agent",
       "disposition": "keep",
       "reviewScope": "Reviewed workflow source gating, failing baseline, test data groups and job permission wiring. Windows and Linux unit contracts cover pushed tags, mismatched refs, dispatch and publication boundary."
+    },
+    {
+      "selector": "packs the canonical <Backend> <Variant> staged files",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "8411a7324983c1b1d6e2e91531d32e2dfe1e6615a116f8ee7166b1f36c407743",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks all four backend and accelerator labels, required matching DLLs, stale staging and Cargo files, instructions, and manifest coverage and digests over the archived bytes."
+    },
+    {
+      "selector": "rejects an incomplete canonical artifact when <Case>",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "552aeca23a1698e10bdf966ad05a216e35234bcc81e934d1bbba521b8ab456ed",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Confirms absent or empty required files block publication outputs even if stale Cargo outputs exist."
+    },
+    {
+      "selector": "rejects a P/Invoke alias with different bytes from the Cargo library",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "7c5c1223d6469c9523b18d52df368567ec794d5f468920ed8e70d2a2a0d8c637",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Binds the alias check to genuine differing library bytes and requires no archive or artifact outputs."
+    },
+    {
+      "selector": "rejects the staged executable when <Case>",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "f59c56ab3db1b5d000289f1e5531d0e31eb4f758af70b8a9e9596ef6e082215b",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Checks wrong commit, backend, acceleration, target and profile, including PowerShell array comparisons, and rejects failed or malformed version probes."
     }
   ]
 }

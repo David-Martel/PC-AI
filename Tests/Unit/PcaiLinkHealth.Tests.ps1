@@ -121,6 +121,55 @@ Describe 'The watcher reads a plan printed by pcai-tb route-plan' -Tag 'Unit', '
         $RealPlan.schema | Should -Be 'pcai.usb4-route-plan/v1'
         Get-PcaiRoutePlanId -Plan $RealPlan | Should -Match '^[0-9a-f]{16}$'
     }
+    # Protects: direct and routed probes use the first physical edge in the plan.
+    # Detects: destination-only probes and using a remote edge's address as the local source.
+    # Needs: the real planner fixture above. Breadcrumb: Invoke-PcaiLinkHealth.ps1::Get-PcaiReachabilityTarget.
+    It 'resolves the first-hop source and next hop for direct and routed targets' {
+        $targets = Get-PcaiReachabilityTarget -Plan $RealPlan -HostName 'dtm-p1gen9'
+        $routed = $targets | Where-Object Status -eq 'Routed'
+        $direct = $targets | Where-Object Status -eq 'Direct'
+        $routed.SourceAddress | Should -Be '172.31.255.21'
+        $routed.InterfaceIndex | Should -Be 28
+        $routed.NextHop | Should -Be '172.31.255.22'
+        $direct.SourceAddress | Should -Be '172.31.255.21'
+        $direct.NextHop | Should -Be '0.0.0.0'
+    }
+    # Protects: only traffic routed through the enrolled USB4 adapter counts as healthy.
+    # Detects: a successful LAN fallback hiding a disconnected or misrouted USB4 peer.
+    # Needs: Windows and mocked Windows route and probe calls. Breadcrumb: Invoke-PcaiLinkHealth.ps1::Test-PcaiPeerReachability.
+    It 'suppresses probes when Windows selects a LAN interface and source' -Skip:(-not $IsWindows) {
+        Mock Find-NetRoute {
+            [pscustomobject]@{ InterfaceIndex = 42; IPAddress = '192.0.2.5' }
+            [pscustomobject]@{ InterfaceIndex = 42; NextHop = '192.0.2.1' }
+        }
+        Mock Test-Connection { $true }
+        Mock Test-PcaiTcpPort { $true }
+        $adapters = @(New-PlannedAdapter -Plan $RealPlan -HostName 'dtm-p1gen9')
+        $targets = Get-PcaiReachabilityTarget -Plan $RealPlan -HostName 'dtm-p1gen9'
+        $reach = Test-PcaiPeerReachability -Target $targets -Adapter $adapters
+        @($reach | Where-Object { $_.RouteStatus -eq 'RouteMismatch' }).Count | Should -Be 2
+        Get-PcaiLinkHealthSeverity -State 'InSync' -Reachability $reach | Should -Be 'warn'
+        Should -Invoke Test-Connection -Times 0 -Exactly
+        Should -Invoke Test-PcaiTcpPort -Times 0 -Exactly
+    }
+    # Protects: a verified planned TCP probe uses the planned local IP.
+    # Detects: a guard that blocks healthy traffic or silently drops the socket's source address.
+    # Needs: Windows, the fixture adapter and mocked route/probe calls. Breadcrumb: Invoke-PcaiLinkHealth.ps1::Test-PcaiPeerReachability.
+    It 'probes a matching direct route from the planned source' -Skip:(-not $IsWindows) {
+        Mock Find-NetRoute {
+            [pscustomobject]@{ InterfaceIndex = 28; IPAddress = '172.31.255.21' }
+            [pscustomobject]@{ InterfaceIndex = 28; NextHop = '0.0.0.0' }
+        }
+        Mock Test-Connection { $true }
+        Mock Test-PcaiTcpPort { $true }
+        $adapters = @(New-PlannedAdapter -Plan $RealPlan -HostName 'dtm-p1gen9')
+        $target = Get-PcaiReachabilityTarget -Plan $RealPlan -HostName 'dtm-p1gen9' | ForEach-Object { $_ } | Where-Object Status -eq 'Direct'
+        $reach = Test-PcaiPeerReachability -Target $target -Adapter $adapters
+        $reach[0].RouteStatus | Should -Be 'Match'
+        $reach[0].Ping | Should -BeTrue
+        $reach[0].Tcp | Should -BeTrue
+        Should -Invoke Test-PcaiTcpPort -Times 1 -Exactly -ParameterFilter { $SourceAddress -eq '172.31.255.21' }
+    }
     It 'reports InSync on <HostName> when every planned address and route is live' -ForEach @(
         @{ HostName = 'dtm-p1gen7' }, @{ HostName = 'dtm-super-nuc' }, @{ HostName = 'dtm-p1gen9' }
     ) {

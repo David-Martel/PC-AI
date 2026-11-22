@@ -1,0 +1,39 @@
+{
+  "SchemaVersion": 1,
+  "ReviewedAtUtc": "2026-11-22T13:49:20.1906750Z",
+  "SourceBaseline": "0e6afcab9e831dc6102af45c02ea810b553019c8",
+  "HashConvention": "SHA-256 of UTF-8 LF file text and each selected Pester It command AST extent",
+  "SourceBindings": {
+    "Tests/Unit/PcaiLinkHealth.Tests.ps1": "71aa022c0507d16551fa56a27c6e4f7a621db6f8ec6225051ff7fbc6ddec9795",
+    "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1": "163c0d4ba1a92b7e03a45724631cb7e2f96863119a0673a24583b20b515099db"
+  },
+  "Selectors": [
+    {
+      "Selector": "resolves the first-hop source and next hop for direct and routed targets",
+      "Source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "Sha256": "d2a4afc3dbc43ec377bc3ba0320ba379424fefc946a2b71bef3a902f50a426b6",
+      "Reviewer": "codex/usb4",
+      "ReviewerType": "independent source agent",
+      "Disposition": "keep",
+      "ReviewScope": "Real planner output binds both path kinds to the first edge. The fixture rejects destination-only or remote-edge source selection."
+    },
+    {
+      "Selector": "suppresses probes when Windows selects a LAN interface and source",
+      "Source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "Sha256": "9582abe1943ef012bc86181f344e5edc0959e67d685081d9e447dd6cc20f30f4",
+      "Reviewer": "codex/usb4",
+      "ReviewerType": "independent source agent",
+      "Disposition": "keep",
+      "ReviewScope": "LAN route fixture produces a warning and calls neither probe, even with positive probe doubles."
+    },
+    {
+      "Selector": "probes a matching direct route from the planned source",
+      "Source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "Sha256": "a4e96243635b33c1488ca81f5d171a1b6d695c1d1400279303addb0fc501263e",
+      "Reviewer": "codex/usb4",
+      "ReviewerType": "independent source agent",
+      "Disposition": "keep",
+      "ReviewScope": "Positive route fixture verifies Match and exact local source passed to the TCP helper. A separate observed Windows loopback connection verified the helper socket source."
+    }
+  ]
+}

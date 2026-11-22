@@ -323,28 +323,82 @@ function Get-PcaiReachabilityTarget {
     [CmdletBinding()]
     param($Plan, [Parameter(Mandatory)][string]$HostName)
     if (-not $Plan) { return , @() }
-    return , @(@($Plan.paths) | Where-Object { $_.from -eq $HostName -and $_.status -in @('Direct', 'Routed') -and $_.destination_ipv4 } |
-            ForEach-Object { [pscustomobject]@{ Peer = [string]$_.to; Address = [string]$_.destination_ipv4; Status = [string]$_.status } })
+    return , @(foreach ($path in @($Plan.paths | Where-Object { $_.from -eq $HostName -and $_.status -in @('Direct', 'Routed') -and $_.destination_ipv4 })) {
+            $hops = @(if ($path.PSObject.Properties['hops']) { $path.hops })
+            $firstHop = if ($path.status -eq 'Direct') { $path.to } elseif ($hops.Count -ge 3 -and $hops[0] -eq $HostName) { $hops[1] }
+            $source = $null
+            $nextHop = $null
+            if ($firstHop) {
+                $edges = @($Plan.edges | Where-Object { $HostName -in $_.endpoints.host -and $firstHop -in $_.endpoints.host })
+                if ($edges.Count -eq 1) {
+                    $localEndpoint = @($edges[0].endpoints | Where-Object host -eq $HostName)
+                    $peerEndpoint = @($edges[0].endpoints | Where-Object host -eq $firstHop)
+                    if ($localEndpoint.Count -eq 1 -and $peerEndpoint.Count -eq 1) {
+                        $source = $localEndpoint[0]
+                        $nextHop = if ($path.status -eq 'Direct') { '0.0.0.0' } else { $peerEndpoint[0].ipv4_address }
+                    }
+                }
+            }
+            [pscustomobject]@{
+                Peer = [string]$path.to; Address = [string]$path.destination_ipv4; Status = [string]$path.status
+                SourceAddress = if ($source) { [string]$source.ipv4_address }
+                InterfaceIndex = if ($source) { [int]$source.interface_index }
+                Guid = if ($source) { ([string]$source.interface_guid).Trim('{}').ToLowerInvariant() }
+                Mac = if ($source) { ([string]$source.mac).ToUpperInvariant() }
+                NextHop = $nextHop
+            }
+        })
+}
+
+function Test-PcaiSelectedRoute {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$Target)
+    # Ask Windows for the unconstrained best route and source. A constrained
+    # lookup could find a USB4 route even while a normal connection uses LAN.
+    try { $selected = @(Find-NetRoute -RemoteIPAddress $Target.Address -ErrorAction Stop) } catch { return $false }
+    $source = @($selected | Where-Object { $_.PSObject.Properties['IPAddress'] })
+    $route = @($selected | Where-Object { $_.PSObject.Properties['NextHop'] })
+    return ($source.Count -eq 1 -and $route.Count -eq 1 -and
+        $source[0].IPAddress -eq $Target.SourceAddress -and $source[0].InterfaceIndex -eq $Target.InterfaceIndex -and
+        $route[0].InterfaceIndex -eq $Target.InterfaceIndex -and $route[0].NextHop -eq $Target.NextHop)
 }
 
 function Test-PcaiTcpPort {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$Address, [int]$Port = 22, [int]$TimeoutMilliseconds = 1500)
+    param([Parameter(Mandatory)][string]$Address, [Parameter(Mandatory)][string]$SourceAddress, [int]$Port = 22, [int]$TimeoutMilliseconds = 1500)
     $client = [Net.Sockets.TcpClient]::new()
     try {
-        $task = $client.ConnectAsync($Address, $Port)
+        $client.Client.Bind([Net.IPEndPoint]::new([Net.IPAddress]::Parse($SourceAddress), 0))
+        $task = $client.ConnectAsync([Net.IPAddress]::Parse($Address), $Port)
         return ($task.Wait($TimeoutMilliseconds) -and $client.Connected)
     } catch { return $false } finally { $client.Dispose() }
 }
 
 function Test-PcaiPeerReachability {
     [CmdletBinding()]
-    param([AllowEmptyCollection()][object[]]$Target = @(), [int]$TcpPort = 22)
+    param([AllowEmptyCollection()][object[]]$Target = @(), [AllowEmptyCollection()][object[]]$Adapter = @(), [int]$TcpPort = 22)
     return , @(foreach ($t in $Target) {
             $ping = $false
-            try { $ping = [bool](Test-Connection -TargetName $t.Address -Count 1 -TimeoutSeconds 1 -Quiet -ErrorAction SilentlyContinue) } catch { $ping = $false }
-            $tcp = if ($TcpPort -gt 0) { Test-PcaiTcpPort -Address $t.Address -Port $TcpPort } else { $null }
-            [pscustomobject]@{ Peer = $t.Peer; Address = $t.Address; Path = $t.Status; Ping = $ping; Tcp = $tcp; TcpPort = $TcpPort }
+            $tcp = $null
+            $live = @($Adapter | Where-Object InterfaceIndex -eq $t.InterfaceIndex)
+            $routeStatus = if (-not $IsWindows) { 'UnsupportedPlatform' }
+            elseif (-not ($t.SourceAddress -and $t.InterfaceIndex -and $t.Guid -and $t.Mac -and $t.NextHop)) { 'MissingPlanEdge' }
+            elseif ($live.Count -ne 1 -or $live[0].Status -ne 'Up' -or $live[0].Guid -ne $t.Guid -or $live[0].Mac -ne $t.Mac) { 'AdapterMismatch' }
+            elseif (-not (Test-PcaiSelectedRoute -Target $t)) { 'RouteMismatch' }
+            else { 'Match' }
+            if ($routeStatus -eq 'Match') {
+                try { $ping = [bool](Test-Connection -TargetName $t.Address -Count 1 -TimeoutSeconds 1 -Quiet -ErrorAction Stop) } catch { $ping = $false }
+                if ($TcpPort -gt 0) { $tcp = Test-PcaiTcpPort -Address $t.Address -SourceAddress $t.SourceAddress -Port $TcpPort }
+                if (($ping -or $tcp) -and -not (Test-PcaiSelectedRoute -Target $t)) {
+                    $routeStatus = 'RouteChanged'
+                    $ping = $false
+                    $tcp = $null
+                }
+            }
+            [pscustomobject]@{
+                Peer = $t.Peer; Address = $t.Address; Path = $t.Status; Ping = $ping; Tcp = $tcp; TcpPort = $TcpPort
+                SourceAddress = $t.SourceAddress; InterfaceIndex = $t.InterfaceIndex; NextHop = $t.NextHop; RouteStatus = $routeStatus
+            }
         })
 }
 
@@ -584,7 +638,7 @@ function Get-PcaiLinkHealthFingerprint {
         severity = $Status.severity
         adapters = @($Status.adapters | Sort-Object Guid, Mac | ForEach-Object { "$($_.Guid)|$($_.Mac)|$($_.Status)|$($_.Ipv4 -join ',')|$($_.Forwarding)" })
         findings = @($Status.comparison.Findings | ForEach-Object { "$($_.Kind)|$($_.InterfaceIndex)|$($_.Target)|$($_.Status)" })
-        reach    = @($Status.reachability | ForEach-Object { "$($_.Address)|$($_.Ping)" })
+        reach    = @($Status.reachability | ForEach-Object { "$($_.Address)|$($_.Ping)|$($_.RouteStatus)" })
         services = @($Status.services | ForEach-Object { "$($_.Name)|$($_.State)" })
         planId   = $Status.plan.planId
     }
@@ -711,7 +765,7 @@ function Invoke-PcaiLinkHealth {
         $routes = Get-PcaiIpv4HostRoute -InterfaceIndex @($adapters | ForEach-Object InterfaceIndex)
         $comparison = Compare-PcaiLinkPlan -Plan $planObj -HostName $hostName -Adapter $adapters -Route $routes
         if ($comparison.State -eq 'NoPlan' -and @($adapters | Where-Object Status -eq 'Up').Count) { $comparison.State = 'Healthy' }
-        $reach = Test-PcaiPeerReachability -Target (Get-PcaiReachabilityTarget -Plan $planObj -HostName $hostName) -TcpPort ([int]$cfg.tcpProbePort)
+        $reach = Test-PcaiPeerReachability -Target (Get-PcaiReachabilityTarget -Plan $planObj -HostName $hostName) -Adapter $adapters -TcpPort ([int]$cfg.tcpProbePort)
         $services = Get-PcaiUsb4Service
         $decisions = Get-PcaiServiceRecoveryPlan -Service $services -AllowList @($cfg.restartAllowList)
         $recovery = if ($IsDryRun) { @() } else { Invoke-PcaiServiceRecovery -Decision $decisions }
@@ -742,7 +796,7 @@ function Invoke-PcaiLinkHealth {
                 $adapters = Get-PcaiUsb4Adapter
                 $routes = Get-PcaiIpv4HostRoute -InterfaceIndex @($adapters | ForEach-Object InterfaceIndex)
                 $comparison = Compare-PcaiLinkPlan -Plan $planObj -HostName $hostName -Adapter $adapters -Route $routes
-                $reach = Test-PcaiPeerReachability -Target (Get-PcaiReachabilityTarget -Plan $planObj -HostName $hostName) -TcpPort ([int]$cfg.tcpProbePort)
+                $reach = Test-PcaiPeerReachability -Target (Get-PcaiReachabilityTarget -Plan $planObj -HostName $hostName) -Adapter $adapters -TcpPort ([int]$cfg.tcpProbePort)
             } elseif (-not $IsDryRun) {
                 $review = Join-Path $Root "pending-apply-$planId.ps1"
                 Write-PcaiAtomicFile -Path $review -Content $body

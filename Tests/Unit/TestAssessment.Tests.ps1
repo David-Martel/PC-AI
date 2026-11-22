@@ -294,8 +294,8 @@ foreach ($mode in 'glob', 'recursive') {
         pwsh -NoProfile -File $driver -Root $root -Tool $script:Tool -OutPath (Join-Path $TestDrive 'cov.json') *> $null
         $script:Cov = Get-Content (Join-Path $TestDrive 'cov.json') -Raw | ConvertFrom-Json
         $script:Baseline = [pscustomobject]@{
-            target_coverage_pct = 85; files_analyzed_ratio_min = 0.95
-            quality = [pscustomobject]@{}; orphans_allowed = @()
+            schema_version = 1; target_coverage_pct = 85; files_analyzed_ratio_min = 0.95
+            quality = [pscustomobject]@{ no_assertion_it_max = 0; not_throw_only_it_max = 0; tautology_it_max = 0; parse_error_files_max = 0 }; orphans_allowed = @()
             tiers = [pscustomobject]@{ Portable = [pscustomobject]@{ coverage_min_pct = 0; per_module_min_pct = [pscustomobject]@{}; known_failures = [pscustomobject]@{ containers = @(); tests_by_file = [pscustomobject]@{}; blocks_by_file = [pscustomobject]@{} } } }
         }
         $script:Static = [ordered]@{ quality = [ordered]@{ no_assertion_it = 0; not_throw_only_it = 0; tautology_it = 0; parse_error_files = 0 }; reach = [ordered]@{ orphans = @() } }
@@ -348,8 +348,8 @@ Describe 'Test-AssessmentGate and the baseline ratchet' -Tag 'Unit', 'Portable' 
     }
 
     It 'passes at the baseline and fails one count above it' {
-        @(Test-AssessmentGate -Assessment (Get-FakeAssessment -Tautology 2 -Orphans 'a.Tests.ps1') -Baseline $script:GateBaseline -Tier Portable -PesterResult $script:PassRun -Ran).Count | Should -Be 0
-        @(Test-AssessmentGate -Assessment (Get-FakeAssessment -Tautology 3 -Orphans 'a.Tests.ps1') -Baseline $script:GateBaseline -Tier Portable -PesterResult $script:PassRun -Ran).code | Should -Contain 'quality_tautology_it'
+        @(Test-AssessmentGate -Assessment (Get-FakeAssessment -Tautology 2 -Orphans 'a.Tests.ps1' -Modules @([pscustomobject]@{ module = 'Alpha'; pct = 40 })) -Baseline $script:GateBaseline -Tier Portable -PesterResult $script:PassRun -Ran).Count | Should -Be 0
+        @(Test-AssessmentGate -Assessment (Get-FakeAssessment -Tautology 3 -Orphans 'a.Tests.ps1' -Modules @([pscustomobject]@{ module = 'Alpha'; pct = 40 })) -Baseline $script:GateBaseline -Tier Portable -PesterResult $script:PassRun -Ran).code | Should -Contain 'quality_tautology_it'
     }
 
     It 'fails an orphan that is not allowlisted' {
@@ -1533,3 +1533,300 @@ Describe 'An explicit empty orphans_allowed means allow none and is never widene
         $u.tiers.Portable.per_module_min_pct.Alpha | Should -Be 0
     }
 }
+
+Describe 'Invoke-QualityGate: a Rust failure is identified by its target and its full name' -Tag 'Unit', 'Portable' {
+    # Protects: Measure-RustTests failure identity (codex review of #384 at 4445bf8b). Detects: (1) PowerShell -match is
+    # case-insensitive, so libtest's `running 1 test` overwrote Cargo's `Running tests/<binary>` header and every
+    # failure was filed under "1 test", so the same test name failing in two targets collided and moving a failure
+    # between targets at an equal count passed the delta gate; (2) the failed-name pattern rejected whitespace, so a
+    # doctest such as `src/lib.rs - first (line 1)` was dropped and swapping one failing doctest for another at an equal
+    # count passed. Real cargo, scratch crates, a private CARGO_TARGET_DIR; skipped with a reason without cargo/clippy.
+    BeforeAll {
+        $script:HasCargo5 = [bool](Get-Command cargo -ErrorAction SilentlyContinue)
+        if ($script:HasCargo5) { cargo clippy --version *> $null; $script:HasCargo5 = ($LASTEXITCODE -eq 0) }
+        function script:Use-ScratchCargoEnv5 {
+            param([scriptblock]$Body)
+            $saved = @{}
+            foreach ($k in 'CARGO_TARGET_DIR', 'RUSTC_WRAPPER', 'CARGO_BUILD_RUSTC_WRAPPER') { $saved[$k] = [Environment]::GetEnvironmentVariable($k) }
+            try {
+                $env:CARGO_TARGET_DIR = Join-Path $TestDrive 'scratch-target-identity'
+                $env:RUSTC_WRAPPER = ''
+                $env:CARGO_BUILD_RUSTC_WRAPPER = ''
+                & $Body
+            } finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) } }
+        }
+        function script:Write-IdentityCrate {
+            param([string]$Root, [string]$LibText, [hashtable]$Tests = @{})
+            $crate = Join-Path $Root 'Native/pcai_core'
+            Write-Utf8 (Join-Path $crate 'Cargo.toml') "[package]`nname = ""scratch""`nversion = ""0.0.0""`nedition = ""2021""`n[features]`nserver = []`nffi = []`n"
+            Write-Utf8 (Join-Path $crate 'src/lib.rs') $LibText
+            foreach ($k in $Tests.Keys) { Write-Utf8 (Join-Path $crate "tests/$k.rs") $Tests[$k] }
+        }
+        $script:PassTest = "#[test]`nfn same() { assert_eq!(1, 1); }`n"
+        $script:FailTest = "#[test]`nfn same() { assert_eq!(1, 2); }`n"
+        $script:PlainLib = "pub fn f() -> i32 { 1 }`n"
+    }
+    AfterEach { Remove-Item -Path Function:\cargo -ErrorAction SilentlyContinue }
+
+    It 'files a failure under the Cargo Running header, not under libtest running N tests (case-sensitive match)' {
+        $fx = Join-Path $TestDrive 'identity-fake'
+        New-Item -ItemType Directory -Path (Join-Path $fx 'Native/pcai_core') -Force | Out-Null
+        function global:cargo {
+            $global:LASTEXITCODE = 101
+            '     Running tests\a_fail.rs (target\debug\deps\a_fail-0123456789abcdef.exe)'
+            'running 1 test'
+            'test same ... FAILED'
+            'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out'
+            '     Running tests\z_fail.rs (target\debug\deps\z_fail-fedcba9876543210.exe)'
+            'running 1 test'
+            'test same ... FAILED'
+            'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out'
+        }
+        $r = Measure-RustTests -Root $fx
+        $r.Failed | Should -Be 2
+        @($r.FailedNames | Select-Object -Unique).Count | Should -Be 2 -Because 'the same name in two targets is two failures'
+        ($r.FailedNames -join ' ') | Should -Not -Match '1 test'
+        ($r.FailedNames -join ' ') | Should -Match 'a_fail'
+        ($r.FailedNames -join ' ') | Should -Match 'z_fail'
+    }
+
+    It 'keeps a doctest name with spaces whole' {
+        $fx = Join-Path $TestDrive 'identity-fake-doc'
+        New-Item -ItemType Directory -Path (Join-Path $fx 'Native/pcai_core') -Force | Out-Null
+        function global:cargo {
+            $global:LASTEXITCODE = 101
+            '   Doc-tests scratch'
+            'running 2 tests'
+            'test src/lib.rs - first (line 12) ... FAILED'
+            'test src/lib.rs - second (line 20) ... ok'
+            'test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out'
+        }
+        $r = Measure-RustTests -Root $fx
+        @($r.FailedNames).Count | Should -Be 1
+        $r.FailedNames[0] | Should -BeLike '*src/lib.rs - first (line 12)'
+    }
+
+    It 'real cargo: the same test name failing in a different target is a new failure, not an unchanged one' {
+        if (-not $script:HasCargo5) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $base = Join-Path $TestDrive 'identity-base'
+        Write-IdentityCrate $base $script:PlainLib @{ a_target = $script:FailTest; b_target = $script:PassTest }
+        $b = Use-ScratchCargoEnv5 { Measure-RustTests -Root $base }
+        # The head crate is written after the base build: cargo treats a source older than the build as fresh, and the two
+        # trees share one target directory.
+        $head = Join-Path $TestDrive 'identity-head'
+        Write-IdentityCrate $head $script:PlainLib @{ a_target = $script:PassTest; b_target = $script:FailTest }
+        $h = Use-ScratchCargoEnv5 { Measure-RustTests -Root $head }
+        $b.Failed | Should -Be 1
+        $h.Failed | Should -Be 1
+        ($b.FailedNames -join ' ') | Should -Match 'a_target'
+        ($h.FailedNames -join ' ') | Should -Match 'b_target'
+        @(Compare-RustFailedNames -Base $b.FailedNames -Head $h.FailedNames).Count | Should -Be 1
+        @(Compare-RustFailedNames -Base $b.FailedNames -Head $b.FailedNames).Count | Should -Be 0 -Because 'control: an unchanged failure is not new'
+    }
+
+    It 'real cargo: a failing doctest keeps its full name, and swapping one failing doctest for another is new' {
+        if (-not $script:HasCargo5) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $docBad = "/// ``````" + "`n/// assert_eq!(1, 2);`n/// ``````" + "`n"
+        $docOk = "/// ``````" + "`n/// assert_eq!(1, 1);`n/// ``````" + "`n"
+        $base = Join-Path $TestDrive 'doc-base'
+        Write-IdentityCrate $base ($docBad + "pub fn first() {}`n" + $docOk + "pub fn second() {}`n")
+        $b = Use-ScratchCargoEnv5 { Measure-RustTests -Root $base }
+        $head = Join-Path $TestDrive 'doc-head'
+        Write-IdentityCrate $head ($docOk + "pub fn first() {}`n" + $docBad + "pub fn second() {}`n")
+        $h = Use-ScratchCargoEnv5 { Measure-RustTests -Root $head }
+        $b.Failed | Should -Be 1
+        $h.Failed | Should -Be 1
+        @($b.FailedNames).Count | Should -Be 1 -Because 'the doctest name contains spaces and must not be dropped'
+        $b.FailedNames[0] | Should -Match 'lib\.rs - first \(line \d+\)'
+        $h.FailedNames[0] | Should -Match 'lib\.rs - second \(line \d+\)'
+        @(Compare-RustFailedNames -Base $b.FailedNames -Head $h.FailedNames).Count | Should -Be 1
+    }
+
+    It 'the whole gate fails when one failing doctest is replaced by another at an equal count' -Skip:(-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {
+        if (-not $script:HasCargo5) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $docBad = "/// ``````" + "`n/// assert_eq!(1, 2);`n/// ``````" + "`n"
+        $docOk = "/// ``````" + "`n/// assert_eq!(1, 1);`n/// ``````" + "`n"
+        $fx = Join-Path $TestDrive 'doc-gate-repo'
+        Write-IdentityCrate $fx ($docBad + "pub fn first() {}`n" + $docOk + "pub fn second() {}`n")
+        Write-Utf8 (Join-Path $fx 'Modules/Mod/F.ps1') "function Get-F { 1 }`n"
+        Write-Utf8 (Join-Path $fx 'Tests/Unit/A.Tests.ps1') "Describe 'a' -Tag 'Portable' { It 'a' { (1 + 1) | Should -Be 2 } }`n"
+        New-Item -ItemType Directory -Path (Join-Path $fx 'Tests/Helpers') -Force | Out-Null
+        Copy-Item $script:QualityGate (Join-Path $fx 'Tests/Invoke-QualityGate.ps1')
+        Copy-Item $script:Helper (Join-Path $fx 'Tests/Helpers/Get-PesterRunVerdict.ps1')
+        Invoke-FixtureGit $fx @('init', '-q', '-b', 'main') | Out-Null
+        Invoke-FixtureGit $fx @('add', '-A') | Out-Null
+        Invoke-FixtureGit $fx @('commit', '-q', '-m', 'base') | Out-Null
+        $base = (Invoke-FixtureGit $fx @('rev-parse', 'HEAD')) -join ''
+        Write-IdentityCrate $fx ($docOk + "pub fn first() {}`n" + $docBad + "pub fn second() {}`n")
+        Invoke-FixtureGit $fx @('add', '-A') | Out-Null
+        Invoke-FixtureGit $fx @('commit', '-q', '-m', 'head') | Out-Null
+        $results = Join-Path $TestDrive 'doc-gate-results'
+        Use-ScratchCargoEnv5 {
+            pwsh -NoProfile -File (Join-Path $fx 'Tests/Invoke-QualityGate.ps1') -BaseRef $base -ResultsDir $results -FailOnRegression *> $null
+            $script:DocGateExit = $LASTEXITCODE
+        }
+        $json = Get-Content (Get-ChildItem $results -Filter 'quality-gate-*.json' | Select-Object -First 1).FullName -Raw | ConvertFrom-Json
+        $json.deltas.RustTestsFailed.base | Should -Be 1
+        $json.deltas.RustTestsFailed.head | Should -Be 1
+        $json.deltas.RustNewFailedTests.head | Should -Be 1
+        $json.overall | Should -Be 'REGRESSED'
+        $script:DocGateExit | Should -Be 1
+    }
+}
+
+
+Describe 'Coverage counts only eligible files, and eligible modules determine the rows' -Tag 'Unit', 'Portable' {
+    # Protects: the coverage percentage and the per-module rows (codex review of #384 at 4445bf8b, coverage-report.ps1
+    # Get-CoverageSummary and the Pester CodeCoverage path). Detects: Pester recursively instrumenting all of Modules
+    # while eligibility comes from the git-tracked manifest, so one missed eligible command plus one executed command in
+    # an ignored sibling reported 50% instead of 0%, which could clear the floor. The summary must filter its evidence by
+    # eligibility, and the real run must instrument exactly the eligible files.
+    It 'a missed eligible command plus an executed ignored command is 0 percent, not 50' {
+        $root = Join-Path $TestDrive 'cov-unit'
+        $cc = [pscustomobject]@{
+            FilesAnalyzed          = @("$root/Modules/M/A.ps1", "$root/Modules/M/Ign.ps1")
+            CommandsExecuted       = @([pscustomobject]@{ File = "$root/Modules/M/Ign.ps1" })
+            CommandsMissed         = @([pscustomobject]@{ File = "$root/Modules/M/A.ps1" })
+            CommandsAnalyzedCount  = 2
+            CommandsExecutedCount  = 1
+        }
+        $s = Get-CoverageSummary -CodeCoverage $cc -Root $root -ModuleFiles @('Modules/M/A.ps1')
+        $s.pct | Should -Be 0
+        $s.commands_analyzed | Should -Be 1
+        $s.commands_executed | Should -Be 0
+        $s.files_analyzed | Should -Be 1
+        $m = @($s.by_module | Where-Object { $_.module -eq 'M' })
+        $m.Count | Should -Be 1
+        $m[0].pct | Should -Be 0
+        $m[0].commands_analyzed | Should -Be 1
+    }
+
+    It 'control: evidence in eligible files is counted, and an eligible module with no evidence still has a 0 percent row' {
+        $root = Join-Path $TestDrive 'cov-unit2'
+        $cc = [pscustomobject]@{
+            FilesAnalyzed         = @("$root/Modules/M/A.ps1")
+            CommandsExecuted      = @([pscustomobject]@{ File = "$root/Modules/M/A.ps1" }, [pscustomobject]@{ File = "$root/Modules/M/A.ps1" })
+            CommandsMissed        = @([pscustomobject]@{ File = "$root/Modules/M/A.ps1" }, [pscustomobject]@{ File = "$root/Modules/M/A.ps1" })
+            CommandsAnalyzedCount = 4
+            CommandsExecutedCount = 2
+        }
+        $s = Get-CoverageSummary -CodeCoverage $cc -Root $root -ModuleFiles @('Modules/M/A.ps1', 'Modules/N/B.ps1')
+        $s.pct | Should -Be 50
+        @($s.by_module | Where-Object { $_.module -eq 'N' }).Count | Should -Be 1 -Because 'every eligible module has a row'
+        @($s.by_module | Where-Object { $_.module -eq 'N' })[0].pct | Should -Be 0
+        $s.module_files_total | Should -Be 2
+        $s.files_analyzed | Should -Be 1
+    }
+
+    It 'the real run instruments exactly the eligible files: an executed gitignored sibling does not count' {
+        $fx = Join-Path $TestDrive 'cov-ignored-repo'
+        Write-Utf8 (Join-Path $fx '.gitignore') "Modules/M/Ign.ps1`n"
+        Write-Utf8 (Join-Path $fx 'Modules/M/A.ps1') "function Get-A { 'a' }`n"
+        Write-Utf8 (Join-Path $fx 'Modules/M/Ign.ps1') "function Get-Ign { 'ign' }`n"
+        Write-Utf8 (Join-Path $fx 'Tests/Unit/I.Tests.ps1') "Describe 'i' -Tag 'Portable' {`n    BeforeAll { . (Join-Path `$PSScriptRoot '../../Modules/M/Ign.ps1') }`n    It 'runs the ignored sibling' { Get-Ign | Should -Be 'ign' }`n}`n"
+        Invoke-FixtureGit $fx @('init', '-q', '-b', 'main') | Out-Null
+        $out = Join-Path $TestDrive 'cov-ignored.json'
+        pwsh -NoProfile -File $script:Tool -RepoRoot $fx -Tier Portable -OutputPath $out *> $null
+        $doc = Get-Content $out -Raw | ConvertFrom-Json
+        $doc.coverage.pester.module_files_total | Should -Be 1
+        $doc.coverage.pester.pct | Should -Be 0 -Because 'only A.ps1 is eligible and nothing runs it'
+        @($doc.coverage.pester.by_module | Where-Object { $_.module -eq 'M' })[0].pct | Should -Be 0
+    }
+}
+
+Describe 'A missing per-module row and an invalid baseline fail closed' -Tag 'Unit', 'Portable' {
+    # Protects: Test-AssessmentGate and Update-AssessmentBaseline (codex review of #384, coverage-report.ps1 gate).
+    # Detects: (a) a baseline module with no row in the assessment being skipped instead of failing; (b) a baseline of an
+    # unsupported schema, or a tier missing its thresholds, being gated as if every missing threshold were 0, so a
+    # schema-999 baseline with an empty Portable tier admitted 1% coverage; (c) -UpdateBaseline rewriting such a file.
+    BeforeAll {
+        $script:ValidBaselineJson = '{"schema_version":1,"target_coverage_pct":85,"files_analyzed_ratio_min":0.95,"per_module_tolerance_pct":1.0,"quality":{"no_assertion_it_max":0,"not_throw_only_it_max":0,"tautology_it_max":0,"parse_error_files_max":0},"orphans_allowed":[],"tiers":{"Portable":{"coverage_min_pct":48,"per_module_min_pct":{"Alpha":40,"Beta":30},"known_failures":{"containers":[],"tests_by_file":{},"blocks_by_file":{}}}}}'
+        function script:Get-ModAssessment {
+            param([double]$Pct = 50, [object[]]$Modules = @())
+            [ordered]@{
+                quality  = [ordered]@{ no_assertion_it = 0; not_throw_only_it = 0; tautology_it = 0; parse_error_files = 0 }
+                reach    = [ordered]@{ orphans = @() }
+                coverage = [ordered]@{ pester = [ordered]@{ pct = $Pct; files_analyzed_ratio = 1.0; files_analyzed = 2; module_files_total = 2; by_module = $Modules } }
+            }
+        }
+        function script:Get-ModCodes {
+            param($Baseline, $Assessment, [switch]$NoRun)
+            $run = [pscustomobject]@{ Result = 'Passed'; PassedCount = 4; FailedCount = 0; FailedContainersCount = 0; FailedBlocksCount = 0; TotalCount = 4; Containers = @(); Failed = @() }
+            if ($NoRun) { return @(@(Test-AssessmentGate -Assessment $Assessment -Baseline $Baseline -Tier Portable -PesterResult $null).code | Where-Object { $_ }) }
+            @(@(Test-AssessmentGate -Assessment $Assessment -Baseline $Baseline -Tier Portable -PesterResult $run -Ran).code | Where-Object { $_ })
+        }
+        $script:BothMods = @([pscustomobject]@{ module = 'Alpha'; pct = 41 }, [pscustomobject]@{ module = 'Beta'; pct = 31 })
+    }
+
+    It 'fails a baseline module that has no row in the assessment (positive control: both rows present passes)' {
+        $baseline = $script:ValidBaselineJson | ConvertFrom-Json
+        @(Get-ModCodes $baseline (Get-ModAssessment -Modules $script:BothMods)).Count | Should -Be 0
+        $codes = Get-ModCodes $baseline (Get-ModAssessment -Modules @($script:BothMods[0]))
+        $codes | Should -Contain 'module_coverage_missing'
+    }
+
+    It 'rejects an unsupported schema, with an empty Portable tier, that would admit 1 percent coverage' {
+        $bad = '{"schema_version":999,"tiers":{"Portable":{}}}' | ConvertFrom-Json
+        $codes = Get-ModCodes $bad (Get-ModAssessment -Pct 1 -Modules $script:BothMods)
+        $codes | Should -Contain 'baseline_invalid'
+    }
+
+    It 'rejects each unsupported or incomplete shape before evaluating anything, and accepts the valid one' {
+        $mutations = [ordered]@{
+            'schema version 999'             = { param($b) $b.schema_version = 999 }
+            'schema version missing'         = { param($b) $b.PSObject.Properties.Remove('schema_version') }
+            'schema version a string'        = { param($b) $b.schema_version = '1' }
+            'tiers missing'                  = { param($b) $b.PSObject.Properties.Remove('tiers') }
+            'quality missing'                = { param($b) $b.PSObject.Properties.Remove('quality') }
+            'a quality maximum missing'      = { param($b) $b.quality.PSObject.Properties.Remove('tautology_it_max') }
+            'orphans_allowed missing'        = { param($b) $b.PSObject.Properties.Remove('orphans_allowed') }
+            'tier coverage minimum missing'  = { param($b) $b.tiers.Portable.PSObject.Properties.Remove('coverage_min_pct') }
+            'tier coverage minimum a string' = { param($b) $b.tiers.Portable.coverage_min_pct = 'high' }
+            'tier module minimums missing'   = { param($b) $b.tiers.Portable.PSObject.Properties.Remove('per_module_min_pct') }
+            'a module minimum not a number'  = { param($b) $b.tiers.Portable.per_module_min_pct.Alpha = 'x' }
+            'known failures missing'         = { param($b) $b.tiers.Portable.PSObject.Properties.Remove('known_failures') }
+            'blocks_by_file missing'         = { param($b) $b.tiers.Portable.known_failures.PSObject.Properties.Remove('blocks_by_file') }
+            'ratio threshold not a number'   = { param($b) $b.files_analyzed_ratio_min = 'most' }
+        }
+        $good = Get-ModAssessment -Pct 50 -Modules $script:BothMods
+        @(Get-ModCodes ($script:ValidBaselineJson | ConvertFrom-Json) $good) | Should -Not -Contain 'baseline_invalid'
+        foreach ($name in $mutations.Keys) {
+            $b = $script:ValidBaselineJson | ConvertFrom-Json
+            & $mutations[$name] $b
+            $codes = Get-ModCodes $b $good
+            $codes | Should -Contain 'baseline_invalid' -Because $name
+            Get-ModCodes $b $good -NoRun | Should -Contain 'baseline_invalid' -Because "$name, even with -NoRun"
+        }
+    }
+
+    It 'control: a valid baseline rejects 1 percent coverage on its own merits' {
+        $codes = Get-ModCodes ($script:ValidBaselineJson | ConvertFrom-Json) (Get-ModAssessment -Pct 1 -Modules $script:BothMods)
+        $codes | Should -Contain 'coverage_below_min'
+        $codes | Should -Not -Contain 'baseline_invalid'
+    }
+
+    It 'Update-AssessmentBaseline refuses an invalid baseline, and the script leaves the file untouched and exits 1' {
+        $bad = '{"schema_version":999,"tiers":{"Portable":{}}}' | ConvertFrom-Json
+        { Update-AssessmentBaseline -Baseline $bad -Assessment (Get-ModAssessment -Modules $script:BothMods) -Tier Portable -PesterResult $null } | Should -Throw '*baseline*'
+        $fx = Join-Path $TestDrive 'invalid-baseline-repo'
+        Write-Utf8 (Join-Path $fx 'Tests/Unit/A.Tests.ps1') "Describe 'a' -Tag 'Portable' { It 'ok' { (1 + 1) | Should -Be 2 } }`n"
+        $path = Join-Path $fx 'Config/test-baseline.json'
+        Write-Utf8 $path "{`"schema_version`":999,`"tiers`":{`"Portable`":{}}}`n"
+        $before = [IO.File]::ReadAllBytes($path)
+        pwsh -NoProfile -File $script:Tool -RepoRoot $fx -NoRun -UpdateBaseline -OutputPath (Join-Path $TestDrive 'invalid-baseline.json') *> $null
+        $LASTEXITCODE | Should -Be 1
+        [IO.File]::ReadAllBytes($path) | Should -Be $before
+        $doc = Get-Content (Join-Path $TestDrive 'invalid-baseline.json') -Raw | ConvertFrom-Json
+        @($doc.violations | ForEach-Object { $_.code }) | Should -Contain 'baseline_invalid'
+    }
+
+    It 'control: an absent baseline is still seeded by -UpdateBaseline and then passes' {
+        $fx = Join-Path $TestDrive 'seed-baseline-repo'
+        Write-Utf8 (Join-Path $fx 'Tests/Unit/A.Tests.ps1') "Describe 'a' -Tag 'Portable' { It 'ok' { (1 + 1) | Should -Be 2 } }`n"
+        pwsh -NoProfile -File $script:Tool -RepoRoot $fx -NoRun -UpdateBaseline -OutputPath (Join-Path $TestDrive 'seed-baseline.json') *> $null
+        $LASTEXITCODE | Should -Be 0
+        $seeded = Get-Content (Join-Path $fx 'Config/test-baseline.json') -Raw | ConvertFrom-Json
+        $seeded.schema_version | Should -Be 1
+    }
+}
+

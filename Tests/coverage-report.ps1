@@ -454,20 +454,31 @@ function Get-CoverageSummary {
     <#
     .SYNOPSIS
         Reduces a Pester CodeCoverage object to overall, files-analysed ratio and per-module percentages.
+    .DESCRIPTION
+        Eligibility decides everything. ModuleFiles is the git-tracked manifest of module source files, and only
+        evidence from those files is counted: analysed files, executed commands and missed commands. Pester's own
+        totals are not used, because a recursive run also instruments ignored siblings, and one executed command there
+        next to one missed eligible command read 50% instead of 0% (codex review of #384). Every eligible module has a
+        row, even with no evidence, so a module that nothing exercises reads 0%, not absent.
     .PARAMETER CodeCoverage
         The CodeCoverage property of an Invoke-Pester result.
     .PARAMETER Root
         Repository root, used to make analysed paths relative.
     .PARAMETER ModuleFiles
-        Relative module source files from Get-ModuleSourceFile; the denominator for the files-analysed ratio.
+        Relative module source files from Get-ModuleSourceFile; the eligible set.
     #>
     [CmdletBinding()]
     param($CodeCoverage, [string]$Root, [string[]]$ModuleFiles)
 
-    $rel = { param($p) [IO.Path]::GetRelativePath($Root, $p).Replace('\', '/') }
-    $analyzed = @($CodeCoverage.FilesAnalyzed | ForEach-Object { & $rel $_ })
-    $exec = @($CodeCoverage.CommandsExecuted)
-    $missed = @($CodeCoverage.CommandsMissed)
+    $eligible = [System.Collections.Generic.HashSet[string]]::new([string[]]@($ModuleFiles), [StringComparer]::OrdinalIgnoreCase)
+    $rel = {
+        param($p)
+        if ([string]::IsNullOrWhiteSpace([string]$p)) { return $null }
+        [IO.Path]::GetRelativePath($Root, [string]$p).Replace('\', '/')
+    }
+    $analyzed = @(@($CodeCoverage.FilesAnalyzed) | ForEach-Object { & $rel $_ } | Where-Object { $_ -and $eligible.Contains($_) })
+    $exec = @(@($CodeCoverage.CommandsExecuted) | Where-Object { $_ } | ForEach-Object { & $rel $_.File } | Where-Object { $_ -and $eligible.Contains($_) })
+    $missed = @(@($CodeCoverage.CommandsMissed) | Where-Object { $_ } | ForEach-Object { & $rel $_.File } | Where-Object { $_ -and $eligible.Contains($_) })
 
     $byModule = [ordered]@{}
     foreach ($f in $ModuleFiles) {
@@ -475,21 +486,18 @@ function Get-CoverageSummary {
         if (-not $byModule.Contains($m)) { $byModule[$m] = [ordered]@{ module = $m; files_total = 0; files_analyzed = 0; commands_analyzed = 0; commands_executed = 0; pct = 0.0 } }
         $byModule[$m].files_total++
     }
-    foreach ($f in $analyzed) {
-        $m = Get-ModuleNameFromPath $f
-        if ($byModule.Contains($m)) { $byModule[$m].files_analyzed++ }
-    }
-    foreach ($c in $exec) { $m = Get-ModuleNameFromPath (& $rel $c.File); if ($byModule.Contains($m)) { $byModule[$m].commands_executed++; $byModule[$m].commands_analyzed++ } }
-    foreach ($c in $missed) { $m = Get-ModuleNameFromPath (& $rel $c.File); if ($byModule.Contains($m)) { $byModule[$m].commands_analyzed++ } }
+    foreach ($f in $analyzed) { $byModule[(Get-ModuleNameFromPath $f)].files_analyzed++ }
+    foreach ($f in $exec) { $row = $byModule[(Get-ModuleNameFromPath $f)]; $row.commands_executed++; $row.commands_analyzed++ }
+    foreach ($f in $missed) { $byModule[(Get-ModuleNameFromPath $f)].commands_analyzed++ }
     foreach ($m in $byModule.Keys) {
         $row = $byModule[$m]
         $row.pct = if ($row.commands_analyzed -gt 0) { [math]::Round(100.0 * $row.commands_executed / $row.commands_analyzed, 2) } else { 0.0 }
     }
 
-    $total = $ModuleFiles.Count
-    $inScope = @($analyzed | Where-Object { $_ -in $ModuleFiles }).Count
-    $cmdAnalyzed = [int]$CodeCoverage.CommandsAnalyzedCount
-    $cmdExecuted = [int]$CodeCoverage.CommandsExecutedCount
+    $total = @($ModuleFiles).Count
+    $inScope = @($analyzed | Select-Object -Unique).Count
+    $cmdExecuted = $exec.Count
+    $cmdAnalyzed = $exec.Count + $missed.Count
     [ordered]@{
         module_files_total    = $total
         files_analyzed        = $inScope
@@ -500,7 +508,6 @@ function Get-CoverageSummary {
         by_module             = @($byModule.Values)
     }
 }
-
 #endregion
 
 #region gate
@@ -511,6 +518,104 @@ function Get-GateViolation {
     [ordered]@{ code = $Code; message = $Message }
 }
 
+function Get-BaselineMember {
+    # Wraps a lookup so an empty array value survives (a bare return would unroll it to $null) and an absent key is
+    # distinct from a null value.
+    param($Object, [string]$Name)
+    $present = $false
+    $value = $null
+    if ($Object -is [System.Collections.IDictionary]) {
+        if ($Object.Contains($Name)) { $present = $true; $value = $Object[$Name] }
+    } elseif ($null -ne $Object) {
+        $prop = $Object.PSObject.Properties[$Name]
+        if ($null -ne $prop) { $present = $true; $value = $prop.Value }
+    }
+    [pscustomobject]@{ Present = $present; Value = $value }
+}
+function Get-BaselineShapeProblem {
+    <#
+    .SYNOPSIS
+        Lists what makes a parsed baseline unusable: an unsupported schema version or a missing or malformed threshold.
+    .DESCRIPTION
+        The gate and the ratchet both cast a missing threshold to 0, so a baseline of an unsupported schema, or a tier
+        object with no thresholds, would admit 1% coverage (codex review of #384). Validation runs first and a problem
+        is a failure, never a default. Required: schema_version equal to the supported version; quality with the four
+        *_max counts; orphans_allowed (an explicit empty list means allow none); tiers; and for every tier
+        coverage_min_pct, per_module_min_pct and known_failures with containers, tests_by_file and blocks_by_file.
+        Optional, numeric when present: target_coverage_pct, files_analyzed_ratio_min, per_module_tolerance_pct.
+    .PARAMETER Baseline
+        Parsed Config/test-baseline.json. A $null baseline is the caller's baseline_missing case, not a shape problem.
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param($Baseline)
+
+    $problems = [System.Collections.Generic.List[string]]::new()
+    $isNumber = { param($v) $null -ne $v -and ($v -is [int] -or $v -is [long] -or $v -is [double] -or $v -is [decimal] -or $v -is [single]) }
+    $isObject = { param($v) $null -ne $v -and ($v -is [System.Collections.IDictionary] -or $v -is [pscustomobject]) }
+    $isList = { param($v) $null -ne $v -and $v -is [System.Collections.IEnumerable] -and $v -isnot [string] -and $v -isnot [System.Collections.IDictionary] -and $v -isnot [pscustomobject] }
+    $names = {
+        param($o)
+        if ($o -is [System.Collections.IDictionary]) { @($o.Keys | ForEach-Object { [string]$_ }) } else { @($o.PSObject.Properties.Name) }
+    }
+
+    $sv = Get-BaselineMember $Baseline 'schema_version'
+    if (-not $sv.Present) { $problems.Add('schema_version is missing') }
+    elseif (-not (& $isNumber $sv.Value) -or [int]$sv.Value -ne $script:AssessmentSchemaVersion) {
+        $problems.Add("schema_version $($sv.Value) is not supported (this tool reads version $($script:AssessmentSchemaVersion))")
+    }
+
+    foreach ($pair in @(@('target_coverage_pct', 0, 100), @('files_analyzed_ratio_min', 0, 1), @('per_module_tolerance_pct', 0, 100))) {
+        $m = Get-BaselineMember $Baseline $pair[0]
+        if ($m.Present -and (-not (& $isNumber $m.Value) -or $m.Value -lt $pair[1] -or $m.Value -gt $pair[2])) {
+            $problems.Add("$($pair[0]) must be a number from $($pair[1]) to $($pair[2])")
+        }
+    }
+
+    $q = Get-BaselineMember $Baseline 'quality'
+    if (-not $q.Present -or -not (& $isObject $q.Value)) { $problems.Add('quality is missing or not an object') }
+    else {
+        foreach ($k in 'no_assertion_it_max', 'not_throw_only_it_max', 'tautology_it_max', 'parse_error_files_max') {
+            $m = Get-BaselineMember $q.Value $k
+            if (-not $m.Present -or -not (& $isNumber $m.Value) -or $m.Value -lt 0) { $problems.Add("quality.$k is missing or not a non-negative number") }
+        }
+    }
+
+    $o = Get-BaselineMember $Baseline 'orphans_allowed'
+    if (-not $o.Present -or -not (& $isList $o.Value)) { $problems.Add('orphans_allowed is missing or not a list (use [] to allow none)') }
+
+    $t = Get-BaselineMember $Baseline 'tiers'
+    if (-not $t.Present -or -not (& $isObject $t.Value)) { $problems.Add('tiers is missing or not an object') }
+    else {
+        foreach ($tierName in (& $names $t.Value)) {
+            $tier = (Get-BaselineMember $t.Value $tierName).Value
+            if (-not (& $isObject $tier)) { $problems.Add("tiers.$tierName is not an object"); continue }
+            $c = Get-BaselineMember $tier 'coverage_min_pct'
+            if (-not $c.Present -or -not (& $isNumber $c.Value) -or $c.Value -lt 0 -or $c.Value -gt 100) { $problems.Add("tiers.$tierName.coverage_min_pct is missing or not a number from 0 to 100") }
+            $pm = Get-BaselineMember $tier 'per_module_min_pct'
+            if (-not $pm.Present -or -not (& $isObject $pm.Value)) { $problems.Add("tiers.$tierName.per_module_min_pct is missing or not an object") }
+            else {
+                foreach ($mod in (& $names $pm.Value)) {
+                    $mv = (Get-BaselineMember $pm.Value $mod).Value
+                    if (-not (& $isNumber $mv) -or $mv -lt 0 -or $mv -gt 100) { $problems.Add("tiers.$tierName.per_module_min_pct.$mod is not a number from 0 to 100") }
+                }
+            }
+            $kf = Get-BaselineMember $tier 'known_failures'
+            if (-not $kf.Present -or -not (& $isObject $kf.Value)) { $problems.Add("tiers.$tierName.known_failures is missing or not an object"); continue }
+            $co = Get-BaselineMember $kf.Value 'containers'
+            if (-not $co.Present -or -not (& $isList $co.Value)) { $problems.Add("tiers.$tierName.known_failures.containers is missing or not a list") }
+            foreach ($k in 'tests_by_file', 'blocks_by_file') {
+                $m = Get-BaselineMember $kf.Value $k
+                if (-not $m.Present -or -not (& $isObject $m.Value)) { $problems.Add("tiers.$tierName.known_failures.$k is missing or not an object"); continue }
+                foreach ($leaf in (& $names $m.Value)) {
+                    $lv = (Get-BaselineMember $m.Value $leaf).Value
+                    if (-not (& $isNumber $lv) -or $lv -lt 0) { $problems.Add("tiers.$tierName.known_failures.$k.$leaf is not a non-negative number") }
+                }
+            }
+        }
+    }
+    $problems.ToArray()
+}
 function Test-AssessmentGate {
     <#
     .SYNOPSIS
@@ -534,6 +639,12 @@ function Test-AssessmentGate {
     $v = [System.Collections.Generic.List[object]]::new()
     if ($null -eq $Baseline) {
         $v.Add((Get-GateViolation 'baseline_missing' 'no baseline file; run with -UpdateBaseline once to seed it, then commit it'))
+        return $v.ToArray()
+    }
+    # An unsupported or incomplete baseline is a failure before anything is evaluated, never a default of 0.
+    $shapeProblems = @(Get-BaselineShapeProblem -Baseline $Baseline)
+    if ($shapeProblems.Count -gt 0) {
+        foreach ($problem in $shapeProblems) { $v.Add((Get-GateViolation 'baseline_invalid' "baseline is unusable: $problem")) }
         return $v.ToArray()
     }
 
@@ -584,7 +695,9 @@ function Test-AssessmentGate {
             $tolerance = if ($null -ne $Baseline.per_module_tolerance_pct) { [double]$Baseline.per_module_tolerance_pct } else { 1.0 }
             foreach ($p in $tb.per_module_min_pct.PSObject.Properties) {
                 $row = @($cov.by_module | Where-Object { $_.module -eq $p.Name }) | Select-Object -First 1
-                if ($row -and $row.pct -lt ([double]$p.Value - $tolerance)) {
+                if (-not $row) {
+                    $v.Add((Get-GateViolation 'module_coverage_missing' "$($p.Name) has a baseline minimum of $($p.Value)% but no coverage row: no eligible file belongs to it any more, so remove its entry from the baseline deliberately or restore the module"))
+                } elseif ($row.pct -lt ([double]$p.Value - $tolerance)) {
                     $v.Add((Get-GateViolation 'module_coverage_below_min' "$($p.Name) coverage $($row.pct)% is below its baseline minimum $($p.Value)% (tolerance $tolerance)"))
                 }
             }
@@ -618,6 +731,10 @@ function Update-AssessmentBaseline {
     [CmdletBinding()]
     param($Baseline, $Assessment, [string]$Tier, $PesterResult, [switch]$Ran)
 
+    if ($null -ne $Baseline) {
+        $shapeProblems = @(Get-BaselineShapeProblem -Baseline $Baseline)
+        if ($shapeProblems.Count -gt 0) { throw "refusing to ratchet an unusable baseline: $($shapeProblems -join '; ')" }
+    }
     $old = if ($Baseline) { $Baseline | ConvertTo-Json -Depth 12 | ConvertFrom-Json -AsHashtable } else { @{} }
     $new = [ordered]@{
         schema_version            = $script:AssessmentSchemaVersion
@@ -726,7 +843,7 @@ function Invoke-AssessmentPester {
         Directory for Pester's own output files.
     #>
     [CmdletBinding()]
-    param([string]$Root, [string]$Tier, [string]$ScratchDir)
+    param([string]$Root, [string]$Tier, [string]$ScratchDir, [string[]]$CoverageFile)
 
     # Measure under the default preference. The tool itself runs with 'Stop', and that leaks into the tests: measured on
     # PcaiNativeInitializationContracts.Tests.ps1, a bare Invoke-Pester gives 1 failed test and Stop gives 3 failed
@@ -744,9 +861,11 @@ function Invoke-AssessmentPester {
     } else {
         $config.Run.Path = @(Get-CiPesterPath -Root $Root)
     }
+    # Instrument exactly the eligible files (the git-tracked manifest), not a recursive Modules path: that also
+    # instruments ignored siblings, whose executed commands then inflate the percentage.
     $config.CodeCoverage.Enabled = $true
-    $config.CodeCoverage.Path = @('Modules')
-    $config.CodeCoverage.RecursePaths = $true
+    $config.CodeCoverage.Path = @($CoverageFile | ForEach-Object { Join-Path $Root $_ })
+    $config.CodeCoverage.RecursePaths = $false
     $config.CodeCoverage.ExcludeTests = $true
     $config.CodeCoverage.OutputFormat = 'JaCoCo'
     $config.CodeCoverage.OutputPath = Join-Path $ScratchDir 'coverage.xml'
@@ -868,7 +987,7 @@ function Invoke-TestAssessment {
             if (-not (Get-Module -ListAvailable -Name Pester | Where-Object Version -ge '5.0.0')) {
                 $earlyViolations.Add((Get-GateViolation 'pester_missing' 'Pester 5+ is not installed, so nothing was measured'))
             } else {
-                $pester = Invoke-AssessmentPester -Root $Root -Tier $Tier -ScratchDir $scratch
+                $pester = Invoke-AssessmentPester -Root $Root -Tier $Tier -ScratchDir $scratch -CoverageFile @(Get-ModuleSourceFile -Files $files)
             }
         } catch {
             $earlyViolations.Add((Get-GateViolation 'pester_run' "Invoke-Pester threw: $($_.Exception.Message)"))
@@ -904,7 +1023,8 @@ function Invoke-TestAssessment {
 
     # Ratchet first, then judge against the ratcheted baseline, so the printed verdict is the state the file now
     # records. A new orphan or a new failing file is never added to it, so those still fail.
-    if ($UpdateBaseline) {
+    $baselineUsable = ($null -eq $baseline) -or (@(Get-BaselineShapeProblem -Baseline $baseline).Count -eq 0)
+    if ($UpdateBaseline -and $baselineUsable) {
         $updated = Update-AssessmentBaseline -Baseline $baseline -Assessment $assessment -Tier $Tier -PesterResult $pester -Ran:$ran
         $updatedJson = ConvertTo-AssessmentJson $updated
         [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($BaselinePath)) | Out-Null

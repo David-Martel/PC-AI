@@ -138,12 +138,34 @@ function Measure-RustTests {
     # --no-fail-fast keeps cargo running the later test binaries after one fails; without it a failure in a_fail.rs
     # hides a new failure in z_hidden.rs (both sides read Failed=1). Failures are also kept by name, qualified by the
     # binary that ran them, so a swapped failure with an unchanged count is still a change.
+    #
+    # A failure is identified by its target and its full name.
+    # Target: Cargo's `Running <path> (<exe>)` and `Doc-tests <crate>` headers, matched case-sensitively (-cmatch):
+    #   -match is case-insensitive, so libtest's own `running 1 test` overwrote the header and every failure was filed
+    #   under "1 test". The executable's trailing build hash is dropped, because it differs between the base worktree
+    #   and the head. Headers go to stderr and the libtest lines to stdout, and the CargoTools wrapper hands the two to
+    #   this process as separate streams (all headers first, then all test output), so a failure is NOT attributed to
+    #   the header that precedes it. Cargo runs its targets one after another and each prints one `running N tests`
+    #   line, so the Nth `running` block belongs to the Nth header, whatever the interleaving.
+    # Name: everything between `test ` and ` ... FAILED`, so a doctest such as `src/lib.rs - first (line 12)` is kept.
     $passed = 0; $failed = 0; $results = 0
-    $binary = ''
+    $headers = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in $lines) {
+        if ($line -cmatch '^\s*Running\s+(?<what>.+?)\s+\((?<exe>[^()]*)\)\s*$') {
+            $stem = [IO.Path]::GetFileNameWithoutExtension($Matches['exe'].Split([char[]]@([char]92, [char]47))[-1]) -replace '-[0-9a-f]{16}$', ''
+            $headers.Add("$($Matches['what'].Trim()) [$stem]")
+        } elseif ($line -cmatch '^\s*Doc-tests\s+(?<crate>\S+)\s*$') {
+            $headers.Add("Doc-tests $($Matches['crate'])")
+        }
+    }
+    $block = 0
     $failedNames = [System.Collections.Generic.List[string]]::new()
     foreach ($line in $lines) {
-        if ($line -match '^\s*(?:Running|Doc-tests)\s+(.+?)(?:\s+\(|$)') { $binary = $Matches[1].Trim() }
-        if ($line -match '^test (\S+) \.\.\. FAILED') { $failedNames.Add("${binary}::$($Matches[1])") }
+        if ($line -cmatch '^running \d+ tests?\s*$') { $block++ }
+        if ($line -cmatch '^test (?<name>.+?) \.\.\. FAILED\s*$') {
+            $target = if ($block -ge 1 -and $block -le $headers.Count) { $headers[$block - 1] } else { "target#$block" }
+            $failedNames.Add("${target}::$($Matches['name'])")
+        }
         if ($line -match 'test result: \w+\.\s+(\d+) passed;\s+(\d+) failed') {
             $passed += [int]$Matches[1]; $failed += [int]$Matches[2]; $results++
         }

@@ -303,14 +303,23 @@ fn retire_key(key: &str) -> String {
     )
 }
 
+/// Bounds a pasted apply command by the original planner's UTC observation window.
+fn apply_clock_guard(evaluated_at_utc: DateTime<Utc>, expires_at_utc: DateTime<Utc>) -> String {
+    let start = evaluated_at_utc.to_rfc3339();
+    let expiry = expires_at_utc.to_rfc3339();
+    format!(
+        "$pcaiPlanNow = [DateTimeOffset]::UtcNow; if ($pcaiPlanNow -lt [DateTimeOffset]'{start}' -or $pcaiPlanNow -ge [DateTimeOffset]'{expiry}') {{ throw 'USB4 route plan is outside its validity window. Regenerate it from fresh observations.' }}"
+    )
+}
+
 /// Apply creates state only when it is absent. The key is journaled before the change, so no
 /// change can exist without a record; a failed change whose state is still absent retires the
 /// key again. State that existed before apply is reported as not owned and never journaled.
-fn owned_apply(plan_id: &str, key: &str, present: &str, command: &str) -> String {
+fn owned_apply(plan_id: &str, clock_guard: &str, key: &str, present: &str, command: &str) -> String {
     let guard = journal_guard(plan_id, true);
     let retire = retire_key(key);
     format!(
-        "{guard}; $owned = @(Get-Content -LiteralPath $j -ErrorAction SilentlyContinue) -contains '{key}'; if ({present}) {{ if ($owned) {{ Write-Output 'Already applied by this plan: {key}' }} else {{ Write-Output 'Present before apply; not owned: {key}' }} }} else {{ if (-not $owned) {{ Add-Content -LiteralPath $j -Value '{key}' -ErrorAction Stop }}; try {{ {command} -ErrorAction Stop | Out-Null }} catch {{ if (-not ({present})) {{ {retire} }}; throw }} }}"
+        "{guard}; $owned = @(Get-Content -LiteralPath $j -ErrorAction SilentlyContinue) -contains '{key}'; if ({present}) {{ if ($owned) {{ Write-Output 'Already applied by this plan: {key}' }} else {{ Write-Output 'Present before apply; not owned: {key}' }} }} else {{ if (-not $owned) {{ Add-Content -LiteralPath $j -Value '{key}' -ErrorAction Stop }}; try {{ {clock_guard}; {command} -ErrorAction Stop | Out-Null }} catch {{ if (-not ({present})) {{ {retire} }}; throw }} }}"
     )
 }
 
@@ -412,6 +421,7 @@ pub fn build_route_plan(
             "Forwarding and routes do not change Windows Firewall: a destination's inbound rules must admit the remote /30 source.".into(),
         ],
     };
+    let clock_guard = apply_clock_guard(plan.evaluated_at_utc, plan.expires_at_utc);
 
     // Edges keyed by host pair; parallel segments keep the lowest edge ID.
     let mut edges: BTreeMap<(String, String), Edge> = BTreeMap::new();
@@ -535,6 +545,7 @@ pub fn build_route_plan(
                             "if ((Get-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -ErrorAction Stop).Dhcp -eq 'Enabled') {{ throw 'DHCP is enabled on ifIndex {index}; a static address would disable it' }}; {}",
                             owned_apply(
                                 &plan_id,
+                                &clock_guard,
                                 &key,
                                 &address_present,
                                 &format!("New-NetIPAddress -InterfaceIndex {index} -AddressFamily IPv4 -IPAddress {ip} -PrefixLength 30"),
@@ -651,6 +662,7 @@ pub fn build_route_plan(
                             already_present: false,
                             apply: Some(owned_apply(
                                 &plan_id,
+                                &clock_guard,
                                 &format!("HostRoute|{index}|{target_ip}/32 via {gateway}"),
                                 &route_present,
                                 &format!("New-NetRoute -InterfaceIndex {index} -AddressFamily IPv4 -DestinationPrefix {target_ip}/32 -NextHop {gateway} -RouteMetric {metric}"),
@@ -720,6 +732,7 @@ pub fn build_route_plan(
                                 already_present: false,
                                 apply: Some(owned_apply(
                                     &plan_id,
+                                    &clock_guard,
                                     &format!("Forwarding|{index}"),
                                     &forwarding_enabled,
                                     &format!("Set-NetIPInterface -InterfaceIndex {index} -AddressFamily IPv4 -Forwarding Enabled"),
@@ -751,8 +764,15 @@ pub fn build_route_plan(
     }
 
     plan.warnings.extend(conflicts);
+    let apply_prefix = format!("{clock_guard}; ");
     for (host, mut list) in actions {
         list.sort_by_key(|a| (a.kind, a.interface_index, a.target.clone()));
+        // Check time before even an action-specific preflight, such as the DHCP query.
+        for action in &mut list {
+            if let Some(apply) = &mut action.apply {
+                apply.insert_str(0, &apply_prefix);
+            }
+        }
         let host_guards = guards.remove(&host).unwrap_or_default();
         let preflight = host_guards
             .keys()
@@ -968,6 +988,47 @@ mod tests {
             );
             assert!(!presence.contains("-ErrorAction SilentlyContinue |") || presence.contains("-ErrorVariable e"));
         }
+    }
+
+    // Protects: every pasted apply command is valid only within its planner window.
+    // Detects: an unguarded action kind, an expired command reaching network mutation after a
+    // slow state query, or expiry blocking journal-owned rollback. Needs: the recorded hub chain.
+    // Breadcrumb: build_route_plan and owned_apply.
+    #[test]
+    fn rendered_apply_commands_enforce_plan_window_and_leave_rollback_available() {
+        let plan = build_route_plan(&observation(), &policy(&["dtm-super-nuc"]), &fleet(), now()).unwrap();
+        let mut guarded_kinds = BTreeSet::new();
+        for action in plan.hosts.iter().flat_map(|host| &host.actions) {
+            let Some(apply) = action.apply.as_deref() else { continue };
+            guarded_kinds.insert(action.kind);
+            let clock = "$pcaiPlanNow = [DateTimeOffset]::UtcNow; if ($pcaiPlanNow";
+            assert!(
+                apply.starts_with(clock),
+                "action reaches other cmdlets before checking validity: {apply}"
+            );
+            let journal_write = apply.find("Add-Content -LiteralPath $j").expect("write-ahead key");
+            let mutation_guard = apply
+                .find(&format!("try {{ {clock}"))
+                .expect("validity checked again before mutation");
+            assert!(journal_write < mutation_guard, "{apply}");
+            assert!(apply.contains(&format!("-lt [DateTimeOffset]'{}'", plan.evaluated_at_utc.to_rfc3339())));
+            assert!(apply.contains(&format!("-ge [DateTimeOffset]'{}'", plan.expires_at_utc.to_rfc3339())));
+            let rollback = action.rollback.as_deref().expect("owned action has rollback");
+            assert!(
+                !rollback.contains(clock),
+                "expiry must not prevent rollback: {rollback}"
+            );
+            assert!(rollback.contains("Get-Content -LiteralPath $j"));
+        }
+        assert_eq!(
+            guarded_kinds,
+            BTreeSet::from([
+                RouteActionKind::EdgeAddress,
+                RouteActionKind::HostRoute,
+                RouteActionKind::Forwarding
+            ])
+        );
+        assert!(!plan.apply_supported);
     }
 
     // Protects: transit is explicit. Detects: forwarding inferred from adjacency (the NUC

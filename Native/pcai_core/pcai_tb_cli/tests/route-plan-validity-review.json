@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T17:00:49.9193112+00:00",
+  "reviewer": "codex",
+  "reviewerType": "independent source agent",
+  "sourceBaseline": "433fbd46091f96db658e862b2c7cabafd86abcfd",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Rust test attribute through the closing brace and newline.",
+  "sourceBindings": {
+    "Native/pcai_core/pcai_tb_cli/src/route_plan.rs": "fd6117cd476978a09fd3bd215675f2c40dd8d4c045b762978cffb009e1c22b01",
+    "Native/pcai_core/pcai_tb_cli/tests/registry_cli.rs": "5ae2f3c3acff30a67cf734c1619e0597a965c3f5260153f848c8006cb444fd3c"
+  },
+  "selectors": [
+    {
+      "selector": "rendered_apply_commands_enforce_plan_window_and_leave_rollback_available",
+      "source": "Native/pcai_core/pcai_tb_cli/src/route_plan.rs",
+      "sha256": "2eae9a1cf42f4ad89d41ef4d43cb7bcc0ac1b435831d4fd1f07c55f7210c5643",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/route_plan.rs",
+      "disposition": "keep",
+      "reviewScope": "Verifies both clock checks across address, route and forwarding strings, including the position after the journal write. The rollback remains available; no live host mutations are exercised."
+    },
+    {
+      "selector": "cli_route_plan_commands_parse_and_bind_to_real_cmdlet_parameters",
+      "source": "Native/pcai_core/pcai_tb_cli/tests/registry_cli.rs",
+      "sha256": "4a8a61f577fc79b2e911fa49f9d20e70e1ba81d644d962c5412492b04f87b0c9",
+      "codeUnderTest": "Native/pcai_core/pcai_tb_cli/src/route_plan.rs",
+      "disposition": "keep",
+      "reviewScope": "Executes isolated rendered PowerShell clock statements with expired, future and current windows. Both nonterminating mutations fail the expected fail/pass contract. Full real Windows CLI suite passed 18 controls."
+    }
+  ]
+}

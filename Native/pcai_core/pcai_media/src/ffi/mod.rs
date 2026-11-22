@@ -118,6 +118,10 @@ enum MediaRequestStatus {
     Pending,
     /// Worker thread is actively running generation.
     Running,
+    /// The worker won the Running -> Publishing transition and is moving the
+    /// finished file into place.  Polls report it as running; a cancel now
+    /// loses (returns -1) because the publish is already committed.
+    Publishing,
     /// Generation finished successfully; path is the output file.
     Complete(String),
     /// Generation failed; text is the error message.
@@ -877,11 +881,17 @@ fn write_image_atomically(image: &image::RgbImage, dest: &Path) -> io::Result<()
 ///
 /// The request stays `Pending` while it waits for the inference gate, so
 /// `pcai_media_cancel` can drop it before any work starts and
-/// `pcai_media_poll_result` reports it truthfully.  The state mutex is taken
-/// only for short status updates: never while waiting for the gate, never
-/// across `generate`, and never across encoding.  The output is staged and
-/// only published under the state mutex after a final cancellation check, so
-/// cancel and publish cannot interleave.
+/// `pcai_media_poll_result` reports it truthfully.  The global state mutex is
+/// taken only for short status flips: never while waiting for the gate, never
+/// across `generate`, encoding, the rename or file cleanup, so a slow or
+/// stalled destination cannot block poll/cancel of any request.
+///
+/// Per-request exclusion between cancel and publish is a small state machine
+/// (`Pending -> Running -> Publishing -> Complete | Failed`, or `Cancelled`
+/// from `Pending`/`Running`): the worker flips `Running -> Publishing` under
+/// the lock, then renames with no lock held.  A cancel that lands first wins
+/// (the staging file is removed, the destination untouched); a cancel that
+/// finds `Publishing` loses and returns -1, and the request completes.
 fn execute_async_request(id: i64, output_path: String, generate: impl FnOnce() -> anyhow::Result<image::RgbImage>) {
     let encode = encode_for(Path::new(&output_path));
     execute_async_request_with(id, output_path, generate, encode);
@@ -895,15 +905,22 @@ fn execute_async_request_with(
     generate: impl FnOnce() -> anyhow::Result<image::RgbImage>,
     encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
 ) {
+    execute_async_request_staged(id, output_path, generate, encode, publish_staged);
+}
+
+/// [`execute_async_request_with`] with an injectable publish step, so tests
+/// can stall the rename.
+fn execute_async_request_staged(
+    id: i64,
+    output_path: String,
+    generate: impl FnOnce() -> anyhow::Result<image::RgbImage>,
+    encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
+    publish: impl FnOnce(&Path, &Path) -> io::Result<()>,
+) {
     let gate = acquire_inference_gate();
 
-    // Transition: Pending -> Running, unless cancelled while queued.
-    {
-        let mut guard = lock_state_recovering();
-        if !matches!(guard.requests.get(&id), Some(MediaRequestStatus::Pending)) {
-            return;
-        }
-        guard.requests.insert(id, MediaRequestStatus::Running);
+    if !begin_async_request(id) {
+        return;
     }
 
     let result = generate();
@@ -931,23 +948,51 @@ fn execute_async_request_with(
         }
     };
 
-    // Final check and publish in one critical section: a cancel either lands
-    // before it (staging file removed, destination untouched) or finds the
-    // request already Complete.
-    let mut guard = lock_state_recovering();
-    if !matches!(guard.requests.get(&id), Some(MediaRequestStatus::Running)) {
-        drop(guard);
+    // Commit to publishing under the lock, then rename without it.
+    if !begin_publish(id) {
         let _ = fs::remove_file(&staged);
         return;
     }
-    let terminal = match publish_staged(&staged, dest) {
+    let terminal = match publish(&staged, dest) {
         Ok(()) => MediaRequestStatus::Complete(output_path),
         Err(e) => {
             let _ = fs::remove_file(&staged);
             MediaRequestStatus::Failed(format!("Save failed: {e}"))
         }
     };
-    guard.requests.insert(id, terminal);
+    finish_publish(id, terminal);
+}
+
+/// Pending -> Running, unless the request was cancelled while queued.
+///
+/// Returns whether the worker may run.  The state lock is released before
+/// this returns, so generation never runs under it.
+fn begin_async_request(id: i64) -> bool {
+    let mut guard = lock_state_recovering();
+    if !matches!(guard.requests.get(&id), Some(MediaRequestStatus::Pending)) {
+        return false;
+    }
+    guard.requests.insert(id, MediaRequestStatus::Running);
+    true
+}
+
+/// Running -> Publishing.  `false` means a cancel got there first.
+fn begin_publish(id: i64) -> bool {
+    let mut guard = lock_state_recovering();
+    if !matches!(guard.requests.get(&id), Some(MediaRequestStatus::Running)) {
+        return false;
+    }
+    guard.requests.insert(id, MediaRequestStatus::Publishing);
+    true
+}
+
+/// Publishing -> Complete | Failed.  Nothing can cancel a publishing request,
+/// so the transition is unconditional for that state.
+fn finish_publish(id: i64, terminal: MediaRequestStatus) {
+    let mut guard = lock_state_recovering();
+    if matches!(guard.requests.get(&id), Some(MediaRequestStatus::Publishing)) {
+        guard.requests.insert(id, terminal);
+    }
 }
 
 /// Whether the request is still `Running` (not cancelled or already polled away).
@@ -1074,7 +1119,7 @@ pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResul
             status: 0,
             text: std::ptr::null_mut(),
         },
-        Some(MediaRequestStatus::Running) => PcaiMediaAsyncResult {
+        Some(MediaRequestStatus::Running | MediaRequestStatus::Publishing) => PcaiMediaAsyncResult {
             status: 1,
             text: std::ptr::null_mut(),
         },
@@ -1132,7 +1177,9 @@ pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResul
 /// # Returns
 ///
 /// `0` if the request was successfully cancelled, `-1` if the ID was not
-/// found or the request had already finished.
+/// found or the request had already finished.  A request whose output is
+/// already being moved into place (it still polls as running) can no longer be
+/// cancelled: this returns `-1` and the request completes.
 #[no_mangle]
 pub extern "C" fn pcai_media_cancel(request_id: i64) -> i32 {
     let state = get_state();
@@ -2264,5 +2311,120 @@ mod tests {
         pcai_media_shutdown();
         assert_ne!(slot_begin_load(&MODEL_SLOT), before);
         assert!(slot_current(&MODEL_SLOT).is_none());
+    }
+
+    // ── Slow publish must not block other requests ──────────────────────
+
+    /// Run `call` on a helper thread and require it to answer within 100 ms.
+    fn answers_within_100ms<T: Send + 'static>(what: &str, call: impl FnOnce() -> T + Send + 'static) -> T {
+        let (value, elapsed) = finishes_within(what, move || {
+            let started = std::time::Instant::now();
+            let value = call();
+            (value, started.elapsed())
+        });
+        assert!(
+            elapsed < std::time::Duration::from_millis(100),
+            "{what} took {elapsed:?} while another request was publishing"
+        );
+        value
+    }
+
+    // Protects: a publish on slow or stalled storage blocks nobody else: poll and cancel
+    //   of other requests answer within 100 ms while one request sits in its rename.
+    // Detects: the rename (or any file IO) running under the global request-table lock.
+    // Needs: no model; the rename is a mock publish step blocked on a channel.
+    #[test]
+    fn test_slow_publish_does_not_block_status_of_other_requests() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let publishing = register_request(MediaRequestStatus::Pending);
+        let other_running = register_request(MediaRequestStatus::Running);
+        let other_queued = register_request(MediaRequestStatus::Pending);
+        let (entered_tx, entered_rx) = std::sync::mpsc::channel::<()>();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+
+        let dest = tmp.path().join("slow.png");
+        let dest_path = dest.to_string_lossy().into_owned();
+        let encode = encode_for(Path::new(&dest_path));
+        let worker = std::thread::spawn(move || {
+            execute_async_request_staged(publishing, dest_path, mock_image, encode, move |staged, target| {
+                entered_tx.send(()).expect("test is listening");
+                release_rx
+                    .recv_timeout(std::time::Duration::from_secs(10))
+                    .map_err(|_| io::Error::other("test never released the rename"))?;
+                fs::rename(staged, target)
+            });
+        });
+        entered_rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("worker reaches the rename");
+
+        // The publishing request is mid-rename; everything else must still answer.
+        assert_eq!(
+            answers_within_100ms("poll other", move || poll_status(other_running)),
+            1
+        );
+        assert_eq!(
+            answers_within_100ms("poll queued", move || poll_status(other_queued)),
+            0
+        );
+        assert_eq!(
+            answers_within_100ms("cancel queued", move || pcai_media_cancel(other_queued)),
+            0
+        );
+        assert_eq!(
+            answers_within_100ms("poll cancelled", move || poll_status(other_queued)),
+            4
+        );
+        assert_eq!(
+            answers_within_100ms("cancel unknown", || pcai_media_cancel(999_996)),
+            -1
+        );
+        assert_eq!(
+            answers_within_100ms("cancel other", move || pcai_media_cancel(other_running)),
+            0
+        );
+        assert_eq!(
+            answers_within_100ms("poll other", move || poll_status(other_running)),
+            4
+        );
+
+        // Same request: it reports running while publishing, and a cancel loses.
+        assert_eq!(
+            answers_within_100ms("poll publishing", move || poll_status(publishing)),
+            1
+        );
+        assert_eq!(
+            answers_within_100ms("cancel publishing", move || pcai_media_cancel(publishing)),
+            -1
+        );
+
+        release_tx.send(()).unwrap();
+        worker.join().expect("worker must not panic");
+        let (status, text) = poll_full(publishing);
+        assert_eq!(status, 2, "the publish that already started completes: {text:?}");
+        assert_eq!(image::open(&dest).expect("published file is a complete PNG").width(), 1);
+        assert_eq!(dir_listing(tmp.path()), ["slow.png"]);
+    }
+
+    // Protects: a failing rename while publishing reports Failed, removes the staging
+    //   file and leaves the destination alone, again without the global lock.
+    // Detects: an error path that leaves the request Publishing or leaks the partial file.
+    // Needs: a temp directory; the publish step is a mock that fails.
+    #[test]
+    fn test_failed_publish_step_reports_failed_and_cleans_up() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.png");
+        fs::write(&existing, ORIGINAL).unwrap();
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest = existing.to_string_lossy().into_owned();
+        let encode = encode_for(Path::new(&dest));
+        execute_async_request_staged(id, dest, mock_image, encode, |_, _| {
+            Err(io::Error::other("share went away"))
+        });
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3);
+        assert!(text.expect("message").contains("share went away"));
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+        assert_eq!(dir_listing(tmp.path()), ["existing.png"]);
     }
 }

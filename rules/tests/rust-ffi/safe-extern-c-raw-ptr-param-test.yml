@@ -1,0 +1,24 @@
+id: safe-extern-c-raw-ptr-param
+valid:
+  - |
+    pub unsafe extern "C" fn already_unsafe(p: *const u8) -> u8 {
+        unsafe { *p }
+    }
+  - |
+    pub extern "C" fn no_pointer(n: usize) -> usize { n }
+  - |
+    pub extern "C" fn pointer_never_dereferenced(p: *const u8) -> usize { p as usize }
+  - |
+    fn rust_abi(p: *const u8) -> u8 {
+        unsafe { *p }
+    }
+invalid:
+  - |
+    #[no_mangle]
+    pub extern "C" fn safe_ptr(p: *const u8, n: usize) -> u8 {
+        unsafe { *p }
+    }
+  - |
+    extern "C" fn private_ptr(p: *mut u8) {
+        unsafe { *p = 0; }
+    }

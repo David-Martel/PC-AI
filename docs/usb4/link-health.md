@@ -13,7 +13,8 @@ PowerShell profile.
 installs, updates and removes those triggers. It also installs the profile and tooling check,
 `Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1`, when that script is present (see
 [the profile README](../../Config/PowerShell/Profile/README.md)). Tests:
-[link health and triggers](../../Tests/Unit/PcaiLinkHealth.Tests.ps1).
+[link health and triggers](../../Tests/Unit/PcaiLinkHealth.Tests.ps1), with a
+[source route test review](../../Tests/Unit/pcai-link-health-source-route-review.json).
 
 ## Install, run, remove
 
@@ -95,8 +96,14 @@ the units as enabled.
    | `Absent` | No USB4 adapter and no plan (for example ms01 today) | ok |
    | `Healthy`, `NotInPlan` | Adapters up, but there is no plan or the plan does not name this host | ok |
 
-3. Pings each planned peer address and tries TCP 22 (informational: the peer's firewall may
-   not admit the /30 source, see [peer SSH access](peer-ssh-access.md)).
+3. Resolves each Windows path's first edge from the plan. Before probing, it checks the live
+   adapter's ifIndex, GUID and MAC, then asks Windows for the best route and source address
+   to the planned destination. Both must match the first edge, including the planned next
+   hop for a routed path. A mismatch suppresses both probes. The TCP probe binds the first
+   edge's source address. After a successful probe, the watcher checks the route again and
+   discards the result if it changed. Each reachability entry reports `RouteStatus`,
+   `SourceAddress`, `InterfaceIndex` and `NextHop`. TCP 22 is informational because the
+   peer's firewall may block the /30 source. See [peer SSH access](peer-ssh-access.md).
 4. Reports PC-AI's own USB4 tasks (`\PC-AI\*Thunderbolt*`, `\PC-AI\*Usb4*`,
    `Rclone-*-Thunderbolt-*`) or `pcai-usb4-*` units. It restarts only an allow-listed,
    **enabled**, read-only observer whose last run failed. A scheduled task's own action must be
@@ -178,6 +185,7 @@ The check reads an optional `config.json` in its status root and refuses unknown
   but no plan comparison or apply.
 - A plan's observation TTL is not enforced for comparison or apply; the per-ifIndex MAC and GUID
   guards are what bind it to the hardware. Regenerate after any replug that changes them.
-- `Test-PcaiTcpPort` reports reachability, not authentication.
+- The probe checks local egress and transport reachability. Use a pinned SSH host key
+  and verify both directions for authenticated peer readiness.
 - The Linux Pester list (`Tests/linux-ci-pester.txt`) does not include these files yet; the
   Windows CI runs all of `Tests/Unit`.

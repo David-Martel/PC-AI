@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "recorded_from": {
-    "head_sha": "72b11cc7289cde46c5a8a7b655141d4840175609",
+    "head_sha": "70372f8312832f232bc9e34a5321c92f198fc5b4",
     "note": "Counts of statically detectable risky patterns; may only go down. See Tools/Quality/Invoke-QualityRatchet.ps1."
   },
   "tools": {
     "ast-grep": "0.51.0",
     "PSScriptAnalyzer": "1.25.0",
-    "pcai-quality-checks": "1.0.0"
+    "pcai-quality-checks": "1.1.0"
   },
   "counts": {
     "ast-grep|as-ref-unwrap|prod": 3,

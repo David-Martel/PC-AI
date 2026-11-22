@@ -8,12 +8,12 @@
       "test_sha256": "e675fd0bd13fb53c37dd28441f8eebc41a855c5d800e602ae01a8c0fd7b465b2",
       "selector_sha256": "37d5c3f996db44dae61edbb753716d49adfdb3fc167e7dfdb156defec47b9f68",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -46,12 +46,12 @@
       "test_sha256": "e675fd0bd13fb53c37dd28441f8eebc41a855c5d800e602ae01a8c0fd7b465b2",
       "selector_sha256": "10cf94ffa0c671f66f618513822b99f6c23b803973e572fe6ef65ea4777ca19b",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -84,12 +84,12 @@
       "test_sha256": "e675fd0bd13fb53c37dd28441f8eebc41a855c5d800e602ae01a8c0fd7b465b2",
       "selector_sha256": "364f524ca52df3b29325442555f465c7084239c793ab098fc6b7f2c43f988820",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -122,12 +122,12 @@
       "test_sha256": "771ff86ded948e3141003784114384bd2582b69def6840d1f893dae6b8b75ed2",
       "selector_sha256": "9269a76bc09c5e428c9dd2838abafd1290b0a2813842ff8e7d559977cde9f974",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -164,12 +164,12 @@
       "test_sha256": "771ff86ded948e3141003784114384bd2582b69def6840d1f893dae6b8b75ed2",
       "selector_sha256": "1e4fe8fe6f21d786c3eb62fa799cd069f00112b97868cb04a21000916c419b84",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -206,12 +206,12 @@
       "test_sha256": "771ff86ded948e3141003784114384bd2582b69def6840d1f893dae6b8b75ed2",
       "selector_sha256": "e50ab101320e9df720088c19263194f0351ef110e6f686c5c0c14eef7c20643c",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -245,15 +245,15 @@
     {
       "selector": "PythonRegisterCustody.test_every_python_binding_matches_the_working_tree",
       "test_path": "Tests/Portable/test_media_register_custody.py",
-      "test_sha256": "4d414a00ff66bfe5748d3a6b188a379d0cdd3b4f11c35b99609cb11c6093a610",
+      "test_sha256": "e212d2a02e6c8353489144fca096fcd8fbb4c407440bb21d84db915a94eef706",
       "selector_sha256": "da826e46a8e3015a20f464d2d6020cffcdeaf435e14b03573273aa2fb65cd8b8",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -275,7 +275,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "9dbe6f7e4ba03695381151a2812cdcd6b6ae411f9f99375a71fa1cab7e1d5f4e"
+          "sha256": "f73126e3bb7c8ff02fbd210a1ad5f8c4f4f58b8ea665b229140c83df5320d3a7"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -287,15 +287,15 @@
     {
       "selector": "PythonRegisterCustody.test_every_lock_contract_test_is_bound_individually",
       "test_path": "Tests/Portable/test_media_register_custody.py",
-      "test_sha256": "4d414a00ff66bfe5748d3a6b188a379d0cdd3b4f11c35b99609cb11c6093a610",
+      "test_sha256": "e212d2a02e6c8353489144fca096fcd8fbb4c407440bb21d84db915a94eef706",
       "selector_sha256": "ec1dd18133576d7f967bb6ed3da3628803654debe0e4026312897c82695b5570",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -317,7 +317,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "9dbe6f7e4ba03695381151a2812cdcd6b6ae411f9f99375a71fa1cab7e1d5f4e"
+          "sha256": "f73126e3bb7c8ff02fbd210a1ad5f8c4f4f58b8ea665b229140c83df5320d3a7"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -329,15 +329,15 @@
     {
       "selector": "PythonRegisterCustody.test_python_entries_claim_no_independent_review_they_lack",
       "test_path": "Tests/Portable/test_media_register_custody.py",
-      "test_sha256": "4d414a00ff66bfe5748d3a6b188a379d0cdd3b4f11c35b99609cb11c6093a610",
+      "test_sha256": "e212d2a02e6c8353489144fca096fcd8fbb4c407440bb21d84db915a94eef706",
       "selector_sha256": "c957fccd8ab5e5851f25b600fed798267e1f3f6d63e31f52912bb48962a193b8",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -359,7 +359,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "9dbe6f7e4ba03695381151a2812cdcd6b6ae411f9f99375a71fa1cab7e1d5f4e"
+          "sha256": "f73126e3bb7c8ff02fbd210a1ad5f8c4f4f58b8ea665b229140c83df5320d3a7"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -371,15 +371,15 @@
     {
       "selector": "PythonRegisterCustody.test_python_register_binds_exactly_the_expected_selectors",
       "test_path": "Tests/Portable/test_media_register_custody.py",
-      "test_sha256": "4d414a00ff66bfe5748d3a6b188a379d0cdd3b4f11c35b99609cb11c6093a610",
+      "test_sha256": "e212d2a02e6c8353489144fca096fcd8fbb4c407440bb21d84db915a94eef706",
       "selector_sha256": "ea2e1b1436e55dbd33d08af5811240e9448f4e8b267df1e2de6e40a995a5f224",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -401,7 +401,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "9dbe6f7e4ba03695381151a2812cdcd6b6ae411f9f99375a71fa1cab7e1d5f4e"
+          "sha256": "f73126e3bb7c8ff02fbd210a1ad5f8c4f4f58b8ea665b229140c83df5320d3a7"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -413,15 +413,15 @@
     {
       "selector": "RustRegisterCustody.test_every_rust_binding_matches_the_working_tree",
       "test_path": "Tests/Portable/test_media_register_custody.py",
-      "test_sha256": "4d414a00ff66bfe5748d3a6b188a379d0cdd3b4f11c35b99609cb11c6093a610",
+      "test_sha256": "e212d2a02e6c8353489144fca096fcd8fbb4c407440bb21d84db915a94eef706",
       "selector_sha256": "3f2d6531a39de7adfca8734c43592667373c6b0f866e2251154b04a54c888eeb",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -443,7 +443,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "9dbe6f7e4ba03695381151a2812cdcd6b6ae411f9f99375a71fa1cab7e1d5f4e"
+          "sha256": "f73126e3bb7c8ff02fbd210a1ad5f8c4f4f58b8ea665b229140c83df5320d3a7"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -455,15 +455,15 @@
     {
       "selector": "RustRegisterCustody.test_rust_entries_are_author_self_review_only",
       "test_path": "Tests/Portable/test_media_register_custody.py",
-      "test_sha256": "4d414a00ff66bfe5748d3a6b188a379d0cdd3b4f11c35b99609cb11c6093a610",
+      "test_sha256": "e212d2a02e6c8353489144fca096fcd8fbb4c407440bb21d84db915a94eef706",
       "selector_sha256": "5251f3ad687583583c6a271879a17e39cf7a11a86552403dbd3369af762a433c",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -485,7 +485,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "9dbe6f7e4ba03695381151a2812cdcd6b6ae411f9f99375a71fa1cab7e1d5f4e"
+          "sha256": "f73126e3bb7c8ff02fbd210a1ad5f8c4f4f58b8ea665b229140c83df5320d3a7"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -497,15 +497,15 @@
     {
       "selector": "RustRegisterCustody.test_rust_register_binds_exactly_the_expected_selectors",
       "test_path": "Tests/Portable/test_media_register_custody.py",
-      "test_sha256": "4d414a00ff66bfe5748d3a6b188a379d0cdd3b4f11c35b99609cb11c6093a610",
+      "test_sha256": "e212d2a02e6c8353489144fca096fcd8fbb4c407440bb21d84db915a94eef706",
       "selector_sha256": "442cb6e3aa864ff743e242e51adefb828b4e98be0d3b2eb69174606449ebfd3e",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -527,7 +527,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "9dbe6f7e4ba03695381151a2812cdcd6b6ae411f9f99375a71fa1cab7e1d5f4e"
+          "sha256": "f73126e3bb7c8ff02fbd210a1ad5f8c4f4f58b8ea665b229140c83df5320d3a7"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -539,15 +539,15 @@
     {
       "selector": "ExactSetControls.test_exact_set_check_names_missing_and_extra",
       "test_path": "Tests/Portable/test_media_register_custody.py",
-      "test_sha256": "4d414a00ff66bfe5748d3a6b188a379d0cdd3b4f11c35b99609cb11c6093a610",
+      "test_sha256": "e212d2a02e6c8353489144fca096fcd8fbb4c407440bb21d84db915a94eef706",
       "selector_sha256": "033a28ce73f1af8d4b4130ed36cd6a7c41b2648c01eb0f20e184d9141e90e742",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -569,7 +569,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "9dbe6f7e4ba03695381151a2812cdcd6b6ae411f9f99375a71fa1cab7e1d5f4e"
+          "sha256": "f73126e3bb7c8ff02fbd210a1ad5f8c4f4f58b8ea665b229140c83df5320d3a7"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -581,15 +581,15 @@
     {
       "selector": "ExactSetControls.test_dropping_one_real_entry_fails_the_exact_set_check",
       "test_path": "Tests/Portable/test_media_register_custody.py",
-      "test_sha256": "4d414a00ff66bfe5748d3a6b188a379d0cdd3b4f11c35b99609cb11c6093a610",
+      "test_sha256": "e212d2a02e6c8353489144fca096fcd8fbb4c407440bb21d84db915a94eef706",
       "selector_sha256": "590f4d162334a29030dff7c13f061f8823b38672ccf58811d8d2da42c6e9874b",
       "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-      "source_sha256": "965a009bf686988ab7144d89f738edb94a7b7b3df762a0ee33695005dd5e76f5",
+      "source_sha256": "f1c1e8aec033bea0ed1f66ae51db322c8cccbfcda21005911fc30822ce89ab07",
       "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T20:34:11.651864+00:00",
+      "reviewed_utc": "2026-11-22T21:21:05.500847+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -611,7 +611,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "9dbe6f7e4ba03695381151a2812cdcd6b6ae411f9f99375a71fa1cab7e1d5f4e"
+          "sha256": "f73126e3bb7c8ff02fbd210a1ad5f8c4f4f58b8ea665b229140c83df5320d3a7"
         }
       ],
       "review_verdict": "pending-independent-review",

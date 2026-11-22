@@ -10,8 +10,9 @@ it has. They need no Cargo, model, GPU or network.
 Hashing rules, matching the registers' `hash_normalization` field:
 - files: UTF-8 bytes with CRLF converted to LF;
 - Python selectors: `ast.get_source_segment` of the test function;
-- Rust selectors: the contiguous comment block above the test attribute through
-  the function's closing brace at its own indent, plus a final newline.
+- Rust selectors: the contiguous comment and attribute lines above the function (including
+  the test attribute) through the function's closing brace at its own indent, plus a final
+  newline.
 """
 
 from __future__ import annotations
@@ -76,7 +77,7 @@ def rust_test_spans(relative: str) -> dict[str, str]:
         while lines[end] != indent + "}":
             end += 1
         start = index
-        while start > 0 and lines[start - 1].lstrip().startswith("//"):
+        while start > 0 and lines[start - 1].lstrip().startswith(("//", "#[")):
             start -= 1
         spans["::".join([m for _, m in modules] + [name])] = "\n".join(lines[start : end + 1]) + "\n"
     return spans
@@ -141,6 +142,7 @@ EXPECTED_RUST_SELECTORS: frozenset[tuple[str, str]] = frozenset(
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_exported_load_queued_behind_generation_is_cancelled_by_shutdown"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_exported_shutdown_bumps_the_global_epoch"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_failed_load_keeps_existing_model"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_failed_permission_step_leaves_destination_untouched"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_failed_publish_step_reports_failed_and_cleans_up"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_generate_image_bytes_null_out_data"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_generate_image_bytes_null_out_len"),
@@ -153,12 +155,16 @@ EXPECTED_RUST_SELECTORS: frozenset[tuple[str, str]] = frozenset(
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_load_model_rejects_incomplete_checkpoint_and_stays_unloaded"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_load_queued_behind_generation_is_cancelled_by_shutdown_before_reading"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_long_valid_destination_name_publishes_on_both_paths"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_new_destination_gets_the_umask_derived_mode"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_poll_and_cancel_respond_during_generation_and_cancel_skips_queued_work"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_poll_result_unknown_id"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_publish_keeps_the_existing_destination_mode_on_sync_and_async_paths"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_publish_keeps_the_existing_destinations_explicit_acl"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_shutdown_during_load_discards_the_stale_model"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_shutdown_twice_no_panic"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_shutdown_without_init_no_panic"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_slow_publish_does_not_block_status_of_other_requests"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_staging_file_is_private_while_it_exists"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_staging_path_is_short_unique_and_beside_destination"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_sync_entry_points_queue_behind_gate_without_blocking_status"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_sync_write_failure_keeps_existing_destination_and_leaves_no_partial"),

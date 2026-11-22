@@ -892,10 +892,22 @@ fn encode_for(dest: &Path) -> impl FnOnce(&image::RgbImage, &mut File) -> io::Re
 }
 
 /// Exclusively create a staging file, retrying with a new name on collision.
+///
+/// On Unix the file is created `0600`, so a half-written image is never
+/// readable by other users; [`publish_staged`] sets the final mode before the
+/// rename.  On Windows it inherits the directory's ACL like any new file, and
+/// [`publish_staged`] keeps an existing destination's ACL.
 fn create_staging_file(dest: &Path) -> io::Result<(PathBuf, File)> {
     for _ in 0..STAGING_ATTEMPTS {
         let staged = staging_path(dest);
-        match OpenOptions::new().write(true).create_new(true).open(&staged) {
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        match options.open(&staged) {
             Ok(file) => return Ok((staged, file)),
             Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
             Err(error) => return Err(error),
@@ -929,12 +941,103 @@ fn stage_image(
     }
 }
 
-/// Replace `dest` with the staged file.
+/// The permissions `File::create` would give a new file next to `dest`: 0666
+/// filtered by the process umask.
 ///
-/// `std::fs::rename` replaces an existing file on Windows
-/// (`MOVEFILE_REPLACE_EXISTING`) and on Unix; it fails if `dest` is a
-/// directory or is held open without delete sharing.  Callers remove the
-/// staging file on error.
+/// The kernel applies the umask when a file is created with `mode(0o666)`, so
+/// creating and inspecting a throwaway file reads it without touching the
+/// process-wide umask (setting it, even briefly, would race with other threads
+/// creating files).  The probe is empty and removed immediately.
+#[cfg(unix)]
+fn plain_create_permissions(dest: &Path) -> io::Result<fs::Permissions> {
+    use std::os::unix::fs::OpenOptionsExt;
+    for _ in 0..STAGING_ATTEMPTS {
+        let probe = staging_path(dest);
+        match OpenOptions::new().write(true).create_new(true).mode(0o666).open(&probe) {
+            Ok(file) => {
+                let permissions = file.metadata().map(|metadata| metadata.permissions());
+                drop(file);
+                let _ = fs::remove_file(&probe);
+                return permissions;
+            }
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error),
+        }
+    }
+    Err(io::Error::new(
+        io::ErrorKind::AlreadyExists,
+        "no unused probe file name after several attempts",
+    ))
+}
+
+/// Replace `dest` with the staged file without widening access to it.
+///
+/// Unix: the staged file is `0600`, so before the rename it gets the mode the
+/// destination already has, or, for a new destination, the mode a plain
+/// `File::create` would have produced (0666 filtered by the umask).  Any
+/// failure leaves the destination untouched.  Ownership, POSIX ACLs and
+/// extended attributes of a replaced file are not carried over.
+///
+/// A rename replaces an existing file (and fails if `dest` is a directory).
+/// Callers remove the staging file on error.
+#[cfg(unix)]
+fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
+    let permissions = match fs::metadata(dest) {
+        Ok(existing) => existing.permissions(),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => plain_create_permissions(dest)?,
+        Err(error) => return Err(error),
+    };
+    fs::set_permissions(staged, permissions)?;
+    fs::rename(staged, dest)
+}
+
+/// Replace `dest` with the staged file without dropping its access control.
+///
+/// Windows: when `dest` exists, `ReplaceFileW` swaps the staged file in and
+/// merges the replaced file's attributes, ACL and creation time into it
+/// (`REPLACEFILE_IGNORE_MERGE_ERRORS` tolerates a merge that is not possible),
+/// where a plain rename would leave the new file with the directory's
+/// inherited ACL.  When `dest` does not exist, or vanishes before the call,
+/// the file is renamed into place.  There is no backup file; if Windows
+/// reports `ERROR_UNABLE_TO_MOVE_REPLACEMENT_2` the replaced file may already
+/// be gone, which this function reports as an error like any other failure.
+#[cfg(windows)]
+fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::{ReplaceFileW, REPLACEFILE_IGNORE_MERGE_ERRORS};
+    const ERROR_FILE_NOT_FOUND: i32 = 2;
+
+    if fs::symlink_metadata(dest).is_err() {
+        return fs::rename(staged, dest);
+    }
+    let wide = |path: &Path| -> Vec<u16> { path.as_os_str().encode_wide().chain(std::iter::once(0)).collect() };
+    let (replaced, replacement) = (wide(dest), wide(staged));
+    // SAFETY: both arguments are NUL-terminated UTF-16 buffers that outlive the
+    // call; the backup, exclude and reserved parameters may be null.
+    let replaced_ok = unsafe {
+        ReplaceFileW(
+            replaced.as_ptr(),
+            replacement.as_ptr(),
+            std::ptr::null(),
+            REPLACEFILE_IGNORE_MERGE_ERRORS,
+            std::ptr::null(),
+            std::ptr::null(),
+        )
+    };
+    if replaced_ok != 0 {
+        return Ok(());
+    }
+    let error = io::Error::last_os_error();
+    if error.raw_os_error() == Some(ERROR_FILE_NOT_FOUND) {
+        // The destination vanished between the check and the call.
+        return fs::rename(staged, dest);
+    }
+    Err(error)
+}
+
+/// Replace `dest` with the staged file where neither Unix permissions nor
+/// Windows ACLs apply.
+#[cfg(not(any(unix, windows)))]
 fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
     fs::rename(staged, dest)
 }
@@ -2726,6 +2829,193 @@ mod tests {
         assert!(text.expect("message").contains("share went away"));
         assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
         assert_eq!(dir_listing(tmp.path()), ["existing.png"]);
+    }
+
+    // ── Publishing must not widen access to an output file ────────────────
+
+    #[cfg(unix)]
+    fn unix_mode(path: &Path) -> u32 {
+        use std::os::unix::fs::PermissionsExt;
+        fs::metadata(path).expect("metadata").permissions().mode() & 0o7777
+    }
+
+    /// Run `body` with the process umask set to `mask`, then restore it.  The
+    /// umask is process-wide, so callers hold `serialize_global_state()`.
+    #[cfg(unix)]
+    fn with_umask<T>(mask: u32, body: impl FnOnce() -> T) -> T {
+        struct Restore(libc::mode_t);
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                // SAFETY: umask only swaps the process umask and cannot fail.
+                unsafe { libc::umask(self.0) };
+            }
+        }
+        // SAFETY: as above.
+        let _restore = Restore(unsafe { libc::umask(mask as libc::mode_t) });
+        body()
+    }
+
+    // Protects: replacing an existing output keeps its access mode on the sync and the
+    //   async path: a private 0600 file stays 0600 and a 0640 file stays 0640.
+    // Detects: a staged file that keeps its own default mode (0644 under umask 022)
+    //   after the rename, which would expose a private image, or one forced to a fixed mode.
+    // Needs: Unix; the umask is set to 022 so a default-mode staging file would be 0644.
+    #[cfg(unix)]
+    #[test]
+    fn test_publish_keeps_the_existing_destination_mode_on_sync_and_async_paths() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        with_umask(0o022, || {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            for (name, mode) in [("private.png", 0o600), ("group.png", 0o640)] {
+                let dest = tmp.path().join(name);
+                fs::write(&dest, ORIGINAL).unwrap();
+                fs::set_permissions(&dest, fs::Permissions::from_mode(mode)).unwrap();
+                write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("sync publish");
+                assert_eq!(unix_mode(&dest), mode, "sync path, {name}");
+                assert_eq!(image::open(&dest).unwrap().width(), 2, "sync path replaced the file");
+
+                fs::set_permissions(&dest, fs::Permissions::from_mode(mode)).unwrap();
+                let id = register_request(MediaRequestStatus::Pending);
+                execute_async_request(id, dest.to_string_lossy().into_owned(), mock_image);
+                assert_eq!(poll_full(id).0, 2, "async request completes");
+                assert_eq!(unix_mode(&dest), mode, "async path, {name}");
+                assert_eq!(image::open(&dest).unwrap().width(), 1, "async path replaced the file");
+            }
+        });
+    }
+
+    // Protects: the staging file is private (0600) for as long as it exists, so a
+    //   half-written image is never readable by other users.
+    // Detects: a staging file created with the default mode (0644 under umask 022).
+    // Needs: Unix; the encoder stats the open staging file, so no extra seam is needed.
+    #[cfg(unix)]
+    #[test]
+    fn test_staging_file_is_private_while_it_exists() {
+        let _serial = serialize_global_state();
+        with_umask(0o022, || {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let dest = tmp.path().join("out.png");
+            let seen = std::cell::Cell::new(0);
+            let staged = stage_image(&image::RgbImage::new(1, 1), &dest, |_, file| {
+                use std::os::unix::fs::PermissionsExt;
+                seen.set(file.metadata()?.permissions().mode() & 0o7777);
+                Ok(())
+            })
+            .expect("stage");
+            assert_eq!(seen.get(), 0o600);
+            assert_eq!(unix_mode(&staged), 0o600);
+        });
+    }
+
+    // Protects: a brand-new output gets the mode a plain File::create would have given
+    //   it (0666 filtered by the umask), not the private staging mode and not a wider one.
+    // Detects: a new file left at the private 0600 staging mode, or opened up beyond the umask.
+    // Needs: Unix; sets the umask explicitly (027 and 077) and restores it.
+    #[cfg(unix)]
+    #[test]
+    fn test_new_destination_gets_the_umask_derived_mode() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        for (mask, expected) in [(0o027, 0o640), (0o022, 0o644), (0o077, 0o600)] {
+            with_umask(mask, || {
+                let direct = tmp.path().join(format!("direct-{mask:o}.png"));
+                fs::File::create(&direct).unwrap();
+                assert_eq!(unix_mode(&direct), expected, "File::create under umask {mask:o}");
+
+                let dest = tmp.path().join(format!("new-{mask:o}.png"));
+                write_image_atomically(&image::RgbImage::new(1, 1), &dest).expect("publish");
+                assert_eq!(unix_mode(&dest), expected, "published file under umask {mask:o}");
+                assert_eq!(
+                    dir_listing(tmp.path())
+                        .iter()
+                        .filter(|n| n.starts_with(".pcai-"))
+                        .count(),
+                    0
+                );
+            });
+        }
+    }
+
+    // Protects: a failure while preparing the publish (here the staging file vanishes before
+    //   the permission copy) reports Failed, leaves the existing destination untouched and
+    //   leaves no staging file.
+    // Detects: publish errors that are swallowed, or a destination replaced or truncated
+    //   despite the failure.
+    // Needs: nothing platform specific; the real publish_staged runs after the staging file
+    //   is removed, which makes both the Unix permission copy and Windows ReplaceFileW fail.
+    #[test]
+    fn test_failed_permission_step_leaves_destination_untouched() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.png");
+        fs::write(&existing, ORIGINAL).unwrap();
+        #[cfg(unix)]
+        let mode_before = unix_mode(&existing);
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest = existing.to_string_lossy().into_owned();
+        let encode = encode_for(Path::new(&dest));
+        execute_async_request_staged(id, dest, mock_image, encode, |staged, dest| {
+            fs::remove_file(staged)?;
+            publish_staged(staged, dest)
+        });
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3, "the failed publish is reported as Failed");
+        assert!(text.expect("failure message").contains("Save failed"));
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+        #[cfg(unix)]
+        assert_eq!(unix_mode(&existing), mode_before);
+        assert_eq!(dir_listing(tmp.path()), ["existing.png"]);
+
+        let staged = tmp.path().join("gone.partial");
+        assert!(publish_staged(&staged, &existing).is_err());
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+    }
+
+    #[cfg(windows)]
+    fn acl_listing(path: &Path) -> String {
+        let output = std::process::Command::new("icacls")
+            .arg(path)
+            .output()
+            .expect("run icacls");
+        assert!(output.status.success(), "icacls failed: {output:?}");
+        String::from_utf8_lossy(&output.stdout)
+            .replace(path.to_string_lossy().as_ref(), "<PATH>")
+            .trim()
+            .to_string()
+    }
+
+    // Protects: replacing an existing file whose ACL was explicitly restricted keeps that
+    //   ACL (ReplaceFileW merges it) instead of leaving the new file with the directory's
+    //   inherited ACL.
+    // Detects: a plain rename of the staged file over the destination.
+    // Needs: Windows with icacls on PATH; the test restricts its own temp file only.
+    #[cfg(windows)]
+    #[test]
+    fn test_publish_keeps_the_existing_destinations_explicit_acl() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let user = std::env::var("USERNAME").expect("USERNAME is set");
+        let status = std::process::Command::new("icacls")
+            .arg(&dest)
+            .args(["/inheritance:r", "/grant:r", &format!("{user}:(F)")])
+            .output()
+            .expect("run icacls");
+        assert!(status.status.success(), "icacls restrict failed: {status:?}");
+        let before = acl_listing(&dest);
+        assert!(!before.contains("(I)"), "precondition: explicit ACL only: {before}");
+
+        // Positive control: a fresh file in the same directory inherits the directory ACL,
+        // so a plain rename of a staged file would differ from `before`.
+        let control = tmp.path().join("control.png");
+        fs::write(&control, ORIGINAL).unwrap();
+        assert!(acl_listing(&control).contains("(I)"), "control must inherit");
+
+        write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("publish");
+        assert_eq!(image::open(&dest).unwrap().width(), 2, "the file was replaced");
+        assert_eq!(acl_listing(&dest), before, "the explicit ACL survives the replace");
     }
 
     // Protects: every test that touches the process-wide FFI state takes the serial

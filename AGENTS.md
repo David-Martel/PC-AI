@@ -302,6 +302,8 @@ locks must remain covered. These tests do not qualify installed native binaries.
 
 USB4 topology uses the existing native CLI's read-only `topology-plan` contract;
 see [collection, freshness and promotion boundaries](docs/usb4/fabric-topology.md).
+Run the [HNS endpoint inventory controls](Tests/Portable/Test-Usb4HnsEndpointInventory.ps1)
+when changing ExistingWinNat inventory admission. They use synthetic provider replies.
 Use the [USB4 TCP hardware test](docs/usb4/hardware-testing.md) for exact-revision
 release evidence from enrolled Windows USB4NET edges.
 Keep functioning Thunderbolt Share sessions intact. Neighbor reciprocity is

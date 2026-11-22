@@ -61,6 +61,23 @@ BeforeAll {
         { $captured }.GetNewClosure()
     }
     $script:Usb4Pair = @((New-DsAdapter -Index 19 -Alias 'Ethernet 18'), (New-DsAdapter -Index 25 -Alias 'Ethernet 4'))
+    # Route and local-address seams for the egress proof (see Get-PcaiEndpointCandidate -RouteSource).
+    function New-DsRouteSource {
+        param([int]$IfIndex = 25, [string]$Source6 = 'fd00:7462:7032::1', [string]$Source4 = '172.31.240.1')
+        { param($Address) $v6 = ([string]$Address).Contains(':'); [pscustomobject]@{ InterfaceIndex = $IfIndex; SourceAddress = $(if ($v6) { $Source6 } else { $Source4 }); NextHop = 'on-link' } }.GetNewClosure()
+    }
+    $script:OwnedAddresses = { param($InterfaceIndex) if ($InterfaceIndex -eq 25) { @('fd00:7462:7032::1', '172.31.240.1', 'fe80::1') } else { @() } }
+    # Every interface "owns" the proven source address: isolates the route-interface check from the source-address check.
+    $script:OwnedOnAnyInterface = { param($InterfaceIndex) @('fd00:7462:7032::1', '172.31.240.1') }
+    # Default safety net: the module's own route and local-address wrappers never reach the OS in these tests. Unless a test
+    # injects its own RouteSource, every route leaves over ifIndex 25 from that adapter's address.
+    Mock Find-PcaiRoute -ModuleName PC-AI.Network {
+        $v6 = ([string]$Address).Contains(':')
+        [pscustomobject]@{ InterfaceIndex = 25; SourceAddress = $(if ($v6) { 'fd00:7462:7032::1' } else { '172.31.240.1' }); NextHop = 'on-link' }
+    }
+    Mock Get-PcaiLocalAddress -ModuleName PC-AI.Network {
+        if ($InterfaceIndex -eq 25) { @('fd00:7462:7032::1', '172.31.240.1', 'fe80::1') } else { @() }
+    }
     # Fake connector: Plan maps an address string to Hang | Refused | Unreachable | Ok | OkAfter:<ms> | Throw.
     # Each client is a MemoryStream, so CanRead proves whether the connector's client was disposed.
     function New-DsLog { [pscustomobject]@{ Calls = [Collections.Generic.List[string]]::new(); Clients = @{}; Hook = $null } }
@@ -948,7 +965,7 @@ Describe 'Get-PcaiEndpointCandidate' -Tag 'Unit', 'Network', 'Fast', 'Portable' 
 
     # Protects: the KnownPeer provider reads the peer registry (name, alias, tbHostAlias, node id) and emits the short and the
     # deterministic link-local and ULA addresses plus the registry's IPv4 addresses.
-    # Detects: a registry peer found by name only, a missing deterministic address, a ULA given a zone, an IPv4 address
+    # Detects: a registry peer found by name only, a missing deterministic address, a ULA without its proven egress interface and bound source, an IPv4 address
     # emitted when only IPv6 was asked for.
     # Needs: an injected registry (synthetic peer, not the real fleet).
     # Breadcrumb: Resolve-PcaiPeer, Get-PcaiPeerNodeHextet
@@ -963,7 +980,7 @@ Describe 'Get-PcaiEndpointCandidate' -Tag 'Unit', 'Network', 'Fast', 'Portable' 
         $source = New-DsInterfaceSource @((New-DsAdapter -Index 25 -Alias 'Ethernet 4'))
         $found = @(Get-PcaiEndpointCandidate @params -InterfaceSource $source -RegistrySource $script:RegistrySource -NeighborSource $script:NoNeighbors)
         @($found | Where-Object { $_.Address -eq 'fe80::d700:50%25' }).Count | Should -Be 1
-        @($found | Where-Object { $_.Address -eq 'fd00:7462:7032::50' -and $_.Class -eq 'ULA' -and $null -eq $_.InterfaceIndex }).Count | Should -Be 1
+        @($found | Where-Object { $_.Address -eq 'fd00:7462:7032::50' -and $_.Class -eq 'ULA' -and $_.InterfaceIndex -eq 25 -and $_.SourceAddress -eq 'fd00:7462:7032::1' }).Count | Should -Be 1
         @($found | Where-Object { $_.Class -eq 'LinkLocal' }).Count | Should -Be 2 # short + deterministic
         @($found | Where-Object { $_.Address -eq '192.0.2.50' -and $_.Family -eq 'InterNetwork' }).Count | Should -Be 1
         @($found | Where-Object { $_.PeerId -ne 'dtm-test-peer' }).Count | Should -Be 0
@@ -1179,14 +1196,14 @@ Describe 'Get-PcaiEndpointCandidate' -Tag 'Unit', 'Network', 'Fast', 'Portable' 
 }
 
 Describe 'Connect-PcaiEndpoint' -Tag 'Unit', 'Network', 'Portable' {
-    # Protects: RFC 8305 candidate order: scoped link-local first (neighbour-observed and registry candidates before
-    # EUI-64 guesses, MAC-matched before unmatched, Reachable interface before others), then IPv6 and IPv4 interleaved
+    # Protects: RFC 8305 candidate order: IPv6 first with scoped link-local leading it (neighbour-observed and registry candidates before
+    # EUI-64 guesses, MAC-matched before unmatched, Reachable interface before others), then IPv4 and IPv6 alternating
     # starting with IPv6.
     # Detects: IPv4 first (the classic Happy Eyeballs bug), link-local behind ULA/IPv4, EUI-64 guesses ahead of observed
     # neighbours, a stable-sort assumption (candidates are given shuffled and with equal keys).
     # Needs: a connector that refuses everything instantly so attempts run strictly in candidate order.
     # Breadcrumb: Get-PcaiConnectionOrder
-    It 'orders scoped link-local first, then interleaves IPv6 and IPv4 starting with IPv6' {
+    It 'keeps scoped link-local first within IPv6 and alternates IPv4 after the first IPv6 candidate' {
         $unordered = @(
             (New-DsCand '192.0.2.11'), (New-DsCand 'fe80::5eff:fe00:5350%19' -Source Eui64),
             (New-DsCand '2001:db8::50'), (New-DsCand 'fe80::d700:50%19' -Source KnownPeer -NeighborState Stale),
@@ -1199,8 +1216,8 @@ Describe 'Connect-PcaiEndpoint' -Tag 'Unit', 'Network', 'Portable' {
         $result = Connect-PcaiEndpoint -Candidate $unordered -Port 22 -TimeoutMs 3000 -Connector (New-DsConnector $plan $log)
         $result.Connected | Should -BeFalse
         @($result.Attempts | ForEach-Object { $_.Address }) | Should -Be @(
-            'fe80::aa:bb%7', 'fe80::d700:50%25', 'fe80::d700:50%19', 'fe80::5eff:fe00:5350%19',
-            'fd00:7462:7032::50', '192.0.2.11', '2001:db8::50', '192.0.2.10')
+            'fe80::aa:bb%7',
+            '192.0.2.11', 'fe80::d700:50%25', '192.0.2.10', 'fe80::d700:50%19', 'fe80::5eff:fe00:5350%19', 'fd00:7462:7032::50', '2001:db8::50')
     }
 
     # Protects: the staggered start. Attempt 2 starts after AttemptDelayMs while attempt 1 is STILL pending, and a later
@@ -1321,11 +1338,11 @@ Describe 'Connect-PcaiEndpoint' -Tag 'Unit', 'Network', 'Portable' {
     It 'honours the overall timeout and reports Timeout for attempts still pending' {
         $plan = @{ '2001:db8::1' = 'Hang'; '192.0.2.1' = 'Hang'; '192.0.2.2' = 'Hang' }
         $log = New-DsLog
-        $result = Connect-PcaiEndpoint -Candidate @((New-DsCand '2001:db8::1'), (New-DsCand '192.0.2.1'), (New-DsCand '192.0.2.2')) -Port 22 -AttemptDelayMs 100 -TimeoutMs 450 -Connector (New-DsConnector $plan $log)
+        $result = Connect-PcaiEndpoint -Candidate @((New-DsCand '2001:db8::1'), (New-DsCand '192.0.2.1'), (New-DsCand '192.0.2.2')) -Port 22 -AttemptDelayMs 100 -TimeoutMs 900 -Connector (New-DsConnector $plan $log)
         $result.Connected | Should -BeFalse
         $result.TimedOut | Should -BeTrue
-        $result.ElapsedMs | Should -BeGreaterOrEqual 400
-        $result.ElapsedMs | Should -BeLessThan 1800
+        $result.ElapsedMs | Should -BeGreaterOrEqual 850
+        $result.ElapsedMs | Should -BeLessThan 3500
         $result.Attempts.Count | Should -Be 3
         @($result.Attempts | Where-Object { $_.Outcome -ne 'Timeout' }).Count | Should -Be 0
         foreach ($client in $log.Clients.Values) { $client.CanRead | Should -BeFalse }
@@ -1339,7 +1356,7 @@ Describe 'Connect-PcaiEndpoint' -Tag 'Unit', 'Network', 'Portable' {
     It 'clamps AttemptDelayMs to 2000 ms' {
         $plan = @{ '2001:db8::1' = 'Hang'; '192.0.2.1' = 'Ok' }
         $log = New-DsLog
-        $result = Connect-PcaiEndpoint -Candidate @((New-DsCand '2001:db8::1'), (New-DsCand '192.0.2.1')) -Port 22 -AttemptDelayMs 99999 -TimeoutMs 3500 -Connector (New-DsConnector $plan $log)
+        $result = Connect-PcaiEndpoint -Candidate @((New-DsCand '2001:db8::1'), (New-DsCand '192.0.2.1')) -Port 22 -AttemptDelayMs 99999 -TimeoutMs 5000 -Connector (New-DsConnector $plan $log)
         $result.Connected | Should -BeTrue
         $result.Attempts[1].StartMs | Should -BeGreaterOrEqual 1900
         $result.Attempts[1].StartMs | Should -BeLessThan 2800
@@ -1668,6 +1685,257 @@ Describe 'Dual-stack defaults and edge cases' -Tag 'Unit', 'Network', 'Portable'
         $merged[0].Port | Should -Be 22
         $merged[0].InterfaceAlias | Should -Be 'Ethernet 4'
         $merged[0].Evidence | Should -BeLike '*DNS answer*registry IPv4*'
+    }
+}
+
+Describe 'Egress proof for routed registry candidates' -Tag 'Unit', 'Network', 'Fast', 'Portable' {
+    # Review finding 1 (PR 402): a registry ULA (or IPv4) is not tied to an interface the way a scoped link-local is, so on
+    # a roaming network that routes the same prefix it could probe an unrelated host and report it as the winner. A routed
+    # registry candidate is admitted only when Find-NetRoute-style evidence shows it leaves over a live USB4/P2P adapter
+    # and its source address belongs to that adapter; the socket is then bound to that source address.
+
+    # Protects: no USB4 adapter, no ULA. This is the repro from the review: nothing enrolled, nothing to route over.
+    # Detects: a ULA or registry IPv4 emitted while the adapter table lists no live USB4 interface.
+    # Needs: an empty injected adapter table.
+    # Breadcrumb: Get-PcaiEndpointCandidate egress gate; Test-PcaiUsb4Egress
+    It 'emits no ULA and no registry IPv4 when no USB4 adapter is live' {
+        $found = @(Get-PcaiEndpointCandidate -PeerId 'dtm-test-peer' -Provider KnownPeer -InterfaceSource { @() } -RegistrySource $script:RegistrySource -NeighborSource $script:NoNeighbors)
+        @($found | Where-Object { $_.Class -in 'ULA', 'IPv4Private', 'IPv4Public' }).Count | Should -Be 0
+    }
+
+    # Protects: a route that leaves through some other interface (Wi-Fi, a hotel network routing the same prefix) is not proof.
+    # Detects: a candidate admitted because the destination merely parses as a USB4-looking prefix.
+    # Needs: an injected route that selects ifIndex 7 (not a USB4 adapter, and one that "owns" the source address so only the
+    # interface check can reject it) and a live USB4 adapter at 25.
+    # Breadcrumb: Test-PcaiUsb4Egress interface check
+    It 'omits a ULA whose route leaves through a non-USB4 interface' {
+        $source = New-DsInterfaceSource @((New-DsAdapter -Index 25 -Alias 'Ethernet 4'))
+        $found = @(Get-PcaiEndpointCandidate -PeerId 'dtm-test-peer' -Provider KnownPeer -IncludeIPv6 -InterfaceSource $source -RegistrySource $script:RegistrySource -NeighborSource $script:NoNeighbors -RouteSource (New-DsRouteSource -IfIndex 7) -LocalAddressSource $script:OwnedOnAnyInterface)
+        @($found | Where-Object { $_.Class -eq 'ULA' }).Count | Should -Be 0
+        @($found | Where-Object { $_.Class -eq 'LinkLocal' }).Count | Should -BeGreaterThan 0
+    }
+
+    # Protects: the source address of the selected route must be an address of that same adapter.
+    # Detects: a route whose source belongs to a different interface being accepted.
+    # Needs: an injected route via ifIndex 25 whose source is not among that adapter's addresses.
+    # Breadcrumb: Test-PcaiUsb4Egress source-address check
+    It 'omits a ULA whose route source address is not on the USB4 adapter' {
+        $source = New-DsInterfaceSource @((New-DsAdapter -Index 25 -Alias 'Ethernet 4'))
+        $foreign = New-DsRouteSource -IfIndex 25 -Source6 'fd5f:743d:6f55:50::9'
+        $found = @(Get-PcaiEndpointCandidate -PeerId 'dtm-test-peer' -Provider KnownPeer -IncludeIPv6 -InterfaceSource $source -RegistrySource $script:RegistrySource -NeighborSource $script:NoNeighbors -RouteSource $foreign -LocalAddressSource $script:OwnedAddresses)
+        @($found | Where-Object { $_.Class -eq 'ULA' }).Count | Should -Be 0
+    }
+
+    # Protects: the positive path: verified egress admits the ULA and records the source address the socket must bind to.
+    # Detects: a gate that rejects everything, or admits without recording the bound source.
+    # Needs: an injected route via ifIndex 25 whose source is on that adapter.
+    # Breadcrumb: Get-PcaiEndpointCandidate SourceAddress
+    It 'admits a ULA with verified USB4 egress and records the bound source address' {
+        $source = New-DsInterfaceSource @((New-DsAdapter -Index 25 -Alias 'Ethernet 4'))
+        $found = @(Get-PcaiEndpointCandidate -PeerId 'dtm-test-peer' -Provider KnownPeer -IncludeIPv6 -InterfaceSource $source -RegistrySource $script:RegistrySource -NeighborSource $script:NoNeighbors -RouteSource (New-DsRouteSource -IfIndex 25) -LocalAddressSource $script:OwnedAddresses)
+        $ula = @($found | Where-Object { $_.Class -eq 'ULA' })
+        $ula.Count | Should -BeGreaterThan 0
+        foreach ($c in $ula) {
+            $c.SourceAddress | Should -Be 'fd00:7462:7032::1'
+            $c.InterfaceIndex | Should -Be 25
+            $c.Admitted | Should -BeTrue
+        }
+    }
+
+    # Protects: the registry's IPv4 addresses get the same proof (a LAN address must not be dialled just because a peer lists it).
+    # Detects: IPv4 registry candidates bypassing the gate that ULAs go through.
+    # Needs: injected route via a non-USB4 interface, then via the USB4 adapter.
+    # Breadcrumb: Get-PcaiEndpointCandidate KnownPeer IPv4
+    It 'applies the same egress proof to registry IPv4 addresses' {
+        $source = New-DsInterfaceSource @((New-DsAdapter -Index 25 -Alias 'Ethernet 4'))
+        $common = @{ PeerId = 'dtm-test-peer'; Provider = 'KnownPeer'; IncludeIPv4 = $true; InterfaceSource = $source; RegistrySource = $script:RegistrySource; NeighborSource = $script:NoNeighbors; LocalAddressSource = $script:OwnedOnAnyInterface }
+        @(Get-PcaiEndpointCandidate @common -RouteSource (New-DsRouteSource -IfIndex 7)).Count | Should -Be 0
+        $admitted = @(Get-PcaiEndpointCandidate @common -RouteSource (New-DsRouteSource -IfIndex 25))
+        $admitted.Count | Should -Be 1
+        $admitted[0].SourceAddress | Should -Be '172.31.240.1'
+    }
+
+    # Protects: the omission is recorded, not silent: -IncludeRejected returns the candidate flagged not admitted with the
+    # evidence reason unverified-egress, and the connector never dials it.
+    # Detects: a rejected candidate that is lost without a reason, or one the connector would still dial.
+    # Needs: injected non-USB4 route and a connector that records every dial.
+    # Breadcrumb: Get-PcaiEndpointCandidate -IncludeRejected; Connect-PcaiEndpoint Skipped
+    It 'records unverified-egress for an omitted candidate and never dials it' {
+        $source = New-DsInterfaceSource @((New-DsAdapter -Index 25 -Alias 'Ethernet 4'))
+        $all = @(Get-PcaiEndpointCandidate -PeerId 'dtm-test-peer' -Provider KnownPeer -IncludeIPv6 -IncludeRejected -InterfaceSource $source -RegistrySource $script:RegistrySource -NeighborSource $script:NoNeighbors -RouteSource (New-DsRouteSource -IfIndex 7) -LocalAddressSource $script:OwnedOnAnyInterface)
+        $rejected = @($all | Where-Object { -not $_.Admitted })
+        $rejected.Count | Should -BeGreaterThan 0
+        foreach ($c in $rejected) { $c.Evidence | Should -BeLike '*unverified-egress*' }
+        $log = New-DsLog
+        $r = Connect-PcaiEndpoint -Candidate $rejected -Port 22 -TimeoutMs 1000 -Connector (New-DsConnector @{} $log)
+        $r.Connected | Should -BeFalse
+        $log.Calls.Count | Should -Be 0
+        $r.Skipped.Count | Should -Be $rejected.Count
+        $r.Skipped[0].Reason | Should -BeLike '*unverified-egress*'
+    }
+
+    # Protects: the bind. A candidate that carries a SourceAddress is dialled from that address, so the OS cannot choose
+    # another egress. 127.0.0.2 is a second loopback source on Windows; the listener sees it as the peer address.
+    # Detects: a default connector that ignores SourceAddress (the local endpoint would be 127.0.0.1).
+    # Needs: a loopback listener; no IPv6.
+    # Breadcrumb: New-PcaiTcpConnection
+    It 'binds the socket to the candidate source address' {
+        $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
+        $listener.Start()
+        try {
+            $port = ([Net.IPEndPoint]$listener.LocalEndpoint).Port
+            $candidate = [pscustomobject]@{ Address = '127.0.0.1'; Source = 'KnownPeer'; SourceAddress = '127.0.0.2' }
+            $r = Connect-PcaiEndpoint -Candidate @($candidate) -Port $port -TimeoutMs 3000 -PassThru
+            try {
+                $r.Connected | Should -BeTrue
+                $r.Client.Client.LocalEndPoint.Address.ToString() | Should -Be '127.0.0.2'
+            }
+            finally { if ($r.Client) { $r.Client.Dispose() } }
+        }
+        finally { $listener.Stop() }
+    }
+
+    # Protects: the connector seam receives the candidate (and with it SourceAddress) so injected and default connectors agree.
+    # Detects: SourceAddress lost between ordering and the connector call.
+    # Needs: injected connector.
+    # Breadcrumb: Connect-PcaiEndpoint, ConvertTo-PcaiConnectCandidate
+    It 'passes SourceAddress to the connector' {
+        $seen = [Collections.Generic.List[string]]::new()
+        $connector = {
+            param($IPAddress, $Port, $Candidate)
+            $seen.Add([string]$Candidate.SourceAddress)
+            [pscustomobject]@{ Task = [Threading.Tasks.Task]::CompletedTask; Client = $null }
+        }.GetNewClosure()
+        $null = Connect-PcaiEndpoint -Candidate @([pscustomobject]@{ Address = 'fd00:7462:7032::50'; Source = 'KnownPeer'; SourceAddress = 'fd00:7462:7032::1' }) -Port 22 -Connector $connector
+        $seen | Should -Be @('fd00:7462:7032::1')
+    }
+}
+
+Describe 'Family fallback inside the budget' -Tag 'Unit', 'Network', 'Portable' {
+    # Review finding 2 (PR 402): with all link-local candidates ahead of every other family, two USB4 interfaces and one
+    # known MAC give six link-local candidates; if they stay pending, the 250 ms stagger spends the 1500 ms fleet budget
+    # before IPv4 is tried. RFC 8305 section 4 interleaves families (First Address Family Count = 1).
+
+    # Protects: the regression itself. Six link-local attempts never answer; a reachable IPv4 candidate must still win
+    # inside a 1500 ms budget.
+    # Detects: "all link-local first" ordering, which starts IPv4 only after 6 x 250 ms = 1500 ms.
+    # Needs: six hanging scoped link-local candidates and one connecting IPv4 candidate.
+    # Breadcrumb: Get-PcaiConnectionOrder interleave
+    It 'connects over IPv4 inside 1500 ms while six link-local attempts stay pending' {
+        $candidates = @(
+            (New-DsCand 'fe80::d700:50%19' -Source KnownPeer), (New-DsCand 'fe80::d700:50%25' -Source KnownPeer),
+            (New-DsCand 'fe80::4c97:da5:8e2b%19' -Source KnownPeer), (New-DsCand 'fe80::4c97:da5:8e2b%25' -Source KnownPeer),
+            (New-DsCand 'fe80::5eff:fe00:5350%19' -Source Eui64), (New-DsCand 'fe80::5eff:fe00:5350%25' -Source Eui64),
+            (New-DsCand '192.0.2.33'))
+        $plan = @{}
+        foreach ($c in $candidates) { $plan[([ipaddress]$c.Address).ToString()] = 'Hang' }
+        $plan['192.0.2.33'] = 'Ok'
+        $log = New-DsLog
+        $r = Connect-PcaiEndpoint -Candidate $candidates -Port 22 -TimeoutMs 1500 -Connector (New-DsConnector $plan $log)
+        $r.Connected | Should -BeTrue
+        $r.Winner.Address | Should -Be '192.0.2.33'
+        $r.ElapsedMs | Should -BeLessThan 1000
+        $r.Attempts[1].Address | Should -Be '192.0.2.33'
+    }
+
+    # Protects: the interleave pattern itself, including -PreferredFamilyCount (RFC 8305 First Address Family Count).
+    # Detects: IPv4 starved behind the link-local block, a count that is ignored, IPv6 not first.
+    # Needs: an all-refusing connector so attempts run strictly in candidate order.
+    # Breadcrumb: Get-PcaiConnectionOrder -PreferredFamilyCount
+    It 'interleaves after <Count> IPv6 candidate(s): <Expected>' -ForEach @(
+        @{ Count = 1; Expected = @('fe80::1%25', '192.0.2.1', 'fe80::2%25', '192.0.2.2', '2001:db8::1') }
+        @{ Count = 2; Expected = @('fe80::1%25', 'fe80::2%25', '192.0.2.1', '2001:db8::1', '192.0.2.2') }
+    ) {
+        $candidates = @((New-DsCand '192.0.2.1'), (New-DsCand '2001:db8::1'), (New-DsCand 'fe80::2%25' -Source KnownPeer), (New-DsCand '192.0.2.2'), (New-DsCand 'fe80::1%25' -Source KnownPeer -NeighborState Reachable))
+        $plan = @{}
+        foreach ($c in $candidates) { $plan[([ipaddress]$c.Address).ToString()] = 'Refused' }
+        $r = Connect-PcaiEndpoint -Candidate $candidates -Port 22 -PreferredFamilyCount $Count -TimeoutMs 3000 -Connector (New-DsConnector $plan (New-DsLog))
+        @($r.Attempts | ForEach-Object { $_.Address }) | Should -Be $Expected
+    }
+
+    # Protects: the budget always leaves room for one attempt per family. When the stagger would push the first IPv4
+    # attempt past half the deadline, the stagger is compressed (never below 10 ms) and the result says so.
+    # Detects: a fixed 250 ms stagger inside a 400 ms budget (IPv4 would start at 250 ms with 150 ms left, then lose).
+    # Needs: hanging link-local candidates, a connecting IPv4 one, TimeoutMs 400.
+    # Breadcrumb: Connect-PcaiEndpoint EffectiveDelayMs
+    It 'compresses the stagger so the second family starts well inside a short budget' {
+        $candidates = @((New-DsCand 'fe80::d700:50%25' -Source KnownPeer), (New-DsCand 'fe80::d700:51%25' -Source KnownPeer), (New-DsCand '192.0.2.33'))
+        $plan = @{ 'fe80::d700:50%25' = 'Hang'; 'fe80::d700:51%25' = 'Hang'; '192.0.2.33' = 'Ok' }
+        $r = Connect-PcaiEndpoint -Candidate $candidates -Port 22 -AttemptDelayMs 250 -TimeoutMs 400 -Connector (New-DsConnector $plan (New-DsLog))
+        $r.Connected | Should -BeTrue
+        $r.EffectiveDelayMs | Should -BeLessOrEqual 200
+        $r.EffectiveDelayMs | Should -BeGreaterOrEqual 10
+        $r.Attempts[1].StartMs | Should -BeLessThan 300
+    }
+
+    # Protects: a generous budget is not compressed.
+    # Detects: compression applied when it is not needed (the documented 250 ms default must hold).
+    # Needs: one hanging link-local and a connecting IPv4 candidate with the default budget.
+    # Breadcrumb: Connect-PcaiEndpoint EffectiveDelayMs
+    It 'keeps the requested stagger when the budget is generous' {
+        $candidates = @((New-DsCand 'fe80::d700:50%25' -Source KnownPeer), (New-DsCand '192.0.2.33'))
+        $r = Connect-PcaiEndpoint -Candidate $candidates -Port 22 -AttemptDelayMs 250 -TimeoutMs 5000 -Connector (New-DsConnector @{ 'fe80::d700:50%25' = 'Hang'; '192.0.2.33' = 'Ok' } (New-DsLog))
+        $r.EffectiveDelayMs | Should -Be 250
+    }
+}
+
+Describe 'Test-FleetPath -DualStack egress proof' -Tag 'Unit', 'Network' {
+    BeforeAll {
+        if ($PSVersionTable.PSVersion.Major -ge 7) {
+            . (Join-Path $PSScriptRoot '..\..\Tools\SystemScripts\Networking\Test-FleetPath.ps1')
+            # Tailnet-only service and no Tailscale: every inventory candidate is skipped, so only the USB4 candidates remain.
+            $inventory = Join-Path $TestDrive 'fleet-paths-tailnet.json'
+            [IO.File]::WriteAllText($inventory, '{"schema":"pcai.fleet-paths/1","gateways":[{"name":"gw","ip":"192.0.2.1","mac":"00-00-5E-00-53-01","probePorts":[443]}],"hosts":{"dtm-test-peer":{"tailnet":"100.64.0.102","services":{"ssh":{"ports":[22],"via":["tailnet"]}}}}}')
+            $script:TailnetOnlyInventory = $inventory
+            Mock Find-FleetRoute { [pscustomobject]@{ Interface = 'Ethernet 12'; InterfaceIndex = 12; SourceAddress = '192.0.2.200'; NextHop = 'on-link' } }
+            Mock Get-FleetTailscaleStatus { [pscustomobject]@{ Available = $false; Error = 'test'; Status = $null } }
+            Mock Get-FleetInterface { [pscustomobject]@{ InterfaceIndex = 12; InterfaceAlias = 'Ethernet 12'; IPAddress = '192.0.2.200'; PrefixLength = 24 } }
+            Mock Get-FleetPhysicalInterfaceIndex { @(12) }
+            Mock Get-FleetNeighbor { [pscustomobject]@{ IPAddress = '192.0.2.1'; LinkLayerAddress = '00-00-5E-00-53-01'; State = 'Reachable'; InterfaceAlias = 'Ethernet 12'; InterfaceIndex = 12 } }
+            $script:GatewayOk = { param($Address, $Port, $SourceAddress) [pscustomobject]@{ Task = [Threading.Tasks.Task]::CompletedTask; Client = $null } }
+            $script:ReviewRegistry = '{ "ulaPrefix": "fd00:7462:7032", "fleetPeers": [ { "name": "dtm-test-peer", "aliases": [], "shortLinkLocal": "fe80::d700:50", "shortUla": "fd00:7462:7032::50", "lanAddresses": [] } ] }' | ConvertFrom-Json
+        }
+    }
+
+    # Protects: the exact repro from the review. No USB4 interface, no inventory candidate, a connector that would succeed
+    # for anything: the result must NOT report a ULA winner.
+    # Detects: a ULA admitted without egress proof (Connected true, Class ULA, no interface, no zone).
+    # Needs: pwsh 7; mocked probes; empty adapter table; connector that completes every connect.
+    # Breadcrumb: Invoke-FleetDualStack; Get-PcaiEndpointCandidate egress gate
+    It 'does not report a ULA winner when no USB4 interface exists' -Skip:($PSVersionTable.PSVersion.Major -lt 7) {
+        $registry = $script:ReviewRegistry
+        $resolver = @{ InterfaceSource = { @() }; RegistrySource = { param($Path) $registry }.GetNewClosure(); NeighborSource = { param($InterfaceIndex) @() } }
+        $everything = { param($IPAddress, $Port, $Candidate) [pscustomobject]@{ Task = [Threading.Tasks.Task]::CompletedTask; Client = $null } }
+        $report = Invoke-FleetPathTest -InventoryPath $script:TailnetOnlyInventory -BudgetMs 800 -Connector $script:GatewayOk -DualStack -DualStackConnector $everything -DualStackResolverParameter $resolver
+        $dual = $report.Targets[0].Endpoints[0].DualStack
+        $dual.Connected | Should -BeFalse
+        @($dual.Attempts).Count | Should -Be 0
+    }
+
+    # Protects: with proof, the ULA is raced from the proven source address; without it, the ULA is reported as skipped with
+    # the reason and never dialled.
+    # Detects: a ULA dialled unbound (SourceAddress empty), or a rejected ULA dropped without a recorded reason.
+    # Needs: pwsh 7; mocked probes; one live USB4 adapter; injected route that either verifies or leaves via ifIndex 7.
+    # Breadcrumb: Invoke-FleetDualStack; Get-PcaiEndpointCandidate -IncludeRejected
+    It 'dials a proven ULA bound to its source address and reports an unproven one as skipped' -Skip:($PSVersionTable.PSVersion.Major -lt 7) {
+        $registry = $script:ReviewRegistry
+        $adapter = [pscustomobject]@{ Name = 'Ethernet 4'; InterfaceAlias = 'Ethernet 4'; InterfaceDescription = 'USB4 P2P Network Adapter'; ifIndex = 25; Status = 'Up'; MacAddress = '02-00-5E-00-53-AA' }
+        $base = @{ InterfaceSource = { @($adapter) }.GetNewClosure(); RegistrySource = { param($Path) $registry }.GetNewClosure(); NeighborSource = { param($InterfaceIndex) @() }; LocalAddressSource = $script:OwnedOnAnyInterface }
+        $dialled = [Collections.Generic.List[string]]::new()
+        $record = {
+            param($IPAddress, $Port, $Candidate)
+            $dialled.Add("$($IPAddress.ToString())|$($Candidate.SourceAddress)")
+            [pscustomobject]@{ Task = [Threading.Tasks.Task]::CompletedTask; Client = $null }
+        }.GetNewClosure()
+        $proven = Invoke-FleetPathTest -InventoryPath $script:TailnetOnlyInventory -BudgetMs 800 -Connector $script:GatewayOk -DualStack -DualStackConnector $record -DualStackResolverParameter ($base + @{ RouteSource = (New-DsRouteSource -IfIndex 25) })
+        $proven.Targets[0].Endpoints[0].DualStack.Winner.Class | Should -Be 'LinkLocal'
+        $dialled.Clear()
+        $onlyUla = Invoke-FleetPathTest -InventoryPath $script:TailnetOnlyInventory -BudgetMs 800 -Connector $script:GatewayOk -DualStack -DualStackConnector { param($IPAddress, $Port, $Candidate) if ($IPAddress.AddressFamily -eq 'InterNetworkV6' -and $IPAddress.ScopeId -gt 0) { [pscustomobject]@{ Task = [Threading.Tasks.Task]::FromException([Net.Sockets.SocketException]::new(10061)); Client = $null } } else { $record.Invoke($IPAddress, $Port, $Candidate) } } -DualStackResolverParameter ($base + @{ RouteSource = (New-DsRouteSource -IfIndex 25) })
+        @($dialled | Where-Object { $_ -like 'fd00:7462:7032::50|fd00:7462:7032::1' }).Count | Should -Be 1
+        $dualUnproven = (Invoke-FleetPathTest -InventoryPath $script:TailnetOnlyInventory -BudgetMs 800 -Connector $script:GatewayOk -DualStack -DualStackConnector $record -DualStackResolverParameter ($base + @{ RouteSource = (New-DsRouteSource -IfIndex 7) })).Targets[0].Endpoints[0].DualStack
+        @($dualUnproven.Skipped).Count | Should -BeGreaterThan 0
+        $dualUnproven.Skipped[0].Reason | Should -BeLike '*unverified-egress*'
+        @($dualUnproven.Attempts | Where-Object { $_.Class -eq 'ULA' }).Count | Should -Be 0
     }
 }
 

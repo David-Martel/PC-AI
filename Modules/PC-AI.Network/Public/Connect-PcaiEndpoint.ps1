@@ -40,6 +40,10 @@ function Connect-PcaiEndpoint {
     .PARAMETER TimeoutMs
         Overall deadline in milliseconds. Default 5000.
 
+    .PARAMETER PreferredFamilyCount
+        RFC 8305 First Address Family Count: how many IPv6 candidates are tried before the families alternate
+        (IPv4, IPv6, IPv4, ...). Default 1. Link-local stays first within IPv6 but cannot starve IPv4.
+
     .PARAMETER PassThru
         Return the winning open TcpClient in the result's Client member; the caller owns and must dispose it.
         Without it the winner is closed again (a reachability test).
@@ -79,6 +83,7 @@ function Connect-PcaiEndpoint {
         [ValidateRange(1, 65535)][int]$Port,
         [int]$AttemptDelayMs = 250,
         [int]$TimeoutMs = 5000,
+        [ValidateRange(1, 64)][int]$PreferredFamilyCount = 1,
         [switch]$PassThru,
         [scriptblock]$Connector
     )
@@ -117,7 +122,27 @@ function Connect-PcaiEndpoint {
             $n = ConvertTo-PcaiConnectCandidate -InputObject $item
             if ($null -eq $n) { $unparseable.Add($item) } else { $normalised.Add($n) }
         }
-        $ordered = @(Get-PcaiConnectionOrder -Candidate $normalised.ToArray())
+        # A candidate the egress proof omitted (Admitted = $false) is never dialled; it is reported as skipped.
+        $dialable = New-Object 'System.Collections.Generic.List[object]'
+        $skipped = New-Object 'System.Collections.Generic.List[object]'
+        foreach ($n in $normalised) {
+            if ($n.Admitted) { $dialable.Add($n) }
+            else { $skipped.Add([pscustomobject]@{ Address = $n.Address; Class = $n.Class; Source = $n.Source; Reason = $n.Evidence }) }
+        }
+        $ordered = @(Get-PcaiConnectionOrder -Candidate $dialable.ToArray() -PreferredFamilyCount $PreferredFamilyCount)
+
+        # Leave room for one attempt per family: if the stagger would start the second family after half the deadline,
+        # compress it (never below the RFC 8305 floor of 10 ms).
+        $firstV6 = -1; $firstV4 = -1
+        for ($k = 0; $k -lt $ordered.Count; $k++) {
+            if ($ordered[$k].Family -eq 'InterNetworkV6') { if ($firstV6 -lt 0) { $firstV6 = $k } }
+            elseif ($firstV4 -lt 0) { $firstV4 = $k }
+        }
+        $needed = 0
+        if ($firstV6 -ge 0 -and $firstV4 -ge 0) { $needed = [Math]::Max($firstV6, $firstV4) }
+        if ($needed -gt 0 -and ($needed * $AttemptDelayMs) -gt ($TimeoutMs / 2)) {
+            $AttemptDelayMs = [Math]::Max(10, [int][Math]::Floor($TimeoutMs / 2 / $needed))
+        }
 
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
         $attempts = New-Object 'System.Collections.Generic.List[object]'
@@ -250,6 +275,8 @@ function Connect-PcaiEndpoint {
             Attempts = $rows
             ElapsedMs = [int]$elapsed
             TimedOut = $timedOut
+            EffectiveDelayMs = $AttemptDelayMs
+            Skipped = @($skipped.ToArray())
             Client = $keepClient
         }
         if ($null -eq $winner -and $PSBoundParameters.ContainsKey('ErrorAction') -and "$($PSBoundParameters['ErrorAction'])" -eq 'Stop') {

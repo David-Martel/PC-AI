@@ -35,7 +35,8 @@ keys (pinned in `known_hosts`) or another authenticated protocol decide whether 
 `Get-PcaiEndpointCandidate -Provider KnownPeer, Eui64, Neighbor, Dns` (default all four). Each reads one source:
 
 * **KnownPeer** resolves the registry peer by `-PeerId` or `-HostName` and emits its link-local addresses (short alias
-  first, then the derived one), its ULA addresses and its registry IPv4 addresses.
+  first, then the derived one), its ULA addresses and its registry IPv4 addresses. The ULA and IPv4 addresses are only
+  emitted with [egress proof](#egress-proof-for-ula-and-registry-ipv4-addresses).
 * **Eui64** derives `fe80::<iid>` from the MAC: flip the universal/local bit of the first octet and insert `ff:fe`. The
   vector `00-11-22-33-44-55` gives `fe80::211:22ff:fe33:4455`.
 * **Neighbor** keeps link-local rows in state Reachable, Stale, Delay, Probe or Permanent whose MAC matches (separators
@@ -66,11 +67,39 @@ the `ifIndex` changes with a replug, another port, a different hub or a driver r
 After a replug from ifIndex 19 to 25 the next call returns `%25` candidates and no `%19` ones. Unit tests drive exactly
 that.
 
+## Egress proof for ULA and registry IPv4 addresses
+
+A scoped link-local address names its interface in the zone, so a connect cannot leave anywhere else. A registry ULA
+(`fd00:7462:7032::...`) or IPv4 address names no interface: the OS picks the egress. On a roaming network that routes
+the same prefix, that connect would reach an unrelated host and the result would call it the peer. So such a candidate
+is admitted only with proof:
+
+1. at least one live USB4/P2P adapter exists;
+2. the route Windows would use for the address (`Find-NetRoute -RemoteIPAddress`) leaves over the InterfaceIndex of one
+   of those adapters;
+3. the route's source address is one of that adapter's own addresses (CIM `MSFT_NetIPAddress`).
+
+An admitted candidate carries `SourceAddress` and `InterfaceIndex`, and the connector **binds the socket to that source
+address** (`TcpClient` with a local `IPEndPoint`) so the OS cannot choose another egress. Without proof the candidate is
+omitted; `-IncludeRejected` returns it flagged `Admitted = $false` with the evidence reason `unverified-egress: ...`,
+and `Connect-PcaiEndpoint` never dials such a candidate (it lists it under `Skipped`). The route and local-address reads
+are injectable (`-RouteSource`, `-LocalAddressSource`). DNS answers are not gated here because the caller named that
+host; any future USB4 pairwise IPv4 (/30) candidate must go through the same proof. `Test-FleetPath.ps1 -DualStack`
+uses `Get-PcaiEndpointCandidate`, so it inherits the rule and reports omitted ULAs under `DualStack.Skipped`.
+
 ## Ordering and timing (RFC 8305)
 
-1. Scoped IPv6 link-local candidates first. Registry and neighbour-observed candidates come before EUI-64 guesses;
-   MAC-matched before unmatched; Reachable before Stale/Delay/Probe/Permanent before unknown.
-2. Then IPv6 and IPv4 interleaved, starting with IPv6 (ULA before GUA; IPv4 private before link-local before public).
+The IPv6 list is ordered scoped link-local first: registry and neighbour-observed candidates before EUI-64 guesses,
+MAC-matched before unmatched, Reachable before Stale/Delay/Probe/Permanent before unknown; then loopback, ULA, GUA. The
+IPv4 list is loopback, private, link-local, public. The two lists are merged by RFC 8305 section 4: the first
+`-PreferredFamilyCount` IPv6 candidates (First Address Family Count, default 1), then IPv4, IPv6, IPv4, ... Link-local
+leads the IPv6 side but cannot starve IPv4: with six link-local candidates (two interfaces, three addresses each) the
+first IPv4 attempt is the second attempt, not the seventh.
+
+The budget always leaves room for the second family. If starting the first candidate of each family with the requested
+stagger would take more than half of `-TimeoutMs`, the stagger is compressed (never below 10 ms) and the result reports
+it as `EffectiveDelayMs`. With the fleet script's 1500 ms budget and the default 250 ms stagger nothing is compressed and
+IPv4 starts at 250 ms.
 
 `Connect-PcaiEndpoint` starts attempt 1 immediately and each next attempt after `-AttemptDelayMs` (default 250, clamped
 to 10..2000), **or immediately when the attempt in flight fails**. The first success wins; every other client is
@@ -117,5 +146,6 @@ USB4 link-local and ULA addresses, and it adds `DualStack` members to the report
   not answer.
 * The deterministic hextets mirror `Get-ThunderboltPeerIdentity` (Drivers). A unit test compares both on PowerShell 7 so
   they cannot drift apart; consolidating them into one helper is a follow-up for the Drivers owner.
+* The egress proof needs `Find-NetRoute`, so it runs on Windows with the NetTCPIP module; an unreadable route is "not proven" and the candidate is omitted.
 * `Test-PortConnectivity` in `Network-Helpers.ps1` still makes a single `BeginConnect` attempt. Its contract tests pin
   that exact call, so switching it to this connector is a separate change.

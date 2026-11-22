@@ -92,7 +92,9 @@ inventory host), and report the winner, its class (LinkLocal, ULA, GUA, IPv4Priv
 DualStack member on each endpoint and DualStackConnected, DualStackWinnerClass, DualStackWinnerSource and DualStackMs
 on each Summary row. The inventory's tailnetV6 address joins the race only when its own route leaves from this node's
 tailnet address. DNS is never consulted and the registry's IPv4 addresses are never dialled, because neither has
-passed the home-LAN or tailnet-egress gate. Without the switch the output is unchanged. The race runs after the
+passed the home-LAN or tailnet-egress gate. A registry ULA is raced only with proof that its route leaves over a live
+USB4/P2P adapter from that adapter's own address; the socket is then bound to that source address, and a ULA that fails
+the proof is listed under DualStack.Skipped with the reason unverified-egress. Without the switch the output is unchanged. The race runs after the
 probes, one endpoint at a time, each bounded by -BudgetMs.
 
 .PARAMETER AsJson
@@ -798,11 +800,18 @@ function Invoke-FleetDualStack {
         if ($tailnetV6 -and $tailnetGated -and (Test-FleetTailnetEgress -Route (Find-FleetRoute -Address ([string]$tailnetV6)) -Status $TailscaleStatus)) {
             $plan.Add([pscustomobject]@{ Address = [string]$tailnetV6; Source = 'Inventory'; Evidence = 'inventory tailnetV6, gated'; Port = $Endpoint.Port })
         }
-        # Scoped USB4 link-local and ULA only. The registry's IPv4 addresses and DNS answers have no gate here.
-        $lookup = @{ PeerId = $fleetHost.Name; Provider = @('KnownPeer', 'Eui64', 'Neighbor'); IncludeIPv6 = $true; Port = $Endpoint.Port }
+        # Scoped USB4 link-local, plus a registry ULA ONLY with egress proof: Get-PcaiEndpointCandidate admits it when
+        # Find-NetRoute sends it out of a live USB4/P2P adapter from that adapter's own address, and the connector then
+        # binds the socket to that source address. A ULA that fails the proof comes back flagged Admitted = $false with the
+        # reason 'unverified-egress'; it is reported under Skipped and never dialled. The registry's IPv4 addresses and DNS
+        # answers have no gate here and are not requested.
+        $lookup = @{ PeerId = $fleetHost.Name; Provider = @('KnownPeer', 'Eui64', 'Neighbor'); IncludeIPv6 = $true; IncludeRejected = $true; Port = $Endpoint.Port }
         if ($ResolverParameter) { foreach ($key in $ResolverParameter.Keys) { $lookup[$key] = $ResolverParameter[$key] } }
+        $skipped = [Collections.Generic.List[object]]::new()
         foreach ($c in @(Get-PcaiEndpointCandidate @lookup)) {
-            if ($c.Class -in 'LinkLocal', 'ULA') { $plan.Add($c) }
+            if ($c.Class -notin 'LinkLocal', 'ULA') { continue }
+            if ($c.Admitted) { $plan.Add($c) }
+            else { $skipped.Add([pscustomobject]@{ Address = $c.Address; Class = $c.Class; Reason = $c.Evidence }) }
         }
         $connect = @{ Candidate = $plan.ToArray(); Port = $Endpoint.Port; TimeoutMs = $BudgetMs }
         if ($Connector) { $connect.Connector = $Connector }
@@ -812,11 +821,12 @@ function Invoke-FleetDualStack {
             Winner = if ($result.Winner) { [pscustomobject]@{ Address = $result.Winner.Address; Class = $result.Winner.Class; Source = $result.Winner.Source; InterfaceIndex = $result.Winner.InterfaceIndex } } else { $null }
             ElapsedMs = $result.ElapsedMs
             Attempts = @($result.Attempts)
+            Skipped = @($skipped.ToArray())
             Error = $null
         }
     }
     catch {
-        [pscustomobject]@{ Connected = $false; Winner = $null; ElapsedMs = 0; Attempts = @(); Error = $_.Exception.Message }
+        [pscustomobject]@{ Connected = $false; Winner = $null; ElapsedMs = 0; Attempts = @(); Skipped = @(); Error = $_.Exception.Message }
     }
 }
 

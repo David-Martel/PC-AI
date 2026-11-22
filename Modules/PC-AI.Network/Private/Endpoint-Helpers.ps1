@@ -358,11 +358,17 @@ function New-PcaiEndpointCandidate {
         $Port,
         [bool]$MacMatched = $false,
         [bool]$Eui64Derived = $false,
-        [string]$NeighborState
+        [string]$NeighborState,
+        # The local address the socket must bind to (set when egress was proven), and the interface it leaves by.
+        [string]$SourceAddress,
+        $EgressInterfaceIndex,
+        # $false for a candidate omitted by the egress proof; the connector never dials it.
+        [bool]$Admitted = $true
     )
     $class = Get-PcaiAddressClass -IPAddress $IPAddress
     $zone = $null
     if ($IPAddress.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetworkV6 -and $IPAddress.ScopeId -gt 0) { $zone = [int]$IPAddress.ScopeId }
+    elseif ($null -ne $EgressInterfaceIndex) { $zone = [int]$EgressInterfaceIndex }
     $alias = $null
     if ($Interface) { $alias = [string](Get-PcaiProperty $Interface 'InterfaceAlias') }
     [pscustomobject]@{
@@ -381,6 +387,8 @@ function New-PcaiEndpointCandidate {
         MacMatched = $MacMatched
         Eui64Derived = $Eui64Derived
         NeighborState = $NeighborState
+        SourceAddress = $SourceAddress
+        Admitted = $Admitted
     }
 }
 
@@ -446,19 +454,27 @@ function ConvertTo-PcaiConnectCandidate {
         -NeighborState ([string](Get-PcaiProperty $InputObject 'NeighborState' ''))
     $alias = Get-PcaiProperty $InputObject 'InterfaceAlias'
     if ($alias) { $candidate.InterfaceAlias = [string]$alias }
+    $bind = Get-PcaiProperty $InputObject 'SourceAddress'
+    if ($bind) { $candidate.SourceAddress = [string]$bind }
+    $zoneIndex = Get-PcaiProperty $InputObject 'InterfaceIndex'
+    if ($null -eq $candidate.InterfaceIndex -and $null -ne $zoneIndex) { $candidate.InterfaceIndex = [int]$zoneIndex }
+    $candidate.Admitted = [bool](Get-PcaiProperty $InputObject 'Admitted' $true)
     return $candidate
 }
 
 function Get-PcaiConnectionOrder {
-    # RFC 8305 section 4 ordering, specialised for scoped link-local peers:
-    #   1. Scoped IPv6 link-local first. Within it: observed-neighbour and registry candidates ahead of EUI-64
-    #      guesses; MAC-matched ahead of unmatched; an interface whose neighbour entry is Reachable ahead of
-    #      Stale/Delay/Probe/Permanent ahead of unknown.
-    #   2. The rest interleaved IPv6, IPv4, IPv6, IPv4 ... starting with IPv6 (First Address Family Count = 1).
+    # RFC 8305 section 4 ordering, specialised for scoped link-local peers.
+    #   IPv6 list: scoped link-local first (observed-neighbour and registry candidates ahead of EUI-64 guesses;
+    #   MAC-matched ahead of unmatched; an interface whose neighbour entry is Reachable ahead of
+    #   Stale/Delay/Probe/Permanent ahead of unknown), then loopback, ULA, GUA.
+    #   IPv4 list: loopback, private, link-local, public.
+    #   Merge: the first PreferredFamilyCount IPv6 candidates, then IPv4, IPv6, IPv4, ... (First Address Family Count,
+    #   RFC 8305 section 4; default 1). Link-local stays first WITHIN IPv6, but it can no longer starve IPv4: with six
+    #   link-local candidates pending, the first IPv4 attempt is the second attempt, not the seventh (PR 402 finding).
     # The original position is the last sort key, so the order never depends on Sort-Object being stable
     # (it is not guaranteed in Windows PowerShell 5.1).
     [CmdletBinding()]
-    param([AllowEmptyCollection()][object[]]$Candidate = @())
+    param([AllowEmptyCollection()][object[]]$Candidate = @(), [ValidateRange(1, 64)][int]$PreferredFamilyCount = 1)
     $scoped = New-Object 'System.Collections.Generic.List[object]'
     $v6 = New-Object 'System.Collections.Generic.List[object]'
     $v4 = New-Object 'System.Collections.Generic.List[object]'
@@ -488,14 +504,16 @@ function Get-PcaiConnectionOrder {
             $v4.Add([pscustomobject]@{ Rank = $rank; Index = $index; Candidate = $c })
         }
     }
-    $result = New-Object 'System.Collections.Generic.List[object]'
-    foreach ($item in @($scoped | Sort-Object -Property Tier, Mac, Neighbor, Index)) { $result.Add($item.Candidate) }
-    $first = @($v6 | Sort-Object -Property Rank, Index | ForEach-Object { $_.Candidate })
+    $first = New-Object 'System.Collections.Generic.List[object]'
+    foreach ($item in @($scoped | Sort-Object -Property Tier, Mac, Neighbor, Index)) { $first.Add($item.Candidate) }
+    foreach ($item in @($v6 | Sort-Object -Property Rank, Index)) { $first.Add($item.Candidate) }
     $second = @($v4 | Sort-Object -Property Rank, Index | ForEach-Object { $_.Candidate })
+    $result = New-Object 'System.Collections.Generic.List[object]'
     $i = 0; $j = 0
+    while ($i -lt $first.Count -and $i -lt $PreferredFamilyCount) { $result.Add($first[$i]); $i++ }
     while ($i -lt $first.Count -or $j -lt $second.Count) {
-        if ($i -lt $first.Count) { $result.Add($first[$i]); $i++ }
         if ($j -lt $second.Count) { $result.Add($second[$j]); $j++ }
+        if ($i -lt $first.Count) { $result.Add($first[$i]); $i++ }
     }
     return $result.ToArray()
 }
@@ -519,12 +537,94 @@ function Get-PcaiAttemptOutcome {
 
 function New-PcaiTcpConnection {
     # Default Connector: a TcpClient of the candidate's own address family and its ConnectAsync task. The scope
-    # (zone) rides inside the IPAddress. The contract is an object with Task (a System.Threading.Tasks.Task)
-    # and Client (disposed by the caller, or $null). Same shape as the Test-FleetPath connector seam.
+    # (zone) rides inside the IPAddress. A candidate that carries a SourceAddress (egress proven by
+    # Test-PcaiUsb4Egress) is dialled FROM that address: the client is bound to it first, so the OS cannot pick another
+    # egress for a prefix that a roaming network also routes. The contract is an object with Task (a
+    # System.Threading.Tasks.Task) and Client (disposed by the caller, or $null). Same shape as the Test-FleetPath
+    # connector seam (which also binds a source: Test-FleetPath.ps1 $script:FleetTcpProbe).
     [CmdletBinding()]
     param([Parameter(Mandatory)][System.Net.IPAddress]$IPAddress, [Parameter(Mandatory)][int]$Port, $Candidate)
-    $client = [System.Net.Sockets.TcpClient]::new($IPAddress.AddressFamily)
+    $bindTo = $null
+    $text = [string](Get-PcaiProperty $Candidate 'SourceAddress' '')
+    if ($text) {
+        $parsed = $null
+        if (-not [System.Net.IPAddress]::TryParse($text, [ref]$parsed)) { throw [System.ArgumentException]::new("SourceAddress '$text' is not an IP address") }
+        if ($parsed.AddressFamily -ne $IPAddress.AddressFamily) { throw [System.ArgumentException]::new('SourceAddress and destination are different address families') }
+        $bindTo = $parsed
+    }
+    if ($bindTo) { $client = [System.Net.Sockets.TcpClient]::new([System.Net.IPEndPoint]::new($bindTo, 0)) }
+    else { $client = [System.Net.Sockets.TcpClient]::new($IPAddress.AddressFamily) }
     try { $task = $client.ConnectAsync($IPAddress, $Port) }
     catch { $client.Dispose(); throw }
     [pscustomobject]@{ Task = $task; Client = $client }
+}
+
+function Find-PcaiRoute {
+    # Default RouteSource: which interface and source address Windows would use for a destination.
+    # Mirrors Find-FleetRoute (Tools/SystemScripts/Networking/Test-FleetPath.ps1:362). $null when there is no route.
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Address)
+    try {
+        $found = @(Find-NetRoute -RemoteIPAddress $Address -ErrorAction Stop)
+        $source = $found | Where-Object { $_.PSObject.Properties['IPAddress'] } | Select-Object -First 1
+        $route = $found | Where-Object { $_.PSObject.Properties['NextHop'] } | Select-Object -First 1
+        $index = $null
+        if ($route) { $index = $route.InterfaceIndex } elseif ($source) { $index = $source.InterfaceIndex }
+        if ($null -eq $index) { return $null }
+        $sourceAddress = $null
+        if ($source) { $sourceAddress = ([string]$source.IPAddress -split '%')[0] }
+        [pscustomobject]@{ InterfaceIndex = [int]$index; SourceAddress = $sourceAddress; NextHop = $(if ($route) { [string]$route.NextHop } else { '' }) }
+    }
+    catch { $null }
+}
+
+function Get-PcaiLocalAddress {
+    # Default LocalAddressSource: the addresses configured on one interface (CIM MSFT_NetIPAddress).
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][int]$InterfaceIndex)
+    try {
+        Get-CimInstance -Namespace root/StandardCimv2 -ClassName MSFT_NetIPAddress -Filter "InterfaceIndex=$InterfaceIndex" -ErrorAction Stop |
+            ForEach-Object { ([string]$_.IPAddress -split '%')[0] }
+    }
+    catch { @() }
+}
+
+function Test-PcaiUsb4Egress {
+    # Egress proof for a candidate that is not scoped to an interface by its own zone (a registry ULA or IPv4
+    # address). It is admitted only when the route Windows would use for it leaves over a LIVE USB4/P2P adapter and the
+    # route's source address is one of that adapter's own addresses. On a roaming network that routes the same prefix
+    # the route selects another interface, and the candidate is omitted ("unverified-egress"). The caller then binds
+    # the socket to the proven source address. Anything missing or failing is "not proven".
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][System.Net.IPAddress]$IPAddress,
+        [AllowEmptyCollection()][object[]]$Interface = @(),
+        [Parameter(Mandatory)][scriptblock]$RouteSource,
+        [Parameter(Mandatory)][scriptblock]$LocalAddressSource
+    )
+    $fail = {
+        param($Why)
+        [pscustomobject]@{ Admitted = $false; SourceAddress = $null; InterfaceIndex = $null; Reason = "unverified-egress: $Why" }
+    }
+    if (@($Interface).Count -eq 0) { return (& $fail 'no live USB4/P2P adapter') }
+    $route = $null
+    try { $route = & $RouteSource $IPAddress.ToString() } catch { Write-Verbose "Route lookup failed: $($_.Exception.Message)" }
+    if ($null -eq $route) { return (& $fail 'no route') }
+    $routeIndex = Get-PcaiProperty $route 'InterfaceIndex'
+    if ($null -eq $routeIndex) { return (& $fail 'route has no interface') }
+    $adapter = @($Interface | Where-Object { [int]$_.InterfaceIndex -eq [int]$routeIndex }) | Select-Object -First 1
+    if (-not $adapter) { return (& $fail "route leaves via ifIndex $routeIndex, which is not a live USB4/P2P adapter") }
+    $sourceText = [string](Get-PcaiProperty $route 'SourceAddress' '')
+    $sourceIp = $null
+    if (-not [System.Net.IPAddress]::TryParse(($sourceText -split '%')[0], [ref]$sourceIp)) { return (& $fail 'route has no source address') }
+    if ($sourceIp.AddressFamily -ne $IPAddress.AddressFamily) { return (& $fail 'route source address is of another family') }
+    $owned = @()
+    try { $owned = @(& $LocalAddressSource ([int]$routeIndex)) } catch { Write-Verbose "Local address lookup failed: $($_.Exception.Message)" }
+    $match = $false
+    foreach ($text in $owned) {
+        $ip = $null
+        if ([System.Net.IPAddress]::TryParse(([string]$text -split '%')[0], [ref]$ip) -and $ip.Equals($sourceIp)) { $match = $true; break }
+    }
+    if (-not $match) { return (& $fail "route source address is not an address of ifIndex $routeIndex") }
+    [pscustomobject]@{ Admitted = $true; SourceAddress = $sourceIp.ToString(); InterfaceIndex = [int]$routeIndex; Reason = 'egress verified' }
 }

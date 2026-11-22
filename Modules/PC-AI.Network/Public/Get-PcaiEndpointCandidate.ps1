@@ -26,6 +26,14 @@ function Get-PcaiEndpointCandidate {
 
         Output is deduplicated by (address, zone) and returned best first (the order Connect-PcaiEndpoint uses).
 
+        Egress proof: a registry ULA or IPv4 address is not tied to an interface by a zone, and a roaming network can
+        route the same prefix to an unrelated host. Such a candidate is emitted only when the route Windows would use
+        for it leaves over a live USB4/P2P adapter and the route's source address is that adapter's own. The candidate
+        then carries SourceAddress, and Connect-PcaiEndpoint binds its socket to it. With no live USB4 adapter, or a
+        route through any other interface, the candidate is omitted (see -IncludeRejected). Scoped link-local
+        candidates need no such proof: the zone is the interface. DNS answers are returned as given; the caller named
+        that host.
+
     .PARAMETER HostName
         A name or literal address. Also matched against registry peer names, aliases and tbHostAlias.
 
@@ -76,6 +84,18 @@ function Get-PcaiEndpointCandidate {
     .PARAMETER DnsSource
         Test seam. Script block taking a name and returning [ipaddress[]]. Default: Dns.GetHostAddressesAsync.
 
+    .PARAMETER RouteSource
+        Test seam. Script block taking a destination address and returning the route Windows would use (InterfaceIndex,
+        SourceAddress). Default: Find-NetRoute.
+
+    .PARAMETER LocalAddressSource
+        Test seam. Script block taking an interface index and returning the addresses configured on it.
+        Default: the CIM class MSFT_NetIPAddress.
+
+    .PARAMETER IncludeRejected
+        Also return registry candidates that failed the egress proof, flagged Admitted = $false with the evidence
+        reason 'unverified-egress'. Connect-PcaiEndpoint never dials them.
+
     .EXAMPLE
         Get-PcaiEndpointCandidate -PeerId dtm-super-nuc -Provider KnownPeer, Eui64, Neighbor -Wake |
             Format-Table Address, Class, Source, NeighborState
@@ -102,7 +122,10 @@ function Get-PcaiEndpointCandidate {
         [scriptblock]$RegistrySource,
         [scriptblock]$NeighborSource,
         [scriptblock]$WakeAction,
-        [scriptblock]$DnsSource
+        [scriptblock]$DnsSource,
+        [scriptblock]$RouteSource,
+        [scriptblock]$LocalAddressSource,
+        [switch]$IncludeRejected
     )
 
     if (-not $HostName -and -not $PeerId -and -not $MacAddress) {
@@ -118,6 +141,8 @@ function Get-PcaiEndpointCandidate {
     if (-not $NeighborSource) { $NeighborSource = { param($InterfaceIndex) Get-PcaiNeighborEntry -InterfaceIndex $InterfaceIndex } }
     if (-not $WakeAction) { $WakeAction = { param($InterfaceIndex) Invoke-PcaiNeighborWake -InterfaceIndex $InterfaceIndex } }
     if (-not $DnsSource) { $DnsSource = { param($Name) Resolve-PcaiDnsAddress -Name $Name } }
+    if (-not $RouteSource) { $RouteSource = { param($Address) Find-PcaiRoute -Address $Address } }
+    if (-not $LocalAddressSource) { $LocalAddressSource = { param($InterfaceIndex) Get-PcaiLocalAddress -InterfaceIndex $InterfaceIndex } }
 
     # Identity: the registry peer (if any) and every MAC we may match against.
     $peer = $null
@@ -134,13 +159,26 @@ function Get-PcaiEndpointCandidate {
     if ($suppliedMac) { $knownMacs.Add($suppliedMac) }
     if ($peer) { foreach ($m in $peer.MacAddresses) { if (-not $knownMacs.Contains($m)) { $knownMacs.Add($m) } } }
 
-    # Live scope interfaces, read now (never cached across calls). Only needed for IPv6 link-local.
+    # Live scope interfaces, read now (never cached across calls). Needed for IPv6 link-local and for the egress proof.
     $scopeInterfaces = @()
-    if ($wantV6) {
+    if ($wantV6 -or 'KnownPeer' -in $Provider) {
         $scopeInterfaces = @(Select-PcaiScopeInterface -Source $InterfaceSource -Alias $InterfaceAlias -Index $InterfaceIndex)
     }
 
     $found = New-Object 'System.Collections.Generic.List[object]'
+    $rejected = New-Object 'System.Collections.Generic.List[object]'
+    # Admits a routed (not zone-scoped) registry address only with USB4 egress proof; otherwise records the reason.
+    $addRouted = {
+        param($Ip, $Evidence)
+        $proof = Test-PcaiUsb4Egress -IPAddress $Ip -Interface $scopeInterfaces -RouteSource $RouteSource -LocalAddressSource $LocalAddressSource
+        if ($proof.Admitted) {
+            $iface = @($scopeInterfaces | Where-Object { [int]$_.InterfaceIndex -eq [int]$proof.InterfaceIndex }) | Select-Object -First 1
+            $found.Add((New-PcaiEndpointCandidate -IPAddress $Ip -Source 'KnownPeer' -PeerId $peerName -Interface $iface -Port $candidatePort -Evidence "$Evidence; egress verified via ifIndex $($proof.InterfaceIndex)" -SourceAddress $proof.SourceAddress -EgressInterfaceIndex $proof.InterfaceIndex))
+        }
+        else {
+            $rejected.Add((New-PcaiEndpointCandidate -IPAddress $Ip -Source 'KnownPeer' -PeerId $peerName -Port $candidatePort -Evidence "$Evidence; $($proof.Reason)" -Admitted $false))
+        }
+    }
     $peerLinkLocal = New-Object 'System.Collections.Generic.List[string]'
     if ($peer) { foreach ($a in $peer.LinkLocalAddresses) { $peerLinkLocal.Add(([System.Net.IPAddress]::Parse($a)).ToString()) } }
 
@@ -168,14 +206,14 @@ function Get-PcaiEndpointCandidate {
         }
         foreach ($text in $peer.UlaAddresses) {
             $ip = [System.Net.IPAddress]::Parse($text)
-            $found.Add((New-PcaiEndpointCandidate -IPAddress $ip -Source 'KnownPeer' -PeerId $peerName -Port $candidatePort -Evidence 'registry ULA'))
+            & $addRouted $ip 'registry ULA'
         }
     }
     if ($wantV4 -and 'KnownPeer' -in $Provider -and $peer) {
         foreach ($text in $peer.LanAddresses) {
             $ip = $null
             if ([System.Net.IPAddress]::TryParse($text, [ref]$ip) -and $ip.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork) {
-                $found.Add((New-PcaiEndpointCandidate -IPAddress $ip -Source 'KnownPeer' -PeerId $peerName -Port $candidatePort -Evidence 'registry IPv4'))
+                & $addRouted $ip 'registry IPv4'
             }
         }
     }
@@ -268,5 +306,7 @@ function Get-PcaiEndpointCandidate {
             break
         }
     }
-    return @(Get-PcaiConnectionOrder -Candidate $merged)
+    $ordered = @(Get-PcaiConnectionOrder -Candidate $merged)
+    if ($IncludeRejected) { $ordered = @($ordered) + @($rejected.ToArray()) }
+    return $ordered
 }

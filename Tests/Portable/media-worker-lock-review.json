@@ -13,7 +13,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -51,7 +51,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -89,7 +89,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -127,7 +127,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
       "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -169,7 +169,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
       "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -211,7 +211,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-22T18:52:33.494931+00:00",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
       "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -241,6 +241,384 @@
       "review_scope": "New in the CI fix round; authored by the same agent as the change, so author self-review only.",
       "review_reason": "Protects: The generated-source lookup never passes on an empty result. Detects: A lookup that guesses a path or returns success when cargo reports no, several, or foreign build-script-executed messages for the probe package, or an OUT_DIR outside the owned target directory. Needs: native Cargo and a linker; no model, DLL, GPU or network.",
       "validation": "Windows x64: passes with and without CARGO_BUILD_TARGET set; the first test failed with the hosted symptom (0 generated probe sources) under CARGO_BUILD_TARGET before the lookup used cargo's message. Linux (WSL, Ubuntu, stable rustup in a scratch home): passes. Not independently reviewed."
+    },
+    {
+      "selector": "PythonRegisterCustody.test_every_python_binding_matches_the_working_tree",
+      "test_path": "Tests/Portable/test_media_register_custody.py",
+      "test_sha256": "4a5572708e345fbe7014f8c45ef11d0d0d434e5b7ffa668e39e38b0949971caf",
+      "selector_sha256": "da826e46a8e3015a20f464d2d6020cffcdeaf435e14b03573273aa2fb65cd8b8",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/media-weight-safety-review.json",
+          "sha256": "d5fb4735ba2743ff43b652216057ff39969c953d3b6904b16479d5d4c0fb5efe"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the custody round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: the Python selectors in media-worker-lock-review.json stay bound to real bytes. Detects: a test, selector body, fixture peer or the FFI source edited without re-binding its hash (a stale register that still looks reviewed). Needs: the repository files only; no Cargo, model or device.",
+      "validation": "Windows x64: passes on the committed registers. Mutation checks (edit a bound Rust test body, add an unbound test, append to ffi/mod.rs) and the exact-set negative controls fail as intended. Not independently reviewed."
+    },
+    {
+      "selector": "PythonRegisterCustody.test_every_lock_contract_test_is_bound_individually",
+      "test_path": "Tests/Portable/test_media_register_custody.py",
+      "test_sha256": "4a5572708e345fbe7014f8c45ef11d0d0d434e5b7ffa668e39e38b0949971caf",
+      "selector_sha256": "ec1dd18133576d7f967bb6ed3da3628803654debe0e4026312897c82695b5570",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/media-weight-safety-review.json",
+          "sha256": "d5fb4735ba2743ff43b652216057ff39969c953d3b6904b16479d5d4c0fb5efe"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the custody round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: no lock-contract test runs without its own register entry. Detects: a new test_* method added to the lock or CRLF test files that was never bound, which would let it count as covered without a hash. Needs: the repository files only.",
+      "validation": "Windows x64: passes on the committed registers. Mutation checks (edit a bound Rust test body, add an unbound test, append to ffi/mod.rs) and the exact-set negative controls fail as intended. Not independently reviewed."
+    },
+    {
+      "selector": "PythonRegisterCustody.test_python_entries_claim_no_independent_review_they_lack",
+      "test_path": "Tests/Portable/test_media_register_custody.py",
+      "test_sha256": "4a5572708e345fbe7014f8c45ef11d0d0d434e5b7ffa668e39e38b0949971caf",
+      "selector_sha256": "c957fccd8ab5e5851f25b600fed798267e1f3f6d63e31f52912bb48962a193b8",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/media-weight-safety-review.json",
+          "sha256": "d5fb4735ba2743ff43b652216057ff39969c953d3b6904b16479d5d4c0fb5efe"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the custody round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: an author self-review is never recorded as an independent one. Detects: a verdict or reviewer type implying independent approval while the receipt hash is empty. Needs: the repository files only.",
+      "validation": "Windows x64: passes on the committed registers. Mutation checks (edit a bound Rust test body, add an unbound test, append to ffi/mod.rs) and the exact-set negative controls fail as intended. Not independently reviewed."
+    },
+    {
+      "selector": "PythonRegisterCustody.test_python_register_binds_exactly_the_expected_selectors",
+      "test_path": "Tests/Portable/test_media_register_custody.py",
+      "test_sha256": "4a5572708e345fbe7014f8c45ef11d0d0d434e5b7ffa668e39e38b0949971caf",
+      "selector_sha256": "ea2e1b1436e55dbd33d08af5811240e9448f4e8b267df1e2de6e40a995a5f224",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/media-weight-safety-review.json",
+          "sha256": "d5fb4735ba2743ff43b652216057ff39969c953d3b6904b16479d5d4c0fb5efe"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the custody round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: the Python register keeps every expected selector and gains none unlisted. Detects: an entry deleted from media-worker-lock-review.json (a count threshold would let any other entry stand in for it) or an entry added without being listed in EXPECTED_PYTHON_SELECTORS. The failure names each one. Needs: the repository files only.",
+      "validation": "Windows x64: passes on the committed registers. Mutation checks (edit a bound Rust test body, add an unbound test, append to ffi/mod.rs) and the exact-set negative controls fail as intended. Not independently reviewed."
+    },
+    {
+      "selector": "RustRegisterCustody.test_every_rust_binding_matches_the_working_tree",
+      "test_path": "Tests/Portable/test_media_register_custody.py",
+      "test_sha256": "4a5572708e345fbe7014f8c45ef11d0d0d434e5b7ffa668e39e38b0949971caf",
+      "selector_sha256": "3f2d6531a39de7adfca8734c43592667373c6b0f866e2251154b04a54c888eeb",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/media-weight-safety-review.json",
+          "sha256": "d5fb4735ba2743ff43b652216057ff39969c953d3b6904b16479d5d4c0fb5efe"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the custody round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: each Rust selector in media-weight-safety-review.json stays bound to its text. Detects: a media test or its source file changing without a re-bound hash, a selector that no longer exists, or a duplicate entry. Needs: the repository files only; Rust is parsed as text, not built.",
+      "validation": "Windows x64: passes on the committed registers. Mutation checks (edit a bound Rust test body, add an unbound test, append to ffi/mod.rs) and the exact-set negative controls fail as intended. Not independently reviewed."
+    },
+    {
+      "selector": "RustRegisterCustody.test_rust_entries_are_author_self_review_only",
+      "test_path": "Tests/Portable/test_media_register_custody.py",
+      "test_sha256": "4a5572708e345fbe7014f8c45ef11d0d0d434e5b7ffa668e39e38b0949971caf",
+      "selector_sha256": "5251f3ad687583583c6a271879a17e39cf7a11a86552403dbd3369af762a433c",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/media-weight-safety-review.json",
+          "sha256": "d5fb4735ba2743ff43b652216057ff39969c953d3b6904b16479d5d4c0fb5efe"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the custody round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: nothing in the Rust register is presented as independently reviewed. Detects: reviewer metadata that claims independence, a missing rationale field, or a disposition other than keep without an explanation. Needs: the repository files only.",
+      "validation": "Windows x64: passes on the committed registers. Mutation checks (edit a bound Rust test body, add an unbound test, append to ffi/mod.rs) and the exact-set negative controls fail as intended. Not independently reviewed."
+    },
+    {
+      "selector": "RustRegisterCustody.test_rust_register_binds_exactly_the_expected_selectors",
+      "test_path": "Tests/Portable/test_media_register_custody.py",
+      "test_sha256": "4a5572708e345fbe7014f8c45ef11d0d0d434e5b7ffa668e39e38b0949971caf",
+      "selector_sha256": "442cb6e3aa864ff743e242e51adefb828b4e98be0d3b2eb69174606449ebfd3e",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/media-weight-safety-review.json",
+          "sha256": "d5fb4735ba2743ff43b652216057ff39969c953d3b6904b16479d5d4c0fb5efe"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the custody round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: the Rust register keeps every new or changed media test and gains none unlisted. Detects: an entry deleted from media-weight-safety-review.json, which a minimum-count check would hide whenever another entry remained, or an unlisted addition. The failure names each missing and extra selector. Needs: the repository files only.",
+      "validation": "Windows x64: passes on the committed registers. Mutation checks (edit a bound Rust test body, add an unbound test, append to ffi/mod.rs) and the exact-set negative controls fail as intended. Not independently reviewed."
+    },
+    {
+      "selector": "ExactSetControls.test_exact_set_check_names_missing_and_extra",
+      "test_path": "Tests/Portable/test_media_register_custody.py",
+      "test_sha256": "4a5572708e345fbe7014f8c45ef11d0d0d434e5b7ffa668e39e38b0949971caf",
+      "selector_sha256": "033a28ce73f1af8d4b4130ed36cd6a7c41b2648c01eb0f20e184d9141e90e742",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/media-weight-safety-review.json",
+          "sha256": "d5fb4735ba2743ff43b652216057ff39969c953d3b6904b16479d5d4c0fb5efe"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the custody round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: the exact-set comparison reports deletions and additions by name. Detects: a comparison that only counts, or that ignores one direction, so a removed or an unlisted selector could pass. Needs: no files; synthetic selector sets.",
+      "validation": "Windows x64: passes on the committed registers. Mutation checks (edit a bound Rust test body, add an unbound test, append to ffi/mod.rs) and the exact-set negative controls fail as intended. Not independently reviewed."
+    },
+    {
+      "selector": "ExactSetControls.test_dropping_one_real_entry_fails_the_exact_set_check",
+      "test_path": "Tests/Portable/test_media_register_custody.py",
+      "test_sha256": "4a5572708e345fbe7014f8c45ef11d0d0d434e5b7ffa668e39e38b0949971caf",
+      "selector_sha256": "590f4d162334a29030dff7c13f061f8823b38672ccf58811d8d2da42c6e9874b",
+      "source_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "source_sha256": "c0491d8aa435ae4c52c418e549e60d6c9247afe233e705036b2b3d0ae2bbf659",
+      "base_commit": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
+      "disposition": "keep",
+      "reviewer": "claude-change-author",
+      "reviewer_type": "author-rebind-not-independent",
+      "reviewed_utc": "2026-11-22T19:06:35.355609+00:00",
+      "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
+      "receipt": "media-worker-lock/README.md",
+      "fixture_peers": [
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.toml",
+          "sha256": "66d8ef65bb7df43328e92b94272b78a514091ce1aceea4f18d3084c845afff74"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/Cargo.lock",
+          "sha256": "8902acc0a67913642d5c962ebe53349ce85c1a0af6db34ed0c7c7fa716666dca"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/build.rs",
+          "sha256": "89a25171726dc9492697292d071d97c05a48fa462737e4c6a1782af293dc86cc"
+        },
+        {
+          "path": "Tests/Portable/media-worker-lock/src/main.rs",
+          "sha256": "cab9194710b13c0d2d7df830d6b4adbe42cbc56d91696b8bb57cf7be62f550ac"
+        },
+        {
+          "path": "Tests/Portable/media-weight-safety-review.json",
+          "sha256": "d5fb4735ba2743ff43b652216057ff39969c953d3b6904b16479d5d4c0fb5efe"
+        }
+      ],
+      "review_verdict": "pending-independent-review",
+      "review_receipt_sha256": null,
+      "review_scope": "New in the custody round; authored by the same agent as the change, so author self-review only.",
+      "review_reason": "Protects: removing any single bound selector from either real register is caught. Detects: the deletion hole of a minimum-count check, shown on the real registers: for every entry, the set minus that entry must fail by name. Needs: the repository files only.",
+      "validation": "Windows x64: passes on the committed registers. Mutation checks (edit a bound Rust test body, add an unbound test, append to ffi/mod.rs) and the exact-set negative controls fail as intended. Not independently reviewed."
     }
   ]
 }

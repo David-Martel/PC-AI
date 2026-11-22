@@ -86,6 +86,110 @@ def load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def selector_set_difference(
+    bound: set[tuple[str, str]], expected: frozenset[tuple[str, str]]
+) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    """Return (missing, extra) selector keys, each sorted, between a register and its expected list."""
+    return sorted(expected - bound), sorted(bound - expected)
+
+
+def exact_set_message(label: str, bound: set[tuple[str, str]], expected: frozenset[tuple[str, str]]) -> str:
+    """Return "" when the sets are equal, else a message naming every missing and extra selector."""
+    missing, extra = selector_set_difference(bound, expected)
+    if not missing and not extra:
+        return ""
+    return f"{label}: missing {missing}; extra {extra}"
+
+
+def bound_keys(register: dict) -> set[tuple[str, str]]:
+    return {(review["test_path"], review["selector"]) for review in register["reviews"]}
+
+
+# The expected selector lists are written out here, not derived from the registers,
+# so deleting an entry from a register (or adding one nobody listed here) fails by
+# name. Changing a list is a reviewed edit of this file.
+EXPECTED_PYTHON_SELECTORS: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("Tests/Portable/test_media_register_custody.py", "ExactSetControls.test_dropping_one_real_entry_fails_the_exact_set_check"),
+        ("Tests/Portable/test_media_register_custody.py", "ExactSetControls.test_exact_set_check_names_missing_and_extra"),
+        ("Tests/Portable/test_media_register_custody.py", "PythonRegisterCustody.test_every_lock_contract_test_is_bound_individually"),
+        ("Tests/Portable/test_media_register_custody.py", "PythonRegisterCustody.test_every_python_binding_matches_the_working_tree"),
+        ("Tests/Portable/test_media_register_custody.py", "PythonRegisterCustody.test_python_entries_claim_no_independent_review_they_lack"),
+        ("Tests/Portable/test_media_register_custody.py", "PythonRegisterCustody.test_python_register_binds_exactly_the_expected_selectors"),
+        ("Tests/Portable/test_media_register_custody.py", "RustRegisterCustody.test_every_rust_binding_matches_the_working_tree"),
+        ("Tests/Portable/test_media_register_custody.py", "RustRegisterCustody.test_rust_entries_are_author_self_review_only"),
+        ("Tests/Portable/test_media_register_custody.py", "RustRegisterCustody.test_rust_register_binds_exactly_the_expected_selectors"),
+        ("Tests/Portable/test_media_worker_lock.py", "MediaWorkerLockTests.test_healthy_cancelled_acquisition_does_not_rewrite_cancellation"),
+        ("Tests/Portable/test_media_worker_lock.py", "MediaWorkerLockTests.test_healthy_running_acquisition_preserves_existing_states"),
+        ("Tests/Portable/test_media_worker_lock.py", "MediaWorkerLockTests.test_poisoned_acquisition_records_failure_without_relocking"),
+        ("Tests/Portable/test_media_worker_lock_crlf.py", "CrlfContractTests.test_crlf_regressed_source_is_still_refused"),
+        ("Tests/Portable/test_media_worker_lock_crlf.py", "CrlfContractTests.test_crlf_source_generates_the_same_probe_as_lf"),
+        ("Tests/Portable/test_media_worker_lock_crlf.py", "CrlfContractTests.test_missing_build_script_message_fails_closed"),
+    }
+)
+EXPECTED_RUST_SELECTORS: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_async_requests_are_serialized_and_all_complete"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_cancel_after_encode_before_publish_discards_staged_file"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_cancel_during_generation_leaves_destination_untouched"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_completion_publishes_full_file_and_leaves_no_partial"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_exported_shutdown_bumps_the_global_epoch"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_failed_load_keeps_existing_model"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_failed_publish_step_reports_failed_and_cleans_up"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_load_after_shutdown_installs_and_replacement_drops_outside_lock"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_load_model_rejects_incomplete_checkpoint_and_stays_unloaded"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_long_valid_destination_name_publishes_on_both_paths"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_poll_and_cancel_respond_during_generation_and_cancel_skips_queued_work"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_shutdown_during_load_discards_the_stale_model"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_slow_publish_does_not_block_status_of_other_requests"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_staging_path_is_short_unique_and_beside_destination"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_sync_entry_points_queue_behind_gate_without_blocking_status"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_sync_write_failure_keeps_existing_destination_and_leaves_no_partial"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_write_and_publish_failures_leave_no_partial_and_keep_destination"),
+        ("Native/pcai_core/pcai_media/src/generate.rs", "generate::tests::test_generation_metadata_7b_schema_preserves_required_components"),
+        ("Native/pcai_core/pcai_media/src/generate.rs", "generate::tests::test_generation_metadata_probe_uses_scalar_storage_for_7b_shape"),
+        ("Native/pcai_core/pcai_media/src/generate.rs", "generate::tests::test_generation_metadata_rejects_invalid_attention_dimensions"),
+        ("Native/pcai_core/pcai_media/src/generate.rs", "generate::tests::test_generation_weights_load_without_optional_vision"),
+        ("Native/pcai_core/pcai_media/src/generate.rs", "generate::tests::test_generation_weights_report_complete_understanding_aligner"),
+        ("Native/pcai_core/pcai_media/src/generate.rs", "generate::tests::test_generation_weights_require_generation_with_complete_aligner"),
+        ("Native/pcai_core/pcai_media/src/generate.rs", "generate::tests::test_gguf_quantization_path_routing"),
+        ("Native/pcai_core/pcai_media/src/generate.rs", "generate::tests::test_load_refuses_pytorch_only_directory_with_conversion_command"),
+        ("Native/pcai_core/pcai_media/src/generate.rs", "generate::tests::test_load_rejects_empty_generation_archive_before_allocation"),
+        ("Native/pcai_core/pcai_media/src/generate.rs", "generate::tests::test_load_rejects_missing_generation_weights_in_both_modes"),
+        ("Native/pcai_core/pcai_media/src/generate.rs", "generate::tests::test_load_rejects_nonempty_partial_7b_checkpoint_before_allocation"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_cold_cache_falls_back_to_download_and_hint_names_the_commands"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_corrupt_and_truncated_safetensors_are_rejected"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_load_weights_accepts_complete_mixed_prefix_archive"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_load_weights_rejects_empty_archive"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_load_weights_rejects_partial_archive_before_mutation"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_load_weights_rejects_unregistered_variables"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_load_weights_rejects_wrong_shape"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_local_pytorch_directory_hint_converts_in_place"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_missing_explicit_path_is_an_error_not_a_prepared_fallback"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_only_exact_supported_ids_resolve_to_prepared_copy"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_preparation_commands_are_runnable_and_match_the_documentation"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_prepared_copy_resolves_without_network"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_weight_metadata_accepts_complete_mixed_prefix_headers"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_weight_metadata_rejects_empty_requirements"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_weight_metadata_rejects_partial_headers"),
+        ("Native/pcai_core/pcai_media/src/hub.rs", "hub::tests::test_weight_metadata_rejects_wrong_shape_headers"),
+        ("Native/pcai_core/pcai_media/src/upscale.rs", "upscale::tests::test_image_to_tensor_shape"),
+        ("Native/pcai_core/pcai_media/src/upscale.rs", "upscale::tests::test_tensor_to_image_preserves_rgb_planes"),
+        ("Native/pcai_core/pcai_media/src/upscale.rs", "upscale::tests::test_tensor_to_image_rejects_oversized_expected_dimensions"),
+        ("Native/pcai_core/pcai_media/src/upscale.rs", "upscale::tests::test_tensor_to_image_rejects_wrong_spatial_shape"),
+        ("Native/pcai_core/pcai_media_model/src/janus_llama.rs", "janus_llama::tests::test_cpu_forward_with_flash_requested"),
+        ("Native/pcai_core/pcai_media_model/src/janus_llama_quantized.rs", "janus_llama_quantized::tests::test_from_gguf_smoke"),
+        ("Native/pcai_core/pcai_media_model/src/lib.rs", "tests::test_janus_model_construct"),
+        ("Native/pcai_core/pcai_media_model/src/lib.rs", "tests::test_janus_model_construct_1b"),
+        ("Native/pcai_core/pcai_media_server/src/main.rs", "tests::test_generate_boundary_forwards_request_overrides"),
+        ("Native/pcai_core/pcai_media_server/src/main.rs", "tests::test_health_response_serde"),
+        ("Native/pcai_core/pcai_media_server/src/main.rs", "tests::test_inference_admission_released_on_generation_error"),
+        ("Native/pcai_core/pcai_media_server/src/main.rs", "tests::test_invalid_requests_fail_before_inference_admission"),
+        ("Native/pcai_core/pcai_media_server/src/main.rs", "tests::test_shared_inference_admission_preserves_health_and_releases"),
+    }
+)
+
+
 class PythonRegisterCustody(unittest.TestCase):
     def test_every_python_binding_matches_the_working_tree(self):
         """Protects: the Python selectors in media-worker-lock-review.json stay bound to real bytes.
@@ -95,7 +199,6 @@ class PythonRegisterCustody(unittest.TestCase):
         Needs: the repository files only; no Cargo, model or device.
         """
         register = load(PYTHON_REGISTER)
-        self.assertGreaterEqual(len(register["reviews"]), 6, "register must not be empty")
         for review in register["reviews"]:
             with self.subTest(selector=review["selector"]):
                 self.assertEqual(sha256(read_lf(review["test_path"])), review["test_sha256"])
@@ -118,6 +221,7 @@ class PythonRegisterCustody(unittest.TestCase):
         for relative in (
             "Tests/Portable/test_media_worker_lock.py",
             "Tests/Portable/test_media_worker_lock_crlf.py",
+            "Tests/Portable/test_media_register_custody.py",
         ):
             tree = ast.parse(read_lf(relative))
             for cls in (n for n in tree.body if isinstance(n, ast.ClassDef)):
@@ -142,6 +246,19 @@ class PythonRegisterCustody(unittest.TestCase):
                         review["reviewer_type"].startswith("author"), review["reviewer_type"]
                     )
 
+    def test_python_register_binds_exactly_the_expected_selectors(self):
+        """Protects: the Python register keeps every expected selector and gains none unlisted.
+
+        Detects: an entry deleted from media-worker-lock-review.json (a count
+        threshold would let any other entry stand in for it) or an entry added
+        without being listed in EXPECTED_PYTHON_SELECTORS. The failure names each one.
+        Needs: the repository files only.
+        """
+        message = exact_set_message(
+            "media-worker-lock-review.json", bound_keys(load(PYTHON_REGISTER)), EXPECTED_PYTHON_SELECTORS
+        )
+        self.assertEqual(message, "")
+
 
 class RustRegisterCustody(unittest.TestCase):
     def test_every_rust_binding_matches_the_working_tree(self):
@@ -153,7 +270,6 @@ class RustRegisterCustody(unittest.TestCase):
         """
         register = load(RUST_REGISTER)
         reviews = register["reviews"]
-        self.assertGreaterEqual(len(reviews), 50, "register must keep every new or changed selector")
         keys = [(r["test_path"], r["selector"]) for r in reviews]
         self.assertEqual(len(keys), len(set(keys)), "duplicate selector entries")
         cache: dict[str, dict[str, str]] = {}
@@ -180,6 +296,58 @@ class RustRegisterCustody(unittest.TestCase):
                 for field in ("protects", "detects", "needs"):
                     self.assertTrue(review[field].strip(), field)
                 self.assertEqual(review["disposition"], "keep")
+
+    def test_rust_register_binds_exactly_the_expected_selectors(self):
+        """Protects: the Rust register keeps every new or changed media test and gains none unlisted.
+
+        Detects: an entry deleted from media-weight-safety-review.json, which a
+        minimum-count check would hide whenever another entry remained, or an
+        unlisted addition. The failure names each missing and extra selector.
+        Needs: the repository files only.
+        """
+        message = exact_set_message(
+            "media-weight-safety-review.json", bound_keys(load(RUST_REGISTER)), EXPECTED_RUST_SELECTORS
+        )
+        self.assertEqual(message, "")
+
+
+class ExactSetControls(unittest.TestCase):
+    def test_exact_set_check_names_missing_and_extra(self):
+        """Protects: the exact-set comparison reports deletions and additions by name.
+
+        Detects: a comparison that only counts, or that ignores one direction, so
+        a removed or an unlisted selector could pass.
+        Needs: no files; synthetic selector sets.
+        """
+        expected = frozenset({("a.py", "T.one"), ("a.py", "T.two"), ("b.rs", "m::three")})
+        self.assertEqual(exact_set_message("x", set(expected), expected), "")
+        removed = set(expected) - {("a.py", "T.two")}
+        self.assertIn("T.two", exact_set_message("x", removed, expected))
+        self.assertIn("missing", exact_set_message("x", removed, expected))
+        added = set(expected) | {("a.py", "T.extra")}
+        self.assertIn("T.extra", exact_set_message("x", added, expected))
+        self.assertIn("extra", exact_set_message("x", added, expected))
+        swapped = (set(expected) - {("a.py", "T.two")}) | {("a.py", "T.other")}
+        message = exact_set_message("x", swapped, expected)
+        self.assertTrue("T.two" in message and "T.other" in message, message)
+
+    def test_dropping_one_real_entry_fails_the_exact_set_check(self):
+        """Protects: removing any single bound selector from either real register is caught.
+
+        Detects: the deletion hole of a minimum-count check, shown on the real
+        registers: for every entry, the set minus that entry must fail by name.
+        Needs: the repository files only.
+        """
+        for register, expected in (
+            (load(PYTHON_REGISTER), EXPECTED_PYTHON_SELECTORS),
+            (load(RUST_REGISTER), EXPECTED_RUST_SELECTORS),
+        ):
+            keys = bound_keys(register)
+            self.assertEqual(exact_set_message("x", keys, expected), "", "positive control: unmodified register")
+            for key in sorted(keys):
+                with self.subTest(removed=key):
+                    message = exact_set_message("x", keys - {key}, expected)
+                    self.assertIn(key[1], message)
 
 
 if __name__ == "__main__":

@@ -84,7 +84,10 @@ this change adds or edits in the media crates are bound one by one in the
 [Rust selector register](../media-weight-safety-review.json), and
 [test_media_register_custody.py](../test_media_register_custody.py) recomputes
 every hash in both registers, so a drifted or unbound test fails instead of
-reading as reviewed. Both registers record author self-review only.
+reading as reviewed. Both registers record author self-review only. The bound
+selectors are compared as an exact set against an expected list written in that
+test, so a deleted entry fails by name rather than hiding behind a count, and
+negative controls drop each real entry in turn to show it.
 
 The mutex remains poisoned. Existing public polling can still return `-1`.
 These controls do not establish public failure delivery, state recovery beyond

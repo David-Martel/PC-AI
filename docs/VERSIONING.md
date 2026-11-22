@@ -124,9 +124,13 @@ PATCH, MINOR or MAJOR after it.
   it (or `PCAI_BUILD_VERSION`). Otherwise it derives the version from `git describe`, falling back to the crate
   (product) version. Cargo caches the script, so it reruns only when one of its inputs changes:
   - every environment variable it embeds (`PCAI_VERSION`, `PCAI_BUILD_VERSION`, `PCAI_SEMVER`, `PCAI_GIT_HASH`,
-    `PCAI_GIT_HASH_SHORT`, `PCAI_GIT_BRANCH`, `PCAI_BUILD_TIMESTAMP`, `PCAI_BUILD_TYPE`, `CUDA_PATH`, `CUDA_HOME`),
-    each read through `tracked_env`, which declares it to Cargo whether or not it is set;
-  - `PATH`, but only while CUDA is configured, because the script then runs the `nvcc` found on `PATH`;
+    `PCAI_GIT_HASH_SHORT`, `PCAI_GIT_BRANCH`, `PCAI_BUILD_TIMESTAMP`, `PCAI_BUILD_TYPE`), each read through
+    `tracked_env`, which declares it to Cargo whether or not it is set;
+  - `PATH`, but only when a CUDA feature is compiled, because the script then runs the `nvcc` found on `PATH` to
+    label the CUDA version;
+  - the compiled features (Cargo reruns the script when they change). `has_cuda` is true only when
+    `cuda-llamacpp` or `cuda-mistralrs` is compiled in; the build host's CUDA toolkit settings are never consulted,
+    so a build without a CUDA feature reports `has_cuda: false` on any machine;
   - HEAD, the HEAD reflog, the branch ref, `packed-refs` and `refs/tags`, resolved with
     `git rev-parse --git-path` so linked worktrees resolve too.
 

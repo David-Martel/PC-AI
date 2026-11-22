@@ -86,12 +86,11 @@ INFERENCE_STEPS = [
         'pub const BUILD_TIMESTAMP: &str = "2001-02-03T04:05:06Z";',
     ),
     ("PCAI_BUILD_TYPE", "probe", 'pub const BUILD_TYPE: &str = "probe";'),
-    # CUDA_HOME alone switches CUDA detection on, removing it switches it off, and
-    # CUDA_PATH alone switches it on again.
-    ("CUDA_HOME", "{scratch}/cuda-home/v12.0", "pub const HAS_CUDA: bool = true;"),
-    ("CUDA_HOME", None, "pub const HAS_CUDA: bool = false;"),
-    ("CUDA_PATH", "{scratch}/cuda-path/v12.9", "pub const HAS_CUDA: bool = true;"),
 ]
+
+# Host CUDA settings a build script must not consult: whether the artifact has CUDA
+# is a property of the compiled features (codex, PR #403), not of the build host.
+HOST_CUDA_PROBES = ('"CUDA_PATH"', '"CUDA_HOME"', '"nvidia-smi"')
 
 # pcai-inference declares crate-type = ["cdylib", "rlib"]; its kind is never "lib".
 LIBRARY_KINDS = {"lib", "rlib", "cdylib", "dylib", "staticlib"}
@@ -145,6 +144,18 @@ class BuildScriptInputsAreDeclared(unittest.TestCase):
                 self.assertFalse(
                     missing, f"read without a rerun trigger: {sorted(missing)}"
                 )
+
+    def test_the_inference_script_does_not_probe_host_cuda(self):
+        """Protects: HAS_CUDA describes the compiled features, not the build host.
+
+        Detects: a build script that reads CUDA_PATH, CUDA_HOME or nvidia-smi again;
+        that made no-CUDA artifacts report ``has_cuda: true`` (codex, PR #403).
+        """
+        source = INFERENCE_BUILD_RS.read_text(encoding="utf-8")
+        found = [probe for probe in HOST_CUDA_PROBES if probe in source]
+        self.assertFalse(found, f"build.rs consults host CUDA settings: {found}")
+        self.assertIn("CARGO_FEATURE_CUDA_LLAMACPP", source)
+        self.assertIn("CARGO_FEATURE_CUDA_MISTRALRS", source)
 
     def test_the_scan_finds_an_untracked_read(self):
         """Positive control: the scan flags an untracked read, accepts a tracked one."""
@@ -256,6 +267,21 @@ class InferenceWarmRebuild(unittest.TestCase):
                     f"changing only {name} did not recompile the crate",
                 )
             previous = current
+
+    def test_host_cuda_settings_do_not_claim_cuda(self):
+        """Protects: a build without a CUDA feature never reports CUDA.
+
+        Detects: HAS_CUDA derived from the build host. Before the fix, CUDA_PATH set
+        to any directory made a no-CUDA build embed ``has_cuda: true``, which is what
+        ``--version-json`` prints. Needs: cargo (shares the class's target directory).
+        """
+        fake = {
+            "CUDA_PATH": "{scratch}/fake-cuda/v12.9",
+            "CUDA_HOME": "{scratch}/fake-cuda-home/v12.0",
+        }
+        result = self.check(fake)
+        self.assertIn("pub const HAS_CUDA: bool = false;", result.text)
+        self.assertIn('pub const CUDA_VERSION: &str = "none";', result.text)
 
     def test_unchanged_inputs_keep_the_build_cached(self):
         """Negative control: with no input changed, nothing reruns or recompiles.

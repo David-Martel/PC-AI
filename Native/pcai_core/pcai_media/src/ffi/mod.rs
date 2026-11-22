@@ -1453,6 +1453,36 @@ pub extern "C" fn pcai_media_free_bytes(data: *mut u8, len: usize) {
 mod tests {
     use super::*;
 
+    /// Serializes every test that touches the process-wide FFI state: the state
+    /// mutex (device, request table), the model slot and its lifecycle epoch, the
+    /// inference gate, and init/shutdown.  Without it, libtest's parallel threads
+    /// let one test's `pcai_media_shutdown` bump the epoch under another test's
+    /// load (which then correctly reports `ModelNotLoaded`) and let tests see each
+    /// other's requests.  nextest isolates tests by process and so hides the race;
+    /// plain `cargo test` (used by Build.ps1) does not.  Tests with a private
+    /// `ProbeRig` (own slot and gate) and tests that use only thread-local error
+    /// state do not need it.  `test_global_state_tests_take_the_serial_guard`
+    /// enforces that every test touching a global takes this guard.
+    static FFI_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    /// Take [`FFI_TEST_LOCK`], recovering from poison so one failed test does not
+    /// cascade into every later one.
+    fn serialize_global_state() -> MutexGuard<'static, ()> {
+        FFI_TEST_LOCK.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// The calling thread's last error text, or a marker when there is none.
+    /// `pcai_media_last_error` returns null when nothing was recorded, and
+    /// `CStr::from_ptr` on null is undefined behaviour, so check first.
+    fn last_error_text() -> String {
+        let pointer = pcai_media_last_error();
+        if pointer.is_null() {
+            return "<no error recorded>".to_string();
+        }
+        // SAFETY: non-null, and the thread-local CString stays live until the next FFI call.
+        unsafe { CStr::from_ptr(pointer) }.to_string_lossy().into_owned()
+    }
+
     fn chained_generation_error() -> anyhow::Error {
         anyhow::Error::new(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
@@ -1606,8 +1636,12 @@ mod tests {
 
     // ── double-init doesn't panic ─────────────────────────────────────────
 
+    // Protects: pcai_media_init is idempotent: a second call with a valid device also succeeds.
+    // Detects: A second init that errors, panics or re-validates differently.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_double_init_no_panic() {
+        let _serial = serialize_global_state();
         let device = CString::new("cpu").expect("valid C string");
         let first = pcai_media_init(device.as_ptr());
         assert_eq!(first, PcaiMediaErrorCode::Success as i32);
@@ -1615,16 +1649,24 @@ mod tests {
         assert_eq!(second, PcaiMediaErrorCode::Success as i32);
     }
 
+    // Protects: a null device selects the default and init succeeds (validation does not open the device).
+    // Detects: Init dereferencing the null pointer or rejecting a null device.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_init_null_device_defaults_to_cuda() {
+        let _serial = serialize_global_state();
         // NULL device should succeed (defaults to "cuda:0" but validation does
         // not actually open the device, so it is always Success here).
         let result = pcai_media_init(std::ptr::null());
         assert_eq!(result, PcaiMediaErrorCode::Success as i32);
     }
 
+    // Protects: an unparsable device string is rejected with InvalidInput.
+    // Detects: Accepting a bad device string, or reporting a different error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_init_invalid_device_returns_error() {
+        let _serial = serialize_global_state();
         let bad = CString::new("tpu:0").expect("valid C string");
         let result = pcai_media_init(bad.as_ptr());
         assert_eq!(result, PcaiMediaErrorCode::InvalidInput as i32);
@@ -1632,16 +1674,24 @@ mod tests {
 
     // ── shutdown without init doesn't panic ──────────────────────────────
 
+    // Protects: pcai_media_shutdown is safe whether or not init ran or a model was loaded.
+    // Detects: A panic from missing state.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_shutdown_without_init_no_panic() {
+        let _serial = serialize_global_state();
         // This test must be robust to other tests having already initialised
         // the global state on this test-runner process.  The important thing
         // is that it does not panic.
         pcai_media_shutdown();
     }
 
+    // Protects: a second shutdown after init is a no-op.
+    // Detects: A panic or double release on the second call.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_shutdown_twice_no_panic() {
+        let _serial = serialize_global_state();
         let device = CString::new("cpu").expect("valid C string");
         pcai_media_init(device.as_ptr());
         pcai_media_shutdown();
@@ -1677,24 +1727,36 @@ mod tests {
 
     // ── understand_image null safety ────────────────────────────────────
 
+    // Protects: a null image path makes pcai_media_understand_image return null with InvalidInput.
+    // Detects: Dereferencing the null path, or any other error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_understand_image_null_image_path() {
+        let _serial = serialize_global_state();
         let prompt = CString::new("describe this").expect("valid");
         let result = pcai_media_understand_image(std::ptr::null(), prompt.as_ptr(), 128, 0.7);
         assert!(result.is_null(), "null image_path should return null");
         assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
+    // Protects: a null prompt makes pcai_media_understand_image return null with InvalidInput.
+    // Detects: Dereferencing the null prompt, or any other error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_understand_image_null_prompt() {
+        let _serial = serialize_global_state();
         let path = CString::new("test.png").expect("valid");
         let result = pcai_media_understand_image(path.as_ptr(), std::ptr::null(), 128, 0.7);
         assert!(result.is_null(), "null prompt should return null");
         assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
+    // Protects: understanding without a loaded model fails with a null result and a nonzero error code.
+    // Detects: A result produced without a model, or an error code of 0.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_understand_image_no_model_loaded() {
+        let _serial = serialize_global_state();
         // Ensure init has run (other tests may have already done this).
         let device = CString::new("cpu").expect("valid");
         pcai_media_init(device.as_ptr());
@@ -1710,8 +1772,12 @@ mod tests {
 
     // ── generate_image_bytes null safety ────────────────────────────────
 
+    // Protects: a null out_data pointer is rejected with InvalidInput before any write.
+    // Detects: A write through the null out pointer, or a different error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_generate_image_bytes_null_out_data() {
+        let _serial = serialize_global_state();
         let prompt = CString::new("test").expect("valid");
         let mut len: usize = 0;
         let result =
@@ -1719,8 +1785,12 @@ mod tests {
         assert_eq!(result, PcaiMediaErrorCode::InvalidInput as i32);
     }
 
+    // Protects: a null out_len pointer is rejected with InvalidInput before any write.
+    // Detects: A write through the null out pointer, or a different error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_generate_image_bytes_null_out_len() {
+        let _serial = serialize_global_state();
         let prompt = CString::new("test").expect("valid");
         let mut data: *mut u8 = std::ptr::null_mut();
         let result = pcai_media_generate_image_bytes(
@@ -1733,8 +1803,12 @@ mod tests {
         assert_eq!(result, PcaiMediaErrorCode::InvalidInput as i32);
     }
 
+    // Protects: a null prompt is rejected with InvalidInput.
+    // Detects: Dereferencing the null prompt, or a different error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_generate_image_bytes_null_prompt() {
+        let _serial = serialize_global_state();
         let mut data: *mut u8 = std::ptr::null_mut();
         let mut len: usize = 0;
         let result = pcai_media_generate_image_bytes(
@@ -1749,24 +1823,36 @@ mod tests {
 
     // ── async FFI tests ──────────────────────────────────────────────────
 
+    // Protects: a null prompt makes pcai_media_generate_image_async return -1 with InvalidInput.
+    // Detects: Dereferencing the null prompt, queueing a request, or another error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_async_generate_null_prompt() {
+        let _serial = serialize_global_state();
         let out = CString::new("out.png").expect("valid");
         let id = pcai_media_generate_image_async(std::ptr::null(), 0.0, 0.0, out.as_ptr());
         assert_eq!(id, -1, "null prompt should return -1");
         assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
+    // Protects: a null output path makes pcai_media_generate_image_async return -1 with InvalidInput.
+    // Detects: Dereferencing the null path, queueing a request, or another error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_async_generate_null_output_path() {
+        let _serial = serialize_global_state();
         let prompt = CString::new("test").expect("valid");
         let id = pcai_media_generate_image_async(prompt.as_ptr(), 0.0, 0.0, std::ptr::null());
         assert_eq!(id, -1, "null output_path should return -1");
         assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
+    // Protects: an async request without a loaded model returns -1 with a nonzero error code.
+    // Detects: Queueing a request that can never run, or an error code of 0.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_async_generate_no_model_loaded() {
+        let _serial = serialize_global_state();
         let device = CString::new("cpu").expect("valid");
         pcai_media_init(device.as_ptr());
         pcai_media_shutdown(); // ensure no model
@@ -1778,15 +1864,23 @@ mod tests {
         assert_ne!(pcai_media_last_error_code(), 0);
     }
 
+    // Protects: polling an unknown request id reports status -1 and a null text.
+    // Detects: A fabricated status or a non-null text pointer for an id that was never issued.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_poll_result_unknown_id() {
+        let _serial = serialize_global_state();
         let result = pcai_media_poll_result(999_999);
         assert_eq!(result.status, -1, "unknown ID should return status -1");
         assert!(result.text.is_null());
     }
 
+    // Protects: cancelling an unknown request id returns -1.
+    // Detects: Reporting success for a request that does not exist.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_cancel_unknown_id() {
+        let _serial = serialize_global_state();
         let rc = pcai_media_cancel(999_999);
         assert_eq!(rc, -1, "cancelling an unknown ID should return -1");
     }
@@ -1849,6 +1943,7 @@ mod tests {
     // Needs: no model or GPU; a temp directory for the PNG outputs.
     #[test]
     fn test_async_requests_are_serialized_and_all_complete() {
+        let _serial = serialize_global_state();
         use std::sync::atomic::AtomicUsize;
         let tmp = tempfile::tempdir().expect("tempdir");
         let active = Arc::new(AtomicUsize::new(0));
@@ -1890,6 +1985,7 @@ mod tests {
     // Needs: no model or GPU; the in-flight generation is a mock blocked on a channel.
     #[test]
     fn test_poll_and_cancel_respond_during_generation_and_cancel_skips_queued_work() {
+        let _serial = serialize_global_state();
         let tmp = tempfile::tempdir().expect("tempdir");
         let running = register_request(MediaRequestStatus::Pending);
         let queued = register_request(MediaRequestStatus::Pending);
@@ -1954,6 +2050,7 @@ mod tests {
     //   for a running generation.
     #[test]
     fn test_sync_entry_points_queue_behind_gate_without_blocking_status() {
+        let _serial = serialize_global_state();
         let model_dir = tempfile::tempdir().expect("tempdir");
         let model_dir = CString::new(model_dir.path().to_string_lossy().into_owned()).unwrap();
         let (tx, rx) = std::sync::mpsc::channel::<(&'static str, i64)>();
@@ -2016,6 +2113,7 @@ mod tests {
     //   so nothing large is allocated and no GPU or download is involved.
     #[test]
     fn test_load_model_rejects_incomplete_checkpoint_and_stays_unloaded() {
+        let _serial = serialize_global_state();
         let tmp = tempfile::tempdir().expect("tempdir");
         let config = pcai_media_model::config::JanusConfig::janus_pro_7b();
         std::fs::write(tmp.path().join("config.json"), serde_json::to_vec(&config).unwrap()).unwrap();
@@ -2030,10 +2128,7 @@ mod tests {
         assert_eq!(pcai_media_init(c"cpu".as_ptr()), PcaiMediaErrorCode::Success as i32);
         let rc = pcai_media_load_model(path.as_ptr(), 0);
         assert_eq!(rc, PcaiMediaErrorCode::GenerationError as i32);
-        let message = unsafe { CStr::from_ptr(pcai_media_last_error()) }
-            .to_str()
-            .expect("diagnostic should be UTF-8")
-            .to_string();
+        let message = last_error_text();
         assert!(message.contains("incomplete safetensors weights"), "{message}");
         assert!(message.contains("required tensors"), "{message}");
 
@@ -2073,6 +2168,7 @@ mod tests {
     // Needs: a temp directory; the cancel is issued from inside the mock generate.
     #[test]
     fn test_cancel_during_generation_leaves_destination_untouched() {
+        let _serial = serialize_global_state();
         let tmp = tempfile::tempdir().expect("tempdir");
         let existing = tmp.path().join("existing.png");
         fs::write(&existing, ORIGINAL).unwrap();
@@ -2101,6 +2197,7 @@ mod tests {
     // Needs: a temp directory; the cancel is issued from inside the mock encoder.
     #[test]
     fn test_cancel_after_encode_before_publish_discards_staged_file() {
+        let _serial = serialize_global_state();
         let tmp = tempfile::tempdir().expect("tempdir");
         let existing = tmp.path().join("existing.png");
         fs::write(&existing, ORIGINAL).unwrap();
@@ -2126,6 +2223,7 @@ mod tests {
     // Needs: a temp directory only.
     #[test]
     fn test_completion_publishes_full_file_and_leaves_no_partial() {
+        let _serial = serialize_global_state();
         let tmp = tempfile::tempdir().expect("tempdir");
         let dest = tmp.path().join("out.png");
         fs::write(&dest, ORIGINAL).unwrap();
@@ -2147,6 +2245,7 @@ mod tests {
     //   directory squatting on the destination makes the rename fail.
     #[test]
     fn test_write_and_publish_failures_leave_no_partial_and_keep_destination() {
+        let _serial = serialize_global_state();
         let tmp = tempfile::tempdir().expect("tempdir");
         let existing = tmp.path().join("existing.png");
         fs::write(&existing, ORIGINAL).unwrap();
@@ -2207,6 +2306,7 @@ mod tests {
     // Needs: a temp directory on a filesystem with a 255-character component limit.
     #[test]
     fn test_long_valid_destination_name_publishes_on_both_paths() {
+        let _serial = serialize_global_state();
         let tmp = tempfile::tempdir().expect("tempdir");
         let name = format!("{}.png", "a".repeat(244));
         assert_eq!(name.len(), 248);
@@ -2452,16 +2552,18 @@ mod tests {
     // Needs: no model; the path does not exist, so reaching the loader would fail loudly.
     #[test]
     fn test_exported_load_queued_behind_generation_is_cancelled_by_shutdown() {
+        let _serial = serialize_global_state();
+        // A guaranteed-missing child of a fresh temp directory, so reaching the
+        // loader would fail loudly whatever else exists on the machine.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let missing = tmp.path().join("missing-model").to_string_lossy().into_owned();
         let generation = acquire_inference_gate();
         let (admitted_tx, admitted_rx) = std::sync::mpsc::channel::<()>();
         let loader = std::thread::spawn(move || {
-            let rc = load_model_at("Z:/not/a/model/directory".to_string(), 0, move || {
+            let rc = load_model_at(missing, 0, move || {
                 admitted_tx.send(()).expect("test is waiting for admission");
             });
-            let message = unsafe { CStr::from_ptr(pcai_media_last_error()) }
-                .to_string_lossy()
-                .into_owned();
-            (rc, message)
+            (rc, last_error_text())
         });
         admitted_rx
             .recv_timeout(std::time::Duration::from_secs(10))
@@ -2502,6 +2604,7 @@ mod tests {
     // Needs: no model.
     #[test]
     fn test_exported_shutdown_bumps_the_global_epoch() {
+        let _serial = serialize_global_state();
         let before = slot_begin_load(&MODEL_SLOT);
         pcai_media_shutdown();
         assert_ne!(slot_begin_load(&MODEL_SLOT), before);
@@ -2530,6 +2633,7 @@ mod tests {
     // Needs: no model; the rename is a mock publish step blocked on a channel.
     #[test]
     fn test_slow_publish_does_not_block_status_of_other_requests() {
+        let _serial = serialize_global_state();
         let tmp = tempfile::tempdir().expect("tempdir");
         let publishing = register_request(MediaRequestStatus::Pending);
         let other_running = register_request(MediaRequestStatus::Running);
@@ -2607,6 +2711,7 @@ mod tests {
     // Needs: a temp directory; the publish step is a mock that fails.
     #[test]
     fn test_failed_publish_step_reports_failed_and_cleans_up() {
+        let _serial = serialize_global_state();
         let tmp = tempfile::tempdir().expect("tempdir");
         let existing = tmp.path().join("existing.png");
         fs::write(&existing, ORIGINAL).unwrap();
@@ -2621,5 +2726,92 @@ mod tests {
         assert!(text.expect("message").contains("share went away"));
         assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
         assert_eq!(dir_listing(tmp.path()), ["existing.png"]);
+    }
+
+    // Protects: every test that touches the process-wide FFI state takes the serial
+    //   guard, so libtest's parallel threads cannot race on the lifecycle epoch, the
+    //   model slot, the inference gate or the request table.
+    // Detects: a new or edited test that calls an exported entry point, the state
+    //   mutex, the slot or the gate (directly or through a helper) without
+    //   `serialize_global_state()`; the dropped guard otherwise surfaces only as an
+    //   intermittent failure under plain `cargo test`, which nextest hides.
+    // Needs: nothing but this file's own source (read with include_str!).
+    #[test]
+    fn test_global_state_tests_take_the_serial_guard() {
+        const SHARED: &[&str] = &[
+            "pcai_media_init(",
+            "pcai_media_shutdown(",
+            "pcai_media_load_model(",
+            "pcai_media_generate_image(",
+            "pcai_media_generate_image_bytes(",
+            "pcai_media_generate_image_async(",
+            "pcai_media_understand_image(",
+            "pcai_media_poll_result(",
+            "pcai_media_cancel(",
+            "get_state()",
+            "MODEL_SLOT",
+            "INFERENCE_GATE",
+            "acquire_inference_gate(",
+            "lock_state_recovering(",
+            "execute_async_request",
+            "load_model_at(",
+        ];
+        let source = include_str!("mod.rs");
+        let tests = &source[source.find("mod tests {").expect("tests module")..];
+        let lines: Vec<&str> = tests.lines().collect();
+        // (name, body, is_test) for every function at the module's own indent.
+        let mut functions: Vec<(String, String, bool)> = Vec::new();
+        let mut i = 0;
+        while i < lines.len() {
+            if let Some(rest) = lines[i].strip_prefix("    fn ") {
+                let name: String = rest
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                    .collect();
+                let is_test = (i.saturating_sub(3)..i).any(|k| lines[k].trim() == "#[test]");
+                let mut end = i;
+                if !lines[i].trim_end().ends_with('}') {
+                    while lines[end] != "    }" {
+                        end += 1;
+                    }
+                }
+                functions.push((name, lines[i..=end].join("\n"), is_test));
+                i = end;
+            }
+            i += 1;
+        }
+        let touches = |body: &str| SHARED.iter().any(|pattern| body.contains(pattern));
+        let helpers: Vec<&str> = functions
+            .iter()
+            .filter(|(_, body, is_test)| !is_test && touches(body))
+            .map(|(name, _, _)| name.as_str())
+            .collect();
+        let calls_helper = |body: &str| helpers.iter().any(|h| body.contains(&format!("{h}(")));
+
+        let mut needing_guard = Vec::new();
+        let mut missing = Vec::new();
+        for (name, body, is_test) in &functions {
+            if !is_test || name == "test_global_state_tests_take_the_serial_guard" {
+                continue;
+            }
+            if touches(body) || calls_helper(body) {
+                needing_guard.push(name.as_str());
+                if !body.contains("serialize_global_state()") {
+                    missing.push(name.as_str());
+                }
+            }
+        }
+        // Positive controls: the audit really sees the known global-state tests and
+        // the known helpers, so an empty "missing" list is not an empty scan.
+        assert!(
+            needing_guard.contains(&"test_load_model_rejects_incomplete_checkpoint_and_stays_unloaded"),
+            "{needing_guard:?}"
+        );
+        assert!(needing_guard.len() >= 20, "{needing_guard:?}");
+        assert!(helpers.contains(&"register_request"), "{helpers:?}");
+        assert!(
+            missing.is_empty(),
+            "tests touching process-wide FFI state must start with `let _serial = serialize_global_state();`: {missing:?}"
+        );
     }
 }

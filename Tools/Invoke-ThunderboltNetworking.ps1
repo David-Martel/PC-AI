@@ -10,7 +10,7 @@
       - Status   : discover Thunderbolt / USB4 adapters and peer candidates
       - Connect  : connect to a Windows peer over WinRM
       - Optimize : build or apply a conservative tuning plan
-      - LinuxPeer: inspect, prepare, configure or benchmark a Linux SSH peer
+      - LinuxPeer: inspect, prepare, configure or benchmark an explicit -Peer
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', 'Password',
     Justification = 'Operator CLI tool; accepts plain password from interactive invocation and wraps into SecureString for the WinRM call immediately. No persistence.')]
@@ -58,7 +58,7 @@ param(
     [ValidateSet('Status', 'Prepare', 'Configure', 'Benchmark')]
     [string]$Action = 'Status',
 
-    [string]$Peer = 'millylaptop1',
+    [string]$Peer,
 
     [string]$ConfigPath = (Join-Path $PSScriptRoot '../Config/thunderbolt-peers.json'),
 

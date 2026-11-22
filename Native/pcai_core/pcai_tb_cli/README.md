@@ -42,9 +42,9 @@ portable tests do not qualify installed USB4 hardware or a runnable session.
 
 ```bash
 pcai-tb status --compact
-pcai-tb identity --computer minisforum --peer millylaptop1 --registry ../../../Config/thunderbolt-peers.json --compact
+pcai-tb identity --computer dtm-p1gen9 --peer dtm-super-nuc --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb discover --timeout-ms 220 --registry ../../../Config/thunderbolt-peers.json --compact
-pcai-tb register --peer millylaptop1 --registry ../../../Config/thunderbolt-peers.json --compact
+pcai-tb register --peer dtm-super-nuc --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb switch --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb verify-custody --registry ../../../Config/thunderbolt-peers.json --compact
 pcai-tb observe --registry ../../../Config/thunderbolt-peers.json --compact

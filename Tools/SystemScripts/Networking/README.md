@@ -6,11 +6,13 @@ configure an isolated /30 and measure the actual link. The maintained wrapper is
 `Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer`.
 
 ```powershell
-./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer millylaptop1
-./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer millylaptop1 -Action Prepare -Apply
-./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer millylaptop1 -Action Configure -DryRun
-./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer millylaptop1 -Action Configure -Apply
-./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer millylaptop1 -Action Benchmark -Apply -IperfPath C:/Tools/iperf3.exe
+$peer = 'your-reviewed-profile'
+$peerConfig = 'C:/pcai-config/lan-peers.json'
+./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer $peer -ConfigPath $peerConfig
+./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer $peer -ConfigPath $peerConfig -Action Prepare -Apply
+./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer $peer -ConfigPath $peerConfig -Action Configure -DryRun
+./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer $peer -ConfigPath $peerConfig -Action Configure -Apply
+./Tools/Invoke-ThunderboltNetworking.ps1 -Mode LinuxPeer -Peer $peer -ConfigPath $peerConfig -Action Benchmark -Apply -IperfPath C:/Tools/iperf3.exe
 ```
 
 Status and default action planning are read-only. `-DryRun` and `-WhatIf` suppress
@@ -18,11 +20,14 @@ all writes and benchmark traffic even when `-Apply` is present. `-h` / `-help`
 display help. No report files are created automatically; output is a structured
 object that an operator may explicitly export.
 
-Profiles live in `Config/thunderbolt-peers.json`. Milly reserves
-172.31.240.1/172.31.240.2; the future ASUS profile reserves
-172.31.240.5/172.31.240.6. Both use /30 and MTU 1500. The actual hostname, SSH host
-key, adapter driver, carrier and nonconflicting routes must match before applying.
-ASUS's physical link and profile identity must be checked when it is connected.
+Supply a reviewed `-ConfigPath` whose `peers` map includes the explicit `-Peer`.
+The default [USB4 peer registry](../../../Config/thunderbolt-peers.json) has only the
+historical Milly and ASUS entries in that map. Its `fleetPeers` entries describe
+native CLI identities and cannot supply Linux peer profiles.
+For a current LAN deployment, verify the hostname, SSH host key, adapter driver,
+carrier and nonconflicting routes before applying. See the
+[fleet deployment scope](../../../docs/usb4/fabric-deployment.md#fleet-deployment-scope)
+and the [explicit peer test review](../../../Tests/Unit/thunderbolt-linux-peer-entrypoint-review.json).
 
 Prepare loads `thunderbolt_net`, persists it in
 `/etc/modules-load.d/pcai-thunderbolt-net.conf`, and installs iperf3 with its Debian
@@ -65,7 +70,7 @@ authorized Linux SSH alias; it creates and removes temporary fixture files and
 never invokes real sudo or NetworkManager:
 
 ```powershell
-$env:PCAI_TB_TEST_SSH_ALIAS = 'millylaptop1'
+$env:PCAI_TB_TEST_SSH_ALIAS = 'your-authorized-lan-ssh-alias'
 Invoke-Pester ./Tests/Integration/ThunderboltLinuxProfile.Tests.ps1 -Output Detailed
 ```
 
@@ -89,7 +94,7 @@ run its default plan before opting into a root capture:
 
 ```bash
 python3 capture_thunderbolt_peer_trace.py --dry-run
-sudo python3 capture_thunderbolt_peer_trace.py --apply --expected-hostname millylaptop1 --duration 20 --tools-dir /home/cog/.local/bin --output-dir /home/cog/.cache/pcai/thunderbolt-trace-new
+sudo python3 capture_thunderbolt_peer_trace.py --apply --expected-hostname your-verified-hostname --duration 20 --output-dir "$HOME/.cache/pcai/thunderbolt-trace-new"
 ```
 
 The output directory must be new. The helper uses its own tracefs instance with
@@ -102,7 +107,10 @@ read-only inventories. Neither capture helper rebinds a driver, flashes firmware
 or configures network addresses. Empty trace data is an observation, not proof
 of a cable defect or a working connection.
 
-## Public ASUS NFS share on Windows
+## Retired ASUS NFS share on Windows
+
+The ASUS host left the fleet. Retain this procedure for inspecting or unmounting
+existing mappings until their custody is reconciled.
 
 `Mount-VigilFleetShare.ps1` uses Windows Client for NFS to mount only
 `/srv/vigil-share` at the preferred unused drive `N:`. The server export enforces
@@ -118,7 +126,6 @@ mount to the other LAN requires an explicit Unmount followed by Mount.
 ```powershell
 ./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1
 ./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1 -Action Mount -DryRun
-./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1 -Action Mount -Apply
 ./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1 -Action Unmount -Apply
 ```
 

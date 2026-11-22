@@ -11,6 +11,22 @@ BeforeAll {
     }
 }
 
+Describe 'Explicit Linux peer selection' -Tag 'Unit', 'Portable' {
+    # Protects: both CLI entrypoints require an operator-selected peer.
+    # Detects: falling through to profile reads or connecting to a historical default host.
+    # Needs: PowerShell and a deliberately absent profile file. No SSH or hardware is used.
+    # Breadcrumb: Tools/Invoke-ThunderboltNetworking.ps1 LinuxPeer and Invoke-ThunderboltLinuxPeer.ps1 entrypoint.
+    It 'refuses an omitted peer before reading a profile through <Entry>' -ForEach @(
+        @{ Entry = 'wrapper'; ScriptPath = 'Tools/Invoke-ThunderboltNetworking.ps1'; Mode = @{ Mode = 'LinuxPeer' } }
+        @{ Entry = 'helper'; ScriptPath = 'Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1'; Mode = @{} }
+    ) {
+        $modes = $Mode
+        $entrypoint = Join-Path $repoRoot $ScriptPath
+        $absentProfile = Join-Path $TestDrive 'absent-peer-profile.json'
+        { & $entrypoint @modes -Action Prepare -Apply -ConfigPath $absentProfile } | Should -Throw '*Specify -Peer*'
+    }
+}
+
 Describe 'Thunderbolt profile safety' {
     It 'uses separate isolated /30 profiles at conservative MTU' {
         $milly = Get-TbProfile -Path $profilePath -Name millylaptop1

@@ -52,6 +52,7 @@ ProviderHealthCache.Tests.ps1
 Resolve-PcaiPath.Tests.ps1
 RustGuidelines.Compliance.Tests.ps1
 Set-LLMProviderOrder.Tests.ps1
+ThunderboltLinuxPeer.Tests.ps1
 ToolingBenchmarks.Tests.ps1
 Validate-ToolParameters.Tests.ps1
 

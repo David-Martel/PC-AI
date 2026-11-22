@@ -396,3 +396,33 @@ Describe 'Unified PowerShell release generation' -Tag 'Unit', 'Portable' {
         Test-Path -LiteralPath (Join-Path $script:Fixture.Root 'Config\fixture.json') | Should -BeTrue
     }
 }
+
+Describe 'Staged PowerShell release validation' -Tag 'Unit', 'Portable' {
+    # Protects: validation of the staged package's own required functions.
+    # Detects: a session command supplying a function the staged package dropped.
+    # Needs: PowerShell 7, Pester 5 and a disposable one-file module.
+    # Breadcrumb: Tools/Test-PcaiReleaseModule.ps1::required command checks.
+    It 'validates the staged exports when the package is <Case>' -ForEach @(
+        @{ Case = 'complete'; IncludeWsl = $true },
+        @{ Case = 'missing an export already loaded in the session'; IncludeWsl = $false }
+    ) {
+        $validator = Join-Path $script:RepoRoot 'Tools/Test-PcaiReleaseModule.ps1'
+        $folder = New-Item -ItemType Directory -Path (Join-Path $TestDrive ([guid]::NewGuid().ToString('N')))
+        $module = Join-Path $folder.FullName 'FixtureRelease.psm1'
+        $manifest = Join-Path $folder.FullName 'FixtureRelease.psd1'
+        $exports = @('Get-PcaiReleaseInfo', 'Import-PcaiComponentModules', 'Get-RustToolStatus',
+            'Find-FilesFast', 'Get-ProcessPerformance')
+        if ($IncludeWsl) { $exports += 'Get-WSLStatus' }
+        Set-Content -LiteralPath $module -Value ($exports | ForEach-Object { "function $_ { 'packaged' }" })
+        New-ModuleManifest -Path $manifest -RootModule 'FixtureRelease.psm1' -FunctionsToExport $exports
+        function Get-WSLStatus { 'session' }
+        (Get-WSLStatus) | Should -Be 'session'
+
+        $validation = & $validator -ReleaseModulePath $manifest
+
+        $validation.RequiredCommands | Should -Be 6
+        $validation.Passed | Should -Be $IncludeWsl
+        if ($IncludeWsl) { $validation.MissingCommands | Should -BeNullOrEmpty }
+        else { $validation.MissingCommands | Should -Be @('Get-WSLStatus') }
+    }
+}

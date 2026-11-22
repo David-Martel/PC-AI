@@ -319,7 +319,10 @@ if ($safeRoot -and ($installed -or $readErrors.Count -eq 0)) {
                     $source = $manifest['source']; $hostRecord = $manifest['host']
                     if ($source['repository'] -isnot [string] -or $source['repository'] -notmatch '^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?$' -or
                         $source['commit'] -isnot [string] -or $source['commit'] -notmatch '^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$') { throw 'Invalid scalar source declaration.' }
-                    foreach ($field in @('id', 'platform', 'architecture', 'backend')) { if ($hostRecord[$field] -isnot [string] -or -not $hostRecord[$field]) { throw 'Invalid scalar host declaration.' } }
+                    # A recorded v1 manifest can omit backend. The installed-pointer digest still gates byte matching.
+                    $hostFields = @('id', 'platform', 'architecture')
+                    if ($hostRecord.Contains('backend') -or $selection -cne 'InstalledPointer') { $hostFields += 'backend' }
+                    foreach ($field in $hostFields) { if ($hostRecord[$field] -isnot [string] -or -not $hostRecord[$field]) { throw 'Invalid scalar host declaration.' } }
                     Assert-Usb4ManifestRecord $manifest['policy']
                     $paths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
                     foreach ($entry in $manifest['files']) { Assert-Usb4ManifestRecord $entry; if (-not $paths.Add($entry['path'])) { throw 'Duplicated manifest payload path.' } }
@@ -331,8 +334,8 @@ if ($safeRoot -and ($installed -or $readErrors.Count -eq 0)) {
                     $identity.checks = @{ schema = $true; sourceDeclaration = $true
                         host = [bool]($installed -and $hostRecord['id'] -ieq $runtime.hostName -and $hostRecord['id'] -ieq $installed['hostName'])
                         platform = $runtime.platform -ceq 'windows' -and $hostRecord['platform'] -ceq 'windows'
-                        architecture = $runtime.architecture -cne 'Unknown' -and $hostRecord['architecture'] -ceq $runtime.architecture
-                        backend = $hostRecord['backend'] -ceq 'windows-peer' }
+                        architecture = $runtime.architecture -cne 'Unknown' -and $hostRecord['architecture'] -ceq $runtime.architecture }
+                    if ($hostRecord.Contains('backend')) { $identity.checks.backend = $hostRecord['backend'] -ceq 'windows-peer' }
                     foreach ($kind in @('controller', 'policy')) {
                         $name = if ($kind -eq 'controller') { 'Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1' } else { $policyRecord['path'] }
                         $entries = @($manifest['files'] | Where-Object { $_['path'] -ceq $name })

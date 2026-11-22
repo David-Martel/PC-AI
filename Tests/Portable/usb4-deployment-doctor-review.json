@@ -6,10 +6,10 @@
     "PreservedDonor":  "217707ee2bfa5b7a7d640d0b70a05bd79ae1c090",
     "HashConvention":  "UTF-8 LF whole sources include final LF. Selector begins at four-space Selector group comment and includes the final LF after the exact PASS Write-Output line.",
     "SourceBindings":  {
-                           "Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1":  "3b01ccff0d96df794b29f85bb689c771e43eefddab0b2539795e2b868c49888e",
-                           "Tests/Portable/Test-Usb4PeerDeployment.ps1":  "01436bfd35a471b7a9225496f993e7beef67c4cdd296a3ac4b13bc32e4eab338",
-                           ".github/workflows/usb4-lifecycle.yml":  "8f0240e8d2a15a2144312fa9d4926e737591b773cbb478a6d82bca7ffcdac24e",
-                           "docs/usb4/peer-networking.md":  "b0fb9502da35ac95c9f56f40baf85bbd67fabc6d8f8943883201244286bd9c11"
+                           "Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1":  "5610745770554e2ab4447abeeb969ef6b82821497c70f34985d6b1fef99efde6",
+                           "Tests/Portable/Test-Usb4PeerDeployment.ps1":  "f7005aa823725e3d66075a1f2b8bc6e875f14190811b18da586381c482f6fad1",
+                           ".github/workflows/usb4-lifecycle.yml":  "9f8c8c51e69add6a87dae3b492227ebf83ca20ba8874170dba317a423b088f84",
+                           "docs/usb4/peer-networking.md":  "6d0cf80804626b000e963fd3f0457d4a3f76e97388d88fa6eb74dd0e39d7ea90"
                        },
     "Selectors":  [
                       {
@@ -179,7 +179,21 @@
                           "ReviewerType":  "independent source agent",
                           "Disposition":  "keep",
                           "ReviewScope":  "Exact source3b01ccff/test01436bfd: new stable-ancestor detector and byte-identical prior eleven selectors; source-only review, actual Work execution recorded separately"
-                      }
+                      },
+                        {
+                            "Selector": "PinnedLegacyManifestMayOmitBackend",
+                            "Source": "Tests/Portable/Test-Usb4PeerDeployment.ps1",
+                            "Sha256": "411030358262915530993548041d1fcd6576508241e377015dad81b3cba5f71a",
+                            "Protects": "File-only inspection of matching installed v1 receipts without a backend field",
+                            "Detects": "False drift from pinned legacy receipts, implied backend authority, unbound omissions and explicit incompatible, malformed or mismatched evidence",
+                            "Needs": "PowerShell 7, fixture-local bytes and synthetic Windows identity; no network or scheduled task changes",
+                            "Breadcrumb": "Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1 release declaration and recordedManifestBytes checks",
+                            "UnchangedFromOriginalSafeRed": false,
+                            "Reviewer": "codex",
+                            "ReviewerType": "independent review of delegated implementation",
+                            "Disposition": "keep",
+                            "ReviewScope": "Fail-first fixture, then 440 assertions over 13 groups. Ran actual Gen9 r8 file-only: observed pinned bytes, backend absent, NotVerified and InspectionOnly."
+                        }
                   ],
     "IndependentReview":  {
                               "Reviewer":  "codex/usb4_agent_status_review",
@@ -240,5 +254,16 @@
                                    "Reviewer":  "codex/usb4_design_builder_review",
                                    "Disposition":  "keep",
                                    "Scope":  "Only the five-line peer SSH guide backlink append; inspector code, tests and workflow remain byte-identical to accepted13cc. Existing detecting selector reviews remain current."
-                               }
+                               },
+    "FollowUpReview":  {
+                           "ReviewedAtUtc": "2026-11-22T16:53:06.310249Z",
+                           "SourceBaseline": "805ade5aea13fd7cbe515953137f15f017479ce8",
+                           "OriginalSourceBindings": {
+                               "Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1": "3b01ccff0d96df794b29f85bb689c771e43eefddab0b2539795e2b868c49888e",
+                               "Tests/Portable/Test-Usb4PeerDeployment.ps1": "01436bfd35a471b7a9225496f993e7beef67c4cdd296a3ac4b13bc32e4eab338",
+                               ".github/workflows/usb4-lifecycle.yml": "8f0240e8d2a15a2144312fa9d4926e737591b773cbb478a6d82bca7ffcdac24e",
+                               "docs/usb4/peer-networking.md": "b0fb9502da35ac95c9f56f40baf85bbd67fabc6d8f8943883201244286bd9c11"
+                           },
+                           "Scope": "Existing selectors remain byte-identical; the new omission exception only affects the installed manifest pointer and leaves its recorded hash and independent byte/host checks in force."
+                       }
 }

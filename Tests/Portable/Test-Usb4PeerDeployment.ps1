@@ -340,6 +340,60 @@ try {
     Assert-DeploymentCondition ($data.sourceIdentity.byteMatched -eq $true) 'Matching recorded manifest failed.'
     $script:groups++; Write-Output 'PASS: RecordedManifestPointerNeverFallsBack'
 
+    # Selector group: PinnedLegacyManifestMayOmitBackend.
+    # Protects inspection of installed v1 declarations that omitted backend.
+    # Detects refusal of pinned legacy bytes, invented backend evidence, and
+    # acceptance of unbound omissions, drift, or malformed backend declarations.
+    # Needs PowerShell 7, temporary files, and a synthetic Windows identity.
+    # Breadcrumb: Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1 manifest selection and declaration checks.
+    $installedPath = Join-Path $installation 'installed.json'
+    $legacyHostManifest = $manifestJson | ConvertFrom-Json -AsHashtable
+    [void]$legacyHostManifest.host.Remove('backend')
+    Write-FixtureJson $manifestPath $legacyHostManifest
+    $legacyManifestHash = (Get-FileHash -LiteralPath $manifestPath).Hash
+    $pinned = $installed | ConvertTo-Json -Depth 10 | ConvertFrom-Json -AsHashtable
+    $pinned.releaseManifestSha256 = $legacyManifestHash
+    Write-FixtureJson $installedPath $pinned
+    $data = Invoke-DeploymentFixture -Providers (New-FixtureProviders)
+    Assert-DeploymentCondition ($data.releaseManifest.hashStatus -ceq 'MatchedRecordedHash' -and
+        $data.sourceIdentity.status -ceq 'ByteMatchedDeclaration' -and $data.sourceIdentity.byteMatched -eq $true -and
+        @($data.readErrors).Count -eq 0) 'Pinned schema v1 manifest without a backend declaration was refused.'
+    Assert-DeploymentCondition (-not $data.sourceIdentity.declaredHost.Contains('backend') -and
+        -not $data.sourceIdentity.checks.Contains('backend') -and $data.sourceIdentity.authenticity -ceq 'NotVerified' -and
+        $data.qualification -ceq 'InspectionOnly') 'Legacy omission invented backend, signature, or runtime evidence.'
+
+    $data = Invoke-DeploymentFixture -Manifest $manifestPath -Providers (New-FixtureProviders)
+    Assert-DeploymentCondition ($data.releaseManifest.selectedBy -ceq 'ExplicitOverride' -and
+        $data.sourceIdentity.byteMatched -eq $false) 'An explicit override accepted an unbound backend omission.'
+
+    foreach ($case in @('LegacyRoot', 'MissingDigest', 'MismatchedDigest', 'WrongHost', 'WrongControllerHash',
+            'NullBackend', 'EmptyBackend', 'ArrayBackend', 'UnexpectedBackend')) {
+        $candidate = $legacyHostManifest | ConvertTo-Json -Depth 15 | ConvertFrom-Json -AsHashtable
+        $receipt = $pinned | ConvertTo-Json -Depth 10 | ConvertFrom-Json -AsHashtable
+        switch ($case) {
+            'WrongHost' { $candidate.host.id = 'unrelated-host' }
+            'WrongControllerHash' { $candidate.files[0].sha256 = '0' * 64 }
+            'NullBackend' { $candidate.host['BACKEND'] = $null }
+            'EmptyBackend' { $candidate.host['backend'] = '' }
+            'ArrayBackend' { $candidate.host['backend'] = @('windows-peer') }
+            'UnexpectedBackend' { $candidate.host['backend'] = 'linux-peer' }
+        }
+        Write-FixtureJson $manifestPath $candidate
+        $receipt.releaseManifestSha256 = (Get-FileHash -LiteralPath $manifestPath).Hash
+        switch ($case) {
+            'LegacyRoot' { [void]$receipt.Remove('releaseManifestPath') }
+            'MissingDigest' { [void]$receipt.Remove('releaseManifestSha256') }
+            'MismatchedDigest' { $receipt.releaseManifestSha256 = '0' * 64 }
+        }
+        Write-FixtureJson $installedPath $receipt
+        $data = Invoke-DeploymentFixture -Providers (New-FixtureProviders)
+        Assert-DeploymentCondition ($data.sourceIdentity.status -ceq 'DriftOrUnverified' -and
+            $data.sourceIdentity.byteMatched -eq $false) "Legacy compatibility accepted $case."
+    }
+    Write-FixtureJson $manifestPath ($manifestJson | ConvertFrom-Json -AsHashtable)
+    Write-FixtureJson $installedPath $installed
+    $script:groups++; Write-Output 'PASS: PinnedLegacyManifestMayOmitBackend'
+
     # Selector group: PendingRecoveryAndPartialReportAreNotReadiness.
     # Protects interrupted-transaction custody; detects claiming healthy/completed
     # from a partial/pending report. Needs JSON and fake read-only OS state.

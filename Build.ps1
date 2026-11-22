@@ -1879,7 +1879,9 @@ function Invoke-QualityRatchetCheck {
     $pwshExe = (Get-Process -Id $PID).Path
     if (-not $pwshExe) { $pwshExe = 'pwsh' }
     Write-BuildStep 'Running quality ratchet (counts vs Config/quality-baseline.json)...' 'running'
-    & $pwshExe -NoProfile -File $ratchetScript
+    # Out-Host: the subprocess output is for the console only. Left on the success stream it would join this
+    # function's return value, and a non-empty array is truthy even when it ends in $false.
+    & $pwshExe -NoProfile -File $ratchetScript | Out-Host
     $ratchetExit = $LASTEXITCODE
     if ($ratchetExit -ne 0) {
         Write-BuildStep "Quality ratchet failed (exit $ratchetExit); see .pcai/assessment/quality.json" 'error'
@@ -1996,6 +1998,14 @@ function Invoke-RagQuality {
 
     Write-BuildStep 'RAG cluster deduplication passed (no semantic overlap violations)' 'success'
     return $true
+}
+
+function ConvertTo-GateVerdict {
+    # Collapses whatever a lint gate function emitted into one Boolean. A gate passes only if it emitted at least
+    # one Boolean and none of them is $false; stray strings or objects can no longer turn a failure into a pass.
+    param($Result)
+    $flags = @($Result | Where-Object { $_ -is [bool] })
+    return ($flags.Count -gt 0 -and $flags -notcontains $false)
 }
 
 function Invoke-QualityPipeline {
@@ -3329,7 +3339,7 @@ if ($Component -in @('lint', 'format', 'fix')) {
     } else {
         Write-BuildStep 'Skipping Rust toolchain initialization for non-Rust quality profile' 'skip'
     }
-    $qualitySuccess = Invoke-QualityPipeline -Mode $mode -Profile $LintProfile
+    $qualitySuccess = ConvertTo-GateVerdict (Invoke-QualityPipeline -Mode $mode -Profile $LintProfile)
     exit $(if ($qualitySuccess) { 0 } else { 1 })
 }
 
@@ -3397,7 +3407,7 @@ Set-ReleaseBuildFlags -Configuration $Configuration -CudaComputeCaps $script:Cud
 if (-not $SkipQualityGate) {
     # The pre-build gate stays lenient about a missing sg: a developer building without ast-grep should not
     # be blocked here. Lint (-Component lint) is the fail-closed path.
-    $qualityGatePassed = Invoke-AstGrepCheck -AllowMissing
+    $qualityGatePassed = ConvertTo-GateVerdict (Invoke-AstGrepCheck -AllowMissing)
     if (-not $qualityGatePassed) {
         exit 1
     }

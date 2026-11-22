@@ -28,8 +28,11 @@
       * "Checked" means any read of $LASTEXITCODE or $? after the end of the call's pipeline inside
         the same enclosing ScriptBlockAst (nested script blocks included). It does not prove the
         read belongs to that call: a later call's check masks an earlier unchecked one.
-      * A file that assigns $PSNativeCommandUseErrorActionPreference is treated as checked, because
-        PowerShell 7.4+ then throws on a non-zero exit code.
+      * A call is exempt when `$PSNativeCommandUseErrorActionPreference = $true` (or 1) is the last assignment
+        to that variable that is before the call and in the same or an enclosing script block, because
+        PowerShell 7.4+ then raises an error on a non-zero exit code. A `$false` or non-literal assignment,
+        a later assignment, an assignment in another function and a plain read do not exempt anything. It
+        does not check that $ErrorActionPreference is Stop, so the error may be non-terminating.
       * A final-statement call whose exit code the caller inspects is still reported.
 
     C# rules (Get-PcaiCSharpCatchFinding), regex over source with comments and string literals
@@ -48,7 +51,7 @@ Set-StrictMode -Version Latest
 
 # Bump when a check's meaning changes. The ratchet records this in the baseline and fails closed on a
 # MAJOR.MINOR mismatch, so a changed check cannot silently move the counts.
-$script:ChecksVersion = '1.0.0'
+$script:ChecksVersion = '1.1.0'
 
 $script:StateChangingVerb = [regex]::new('^(Set|New|Remove|Register|Mount|Install|Enable|Disable|Start|Stop|Restart)-', 'IgnoreCase')
 
@@ -199,12 +202,15 @@ function Get-PcaiPsAstFinding {
         param($node)
         $node -is [System.Management.Automation.Language.CatchClauseAst] -or
         $node -is [System.Management.Automation.Language.CommandAst] -or
-        $node -is [System.Management.Automation.Language.FunctionDefinitionAst]
+        $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -or
+        $node -is [System.Management.Automation.Language.AssignmentStatementAst]
     }
     $nodes = $ast.FindAll($interesting, $true)
 
-    # $PSNativeCommandUseErrorActionPreference makes PowerShell 7.4+ throw on a non-zero exit code.
-    $nativeErrorPreference = $false
+    # $PSNativeCommandUseErrorActionPreference = $true makes PowerShell 7.4+ raise an error on a non-zero exit
+    # code. Only an assignment counts (a read or a mention does not), and it must be effective at the call:
+    # before it, in the same or an enclosing script block, and not switched off by a later assignment.
+    $nativePreferenceAssignments = [System.Collections.Generic.List[object]]::new()
     $exitCodeReads = $null
     $nativeCalls = [System.Collections.Generic.List[object]]::new()
 
@@ -218,6 +224,23 @@ function Get-PcaiPsAstFinding {
         if ($node -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
             if ($builtins.Contains($node.Name)) {
                 & $add 'shadowed-builtin-command' $node.Extent "function '$($node.Name)' shadows a built-in command"
+            }
+            continue
+        }
+
+        if ($node -is [System.Management.Automation.Language.AssignmentStatementAst]) {
+            $target = $node.Left
+            if ($target -is [System.Management.Automation.Language.VariableExpressionAst] -and
+                $node.Operator -eq [System.Management.Automation.Language.TokenKind]::Equals -and
+                (Get-PcaiPsVariableLeafName -Variable $target) -ieq 'PSNativeCommandUseErrorActionPreference') {
+                $scopeAst = $node.Parent
+                while ($null -ne $scopeAst -and $scopeAst -isnot [System.Management.Automation.Language.ScriptBlockAst]) { $scopeAst = $scopeAst.Parent }
+                $value = $node.Right.Extent.Text.Trim()
+                $nativePreferenceAssignments.Add([pscustomobject]@{
+                        EndOffset = $node.Extent.EndOffset
+                        Enabled   = ($value -ieq '$true' -or $value -eq '1')
+                        Scope     = $scopeAst
+                    })
             }
             continue
         }
@@ -250,27 +273,37 @@ function Get-PcaiPsAstFinding {
         $exitCodeReads = [System.Collections.Generic.List[object]]::new()
         foreach ($variable in $variables) {
             $leaf = Get-PcaiPsVariableLeafName -Variable $variable
-            if ($leaf -ieq 'PSNativeCommandUseErrorActionPreference') { $nativeErrorPreference = $true }
-            elseif ($leaf -ieq 'LASTEXITCODE' -or $leaf -eq '?') { $exitCodeReads.Add($variable) }
+            if ($leaf -ieq 'LASTEXITCODE' -or $leaf -eq '?') { $exitCodeReads.Add($variable) }
         }
-        if (-not $nativeErrorPreference) {
-            foreach ($call in $nativeCalls) {
-                $scope = $call.Parent
-                while ($null -ne $scope -and $scope -isnot [System.Management.Automation.Language.ScriptBlockAst]) { $scope = $scope.Parent }
-                $pipeline = $call.Parent
-                while ($null -ne $pipeline -and $pipeline -isnot [System.Management.Automation.Language.PipelineAst]) { $pipeline = $pipeline.Parent }
-                $afterOffset = if ($null -ne $pipeline) { $pipeline.Extent.EndOffset } else { $call.Extent.EndOffset }
-                $checked = $false
-                foreach ($read in $exitCodeReads) {
-                    if ($read.Extent.StartOffset -lt $afterOffset) { continue }
-                    if ($null -ne $scope -and ($read.Extent.StartOffset -lt $scope.Extent.StartOffset -or $read.Extent.EndOffset -gt $scope.Extent.EndOffset)) { continue }
-                    $checked = $true
-                    break
-                }
-                if (-not $checked) {
-                    $label = if ($call.GetCommandName()) { $call.GetCommandName() } else { $call.CommandElements[0].Extent.Text }
-                    & $add 'native-exe-exit-code-unchecked' $call.Extent "native command '$label' has no later `$LASTEXITCODE or `$? check in its script block"
-                }
+        $nativePreferenceAssignments = @($nativePreferenceAssignments | Sort-Object -Property EndOffset)
+        $nativeCallPreferenceEnabled = {
+            param($callAst)
+            $effective = $null
+            foreach ($assignment in $nativePreferenceAssignments) {
+                if ($assignment.EndOffset -gt $callAst.Extent.StartOffset) { break }
+                $scopeAst = $assignment.Scope
+                if ($null -ne $scopeAst -and ($scopeAst.Extent.StartOffset -gt $callAst.Extent.StartOffset -or $scopeAst.Extent.EndOffset -lt $callAst.Extent.EndOffset)) { continue }
+                $effective = $assignment
+            }
+            return ($null -ne $effective -and $effective.Enabled)
+        }
+        foreach ($call in $nativeCalls) {
+            if (& $nativeCallPreferenceEnabled $call) { continue }
+            $scope = $call.Parent
+            while ($null -ne $scope -and $scope -isnot [System.Management.Automation.Language.ScriptBlockAst]) { $scope = $scope.Parent }
+            $pipeline = $call.Parent
+            while ($null -ne $pipeline -and $pipeline -isnot [System.Management.Automation.Language.PipelineAst]) { $pipeline = $pipeline.Parent }
+            $afterOffset = if ($null -ne $pipeline) { $pipeline.Extent.EndOffset } else { $call.Extent.EndOffset }
+            $checked = $false
+            foreach ($read in $exitCodeReads) {
+                if ($read.Extent.StartOffset -lt $afterOffset) { continue }
+                if ($null -ne $scope -and ($read.Extent.StartOffset -lt $scope.Extent.StartOffset -or $read.Extent.EndOffset -gt $scope.Extent.EndOffset)) { continue }
+                $checked = $true
+                break
+            }
+            if (-not $checked) {
+                $label = if ($call.GetCommandName()) { $call.GetCommandName() } else { $call.CommandElements[0].Extent.Text }
+                & $add 'native-exe-exit-code-unchecked' $call.Extent "native command '$label' has no later `$LASTEXITCODE or `$? check in its script block"
             }
         }
     }

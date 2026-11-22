@@ -61,6 +61,9 @@
     ast-grep executable. Default: `ast-grep`, then `sg` (only if it identifies itself as ast-grep; on
     Linux `sg` is the group-switching tool).
 
+.PARAMETER AstGrepBatchChars
+    Upper bound on the characters of file paths handed to one ast-grep command. Default 24000.
+
 .PARAMETER PssaModuleName
     PSScriptAnalyzer module name. Overridable so tests can simulate it being absent.
 
@@ -85,6 +88,7 @@ param(
     [string]$BaseRef = 'origin/main',
     [string]$AstGrepCommand,
     [string]$PssaModuleName = 'PSScriptAnalyzer',
+    [int]$AstGrepBatchChars = 24000,
     [string]$SgConfigPath,
     [string]$PssaSettingsPath,
     [switch]$IncludeRepoSettings
@@ -136,10 +140,11 @@ function Sort-Ordinal {
     # Ordinal sort of items by a string key; Sort-Object would apply culture-sensitive rules.
     param([object[]]$Items, [scriptblock]$KeyOf)
     if ($Items.Count -lt 2) { return , $Items }
-    $keys = [string[]]($Items | ForEach-Object { & $KeyOf $_ })
-    $copy = [object[]]$Items.Clone()
-    [Array]::Sort($keys, $copy, [StringComparer]::Ordinal)
-    return , $copy
+    # LINQ OrderBy with an ordinal comparer. [Array]::Sort(keys, items, comparer) was tried first and does not
+    # reorder the items from PowerShell (the keys sort, the items stay put).
+    $pairs = [object[]]@($Items | ForEach-Object { [pscustomobject]@{ Key = [string](& $KeyOf $_); Item = $_ } })
+    $ordered = [System.Linq.Enumerable]::OrderBy[object, string]($pairs, [Func[object, string]] { param($p) $p.Key }, [StringComparer]::Ordinal)
+    return , [object[]]@([System.Linq.Enumerable]::Select[object, object]($ordered, [Func[object, object]] { param($p) $p.Item }))
 }
 
 function Write-StableJson {
@@ -246,7 +251,7 @@ function Get-RustTestStart {
 }
 
 function Invoke-AstGrepScan {
-    param($Tool, [string]$Root, [string[]]$Files, [string]$ConfigPath)
+    param($Tool, [string]$Root, [string[]]$Files, [string]$ConfigPath, [int]$BatchChars = 24000)
 
     $scanFailures = [System.Collections.Generic.List[string]]::new()
     $findings = [System.Collections.Generic.List[object]]::new()
@@ -271,35 +276,74 @@ function Invoke-AstGrepScan {
     }
     if ($scanFailures.Count -gt 0) { return [pscustomobject]@{ Findings = $findings; Failures = $scanFailures } }
 
-    $paths = @($Files | ForEach-Object { $i = $_.IndexOf('/'); if ($i -lt 0) { $_ } else { $_.Substring(0, $i) } } | Select-Object -Unique)
-    $paths = @($paths | Where-Object { $_ -notmatch '^(vendor|third_party|worktrees|\.pcai|\.git|node_modules)$' })
-    $result = Invoke-NativeTool -FilePath $Tool.Path -Arguments (@('scan', '--config', $ConfigPath, '--json=stream') + $paths) -WorkingDirectory $Root
-    $stderrText = ($result.Error -join "`n")
-    # ast-grep exits 1 after a successful scan that found error-severity diagnostics.
-    $benign = $stderrText -match '^\s*Error: \d+ error\(s\) found in code\.' -or [string]::IsNullOrWhiteSpace($stderrText)
-    if ($result.ExitCode -gt 1 -or ($result.ExitCode -eq 1 -and -not $benign)) {
-        $scanFailures.Add("ast-grep scan failed (exit $($result.ExitCode)): $($result.Error | Select-Object -First 3)")
-        return [pscustomobject]@{ Findings = $findings; Failures = $scanFailures }
+    # Hand ast-grep the exact allowed files, never a directory: a directory argument would let it walk excluded
+    # or untracked descendants (vendor/, a junction to a shared cargo cache under target/). The list is split
+    # into batches that stay under the command-line limit.
+    $sgFiles = @($Files | Where-Object { $_ -match '\.(rs|cs)$' })
+    $batches = [System.Collections.Generic.List[object]]::new()
+    $current = [System.Collections.Generic.List[string]]::new()
+    $currentChars = 0
+    foreach ($file in $sgFiles) {
+        if ($current.Count -gt 0 -and ($currentChars + $file.Length + 1) -gt $BatchChars) {
+            $batches.Add($current.ToArray())
+            $current = [System.Collections.Generic.List[string]]::new()
+            $currentChars = 0
+        }
+        $current.Add($file)
+        $currentChars += $file.Length + 1
     }
+    if ($current.Count -gt 0) { $batches.Add($current.ToArray()) }
+    $inputs = [ordered]@{ ast_grep_files = @($sgFiles); ast_grep_batches = $batches.Count }
 
     $fileSet = [System.Collections.Generic.HashSet[string]]::new([string[]]$Files, [StringComparer]::Ordinal)
     $rustStart = @{}
-    foreach ($line in $result.Output) {
-        if ([string]::IsNullOrWhiteSpace($line)) { continue }
-        if ($line[0] -ne '{') { $scanFailures.Add("ast-grep produced a non-JSON line: $line"); break }
-        $parsed = $line | ConvertFrom-Json
-        $relative = ConvertTo-PosixPath ([string]$parsed.file)
-        if ($relative.StartsWith('./')) { $relative = $relative.Substring(2) }
-        if (-not $fileSet.Contains($relative)) { continue }
-        if ($parsed.ruleId -eq 'unused-suppression') { continue }
-        $scope = Get-PcaiQualityFileScope -RelativePath $relative
-        $zeroBasedLine = [int]$parsed.range.start.line
-        if ($scope -eq 'prod' -and $relative.EndsWith('.rs', [StringComparison]::OrdinalIgnoreCase) -and $zeroBasedLine -ge (Get-RustTestStart -Root $Root -Relative $relative -Cache $rustStart)) {
-            $scope = 'test'
+    $batchNumber = 0
+    foreach ($batch in $batches) {
+        $batchNumber++
+        $result = Invoke-NativeTool -FilePath $Tool.Path -Arguments (@('scan', '--config', $ConfigPath, '--json=stream') + $batch) -WorkingDirectory $Root
+        $stderrText = ($result.Error -join "`n").Trim()
+
+        $parsedLines = [System.Collections.Generic.List[object]]::new()
+        $errorSeverity = 0
+        foreach ($line in $result.Output) {
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            if ($line[0] -ne '{') { $scanFailures.Add("ast-grep batch $batchNumber produced a non-JSON line: $line"); break }
+            $parsed = $line | ConvertFrom-Json
+            if ([string]$parsed.severity -eq 'error') { $errorSeverity++ }
+            $parsedLines.Add($parsed)
         }
-        $findings.Add((New-Finding -Tool 'ast-grep' -Rule ([string]$parsed.ruleId) -Scope $scope -File $relative -Line ($zeroBasedLine + 1) -Message ([string]$parsed.message)))
+        if ($scanFailures.Count -gt 0) { break }
+
+        # Contract: exit 0 means no error-severity diagnostics and nothing on stderr. Exit 1 means ast-grep found
+        # error-severity diagnostics, and it says so on stderr ("Error: N error(s) found in code.") with N equal to
+        # the error-severity findings it printed. Exit 1 without that summary is a scan that died, not a result.
+        $claimed = $null
+        if ($stderrText -match '^\s*Error: (\d+) error\(s\) found in code\.') { $claimed = [int]$Matches[1] }
+        $contractOk = switch ($result.ExitCode) {
+            0 { [string]::IsNullOrWhiteSpace($stderrText) -and $errorSeverity -eq 0 }
+            1 { $null -ne $claimed -and $claimed -ge 1 -and $claimed -eq $errorSeverity }
+            default { $false }
+        }
+        if (-not $contractOk) {
+            $claimText = if ($null -ne $claimed) { "stderr reports $claimed error(s)" } elseif ($stderrText) { "stderr: $(($stderrText -split "`n")[0])" } else { 'stderr is empty' }
+            $scanFailures.Add("ast-grep exited $($result.ExitCode) on batch $batchNumber of $($batches.Count) without a matching error diagnostic ($claimText; $errorSeverity error-severity finding(s) on stdout); the scan cannot be trusted")
+            break
+        }
+
+        foreach ($parsed in $parsedLines) {
+            $relative = ConvertTo-PosixPath ([string]$parsed.file)
+            if ($relative.StartsWith('./')) { $relative = $relative.Substring(2) }
+            if (-not $fileSet.Contains($relative)) { continue }
+            if ($parsed.ruleId -eq 'unused-suppression') { continue }
+            $scope = Get-PcaiQualityFileScope -RelativePath $relative
+            $zeroBasedLine = [int]$parsed.range.start.line
+            if ($scope -eq 'prod' -and $relative.EndsWith('.rs', [StringComparison]::OrdinalIgnoreCase) -and $zeroBasedLine -ge (Get-RustTestStart -Root $Root -Relative $relative -Cache $rustStart)) {
+                $scope = 'test'
+            }
+            $findings.Add((New-Finding -Tool 'ast-grep' -Rule ([string]$parsed.ruleId) -Scope $scope -File $relative -Line ($zeroBasedLine + 1) -Message ([string]$parsed.message)))
+        }
     }
-    return [pscustomobject]@{ Findings = $findings; Failures = $scanFailures }
+    return [pscustomobject]@{ Findings = $findings; Failures = $scanFailures; Inputs = $inputs }
 }
 
 function Get-PssaSetting {
@@ -342,18 +386,22 @@ function Invoke-PssaScan {
 
     $fileSet = [System.Collections.Generic.HashSet[string]]::new([string[]]$ps, [StringComparer]::Ordinal)
     $rootFull = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\', '/')
-    $roots = @($ps | ForEach-Object { $i = $_.IndexOf('/'); if ($i -lt 0) { $_ } else { $_.Substring(0, $i) } } | Select-Object -Unique)
-    foreach ($entry in $roots) {
-        $target = Join-Path $Root $entry
-        $isDirectory = Test-Path -LiteralPath $target -PathType Container
+    # One non-recursive call per directory that directly holds an allowed file. -Recurse would let the analyzer
+    # enter excluded or untracked descendants (vendor/, a junction to a shared cargo cache under target/), so it
+    # is never used. Files in a visited directory that are not allowed (for example untracked) can still be
+    # analyzed; their diagnostics are dropped below.
+    $directories = @($ps | ForEach-Object { $i = $_.LastIndexOf('/'); if ($i -lt 0) { '.' } else { $_.Substring(0, $i) } } | Select-Object -Unique)
+    $directories = Sort-Ordinal -Items $directories -KeyOf { param($d) $d }
+    $inputs = [ordered]@{ pssa_directories = @($directories) }
+    $prefix = (ConvertTo-PosixPath $rootFull) + '/'
+    foreach ($entry in $directories) {
+        $target = if ($entry -eq '.') { $Root } else { Join-Path $Root $entry }
         $errors = $null
-        $results = if ($isDirectory) { @(Invoke-ScriptAnalyzer -Path $target -Recurse -Settings $Settings -ErrorVariable errors -ErrorAction SilentlyContinue) }
-        else { @(Invoke-ScriptAnalyzer -Path $target -Settings $Settings -ErrorVariable errors -ErrorAction SilentlyContinue) }
+        $results = @(Invoke-ScriptAnalyzer -Path $target -Settings $Settings -ErrorVariable errors -ErrorAction SilentlyContinue)
         if ($errors -and @($errors).Count -gt 0) { $scanFailures.Add("PSScriptAnalyzer reported an error scanning '$entry': $(@($errors)[0])") }
         foreach ($result in $results) {
             if (-not $result.ScriptPath) { continue }
             $full = (ConvertTo-PosixPath $result.ScriptPath)
-            $prefix = (ConvertTo-PosixPath $rootFull) + '/'
             if (-not $full.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { continue }
             $relative = $full.Substring($prefix.Length)
             if (-not $fileSet.Contains($relative)) { continue }
@@ -361,7 +409,7 @@ function Invoke-PssaScan {
             $findings.Add((New-Finding -Tool 'pssa' -Rule $rule -Scope (Get-PcaiQualityFileScope -RelativePath $relative) -File $relative -Line ([int]$result.Line) -Message ([string]$result.Message)))
         }
     }
-    return [pscustomobject]@{ Findings = $findings; Failures = $scanFailures }
+    return [pscustomobject]@{ Findings = $findings; Failures = $scanFailures; Inputs = $inputs }
 }
 
 function Invoke-OwnChecks {
@@ -438,15 +486,18 @@ function Invoke-QualityRatchet {
 
     # --- scans -------------------------------------------------------------------------------
     $findings = [System.Collections.Generic.List[object]]::new()
+    $scanInputs = [ordered]@{}
     if ($failures.Count -eq 0 -or ($sg -and $pssaModule)) {
         if ($sg) {
-            $r = Invoke-AstGrepScan -Tool $sg -Root $root -Files $files -ConfigPath $sgConfig
+            $r = Invoke-AstGrepScan -Tool $sg -Root $root -Files $files -ConfigPath $sgConfig -BatchChars $AstGrepBatchChars
+            foreach ($property in $r.PSObject.Properties['Inputs']) { foreach ($key in $property.Value.Keys) { $scanInputs[$key] = $property.Value[$key] } }
             $findings.AddRange([object[]]@($r.Findings)); foreach ($f in $r.Failures) { $failures.Add($f) }
         }
         if ($pssaModule) {
             Import-Module $pssaModule.Path -Force -ErrorAction Stop
             $settings = Get-PssaSetting -RatchetPath $pssaSettingsFile -MergeRepoSettings $IncludeRepoSettings.IsPresent
             $r = Invoke-PssaScan -Root $root -Files $files -Settings $settings
+            foreach ($property in $r.PSObject.Properties['Inputs']) { foreach ($key in $property.Value.Keys) { $scanInputs[$key] = $property.Value[$key] } }
             $findings.AddRange([object[]]@($r.Findings)); foreach ($f in $r.Failures) { $failures.Add($f) }
         }
         $r = Invoke-OwnChecks -Root $root -Files $files
@@ -544,6 +595,7 @@ function Invoke-QualityRatchet {
         baseline_action     = $baselineAction
         tools               = $tools
         files_scanned       = $files.Count
+        scan_inputs         = $scanInputs
         counts              = $counts
         delta               = $delta
         improvements        = @($improvements)

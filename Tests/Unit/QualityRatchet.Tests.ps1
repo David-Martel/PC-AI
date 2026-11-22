@@ -34,6 +34,14 @@ BeforeAll {
         if ($sgCommand) { $script:HaveAstGrep = (& $sgCommand.Source --version) -match '^\s*ast-grep' }
     }
     $script:HavePssa = [bool](Get-Module -ListAvailable PSScriptAnalyzer)
+    $script:SgPath = $null
+    $script:SgVersion = $null
+    foreach ($candidate in 'ast-grep', 'sg') {
+        $found = Get-Command $candidate -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $found) { continue }
+        $versionText = (& $found.Source --version) -join ' '
+        if ($versionText -match '^\s*ast-grep\s+(\d+\.\d+\.\d+)') { $script:SgPath = $found.Source; $script:SgVersion = $Matches[1]; break }
+    }
 
     function script:Write-FixtureFile {
         param([string]$Root, [string]$Relative, [string]$Text)
@@ -80,6 +88,35 @@ class Planted {
     }
 }
 '@
+    }
+
+    # An inert ast-grep stand-in. --version and the canary probe (run from a pcai-ratchet-probe temp directory)
+    # are forwarded to the real binary; every other scan misbehaves as PCAI_FAKE_SG_MODE says.
+    function script:New-FakeAstGrep {
+        param([string]$Directory)
+        [void][System.IO.Directory]::CreateDirectory($Directory)
+        if ($IsWindows) {
+            $path = Join-Path $Directory 'fake-ast-grep.cmd'
+            $body = @(
+                '@echo off',
+                ('if "%1"=="--version" (echo ast-grep ' + $script:SgVersion + '& exit /b 0)'),
+                ('echo %CD% | findstr /C:"pcai-ratchet-probe" >nul && ("' + $script:SgPath + '" %* & exit /b %ERRORLEVEL%)'),
+                'if "%PCAI_FAKE_SG_MODE%"=="claim" (echo Error: 3 error^(s^) found in code. 1>&2 & exit /b 1)',
+                'exit /b 1'
+            ) -join "`r`n"
+        } else {
+            $path = Join-Path $Directory 'fake-ast-grep'
+            $body = @(
+                '#!/bin/sh',
+                ('if [ "$1" = "--version" ]; then echo "ast-grep ' + $script:SgVersion + '"; exit 0; fi'),
+                ('case "$PWD" in *pcai-ratchet-probe*) exec "' + $script:SgPath + '" "$@";; esac'),
+                'if [ "$PCAI_FAKE_SG_MODE" = "claim" ]; then echo "Error: 3 error(s) found in code." >&2; fi',
+                'exit 1'
+            ) -join "`n"
+        }
+        [System.IO.File]::WriteAllText($path, $body + "`n")
+        if (-not $IsWindows) { chmod +x $path }
+        return $path
     }
 
     function script:Invoke-Ratchet {
@@ -157,8 +194,25 @@ Describe 'PowerShell AST checks' -Tag 'Unit', 'Quality', 'Portable' {
         script:Get-Rules "function A { git status }`nfunction B { `$LASTEXITCODE }" | Should -Contain 'native-exe-exit-code-unchecked'
     }
 
-    It 'trusts $PSNativeCommandUseErrorActionPreference' {
+    It 'trusts an effective $PSNativeCommandUseErrorActionPreference = $true assignment before the call' {
         script:Get-Rules "`$PSNativeCommandUseErrorActionPreference = `$true`ngit status" | Should -Not -Contain 'native-exe-exit-code-unchecked'
+        script:Get-Rules "`$global:PSNativeCommandUseErrorActionPreference = `$true`nfunction F { git status }" | Should -Not -Contain 'native-exe-exit-code-unchecked'
+        script:Get-Rules "function F { `$PSNativeCommandUseErrorActionPreference = `$true; git status }" | Should -Not -Contain 'native-exe-exit-code-unchecked'
+    }
+
+    # Protects: the exemption. A mere mention of the variable used to exempt every native call in the file.
+    # Detects: $false assignments, plain reads, a later assignment, an overridden assignment and an assignment
+    # in an unrelated scope each wrongly exempting an unchecked call.
+    It 'does not let <Name> exempt an unchecked native call' -TestCases @(
+        @{ Name = 'a $false assignment'; Code = "`$PSNativeCommandUseErrorActionPreference = `$false`ngit status" }
+        @{ Name = 'a read-only reference'; Code = "`$null = `$PSNativeCommandUseErrorActionPreference`ngit status" }
+        @{ Name = 'an assignment that comes after the call'; Code = "git status`n`$PSNativeCommandUseErrorActionPreference = `$true" }
+        @{ Name = 'a $true assignment that is switched off before the call'; Code = "`$PSNativeCommandUseErrorActionPreference = `$true`n`$PSNativeCommandUseErrorActionPreference = `$false`ngit status" }
+        @{ Name = 'an assignment in a different function'; Code = "function A { `$PSNativeCommandUseErrorActionPreference = `$true }`nfunction B { git status }" }
+        @{ Name = 'a non-literal assignment'; Code = "`$PSNativeCommandUseErrorActionPreference = `$someValue`ngit status" }
+    ) {
+        param($Name, $Code)
+        script:Get-Rules $Code | Should -Contain 'native-exe-exit-code-unchecked'
     }
 
     It 'counts Invoke-Expression and iex' {
@@ -275,6 +329,69 @@ Describe 'Quality ratchet end to end' -Tag 'Unit', 'Quality', 'Portable' {
         }
     }
 
+    # Protects: analyzer traversal. The analyzers used to be pointed at top-level directories, so they could
+    # walk excluded or untracked descendants (a junction to the shared cargo cache under target/).
+    # Detects: any analyzer input that is not an allowed file, or a PSScriptAnalyzer directory that is not
+    # scanned non-recursively.
+    It 'hands the analyzers only allowed files and directories' -Skip:(-not ($script:HaveAstGrep -and $script:HavePssa)) {
+        script:Write-FixtureFile $script:Fixture 'vendor/dep/Vendored.ps1' "try { 1 } catch { }`n"
+        script:Write-FixtureFile $script:Fixture 'vendor/dep/vendored.rs' "pub fn v(o: Option<u8>) -> u8 { o.unwrap() }`n"
+        script:Write-FixtureFile $script:Fixture 'Modules/target/Hidden.ps1' "try { 1 } catch { }`n"
+        script:Write-FixtureFile $script:Fixture 'Native/node_modules/pkg/n.rs' "pub fn n(o: Option<u8>) -> u8 { o.unwrap() }`n"
+        try {
+            $run = script:Invoke-Ratchet -Fixture $script:Fixture -OutDir $script:Out
+            $inputs = $run.Result.scan_inputs
+            $inputs | Should -Not -BeNullOrEmpty -Because 'the result must record what the analyzers were given'
+            @($inputs.ast_grep_files) | Should -Be @('Native/App/Planted.cs', 'Native/lib/src/lib.rs')
+            @($inputs.pssa_directories) | Should -Be @('Modules', 'Tests/Unit')
+            $run.Result.counts['ast-grep|unwrap-call|prod'] | Should -Be 1
+            $run.Result.counts['pssa|PSAvoidUsingEmptyCatchBlock|prod'] | Should -Be 1
+        } finally {
+            Remove-Item -LiteralPath (Join-Path $script:Fixture 'vendor') -Recurse -Force
+            Remove-Item -LiteralPath (Join-Path $script:Fixture 'Modules/target') -Recurse -Force
+            Remove-Item -LiteralPath (Join-Path $script:Fixture 'Native/node_modules') -Recurse -Force
+        }
+    }
+
+    It 'splits ast-grep inputs into bounded batches without losing findings' -Skip:(-not ($script:HaveAstGrep -and $script:HavePssa)) {
+        $many = Join-Path $TestDrive 'many'
+        for ($i = 0; $i -lt 40; $i++) {
+            script:Write-FixtureFile $many ('crate/src/module_with_a_long_name_{0:D3}.rs' -f $i) "pub fn f(o: Option<u8>) -> u8 { o.unwrap() }`n"
+        }
+        $manyOut = Join-Path $TestDrive 'many-out'
+        $run = script:Invoke-Ratchet -Fixture $many -OutDir $manyOut -Extra @('-UpdateBaseline', '-AstGrepBatchChars', '400')
+        $run.ExitCode | Should -Be 0 -Because $run.Output
+        $run.Result.scan_inputs.ast_grep_batches | Should -BeGreaterThan 3
+        $run.Result.counts['ast-grep|unwrap-call|prod'] | Should -Be 40
+    }
+
+    # Protects: the ast-grep exit-code contract. Exit 1 used to be accepted whenever stderr was empty, so a
+    # scan that died quietly looked like a clean tree when the baseline had no findings for the files in it.
+    # Detects: a scanner that passes the canary but fails (or lies) on the real scan.
+    It 'fails the run when ast-grep passes the canary but exits 1 with no diagnostic on the real scan' -Skip:(-not ($script:HaveAstGrep -and $script:HavePssa)) {
+        $shim = script:New-FakeAstGrep -Directory (Join-Path $TestDrive 'shim-silent')
+        $env:PCAI_FAKE_SG_MODE = 'silent'
+        try {
+            $run = script:Invoke-Ratchet -Fixture $script:Fixture -OutDir $script:Out -Extra @('-AstGrepCommand', $shim)
+        } finally {
+            Remove-Item Env:PCAI_FAKE_SG_MODE
+        }
+        $run.ExitCode | Should -Be 1
+        ($run.Result.reasons -join "`n") | Should -Match 'ast-grep .*exit(ed)? 1'
+    }
+
+    It 'fails the run when ast-grep claims error diagnostics that it did not emit' -Skip:(-not ($script:HaveAstGrep -and $script:HavePssa)) {
+        $shim = script:New-FakeAstGrep -Directory (Join-Path $TestDrive 'shim-claim')
+        $env:PCAI_FAKE_SG_MODE = 'claim'
+        try {
+            $run = script:Invoke-Ratchet -Fixture $script:Fixture -OutDir $script:Out -Extra @('-AstGrepCommand', $shim)
+        } finally {
+            Remove-Item Env:PCAI_FAKE_SG_MODE
+        }
+        $run.ExitCode | Should -Be 1
+        ($run.Result.reasons -join "`n") | Should -Match 'ast-grep .*(error\(s\)|diagnostic)'
+    }
+
     It 'passes against the baseline it just wrote' -Skip:(-not ($script:HaveAstGrep -and $script:HavePssa)) {
         $run = script:Invoke-Ratchet -Fixture $script:Fixture -OutDir $script:Out
         $run.ExitCode | Should -Be 0 -Because $run.Output
@@ -366,6 +483,84 @@ Describe 'Quality ratchet end to end' -Tag 'Unit', 'Quality', 'Portable' {
             [System.IO.File]::WriteAllText($catchFile, $catchText)
             [System.IO.File]::WriteAllText($baselinePath, $original)
         }
+    }
+}
+
+# Protects: the exit code of `Build.ps1 -Component lint -LintProfile ratchet`. The ratchet gate function used
+# to leak the subprocess's stdout into its return value, so a failed ratchet returned summary strings plus
+# $false, which is truthy, and the build exited 0.
+# Detects: a failing ratchet that Build.ps1 reports as success. Runs a copy of Build.ps1 and the ratchet in a
+# throwaway tree so the real baseline is never involved.
+Describe 'Build.ps1 ratchet lint gate' -Tag 'Unit', 'Quality', 'Portable' {
+    BeforeAll {
+        function script:Invoke-MiniBuild {
+            $output = @(& $script:Pwsh -NoProfile -File (Join-Path $script:MiniRepo 'Build.ps1') -Component lint -LintProfile ratchet 2>&1)
+            $exit = $LASTEXITCODE
+            return [pscustomobject]@{ ExitCode = $exit; Output = ($output -join "`n") }
+        }
+        $script:MiniRepo = Join-Path $TestDrive 'minirepo'
+        $script:MiniOut = Join-Path $TestDrive 'mini-out'
+        if ($script:HaveAstGrep -and $script:HavePssa) {
+            [void][System.IO.Directory]::CreateDirectory($script:MiniRepo)
+            Copy-Item -LiteralPath (Join-Path $script:RepoRoot 'Build.ps1') -Destination $script:MiniRepo
+            foreach ($file in 'sgconfig.ratchet.yml', 'sgconfig.yml', 'PSScriptAnalyzerSettings.ratchet.psd1', 'PSScriptAnalyzerSettings.psd1') {
+                Copy-Item -LiteralPath (Join-Path $script:RepoRoot $file) -Destination $script:MiniRepo
+            }
+            foreach ($dir in 'Tools/Quality', 'rules/core', 'rules/rust', 'rules/csharp', 'rules/tests') {
+                $parent = Split-Path -Parent (Join-Path $script:MiniRepo $dir)
+                [void][System.IO.Directory]::CreateDirectory($parent)
+                Copy-Item -LiteralPath (Join-Path $script:RepoRoot $dir) -Destination $parent -Recurse
+            }
+            script:New-RatchetFixture -Root $script:MiniRepo
+            $baseline = script:Invoke-Ratchet -Fixture $script:MiniRepo -OutDir $script:MiniOut -Extra @('-UpdateBaseline')
+            if ($baseline.ExitCode -ne 0) { throw "could not create the mini-repo baseline: $($baseline.Output)" }
+            $script:MiniBaseline = Join-Path $script:MiniRepo 'Config/quality-baseline.json'
+            [void][System.IO.Directory]::CreateDirectory((Split-Path -Parent $script:MiniBaseline))
+            Copy-Item -LiteralPath (Join-Path $script:MiniOut 'baseline.json') -Destination $script:MiniBaseline
+        }
+    }
+
+    It 'exits 0 when the ratchet passes' -Skip:(-not ($script:HaveAstGrep -and $script:HavePssa)) {
+        $run = script:Invoke-MiniBuild
+        $run.ExitCode | Should -Be 0 -Because $run.Output
+        $run.Output | Should -Match 'Quality ratchet passed'
+    }
+
+    It 'exits nonzero when the baseline is lower than the counts' -Skip:(-not ($script:HaveAstGrep -and $script:HavePssa)) {
+        $original = Get-Content -LiteralPath $script:MiniBaseline -Raw
+        try {
+            $data = $original | ConvertFrom-Json -AsHashtable
+            $data.counts['pcai-ps-ast|empty-catch|prod'] = 0
+            [System.IO.File]::WriteAllText($script:MiniBaseline, ($data | ConvertTo-Json -Depth 5))
+            $run = script:Invoke-MiniBuild
+            $run.ExitCode | Should -Not -Be 0 -Because $run.Output
+            $run.Output | Should -Match 'Quality ratchet failed'
+        } finally {
+            [System.IO.File]::WriteAllText($script:MiniBaseline, $original)
+        }
+    }
+
+    It 'lets no lint gate function write a native call to its success stream' {
+        # Static audit of Build.ps1: inside each gate function, a statement that starts with the call operator
+        # must be assigned or end in Out-Null / Out-Host. Otherwise its output joins the function's return value.
+        $text = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'Build.ps1') -Raw
+        $ast = [System.Management.Automation.Language.Parser]::ParseInput($text, [ref]$null, [ref]$null)
+        $gates = 'Invoke-QualityRatchetCheck', 'Invoke-AstGrepCheck', 'Invoke-PowerShellQuality', 'Invoke-PrettierQuality', 'Invoke-DotnetFormatQuality', 'Invoke-TomlQuality', 'Invoke-RagQuality', 'Invoke-RustQuality', 'Invoke-RustInferenceQuality'
+        $leaks = foreach ($name in $gates) {
+            $function = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name }, $true) | Select-Object -First 1
+            if (-not $function) { "$name not found"; continue }
+            $pipelines = $function.Body.FindAll({ param($n) $n -is [System.Management.Automation.Language.PipelineAst] }, $true)
+            foreach ($pipeline in $pipelines) {
+                $first = $pipeline.PipelineElements[0]
+                if ($first -isnot [System.Management.Automation.Language.CommandAst]) { continue }
+                if ($first.InvocationOperator -ne [System.Management.Automation.Language.TokenKind]::Ampersand) { continue }
+                if ($pipeline.Parent -is [System.Management.Automation.Language.AssignmentStatementAst]) { continue }
+                $last = $pipeline.PipelineElements[$pipeline.PipelineElements.Count - 1]
+                $lastName = if ($last -is [System.Management.Automation.Language.CommandAst]) { $last.GetCommandName() } else { $null }
+                if ($lastName -notin 'Out-Null', 'Out-Host') { "$name line $($pipeline.Extent.StartLineNumber): $($pipeline.Extent.Text)" }
+            }
+        }
+        @($leaks) | Should -BeNullOrEmpty
     }
 }
 

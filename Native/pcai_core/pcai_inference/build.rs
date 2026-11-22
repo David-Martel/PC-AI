@@ -4,24 +4,31 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
-    // Detect CUDA installation. Both variables are read (and so declared) on every run, set or not: CUDA_PATH set
-    // later must rerun this script, which a declaration made only when one of them was already set did not do.
-    let cuda_path = tracked_env("CUDA_PATH");
-    let cuda_home = tracked_env("CUDA_HOME");
-    let has_cuda = cuda_path.is_some() || cuda_home.is_some();
+    // Whether this artifact has CUDA is a property of the features it is compiled with, never of the build host.
+    // Deriving it from the CUDA toolkit environment made builds without a CUDA feature report `has_cuda: true`
+    // (reported by codex on PR #403). Cargo sets CARGO_FEATURE_* for the compiled features, and a feature change
+    // already gives this script a new run, so these reads need no trigger of their own.
+    let has_cuda = cuda_compiled();
     if has_cuda {
         println!("cargo:rustc-cfg=has_cuda");
-        // get_cuda_version runs the nvcc found on PATH, so PATH is an input whenever CUDA is configured. It is not
-        // declared otherwise: PATH differs between shells and build wrappers, and nothing else here depends on it.
+        // get_cuda_version runs the nvcc found on PATH to label a CUDA build, so PATH is an input whenever a CUDA
+        // feature is compiled. It is not declared otherwise: PATH differs between shells and build wrappers, and
+        // nothing else here depends on it.
         println!("cargo:rerun-if-env-changed=PATH");
     }
 
     // Generate version information
-    generate_version_info(has_cuda, cuda_path.as_deref());
+    generate_version_info(has_cuda);
 
     // Rerun build script if these change
     println!("cargo:rerun-if-changed=build.rs");
     emit_git_rerun_paths();
+}
+
+/// True when a CUDA backend feature is compiled in. `cuda` is an umbrella feature that enables both of these, and
+/// src/version.rs tests that the result agrees with the compiler's own `cfg!(feature = ...)`.
+fn cuda_compiled() -> bool {
+    env::var_os("CARGO_FEATURE_CUDA_LLAMACPP").is_some() || env::var_os("CARGO_FEATURE_CUDA_MISTRALRS").is_some()
 }
 
 /// Reads an environment variable the generated metadata depends on, after declaring it to Cargo.
@@ -87,7 +94,7 @@ fn emit_git_rerun_paths() {
     }
 }
 
-fn generate_version_info(has_cuda: bool, cuda_path: Option<&str>) {
+fn generate_version_info(has_cuda: bool) {
     let out_dir = env::var_os("OUT_DIR").expect("build script: required operation failed");
     let dest_path = Path::new(&out_dir).join("build_info.rs");
 
@@ -143,9 +150,9 @@ fn generate_version_info(has_cuda: bool, cuda_path: Option<&str>) {
     }
     let features_str = features.join(",");
 
-    // CUDA state comes from main, which declared CUDA_PATH and CUDA_HOME.
+    // has_cuda comes from the compiled features (see cuda_compiled); a build without CUDA reports "none".
     let cuda_version = if has_cuda {
-        get_cuda_version(cuda_path)
+        get_cuda_version()
     } else {
         "none".to_string()
     };
@@ -315,7 +322,9 @@ fn get_version_from_git() -> String {
     }
 }
 
-fn get_cuda_version(cuda_path: Option<&str>) -> String {
+/// Labels a CUDA build with the toolkit release that `nvcc --version` reports, or "unknown". Called only when a
+/// CUDA feature is compiled; the toolkit environment never decides whether the build has CUDA.
+fn get_cuda_version() -> String {
     // Try nvcc --version
     Command::new("nvcc")
         .args(["--version"])
@@ -340,16 +349,5 @@ fn get_cuda_version(cuda_path: Option<&str>) -> String {
                 None
             }
         })
-        .unwrap_or_else(|| {
-            // Fallback: the CUDA_PATH value main already read and declared
-            cuda_path
-                .and_then(|path| {
-                    // Extract version from path like "C:\...\CUDA\v13.1"
-                    path.split(['\\', '/'])
-                        .next_back()
-                        .filter(|s| s.starts_with('v') || s.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false))
-                        .map(|s| s.trim_start_matches('v').to_string())
-                })
-                .unwrap_or_else(|| "unknown".to_string())
-        })
+        .unwrap_or_else(|| "unknown".to_string())
 }

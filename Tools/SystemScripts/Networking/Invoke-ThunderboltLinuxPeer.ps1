@@ -252,11 +252,13 @@ if [ -n "`$matches" ]; then
     require_setting ipv6.gateway ''
     require_setting ipv6.dns ''
     require_setting ipv6.routes ''
+    require_setting ipv6.token ''
     require_setting ipv6.never-default yes
     selector=(uuid "`$connection_uuid")
     # Confirm both the saved settings and the applied connection before skipping activation.
     profile_mtu=`$(nmcli -g 802-3-ethernet.mtu connection show "`${selector[@]}")
-    if [ "`$ipv6_method" = link-local ] && [ "`$profile_mtu" = '$($Profile.mtuBytes)' ]; then
+    ipv6_iid=`$(nmcli -g ipv6.addr-gen-mode connection show "`${selector[@]}")
+    if [ "`$ipv6_method" = link-local ] && [ "`$ipv6_iid" = eui64 ] && [ "`$profile_mtu" = '$($Profile.mtuBytes)' ]; then
         device_setting() { nmcli --escape no -g "`$1" device show '$Interface'; }
         active_uuid=`$(device_setting GENERAL.CON-UUID)
         if [ "`$active_uuid" = "`$connection_uuid" ]; then
@@ -265,19 +267,23 @@ if [ -n "`$matches" ]; then
             live_ipv6=`$(device_setting IP6.ADDRESS)
             ipv4_gateway=`$(device_setting IP4.GATEWAY)
             ipv6_gateway=`$(device_setting IP6.GATEWAY)
+            ipv4_dns=`$(device_setting IP4.DNS)
+            ipv6_dns=`$(device_setting IP6.DNS)
             if [[ "`$live_mtu" = '$($Profile.mtuBytes)' && "`$live_ipv4" = '$($Profile.peerAddress)/30' &&
                 "`$live_ipv6" =~ ^[Ff][Ee][89AaBb][0-9A-Fa-f]:[0-9A-Fa-f:]+/64`$ &&
                 ( -z "`$ipv4_gateway" || "`$ipv4_gateway" = -- ) &&
-                ( -z "`$ipv6_gateway" || "`$ipv6_gateway" = -- ) ]]; then
+                ( -z "`$ipv6_gateway" || "`$ipv6_gateway" = -- ) &&
+                ( -z "`$ipv4_dns" || "`$ipv4_dns" = -- ) &&
+                ( -z "`$ipv6_dns" || "`$ipv6_dns" = -- ) ]]; then
                 exit 0
             fi
         fi
     fi
 else
-    sudo -n nmcli connection add type ethernet ifname '$Interface' con-name "`$connection" ipv4.method manual ipv4.addresses '$($Profile.peerAddress)/30' ipv4.never-default yes ipv4.ignore-auto-routes yes ipv4.ignore-auto-dns yes ipv6.method link-local ipv6.never-default yes connection.autoconnect yes
+    sudo -n nmcli connection add type ethernet ifname '$Interface' con-name "`$connection" ipv4.method manual ipv4.addresses '$($Profile.peerAddress)/30' ipv4.never-default yes ipv4.ignore-auto-routes yes ipv4.ignore-auto-dns yes ipv6.method link-local ipv6.addr-gen-mode eui64 ipv6.never-default yes connection.autoconnect yes
     selector=(id "`$connection")
 fi
-sudo -n nmcli connection modify "`${selector[@]}" 802-3-ethernet.mtu '$($Profile.mtuBytes)' ipv4.gateway '' ipv4.dns '' ipv4.never-default yes ipv4.ignore-auto-routes yes ipv4.ignore-auto-dns yes ipv6.method link-local
+sudo -n nmcli connection modify "`${selector[@]}" 802-3-ethernet.mtu '$($Profile.mtuBytes)' ipv4.gateway '' ipv4.dns '' ipv4.never-default yes ipv4.ignore-auto-routes yes ipv4.ignore-auto-dns yes ipv6.method link-local ipv6.addr-gen-mode eui64
 sudo -n nmcli connection up "`${selector[@]}" ifname '$Interface'
 "@
 }

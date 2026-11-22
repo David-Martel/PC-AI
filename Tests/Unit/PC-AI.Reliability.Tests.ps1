@@ -537,6 +537,27 @@ Describe 'PC-AI.Reliability' {
             $details.db.password | Should -Be $pw
         }
 
+        It 'withholds any object that is not a plain value, so a credential object never serializes (review of e62fcadc)' {
+            # Unrecognized types were returned unchanged: a NetworkCredential under details.account was then serialized
+            # by ConvertTo-Json with its plaintext Password into the ledger and agent-bus metadata.
+            $pw = 'obj' + 'Pass' + ('5' * 6)
+            $cred = New-Object System.Net.NetworkCredential(('svc' + '-user'), $pw)
+            $ev = New-FleetLedgerEvent -Source task -Name '\t\job' -Kind incident-open -Status failed -Severity high -Message 'failed' `
+                -Details @{ account = $cred; nested = @{ also = $cred }; when = [datetime]'2026-11-21T12:00:00Z'; id = [guid]'00000000-0000-0000-0000-000000000001'; ratio = 0.5; ok = $true }
+            $null = Write-FleetLedgerEvent -LedgerEvent $ev
+            $ledgerText = Get-Content -Raw -LiteralPath (Join-Path $env:FLEET_RELIABILITY_HOME 'ledger\ledger.jsonl')
+            $busText = (@(Get-BusCall 'send') | ForEach-Object { @($_.Args) -join ' ' }) -join "`n"
+            $ledgerText.Contains($pw) | Should -BeFalse -Because 'a credential object reached the ledger'
+            $busText.Contains($pw) | Should -BeFalse -Because 'a credential object reached agent-bus metadata'
+            [string]$ev.details.account | Should -Match '^\[withheld object: System\.Net\.NetworkCredential\]$'
+            [string]$ev.details.nested.also | Should -Match 'withheld object'
+            # Plain values pass through (controls).
+            $ev.details.ratio | Should -Be 0.5
+            $ev.details.ok | Should -BeTrue
+            $ev.details.id | Should -Be ([guid]'00000000-0000-0000-0000-000000000001')
+            ([datetime]$ev.details.when).ToUniversalTime().Year | Should -Be 2026
+        }
+
         It 'withholds structured data whole when it cannot be redacted' {
             # Fail closed, as for messages: an error while masking keeps no value from the structure.
             Mock -ModuleName PC-AI.Reliability Protect-FleetText { throw 'redactor broke' }

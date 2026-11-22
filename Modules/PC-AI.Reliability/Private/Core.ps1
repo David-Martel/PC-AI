@@ -386,7 +386,12 @@ function Protect-FleetStructure {
         $items = @(foreach ($i in $Value) { , (Protect-FleetStructure -Value $i) })
         return , $items
     }
-    return $Value
+    # Only plain values pass unchanged. Any other object is withheld by type name: returned as-is, a
+    # NetworkCredential under details.account was serialized with its plaintext Password (review of e62fcadc).
+    $t = $Value.GetType()
+    if ($t.IsPrimitive -or $t.IsEnum -or $Value -is [decimal] -or $Value -is [datetime] -or $Value -is [datetimeoffset] -or
+        $Value -is [timespan] -or $Value -is [guid] -or $Value -is [System.Numerics.BigInteger]) { return $Value }
+    return ('[withheld object: {0}]' -f $t.FullName)
 }
 
 function ConvertTo-FleetSafeStructure {

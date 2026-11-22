@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "reviewedAtUtc": "2026-11-22T15:06:50.3840745Z",
+  "reviewedAtUtc": "2026-11-22T15:20:15.1410945Z",
   "reviewer": "publication_review",
   "reviewerType": "independent source agent",
   "sourceBaseline": "1bbeaad2d1498fa48ee49d658b073d1640588551",
@@ -8,7 +8,7 @@
   "sourceBindings": {
     "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1": "f8aa9635ac1e1df1247cd9f3a4c82cafb0576af583a2e5de62684077d8563662",
     "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1": "163c0d4ba1a92b7e03a45724631cb7e2f96863119a0673a24583b20b515099db",
-    "Tests/Unit/PcaiLinkHealth.Tests.ps1": "2fb940f19cc547ffd601b373f2a0f72a63b94ad938147467c93ab93d7b36d911"
+    "Tests/Unit/PcaiLinkHealth.Tests.ps1": "b95649ae1711cfcce104ace9a4304e84e6ded8c228cfe05709a246e22c1f7466"
   },
   "selectors": [
     {
@@ -98,6 +98,14 @@
       "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
       "disposition": "keep",
       "reviewScope": "Changing source file bytes selects another payload version."
+    },
+    {
+      "selector": "refuses reuse when the matching SYSTEM <TargetKind> is untrusted",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "3d34a9b0a63558bfd68eebe8ba871af1bb529cf01473e1f5e8fa022436d28214",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1",
+      "disposition": "keep",
+      "reviewScope": "Both cases preserve a real hash-matching payload and refuse registration when the mocked SYSTEM trust guard denies its directory or the script."
     }
   ]
 }

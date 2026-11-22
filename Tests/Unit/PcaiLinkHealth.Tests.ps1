@@ -417,6 +417,36 @@ Describe 'SYSTEM install never trusts a pre-existing version directory' -Tag 'Un
         Should -Invoke Register-ScheduledTask -Times 0 -Exactly
     }
 
+    # Protects: SYSTEM reuse requires trusted custody of the version directory and each published file.
+    # Detects: accepting hash-matching content after a directory or script loses trusted ownership or ACLs.
+    # Needs: Windows, a real temporary payload, and mocked task and ACL providers.
+    # Breadcrumb: Install-PcaiLinkHealthTrigger.ps1::Assert-PcaiHealthPayload.
+    It 'refuses reuse when the matching SYSTEM <TargetKind> is untrusted' -Skip:(-not $IsWindows) -ForEach @(
+        @{ TargetKind = 'version directory'; Leaf = '' }
+        @{ TargetKind = 'payload entry'; Leaf = 'Invoke-PcaiLinkHealth.ps1' }
+    ) {
+        Mock Get-ScheduledTask {}
+        Mock Register-ScheduledTask {}
+        Mock Get-Acl { [pscustomobject]@{} | Add-Member -MemberType ScriptMethod -Name GetOwner -Value { [pscustomobject]@{ Value = 'S-1-5-32-544' } } -PassThru }
+        Mock New-PcaiProtectedDirectory { $null = New-Item -ItemType Directory -Force -Path $Path }
+        Mock Test-PcaiSystemTrustedPath { $true }
+        Mock Protect-PcaiSystemFile {}
+        $target = Join-Path $TestDrive 'reuse-custody/link-health/bin'
+        $null = New-Item -ItemType Directory -Force -Path $target
+        $files = @(Get-PcaiHealthFile -Root $repoRoot -Components @('LinkHealth') | Where-Object { Test-Path -LiteralPath $_.Source })
+        $payload = Get-PcaiHealthPayload -File $files
+        $bin = Join-Path $target $payload.Version
+        Publish-PcaiHealthPayload -Root $repoRoot -Directory $bin -Payload $payload
+        $paths = @(Get-ChildItem -LiteralPath $bin -File -Force | Sort-Object Name | ForEach-Object FullName)
+        $before = @(Get-FileHash -LiteralPath $paths).Hash
+        $denied = if ($Leaf) { Join-Path $bin $Leaf } else { $bin }
+        Mock Test-PcaiSystemTrustedPath { $false } -ParameterFilter { $Path -eq $denied }
+        { Install-PcaiHealthWindows -Root $repoRoot -Target $target -Components @('LinkHealth') -SystemTask | Out-Null } |
+            Should -Throw '*Cannot use health payload*'
+        @(Get-FileHash -LiteralPath $paths).Hash | Should -Be $before
+        Should -Invoke Register-ScheduledTask -Times 0 -Exactly
+    }
+
     # Protects: a write-restricted parent holds the SYSTEM payload while it is staged.
     # Detects: treating permission to create children as safe for a staging parent.
     # Needs: Windows and mocked task and ACL providers.

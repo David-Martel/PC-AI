@@ -22,6 +22,8 @@ cuda-optimized = ["cuda", "cudnn", "nvml"]
 [dependencies]
 pcai-media = { path = "../pcai_media", default-features = false, features = ["server"] }
 pcai-media-model = { path = "../pcai_media_model" }
+# Host/Origin/CORS/bearer guards and bind-address parsing shared with pcai-inference
+pcai_http_guard = { path = "../pcai_http_guard" }
 anyhow = "1.0"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -29,7 +31,7 @@ serde_json = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 axum = "0.8"
-tower-http = { version = "0.7", features = ["cors", "trace"] }
+tower-http = { version = "0.7", features = ["trace"] }
 clap = { version = "4", features = ["derive"] }
 base64 = "0.22"
 image = "0.25"

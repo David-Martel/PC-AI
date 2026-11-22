@@ -81,6 +81,33 @@ function Resolve-PcaiEndpoint {
     return $ApiUrl
 }
 
+function Get-PcaiInferenceAuthHeader {
+    <#
+    .SYNOPSIS
+        Returns the Authorization header for pcai-inference when PCAI_INFERENCE_TOKEN is set.
+    .DESCRIPTION
+        pcai-inference requires a bearer token on every route but GET /health when one is
+        configured, and refuses to bind a non-loopback address without one. The token is read from
+        the same environment variable the server reads. It is sent only to the configured
+        pcai-inference endpoint, never to Ollama, LM Studio or vLLM, so it cannot leak to another
+        provider. Returns an empty hashtable when no token is set or the URL is another provider's.
+    #>
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param(
+        [Parameter(Mandatory)]
+        [string]$ApiUrl
+    )
+
+    $token = [Environment]::GetEnvironmentVariable('PCAI_INFERENCE_TOKEN')
+    if ([string]::IsNullOrWhiteSpace($token)) { return @{} }
+
+    $pcaiUrl = Resolve-PcaiEndpoint -ApiUrl $script:ModuleConfig.PcaiInferenceApiUrl -ProviderName 'pcai-inference'
+    if ($ApiUrl.TrimEnd('/') -ne $pcaiUrl.TrimEnd('/')) { return @{} }
+
+    return @{ Authorization = "Bearer $($token.Trim())" }
+}
+
 function Resolve-OllamaNativeCliPath {
     [CmdletBinding()]
     [OutputType([string])]
@@ -627,9 +654,10 @@ function Test-PcaiInferenceConnection {
     )
 
     $ApiUrl = Resolve-PcaiEndpoint -ApiUrl $ApiUrl -ProviderName 'pcai-inference'
+    $authHeaders = Get-PcaiInferenceAuthHeader -ApiUrl $ApiUrl
 
     try {
-        $response = Invoke-RestMethod -Uri "$ApiUrl/v1/models" -Method Get -TimeoutSec $TimeoutSeconds -ErrorAction Stop
+        $response = Invoke-RestMethod -Uri "$ApiUrl/v1/models" -Method Get -Headers $authHeaders -TimeoutSec $TimeoutSeconds -ErrorAction Stop
         return $true
     }
     catch {
@@ -906,6 +934,7 @@ function Invoke-OpenAIChatWithProgress {
     $jsonBody = $body | ConvertTo-Json -Depth 10
     $headers = @{}
     if ($ApiKey) { $headers['Authorization'] = "Bearer $ApiKey" }
+    else { $headers = Get-PcaiInferenceAuthHeader -ApiUrl $ApiUrl }
 
     $uri = "$ApiUrl/v1/chat/completions"
     $job = Start-Job -ScriptBlock {
@@ -1187,6 +1216,9 @@ function Invoke-OpenAIChat {
     $headers = @{}
     if ($ApiKey) {
         $headers['Authorization'] = "Bearer $ApiKey"
+    }
+    else {
+        $headers = Get-PcaiInferenceAuthHeader -ApiUrl $ApiUrl
     }
 
     try {

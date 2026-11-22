@@ -4505,6 +4505,7 @@ dependencies = [
  "llm",
  "mistralrs",
  "mistralrs-core",
+ "pcai_http_guard",
  "rand 0.8.6",
  "reqwest 0.12.28",
  "serde",
@@ -4571,6 +4572,7 @@ dependencies = [
  "mimalloc",
  "pcai-media",
  "pcai-media-model",
+ "pcai_http_guard",
  "serde",
  "serde_json",
  "tokio",
@@ -4660,6 +4662,22 @@ dependencies = [
  "windows 0.62.2",
  "windows-sys 0.61.2",
  "winreg",
+]
+
+[[package]]
+name = "pcai_http_guard"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "libc",
+ "serde_json",
+ "subtle",
+ "thiserror 2.0.21",
+ "tokio",
+ "tower",
+ "tower-http 0.7.1",
+ "tracing",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

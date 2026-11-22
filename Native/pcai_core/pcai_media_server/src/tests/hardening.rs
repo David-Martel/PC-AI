@@ -133,6 +133,23 @@ async fn default_config_sends_no_cors_headers_for_a_foreign_origin() {
     assert!(!response.status().is_success());
 }
 
+// Protects: the "empty means nothing" rule. A permissive CORS layer adds
+// `Access-Control-Allow-Origin: *` even to requests that carry no Origin. Detects: restoring
+// `CorsLayer::permissive`, or building a CORS layer from an empty list.
+#[tokio::test]
+async fn ordinary_responses_carry_no_cors_headers_by_default() {
+    let app = router(|_| {});
+    let response = send(&app, get("/v1/models", Some("127.0.0.1:8090"), &[])).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let cors: Vec<&str> = response
+        .headers()
+        .keys()
+        .map(|name| name.as_str())
+        .filter(|name| name.starts_with("access-control-"))
+        .collect();
+    assert!(cors.is_empty(), "unexpected CORS headers: {cors:?}");
+}
+
 // Protects: the opt-in for a real browser client, including a preflight that carries no token.
 // Detects: an allow-list that does not echo the configured origin, echoes others, or puts auth
 // outside CORS.
@@ -217,7 +234,7 @@ fn non_loopback_bind_without_a_token_is_refused() {
             assert!(error.to_string().contains("token"), "message: {error}");
         }
     }
-    try_router(|s| {
+    let _router = try_router(|s| {
         s.host = "0.0.0.0".to_string();
         s.auth_token = Some(TOKEN.to_string());
         s.allowed_hosts = vec!["media.lan".to_string()];

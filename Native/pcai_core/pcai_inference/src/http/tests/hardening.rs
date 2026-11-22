@@ -297,6 +297,26 @@ async fn default_config_sends_no_cors_headers_for_a_foreign_origin() {
     }
 }
 
+// Protects: the "empty means nothing" rule from the other side. A permissive CORS layer adds
+// `Access-Control-Allow-Origin: *` even to requests that carry no Origin, so this catches it
+// where the Origin check cannot. Detects: restoring `CorsLayer::permissive`, or building a CORS
+// layer from an empty list.
+#[tokio::test]
+async fn ordinary_responses_carry_no_cors_headers_by_default() {
+    let app = router(|_| {});
+    for host in ["127.0.0.1:8080", "localhost"] {
+        let response = send(&app, models_request(Some(host))).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let cors: Vec<&str> = response
+            .headers()
+            .keys()
+            .map(|name| name.as_str())
+            .filter(|name| name.starts_with("access-control-"))
+            .collect();
+        assert!(cors.is_empty(), "unexpected CORS headers: {cors:?}");
+    }
+}
+
 // Protects: the preflight a browser sends before a JSON POST. Detects: a permissive preflight
 // answer, which is what made the cross-origin POST possible.
 #[tokio::test]
@@ -501,10 +521,10 @@ fn loopback_binds_and_token_protected_binds_start() {
         "[::1]",
         "::ffff:127.0.0.1",
     ] {
-        build_router(state(), &config(|c| c.host = host.to_string()))
+        let _router = build_router(state(), &config(|c| c.host = host.to_string()))
             .unwrap_or_else(|error| panic!("{host} must start without a token: {error}"));
     }
-    build_router(
+    let _router = build_router(
         state(),
         &config(|c| {
             c.host = "0.0.0.0".to_string();

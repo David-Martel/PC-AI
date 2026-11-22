@@ -518,6 +518,14 @@ function Get-GateViolation {
     [ordered]@{ code = $Code; message = $Message }
 }
 
+function Test-JsonObject {
+    # A JSON object: a dictionary or a PSCustomObject. Not `-is [pscustomobject]`, which is true for any value PowerShell
+    # wraps (an empty array included), so an array root would pass as an object.
+    param($Value)
+    if ($null -eq $Value) { return $false }
+    $Value -is [System.Collections.IDictionary] -or $Value.GetType().FullName -eq 'System.Management.Automation.PSCustomObject'
+}
+
 function Get-BaselineMember {
     # Wraps a lookup so an empty array value survives (a bare return would unroll it to $null) and an absent key is
     # distinct from a null value.
@@ -551,9 +559,25 @@ function Get-BaselineShapeProblem {
     param($Baseline)
 
     $problems = [System.Collections.Generic.List[string]]::new()
-    $isNumber = { param($v) $null -ne $v -and ($v -is [int] -or $v -is [long] -or $v -is [double] -or $v -is [decimal] -or $v -is [single]) }
-    $isObject = { param($v) $null -ne $v -and ($v -is [System.Collections.IDictionary] -or $v -is [pscustomobject]) }
-    $isList = { param($v) $null -ne $v -and $v -is [System.Collections.IEnumerable] -and $v -isnot [string] -and $v -isnot [System.Collections.IDictionary] -and $v -isnot [pscustomobject] }
+    if ($null -ne $Baseline -and $Baseline.PSObject.TypeNames -contains 'AssessmentBaselineUnreadable') {
+        return @("the baseline file exists but is unusable: $($Baseline.Reason)")
+    }
+    if (-not (Test-JsonObject $Baseline)) {
+        return @("the baseline root is not a JSON object (found $(if ($null -eq $Baseline) { 'null' } else { $Baseline.GetType().Name }))")
+    }
+    # A JSON number only: a string ("48"), a bool (true) or null is never coerced into one, and NaN and the infinities
+    # are rejected because every comparison with NaN is false, so a NaN minimum would let any coverage pass.
+    $isNumber = {
+        param($v)
+        if ($null -eq $v) { return $false }
+        if ($v -is [int] -or $v -is [long]) { return $true }
+        if ($v -is [double] -or $v -is [single]) { return [double]::IsFinite([double]$v) }
+        $v -is [decimal]
+    }
+    # An integer where a count or a version is meant: 1.0 and 1.25 are doubles and are not integers here.
+    $isInteger = { param($v) $null -ne $v -and ($v -is [int] -or $v -is [long]) }
+    $isObject = { param($v) Test-JsonObject $v }
+    $isList = { param($v) $null -ne $v -and $v -is [System.Collections.IList] }
     $names = {
         param($o)
         if ($o -is [System.Collections.IDictionary]) { @($o.Keys | ForEach-Object { [string]$_ }) } else { @($o.PSObject.Properties.Name) }
@@ -561,7 +585,7 @@ function Get-BaselineShapeProblem {
 
     $sv = Get-BaselineMember $Baseline 'schema_version'
     if (-not $sv.Present) { $problems.Add('schema_version is missing') }
-    elseif (-not (& $isNumber $sv.Value) -or [int]$sv.Value -ne $script:AssessmentSchemaVersion) {
+    elseif (-not (& $isInteger $sv.Value) -or $sv.Value -ne $script:AssessmentSchemaVersion) {
         $problems.Add("schema_version $($sv.Value) is not supported (this tool reads version $($script:AssessmentSchemaVersion))")
     }
 
@@ -577,7 +601,7 @@ function Get-BaselineShapeProblem {
     else {
         foreach ($k in 'no_assertion_it_max', 'not_throw_only_it_max', 'tautology_it_max', 'parse_error_files_max') {
             $m = Get-BaselineMember $q.Value $k
-            if (-not $m.Present -or -not (& $isNumber $m.Value) -or $m.Value -lt 0) { $problems.Add("quality.$k is missing or not a non-negative number") }
+            if (-not $m.Present -or -not (& $isInteger $m.Value) -or $m.Value -lt 0) { $problems.Add("quality.$k is missing or not a non-negative integer") }
         }
     }
 
@@ -609,12 +633,39 @@ function Get-BaselineShapeProblem {
                 if (-not $m.Present -or -not (& $isObject $m.Value)) { $problems.Add("tiers.$tierName.known_failures.$k is missing or not an object"); continue }
                 foreach ($leaf in (& $names $m.Value)) {
                     $lv = (Get-BaselineMember $m.Value $leaf).Value
-                    if (-not (& $isNumber $lv) -or $lv -lt 0) { $problems.Add("tiers.$tierName.known_failures.$k.$leaf is not a non-negative number") }
+                    if (-not (& $isInteger $lv) -or $lv -lt 0) { $problems.Add("tiers.$tierName.known_failures.$k.$leaf is not a non-negative integer") }
                 }
             }
         }
     }
     $problems.ToArray()
+}
+function Read-AssessmentBaseline {
+    <#
+    .SYNOPSIS
+        Reads Config/test-baseline.json. Only a file that does not exist is absent (returns $null and may be seeded).
+    .DESCRIPTION
+        A file that exists but is empty, whitespace, unparsable, or whose root is null, an array, a string or any other
+        non-object is returned as an "unreadable" marker that Get-BaselineShapeProblem rejects. It must not collapse into
+        the absent case: that would seed over it (codex review of #384). An empty object is parsed and then rejected for
+        its missing required keys.
+    .PARAMETER Path
+        Baseline path.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { return $null }
+    $unreadable = { param($why) $m = [pscustomobject]@{ Reason = $why }; $m.PSObject.TypeNames.Insert(0, 'AssessmentBaselineUnreadable'); $m }
+    $raw = Get-Content -LiteralPath $Path -Raw
+    if ([string]::IsNullOrWhiteSpace($raw)) { return (& $unreadable 'the file is empty') }
+    try { $parsed = ConvertFrom-Json -InputObject $raw -NoEnumerate -ErrorAction Stop }
+    catch { return (& $unreadable "it is not valid JSON ($($_.Exception.Message))") }
+    if ($null -eq $parsed) { return (& $unreadable 'its root is null') }
+    # Judged here, not by the caller: returning an empty array would unroll to $null and read as "absent".
+    if (-not (Test-JsonObject $parsed)) {
+        return (& $unreadable "its root is a JSON $(if ($parsed -is [string]) { 'string' } elseif ($parsed -is [System.Collections.IEnumerable]) { 'array' } else { 'scalar' }), not an object")
+    }
+    $parsed
 }
 function Test-AssessmentGate {
     <#
@@ -788,6 +839,8 @@ function Update-AssessmentBaseline {
                 $was = $prev.per_module_min_pct[$row.module]
                 $pm[$row.module] = if ($null -ne $was) { [math]::Max([double]$was, $floor) } else { $floor }
             }
+            # An update only tightens or adds: a baselined module with no row now keeps its floor (the gate reports it).
+            foreach ($existing in @($prev.per_module_min_pct.Keys)) { if (-not $pm.Contains($existing)) { $pm[$existing] = $prev.per_module_min_pct[$existing] } }
             $entry.per_module_min_pct = $pm
             $kf = [ordered]@{}
             $kf.containers = @(@($prev.known_failures.containers) | Where-Object { $_ -and $_ -in $containerNames } | Sort-Object)
@@ -976,7 +1029,7 @@ function Invoke-TestAssessment {
     }
 
     $baseline = $null
-    if (Test-Path -LiteralPath $BaselinePath) { $baseline = Get-Content -LiteralPath $BaselinePath -Raw | ConvertFrom-Json }
+    $baseline = Read-AssessmentBaseline -Path $BaselinePath
 
     $pester = $null
     $earlyViolations = [System.Collections.Generic.List[object]]::new()
@@ -1021,10 +1074,17 @@ function Invoke-TestAssessment {
 
     $ran = (-not $NoRun) -and ($null -ne $pester)
 
-    # Ratchet first, then judge against the ratcheted baseline, so the printed verdict is the state the file now
-    # records. A new orphan or a new failing file is never added to it, so those still fail.
-    $baselineUsable = ($null -eq $baseline) -or (@(Get-BaselineShapeProblem -Baseline $baseline).Count -eq 0)
-    if ($UpdateBaseline -and $baselineUsable) {
+    # Evaluate first, write second. -UpdateBaseline only ratchets a state that already passes against the baseline on
+    # disk: any violation (a new orphan, a failing test, a module whose coverage row is gone, an unusable baseline)
+    # refuses the write and leaves the file byte-identical, so an update can never turn a violation into a pass. Seeding
+    # is the exception: an absent baseline or an absent tier has nothing to violate yet.
+    $seedCodes = 'baseline_missing', 'tier_baseline_missing'
+    $preViolations = @($earlyViolations) + @(Test-AssessmentGate -Assessment $assessment -Baseline $baseline -Tier $Tier -PesterResult $pester -Ran:$ran)
+    $blocking = @($preViolations | Where-Object { $_.code -notin $seedCodes })
+    if ($UpdateBaseline -and $blocking.Count -gt 0) {
+        $assessment.baseline_update_refused = @($blocking | ForEach-Object { $_.code } | Select-Object -Unique)
+    }
+    if ($UpdateBaseline -and $blocking.Count -eq 0) {
         $updated = Update-AssessmentBaseline -Baseline $baseline -Assessment $assessment -Tier $Tier -PesterResult $pester -Ran:$ran
         $updatedJson = ConvertTo-AssessmentJson $updated
         [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($BaselinePath)) | Out-Null
@@ -1037,11 +1097,12 @@ function Invoke-TestAssessment {
     foreach ($e in $earlyViolations) { $violations.Add($e) }
     foreach ($g in @(Test-AssessmentGate -Assessment $assessment -Baseline $baseline -Tier $Tier -PesterResult $pester -Ran:$ran)) { $violations.Add($g) }
 
-    $tb = if ($baseline) { $baseline.tiers.$Tier } else { $null }
+    $usable = ($null -ne $baseline) -and (@(Get-BaselineShapeProblem -Baseline $baseline).Count -eq 0)
+    $tb = if ($usable) { (Get-BaselineMember (Get-BaselineMember $baseline 'tiers').Value $Tier).Value } else { $null }
     $assessment.gates = [ordered]@{
-        target_coverage_pct      = if ($baseline) { $baseline.target_coverage_pct } else { 85 }
+        target_coverage_pct      = if ($usable -and (Get-BaselineMember $baseline 'target_coverage_pct').Present) { $baseline.target_coverage_pct } else { 85 }
         coverage_min             = if ($tb) { $tb.coverage_min_pct } else { $null }
-        files_analyzed_ratio_min = if ($baseline) { $baseline.files_analyzed_ratio_min } else { 0.95 }
+        files_analyzed_ratio_min = if ($usable -and (Get-BaselineMember $baseline 'files_analyzed_ratio_min').Present) { $baseline.files_analyzed_ratio_min } else { 0.95 }
         per_module_min           = if ($tb) { $tb.per_module_min_pct } else { $null }
         baseline_path            = [IO.Path]::GetRelativePath($Root, $BaselinePath).Replace('\', '/')
     }
@@ -1083,5 +1144,6 @@ if ($result.Contains('coverage')) {
 }
 foreach ($viol in $result.violations) { Write-Host "  VIOLATION [$($viol.code)] $($viol.message)" -ForegroundColor Red }
 if ($result.Contains('baseline_updated')) { Write-Host "  Baseline ratcheted: $BaselinePath" -ForegroundColor Cyan }
+if ($result.Contains('baseline_update_refused')) { Write-Host "  Baseline NOT written (violations: $($result.baseline_update_refused -join ', ')); fix them first" -ForegroundColor Yellow }
 Write-Host "Verdict: $($result.verdict.ToUpperInvariant())  Report: $OutputPath" -ForegroundColor $(if ($result.verdict -eq 'pass') { 'Green' } else { 'Red' })
 if ($result.verdict -ne 'pass') { exit 1 }

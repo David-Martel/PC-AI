@@ -25,6 +25,23 @@ BeforeAll {
         [IO.File]::WriteAllText($Path, $Text, [Text.UTF8Encoding]::new($false))
     }
 
+    # One `compiler-artifact` JSON line as `cargo test --message-format=json` prints it, for the fake cargo functions:
+    # a test executable (-Exe, relative to the workspace Native/pcai_core) or, with -NoExe, a plain lib artifact (what a
+    # Doc-tests header is resolved against). -Pkg is the package directory relative to the workspace.
+    function script:New-FakeArtifact {
+        param([string]$Root, [string]$Kind, [string]$Name, [string]$Exe = '', [string]$Pkg = '.')
+        $workspace = Join-Path $Root 'Native/pcai_core'
+        $dir = if ($Pkg -eq '.') { $workspace } else { Join-Path $workspace $Pkg }
+        $art = [ordered]@{
+            reason = 'compiler-artifact'; package_id = "fake $Pkg"
+            manifest_path = (Join-Path $dir 'Cargo.toml')
+            target = [ordered]@{ kind = @($Kind); name = $Name; src_path = '' }
+            profile = [ordered]@{ test = [bool]$Exe }
+            executable = $(if ($Exe) { Join-Path $workspace $Exe } else { $null })
+        }
+        $art | ConvertTo-Json -Compress -Depth 6
+    }
+
     # Runs git against a fixture with a clean identity and no user or system config, so a global
     # commit.gpgsign or hook setting on the developer's machine cannot change what the fixture does.
     function script:Invoke-FixtureGit {
@@ -585,7 +602,19 @@ Describe 'Invoke-QualityGate measures or fails, and never moves the live checkou
     AfterEach { Remove-Item -Path Function:\cargo -ErrorAction SilentlyContinue }
 
     It 'sums every test result line, not only the last' {
-        function global:cargo { $global:LASTEXITCODE = 0; 'test result: ok. 3 passed; 0 failed; 1 ignored'; 'test result: ok. 4 passed; 1 failed; 0 ignored' }
+        $script:FakeArtifacts = @(
+            (New-FakeArtifact -Root (Join-Path $TestDrive 'qg') -Kind lib -Name a -Exe 'target\debug\deps\a-0123456789abcdef.exe'),
+            (New-FakeArtifact -Root (Join-Path $TestDrive 'qg') -Kind test -Name b -Exe 'target\debug\deps\b-0123456789abcdef.exe'))
+        function global:cargo {
+            $global:LASTEXITCODE = 0
+            $script:FakeArtifacts
+            '     Running unittests src\lib.rs (target\debug\deps\a-0123456789abcdef.exe)'
+            '     Running tests\b.rs (target\debug\deps\b-0123456789abcdef.exe)'
+            'running 3 tests'
+            'test result: ok. 3 passed; 0 failed; 1 ignored'
+            'running 5 tests'
+            'test result: ok. 4 passed; 1 failed; 0 ignored'
+        }
         $r = Measure-RustTests -Root (Join-Path $TestDrive 'qg')
         $r.Passed | Should -Be 7
         $r.Failed | Should -Be 1
@@ -1356,9 +1385,13 @@ Describe 'Invoke-QualityGate: a failing test binary does not hide a new failure 
         $fx = Join-Path $TestDrive 'nextest-pin'
         New-Item -ItemType Directory -Path (Join-Path $fx 'Native/pcai_core') -Force | Out-Null
         $script:SeenNextest = 'unset'
+        $script:FakeArtifacts = @(New-FakeArtifact -Root $fx -Kind test -Name a -Exe 'target\debug\deps\a-0123456789abcdef.exe')
         function global:cargo {
             $script:SeenNextest = $env:CARGO_USE_NEXTEST
             $global:LASTEXITCODE = 0
+            $script:FakeArtifacts
+            '     Running tests\a.rs (target\debug\deps\a-0123456789abcdef.exe)'
+            'running 2 tests'
             'test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out'
         }
         $saved = $env:CARGO_USE_NEXTEST
@@ -1373,9 +1406,12 @@ Describe 'Invoke-QualityGate: a failing test binary does not hide a new failure 
     }
     It 'compares failures by name: a swapped failure with an unchanged count is still a regression' {
         $fx = Join-Path $TestDrive 'swap-names'
+        $script:FakeArtifacts = @(New-FakeArtifact -Root $fx -Kind test -Name a_fail -Exe 'target\debug\deps\a_fail-1.exe')
         function global:cargo {
             $global:LASTEXITCODE = 101
+            $script:FakeArtifacts
             '     Running tests\a_fail.rs (target\debug\deps\a_fail-1.exe)'
+            'running 1 test'
             "test $($script:SwapName) ... FAILED"
             'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out'
         }
@@ -1430,19 +1466,25 @@ Describe 'coverage-report.ps1 treats a missing Pester result as a measurement er
         Write-Utf8 (Join-Path $fake 'Pester.psm1') ($fakeBody + "`n")
         $script:FakeModuleRoot = Join-Path $TestDrive 'fakemods'
         function script:Invoke-FakePesterRun {
+            # The fake module directory goes on PSModulePath of the CHILD process only (ProcessStartInfo.Environment), so
+            # this session's PSModulePath is never touched and the installed Pester files are never read for writing.
             param([string]$Mode, [string]$Root, [string]$Name, [switch]$NoRun)
-            $savedPath = $env:PSModulePath; $savedMode = $env:PCAI_FAKE_PESTER
-            try {
-                $env:PSModulePath = $script:FakeModuleRoot + [IO.Path]::PathSeparator + $env:PSModulePath
-                $env:PCAI_FAKE_PESTER = $Mode
-                $out = Join-Path $TestDrive "fake-$Name.json"
-                $extra = @(if ($NoRun) { '-NoRun' })
-                pwsh -NoProfile -File $script:Tool -RepoRoot $Root -Tier Portable -OutputPath $out @extra *> $null
-                [pscustomobject]@{ Exit = $LASTEXITCODE; Doc = (Get-Content $out -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json) }
-            } finally { $env:PSModulePath = $savedPath; $env:PCAI_FAKE_PESTER = $savedMode }
+            $out = Join-Path $TestDrive "fake-$Name.json"
+            $psi = [Diagnostics.ProcessStartInfo]::new((Get-Command pwsh).Source)
+            $psi.UseShellExecute = $false
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            $psi.Environment['PSModulePath'] = $script:FakeModuleRoot + [IO.Path]::PathSeparator + $env:PSModulePath
+            $psi.Environment['PCAI_FAKE_PESTER'] = $Mode
+            foreach ($arg in @('-NoProfile', '-File', $script:Tool, '-RepoRoot', $Root, '-Tier', 'Portable', '-OutputPath', $out) + @(if ($NoRun) { '-NoRun' })) { $psi.ArgumentList.Add($arg) }
+            $proc = [Diagnostics.Process]::Start($psi)
+            $stdout = $proc.StandardOutput.ReadToEndAsync()
+            $stderr = $proc.StandardError.ReadToEndAsync()
+            $proc.WaitForExit()
+            [void]$stdout.Result; [void]$stderr.Result
+            [pscustomobject]@{ Exit = $proc.ExitCode; Doc = (Get-Content $out -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json) }
         }
     }
-
     It 'seeds the fixture baseline from a real run (control)' {
         $script:NullSeedExit | Should -Be 0
         Test-Path (Join-Path $script:NullFx 'Config/test-baseline.json') | Should -BeTrue
@@ -1571,8 +1613,12 @@ Describe 'Invoke-QualityGate: a Rust failure is identified by its target and its
     It 'files a failure under the Cargo Running header, not under libtest running N tests (case-sensitive match)' {
         $fx = Join-Path $TestDrive 'identity-fake'
         New-Item -ItemType Directory -Path (Join-Path $fx 'Native/pcai_core') -Force | Out-Null
+        $script:FakeArtifacts = @(
+            (New-FakeArtifact -Root $fx -Kind test -Name a_fail -Exe 'target\debug\deps\a_fail-0123456789abcdef.exe'),
+            (New-FakeArtifact -Root $fx -Kind test -Name z_fail -Exe 'target\debug\deps\z_fail-fedcba9876543210.exe'))
         function global:cargo {
             $global:LASTEXITCODE = 101
+            $script:FakeArtifacts
             '     Running tests\a_fail.rs (target\debug\deps\a_fail-0123456789abcdef.exe)'
             'running 1 test'
             'test same ... FAILED'
@@ -1593,8 +1639,10 @@ Describe 'Invoke-QualityGate: a Rust failure is identified by its target and its
     It 'keeps a doctest name with spaces whole' {
         $fx = Join-Path $TestDrive 'identity-fake-doc'
         New-Item -ItemType Directory -Path (Join-Path $fx 'Native/pcai_core') -Force | Out-Null
+        $script:FakeArtifacts = @(New-FakeArtifact -Root $fx -Kind lib -Name scratch)
         function global:cargo {
             $global:LASTEXITCODE = 101
+            $script:FakeArtifacts
             '   Doc-tests scratch'
             'running 2 tests'
             'test src/lib.rs - first (line 12) ... FAILED'
@@ -1666,11 +1714,11 @@ Describe 'Invoke-QualityGate: a Rust failure is identified by its target and its
             $script:DocGateExit = $LASTEXITCODE
         }
         $json = Get-Content (Get-ChildItem $results -Filter 'quality-gate-*.json' | Select-Object -First 1).FullName -Raw | ConvertFrom-Json
+        $json.overall | Should -Be 'REGRESSED' -Because 'one failing doctest replaced by another at an equal count is a regression'
+        $script:DocGateExit | Should -Be 1
         $json.deltas.RustTestsFailed.base | Should -Be 1
         $json.deltas.RustTestsFailed.head | Should -Be 1
         $json.deltas.RustNewFailedTests.head | Should -Be 1
-        $json.overall | Should -Be 'REGRESSED'
-        $script:DocGateExit | Should -Be 1
     }
 }
 
@@ -1827,6 +1875,341 @@ Describe 'A missing per-module row and an invalid baseline fail closed' -Tag 'Un
         $LASTEXITCODE | Should -Be 0
         $seeded = Get-Content (Join-Path $fx 'Config/test-baseline.json') -Raw | ConvertFrom-Json
         $seeded.schema_version | Should -Be 1
+    }
+}
+
+Describe 'Invoke-QualityGate: Rust failures are attributed to the right package and target, or the measurement fails' -Tag 'Unit', 'Portable' {
+    # Protects: Measure-RustTests attribution (codex reviews of #384 at 46fe1cc7). Detects: (1) a Doc-tests header not
+    # counted, or a zero-test target (header plus `running 0 tests`) shifting the positional mapping of the Nth
+    # `running` block to the Nth header; (2) a target with a header and no `running` block (harness = false), or a binary
+    # that starts and never reports a result, silently shifting every later failure; (3) two workspace packages that both
+    # have tests/contract.rs and a test `same` collapsing to one key once the executable hash is stripped, so moving the
+    # failure from package A to B produced an empty delta; (4) a header executable or doctest crate that cannot be
+    # resolved to exactly one package being guessed at; (5) an empty failure list read as "not measured". Real cargo
+    # scratch crates and workspaces with a private CARGO_TARGET_DIR; skipped with a reason without cargo/clippy.
+    BeforeAll {
+        $script:HasCargo6 = [bool](Get-Command cargo -ErrorAction SilentlyContinue)
+        if ($script:HasCargo6) { cargo clippy --version *> $null; $script:HasCargo6 = ($LASTEXITCODE -eq 0) }
+        function script:Use-ScratchCargoEnv6 {
+            param([scriptblock]$Body)
+            $saved = @{}
+            foreach ($k in 'CARGO_TARGET_DIR', 'RUSTC_WRAPPER', 'CARGO_BUILD_RUSTC_WRAPPER') { $saved[$k] = [Environment]::GetEnvironmentVariable($k) }
+            try {
+                $env:CARGO_TARGET_DIR = Join-Path $TestDrive 'scratch-target-attrib'
+                $env:RUSTC_WRAPPER = ''
+                $env:CARGO_BUILD_RUSTC_WRAPPER = ''
+                & $Body
+            } finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) } }
+        }
+        function script:Write-AttribCrate {
+            param([string]$Root, [string]$LibText, [hashtable]$Tests = @{}, [string]$ExtraManifest = '')
+            $crate = Join-Path $Root 'Native/pcai_core'
+            Write-Utf8 (Join-Path $crate 'Cargo.toml') ("[package]`nname = ""scratch""`nversion = ""0.0.0""`nedition = ""2021""`n[features]`nserver = []`nffi = []`n" + $ExtraManifest)
+            Write-Utf8 (Join-Path $crate 'src/lib.rs') $LibText
+            foreach ($k in $Tests.Keys) { Write-Utf8 (Join-Path $crate "tests/$k.rs") $Tests[$k] }
+        }
+        function script:Write-TwoPackageWorkspace {
+            param([string]$Root, [string]$TestA, [string]$TestB)
+            $ws = Join-Path $Root 'Native/pcai_core'
+            Write-Utf8 (Join-Path $ws 'Cargo.toml') "[workspace]`nresolver = ""2""`nmembers = [""pkg_a"", ""pkg_b""]`n"
+            foreach ($pair in @(@('pkg_a', $TestA), @('pkg_b', $TestB))) {
+                Write-Utf8 (Join-Path $ws "$($pair[0])/Cargo.toml") "[package]`nname = ""$($pair[0])""`nversion = ""0.0.0""`nedition = ""2021""`n[features]`nserver = []`nffi = []`n"
+                Write-Utf8 (Join-Path $ws "$($pair[0])/src/lib.rs") "pub fn f() -> i32 { 1 }`n"
+                Write-Utf8 (Join-Path $ws "$($pair[0])/tests/contract.rs") $pair[1]
+            }
+        }
+        $script:PassSame = "#[test]`nfn same() { assert_eq!(1, 1); }`n"
+        $script:FailSame = "#[test]`nfn same() { assert_eq!(1, 2); }`n"
+    }
+    AfterEach { Remove-Item -Path Function:\cargo -ErrorAction SilentlyContinue }
+
+    It 'real cargo: a lib unit test, a zero-test target, a failing target and a doctest are each attributed to their own target' {
+        if (-not $script:HasCargo6) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $lib = "/// ``````" + "`n/// assert_eq!(1, 2);`n/// ``````" + "`npub fn first() {}`n#[cfg(test)]`nmod tests { #[test] fn lib_unit_fail() { assert_eq!(1, 2); } }`n"
+        $root = Join-Path $TestDrive 'attrib-exact'
+        Write-AttribCrate $root $lib @{ a_zero = "// no tests in this target`n"; b_fail = "#[test]`nfn boom() { assert_eq!(1, 2); }`n" }
+        $r = Use-ScratchCargoEnv6 { Measure-RustTests -Root $root }
+        $r.Failed | Should -Be 3
+        $names = @($r.FailedNames)
+        $names.Count | Should -Be 3
+        $names[0] | Should -Be '.|lib|scratch::tests::lib_unit_fail' -Because 'block 1 is the lib unit tests'
+        $names[1] | Should -Be '.|test|b_fail::boom' -Because 'block 2 is a_zero (running 0 tests), so block 3 is b_fail'
+        $names[2] | Should -Match '^\.\|doctest\|scratch::src[\\/]lib\.rs - first \(line \d+\)$' -Because 'the Doc-tests header is counted as the last target'
+        @($names | Where-Object { $_ -match 'a_zero' }).Count | Should -Be 0
+    }
+
+    It 'real cargo: the same tests/contract.rs and test name in two packages are different failures, and moving the failure is caught' {
+        if (-not $script:HasCargo6) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $base = Join-Path $TestDrive 'pkg-base'
+        Write-TwoPackageWorkspace $base $script:FailSame $script:PassSame
+        $b = Use-ScratchCargoEnv6 { Measure-RustTests -Root $base }
+        # Written after the base build: cargo treats a source older than the build as fresh and the trees share a target dir.
+        $head = Join-Path $TestDrive 'pkg-head'
+        Write-TwoPackageWorkspace $head $script:PassSame $script:FailSame
+        $h = Use-ScratchCargoEnv6 { Measure-RustTests -Root $head }
+        $b.Failed | Should -Be 1
+        $h.Failed | Should -Be 1
+        $b.FailedNames | Should -Be @('pkg_a|test|contract::same')
+        $h.FailedNames | Should -Be @('pkg_b|test|contract::same')
+        @(Compare-RustFailedNames -Base $b.FailedNames -Head $h.FailedNames).Count | Should -Be 1
+        @(Compare-RustFailedNames -Base $b.FailedNames -Head $b.FailedNames).Count | Should -Be 0 -Because 'control: an unchanged failure is not new'
+    }
+
+    It 'real cargo: a target with a header and no running block (harness = false) is a measurement error, not a shifted attribution' {
+        if (-not $script:HasCargo6) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $root = Join-Path $TestDrive 'attrib-custom-harness'
+        Write-AttribCrate $root "pub fn f() -> i32 { 1 }`n" @{ a_custom = "fn main() {}`n"; z_fail = "#[test]`nfn boom() { assert_eq!(1, 2); }`n" } "[[test]]`nname = ""a_custom""`nharness = false`n"
+        { Use-ScratchCargoEnv6 { Measure-RustTests -Root $root } } | Should -Throw '*cannot attribute*'
+    }
+
+    It 'real cargo: a test target that does not compile under --no-fail-fast is a build failure' {
+        if (-not $script:HasCargo6) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $root = Join-Path $TestDrive 'attrib-bad-target'
+        Write-AttribCrate $root "pub fn f() -> i32 { 1 }`n" @{ a_bad = "use missing_crate::thing;`n#[test]`nfn t() {}`n"; z_fail = "#[test]`nfn boom() { assert_eq!(1, 2); }`n" }
+        { Use-ScratchCargoEnv6 { Measure-RustTests -Root $root } } | Should -Throw '*build failed*'
+    }
+
+    It 'fails closed on a header count that differs from the running-block count, and on a block with no result' {
+        $fx = Join-Path $TestDrive 'attrib-fake'
+        New-Item -ItemType Directory -Path (Join-Path $fx 'Native/pcai_core') -Force | Out-Null
+        $script:FakeArtifacts = @(
+            (New-FakeArtifact -Root $fx -Kind test -Name a_custom -Exe 'target\debug\deps\a_custom-0123456789abcdef.exe'),
+            (New-FakeArtifact -Root $fx -Kind test -Name z_fail -Exe 'target\debug\deps\z_fail-fedcba9876543210.exe'))
+        function global:cargo {
+            $global:LASTEXITCODE = 101
+            $script:FakeArtifacts
+            '     Running tests\a_custom.rs (target\debug\deps\a_custom-0123456789abcdef.exe)'
+            '     Running tests\z_fail.rs (target\debug\deps\z_fail-fedcba9876543210.exe)'
+            'running 1 test'
+            'test boom ... FAILED'
+            'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out'
+        }
+        { Measure-RustTests -Root $fx } | Should -Throw '*cannot attribute*'
+        $script:FakeArtifacts = @(
+            (New-FakeArtifact -Root $fx -Kind test -Name a -Exe 'target\debug\deps\a-0123456789abcdef.exe'),
+            (New-FakeArtifact -Root $fx -Kind test -Name b -Exe 'target\debug\deps\b-fedcba9876543210.exe'))
+        function global:cargo {
+            $global:LASTEXITCODE = 101
+            $script:FakeArtifacts
+            '     Running tests\a.rs (target\debug\deps\a-0123456789abcdef.exe)'
+            '     Running tests\b.rs (target\debug\deps\b-fedcba9876543210.exe)'
+            'running 1 test'
+            'test boom ... FAILED'
+            'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out'
+            'running 1 test'
+        }
+        { Measure-RustTests -Root $fx } | Should -Throw '*reported a result*'
+        # Control: a consistent run (header, running block and result per target, zero-test and doctest targets included).
+        $script:FakeArtifacts = @(
+            (New-FakeArtifact -Root $fx -Kind test -Name a -Exe 'target\debug\deps\a-0123456789abcdef.exe'),
+            (New-FakeArtifact -Root $fx -Kind test -Name b -Exe 'target\debug\deps\b-fedcba9876543210.exe'),
+            (New-FakeArtifact -Root $fx -Kind lib -Name scratch))
+        function global:cargo {
+            $global:LASTEXITCODE = 101
+            $script:FakeArtifacts
+            '     Running tests\a.rs (target\debug\deps\a-0123456789abcdef.exe)'
+            '     Running tests\b.rs (target\debug\deps\b-fedcba9876543210.exe)'
+            '   Doc-tests scratch'
+            'running 0 tests'
+            'test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out'
+            'running 1 test'
+            'test boom ... FAILED'
+            'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out'
+            'running 0 tests'
+            'test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out'
+        }
+        $r = Measure-RustTests -Root $fx
+        @($r.FailedNames) | Should -Be @('.|test|b::boom')
+    }
+
+    It 'fails closed when a header executable or a doctest crate resolves to no package, or to more than one' {
+        $fx = Join-Path $TestDrive 'attrib-unresolved'
+        New-Item -ItemType Directory -Path (Join-Path $fx 'Native/pcai_core') -Force | Out-Null
+        $failText = @('running 1 test', 'test boom ... FAILED', 'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out')
+        # No artifact for the header executable.
+        $script:FakeArtifacts = @(New-FakeArtifact -Root $fx -Kind test -Name other -Exe 'target\debug\deps\other-0123456789abcdef.exe')
+        $script:FakeText = @('     Running tests\a.rs (target\debug\deps\a-0123456789abcdef.exe)') + $failText
+        function global:cargo { $global:LASTEXITCODE = 101; $script:FakeArtifacts; $script:FakeText }
+        { Measure-RustTests -Root $fx } | Should -Throw '*cannot attribute*package*0 compiler artifact*'
+        # Two packages claim the same executable.
+        $script:FakeArtifacts = @(
+            (New-FakeArtifact -Root $fx -Kind test -Name a -Exe 'target\debug\deps\a-0123456789abcdef.exe' -Pkg 'pkg_a'),
+            (New-FakeArtifact -Root $fx -Kind test -Name a -Exe 'target\debug\deps\a-0123456789abcdef.exe' -Pkg 'pkg_b'))
+        { Measure-RustTests -Root $fx } | Should -Throw '*cannot attribute*package*2 compiler artifact*'
+        # A Doc-tests crate with no lib target, and one claimed by two packages.
+        $script:FakeText = @('   Doc-tests ghost') + $failText
+        $script:FakeArtifacts = @(New-FakeArtifact -Root $fx -Kind lib -Name scratch)
+        { Measure-RustTests -Root $fx } | Should -Throw '*cannot attribute*doctest*0 lib target*'
+        $script:FakeText = @('   Doc-tests scratch') + $failText
+        $script:FakeArtifacts = @((New-FakeArtifact -Root $fx -Kind lib -Name scratch -Pkg 'pkg_a'), (New-FakeArtifact -Root $fx -Kind lib -Name scratch -Pkg 'pkg_b'))
+        { Measure-RustTests -Root $fx } | Should -Throw '*cannot attribute*doctest*2 lib target*'
+        # Control: exactly one package resolves.
+        $script:FakeArtifacts = @(New-FakeArtifact -Root $fx -Kind lib -Name scratch -Pkg 'pkg_a')
+        @((Measure-RustTests -Root $fx).FailedNames) | Should -Be @('pkg_a|doctest|scratch::boom')
+    }
+
+    It 'a nested running/result block printed inside a target does not shift the attribution (fake output)' {
+        $fx = Join-Path $TestDrive 'attrib-nested-fake'
+        New-Item -ItemType Directory -Path (Join-Path $fx 'Native/pcai_core') -Force | Out-Null
+        $script:FakeArtifacts = @(
+            (New-FakeArtifact -Root $fx -Kind test -Name a -Exe 'target\debug\deps\a-0123456789abcdef.exe'),
+            (New-FakeArtifact -Root $fx -Kind test -Name b -Exe 'target\debug\deps\b-fedcba9876543210.exe'))
+        function global:cargo {
+            $global:LASTEXITCODE = 101
+            $script:FakeArtifacts
+            '     Running tests\a.rs (target\debug\deps\a-0123456789abcdef.exe)'
+            '     Running tests\b.rs (target\debug\deps\b-fedcba9876543210.exe)'
+            'running 3 tests'
+            'running 1 test'
+            'running 1 test'
+            'test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s'
+            'test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s'
+            'test inner_fails ... FAILED'
+            'test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out'
+            'running 1 test'
+            'test boom ... FAILED'
+            'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out'
+        }
+        $r = Measure-RustTests -Root $fx
+        @($r.FailedNames) | Should -Be @('.|test|a::inner_fails', '.|test|b::boom') -Because 'the nested blocks sit inside target a, so b is still the second target'
+    }
+
+    It 'real cargo: a test whose child output prints a nested running/result block does not shift later targets' {
+        if (-not $script:HasCargo6) { Set-ItResult -Skipped -Because 'cargo or clippy is not available on this runner'; return }
+        $root = Join-Path $TestDrive 'attrib-nested-real'
+        $nested = "use std::io::Write;`n#[test]`nfn emits_nested() {`n    let mut o = std::io::stdout();`n    o.write_all(b""running 1 test\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n"").unwrap();`n}`n#[test]`nfn fails_after() { assert_eq!(1, 2); }`n"
+        Write-AttribCrate $root "pub fn f() -> i32 { 1 }`n" @{ a_nested = $nested; b_fail = "#[test]`nfn boom() { assert_eq!(1, 2); }`n" }
+        $r = Use-ScratchCargoEnv6 { Measure-RustTests -Root $root }
+        @($r.FailedNames) | Should -Be @('.|test|a_nested::fails_after', '.|test|b_fail::boom')
+    }
+    It 'keeps an empty failure list as an empty list, not as "not measured"' {
+        Mock Measure-ClippyFindings { 0 }
+        Mock Measure-RustTests { [pscustomobject]@{ Passed = 1; Failed = 0; FailedNames = @() } }
+        Mock Measure-PesterTests { [pscustomobject]@{ Passed = 1; Failed = 0 } }
+        Mock Measure-ScriptAnalyzer { 0 }
+        $m = Invoke-Metrics -Label 'x' -Root $TestDrive
+        $m.Errors.Count | Should -Be 0
+        $null -ne $m.Metrics.RustFailedNames | Should -BeTrue
+        @($m.Metrics.RustFailedNames).Count | Should -Be 0
+    }
+}
+
+
+Describe 'An existing baseline is validated strictly, and -UpdateBaseline never weakens it' -Tag 'Unit', 'Portable' {
+    # Protects: Read-AssessmentBaseline, Get-BaselineShapeProblem and the evaluate-before-write rule in
+    # Invoke-TestAssessment (codex reviews of #384 at 46fe1cc7). Detects: (1) -UpdateBaseline rebuilding
+    # per_module_min_pct from the current rows and writing before the gate ran, so a baselined module whose row went
+    # missing was dropped and its violation cleared; (2) a schema version 1.25 cast to [int] 1 and accepted, and the same
+    # coercion for "48", true, NaN and the infinities in other fields; (3) a baseline file that exists but whose root is
+    # null, [], a string, empty or whitespace collapsing into "absent" and being seeded over. Real child runs of the
+    # script against throwaway fixtures; byte-identical file checks.
+    BeforeAll {
+        $script:BaselineJson = '{"schema_version":1,"target_coverage_pct":85,"files_analyzed_ratio_min":0.95,"per_module_tolerance_pct":1.0,"quality":{"no_assertion_it_max":0,"not_throw_only_it_max":0,"tautology_it_max":0,"parse_error_files_max":0},"orphans_allowed":["Tests/Unit/A.Tests.ps1"],"tiers":{"Portable":{"coverage_min_pct":0,"per_module_min_pct":{"X":40,"Y":0},"known_failures":{"containers":[],"tests_by_file":{},"blocks_by_file":{}}}}}'
+        function script:New-BaselineFixture {
+            param([string]$Name, $BaselineText)
+            $fx = Join-Path $TestDrive $Name
+            Write-Utf8 (Join-Path $fx 'Modules/Y/F.ps1') "function Get-F { 1 }`n"
+            Write-Utf8 (Join-Path $fx 'Tests/Unit/A.Tests.ps1') "Describe 'a' -Tag 'Portable' { It 'ok' { (1 + 1) | Should -Be 2 } }`n"
+            if ($null -ne $BaselineText) { Write-Utf8 (Join-Path $fx 'Config/test-baseline.json') $BaselineText }
+            $fx
+        }
+    }
+
+    It 'a baselined module whose coverage row is gone: -UpdateBaseline exits 1 and leaves the file byte-identical (real run)' {
+        $fx = New-BaselineFixture 'update-missing-module' $script:BaselineJson
+        $path = Join-Path $fx 'Config/test-baseline.json'
+        $before = [IO.File]::ReadAllBytes($path)
+        pwsh -NoProfile -File $script:Tool -RepoRoot $fx -Tier Portable -OutputPath (Join-Path $TestDrive 'upd-missing.json') *> $null
+        $LASTEXITCODE | Should -Be 1 -Because 'module X has a baseline floor but no eligible file'
+        $doc = Get-Content (Join-Path $TestDrive 'upd-missing.json') -Raw | ConvertFrom-Json
+        @($doc.violations | ForEach-Object { $_.code }) | Should -Contain 'module_coverage_missing'
+        pwsh -NoProfile -File $script:Tool -RepoRoot $fx -Tier Portable -UpdateBaseline -OutputPath (Join-Path $TestDrive 'upd-missing2.json') *> $null
+        $LASTEXITCODE | Should -Be 1
+        [IO.File]::ReadAllBytes($path) | Should -Be $before -Because 'an update must not turn a violation into a pass by dropping the module'
+        $doc2 = Get-Content (Join-Path $TestDrive 'upd-missing2.json') -Raw | ConvertFrom-Json
+        @($doc2.violations | ForEach-Object { $_.code }) | Should -Contain 'module_coverage_missing'
+        $doc2.PSObject.Properties.Name | Should -Contain 'baseline_update_refused'
+    }
+
+    It 'control: with the stale module removed deliberately, the same run passes and -UpdateBaseline ratchets' {
+        $text = $script:BaselineJson.Replace('"X":40,', '')
+        $fx = New-BaselineFixture 'update-clean' $text
+        pwsh -NoProfile -File $script:Tool -RepoRoot $fx -Tier Portable -UpdateBaseline -OutputPath (Join-Path $TestDrive 'upd-clean.json') *> $null
+        $LASTEXITCODE | Should -Be 0
+        $after = Get-Content (Join-Path $fx 'Config/test-baseline.json') -Raw | ConvertFrom-Json
+        $after.tiers.Portable.per_module_min_pct.PSObject.Properties.Name | Should -Be @('Y')
+    }
+
+    It 'Update-AssessmentBaseline itself keeps a baselined module that has no current row' {
+        $baseline = $script:BaselineJson | ConvertFrom-Json
+        $assessment = [ordered]@{
+            quality  = [ordered]@{ no_assertion_it = 0; not_throw_only_it = 0; tautology_it = 0; parse_error_files = 0 }
+            reach    = [ordered]@{ orphans = @() }
+            coverage = [ordered]@{ pester = [ordered]@{ pct = 80.0; files_analyzed = 1; module_files_total = 1; by_module = @([pscustomobject]@{ module = 'Y'; pct = 90.0 }) } }
+        }
+        $run = [pscustomobject]@{ Result = 'Passed'; PassedCount = 1; FailedCount = 0; FailedContainersCount = 0; FailedBlocksCount = 0; TotalCount = 1; Containers = @(); Failed = @(); FailedBlocks = @() }
+        $u = Update-AssessmentBaseline -Baseline $baseline -Assessment $assessment -Tier Portable -PesterResult $run -Ran
+        $u.tiers.Portable.per_module_min_pct.X | Should -Be 40 -Because 'an update only tightens or adds'
+        $u.tiers.Portable.per_module_min_pct.Y | Should -Be 90
+    }
+
+    It 'rejects every non-integer, non-finite or non-number form of a numeric field' {
+        $cases = [ordered]@{
+            'schema 1.0'                  = { param($b) $b.schema_version = [double]1.0 }
+            'schema 1.25'                 = { param($b) $b.schema_version = [double]1.25 }
+            'schema true'                 = { param($b) $b.schema_version = $true }
+            'schema null'                 = { param($b) $b.schema_version = $null }
+            'coverage minimum "48"'       = { param($b) $b.tiers.Portable.coverage_min_pct = '48' }
+            'coverage minimum true'       = { param($b) $b.tiers.Portable.coverage_min_pct = $true }
+            'coverage minimum NaN'        = { param($b) $b.tiers.Portable.coverage_min_pct = [double]::NaN }
+            'coverage minimum +Infinity'  = { param($b) $b.tiers.Portable.coverage_min_pct = [double]::PositiveInfinity }
+            'coverage minimum -Infinity'  = { param($b) $b.tiers.Portable.coverage_min_pct = [double]::NegativeInfinity }
+            'module minimum NaN'          = { param($b) $b.tiers.Portable.per_module_min_pct.X = [double]::NaN }
+            'ratio minimum NaN'           = { param($b) $b.files_analyzed_ratio_min = [double]::NaN }
+            'tolerance true'              = { param($b) $b.per_module_tolerance_pct = $true }
+            'target coverage Infinity'    = { param($b) $b.target_coverage_pct = [double]::PositiveInfinity }
+            'quality maximum 1.5'         = { param($b) $b.quality.tautology_it_max = [double]1.5 }
+            'quality maximum "0"'         = { param($b) $b.quality.tautology_it_max = '0' }
+            'known failure count 1.5'     = { param($b) $b.tiers.Portable.known_failures.tests_by_file | Add-Member -NotePropertyName 'x.Tests.ps1' -NotePropertyValue ([double]1.5) -Force }
+        }
+        foreach ($name in $cases.Keys) {
+            $b = $script:BaselineJson | ConvertFrom-Json
+            & $cases[$name] $b
+            @(Get-BaselineShapeProblem -Baseline $b).Count | Should -BeGreaterThan 0 -Because $name
+        }
+        @(Get-BaselineShapeProblem -Baseline ($script:BaselineJson | ConvertFrom-Json)).Count | Should -Be 0 -Because 'control: the valid baseline has no problem'
+        $int = $script:BaselineJson | ConvertFrom-Json
+        $int.schema_version.GetType().Name | Should -BeIn 'Int32', 'Int64' -Because 'control: JSON 1 parses as an integer type'
+    }
+
+    It 'a baseline FILE with a root of null, [], a string, empty, whitespace or {} fails, and -UpdateBaseline leaves it byte-identical' {
+        $roots = [ordered]@{
+            'null'       = 'null'
+            'array'      = '[]'
+            'string'     = '"baseline"'
+            'number'     = '7'
+            'empty'      = ''
+            'whitespace' = "  `r`n `t "
+            'empty obj'  = '{}'
+            'NaN field'  = $script:BaselineJson.Replace('"coverage_min_pct":0', '"coverage_min_pct":NaN')
+        }
+        foreach ($name in $roots.Keys) {
+            $fx = New-BaselineFixture ("root-" + ($name -replace '\s', '-')) $roots[$name]
+            $path = Join-Path $fx 'Config/test-baseline.json'
+            $before = [IO.File]::ReadAllBytes($path)
+            $out = Join-Path $TestDrive ("root-$($name -replace '\s', '-').json")
+            pwsh -NoProfile -File $script:Tool -RepoRoot $fx -NoRun -UpdateBaseline -OutputPath $out *> $null
+            $LASTEXITCODE | Should -Be 1 -Because "a baseline root of '$name' must fail, not be seeded"
+            [IO.File]::ReadAllBytes($path) | Should -Be $before -Because "'$name' must be left byte-identical"
+            @((Get-Content $out -Raw | ConvertFrom-Json).violations | ForEach-Object { $_.code }) | Should -Contain 'baseline_invalid' -Because $name
+        }
+    }
+
+    It 'control: a baseline file that does not exist is still seeded' {
+        $fx = New-BaselineFixture 'root-absent' $null
+        pwsh -NoProfile -File $script:Tool -RepoRoot $fx -NoRun -UpdateBaseline -OutputPath (Join-Path $TestDrive 'root-absent.json') *> $null
+        $LASTEXITCODE | Should -Be 0
+        (Get-Content (Join-Path $fx 'Config/test-baseline.json') -Raw | ConvertFrom-Json).schema_version | Should -Be 1
     }
 }
 

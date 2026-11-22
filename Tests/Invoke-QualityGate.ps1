@@ -120,7 +120,7 @@ function Measure-RustTests {
     $savedNextest = $env:CARGO_USE_NEXTEST
     try {
         $env:CARGO_USE_NEXTEST = '0'
-        $out = & cargo test --workspace --no-fail-fast --no-default-features --features server,ffi 2>&1
+        $out = & cargo test --workspace --no-fail-fast --message-format=json --no-default-features --features server,ffi 2>&1
         $exit = $LASTEXITCODE
     } finally {
         Pop-Location
@@ -139,35 +139,77 @@ function Measure-RustTests {
     # hides a new failure in z_hidden.rs (both sides read Failed=1). Failures are also kept by name, qualified by the
     # binary that ran them, so a swapped failure with an unchanged count is still a change.
     #
-    # A failure is identified by its target and its full name.
+    # A failure is identified by its package, target and full name.
     # Target: Cargo's `Running <path> (<exe>)` and `Doc-tests <crate>` headers, matched case-sensitively (-cmatch):
     #   -match is case-insensitive, so libtest's own `running 1 test` overwrote the header and every failure was filed
-    #   under "1 test". The executable's trailing build hash is dropped, because it differs between the base worktree
-    #   and the head. Headers go to stderr and the libtest lines to stdout, and the CargoTools wrapper hands the two to
-    #   this process as separate streams (all headers first, then all test output), so a failure is NOT attributed to
-    #   the header that precedes it. Cargo runs its targets one after another and each prints one `running N tests`
-    #   line, so the Nth `running` block belongs to the Nth header, whatever the interleaving.
+    #   under "1 test".
+    # Package: a header names a target (`tests\contract.rs`) but not its package, so two workspace packages that both
+    #   have tests/contract.rs and a test `same` collapsed to one key. The same cargo call emits `compiler-artifact`
+    #   messages (--message-format=json), and each test executable's artifact carries its manifest path, target kind and
+    #   name. The executable named in the header (hash included) is looked up in those artifacts, and the key is
+    #   `<package dir relative to the workspace>|<kind>|<target>`: stable between the base worktree and the head, unique
+    #   per package. A Doc-tests crate is resolved to the one lib target of that name. An executable or crate that
+    #   resolves to nothing, or to more than one package, is a measurement error: never a guess.
+    # Order: headers go to stderr and the libtest lines to stdout, and the CargoTools wrapper hands the two to this
+    #   process as separate streams (all headers first), so a failure is NOT attributed to the header that precedes it.
+    #   Cargo runs its targets one after another and each prints one `running N tests` line, so the Nth `running`
+    #   block belongs to the Nth header, whatever the interleaving.
     # Name: everything between `test ` and ` ... FAILED`, so a doctest such as `src/lib.rs - first (line 12)` is kept.
     $passed = 0; $failed = 0; $results = 0
+    $workspace = [IO.Path]::GetFullPath((Join-Path $Root 'Native/pcai_core'))
+    $norm = { param([string]$path) ([IO.Path]::GetFullPath($path, $workspace)).Replace('\', '/').TrimEnd('/').ToLowerInvariant() }
+    $byExe = @{}
+    $byCrate = @{}
+    foreach ($line in $lines) {
+        if (-not $line.StartsWith('{') -or $line -notmatch '"reason"\s*:\s*"compiler-artifact"') { continue }
+        try { $art = $line | ConvertFrom-Json -ErrorAction Stop } catch { continue }
+        if (-not $art.manifest_path -or -not $art.target) { continue }
+        $pkgDir = [IO.Path]::GetRelativePath($workspace, [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath([string]$art.manifest_path))).Replace('\', '/')
+        $kinds = @($art.target.kind | ForEach-Object { [string]$_ })
+        if ($art.executable -and $art.profile -and $art.profile.test) {
+            $k = & $norm ([string]$art.executable)
+            if (-not $byExe.ContainsKey($k)) { $byExe[$k] = [System.Collections.Generic.List[string]]::new() }
+            $key = "$pkgDir|$($kinds -join '+')|$($art.target.name)"
+            if (-not $byExe[$k].Contains($key)) { $byExe[$k].Add($key) }
+        }
+        if ($kinds | Where-Object { $_ -in 'lib', 'rlib', 'proc-macro' }) {
+            $crate = ([string]$art.target.name).Replace('-', '_').ToLowerInvariant()
+            if (-not $byCrate.ContainsKey($crate)) { $byCrate[$crate] = [System.Collections.Generic.List[string]]::new() }
+            $key = "$pkgDir|doctest|$($art.target.name)"
+            if (-not $byCrate[$crate].Contains($key)) { $byCrate[$crate].Add($key) }
+        }
+    }
     $headers = [System.Collections.Generic.List[string]]::new()
     foreach ($line in $lines) {
         if ($line -cmatch '^\s*Running\s+(?<what>.+?)\s+\((?<exe>[^()]*)\)\s*$') {
-            $stem = [IO.Path]::GetFileNameWithoutExtension($Matches['exe'].Split([char[]]@([char]92, [char]47))[-1]) -replace '-[0-9a-f]{16}$', ''
-            $headers.Add("$($Matches['what'].Trim()) [$stem]")
+            $found = $byExe[(& $norm $Matches['exe'])]
+            if ($null -eq $found -or $found.Count -ne 1) {
+                throw "build failed: cannot attribute Rust test failures to a package: the test executable '$($Matches['exe'])' of target '$($Matches['what'].Trim())' matched $(if ($null -eq $found) { 0 } else { $found.Count }) compiler artifact(s)"
+            }
+            $headers.Add($found[0])
         } elseif ($line -cmatch '^\s*Doc-tests\s+(?<crate>\S+)\s*$') {
-            $headers.Add("Doc-tests $($Matches['crate'])")
+            $found = $byCrate[$Matches['crate'].Replace('-', '_').ToLowerInvariant()]
+            if ($null -eq $found -or $found.Count -ne 1) {
+                throw "build failed: cannot attribute Rust doctest failures to a package: the crate '$($Matches['crate'])' matched $(if ($null -eq $found) { 0 } else { $found.Count }) lib target(s)"
+            }
+            $headers.Add($found[0])
         }
     }
+    # Depth, not a flat count: a test that runs a nested `cargo test` prints its own `running N tests` and `test result:`
+    # lines in the middle of the outer block (measured on this repo: pcai_tb prints four), so only a `running` line seen
+    # at depth 0 starts a target's block.
     $block = 0
+    $depth = 0
     $failedNames = [System.Collections.Generic.List[string]]::new()
     foreach ($line in $lines) {
-        if ($line -cmatch '^running \d+ tests?\s*$') { $block++ }
+        if ($line -cmatch '^running \d+ tests?\s*$') { if ($depth -eq 0) { $block++ }; $depth++ }
         if ($line -cmatch '^test (?<name>.+?) \.\.\. FAILED\s*$') {
             $target = if ($block -ge 1 -and $block -le $headers.Count) { $headers[$block - 1] } else { "target#$block" }
             $failedNames.Add("${target}::$($Matches['name'])")
         }
         if ($line -match 'test result: \w+\.\s+(\d+) passed;\s+(\d+) failed') {
             $passed += [int]$Matches[1]; $failed += [int]$Matches[2]; $results++
+            if ($depth -gt 0) { $depth-- }
         }
     }
     if ($results -eq 0 -or ($passed + $failed) -eq 0) {
@@ -175,6 +217,16 @@ function Measure-RustTests {
     }
     if ($exit -ne 0 -and $failed -eq 0) {
         throw "cargo test exited $exit with no failed test counted (build error after some tests ran)"
+    }
+    # Attribution is positional (see above), so it is only valid while every target has one header, one `running`
+    # block and one result line. A target that prints a header but no `running` block (a harness = false binary), or a
+    # binary that starts and dies before its summary, breaks that 1:1 mapping and would silently shift every later
+    # failure onto the wrong target: a measurement error, never a guess.
+    if ($block -ne $headers.Count) {
+        throw "build failed: cannot attribute Rust test failures to targets: cargo printed $($headers.Count) target header(s) but $block 'running N tests' block(s)"
+    }
+    if ($depth -ne 0) {
+        throw "build failed: a Rust test block started and never reported a result (a test binary crashed or printed no summary; $depth unclosed)"
     }
     [pscustomobject]@{ Passed = $passed; Failed = $failed; FailedNames = $failedNames.ToArray() }
 }
@@ -274,7 +326,8 @@ function Invoke-Metrics {
     $r = & $try 'Rust tests' { Measure-RustTests -Root $Root }
     $metrics.RustTestsPassed = if ($r) { $r.Passed } else { $null }
     $metrics.RustTestsFailed = if ($r) { $r.Failed } else { $null }
-    $metrics.RustFailedNames = if ($r) { @($r.FailedNames) } else { $null }
+    # The leading comma keeps an empty list: an `if` expression would unroll it to $null and read as "not measured".
+    $metrics.RustFailedNames = if ($r) { , @($r.FailedNames) } else { $null }
     $p = & $try 'Pester tests' { Measure-PesterTests -Root $Root }
     $metrics.PesterPassed = if ($p) { $p.Passed } else { $null }
     $metrics.PesterFailed = if ($p) { $p.Failed } else { $null }

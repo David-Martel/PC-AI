@@ -600,10 +600,40 @@ public static class VigilProcessCustodyFixture {
         { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Throw '*does not use*'
     }
     It 'rejects missing local configured source address' {
-        Mock Find-NetRoute { @([pscustomobject]@{ InterfaceIndex = 42 }) }
+        Mock Find-NetRoute {
+            [pscustomobject]@{ InterfaceIndex = 42; IPAddress = '172.31.240.1' }
+            [pscustomobject]@{ InterfaceIndex = 42; DestinationPrefix = '172.31.240.0/30'; NextHop = '0.0.0.0' }
+        }
         Mock Get-NetIPAddress { @() }
         $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
         { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Throw '*address is missing*'
+    }
+    # Protects: receiver traffic is admitted only on the selected USB4 link and source.
+    # Detects: a same-index gateway, default route, stale source or ambiguous provider rows.
+    # Needs: fake Windows route and address rows. Breadcrumb: Invoke-ThunderboltLinuxPeer.ps1::Assert-TbBenchmarkRoute.
+    It 'requires an unambiguous source and on-link peer route for <Case>' -ForEach @(
+        @{ Case = 'connected subnet'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $true }
+        @{ Case = 'direct host route'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.2/32'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $true }
+        @{ Case = 'gateway on the same interface'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.2/32'; Hop = '172.31.240.2'; Extra = $false; State = 'Preferred'; Admit = $false }
+        @{ Case = 'unrelated default route'; SelectedSource = '172.31.240.1'; Prefix = '0.0.0.0/0'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $false }
+        @{ Case = 'different source'; SelectedSource = '172.31.240.2'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $false; State = 'Preferred'; Admit = $false }
+        @{ Case = 'ambiguous route rows'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $true; State = 'Preferred'; Admit = $false }
+        @{ Case = 'tentative local address'; SelectedSource = '172.31.240.1'; Prefix = '172.31.240.0/30'; Hop = '0.0.0.0'; Extra = $false; State = 'Tentative'; Admit = $false }
+    ) {
+        $rows = @(
+            [pscustomobject]@{ InterfaceIndex = 42; IPAddress = $SelectedSource }
+            [pscustomobject]@{ InterfaceIndex = 42; DestinationPrefix = $Prefix; NextHop = $Hop }
+        )
+        if ($Extra) { $rows += $rows[1] }
+        $live = [pscustomobject]@{ InterfaceIndex = 42; IPAddress = '172.31.240.1'; PrefixLength = 30; AddressState = $State }
+        Mock Find-NetRoute { $rows }
+        Mock Get-NetIPAddress { $live }
+        $profile = Get-TbProfile -Path $profilePath -Name millylaptop1
+        if ($Admit) {
+            { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Not -Throw
+        } else {
+            { Assert-TbBenchmarkRoute -Profile $profile -Adapter $adapter } | Should -Throw '*Benchmark refused*'
+        }
     }
     It 'surfaces actual native nonzero exit and stderr' {
         { Invoke-TbNative -FilePath (Join-Path $PSHOME 'pwsh.exe') -Arguments @('-NoProfile', '-Command', '[Console]::Error.WriteLine("controlled failure"); exit 7') } | Should -Throw '*exited 7*controlled failure*'

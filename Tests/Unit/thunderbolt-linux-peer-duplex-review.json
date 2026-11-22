@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "reviewedAtUtc": "2026-11-22T16:16:25.0393770Z",
+  "reviewedAtUtc": "2026-11-22T16:16:25.039377Z",
   "reviewer": "codex",
   "reviewerType": "independent source agent",
   "sourceBaseline": "b27bf3fae09d558dfa6f293b20605128a603d6f4",
   "hashConvention": "SHA-256 of UTF-8 LF source files and exact Pester It AST extent. Data-driven selectors are reviewed as groups.",
   "sourceBindings": {
     "Tools/Invoke-ThunderboltNetworking.ps1": "0343cb4fa2a00e50c84321cba68f093895572d59d476bfd7c85a490461293fce",
-    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "6b7f827324c12264c581ab1c74328bf6127d7a041d841cc8f413f9efeae3b51e",
-    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "ce1503ca71c8f7415343faf55a7174079ea71c49b44de594c2ef1e1ecd507205"
+    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "ae8b56df1e9d6c92bb83c0c8a3f26686d8ce60729aa6f41596cec66a42393fb6",
+    "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1": "de5ca6f43a4f4d4dbc7507200af49b15cca947d75c946d973dc628761b436ce9"
   },
   "selectors": [
     {
@@ -169,6 +169,16 @@
       "reviewerType": "author self-review; not independent",
       "reviewedAtUtc": "2026-11-22T16:55:54.9406191Z",
       "reviewScope": "Checks that zero and negative receiver rates in either summary row throw the named error and produce no result object. Data-driven rows are reviewed as a group."
+    },
+    {
+      "selector": "requires an unambiguous source and on-link peer route for <Case>",
+      "source": "Tests/Unit/ThunderboltLinuxPeer.Tests.ps1",
+      "sha256": "79b4b8b8d8dcf7a05b21ebe7dfd3667b47654ae80f9cdafc132586f66a03c0fa",
+      "codeUnderTest": [
+        "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1"
+      ],
+      "disposition": "keep",
+      "reviewScope": "Two positive direct-route controls and five negative controls. The five negatives failed before admission hardening and passed afterward with fake Windows route and address rows."
     }
   ]
 }

@@ -265,8 +265,21 @@ function Assert-TbBenchmarkRoute {
     if (-not $selected.Count -or @($selected | Where-Object InterfaceIndex -NE $Adapter.ifIndex).Count) {
         throw 'Benchmark refused: source-bound route does not use the selected Thunderbolt interface.'
     }
+    $sources = @($selected | Where-Object { $_.PSObject.Properties['IPAddress'] -and -not $_.PSObject.Properties['NextHop'] })
+    $routes = @($selected | Where-Object { $_.PSObject.Properties['NextHop'] -and -not $_.PSObject.Properties['IPAddress'] })
+    if ($selected.Count -ne 2 -or $sources.Count -ne 1 -or $routes.Count -ne 1 -or $sources[0].IPAddress -ne $Profile.localAddress) {
+        throw 'Benchmark refused: Windows did not select one route and the exact USB4 source address.'
+    }
+    $subnetBytes = ([Net.IPAddress]::Parse($Profile.peerAddress)).GetAddressBytes()
+    $subnetBytes[3] = $subnetBytes[3] -band 252
+    $subnet = [Net.IPAddress]::new($subnetBytes)
+    if ($routes[0].NextHop -ne '0.0.0.0' -or $routes[0].DestinationPrefix -notin @("$subnet/30", "$($Profile.peerAddress)/32")) {
+        throw 'Benchmark refused: the selected route is not directly on-link to the USB4 peer.'
+    }
     $source = @(Get-NetIPAddress -InterfaceIndex $Adapter.ifIndex -AddressFamily IPv4 | Where-Object IPAddress -EQ $Profile.localAddress)
-    if ($source.Count -ne 1 -or $source[0].PrefixLength -ne 30) { throw 'Benchmark refused: local /30 address is missing.' }
+    if ($source.Count -ne 1 -or $source[0].PrefixLength -ne 30 -or $source[0].AddressState -ne 'Preferred') {
+        throw 'Benchmark refused: a preferred local /30 address is missing.'
+    }
 }
 
 function Test-TbSshEndpoint {

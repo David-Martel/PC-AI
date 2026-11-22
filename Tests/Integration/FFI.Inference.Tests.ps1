@@ -69,7 +69,8 @@ Describe "PCAI Inference Native Library - FFI Boundary Tests" -Tag "FFI", "Infer
             }
 
             if (Test-InferenceDllExists) {
-                $true | Should -BeTrue
+                # Assert the file the probe reported, not a constant: DllPath is the artifact the later tests load.
+                Test-Path -LiteralPath $DllPath -PathType Leaf | Should -BeTrue -Because "the availability probe said $DllPath exists"
             } else {
                 Set-ItResult -Skipped -Because "DLL not built (run .\Native\pcai_core\pcai_inference\Invoke-PcaiBuild.ps1)"
             }

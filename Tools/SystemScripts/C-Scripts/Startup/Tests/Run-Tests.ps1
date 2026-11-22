@@ -77,7 +77,14 @@ param(
     [int]$MinimumCoverage = 80
 )
 
-#Requires -Modules Pester
+# Not `#Requires -Modules Pester`: with `pwsh -File`, auto-loading Pester through that directive makes every `exit N`
+# in this script report exit code 0 (measured on pwsh 7.6.7 with Pester 5.7.1), so "TEST RUN FAILED" exited 0. Import
+# it explicitly and fail loudly when it is missing.
+if (-not (Get-Module -ListAvailable -Name Pester | Where-Object Version -ge '5.0.0')) {
+    [Console]::Error.WriteLine('Pester 5.0.0 or later is required: Install-Module Pester -MinimumVersion 5.0.0 -Scope CurrentUser')
+    exit 1
+}
+Import-Module Pester -MinimumVersion 5.0.0
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -151,13 +158,13 @@ function Initialize-TestEnvironment {
     Write-ColorOutput "Cleaned old test results" -Color Info
 }
 
-function New-PesterConfiguration {
+function Get-RunnerPesterConfiguration {
     <#
     .SYNOPSIS
-        Creates Pester configuration object
+        Creates the Pester configuration object (named so it does not shadow Pester's own New-PesterConfiguration)
     #>
 
-    $config = New-PesterConfiguration
+    $config = Pester\New-PesterConfiguration
 
     # Test discovery
     if ($TestPath) {
@@ -285,9 +292,9 @@ function Format-CodeCoverageResults {
     $coverage = $Results.CodeCoverage
     $coveredPercent = 0
 
-    if ($coverage.NumberOfCommandsAnalyzed -gt 0) {
+    if ($coverage.CommandsAnalyzedCount -gt 0) {
         $coveredPercent = [math]::Round(
-            ($coverage.NumberOfCommandsExecuted / $coverage.NumberOfCommandsAnalyzed) * 100,
+            ($coverage.CommandsExecutedCount / $coverage.CommandsAnalyzedCount) * 100,
             2
         )
     }
@@ -298,9 +305,9 @@ function Format-CodeCoverageResults {
     Write-Host "=" * 80
     Write-Host ""
 
-    Write-ColorOutput "Commands Analyzed:  $($coverage.NumberOfCommandsAnalyzed)" -Color Info
-    Write-ColorOutput "Commands Executed:  $($coverage.NumberOfCommandsExecuted)" -Color Info
-    Write-ColorOutput "Commands Missed:    $($coverage.NumberOfCommandsMissed)" -Color Info
+    Write-ColorOutput "Commands Analyzed:  $($coverage.CommandsAnalyzedCount)" -Color Info
+    Write-ColorOutput "Commands Executed:  $($coverage.CommandsExecutedCount)" -Color Info
+    Write-ColorOutput "Commands Missed:    $($coverage.CommandsMissedCount)" -Color Info
     Write-Host ""
 
     if ($coveredPercent -ge $MinimumCoverage) {
@@ -310,12 +317,12 @@ function Format-CodeCoverageResults {
     }
 
     # Missed commands detail
-    if ($coverage.MissedCommands.Count -gt 0) {
+    if ($coverage.CommandsMissed.Count -gt 0) {
         Write-Host ""
         Write-ColorOutput "MISSED COMMANDS:" -Color Warning
         Write-Host "-" * 80
 
-        $grouped = $coverage.MissedCommands | Group-Object -Property File
+        $grouped = $coverage.CommandsMissed | Group-Object -Property File
 
         foreach ($group in $grouped) {
             Write-ColorOutput "  File: $($group.Name)" -Color Info
@@ -345,10 +352,28 @@ function Test-BuildSuccess {
     $success = $true
     $reasons = @()
 
-    # Check for test failures
+    # Check for test failures. FailedCount alone is not a verdict: a test file that does not parse leaves it 0 with a
+    # failed container, a throwing AfterAll leaves it 0 with a failed block, and a filter that matches nothing leaves
+    # Result 'Passed' with nothing executed.
     if ($Results.FailedCount -gt 0) {
         $success = $false
         $reasons += "Failed tests: $($Results.FailedCount)"
+    }
+    if ($Results.FailedContainersCount -gt 0) {
+        $success = $false
+        $reasons += "Test files that failed to load: $($Results.FailedContainersCount)"
+    }
+    if ($Results.FailedBlocksCount -gt 0) {
+        $success = $false
+        $reasons += "Blocks that failed outside any test (BeforeAll/AfterAll): $($Results.FailedBlocksCount)"
+    }
+    if (($Results.PassedCount + $Results.FailedCount) -eq 0) {
+        $success = $false
+        $reasons += 'No test executed'
+    }
+    if ($success -and $Results.Result -ne 'Passed') {
+        $success = $false
+        $reasons += "Pester Result is '$($Results.Result)' with nothing else to explain it"
     }
 
     # Check for skipped tests if configured
@@ -360,9 +385,9 @@ function Test-BuildSuccess {
     # Check code coverage if enabled
     if ($CodeCoverage -and $Results.CodeCoverage) {
         $coveredPercent = 0
-        if ($Results.CodeCoverage.NumberOfCommandsAnalyzed -gt 0) {
+        if ($Results.CodeCoverage.CommandsAnalyzedCount -gt 0) {
             $coveredPercent = [math]::Round(
-                ($Results.CodeCoverage.NumberOfCommandsExecuted / $Results.CodeCoverage.NumberOfCommandsAnalyzed) * 100,
+                ($Results.CodeCoverage.CommandsExecutedCount / $Results.CodeCoverage.CommandsAnalyzedCount) * 100,
                 2
             )
         }
@@ -409,7 +434,7 @@ try {
     Write-Host ""
 
     # Create configuration and run tests
-    $pesterConfig = New-PesterConfiguration
+    $pesterConfig = Get-RunnerPesterConfiguration
     $results = Invoke-Pester -Configuration $pesterConfig
 
     # Display results

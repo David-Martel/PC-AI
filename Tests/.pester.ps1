@@ -63,6 +63,7 @@ $ErrorActionPreference = 'Stop'
 # "Cannot find path '<repo>\Tests\Modules' because it does not exist".
 $TestRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Split-Path -Parent $TestRoot
+. (Join-Path $TestRoot 'Helpers/Get-PesterRunVerdict.ps1')
 Push-Location $RepoRoot
 
 try {
@@ -117,8 +118,11 @@ try {
     }
 
     # Configure CI mode
+    # Run.Exit stays off in every mode: Pester would exit with FailedCount before the verdict below could look at
+    # failed containers (a syntax-error test file) or a run that executed nothing, both of which leave it 0.
+    $config.Run.Exit = $false
+    $config.Run.PassThru = $true
     if ($CI) {
-        $config.Run.Exit = $true
         $config.TestResult.Enabled = $true
         $config.Output.Verbosity = 'Normal'
         Write-Host "CI mode enabled: exit codes + XML output" -ForegroundColor Cyan
@@ -163,6 +167,7 @@ try {
         Write-Host "  Target:            85%" -ForegroundColor White
 
         if ($coveredPercent -lt 85) {
+            # A warning only: the enforced, ratcheted coverage gate is Tests/coverage-report.ps1 (Config/test-baseline.json).
             Write-Warning "Coverage below target (85%). Current: $coveredPercent%"
         }
 
@@ -187,24 +192,23 @@ try {
         Write-Host "`nTest results: $($config.TestResult.OutputPath.Value)" -ForegroundColor Cyan
     }
 
-    # Exit with appropriate code
-    if ($result.FailedCount -gt 0) {
+    # Exit code from the shared verdict, in every mode: failed tests, failed containers and a run that executed
+    # nothing all fail. This script used to exit non-zero only in -CI mode and only for FailedCount.
+    $verdict = Get-PesterRunVerdict -Result $result
+    if (-not $verdict.Passed) {
+        foreach ($reason in $verdict.Violations) { Write-Host "  $reason" -ForegroundColor Red }
         Write-Host "`nTests FAILED" -ForegroundColor Red
-        if ($CI) {
-            exit 1
-        }
+        $script:ExitCode = 1
     } else {
         Write-Host "`nAll tests PASSED" -ForegroundColor Green
-        if ($CI) {
-            exit 0
-        }
+        $script:ExitCode = 0
     }
 
 } catch {
-    Write-Error "Test execution failed: $_"
-    if ($CI) {
-        exit 1
-    }
+    Write-Error "Test execution failed: $_" -ErrorAction Continue
+    $script:ExitCode = 1
 } finally {
     Pop-Location
 }
+
+exit $script:ExitCode

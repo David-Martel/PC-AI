@@ -1,5 +1,6 @@
 #Requires -Version 7.0
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
+# No `#Requires -Modules` for Pester: with `pwsh -File`, that directive made every `exit N` below report 0
+# (measured on pwsh 7.6.7 with Pester 5.7.1), so this runner could not fail. Pester is imported explicitly below.
 
 <#
 .SYNOPSIS
@@ -78,6 +79,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'Helpers/Get-PesterRunVerdict.ps1')
+
+if (-not (Get-Module -ListAvailable -Name Pester | Where-Object Version -ge '5.0.0')) {
+    Write-Error 'Pester 5.0.0 or later is required: Install-Module Pester -MinimumVersion 5.0.0 -Scope CurrentUser' -ErrorAction Continue
+    exit 1
+}
+Import-Module Pester -MinimumVersion 5.0.0
+
 # Get project root
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $TestsRoot = Join-Path $ProjectRoot "Tests"
@@ -126,8 +135,9 @@ foreach ($path in $testPaths) {
 }
 
 if ($testFiles.Count -eq 0) {
-    Write-Warning "No test files found for suite: $Suite"
-    exit 0
+    # Finding nothing to run is a failure: exiting 0 here let a renamed or emptied suite directory pass.
+    Write-Error "No test files found for suite: $Suite" -ErrorAction Continue
+    exit 1
 }
 
 Write-Host "Found $($testFiles.Count) test file(s):" -ForegroundColor Green
@@ -142,7 +152,9 @@ $pesterConfig = New-PesterConfiguration
 # Set test paths
 $pesterConfig.Run.Path = $testFiles.FullName
 
-# Set output options
+# Set output options. PassThru is required: without it Invoke-Pester returns nothing, and the exit code at the
+# bottom was computed from a null result, so it was always 0.
+$pesterConfig.Run.PassThru = $true
 $pesterConfig.Output.Verbosity = 'Detailed'
 
 # Apply tag filters
@@ -239,9 +251,12 @@ if ($CodeCoverage -and $result.CodeCoverage) {
     Write-Host "Code Coverage: $coveragePercent% ($coveredCommands/$totalCommands commands)" -ForegroundColor Cyan
 }
 
-# Exit code based on test results
-if ($result.FailedCount -gt 0) {
+# Exit code from the shared verdict: failed tests, failed containers (syntax errors) and a run that executed
+# nothing all fail.
+$verdict = Get-PesterRunVerdict -Result $result
+if (-not $verdict.Passed) {
     Write-Host ""
+    foreach ($reason in $verdict.Violations) { Write-Host "  $reason" -ForegroundColor Red }
     Write-Host "Tests FAILED" -ForegroundColor Red
     exit 1
 } else {

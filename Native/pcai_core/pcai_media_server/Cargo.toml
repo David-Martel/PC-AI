@@ -37,3 +37,7 @@ mimalloc = "0.1"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+# oneshot() drives the real router in the hardening tests without a socket
+tower = { version = "0.5", features = ["util"] }

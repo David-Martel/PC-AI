@@ -64,6 +64,15 @@ pub struct AppState {
     backend: Arc<RwLock<Box<dyn InferenceBackend>>>,
 }
 
+impl AppState {
+    /// Wrap a backend in the shared state the routes read from.
+    pub fn new(backend: Box<dyn InferenceBackend>) -> Self {
+        Self {
+            backend: Arc::new(RwLock::new(backend)),
+        }
+    }
+}
+
 /// Run the HTTP server
 pub async fn run_server(
     config: ServerConfig,
@@ -74,21 +83,9 @@ pub async fn run_server(
 
     let _ = ROUTER_SETTINGS.set(map_router_settings(&router_config));
 
-    let state = AppState {
-        backend: Arc::new(RwLock::new(backend)),
-    };
+    let state = Arc::new(AppState::new(backend));
 
-    let mut app = Router::new()
-        .route("/health", get(health_check))
-        .route("/v1/models", get(list_models))
-        .route("/v1/completions", post(completions))
-        .route("/v1/chat/completions", post(chat_completions))
-        .with_state(Arc::new(state))
-        .layer(TraceLayer::new_for_http());
-
-    if config.cors {
-        app = app.layer(CorsLayer::permissive());
-    }
+    let app = build_router(state, &config)?;
 
     let addr = format!("{}:{}", config.host, config.port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
@@ -98,6 +95,23 @@ pub async fn run_server(
     axum::serve(listener, app).await.map_err(|e| Error::Other(e.into()))?;
 
     Ok(())
+}
+
+/// Build the HTTP router with its middleware stack.
+pub fn build_router(state: Arc<AppState>, config: &ServerConfig) -> Result<Router> {
+    let mut app = Router::new()
+        .route("/health", get(health_check))
+        .route("/v1/models", get(list_models))
+        .route("/v1/completions", post(completions))
+        .route("/v1/chat/completions", post(chat_completions))
+        .with_state(state)
+        .layer(TraceLayer::new_for_http());
+
+    if config.legacy_cors.unwrap_or(true) {
+        app = app.layer(CorsLayer::permissive());
+    }
+
+    Ok(app)
 }
 
 /// Health check endpoint
@@ -1031,6 +1045,8 @@ fn chunk_text(text: &str, max_chars: usize) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    mod hardening;
+
     use super::*;
     use crate::backends::GenerateResponse;
 

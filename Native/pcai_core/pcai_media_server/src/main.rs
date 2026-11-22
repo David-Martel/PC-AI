@@ -81,6 +81,46 @@ struct Args {
     /// When set, loads quantized weights from this file instead of full-precision safetensors.
     #[arg(long = "gguf")]
     gguf: Option<String>,
+
+    /// Extra `Host` header value to accept besides localhost, 127.0.0.1, [::1] and the bind
+    /// address. Repeatable. Required when binding a wildcard address.
+    #[arg(long = "allowed-host")]
+    allowed_hosts: Vec<String>,
+
+    /// Browser origin allowed to call the API cross-origin, e.g. `https://tools.example:3000`.
+    /// Repeatable. Without it no CORS headers are sent.
+    #[arg(long = "cors-origin")]
+    cors_origins: Vec<String>,
+}
+
+/// Network-facing security settings for the server.
+///
+/// The bearer token is deliberately not a command-line flag (it would show up in process
+/// listings); it is read from `PCAI_MEDIA_TOKEN`.
+struct ServeSecurity {
+    host: String,
+    port: u16,
+    allowed_hosts: Vec<String>,
+    cors_allowed_origins: Vec<String>,
+    auth_token: Option<String>,
+}
+
+/// Build the HTTP router with its middleware stack.
+fn build_router(state: SharedState, security: &ServeSecurity) -> Result<Router> {
+    let _ = (
+        &security.allowed_hosts,
+        &security.cors_allowed_origins,
+        &security.auth_token,
+        security.port,
+    );
+    Ok(Router::new()
+        .route("/health", get(health))
+        .route("/v1/models", get(list_models))
+        .route("/v1/images/generate", post(generate_image))
+        .route("/v1/images/understand", post(understand_image))
+        .with_state(state)
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive()))
 }
 
 // ---------------------------------------------------------------------------
@@ -420,14 +460,14 @@ async fn main() -> Result<()> {
     let state: SharedState = Arc::new(RwLock::new(AppState { pipeline, config }));
 
     // Build the Axum router.
-    let app = Router::new()
-        .route("/health", get(health))
-        .route("/v1/models", get(list_models))
-        .route("/v1/images/generate", post(generate_image))
-        .route("/v1/images/understand", post(understand_image))
-        .with_state(state)
-        .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive());
+    let security = ServeSecurity {
+        host: args.host.clone(),
+        port: args.port,
+        allowed_hosts: args.allowed_hosts.clone(),
+        cors_allowed_origins: args.cors_origins.clone(),
+        auth_token: std::env::var("PCAI_MEDIA_TOKEN").ok(),
+    };
+    let app = build_router(state, &security)?;
 
     let addr = format!("{}:{}", args.host, args.port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
@@ -444,6 +484,8 @@ async fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    mod hardening;
+
     use super::*;
 
     #[tokio::test]

@@ -182,7 +182,8 @@ fn test_server_config_defaults() {
     let server = ServerConfig::default();
     assert_eq!(server.host, "127.0.0.1");
     assert_eq!(server.port, 8080);
-    assert!(server.cors);
+    assert!(server.cors_allowed_origins.is_empty());
+    assert!(server.auth_token.is_none());
 }
 
 #[test]

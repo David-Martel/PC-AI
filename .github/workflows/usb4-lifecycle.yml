@@ -10,7 +10,7 @@ on:
       - 'Deploy/Cargo.lock'
       - 'Deploy/**/Cargo.toml'
       - 'Config/thunderbolt-peers.json'
-      - 'Config/machine-profiles/dtm-super-nuc.json'
+      - 'Config/machine-profiles/*.json'
       - 'Tools/SystemScripts/Networking/Configure-ThunderboltSwitchRoutes.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltRcloneMount.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltEnrolledPeer.ps1'
@@ -42,6 +42,11 @@ on:
       - 'Tests/Portable/Test-Usb4PeerDeployment.ps1'
       - 'Tests/Portable/usb4-deployment-doctor-review.json'
       - 'Tests/Portable/test_usb4_fabric_cli.py'
+      - 'Tests/Portable/test_usb4_tcp_hil.py'
+      - 'Tests/Portable/Test-Usb4TcpEndpoint.ps1'
+      - 'Tests/Portable/usb4-tcp-hil-review.json'
+      - 'Tests/Hardware/**'
+      - 'docs/usb4/hardware-testing.md'
       - '.github/actions/setup-job-rust/action.yml'
       - '.github/workflows/usb4-lifecycle.yml'
   workflow_dispatch:
@@ -138,6 +143,17 @@ jobs:
           $python = if ($IsWindows) { 'python' } else { 'python3' }
           & $python Tests/Portable/test_usb4_fabric_cli.py --exe $binary
           if ($LASTEXITCODE -ne 0) { throw 'USB4 topology CLI contracts failed' }
+      # Protects physical-edge admission and release receipt validation. Detects
+      # wrong bindings, incomplete duplex samples, stale or mismatched receipts.
+      # Needs Python 3 and pwsh; uses synthetic evidence and Windows provider
+      # fixtures with no peers or firewall access. Source: Tests/Hardware/.
+      - name: USB4 hardware test software contracts
+        shell: pwsh
+        run: |
+          ./Tests/Portable/Test-Usb4TcpEndpoint.ps1
+          $python = if ($IsWindows) { 'python' } else { 'python3' }
+          & $python -m unittest discover -s Tests/Portable -p test_usb4_tcp_hil.py
+          if ($LASTEXITCODE -ne 0) { throw 'USB4 hardware test software contracts failed' }
       # Protects target-cfg portability for ARM64 on each supported host OS.
       # This checks production and test targets without linking/running ARM64
       # binaries. Build scripts still run on the host; native SDK prerequisites

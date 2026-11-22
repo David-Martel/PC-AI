@@ -1,0 +1,26 @@
+{
+  "SchemaVersion": 1,
+  "SourceBaseline": "eb921585d04010d16a32319fae42e069c8263ba7",
+  "ReviewedAtUtc": "2026-11-22T18:28:49.9931878+00:00",
+  "HashConvention": "SHA-256 of UTF-8 LF sources and the exact data-driven Pester It AST extent",
+  "SourceBindings": {
+    "Tests/Unit/New-PcaiPowerShellRelease.Tests.ps1": "a88737a9c3dabfd7592345f184dbe266cb03c0eeb626a33f678b127b67d98391",
+    "Tools/Test-PcaiReleaseModule.ps1": "6acc494ef463b3e87f159686e3e326846eeed746ae5db6c133f8e3325df64c26",
+    "CI-CD-GUIDE.md": "f6cb36d336f9935165d6ef62c53d6483e86ab5a0d8b19437e2b55f3650d82e03"
+  },
+  "Selectors": [
+    {
+      "Selector": "validates the staged exports when the package is <Case>",
+      "Source": "Tests/Unit/New-PcaiPowerShellRelease.Tests.ps1",
+      "Sha256": "965540f2d866f1892aa7c5dc462b3aae6292e2d70d9e5dfb28276d8d83a4aa6f",
+      "Protects": "Staged package required exports",
+      "Detects": "Missing package function masked by a same-name caller function",
+      "Needs": "PowerShell 7, Pester 5 and a disposable module",
+      "Breadcrumb": "Tools/Test-PcaiReleaseModule.ps1::ExportedFunctions",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "Before the change, the missing export control incorrectly passed the validator. The complete package control passed."
+    }
+  ]
+}

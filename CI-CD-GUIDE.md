@@ -126,7 +126,8 @@ These files stay in the repository and run again if re-enabled; do not treat the
 - **`evaluation-smoke.yml`** (Evaluation Smoke): manual run of `Tests/Evaluation/Invoke-InferenceEvaluation.ps1` against
   a local mock OpenAI-compatible server (`-Backend http`), uploading `.pcai/evaluation/runs/**`.
 - **`release.yml`** (Release): on a `v*` tag, extracts the version, runs tests, builds the module release ZIP and its
-  generated `Install.ps1`, writes release notes and creates the GitHub release.
+  generated `Install.ps1`, writes release notes and creates the GitHub release. The
+  [module smoke check](Tools/Test-PcaiReleaseModule.ps1) verifies that the staged module itself exports the required functions.
 - **`release-cuda.yml`** (Release Native Binaries): on a `v*` tag or manual dispatch, builds and tests via `Build.ps1`,
   builds CPU and CUDA binaries for `llamacpp` and `mistralrs`, packages `.pcai/build/artifacts` and uploads release
   assets.

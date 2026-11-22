@@ -260,18 +260,21 @@ mod linux {
         }
     }
 
-    /// Fields of one mountinfo record, validated through the source field.
+    /// Fields of one mountinfo record, validated through the first super-options field.
     struct MountRecord<'a> {
         path: &'a [u8],
         filesystem: &'a [u8],
-        /// Fields after the source. The kernel prints one, but a super-option that holds an
-        /// unescaped space (a 9p `path=C:\Program Files\...`) splits into several.
-        super_options: Vec<&'a [u8]>,
+        /// Whether fields follow the first super-options field. The kernel prints one, but a
+        /// super-option that holds an unescaped space (a 9p `path=C:\Program Files\...`)
+        /// splits into several.
+        extra_fields: bool,
     }
 
-    /// Validates a record through its mount point, separator, filesystem type and source.
+    /// Validates a record through its mount point, separator, filesystem type, source and a
+    /// non-empty first super-options field.
     ///
-    /// Returns `None` for any record that is damaged before or at those fields.
+    /// Returns `None` for any record that is damaged before or at those fields, including one
+    /// that stops after the source or leaves that field empty.
     fn parse_mount_record(record: &[u8]) -> Option<MountRecord<'_>> {
         let mut fields = record.split(|byte| *byte == b' ');
         // The first six fields are required; optional fields end at a standalone hyphen.
@@ -297,25 +300,27 @@ mod linux {
         fields.find(|field| *field == b"-")?;
         let filesystem = fields.next()?;
         let source = fields.next()?;
-        if filesystem.is_empty() || source.is_empty() {
+        let super_options = fields.next()?;
+        if filesystem.is_empty() || source.is_empty() || super_options.is_empty() {
             return None;
         }
         Some(MountRecord {
             path,
             filesystem,
-            super_options: fields.collect(),
+            extra_fields: fields.next().is_some(),
         })
     }
 
     /// Classifies the configfs mount from a complete `/proc/self/mountinfo` listing.
     ///
-    /// The configfs record gets every check: it must parse through the source and carry exactly
-    /// one non-empty super-options field, and a second record for the mount point is a conflict.
+    /// The configfs record gets every check: it must parse through a non-empty super-options
+    /// field with nothing after it, and a second record for the mount point is a conflict.
     /// A record for any other mount point is not evidence about configfs, so one that is damaged
-    /// or carries extra super-option fields is skipped instead of discarding the listing. A
-    /// skipped record that still names the configfs path as a field cannot be proven unrelated
-    /// and fails closed. `Absent` additionally needs at least one usable record, so a listing of
-    /// nothing but damage stays `None`.
+    /// is skipped instead of discarding the listing, and extra super-option fields are ignored.
+    /// A skipped record that still names the configfs path as a field cannot be proven unrelated
+    /// and fails closed. Only a record that parses through its first super-options field is
+    /// usable, and `Absent` needs at least one, so a listing of nothing but damaged or
+    /// incomplete rows stays `None`.
     fn parse_mountinfo(bytes: &[u8]) -> Option<ConfigfsMount> {
         let records = bytes.strip_suffix(b"\n")?;
         let mut mount = None;
@@ -323,10 +328,7 @@ mod linux {
         for record in records.split(|byte| *byte == b'\n') {
             match parse_mount_record(record) {
                 Some(parsed) if parsed.path == CONFIGFS_PATH => {
-                    let [super_options] = parsed.super_options.as_slice() else {
-                        return None;
-                    };
-                    if super_options.is_empty() || mount.is_some() {
+                    if parsed.extra_fields || mount.is_some() {
                         return None;
                     }
                     mount = Some(if parsed.filesystem == b"configfs" {
@@ -730,6 +732,40 @@ mod linux {
                 assert_eq!(classify_mountinfo(lines), ConfigfsMount::Unavailable, "{lines:?}");
             }
             assert_eq!(classify_mountinfo(&[WSL2_9P_WITH_SPACE]), ConfigfsMount::Absent);
+        }
+
+        // Protects the usable-record rule against rows that stop short of the first super-options
+        // field. Detects a row with that field missing or empty counting as evidence, so a listing
+        // of only such rows became Absent instead of Unavailable. Also keeps the WSL2 9p row
+        // (extra trailing fields) usable. Needs Linux temporary files. Breadcrumb: parse_mountinfo.
+        #[test]
+        fn rows_without_a_first_super_options_field_are_not_usable() {
+            // Exactly the row Codex reported: the field after the source is missing.
+            let missing = "42 1 0:42 / /mnt/other rw - tmpfs none";
+            // The same row with an empty field, as a trailing space leaves.
+            let empty = "42 1 0:42 / /mnt/other rw - tmpfs none ";
+            for incomplete in [missing, empty] {
+                assert_eq!(
+                    classify_mountinfo(&[incomplete]),
+                    ConfigfsMount::Unavailable,
+                    "{incomplete:?} alone must not become Absent"
+                );
+                assert_eq!(
+                    classify_mountinfo(&[incomplete, incomplete]),
+                    ConfigfsMount::Unavailable,
+                    "{incomplete:?} repeated must not become Absent"
+                );
+                // Skipped, not poisoning: configfs next to it is still found, and one complete
+                // row beside it makes the listing usable again.
+                assert_eq!(classify_mountinfo(&[incomplete, WSL2_CONFIGFS]), ConfigfsMount::Mounted);
+                assert_eq!(classify_mountinfo(&[incomplete, WSL2_ROOT]), ConfigfsMount::Absent);
+            }
+            // Extra trailing fields keep a row usable, and configfs is still found beside it.
+            assert_eq!(classify_mountinfo(&[WSL2_9P_WITH_SPACE]), ConfigfsMount::Absent);
+            assert_eq!(
+                classify_mountinfo(&[WSL2_9P_WITH_SPACE, WSL2_CONFIGFS]),
+                ConfigfsMount::Mounted
+            );
         }
 
         // Protects distinction between a missing control surface and a directory impostor.

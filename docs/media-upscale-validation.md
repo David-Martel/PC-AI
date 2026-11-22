@@ -6,14 +6,14 @@ test the optional CPU upscale path with the checked-in lockfile:
 ```sh
 cargo check --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale
 cargo test --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale upscale::tests
+cargo test --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale --test upscale_cpu_inference
 cargo clippy --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale --lib -- -D warnings
 ```
 
 The [media manifest](../Native/pcai_core/pcai_media/Cargo.toml) enables ONNX Runtime
 through `upscale`. The [loader](../Native/pcai_core/pcai_media/src/upscale.rs) creates
-an explicit ORT environment before building its session, as required by ort
-2.0.0-rc.14. A session retains its environment internally; the local environment
-handle need not outlive `load`.
+an explicit ORT environment before building its session with ort 2.0.0-rc.15.
+The session retains the environment for its lifetime.
 
 ORT builder errors retain the recoverable session builder. The loader converts
 those errors to ordinary `ort::Error` before attaching `anyhow` context. This
@@ -40,14 +40,14 @@ The manifest's `download-binaries` feature normally acquires it during the build
 Offline execution needs a matching pre-provisioned ORT library via
 `ORT_LIB_LOCATION`; downloading or resolving dependencies alone is not a test.
 
-These commands do not execute successful model inference, validate 4x image
-quality, establish GPU acceleration, measure throughput or qualify production
-memory limits. A separate inference run needs a known RealESRGAN ONNX model and
-image fixtures, with expected output dimensions and finite pixel checks. The
-loader's Rust example shows the intended [pipeline API](../Native/pcai_core/pcai_media/src/upscale.rs).
+The [CPU integration test](../Native/pcai_core/pcai_media/tests/upscale_cpu_inference.rs)
+loads a small [ONNX Tile graph](../Native/pcai_core/pcai_media/tests/fixtures/tile-4x.onnx.pb)
+through the public upscale pipeline. It checks the dimensions and every RGB pixel
+of a non-square input after a real ORT session run. Use a known RealESRGAN model
+for image quality, GPU, throughput and production memory qualification.
 
-The [optional-feature workflow](../.github/workflows/media-upscale.yml) runs the
-three commands above on Ubuntu and Windows with stable Rust. It triggers on Cargo config, media,
+The [optional-feature workflow](../.github/workflows/media-upscale.yml) runs these
+commands on Ubuntu and Windows with stable Rust. It triggers on Cargo config, media,
 media-model, workspace manifest/lockfile and workflow changes. Each matrix job is
 bounded to 30 minutes and two compiler jobs; a missing native binary, download
 failure or linker error fails the job. Default-feature core/bootstrap checks do

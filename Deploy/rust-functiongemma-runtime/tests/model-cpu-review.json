@@ -14,7 +14,7 @@
     "Deploy/rust-functiongemma-runtime/src/model_support.rs": "fd74546b048027da4ba6a1d836b7792017777209704ccbe63ddb3677a83a3b31",
     "Deploy/rust-functiongemma-runtime/src/handlers.rs": "2e30c117831f4aceae7cb65cf5c2133bb680199abd15a87f7cb1e176e01d5f8c",
     "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs": "541e3aa230e0173e9bb570d3a8c6ac50338c46d19c6ae24366a9482e26de55e1",
-    "Deploy/rust-functiongemma-runtime/README.md": "dac8fe7188e3ae71834be26eee25981e50050e1e545331179f4495a9d0c4601f"
+    "Deploy/rust-functiongemma-runtime/README.md": "ea9d3f11b7f488bb5d1551701233b68ca2d17eb56a52e8a4340f1d7809c776ab"
   },
   "selectors": [
     {

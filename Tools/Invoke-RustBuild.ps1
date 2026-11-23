@@ -125,18 +125,20 @@ if ($script:UseCargoTools -and -not (Get-Command cl.exe -ErrorAction SilentlyCon
     $script:UseCargoTools = $false
 }
 
-# Ensure LLVM lld-link path is configured for optional use
-$llvmBin = 'C:\Program Files\LLVM\bin'
-$lldPath = Join-Path $llvmBin 'lld-link.exe'
-if (Test-Path $lldPath) {
-    if (-not $env:CARGO_LLD_PATH) { $env:CARGO_LLD_PATH = $lldPath }
-    if ($env:PATH -notlike "*${llvmBin}*") {
-        $env:PATH = "$llvmBin;$env:PATH"
+# The optional LLVM/MSVC discovery uses Windows drive paths.
+if ($IsWindows) {
+    $llvmBin = 'C:\Program Files\LLVM\bin'
+    $lldPath = Join-Path $llvmBin 'lld-link.exe'
+    if (Test-Path $lldPath) {
+        if (-not $env:CARGO_LLD_PATH) { $env:CARGO_LLD_PATH = $lldPath }
+        if ($env:PATH -notlike "*${llvmBin}*") {
+            $env:PATH = "$llvmBin;$env:PATH"
+        }
     }
-}
-$libclangDll = Join-Path $llvmBin 'libclang.dll'
-if (Test-Path $libclangDll) {
-    $env:LIBCLANG_PATH = $llvmBin
+    $libclangDll = Join-Path $llvmBin 'libclang.dll'
+    if (Test-Path $libclangDll) {
+        $env:LIBCLANG_PATH = $llvmBin
+    }
 }
 
 # Let CargoTools choose the best linker by default. Only override when the

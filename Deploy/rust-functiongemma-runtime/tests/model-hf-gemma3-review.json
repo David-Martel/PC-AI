@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
   "source_baseline": "dfe0295390c5e5a5d5eea3e21dc25d464d05d06b",
-  "recorded_at_utc": "2026-11-23T02:09:12+00:00",
+  "recorded_at_utc": "2026-11-23T03:34:47+00:00",
   "hash_normalization": "CRLF converted to LF. Selectors include the indented fn declaration through its final brace and newline.",
-  "scope": "Explicit HF Gemma3 profile option admission, context and layer schedule checks, and an opt-in local publisher tool-call test on loopback.",
+  "scope": "HF Gemma3 option and attention-scale admission, bounded context and layer checks, and a publisher tool-call fixture that verifies EOS via measured generated tokens.",
   "checkpoint_sha256": "af4f8a7c4c5eb82291759fd828720c7bcfcb92a5274556d13dde3caccf5f427b",
   "reference": "https://huggingface.co/google/functiongemma-270m-it",
   "source_sha256": {
     "Deploy/Cargo.lock": "2409d74fef9e5ac3ca76c72fa84cfe6dbf07ddc23fed01b925f34f5284a73e00",
     "Deploy/rust-functiongemma-core/src/lib.rs": "e92a8a248d6ffddf376afb77284326da8982616d52729426f36ebfdbfbec30c7",
     "Deploy/rust-functiongemma-runtime/src/config.rs": "81fa113ff8abbb7b412c058d7b63cac815d997692b3eaf8880f2eebac5e8ad5f",
-    "Deploy/rust-functiongemma-runtime/src/inference.rs": "a12f1e2ab5c8ef54e6ea7df81d6e1978daa41750b9a5b75513e4122fa51d5f00",
-    "Deploy/rust-functiongemma-runtime/src/inference/hf_gemma3.rs": "efdd22620a3e32ec0a8832299137f5628e6848e28b89c011d16f3a4ca2df2007",
-    "Deploy/rust-functiongemma-runtime/tests/model_hf_gemma3.rs": "0414b0575362a64f5c5a770e10240dcab73c2eebc0e13c68fbb1fc10c77386f1"
+    "Deploy/rust-functiongemma-runtime/src/inference.rs": "82f90513ddaf33f8f0ad1d77b8f8bd599b1c5e098bcf2ff9e4ef08e9fb8dcaa7",
+    "Deploy/rust-functiongemma-runtime/src/inference/hf_gemma3.rs": "9f33d52fdb0b7129c6abf887576e8ad1a7b99767404d781a487de4055821d415",
+    "Deploy/rust-functiongemma-runtime/tests/model_hf_gemma3.rs": "fd333a6ccd511144cced311e11c090e57a975dce49222fa9035e5e5d03b626de"
   },
   "reviews": [
     {
@@ -26,18 +26,22 @@
     {
       "selector": "validates_publisher_attention_schedule_and_context_caps",
       "test_path": "Deploy/rust-functiongemma-runtime/src/inference/hf_gemma3.rs",
-      "selector_sha256": "71e3885b178215ac570c403be7bd3bbff968e8902197fce875bcfb1ebf882759",
+      "selector_sha256": "7b94240fe2a1ed25b47dcda08ae4d8fffaba4bb29429141dcfffd6c007fe0c6f",
       "disposition": "unreviewed",
       "reviewer": null,
-      "reviewed_at_utc": null
+      "reviewed_at_utc": null,
+      "review_author": "codex",
+      "reviewer_type": "author-family change; awaiting independent review"
     },
     {
       "selector": "opt_in_publisher_profile_returns_weather_tool_after_overlimit_request",
       "test_path": "Deploy/rust-functiongemma-runtime/tests/model_hf_gemma3.rs",
-      "selector_sha256": "58119503878d2aaa9467ed08a74454586256c680aa41d0d6a9d9cffc17a98444",
+      "selector_sha256": "4ad495fb9fda57334c72bb59fc05332c5c9d45395db8ad4d8b04bf1fde015c3c",
       "disposition": "unreviewed",
       "reviewer": null,
-      "reviewed_at_utc": null
+      "reviewed_at_utc": null,
+      "review_author": "codex",
+      "reviewer_type": "author-family change; awaiting independent review"
     }
   ]
 }

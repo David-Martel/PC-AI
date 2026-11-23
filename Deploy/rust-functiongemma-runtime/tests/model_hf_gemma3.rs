@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 // Protects: an explicitly selected Gemma3 profile emits a real publisher tool call on CPU.
-// Detects: checkpoint math drift, fallback confused with model execution, and cache leakage between requests.
+// Detects: missing EOS stops, fallback confused with model execution, and cache leakage between requests.
 // Needs: PC-AI's model feature, loopback, and an installed Google FunctionGemma 270M checkpoint.
 // Breadcrumb: inference::hf_gemma3, inference::infer_with_model, and the runtime chat handler.
 #[tokio::test]
@@ -66,6 +66,7 @@ async fn opt_in_publisher_profile_returns_weather_tool_after_overlimit_request()
             assert_eq!(rejected.headers()["x-pcai-router-engine"], "heuristic-fallback");
 
             request["max_tokens"] = 24.into();
+            let mut last_generated = 0;
             for attempt in 1..=2 {
                 let started = Instant::now();
                 let response = client.post(&url).bearer_auth(&api_key).json(&request).send().await?.error_for_status()?;
@@ -74,6 +75,22 @@ async fn opt_in_publisher_profile_returns_weather_tool_after_overlimit_request()
                 let call = &body["choices"][0]["message"]["tool_calls"][0]["function"];
                 assert_eq!(call["name"], "get_current_temperature");
                 assert_eq!(call["arguments"], json!({"location": "London"}));
+                let health: Value = client
+                    .get(format!("http://{address}/health"))
+                    .bearer_auth(&api_key)
+                    .send()
+                    .await?
+                    .error_for_status()?
+                    .json()
+                    .await?;
+                let total = health["router_stats"]["tokens_generated"]
+                    .as_u64()
+                    .ok_or_else(|| anyhow::anyhow!("missing measured generated-token count"))?;
+                let generated = total
+                    .checked_sub(last_generated)
+                    .ok_or_else(|| anyhow::anyhow!("generated-token count moved backwards"))?;
+                assert!((1..24).contains(&generated), "expected an EOS stop, generated {generated} tokens");
+                last_generated = total;
                 eprintln!("weather request {attempt}: model tool call in {} ms", started.elapsed().as_millis());
             }
             Ok(())

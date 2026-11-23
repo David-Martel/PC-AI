@@ -84,9 +84,12 @@ fn checkpoint_config(mut raw: Value) -> anyhow::Result<Config> {
             && cfg.head_dim & 1 == 0
             && cfg.sliding_window > 0
             && cfg.sliding_window_pattern > 0
-            && cfg.query_pre_attn_scalar > 0
             && cfg.vocab_size > 0,
         "invalid Gemma3 dimensions or attention schedule"
+    );
+    ensure!(
+        cfg.query_pre_attn_scalar == cfg.head_dim,
+        "{PROFILE} requires query_pre_attn_scalar to equal head_dim"
     );
     if let Some(types) = raw.get("layer_types") {
         let types = types.as_array().context("Gemma3 layer_types must be an array")?;
@@ -225,8 +228,8 @@ mod tests {
         }
     }
 
-    // Protects: the checkpoint's periodic layer schedule and distinct context caps are honored.
-    // Detects: alias drift, impossible layer patterns, and context values that could overrun the model cache.
+    // Protects: the checkpoint's layer schedule, attention scaling and context caps.
+    // Detects: unsupported attention scaling, impossible layer patterns or context overrun.
     // Needs: a small in-memory checkpoint configuration.
     // Breadcrumb: hf_gemma3::checkpoint_config and hf_gemma3::context_limit.
     #[test]
@@ -263,6 +266,12 @@ mod tests {
         let mut invalid = raw.clone();
         invalid["layer_types"] = json!(["full_attention", "sliding_attention"]);
         assert!(checkpoint_config(invalid).is_err());
+        let mut invalid = raw.clone();
+        invalid["query_pre_attn_scalar"] = json!(4);
+        assert!(checkpoint_config(invalid)
+            .unwrap_err()
+            .to_string()
+            .contains("query_pre_attn_scalar"));
         let mut invalid = raw;
         invalid["sliding_window_pattern"] = json!(3);
         assert!(checkpoint_config(invalid).is_err());

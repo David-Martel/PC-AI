@@ -74,9 +74,16 @@ output must fit within 4,096 tokens or the lower configured context limit.
 Each request starts with a fresh KV cache. Existing native-model and training
 configurations keep their default profile. [Publisher checkpoint](https://huggingface.co/google/functiongemma-270m-it)
 
+The shipped configuration selects the legacy route with an int8 KV cache for
+compatibility with existing deployments. On Gen9 that route fell back when
+given the stock publisher weights. Use the explicit publisher profile in a
+site configuration when serving those weights.
+[Runtime validation](../../docs/functiongemma-runtime-validation.md)
+
 Run the [local checkpoint fixture](tests/model_hf_gemma3.rs) with
 `PCAI_TEST_FUNCTIONGEMMA_MODEL_DIR` set to the local model directory. It
-requires `x-pcai-router-engine: model` and a structured tool call.
+requires `x-pcai-router-engine: model`, a structured tool call, and a measured
+generation count below the requested limit.
 
 ```sh
 cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime --features model --test model_hf_gemma3 -- --ignored

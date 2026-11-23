@@ -44,6 +44,12 @@ The [legacy model](../Deploy/rust-functiongemma-core/src/model.rs) remains
 the default for existing custom weights and LoRA configurations. Its
 normalization order, embedding scale, local rotary frequencies, and hard-coded
 EOS IDs differ from the [published checkpoint profile](../Deploy/rust-functiongemma-runtime/src/inference/hf_gemma3.rs).
+The shipped configuration selects the legacy route and an int8 KV cache.
+On Gen9, a stock publisher checkpoint exercised with those settings produced
+a recorded heuristic fallback. The publisher profile requires the checkpoint's
+attention scale to match its head dimension, which is the scale used by the
+locked Candle implementation. The real-checkpoint test checks measured
+generated-token counts to detect skipped EOS stops.
 
 The [listener](../Deploy/rust-functiongemma-runtime/src/lib.rs) binds the
 configured address. If another process owns a fixed port, startup exits with

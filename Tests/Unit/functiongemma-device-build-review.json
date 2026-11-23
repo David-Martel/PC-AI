@@ -4,10 +4,10 @@
   "hashConvention": "SHA-256 of UTF-8 LF source and exact Pester It AST extent.",
   "sourceBindings": {
     "Build.ps1": "96282de082bf632df8c6f267d1d71c493d34ac86e1d9bc3ed488e61784de40d6",
-    "Tests/Unit/FunctionGemmaPreparation.Tests.ps1": "190d3153a17b89dc2969430e2bfcf388c7592e70341cb4cd54a754c6b13551c5",
+    "Tests/Unit/FunctionGemmaPreparation.Tests.ps1": "10cdc6519a0d473b01b77050641797fe1fe7c4bd9c34ac9fd6db5d9bfca0209e",
     ".github/workflows/functiongemma-runtime.yml": "30231668f523e4bc4d0cb3274272a38d2aad6c2b1653f55ea26405f9dd3d4102",
     "Deploy/rust-functiongemma-runtime/Cargo.toml": "7529f15ed56f54b0ac0e360e4dd10522d59bb01621a61b985bb370c446099758",
-    "docs/functiongemma-runtime-validation.md": "1f7f81bad860e217dd882de7623af0b268cb382ded24ee7241df1c274e712f37"
+    "docs/functiongemma-runtime-validation.md": "f3a1c3e77e244f4857649482d9f3cd94622a1e9907319a2fec133e1f0a48a1eb"
   },
   "selectors": [
     {

@@ -5,7 +5,7 @@
   "hashConvention": "SHA-256 of UTF-8 LF source files and exact PowerShell It command AST extents.",
   "sourceBindings": {
     "Build.ps1": "96282de082bf632df8c6f267d1d71c493d34ac86e1d9bc3ed488e61784de40d6",
-    "Tools/Invoke-RustBuild.ps1": "2e1d9b843e7ce4a89f2f386ab94fe60f913522f8f43d922a6eb9c8c9cd9bd2f6",
+    "Tools/Invoke-RustBuild.ps1": "9a5a44f4040aef3eb2b07653dd077207607158ec3353cb28ce5bed113c9e3be9",
     "Tests/Unit/Invoke-RustBuild.Tests.ps1": "ee8ecf5f3134043953ad5daa95e42ca63dcc203ccf591b5a873c2087cb1154ad"
   },
   "validation": "Windows Pester 5.7.1. An independent offline smoke of the actual staged Build.ps1 caller and pwsh wrapper used real Cargo tree on an inert crate. The declared feature succeeded and the nonexistent feature failed with the expected Cargo diagnostic.",

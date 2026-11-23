@@ -5,7 +5,7 @@
   "hashConvention": "SHA-256 of UTF-8 LF text. Rust selector extents include the test attribute through the closing brace and final LF.",
   "sourceBindings": {
     "Deploy/rust-functiongemma-core/src/prompt.rs": "3fa1221a7c3c5e2bf30052bef47b4dfb0b8f7175c86b69849978bcd8a5e544bf",
-    "docs/functiongemma-runtime-validation.md": "1f7f81bad860e217dd882de7623af0b268cb382ded24ee7241df1c274e712f37"
+    "docs/functiongemma-runtime-validation.md": "f3a1c3e77e244f4857649482d9f3cd94622a1e9907319a2fec133e1f0a48a1eb"
   },
   "selectors": [
     {

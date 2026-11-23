@@ -26,31 +26,36 @@ Describe 'Initialize-CudaEnvironment' -Tag 'Unit', 'Cuda', 'Portable' {
 
     # Protects: a complete toolkit must support the whole explicitly requested build matrix.
     # Detects: compiling against the preferred toolkit even when it lacks Blackwell code generation.
-    # Needs: inert toolkit directories and stubbed nvcc target lists. Breadcrumb: Select-CudaToolkit.
+    # Needs: inert toolkit directories and separate stubbed nvcc and ptxas lists. Breadcrumb: Select-CudaToolkit.
     It 'chooses a complete toolkit supporting every requested code target' {
         $older = New-ToolkitFixture 'preferred-toolkit'
         $newer = New-ToolkitFixture 'compatible-toolkit'
         Mock Get-NvccGpuCodes { 'sm_89' } -ParameterFilter { $CompilerPath -like '*preferred-toolkit*' }
-        Mock Get-NvccGpuCodes { 'sm_89'; 'sm_120'; 'sm_120a' } -ParameterFilter { $CompilerPath -like '*compatible-toolkit*' }
+        Mock Get-NvccGpuCodes { 'sm_89'; 'sm_120' } -ParameterFilter { $CompilerPath -like '*compatible-toolkit*' }
+        $null = New-Item -ItemType File -Path (Join-Path $newer 'bin/ptxas.exe')
+        Mock Get-PtxasGpuCodes { 'sm_120a'; 'sm_120f' } -ParameterFilter { $AssemblerPath -like '*compatible-toolkit*' }
 
-        $choice = Select-CudaToolkit -Candidates $older, $newer -TargetComputeCaps '8.9; 120,sm_120a'
+        $choice = Select-CudaToolkit -Candidates $older, $newer -TargetComputeCaps '8.9; 120,sm_120a,120f'
 
         $choice.Path | Should -BeExactly $newer
-        ($choice.TargetCodes -join ',') | Should -BeExactly 'sm_89,sm_120,sm_120a'
-        ($choice.Notes -join ' ') | Should -Match 'Unsupported CUDA targets sm_120, sm_120a'
+        ($choice.TargetCodes -join ',') | Should -BeExactly 'sm_89,sm_120,sm_120a,sm_120f'
+        ($choice.Notes -join ' ') | Should -Match 'Unsupported CUDA targets sm_120, sm_120a, sm_120f'
+        Should -Invoke Get-PtxasGpuCodes -Times 1 -Exactly
     }
 
     # Protects: unsupported selected targets fail without CPU or generic architecture substitution.
     # Detects: considering sm_120 code sufficient for an explicit sm_120a request.
-    # Needs: inert toolkit with only generic nvcc code target. Breadcrumb: Select-CudaToolkit.
+    # Needs: an inert toolkit whose assembler cannot confirm the exact requested suffix. Breadcrumb: Select-CudaToolkit.
     It 'rejects a generic Blackwell toolkit for an architecture-specific target' {
         $generic = New-ToolkitFixture 'generic-toolkit'
-        Mock Get-NvccGpuCodes { 'sm_120' }
+        $null = New-Item -ItemType File -Path (Join-Path $generic 'bin/ptxas.exe')
+        Mock Get-NvccGpuCodes { 'sm_120'; 'sm_120a' }
+        Mock Get-PtxasGpuCodes { 'sm_120f' }
 
         $choice = Select-CudaToolkit -Candidates $generic -TargetComputeCaps '120a'
 
         $choice.Path | Should -BeNullOrEmpty
-        ($choice.Notes -join ' ') | Should -Match 'Unsupported CUDA targets sm_120a'
+        ($choice.Notes -join ' ') | Should -Match 'Unsupported CUDA targets sm_120a.+ptxas did not list them'
     }
 
     # Protects: development-shell discovery works without probing optional architecture targets.
@@ -109,6 +114,44 @@ Describe 'Initialize-CudaEnvironment' -Tag 'Unit', 'Cuda', 'Portable' {
             $env:PATH | Should -BeExactly $expectedPath
         } finally {
             $env:PATH = $originalPath
+        }
+    }
+    # Protects: suffixed CUDA targets require the admitted toolkit's own assembler.
+    # Detects: accepting an advertised numeric code with no sibling ptxas.
+    # Needs: a complete numeric-only toolkit fixture and mocked compiler output.
+    # Breadcrumb: Select-CudaToolkit architecture-specific target admission.
+    It 'requires the same toolkit ptxas only for suffixed targets' {
+        $fixture = New-ToolkitFixture 'toolkit-without-ptxas'
+        Mock Get-NvccGpuCodes { 'sm_120' }
+        Mock Get-PtxasGpuCodes { throw 'Unexpected assembler probe' }
+
+        (Select-CudaToolkit -Candidates $fixture -TargetComputeCaps '120').Path | Should -BeExactly $fixture
+        $choice = Select-CudaToolkit -Candidates $fixture -TargetComputeCaps '120f'
+        $choice.Path | Should -BeNullOrEmpty
+        ($choice.Notes -join ' ') | Should -Match 'ptxas is missing for CUDA targets sm_120f'
+        Should -Invoke Get-PtxasGpuCodes -Times 0 -Exactly
+    }
+
+    # Protects: only the wrapped assembler allowed-values list certifies a suffix.
+    # Detects: reading examples as capabilities or losing wrapped help continuation lines.
+    # Needs: synthetic ptxas help text with a PowerShell function standing in for the executable.
+    # Breadcrumb: Get-PtxasGpuCodes allowed-values parser.
+    It 'reads exact suffixed code names from wrapped assembler help' {
+        function Get-FixturePtxasHelp {
+            $global:LASTEXITCODE = 0
+            "  Example only: 'sm_121a'"
+            '  --gpu-name <name> (-arch)'
+            "    Allowed values for this option: 'compute_120a','sm_89','sm_120',"
+            "      'sm_120a','sm_120f'."
+            "    Default value: 'sm_89'."
+        }
+
+        $oldExitCode = $global:LASTEXITCODE
+        try {
+            (@(Get-PtxasGpuCodes -AssemblerPath 'Get-FixturePtxasHelp') -join ',') |
+                Should -BeExactly 'sm_120a,sm_120f'
+        } finally {
+            $global:LASTEXITCODE = $oldExitCode
         }
     }
 }

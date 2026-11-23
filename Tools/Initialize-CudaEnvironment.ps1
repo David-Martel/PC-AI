@@ -16,7 +16,7 @@
 
 .PARAMETER TargetComputeCaps
     Optional comma-, semicolon-, or space-separated targets, such as 89,120.
-    Check that nvcc emits code for every target before setting build variables.
+    Require generic nvcc codes and exact ptxas support for a/f variants.
 
 .PARAMETER Quiet
     Suppress informational output (still returns a result object).
@@ -123,6 +123,18 @@ function Get-NvccGpuCodes {
     }
 }
 
+function Get-PtxasGpuCodes {
+    param([string]$AssemblerPath)
+
+    try {
+        $output = (& $AssemblerPath --help 2>$null) -join [char]10
+        if ($LASTEXITCODE -ne 0) { return }
+        $allowed = [regex]::Match($output, '(?m)^[ \t]*Allowed values for this option:\s*(?<codes>''(?:sm|compute)_[0-9]{2,3}[af]?''(?:\s*,\s*''(?:sm|compute)_[0-9]{2,3}[af]?'')*)')
+        [regex]::Matches($allowed.Groups['codes'].Value, '(?<=\x27)sm_[0-9]{2,3}[af](?=\x27)') | ForEach-Object { $_.Value }
+    } catch {
+        Write-Verbose "ptxas target probe failed: $($_.Exception.Message)"
+    }
+}
 function Select-CudaToolkit {
     param([string[]]$Candidates, [string]$TargetComputeCaps)
 
@@ -132,6 +144,8 @@ function Select-CudaToolkit {
         if ($target -cnotmatch '^\d{2,3}[af]?$') { throw "Invalid CUDA compute target: $_" }
         "sm_$target"
     } | Select-Object -Unique)
+    # nvcc lists generic codes; its sibling assembler lists the a/f variants.
+    $suffixTargets = @($targetCodes | Where-Object { $_ -cmatch '[af]$' })
     $reasons = [System.Collections.Generic.List[string]]::new()
 
     foreach ($candidate in $Candidates) {
@@ -148,10 +162,23 @@ function Select-CudaToolkit {
                 $reasons.Add("nvcc could not list GPU targets: $candidate")
                 continue
             }
-            $missing = @($targetCodes | Where-Object { $_ -cnotin $supported })
+            $missing = @($targetCodes | Where-Object { ($_ -creplace '[af]$', '') -cnotin $supported })
             if ($missing.Count) {
                 $reasons.Add("Unsupported CUDA targets $($missing -join ', ') in $candidate")
                 continue
+            }
+            if ($suffixTargets.Count) {
+                $ptxas = Join-Path $candidate 'bin\ptxas.exe'
+                if (-not (Test-Path -LiteralPath $ptxas -PathType Leaf)) {
+                    $reasons.Add("ptxas is missing for CUDA targets $($suffixTargets -join ', ') in $candidate")
+                    continue
+                }
+                $assemblerCodes = @(Get-PtxasGpuCodes -AssemblerPath $ptxas)
+                $missing = @($suffixTargets | Where-Object { $_ -cnotin $assemblerCodes })
+                if ($missing.Count) {
+                    $reasons.Add("Unsupported CUDA targets $($missing -join ', ') in $candidate (ptxas did not list them)")
+                    continue
+                }
             }
         }
         return @{ Path = $candidate; Notes = $reasons.ToArray(); TargetCodes = $targetCodes }

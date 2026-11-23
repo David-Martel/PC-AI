@@ -18,8 +18,9 @@ The November 22 audit observed an Intel iGPU and an RTX PRO 2000 Blackwell Lapto
 
 The [Windows CUDA bootstrap](../Tools/Initialize-CudaEnvironment.ps1) accepts
 explicit compiler targets such as `-TargetComputeCaps '89,120'`. It checks each
-complete toolkit's `nvcc --list-gpu-code` before selecting it. Explicit `120a`
-requires a compiler that advertises `sm_120a`. The
+complete toolkit's `nvcc --list-gpu-code` for each numeric target. For `120a` or
+`120f`, nvcc must advertise `sm_120` and the same toolkit's `ptxas --help` must
+list the exact suffixed code. Plain numeric targets use only the nvcc list. The
 [native inference build](../Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1)
 validates its requested targets before invoking Cargo. The legacy llama-rs
 backend builds for numeric targets. NVFP4 execution belongs to the modern

@@ -133,23 +133,27 @@ Describe 'Initialize-CudaEnvironment' -Tag 'Unit', 'Cuda', 'Portable' {
     }
 
     # Protects: only the wrapped assembler allowed-values list certifies a suffix.
-    # Detects: reading examples as capabilities or losing wrapped help continuation lines.
+    # Detects: reading other options as capabilities or stopping before SM values after LTO entries.
     # Needs: synthetic ptxas help text with a PowerShell function standing in for the executable.
     # Breadcrumb: Get-PtxasGpuCodes allowed-values parser.
     It 'reads exact suffixed code names from wrapped assembler help' {
         function Get-FixturePtxasHelp {
             $global:LASTEXITCODE = 0
-            "  Example only: 'sm_121a'"
+            '  --fixture-other <name>'
+            "    Allowed values for this option: 'sm_121a'."
+            "    Example only: 'sm_121f'"
             '  --gpu-name <name> (-arch)'
-            "    Allowed values for this option: 'compute_120a','sm_89','sm_120',"
-            "      'sm_120a','sm_120f'."
+            "    Allowed values for this option:  'compute_100','compute_100a','compute_100f',"
+            "      'compute_120','compute_120a','compute_120f','compute_89','compute_90a','lto_100','lto_100a',"
+            "      'lto_100f','lto_120','lto_120a','lto_120f','lto_89','lto_90a','sm_120',"
+            "      'sm_120a','sm_120f','sm_89','sm_90a'."
             "    Default value: 'sm_89'."
         }
 
         $oldExitCode = $global:LASTEXITCODE
         try {
             (@(Get-PtxasGpuCodes -AssemblerPath 'Get-FixturePtxasHelp') -join ',') |
-                Should -BeExactly 'sm_120a,sm_120f'
+                Should -BeExactly 'sm_120a,sm_120f,sm_90a'
         } finally {
             $global:LASTEXITCODE = $oldExitCode
         }

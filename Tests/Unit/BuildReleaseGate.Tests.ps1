@@ -362,4 +362,69 @@ function Initialize-CudaEnvironment {
             }
         }
     }
+
+    # Protects: the legacy GGML build receives only numeric architecture targets.
+    # Detects: dropping the suffix guard and letting GGML silently discard that target.
+    # Needs: the actual CUDA branch and a helper that must never probe a compiler.
+    # Breadcrumb: Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment GGML suffix guard.
+    It 'rejects an architecture suffix in legacy GGML input <Target>' -ForEach @(
+        @{ Target = '89,120a' },
+        @{ Target = '89;12.0f' }
+    ) {
+        $ToolsDir = $TestDrive
+        @'
+function Initialize-CudaEnvironment { throw 'Compiler probe must not run' }
+'@ | Set-Content -LiteralPath (Join-Path $ToolsDir 'Initialize-CudaEnvironment.ps1')
+        $Backend = 'llamacpp'
+        $EnableCuda = $true
+        $original = [Environment]::GetEnvironmentVariable('GGML_CUDA_ARCH_LIST')
+        try {
+            $env:GGML_CUDA_ARCH_LIST = $Target
+            { & $script:CudaProbe } | Should -Throw 'The legacy llama-rs build accepts numeric CUDA targets only*'
+        } finally {
+            [Environment]::SetEnvironmentVariable('GGML_CUDA_ARCH_LIST', $original)
+        }
+    }
+
+    # Protects: the child gets the selected target and compiler after optional library setup.
+    # Detects: a lost GGML override or another toolkit taking precedence on PATH.
+    # Needs: actual CUDA branch and PATH helper, inert toolkit and optional library fixtures.
+    # Breadcrumb: Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment process exports.
+    It 'preserves the GGML override and compiler after optional CUDA library setup' {
+        $ToolsDir = Join-Path $TestDrive 'admitted-toolkit'
+        $cudaBin = Join-Path $ToolsDir 'bin'
+        $otherBin = Join-Path $TestDrive 'other-toolkit/bin'
+        $null = New-Item -ItemType Directory -Path $cudaBin, $otherBin
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../Tools/Initialize-CudaEnvironment.ps1') `
+            -Destination (Join-Path $ToolsDir 'RealToolkit.ps1')
+        @'
+. (Join-Path $PSScriptRoot 'RealToolkit.ps1')
+function Initialize-CudaEnvironment {
+    param([switch]$Quiet, [string]$TargetComputeCaps)
+    if ($TargetComputeCaps.Trim(',') -ne '89') { throw 'Override was not admitted' }
+    $null = Set-PreferredCudaBinPath (Join-Path $PSScriptRoot 'bin')
+    @{ Found = $true; CudaPath = $PSScriptRoot }
+}
+'@ | Set-Content -LiteralPath (Join-Path $ToolsDir 'Initialize-CudaEnvironment.ps1')
+        function Initialize-CudnnEnvironment { param([string]$CudaPath) }
+        function Initialize-TensorRtEnvironment { $env:PATH = "$otherBin;$env:PATH" }
+
+        $envNames = @('PATH', 'GGML_CUDA_ARCH_LIST', 'PCAI_CUDA_ARCH_LIST', 'LLAMA_CUDA', 'GGML_CUDA',
+            'RUSTFLAGS', 'CUDA_NVCC_FLAGS', 'NVCCFLAGS', 'CMAKE_ARGS', 'CL', '_CL_', 'LIB', 'INCLUDE')
+        $original = @{}
+        foreach ($name in $envNames) { $original[$name] = [Environment]::GetEnvironmentVariable($name) }
+        $Backend = 'llamacpp'
+        $Configuration = 'Release'
+        $EnableCuda = $true
+        try {
+            $env:GGML_CUDA_ARCH_LIST = $null
+            $env:PCAI_CUDA_ARCH_LIST = '89'
+            $null = & $script:CudaProbe
+            $env:GGML_CUDA_ARCH_LIST | Should -BeExactly '89'
+            ($env:PATH -split ';')[0] | Should -BeExactly $cudaBin
+            ($env:PATH -split ';') | Should -Contain $otherBin
+        } finally {
+            foreach ($name in $envNames) { [Environment]::SetEnvironmentVariable($name, $original[$name]) }
+        }
+    }
 }

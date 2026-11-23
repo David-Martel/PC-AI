@@ -1,12 +1,12 @@
 {
   "SchemaVersion": 1,
-  "SourceBaseline": "484c643194c17e987e3725b88aea52cfc5daaceb",
-  "ReviewedAtUtc": "2026-11-23T00:22:58.2419085Z",
+  "SourceBaseline": "aa4aaee0582cd094fc01342b6d193c2ed202b881",
+  "ReviewedAtUtc": "2026-11-23T01:42:59.4922628Z",
   "HashConvention": "SHA-256 of UTF-8 LF sources and the exact Pester It command AST extent without a trailing newline.",
   "SourceBindings": {
     "Build.ps1": "61d0a3ba0ad637238f2e9b9f5698d38585142e3dbfee2a025be2c2110a66fabc",
-    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "ab47edebc6042c7c52240d19a2066440e042e884854af965f8854adac1697cd0",
-    "Tests/Unit/BuildReleaseGate.Tests.ps1": "b6eb66425fcef2764c35d03d44329a8479e17e11b01ee66e437f20b3b87ed710"
+    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "0072caa17dc407192ef1d7607283ae942315ed96a1edb658d1fec73450b4d153",
+    "Tests/Unit/BuildReleaseGate.Tests.ps1": "f4b80510dea511d8d347643f97382435e3a0f4ce09294e232c0513833515a642"
   },
   "Validation": "PowerShell 7 and Pester 5.7.1 on Windows. Isolated fixtures exercise the publication and child-failure boundaries with local temporary files. Real build, release contents, fleet installation, and CUDA hardware qualification remain separate.",
   "Selectors": [
@@ -113,6 +113,32 @@
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed",
       "ReviewScope": "Baseline daff6198 failed four of six cases. The revised branch and real toolkit selector use each effective declaration without invoking nvcc or a real CUDA install."
+    },
+    {
+      "Selector": "rejects an architecture suffix in legacy GGML input <Target>",
+      "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
+      "Sha256": "1687872324f0ab192235aab6c0179aa07db2ed5b3c85837235bfd038cb34b28a",
+      "Protects": "Legacy GGML receives numeric architecture targets only.",
+      "Detects": "A suffixed target, including a dotted target, reaching the compiler and later being discarded.",
+      "Needs": "Pester 5, the extracted production CUDA branch, a stub that throws if invoked.",
+      "Breadcrumb": "Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment GGML suffix guard.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "Both compact and dotted suffix spellings fail before a compiler probe."
+    },
+    {
+      "Selector": "preserves the GGML override and compiler after optional CUDA library setup",
+      "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
+      "Sha256": "ad3fd0abd7bc2b5fb68019c8a2fb6670441593db4c6cefefa709ced7cb00d875",
+      "Protects": "The child receives the admitted GGML target and CUDA toolkit after optional library setup.",
+      "Detects": "Dropping the target export or picking another compiler whose path was prepended during library setup.",
+      "Needs": "Pester 5, TestDrive, the extracted production CUDA branch and actual path helper with inert discovery and library stubs.",
+      "Breadcrumb": "Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment process exports.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "The fixture verifies override admission and export, promotes the selected CUDA path after a library prepends its own path, and retains that library path."
     }
   ],
   "SourceRechecks": [

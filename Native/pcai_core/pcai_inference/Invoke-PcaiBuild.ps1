@@ -653,7 +653,7 @@ function Initialize-BuildEnvironment {
                 elseif ($env:CUDA_COMPUTE_CAPS) { $env:CUDA_COMPUTE_CAPS }
                 else { $env:CUDAARCHS }
             }
-            if ($ggmlCaps -match '(?:^|[,;\s])(?:(?:sm|compute)_?)?\d{2,3}[af](?:$|[,;\s])') {
+            if ($ggmlCaps -match '(?:^|[,;\s])(?:(?:sm|compute)_?)?\d{1,2}\.?\d[af](?:$|[,;\s])') {
                 throw 'The legacy llama-rs build accepts numeric CUDA targets only. Use the modern llama.cpp runtime for NVFP4 kernels.'
             }
             $cudaInfo = Initialize-CudaEnvironment -Quiet -TargetComputeCaps (@($ggmlCaps, $mistralCaps) -join ',')
@@ -715,6 +715,7 @@ function Initialize-BuildEnvironment {
                 # Optional CUDA libraries (cuDNN/TensorRT)
                 Initialize-CudnnEnvironment -CudaPath $cudaInfo.CudaPath
                 Initialize-TensorRtEnvironment
+                $null = Set-PreferredCudaBinPath (Join-Path $cudaInfo.CudaPath 'bin')
             } else {
                 $detail = $cudaInfo.Notes -join '; '
                 throw "CUDA build requested but no complete CUDA Toolkit was found for the requested targets. Install a compatible toolkit with nvcc.exe and cuda_runtime.h or omit -EnableCuda for CPU. $detail"

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourceBaseline": "f654f859db33a00bde2d6f53bcdfbeee20991dff",
-  "recordedAtUtc": "2026-11-23T01:33:04.3885364Z",
+  "sourceBaseline": "aa4aaee0582cd094fc01342b6d193c2ed202b881",
+  "recordedAtUtc": "2026-11-23T01:40:59.3896926Z",
   "hashConvention": "SHA-256 of UTF-8 LF-normalized source text and exact Pester It AST extents",
   "sourceBindings": {
-    "Tools/Initialize-CudaEnvironment.ps1": "e20ab256dfbceba1d89bda66da7224f9ec7f024dfb70154f7b14b7dd19a124b3",
+    "Tools/Initialize-CudaEnvironment.ps1": "117dcf48a1364b64d0fbe5dce4263b1e2e2af958346318051a9a6426d356ce11",
     "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "ab47edebc6042c7c52240d19a2066440e042e884854af965f8854adac1697cd0",
-    "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1": "c3564eb6e27f0c06638ba7183b6a2a84f74f9567e8f2ec53b0562b10474eaa25",
+    "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1": "8cc5db59402316c031fe058858925bf8d624c421ca229144ca89e7b962ceece8",
     "docs/ai-build-qualification.md": "45a6c300557721072c84c35891b98e29f3e034a6518a9d82b866de5b07f2511e"
   },
   "selectors": [
@@ -65,11 +65,11 @@
     {
       "selector": "reads exact suffixed code names from wrapped assembler help",
       "source": "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1",
-      "sha256": "81348ff79885d36c63194d2df193e33adc488c06c326e67e176e488568a6c2ff",
+      "sha256": "1ab84ca3767939047c15b92f5b92ac35fb2c5493e1437d7337108c3be8b7e75b",
       "reviewer": "codex-gpu-lane",
       "reviewerType": "author self-review",
       "disposition": "unreviewed",
-      "reviewScope": "Parses both wrapped real-format suffixed entries, excludes a compute-only alias and ignores a quoted example outside the allowed-values text."
+      "reviewScope": "The real Gen7 CUDA 13.1 GPU-name allowed-values list inserts LTO entries between compute and SM entries. The fixture reproduced an empty result on aa4aaee0, verifies that other option entries are excluded, and certifies only exact SM suffixes. The read-only Gen7 retest selected sm_89, sm_120, sm_120a and sm_120f."
     }
   ]
 }

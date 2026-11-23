@@ -129,7 +129,9 @@ function Get-PtxasGpuCodes {
     try {
         $output = (& $AssemblerPath --help 2>$null) -join [char]10
         if ($LASTEXITCODE -ne 0) { return }
-        $allowed = [regex]::Match($output, '(?m)^[ \t]*Allowed values for this option:\s*(?<codes>''(?:sm|compute)_[0-9]{2,3}[af]?''(?:\s*,\s*''(?:sm|compute)_[0-9]{2,3}[af]?'')*)')
+        $gpuName = [regex]::Match($output, '(?ms)^[ \t]*--gpu-name[ \t][^\r\n]*\r?\n(?<help>.*?)(?=^[ \t]*--|\z)')
+        # The GPU-name values include a block of LTO targets between compute and SM codes.
+        $allowed = [regex]::Match($gpuName.Groups['help'].Value, '(?m)^[ \t]*Allowed values for this option:\s*(?<codes>''(?:compute|lto|sm)_[0-9]{2,3}[af]?''(?:\s*,\s*''(?:compute|lto|sm)_[0-9]{2,3}[af]?'')*)')
         [regex]::Matches($allowed.Groups['codes'].Value, '(?<=\x27)sm_[0-9]{2,3}[af](?=\x27)') | ForEach-Object { $_.Value }
     } catch {
         Write-Verbose "ptxas target probe failed: $($_.Exception.Message)"

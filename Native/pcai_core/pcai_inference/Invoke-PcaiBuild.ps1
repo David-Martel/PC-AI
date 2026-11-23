@@ -638,9 +638,9 @@ function Initialize-BuildEnvironment {
 
     # 5. Initialize CUDA and CRT OVERRIDES (Must be last to survive sanitization)
     Write-Host "  DEBUG: Step 5 EnableCuda check (Value: $EnableCuda, Script: $($script:EnableCuda))" -ForegroundColor Gray
-    if ($EnableCuda -or $script:EnableCuda) {
+    if ($EnableCuda) {
         $cudaHelper = Join-Path $ToolsDir 'Initialize-CudaEnvironment.ps1'
-        if (Test-Path $cudaHelper) {
+        if (Test-Path -LiteralPath $cudaHelper -PathType Leaf) {
             . $cudaHelper
             $cudaInfo = Initialize-CudaEnvironment -Quiet
             if ($cudaInfo.Found) {
@@ -701,9 +701,10 @@ function Initialize-BuildEnvironment {
                 Initialize-CudnnEnvironment -CudaPath $cudaInfo.CudaPath
                 Initialize-TensorRtEnvironment
             } else {
-                Write-Host '  CUDA not found, building CPU-only' -ForegroundColor Yellow
-                $script:EnableCuda = $false
+                throw 'CUDA build requested but no complete CUDA Toolkit was found. Install a toolkit with nvcc.exe and cuda_runtime.h or omit -EnableCuda for CPU.'
             }
+        } else {
+            throw "CUDA build requested but the toolkit discovery helper is missing: $cudaHelper"
         }
     }
 }

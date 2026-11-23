@@ -3,11 +3,16 @@
 
 use pcai_inference_lib::{
     backends::{mistralrs::MistralRsBackend, InferenceBackend},
-    config::InferenceConfig,
-    http::run_server,
+    config::{DeviceLayers, DeviceSpec, InferenceConfig},
+    http::run_server_probed,
     version,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+/// Log filter used when `RUST_LOG` is unset. It must name the library target
+/// (`pcai_inference_lib`): the device policy, the startup probe and its failure are logged
+/// there, and a filter that only names `pcai_mistralrs` would hide them.
+const DEFAULT_LOG_FILTER: &str = "pcai_mistralrs=info,pcai_inference_lib=info,tower_http=debug";
 
 fn extract_config_path(args: &[String]) -> Option<String> {
     let mut i = 0usize;
@@ -47,10 +52,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize tracing
     tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "pcai_mistralrs=info,tower_http=debug".into()),
-        )
+        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| DEFAULT_LOG_FILTER.into()))
         .with(tracing_subscriber::fmt::layer())
         .init();
 
@@ -64,14 +66,15 @@ async fn main() -> anyhow::Result<()> {
     let config = InferenceConfig::from_file(config_path)?;
 
     // Create backend
-    let force_cpu = match &config.backend {
+    // `DeviceSpec` is the one place the accepted device strings are defined. An explicit
+    // `cuda:N` that cannot be honoured makes `load_model` fail below, so the process exits
+    // non-zero instead of serving from the CPU.
+    let (device, device_layers) = match &config.backend {
         #[cfg(feature = "mistralrs-backend")]
-        pcai_inference_lib::config::BackendConfig::MistralRs { device } => match device.as_deref().map(str::trim) {
-            None | Some("") => false,
-            Some(value) if value.eq_ignore_ascii_case("cpu") => true,
-            Some(value) if value.eq_ignore_ascii_case("auto") => false,
-            Some(_) => anyhow::bail!("mistral.rs backend device must be 'cpu' or 'auto'"),
-        },
+        pcai_inference_lib::config::BackendConfig::MistralRs { device, device_layers } => (
+            DeviceSpec::from_setting(device.as_deref())?,
+            device_layers.unwrap_or(DeviceLayers::Auto),
+        ),
 
         #[cfg(feature = "llamacpp")]
         pcai_inference_lib::config::BackendConfig::LlamaCpp { .. } => {
@@ -81,7 +84,7 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
-    let mut backend = Box::new(MistralRsBackend::with_config(force_cpu));
+    let mut backend = Box::new(MistralRsBackend::with_device(device).with_device_layers(device_layers));
 
     // Load model
     tracing::info!("Loading model from {:?}", config.model.path);
@@ -98,7 +101,27 @@ async fn main() -> anyhow::Result<()> {
     // Start server
     let server_config = config.server.clone().unwrap_or_default();
     let router_config = config.router.clone();
-    run_server(server_config, router_config, backend).await?;
+    run_server_probed(server_config, router_config, backend).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DEFAULT_LOG_FILTER;
+    use std::str::FromStr;
+    use tracing::Level;
+    use tracing_subscriber::filter::Targets;
+
+    // Protects the diagnosis path of a failed startup probe: with RUST_LOG unset the library's
+    // ERROR events (the full probe error) must reach the log. Detects a default filter that names
+    // only the binary's own target, which hid them. Needs no model.
+    #[test]
+    fn default_log_filter_shows_library_errors_and_infos() {
+        let filter = Targets::from_str(DEFAULT_LOG_FILTER).expect("test: the default filter must parse");
+        assert!(filter.would_enable("pcai_inference_lib::backends", &Level::ERROR));
+        assert!(filter.would_enable("pcai_inference_lib::http", &Level::INFO));
+        assert!(filter.would_enable("pcai_mistralrs", &Level::INFO));
+        assert!(!filter.would_enable("pcai_inference_lib::http", &Level::TRACE));
+    }
 }

@@ -35,9 +35,117 @@ pub enum BackendConfig {
 
     #[cfg(feature = "mistralrs-backend")]
     MistralRs {
+        /// Device policy: `cpu`, `auto` (default) or `cuda:N`; see [`DeviceSpec`].
         #[serde(default)]
         device: Option<String>,
+
+        /// How layers are placed on the device; see [`DeviceLayers`]. Unset means `auto`.
+        #[serde(default)]
+        device_layers: Option<DeviceLayers>,
     },
+}
+
+/// How the mistral.rs backend places a model's layers.
+///
+/// mistral.rs maps layers automatically by default and, when the model does not fit the GPU,
+/// puts the last layers on the CPU. For GGUF models that split fails at the first forward pass
+/// (`device mismatch in rms-norm, lhs: Cpu, rhs: Cuda`), so the load looks fine and every request
+/// then errors. `all` removes the split.
+///
+/// # Examples
+///
+/// ```
+/// use pcai_inference_lib::config::DeviceLayers;
+///
+/// let layers: DeviceLayers = serde_json::from_str("\"all\"").unwrap();
+/// assert_eq!(layers, DeviceLayers::All);
+/// assert_eq!(DeviceLayers::default(), DeviceLayers::Auto);
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DeviceLayers {
+    /// Let mistral.rs choose the placement, which may split layers between the GPU and the CPU.
+    #[default]
+    Auto,
+    /// Put every layer on the selected device. A model that does not fit fails at load with the
+    /// loader's out-of-memory error instead of loading as a CPU/GPU split.
+    All,
+}
+
+/// Where a backend should run the model, parsed from the `device` setting.
+///
+/// This is the single place the accepted device strings are defined. The `pcai-mistralrs`
+/// binary and the mistral.rs backend both consume it, so the accepted set cannot drift
+/// between them.
+///
+/// # Examples
+///
+/// ```
+/// use pcai_inference_lib::config::DeviceSpec;
+///
+/// assert_eq!("cpu".parse::<DeviceSpec>().unwrap(), DeviceSpec::Cpu);
+/// assert_eq!(" AUTO ".parse::<DeviceSpec>().unwrap(), DeviceSpec::Auto);
+/// assert_eq!("cuda:1".parse::<DeviceSpec>().unwrap(), DeviceSpec::Cuda(1));
+/// assert!("gpu".parse::<DeviceSpec>().is_err());
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DeviceSpec {
+    /// Use CUDA when it is built in and a device initializes, otherwise the CPU. An unset or
+    /// empty `device` means this.
+    #[default]
+    Auto,
+    /// Run on the CPU even when CUDA is available.
+    Cpu,
+    /// Run on this CUDA device and fail, rather than fall back to the CPU, when it cannot be used.
+    Cuda(usize),
+}
+
+impl DeviceSpec {
+    /// Parse an optional `device` setting; `None` and the empty string mean [`DeviceSpec::Auto`].
+    ///
+    /// # Errors
+    ///
+    /// [`crate::Error::Config`] naming the rejected value and the accepted forms.
+    pub fn from_setting(value: Option<&str>) -> crate::Result<Self> {
+        match value.map(str::trim) {
+            None | Some("") => Ok(Self::Auto),
+            Some(text) => text.parse(),
+        }
+    }
+}
+
+impl std::str::FromStr for DeviceSpec {
+    type Err = crate::Error;
+
+    fn from_str(text: &str) -> crate::Result<Self> {
+        let text = text.trim();
+        if text.eq_ignore_ascii_case("cpu") {
+            return Ok(Self::Cpu);
+        }
+        if text.eq_ignore_ascii_case("auto") {
+            return Ok(Self::Auto);
+        }
+        let ordinal = text
+            .get(..5)
+            .filter(|prefix| prefix.eq_ignore_ascii_case("cuda:"))
+            .and_then(|_| text[5..].parse::<usize>().ok());
+        match ordinal {
+            Some(n) => Ok(Self::Cuda(n)),
+            None => Err(crate::Error::Config(format!(
+                "unsupported device {text:?}: use \"cpu\", \"auto\" or \"cuda:N\" (for example \"cuda:0\")"
+            ))),
+        }
+    }
+}
+
+impl std::fmt::Display for DeviceSpec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Auto => f.write_str("auto"),
+            Self::Cpu => f.write_str("cpu"),
+            Self::Cuda(n) => write!(f, "cuda:{n}"),
+        }
+    }
 }
 
 /// Model configuration
@@ -317,6 +425,80 @@ mod tests {
         assert!(config.cors_allowed_origins.is_empty());
         assert!(config.allowed_hosts.is_empty());
         assert!(config.auth_token.is_none());
+    }
+
+    // Protects the one device grammar the binary and the backend share. Detects a form being
+    // dropped or loosened (a bare "cuda", a negative ordinal, trailing junk) and a case or
+    // whitespace regression. Needs no device. Breadcrumb: DeviceSpec::from_str.
+    #[test]
+    fn device_spec_parses_every_documented_form() {
+        assert_eq!("cpu".parse::<DeviceSpec>().unwrap(), DeviceSpec::Cpu);
+        assert_eq!("CPU".parse::<DeviceSpec>().unwrap(), DeviceSpec::Cpu);
+        assert_eq!("auto".parse::<DeviceSpec>().unwrap(), DeviceSpec::Auto);
+        assert_eq!("cuda:0".parse::<DeviceSpec>().unwrap(), DeviceSpec::Cuda(0));
+        assert_eq!("cuda:1".parse::<DeviceSpec>().unwrap(), DeviceSpec::Cuda(1));
+        assert_eq!("  CUDA:12 ".parse::<DeviceSpec>().unwrap(), DeviceSpec::Cuda(12));
+        assert_eq!(DeviceSpec::from_setting(None).unwrap(), DeviceSpec::Auto);
+        assert_eq!(DeviceSpec::from_setting(Some("  ")).unwrap(), DeviceSpec::Auto);
+        assert_eq!(DeviceSpec::from_setting(Some("cuda:3")).unwrap(), DeviceSpec::Cuda(3));
+    }
+
+    // Protects against a typo silently selecting a device. Detects an invalid string being
+    // accepted, or an error that does not name the value and the accepted forms.
+    #[test]
+    fn device_spec_rejects_invalid_strings_with_a_helpful_message() {
+        for bad in [
+            "gpu",
+            "cuda",
+            "cuda:",
+            "cuda:-1",
+            "cuda:x",
+            "cuda:0 extra",
+            "cuda0",
+            "cuda:1:2",
+            "mps",
+        ] {
+            let err = bad.parse::<DeviceSpec>().expect_err(bad).to_string();
+            assert!(err.contains(&format!("{bad:?}")), "error must name {bad:?}: {err}");
+            assert!(err.contains("cuda:N"), "error must list the accepted forms: {err}");
+        }
+    }
+
+    // Protects the config contract of `backend.device_layers`: absent means automatic placement,
+    // the two documented values parse, anything else is rejected rather than ignored.
+    #[cfg(feature = "mistralrs-backend")]
+    #[test]
+    fn device_layers_setting_parses_and_defaults_to_auto() {
+        let parse = |json: &str| -> serde_json::Result<BackendConfig> { serde_json::from_str(json) };
+        let absent = parse(r#"{"type":"mistral_rs","device":"cuda:0"}"#).expect("test: no device_layers is valid");
+        assert!(matches!(
+            absent,
+            BackendConfig::MistralRs {
+                device_layers: None,
+                ..
+            }
+        ));
+        let all = parse(r#"{"type":"mistral_rs","device_layers":"all"}"#).expect("test: all is valid");
+        assert!(matches!(
+            all,
+            BackendConfig::MistralRs {
+                device_layers: Some(DeviceLayers::All),
+                ..
+            }
+        ));
+        assert!(parse(r#"{"type":"mistral_rs","device_layers":"half"}"#).is_err());
+    }
+
+    #[test]
+    fn device_spec_display_round_trips() {
+        for spec in [
+            DeviceSpec::Auto,
+            DeviceSpec::Cpu,
+            DeviceSpec::Cuda(0),
+            DeviceSpec::Cuda(7),
+        ] {
+            assert_eq!(spec.to_string().parse::<DeviceSpec>().unwrap(), spec);
+        }
     }
 
     #[test]

@@ -20,7 +20,7 @@ use axum::{
 };
 use tower::ServiceExt;
 
-use crate::http::{build_router, run_server, AppState};
+use crate::http::{build_router, run_server, AppState, NotReadyReason};
 use crate::{
     backends::{FinishReason, GenerateRequest, GenerateResponse, InferenceBackend},
     config::{RouterConfig, ServerConfig},
@@ -467,6 +467,44 @@ async fn health_stays_open_when_a_token_is_set() {
         .body(Body::empty())
         .expect("test: request must build");
     assert_eq!(send(&app, post).await.status(), StatusCode::UNAUTHORIZED);
+}
+
+// Protects: the token guard while the server is not ready. Detects: the readiness gate
+// answering an unauthenticated caller with the failure text, or `/health` needing a token.
+#[tokio::test]
+async fn not_ready_server_still_demands_a_token_but_keeps_health_open() {
+    let state = state();
+    state.mark_not_ready(NotReadyReason::GenerationProbeFailed);
+    let app = build_router(Arc::clone(&state), &config(|c| c.auth_token = Some(TOKEN.to_string())))
+        .expect("test: a loopback configuration must build a router");
+    let completion = |token: Option<&str>| {
+        let mut builder = Request::builder()
+            .method(Method::POST)
+            .uri("/v1/completions")
+            .header(header::HOST, "127.0.0.1:8080")
+            .header(header::CONTENT_TYPE, "application/json");
+        if let Some(token) = token {
+            builder = builder.header(header::AUTHORIZATION, format!("Bearer {token}"));
+        }
+        builder
+            .body(Body::from(r#"{"prompt":"hi"}"#))
+            .expect("test: request must build")
+    };
+    let anonymous = send(&app, completion(None)).await;
+    assert_eq!(anonymous.status(), StatusCode::UNAUTHORIZED);
+    assert!(!body_text(anonymous).await.contains("generation_probe_failed"));
+
+    let authed = send(&app, completion(Some(TOKEN))).await;
+    assert_eq!(authed.status(), StatusCode::SERVICE_UNAVAILABLE);
+    assert!(body_text(authed).await.contains("generation_probe_failed"));
+
+    let health = send(&app, authed_request("/health", None)).await;
+    assert_eq!(health.status(), StatusCode::SERVICE_UNAVAILABLE);
+    let body = body_text(health).await;
+    assert!(
+        body.contains("not_ready") && body.contains("generation_probe_failed"),
+        "{body}"
+    );
 }
 
 // Protects: the default, which must not break the in-repo clients (they send no token).

@@ -147,7 +147,7 @@ mod tests {
         for end in arguments.char_indices().map(|(index, _)| index) {
             let prefix = &arguments[..end];
             let output = format!("<start_function_call>call:lookup{{{prefix}}}<end_function_call>");
-            let closes_a_value = prefix.ends_with("<escape>") && prefix.matches("<escape>").count() % 2 == 0;
+            let closes_a_value = prefix.ends_with("<escape>") && prefix.matches("<escape>").count().is_multiple_of(2);
             if !prefix.is_empty() && !closes_a_value {
                 assert!(parse_function_call(&output).is_none());
             }

@@ -240,12 +240,7 @@ pub fn auto_cuda_index(min_vram_mb: Option<u64>, visible_devices: &[usize]) -> O
     } else {
         visible_devices.len()
     };
-    for idx in 0..max_idx {
-        if Device::new_cuda(idx).is_ok() {
-            return Some(idx);
-        }
-    }
-    None
+    (0..max_idx).find(|&idx| Device::new_cuda(idx).is_ok())
 }
 
 // ---------------------------------------------------------------------------

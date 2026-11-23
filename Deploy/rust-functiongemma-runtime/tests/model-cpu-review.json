@@ -9,7 +9,7 @@
     "Deploy/rust-functiongemma-runtime/src/gpu.rs": "11fd8ddc6a0cc11dbd7c4694b24f7c11996bc5826bd25a97e3dcbf21e845a9b8",
     "Deploy/rust-functiongemma-runtime/src/inference.rs": "a12f1e2ab5c8ef54e6ea7df81d6e1978daa41750b9a5b75513e4122fa51d5f00",
     "Deploy/rust-functiongemma-runtime/src/config.rs": "81fa113ff8abbb7b412c058d7b63cac815d997692b3eaf8880f2eebac5e8ad5f",
-    "Deploy/rust-functiongemma-core/src/model.rs": "ae65f151c0e2f017676cdefa164053f744c86be0064c77e7f89ee74f7ec4e5e2",
+    "Deploy/rust-functiongemma-core/src/model.rs": "f7bdfff55c9f413659954c83a6ed0b4994c5cf57c3bd994073d05af5a1a69d77",
     "Deploy/rust-functiongemma-runtime/src/metrics.rs": "f30f02aebab4149b8fab467ebc36c242c72493a0013e15097c6d11ac116e76b1",
     "Deploy/rust-functiongemma-runtime/src/model_support.rs": "fd74546b048027da4ba6a1d836b7792017777209704ccbe63ddb3677a83a3b31",
     "Deploy/rust-functiongemma-runtime/src/handlers.rs": "2e30c117831f4aceae7cb65cf5c2133bb680199abd15a87f7cb1e176e01d5f8c",

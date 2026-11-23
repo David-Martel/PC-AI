@@ -257,12 +257,14 @@ impl<'a> Trainer<'a> {
         if self.trainer_cfg.use_4bit {
             println!("QLoRA 4-bit enabled.");
         }
-        if dataset.len() == 0 {
+        if dataset.is_empty() {
             return Err(anyhow::anyhow!("Empty training dataset"));
         }
+        let checkpoint_interval = self.checkpoint_config.save_every_n_steps;
+        anyhow::ensure!(checkpoint_interval > 0, "Checkpoint save interval must be positive");
         let grad_accum = self.trainer_cfg.grad_accum.max(1);
-        let num_batches = (dataset.len() + self.trainer_cfg.batch_size - 1) / self.trainer_cfg.batch_size;
-        let num_update_steps = (num_batches + grad_accum - 1) / grad_accum;
+        let num_batches = dataset.len().div_ceil(self.trainer_cfg.batch_size);
+        let num_update_steps = num_batches.div_ceil(grad_accum);
         let total_steps = self.trainer_cfg.epochs * num_update_steps;
 
         // Update scheduler with correct total_steps
@@ -430,12 +432,12 @@ impl<'a> Trainer<'a> {
                     let accum = grad_accum_store.as_mut().expect("initialized above");
                     for var in trainable_vars.iter() {
                         let tensor = var.as_tensor();
-                        if let Some(g) = grads.get(&tensor) {
-                            if let Some(existing) = accum.get(&tensor) {
+                        if let Some(g) = grads.get(tensor) {
+                            if let Some(existing) = accum.get(tensor) {
                                 let merged = existing.add(g)?;
-                                accum.insert(&tensor, merged);
+                                accum.insert(tensor, merged);
                             } else {
-                                accum.insert(&tensor, g.clone());
+                                accum.insert(tensor, g.clone());
                             }
                         }
                     }
@@ -513,7 +515,7 @@ impl<'a> Trainer<'a> {
                     }
 
                     // Save checkpoint periodically
-                    if self.global_step % self.checkpoint_config.save_every_n_steps == 0 {
+                    if self.global_step.checked_rem(checkpoint_interval) == Some(0) {
                         self.save_checkpoint(epoch, best_loss)?;
                         Checkpoint::cleanup_old(&self.checkpoint_config)?;
                     }
@@ -687,7 +689,7 @@ impl<'a> Trainer<'a> {
         let mut sum_sq = 0.0f64;
         for var in vars {
             let tensor = var.as_tensor();
-            if let Some(g) = grads.get(&tensor) {
+            if let Some(g) = grads.get(tensor) {
                 // Upcast before squaring so BF16 gradients contribute an F32 norm.
                 let val = g.to_dtype(DType::F32)?.sqr()?.sum_all()?.to_scalar::<f32>()? as f64;
                 sum_sq += val;
@@ -703,9 +705,9 @@ impl<'a> Trainer<'a> {
         let scale = max_norm / norm;
         for var in vars {
             let tensor = var.as_tensor();
-            if let Some(g) = grads.get(&tensor) {
+            if let Some(g) = grads.get(tensor) {
                 let scaled = g.affine(scale, 0.0)?;
-                grads.insert(&tensor, scaled);
+                grads.insert(tensor, scaled);
             }
         }
         Ok(())
@@ -722,7 +724,7 @@ impl<'a> Trainer<'a> {
         if self.trainer_cfg.progress_interval == 0 {
             return Ok(());
         }
-        if update_step % self.trainer_cfg.progress_interval != 0 && update_step < total_updates {
+        if update_step.checked_rem(self.trainer_cfg.progress_interval) != Some(0) && update_step < total_updates {
             return Ok(());
         }
         if self.trainer_cfg.progress_json {
@@ -801,10 +803,10 @@ impl<'a> Trainer<'a> {
     }
 
     fn evaluate_loss(&self, dataset: &Dataset, tokenizer: Option<&Tokenizer>) -> Result<f64> {
-        if dataset.len() == 0 {
+        if dataset.is_empty() {
             return Err(anyhow::anyhow!("Empty eval dataset"));
         }
-        let num_batches = (dataset.len() + self.trainer_cfg.batch_size - 1) / self.trainer_cfg.batch_size;
+        let num_batches = dataset.len().div_ceil(self.trainer_cfg.batch_size);
         let max_batches = self.trainer_cfg.eval_max_batches.unwrap_or(num_batches);
         let mut total_loss = 0.0;
         let mut batch_count = 0usize;
@@ -936,10 +938,8 @@ impl<'a> Trainer<'a> {
     fn lora_target_from_name(name: &str) -> Option<String> {
         let parts: Vec<&str> = name.split('.').collect();
         for (idx, part) in parts.iter().enumerate() {
-            if *part == "lora_a" || *part == "lora_b" {
-                if idx >= 1 {
-                    return Some(parts[idx - 1].to_string());
-                }
+            if (*part == "lora_a" || *part == "lora_b") && idx >= 1 {
+                return Some(parts[idx - 1].to_string());
             }
         }
         None

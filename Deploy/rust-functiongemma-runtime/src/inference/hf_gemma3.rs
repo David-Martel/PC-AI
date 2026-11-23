@@ -79,9 +79,9 @@ fn checkpoint_config(mut raw: Value) -> anyhow::Result<Config> {
         cfg.num_hidden_layers > 0
             && cfg.num_key_value_heads > 0
             && cfg.num_attention_heads >= cfg.num_key_value_heads
-            && cfg.num_attention_heads % cfg.num_key_value_heads == 0
+            && cfg.num_attention_heads.checked_rem(cfg.num_key_value_heads) == Some(0)
             && cfg.head_dim > 0
-            && cfg.head_dim % 2 == 0
+            && cfg.head_dim & 1 == 0
             && cfg.sliding_window > 0
             && cfg.sliding_window_pattern > 0
             && cfg.query_pre_attn_scalar > 0
@@ -93,7 +93,7 @@ fn checkpoint_config(mut raw: Value) -> anyhow::Result<Config> {
         ensure!(
             types.len() == cfg.num_hidden_layers
                 && types.iter().enumerate().all(|(idx, value)| {
-                    let expected = if (idx + 1) % cfg.sliding_window_pattern == 0 {
+                    let expected = if (idx + 1).checked_rem(cfg.sliding_window_pattern) == Some(0) {
                         "full_attention"
                     } else {
                         "sliding_attention"

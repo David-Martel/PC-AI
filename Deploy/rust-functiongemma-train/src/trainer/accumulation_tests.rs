@@ -32,6 +32,38 @@ fn fixture_config() -> Config {
     }
 }
 
+// Protects: a zero interval fails before training can update any weights.
+// Detects: division by zero or a delayed failure during checkpoint scheduling.
+// Needs: a tiny CPU model and a nonempty inert dataset. Breadcrumb: Trainer::train.
+#[test]
+fn zero_checkpoint_interval_returns_an_error_before_training() -> Result<()> {
+    let config = fixture_config();
+    let device = Device::Cpu;
+    let variables = VarMap::new();
+    let model = Model::new(
+        &config,
+        LoraSettings::new(0, 1.0, 0.0, false),
+        VarBuilder::from_varmap(&variables, DType::F32, &device),
+        false,
+    )?;
+    let mut trainer = Trainer::new(model, &config, TrainerConfig::default(), device, None, variables);
+    trainer.checkpoint_config.save_every_n_steps = 0;
+    let dataset = Dataset {
+        items: vec![TrainingItem {
+            messages: Vec::new(),
+            tools: serde_json::Value::Null,
+        }],
+        token_cache: None,
+        chat_template: None,
+    };
+    let Err(error) = trainer.train(&dataset, None, None) else {
+        anyhow::bail!("Training accepted a zero checkpoint save interval");
+    };
+    assert_eq!(error.to_string(), "Checkpoint save interval must be positive");
+    assert_eq!(trainer.global_step, 0);
+    Ok(())
+}
+
 fn train_windows(windows: &[(&[&str], usize)]) -> Result<(Vec<f32>, Vec<f32>)> {
     let tokenizer = Tokenizer::from_bytes(
         br#"{

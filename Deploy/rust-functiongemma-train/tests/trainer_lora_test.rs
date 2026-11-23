@@ -66,12 +66,15 @@ fn test_trainer_config_custom_values() {
     assert_eq!(config.scheduler_type, "linear");
 }
 
+// Protects storing a scheduler choice in the public trainer configuration.
+// Detects incompatible field or initialization changes.
+// Needs only in-memory trainer settings. Breadcrumb: trainer::TrainerConfig::scheduler_type.
 #[test]
 fn test_trainer_config_scheduler_types() {
-    let mut config = TrainerConfig::default();
-
-    // Test different scheduler types
-    config.scheduler_type = "cosine".to_string();
+    let mut config = TrainerConfig {
+        scheduler_type: "cosine".to_string(),
+        ..TrainerConfig::default()
+    };
     assert_eq!(config.scheduler_type, "cosine");
 
     config.scheduler_type = "linear".to_string();

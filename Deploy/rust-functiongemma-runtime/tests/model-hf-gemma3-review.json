@@ -11,7 +11,7 @@
     "Deploy/rust-functiongemma-core/src/lib.rs": "e92a8a248d6ffddf376afb77284326da8982616d52729426f36ebfdbfbec30c7",
     "Deploy/rust-functiongemma-runtime/src/config.rs": "81fa113ff8abbb7b412c058d7b63cac815d997692b3eaf8880f2eebac5e8ad5f",
     "Deploy/rust-functiongemma-runtime/src/inference.rs": "a12f1e2ab5c8ef54e6ea7df81d6e1978daa41750b9a5b75513e4122fa51d5f00",
-    "Deploy/rust-functiongemma-runtime/src/inference/hf_gemma3.rs": "cc3df1c15556f30747afd34d0217c9694c9202858eb787ee7327f68e1a3d0cf8",
+    "Deploy/rust-functiongemma-runtime/src/inference/hf_gemma3.rs": "efdd22620a3e32ec0a8832299137f5628e6848e28b89c011d16f3a4ca2df2007",
     "Deploy/rust-functiongemma-runtime/tests/model_hf_gemma3.rs": "0414b0575362a64f5c5a770e10240dcab73c2eebc0e13c68fbb1fc10c77386f1"
   },
   "reviews": [

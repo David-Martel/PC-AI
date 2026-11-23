@@ -133,6 +133,10 @@ impl Dataset {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn load_cached(cache_dir: &Path) -> Result<Self> {
         let cache = TokenCache::load(cache_dir)?;
         Ok(Dataset {
@@ -204,6 +208,10 @@ impl Dataset {
         Ok(meta)
     }
 
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "Keep existing public batching parameters available to callers"
+    )]
     pub fn get_batch(
         &self,
         start_idx: usize,
@@ -359,14 +367,12 @@ fn encode_item_with_mask(
             }
             if let Some(start) = find_subslice_from(&full_ids, &content_ids, search_from) {
                 let end = start + content_ids.len();
-                for idx in start..end {
-                    mask[idx] = 1;
-                }
+                mask[start..end].fill(1);
                 search_from = end;
             }
         }
 
-        if !mask.iter().any(|&m| m == 1) {
+        if !mask.contains(&1) {
             mask.iter_mut().for_each(|m| *m = 1);
         }
 
@@ -382,7 +388,7 @@ fn encode_item_with_mask(
         let msg_ids = encoding.get_ids();
         let trainable = matches!(msg.role.as_str(), "assistant" | "model");
         raw_ids.extend_from_slice(msg_ids);
-        raw_mask.extend(std::iter::repeat(if trainable { 1u8 } else { 0u8 }).take(msg_ids.len()));
+        raw_mask.extend(std::iter::repeat_n(if trainable { 1u8 } else { 0u8 }, msg_ids.len()));
         full_text.push_str(&text);
     }
 
@@ -567,7 +573,7 @@ impl TokenCache {
         let bytes = self.mmap.get(start..end).context("Token cache slice out of range")?;
         let mut ids = Vec::with_capacity(entry.len as usize);
         for chunk in bytes.chunks_exact(4) {
-            ids.push(u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]));
+            ids.push(u32::from_le_bytes(chunk.try_into().context("Invalid token cache word")?));
         }
         Ok(ids)
     }

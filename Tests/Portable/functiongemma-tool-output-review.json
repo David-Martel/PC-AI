@@ -4,7 +4,7 @@
   "sourceBaseline": "a8f55809ddd889e8ccb7505bad487c28284c4a8a",
   "hashConvention": "SHA-256 of UTF-8 LF text. Rust selector extents include the test attribute through the closing brace and final LF.",
   "sourceBindings": {
-    "Deploy/rust-functiongemma-core/src/prompt.rs": "4bd2c8cd600bb4ab098710910a82d6e5f2593c24f2c612e0b78a8db9dff4ae3e",
+    "Deploy/rust-functiongemma-core/src/prompt.rs": "3fa1221a7c3c5e2bf30052bef47b4dfb0b8f7175c86b69849978bcd8a5e544bf",
     "docs/functiongemma-runtime-validation.md": "1f7f81bad860e217dd882de7623af0b268cb382ded24ee7241df1c274e712f37"
   },
   "selectors": [
@@ -20,7 +20,7 @@
     {
       "selector": "incomplete_arguments_are_rejected_without_partial_results",
       "source": "Deploy/rust-functiongemma-core/src/prompt.rs",
-      "sha256": "f1c186ed8bddce1e3f7222b57febf1f1c978c154862b50bf031b8fa59ece9c63",
+      "sha256": "d385bc5d477161df84194279e1940196ac6f1d30a08e78b7dbf4586f24d431f9",
       "reviewer": "codex-gpu-lane",
       "reviewerType": "author-family source review",
       "disposition": "keep",

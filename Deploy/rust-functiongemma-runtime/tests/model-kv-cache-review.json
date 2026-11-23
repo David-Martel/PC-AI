@@ -5,8 +5,8 @@
   "hash_normalization": "CRLF to LF before SHA-256. Selectors include the fn line through its final brace and newline.",
   "scope": "Two-layer causal logits and wrap parity, plus a one-layer CPU runtime request through the preallocated cache.",
   "source_sha256": {
-    "Deploy/rust-functiongemma-core/src/model.rs": "ae65f151c0e2f017676cdefa164053f744c86be0064c77e7f89ee74f7ec4e5e2",
-    "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs": "7e304004cc57620fc6a50f67405b9ff273ec446c20bba0ddc41b146ab410d0a2",
+    "Deploy/rust-functiongemma-core/src/model.rs": "f7bdfff55c9f413659954c83a6ed0b4994c5cf57c3bd994073d05af5a1a69d77",
+    "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs": "3521c5e84f1f7c5800626f6a62e364948b569ddcd98d1cf668bd6164d4e048e2",
     "Deploy/Cargo.lock": "2409d74fef9e5ac3ca76c72fa84cfe6dbf07ddc23fed01b925f34f5284a73e00"
   },
   "reviews": [

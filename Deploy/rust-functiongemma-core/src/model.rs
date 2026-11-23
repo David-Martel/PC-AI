@@ -372,9 +372,9 @@ impl RotaryEmbedding {
             .step_by(2)
             .map(|i| 1f32 / self.theta.powf(i as f32 / dim as f32))
             .collect();
-        let inv_freq = Tensor::new(&inv_freq[..], &device)?.to_dtype(DType::F32)?;
+        let inv_freq = Tensor::new(&inv_freq[..], device)?.to_dtype(DType::F32)?;
 
-        let t = Tensor::arange(0u32, seq_len as u32, &device)?.to_dtype(DType::F32)?;
+        let t = Tensor::arange(0u32, seq_len as u32, device)?.to_dtype(DType::F32)?;
         let freqs = t.unsqueeze(1)?.matmul(&inv_freq.unsqueeze(0)?)?;
 
         let emb = Tensor::cat(&[&freqs, &freqs], 1)?;
@@ -521,6 +521,15 @@ fn load_weight(st: &MmapedSafetensors, name: &str, device: &Device, dtype: DType
     Ok(tensor)
 }
 
+struct AttentionBaseWeights {
+    q_weight: Tensor,
+    k_weight: Tensor,
+    v_weight: Tensor,
+    o_weight: Tensor,
+    q_norm_weight: Option<Tensor>,
+    k_norm_weight: Option<Tensor>,
+}
+
 impl Attention {
     fn new(cfg: &Config, lora: LoraSettings, sliding: bool, vb: VarBuilder) -> Result<Self> {
         let dim = cfg.hidden_size;
@@ -559,26 +568,21 @@ impl Attention {
         lora: LoraSettings,
         sliding: bool,
         vb: VarBuilder,
-        q_weight: Tensor,
-        k_weight: Tensor,
-        v_weight: Tensor,
-        o_weight: Tensor,
-        q_norm_weight: Option<Tensor>,
-        k_norm_weight: Option<Tensor>,
+        weights: AttentionBaseWeights,
     ) -> Result<Self> {
         let num_heads = cfg.num_attention_heads;
         let num_kv_heads = cfg.num_key_value_heads;
         let head_dim = cfg.head_dim;
 
-        let q_proj = LoraLinear::new_with_base(q_weight, lora, vb.pp("q_proj"))?;
-        let k_proj = LoraLinear::new_with_base(k_weight, lora, vb.pp("k_proj"))?;
-        let v_proj = LoraLinear::new_with_base(v_weight, lora, vb.pp("v_proj"))?;
-        let o_proj = LoraLinear::new_with_base(o_weight, lora, vb.pp("o_proj"))?;
-        let q_norm = match q_norm_weight {
+        let q_proj = LoraLinear::new_with_base(weights.q_weight, lora, vb.pp("q_proj"))?;
+        let k_proj = LoraLinear::new_with_base(weights.k_weight, lora, vb.pp("k_proj"))?;
+        let v_proj = LoraLinear::new_with_base(weights.v_weight, lora, vb.pp("v_proj"))?;
+        let o_proj = LoraLinear::new_with_base(weights.o_weight, lora, vb.pp("o_proj"))?;
+        let q_norm = match weights.q_norm_weight {
             Some(weight) => Some(RmsNorm::from_weight(weight, cfg.rms_norm_eps)?),
             None => Some(RmsNorm::new(head_dim, cfg.rms_norm_eps, vb.pp("q_norm"))?),
         };
-        let k_norm = match k_norm_weight {
+        let k_norm = match weights.k_norm_weight {
             Some(weight) => Some(RmsNorm::from_weight(weight, cfg.rms_norm_eps)?),
             None => Some(RmsNorm::new(head_dim, cfg.rms_norm_eps, vb.pp("k_norm"))?),
         };
@@ -1013,12 +1017,14 @@ impl DecoderLayer {
             lora,
             is_sliding,
             vb.pp("self_attn"),
-            q_weight,
-            k_weight,
-            v_weight,
-            o_weight,
-            Some(q_norm_weight),
-            Some(k_norm_weight),
+            AttentionBaseWeights {
+                q_weight,
+                k_weight,
+                v_weight,
+                o_weight,
+                q_norm_weight: Some(q_norm_weight),
+                k_norm_weight: Some(k_norm_weight),
+            },
         )?;
         let mlp = Mlp::new_with_base(cfg, lora, vb.pp("mlp"), gate_weight, up_weight, down_weight)?;
         let input_layernorm = RmsNorm::from_weight(input_ln_weight, cfg.rms_norm_eps)?;
@@ -1115,6 +1121,10 @@ pub enum KvCacheQuant {
 }
 
 impl KvCacheQuant {
+    #[expect(
+        clippy::should_implement_trait,
+        reason = "Preserve optional configuration input and infallible defaulting in the public API"
+    )]
     pub fn from_str(value: Option<&str>) -> Self {
         match value.unwrap_or("none").to_ascii_lowercase().as_str() {
             "int8" | "i8" => KvCacheQuant::Int8,

@@ -19,6 +19,10 @@ if (Test-Path $sharedCacheHelper) {
 if (Test-Path $sharedRuntimeHelper) {
     . $sharedRuntimeHelper
 }
+$sharedBearerHelper = Join-Path (Split-Path -Parent $ModuleRoot) 'PC-AI.Common\Public\Get-PcaiOriginBearerHeader.ps1'
+if (Test-Path $sharedBearerHelper) {
+    . $sharedBearerHelper
+}
 $projectRoot = if (Get-Command Resolve-PcaiRepoRoot -ErrorAction SilentlyContinue) {
     Resolve-PcaiRepoRoot -StartPath $ModuleRoot
 } else {

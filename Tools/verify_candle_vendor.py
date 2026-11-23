@@ -1,4 +1,4 @@
-"""Verify published sources and reviewed archive patches without network access."""
+"""Verify published sources and reviewed vendor patches without network access."""
 
 from __future__ import annotations
 
@@ -14,7 +14,15 @@ PUBLISHED = {
     "0.10.2": "6bd9895436c1ba5dc1037a19935d084b838db066ff4e15ef7dded020b7c12a4a",
     "0.11.0": "5ecb245093b0f791b89d3420c3df9c6d49c60ab63ba54db896bf8a3baf486706",
 }
-CHANGED = {"Cargo.toml", "src/npy.rs", "src/pickle.rs"}
+ERF_PATH = "src/cpu/erf.rs"
+ERF_IMPORT = b"use std::f64;\n"
+ERF_ANCHOR = b"\n/// `erf` calculates the error function at `x`."
+ERF_UPSTREAM = {
+    "0.9.2": "e9d7e063b6e1b3af2b785b4b26ea038e512608a380edbb0d65d0253f0f70dbdc",
+    "0.10.2": "e9d7e063b6e1b3af2b785b4b26ea038e512608a380edbb0d65d0253f0f70dbdc",
+    "0.11.0": "e034235ab4045d75ff82f2c5ff4ca446a6a4b6f4f983e4ae5055e93a38eb3ed3",
+}
+CHANGED = {"Cargo.toml", "src/npy.rs", "src/pickle.rs", ERF_PATH}
 
 
 def regular(path: Path) -> None:
@@ -44,6 +52,17 @@ def relative(value: str) -> str:
 def digest(path: Path) -> str:
     regular(path)
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def verify_erf(source: bytes, version: str, upstream_hash: str) -> None:
+    """Reconstruct the original file by restoring the single legacy import."""
+    if upstream_hash != ERF_UPSTREAM[version]:
+        raise ValueError(f"Unexpected upstream erf.rs hash for Candle {version}")
+    if ERF_IMPORT in source or source.count(ERF_ANCHOR) != 1:
+        raise ValueError(f"Candle {version} erf.rs must remove only the legacy import")
+    restored = source.replace(ERF_ANCHOR, ERF_IMPORT + ERF_ANCHOR, 1)
+    if hashlib.sha256(restored).hexdigest() != upstream_hash:
+        raise ValueError(f"Candle {version} erf.rs must remove only the legacy import")
 
 
 def verify(vendor: Path) -> dict:
@@ -77,10 +96,12 @@ def verify(vendor: Path) -> dict:
                     raise ValueError("Invalid source hash")
             if digest(root / name) != row["sha256"]:
                 raise ValueError(f"Source bytes differ: {root / name}")
+            if name == ERF_PATH:
+                verify_erf((root / name).read_bytes(), version, row["upstream_sha256"])
             if row["sha256"] != row["upstream_sha256"]:
                 changed.add(name)
         if changed != CHANGED or set(package["modified_paths"]) != CHANGED:
-            raise ValueError("Backport exceeds the three reviewed source files")
+            raise ValueError("Backport exceeds the four reviewed source files")
         omitted = package["omitted"]
         if len(omitted) != 1 or omitted[0]["path"] != "Cargo.lock":
             raise ValueError("Unexpected published-source omission")

@@ -227,6 +227,7 @@ $script:BuildArtifactsDir = Join-Path $script:BuildRoot 'artifacts'
 $script:BuildLogsDir = Join-Path $script:BuildRoot 'logs'
 $script:BuildPackagesDir = Join-Path $script:BuildRoot 'packages'
 $script:BuildDeployDir = Join-Path $script:BuildRoot 'deploy'
+$script:BuildPackageComponents = @('pcai-llamacpp', 'pcai-mistralrs', 'functiongemma', 'pcai-chattui', 'pcai-native', 'pcai-servicehost', 'nukenul')
 $script:QuietMode = $Quiet.IsPresent
 $script:CargoToolsEnabled = $false
 $script:RustBuildWrapper = Join-Path $script:ProjectRoot 'Tools\Invoke-RustBuild.ps1'
@@ -2164,9 +2165,18 @@ function Invoke-InferenceBuild {
     try {
         # Capture output to log file while showing progress
         $output = & $buildScript @buildArgs 2>&1 | Tee-Object -FilePath $logFile
-        $success = $LASTEXITCODE -eq 0
+        $buildExitCode = $LASTEXITCODE
+        if ($buildExitCode -ne 0) {
+            Write-BuildStep "pcai-inference ($Backend) failed (exit $buildExitCode). See: $logFile" 'error'
+            return @{
+                Success   = $false
+                Duration  = (Get-Date) - $componentStart
+                Artifacts = @()
+                LogFile   = $logFile
+            }
+        }
 
-        # Collect artifacts
+        # Collect artifacts only after the child has succeeded.
         $artifacts = @()
         $inferenceProjectDir = Join-Path $script:ProjectRoot 'Native\pcai_core\pcai_inference'
         $targetDir = Resolve-CargoOutputDirectory -ProjectDir $inferenceProjectDir -Configuration $Configuration
@@ -2201,11 +2211,10 @@ function Invoke-InferenceBuild {
             }
         }
 
-        $status = if ($success) { 'success' } else { 'error' }
-        Write-BuildStep "pcai-inference ($Backend) build complete" $status
+        Write-BuildStep "pcai-inference ($Backend) build complete" 'success'
 
         return @{
-            Success   = $success
+            Success   = $true
             Duration  = (Get-Date) - $componentStart
             Artifacts = $artifacts
             LogFile   = $logFile
@@ -2216,6 +2225,7 @@ function Invoke-InferenceBuild {
             Success   = $false
             Duration  = (Get-Date) - $componentStart
             Artifacts = @()
+            LogFile   = $logFile
             Error     = $_.Exception.Message
         }
     }
@@ -2247,18 +2257,21 @@ function Invoke-FunctionGemmaBuild {
         $cargoArgs = @('build')
         if ($Configuration -eq 'Release') { $cargoArgs += '--release' }
 
-        $success = $true
         foreach ($projectDir in $projectDirs) {
             $projectSuccess = Invoke-RustBuildCommand -Path $projectDir -CargoArgs $cargoArgs -LogFile $logFile
-            if (-not $projectSuccess) {
-                $success = $false
-                break
+            if ($projectSuccess -ne $true) {
+                Write-BuildStep "FunctionGemma build failed in $projectDir. See: $logFile" 'error'
+                return @{
+                    Success   = $false
+                    Duration  = (Get-Date) - $componentStart
+                    Artifacts = @()
+                    LogFile   = $logFile
+                }
             }
         }
 
-        # Collect artifacts
+        # Collect artifacts only after both crates have built successfully.
         $artifacts = @()
-        $configDir = if ($Configuration -eq 'Release') { 'release' } else { 'debug' }
 
         $artifactDir = Join-Path $script:BuildArtifactsDir 'functiongemma'
         if (-not (Test-Path $artifactDir)) {
@@ -2280,11 +2293,10 @@ function Invoke-FunctionGemmaBuild {
             }
         }
 
-        $status = if ($success) { 'success' } else { 'error' }
-        Write-BuildStep 'FunctionGemma build complete' $status
+        Write-BuildStep 'FunctionGemma build complete' 'success'
 
         return @{
-            Success   = $success
+            Success   = $true
             Duration  = (Get-Date) - $componentStart
             Artifacts = $artifacts
             LogFile   = $logFile
@@ -2295,6 +2307,7 @@ function Invoke-FunctionGemmaBuild {
             Success   = $false
             Duration  = (Get-Date) - $componentStart
             Artifacts = @()
+            LogFile   = $logFile
             Error     = $_.Exception.Message
         }
     }
@@ -2364,23 +2377,24 @@ function Invoke-FunctionGemmaOperation {
         '--grad-accum', '4'
     )
 
+    $prepareCargoArgs = @('run', '--locked', '--no-default-features', '--')
     $cargoArgs = switch ($Operation) {
         'router-data' {
             if ($OperationArgs.Count -gt 0) {
-                @('run', '--', 'prepare-router') + $OperationArgs
+                $prepareCargoArgs + @('prepare-router') + $OperationArgs
             } else {
-                @('run', '--', 'prepare-router') + $defaultRouterArgs
+                $prepareCargoArgs + @('prepare-router') + $defaultRouterArgs
             }
         }
         'token-cache' {
             if ($OperationArgs.Count -gt 0) {
-                @('run', '--', 'prepare-cache') + $OperationArgs
+                $prepareCargoArgs + @('prepare-cache') + $OperationArgs
             } else {
                 $chatTemplate = Join-Path $repoRoot 'Models\functiongemma-270m-it\chat_template.jinja'
                 if (Test-Path $chatTemplate) {
-                    @('run', '--', 'prepare-cache') + $defaultCacheArgs + @('--chat-template', $chatTemplate)
+                    $prepareCargoArgs + @('prepare-cache') + $defaultCacheArgs + @('--chat-template', $chatTemplate)
                 } else {
-                    @('run', '--', 'prepare-cache') + $defaultCacheArgs
+                    $prepareCargoArgs + @('prepare-cache') + $defaultCacheArgs
                 }
             }
         }
@@ -2973,6 +2987,87 @@ function New-BuildManifest {
 
 #region Package Creation
 
+function Get-BuildDeployBundleName {
+    param([bool]$EnableCuda)
+
+    $variant = if ($EnableCuda) { 'cuda' } else { 'cpu' }
+    $version = if ($env:PCAI_VERSION) { $env:PCAI_VERSION } else { '0.1.0+unknown' }
+    $safeVersion = ($version -replace '[^A-Za-z0-9\.\-\+_]', '_') -replace '\+', '_'
+    return "pc-ai-bundle-$safeVersion-$variant-win64"
+}
+
+function Save-BuildPublicationOutputs {
+    param([bool]$EnableCuda, [bool]$Package, [bool]$Deploy)
+
+    # Archive only the standard destinations produced by this invocation.
+    $variant = if ($EnableCuda) { 'cuda' } else { 'cpu' }
+    $relativePaths = @('artifacts/manifest.json')
+    if ($Package) {
+        $relativePaths += foreach ($component in $script:BuildPackageComponents) {
+            "packages/$component-$variant-win64.zip"
+        }
+    }
+    if ($Deploy) {
+        $bundleName = Get-BuildDeployBundleName -EnableCuda $EnableCuda
+        $relativePaths += "deploy/$bundleName", "packages/$bundleName.zip"
+    }
+
+    # Refuse junctions and symlinks at the managed roots or output entries.
+    $buildRoot = [IO.Path]::GetFullPath($script:BuildRoot)
+    $previousRoot = Join-Path $buildRoot 'previous-outputs'
+    $ancestors = [Collections.Generic.Stack[string]]::new()
+    for ($parent = [IO.DirectoryInfo]::new($buildRoot); $parent; $parent = $parent.Parent) {
+        $ancestors.Push($parent.FullName)
+    }
+    $managedDirectories = @($ancestors) + @($previousRoot)
+    $managedDirectories += $relativePaths | ForEach-Object {
+        Split-Path -Parent (Join-Path $buildRoot $_)
+    } | Select-Object -Unique
+    foreach ($directory in $managedDirectories) {
+        try {
+            $item = Get-Item -LiteralPath $directory -Force -ErrorAction Stop
+        } catch [Management.Automation.ItemNotFoundException] {
+            continue
+        }
+        if (-not $item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            throw "Cannot archive build outputs through $directory. A regular directory is required."
+        }
+    }
+
+    $outputs = foreach ($relativePath in $relativePaths) {
+        $path = Join-Path $buildRoot $relativePath
+        try {
+            $item = Get-Item -LiteralPath $path -Force -ErrorAction Stop
+        } catch [Management.Automation.ItemNotFoundException] {
+            continue
+        }
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw "Cannot archive a build output reparse point at $path."
+        }
+        $relativePath
+    }
+    if (-not $outputs) { return }
+
+    $archiveRoot = Join-Path $previousRoot ([guid]::NewGuid().ToString('N'))
+    Write-BuildStep "Moving existing publication outputs to $archiveRoot" 'running'
+    foreach ($relativePath in $outputs) {
+        $source = [IO.Path]::GetFullPath((Join-Path $buildRoot $relativePath))
+        $destination = [IO.Path]::GetFullPath((Join-Path $archiveRoot $relativePath))
+        $buildPrefix = [IO.Path]::TrimEndingDirectorySeparator($buildRoot) + [IO.Path]::DirectorySeparatorChar
+        $archivePrefix = $archiveRoot + [IO.Path]::DirectorySeparatorChar
+        if (-not $source.StartsWith($buildPrefix, [StringComparison]::Ordinal) -or
+            -not $destination.StartsWith($archivePrefix, [StringComparison]::Ordinal)) {
+            throw "Refusing to archive a path outside the build output roots: $relativePath."
+        }
+        try {
+            New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force -ErrorAction Stop | Out-Null
+            Move-Item -LiteralPath $source -Destination $destination -Force -ErrorAction Stop
+        } catch {
+            throw "Build output retirement failed at $source. Remaining standard paths can contain prior output. Check $archiveRoot for files already moved. $($_.Exception.Message)"
+        }
+    }
+}
+
 function New-ReleasePackages {
     param([string]$Configuration, [bool]$EnableCuda)
 
@@ -2984,10 +3079,7 @@ function New-ReleasePackages {
 
     $packages = @()
 
-    # Package each component
-    $components = @('pcai-llamacpp', 'pcai-mistralrs', 'functiongemma', 'pcai-chattui', 'pcai-native', 'pcai-servicehost', 'nukenul')
-
-    foreach ($component in $components) {
+    foreach ($component in $script:BuildPackageComponents) {
         $componentDir = Join-Path $artifactsDir $component
         if (-not (Test-Path $componentDir) -or (Get-ChildItem $componentDir).Count -eq 0) {
             continue
@@ -3129,10 +3221,7 @@ function New-DeployBundle {
 
     Write-BuildPhase 'Deploy' 'Creating deploy-ready aggregate bundle'
 
-    $variant = if ($EnableCuda) { 'cuda' } else { 'cpu' }
-    $version = if ($env:PCAI_VERSION) { $env:PCAI_VERSION } else { '0.1.0+unknown' }
-    $safeVersion = ($version -replace '[^A-Za-z0-9\.\-\+_]', '_') -replace '\+', '_'
-    $bundleName = "pc-ai-bundle-$safeVersion-$variant-win64"
+    $bundleName = Get-BuildDeployBundleName -EnableCuda $EnableCuda
     $bundleRoot = Join-Path $script:BuildDeployDir $bundleName
     $bundleZip = Join-Path $script:BuildPackagesDir "$bundleName.zip"
 
@@ -3375,6 +3464,12 @@ if ($Component -eq 'media-convert') {
 # Initialize version information (sets PCAI_* environment variables)
 $versionInfo = Initialize-BuildVersion
 
+# Retire the last publication before preflight and component work.
+if ($Deploy) {
+    $Package = $true
+}
+Save-BuildPublicationOutputs -EnableCuda $EnableCuda -Package $Package -Deploy $Deploy
+
 # Initialize CargoTools defaults / wrappers
 Initialize-CargoToolsDefaults | Out-Null
 
@@ -3411,11 +3506,6 @@ if (-not $SkipQualityGate) {
     if (-not $qualityGatePassed) {
         exit 1
     }
-}
-
-# Deploy implies package creation
-if ($Deploy) {
-    $Package = $true
 }
 
 # Determine what to build
@@ -3497,12 +3587,19 @@ foreach ($target in $buildTargets) {
     }
 }
 
+$failedCount = @($results.Values | Where-Object { $_.Success -ne $true }).Count
+
 if ($SkipTests) {
     Write-BuildStep 'Post-build tests skipped by request' 'skip'
 } elseif ($RunTests) {
     $testResult = Invoke-PostBuildTests -BuildTargets $buildTargets -Configuration $Configuration
-    if (-not $testResult.Success) {
-        foreach ($failedSuite in $testResult.Failed) {
+    if ($testResult.Success -ne $true) {
+        $failedSuites = @($testResult.Failed | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        $failedCount += [math]::Max(1, $failedSuites.Count)
+        if ($failedSuites.Count -eq 0) {
+            Write-BuildStep 'Post-build tests did not report success' 'error'
+        }
+        foreach ($failedSuite in $failedSuites) {
             Write-BuildStep "Test suite failed: $failedSuite" 'error'
         }
     }
@@ -3510,26 +3607,30 @@ if ($SkipTests) {
     Write-BuildStep 'Post-build tests not requested. Use -RunTests to execute component-aligned tests, or -Component test for standalone test run.' 'warning'
 }
 
-# Generate manifest
-$manifestPath = New-BuildManifest -Results $results -Configuration $Configuration -EnableCuda $EnableCuda
-
-# Create packages if requested
-if ($Package) {
-    $packages = New-ReleasePackages -Configuration $Configuration -EnableCuda $EnableCuda
+if ($failedCount -gt 0) {
+    Write-BuildStep 'Publication outputs skipped because a build or a requested test failed' 'error'
+    Write-BuildSummary -Results $results
+    exit $failedCount
 }
 
-if ($Deploy) {
-    $deployBundle = New-DeployBundle -Configuration $Configuration -EnableCuda $EnableCuda
+try {
+    $manifestPath = New-BuildManifest -Results $results -Configuration $Configuration -EnableCuda $EnableCuda
+    if ($Package) {
+        $packages = New-ReleasePackages -Configuration $Configuration -EnableCuda $EnableCuda
+    }
+    if ($Deploy) {
+        $deployBundle = New-DeployBundle -Configuration $Configuration -EnableCuda $EnableCuda
+    }
+} catch {
+    Write-BuildStep "Build publication failed: $($_.Exception.Message)" 'error'
+    Save-BuildPublicationOutputs -EnableCuda $EnableCuda -Package $Package -Deploy $Deploy
+    Write-BuildSummary -Results $results
+    throw
 }
 
 # Summary
 Write-BuildSummary -Results $results -ManifestPath $manifestPath
 
-# Exit with appropriate code
-$failedCount = @($results.Values | Where-Object { -not $_.Success }).Count
-if ($RunTests -and -not $SkipTests -and $testResult -and -not $testResult.Success) {
-    $failedCount += @($testResult.Failed).Count
-}
 exit $failedCount
 
 #endregion

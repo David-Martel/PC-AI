@@ -14,39 +14,28 @@ pub use trainer::{TrainingRunMetrics, TrainingStepMetrics};
 
 #[cfg(test)]
 mod tests {
-    use candle_core::Device;
+    use candle_core::{Device, Tensor};
 
+    // Protects: the CPU trainer's tensor backend. Detects: CPU tensor kernel
+    // failures. Needs: no hardware or model. Breadcrumb: trainer::Trainer.
     #[test]
-    fn test_cuda_device_availability() {
-        // Try to create a CUDA device
-        match Device::new_cuda(0) {
-            Ok(device) => {
-                println!("CUDA device 0 available: {:?}", device);
-                assert!(device.is_cuda(), "Device should be CUDA");
-            }
-            Err(e) => {
-                println!("CUDA not available (falling back to CPU): {}", e);
-                // This is not a failure - CUDA may not be available in CI
-            }
-        }
+    fn cpu_tensor_reduction_computes_expected_sum() -> anyhow::Result<()> {
+        let tensor = Tensor::new(&[1.0f32, 2.0, 3.0], &Device::Cpu)?;
+        assert_eq!(tensor.sum_all()?.to_scalar::<f32>()?, 6.0);
+        Ok(())
     }
 
+    // Protects: explicit CUDA trainer qualification. Detects: device/driver
+    // initialization or CUDA kernel failure. Needs: CUDA device 0 and build.
+    // Breadcrumb: trainer::Trainer, core gpu::resolve_device_with_index.
+    #[cfg(feature = "cuda")]
     #[test]
-    fn test_cuda_tensor_operations() {
-        use candle_core::Tensor;
-
-        let device = Device::new_cuda(0).unwrap_or(Device::Cpu);
-        let is_cuda = device.is_cuda();
-
-        // Create a tensor on the device
-        let tensor =
-            Tensor::zeros((2, 3), candle_core::DType::F32, &device).expect("Tensor::zeros on CPU/CUDA should not fail");
-        assert_eq!(tensor.dims(), &[2, 3]);
-
-        if is_cuda {
-            println!("Tensor created on CUDA device successfully");
-        } else {
-            println!("Tensor created on CPU device (CUDA not available)");
-        }
+    #[ignore = "requires a CUDA-capable device and driver"]
+    fn cuda_tensor_reduction_computes_expected_sum() -> anyhow::Result<()> {
+        let device = Device::new_cuda(0)?;
+        assert!(device.is_cuda());
+        let tensor = Tensor::new(&[1.0f32, 2.0, 3.0], &device)?;
+        assert_eq!(tensor.sum_all()?.to_scalar::<f32>()?, 6.0);
+        Ok(())
     }
 }

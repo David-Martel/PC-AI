@@ -1,5 +1,6 @@
 """Detect source-custody violations before building the Candle security backport."""
 
+import hashlib
 import importlib.util
 import json
 import shutil
@@ -36,7 +37,7 @@ class CandleVendorCustody(unittest.TestCase):
     def test_actual_packet_is_complete(self):
         self.assertEqual(
             CHECKER.verify(self.vendor),
-            {"packages": 3, "files": 319, "modified_files": 9},
+            {"packages": 3, "files": 319, "modified_files": 12},
         )
 
     # Protects: unchanged upstream bytes cannot silently drift under a valid receipt.
@@ -80,7 +81,7 @@ class CandleVendorCustody(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Published crate identity mismatch"):
             CHECKER.verify(self.vendor)
 
-    # Protects: this backport changes only the manifest and two archive consumers.
+    # Protects: this backport changes only the explicitly reviewed files.
     # Detects: a new upstream edit disguised by updating only its current-byte hash.
     # Needs: an owned provenance copy marking LICENSE as changed upstream code.
     # Breadcrumb: Tools/verify_candle_vendor.py CHANGED scope comparison.
@@ -93,6 +94,53 @@ class CandleVendorCustody(unittest.TestCase):
 
         self.update_manifest(alter)
         with self.assertRaisesRegex(ValueError, "Backport exceeds"):
+            CHECKER.verify(self.vendor)
+
+    # Protects: the sole permitted erf.rs edit is removal of the legacy import.
+    # Detects: accepting additional edits after their manifest hash is refreshed.
+    # Needs: an owned package copy with a harmless extra source comment.
+    # Breadcrumb: Tools/verify_candle_vendor.py verify_erf.
+    def test_extra_erf_edit_is_refused_with_rehashed_source(self):
+        path = self.package / "src/cpu/erf.rs"
+        patched = path.read_bytes() + b"\n// owned custody mutation\n"
+        path.write_bytes(patched)
+
+        def alter(data):
+            package = next(
+                pkg for pkg in data["packages"] if pkg["version"] == "0.11.0"
+            )
+            row = next(
+                item for item in package["files"] if item["path"] == "src/cpu/erf.rs"
+            )
+            row["sha256"] = hashlib.sha256(patched).hexdigest()
+
+        self.update_manifest(alter)
+        with self.assertRaisesRegex(ValueError, "must remove only the legacy import"):
+            CHECKER.verify(self.vendor)
+
+    # Protects: restoring the import must produce the historical upstream bytes.
+    # Detects: using a matching but rewritten upstream digest to bless a second edit.
+    # Needs: an owned source and manifest with refreshed hashes for a synthetic comment.
+    # Breadcrumb: Tools/verify_candle_vendor.py ERF_UPSTREAM and verify_erf.
+    def test_replaced_erf_upstream_identity_is_refused(self):
+        path = self.package / "src/cpu/erf.rs"
+        patched = path.read_bytes() + b"\n// owned custody mutation\n"
+        path.write_bytes(patched)
+        anchor = b"\n/// `erf` calculates the error function at `x`."
+        reconstructed = patched.replace(anchor, b"use std::f64;\n" + anchor, 1)
+
+        def alter(data):
+            package = next(
+                pkg for pkg in data["packages"] if pkg["version"] == "0.11.0"
+            )
+            row = next(
+                item for item in package["files"] if item["path"] == "src/cpu/erf.rs"
+            )
+            row["sha256"] = hashlib.sha256(patched).hexdigest()
+            row["upstream_sha256"] = hashlib.sha256(reconstructed).hexdigest()
+
+        self.update_manifest(alter)
+        with self.assertRaisesRegex(ValueError, "Unexpected upstream erf.rs hash"):
             CHECKER.verify(self.vendor)
 
     # Protects: manifest paths cannot escape the selected package during validation.

@@ -4,11 +4,22 @@
   "sourceBaseline": "244fe612fd88dcd0884234bf9a4a180ede218dec",
   "hashConvention": "SHA-256 of LF-normalized UTF-8. Rust selector extents run from the attribute through the closing brace and LF. Python selector extents include the def line through the final body line and LF.",
   "sourceBindings": {
-    "Deploy/rust-functiongemma-runtime/src/metrics.rs": "64550a389402f6a6080b4f61d9744190750d9c23e34a5c925c0b7c359db36a74",
+    "Deploy/rust-functiongemma-runtime/src/metrics.rs": "eda4b78192804d879cd250690b488b1fe1cc1ec2b44e56e5df28d0c77b9973bb",
     "Deploy/rust-functiongemma-runtime/src/types.rs": "096edf0cc768eddaed3c3bdc2397d2a5c70afe3975a844fc9ea293043c00d2a9",
     "Deploy/rust-functiongemma-runtime/tests/http_router.rs": "f81498a8acd6ad20194e43b7ddcef786861ab3bfb4a982d763b1c46cde9a18ee",
     "Tests/Benchmarks/measure_functiongemma_health.py": "feda8f7274944d5c94cb9065fb5c4d6604116ed26fdae2422d9bb277a4ccc09a"
   },
+  "sourceRechecks": [
+    {
+      "source": "Deploy/rust-functiongemma-runtime/src/metrics.rs",
+      "previousSha256": "64550a389402f6a6080b4f61d9744190750d9c23e34a5c925c0b7c359db36a74",
+      "sha256": "eda4b78192804d879cd250690b488b1fe1cc1ec2b44e56e5df28d0c77b9973bb",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "The existing selector extents are unchanged. Explicit zero-interval rejection preserves the CPU reading contract, and integer MiB conversion keeps the same truncation."
+    }
+  ],
   "selectors": [
     {
       "selector": "cold_health_samples_one_process_and_reports_mib",

@@ -55,6 +55,32 @@ $artifact = Join-Path ([IO.Path]::GetTempPath()) ('pcai-media-functional-' + [gu
 $null = New-Item -Path $artifact -ItemType Directory
 $receiptPath = Join-Path $artifact 'result.json'
 
+# The child server inherits PCAI_MEDIA_TOKEN from this process. With a token the server refuses every
+# route but GET /health, so the requests below must carry it, and only to the child's own URL
+# (docs/http-server-security.md). The origin rule is shared with the LLM module and the evaluation harness.
+$bearerHelper = Join-Path $PSScriptRoot '../../Modules/PC-AI.Common/Public/Get-PcaiOriginBearerHeader.ps1'
+if (-not (Test-Path -LiteralPath $bearerHelper -PathType Leaf)) {
+    throw "Shared bearer-header helper is missing: $bearerHelper"
+}
+. $bearerHelper
+
+function Get-MediaRequestParameter {
+    param([string]$BaseUri, [hashtable]$Case, [int]$TimeoutSeconds)
+
+    $parameters = @{
+        Uri = "$BaseUri/v1/images/$($Case.Operation)"
+        NoProxy = $true
+        MaximumRedirection = 0
+        Method = 'Post'
+        ContentType = 'application/json'
+        Body = ($Case.Payload | ConvertTo-Json -Compress)
+        TimeoutSec = $TimeoutSeconds
+    }
+    $headers = Get-PcaiOriginBearerHeader -RequestUrl $parameters.Uri -BaseUrl $BaseUri -TokenVariable 'PCAI_MEDIA_TOKEN'
+    if ($headers.Count -gt 0) { $parameters.Headers = $headers }
+    return $parameters
+}
+
 function Get-LoopbackPort {
     $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
     try {
@@ -150,8 +176,8 @@ try {
         $clock = [Diagnostics.Stopwatch]::StartNew()
         $row = [ordered]@{ Case = $case.Name; Status = 'ERROR'; ElapsedMs = $null; Error = $null }
         try {
-            $response = Invoke-RestMethod -Uri "$baseUri/v1/images/$($case.Operation)" -NoProxy -MaximumRedirection 0 `
-                -Method Post -ContentType 'application/json' -Body ($case.Payload | ConvertTo-Json -Compress) -TimeoutSec $RequestTimeoutSeconds
+            $requestParameters = Get-MediaRequestParameter -BaseUri $baseUri -Case $case -TimeoutSeconds $RequestTimeoutSeconds
+            $response = Invoke-RestMethod @requestParameters
             $row.Status = 'FAIL'
             if ($case.Operation -eq 'generate') {
                 $row.Width = $response.width

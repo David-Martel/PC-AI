@@ -157,8 +157,12 @@ fn default_router_temperature() -> f64 {
 }
 
 /// Server configuration
+///
+/// The server binds to `host:port`, which must be an IP literal (IPv4, IPv6 with or without
+/// brackets, or a scoped link-local such as `fe80::1%12`); `localhost` is accepted and means
+/// `127.0.0.1`. Binding anything other than a loopback address requires an authentication token.
 #[cfg(feature = "server")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
     /// Host to bind to
     #[serde(default = "default_host")]
@@ -168,9 +172,41 @@ pub struct ServerConfig {
     #[serde(default = "default_port")]
     pub port: u16,
 
-    /// Enable CORS
-    #[serde(default = "default_cors")]
-    pub cors: bool,
+    /// Legacy `"cors": true|false` key. It used to switch on a wildcard CORS layer. The value is
+    /// still accepted so existing configuration files load, but it no longer enables anything;
+    /// use [`ServerConfig::cors_allowed_origins`].
+    #[serde(default, rename = "cors", skip_serializing)]
+    pub legacy_cors: Option<bool>,
+
+    /// Browser origins (for example `https://tools.example:3000`) that may call the API
+    /// cross-origin. Empty (the default) sends no CORS headers and refuses any request that
+    /// carries an `Origin` header.
+    #[serde(default)]
+    pub cors_allowed_origins: Vec<String>,
+
+    /// Extra `Host` header values to accept besides `localhost`, `127.0.0.1`, `[::1]` and the
+    /// bind address. Required when binding a wildcard address (`0.0.0.0`, `::`).
+    #[serde(default)]
+    pub allowed_hosts: Vec<String>,
+
+    /// Bearer token required on every route except `GET /health`. The environment variable
+    /// `PCAI_INFERENCE_TOKEN` overrides it. Never serialized, so `to_file` cannot leak it.
+    #[serde(default, skip_serializing)]
+    pub auth_token: Option<String>,
+}
+
+#[cfg(feature = "server")]
+impl std::fmt::Debug for ServerConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ServerConfig")
+            .field("host", &self.host)
+            .field("port", &self.port)
+            .field("legacy_cors", &self.legacy_cors)
+            .field("cors_allowed_origins", &self.cors_allowed_origins)
+            .field("allowed_hosts", &self.allowed_hosts)
+            .field("auth_token", &self.auth_token.as_ref().map(|_| "<redacted>"))
+            .finish()
+    }
 }
 
 #[cfg(feature = "server")]
@@ -184,17 +220,15 @@ fn default_port() -> u16 {
 }
 
 #[cfg(feature = "server")]
-fn default_cors() -> bool {
-    true
-}
-
-#[cfg(feature = "server")]
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
             host: default_host(),
             port: default_port(),
-            cors: default_cors(),
+            legacy_cors: None,
+            cors_allowed_origins: Vec::new(),
+            allowed_hosts: Vec::new(),
+            auth_token: None,
         }
     }
 }
@@ -280,7 +314,9 @@ mod tests {
         let config = ServerConfig::default();
         assert_eq!(config.host, "127.0.0.1");
         assert_eq!(config.port, 8080);
-        assert!(config.cors);
+        assert!(config.cors_allowed_origins.is_empty());
+        assert!(config.allowed_hosts.is_empty());
+        assert!(config.auth_token.is_none());
     }
 
     #[test]

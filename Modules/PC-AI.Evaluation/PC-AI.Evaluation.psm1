@@ -33,6 +33,8 @@ $script:EvaluationConfig = @{
     EvaluationRoot = $null
     RunRoot = $null
     HttpBaseUrl = 'http://127.0.0.1:8080'
+    # The configured pcai-inference server. PCAI_INFERENCE_TOKEN is sent only to this origin.
+    PcaiInferenceUrl = 'http://127.0.0.1:8080'
     OllamaBaseUrl = 'http://127.0.0.1:11434'
     OllamaModel = 'llama3.2'
     ProgressMode = 'auto'
@@ -59,6 +61,11 @@ $script:EvaluationRunState = $null
 $sharedRuntimeHelper = Join-Path (Split-Path -Parent $PSScriptRoot) 'PC-AI.Common\Public\Get-PcaiRuntimeConfig.ps1'
 if (Test-Path $sharedRuntimeHelper) {
     . $sharedRuntimeHelper
+}
+# Origin-scoped bearer header for protected pcai-inference routes (PC-AI.Common)
+$sharedBearerHelper = Join-Path (Split-Path -Parent $PSScriptRoot) 'PC-AI.Common\Public\Get-PcaiOriginBearerHeader.ps1'
+if (Test-Path $sharedBearerHelper) {
+    . $sharedBearerHelper
 }
 
 #region Classes

@@ -28,6 +28,8 @@ reqwest.workspace = true
 # HTTP server (optional)
 axum = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
+# Host/Origin/CORS/bearer guards and bind-address parsing shared with pcai-media-server
+pcai_http_guard = { path = "../pcai_http_guard", optional = true }
 
 # Backend: llama-rs/llm (optional)
 llm = { workspace = true, optional = true }
@@ -45,6 +47,8 @@ mistralrs-core = { workspace = true, optional = true }
 [dev-dependencies]
 tempfile = "3.27"
 dirs = "7.0"
+# oneshot() drives the real router in the http hardening tests without a socket
+tower = { version = "0.5", features = ["util"] }
 
 [features]
 default = ["server"]
@@ -55,7 +59,7 @@ cuda-llamacpp = ["llamacpp", "llm/cublas"]
 cuda-mistralrs = ["mistralrs/cuda", "mistralrs-core/cuda"]
 # Back-compat umbrella feature
 cuda = ["cuda-llamacpp", "cuda-mistralrs"]
-server = ["dep:axum", "dep:tower-http"]
+server = ["dep:axum", "dep:tower-http", "dep:pcai_http_guard"]
 ffi = []
 
 [build-dependencies]

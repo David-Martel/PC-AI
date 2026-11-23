@@ -59,7 +59,9 @@ and GGJT weights. For GGUF qualification, see the
   },
   "server": {
     "host": "127.0.0.1",
-    "port": 8080
+    "port": 8080,
+    "cors_allowed_origins": [],
+    "allowed_hosts": []
   }
 }
 ```

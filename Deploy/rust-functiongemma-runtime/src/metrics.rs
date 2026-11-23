@@ -39,11 +39,11 @@ struct CpuSample {
 impl CpuSample {
     fn usage_since(self, previous: Self) -> Option<f32> {
         let interval = self.at.checked_duration_since(previous.at)?;
-        if interval < sysinfo::MINIMUM_CPU_UPDATE_INTERVAL {
+        if interval.is_zero() || interval < sysinfo::MINIMUM_CPU_UPDATE_INTERVAL {
             return None;
         }
         let cpu_time = Duration::from_millis(self.millis.checked_sub(previous.millis)?);
-        Some((100.0 * cpu_time.as_secs_f64() / interval.as_secs_f64()) as f32)
+        Some((100.0 * cpu_time.div_duration_f64(interval)) as f32)
     }
 }
 
@@ -116,10 +116,10 @@ fn collect_system_metrics(sys: &mut System, previous_cpu: Option<CpuSample>) -> 
         millis: process.accumulated_cpu_time(),
     };
     let snapshot = SystemMetrics {
-        process_rss_mb: process.memory() / BYTES_PER_MIB,
-        process_vmem_mb: process.virtual_memory() / BYTES_PER_MIB,
-        total_memory_mb: sys.total_memory() / BYTES_PER_MIB,
-        free_memory_mb: sys.free_memory() / BYTES_PER_MIB,
+        process_rss_mb: process.memory().div_euclid(BYTES_PER_MIB),
+        process_vmem_mb: process.virtual_memory().div_euclid(BYTES_PER_MIB),
+        total_memory_mb: sys.total_memory().div_euclid(BYTES_PER_MIB),
+        free_memory_mb: sys.free_memory().div_euclid(BYTES_PER_MIB),
         cpu_usage: previous_cpu.and_then(|previous| cpu.usage_since(previous)),
         uptime_sec: System::uptime().unwrap_or(0),
     };

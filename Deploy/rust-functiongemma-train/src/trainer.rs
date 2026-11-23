@@ -332,7 +332,7 @@ impl<'a> Trainer<'a> {
                     let mut rng = rand::rngs::StdRng::seed_from_u64(seed.wrapping_add(epoch as u64));
                     indices.shuffle(&mut rng);
                 } else {
-                    let mut rng = rand::thread_rng();
+                    let mut rng = rand::rng();
                     indices.shuffle(&mut rng);
                 }
             }
@@ -348,6 +348,8 @@ impl<'a> Trainer<'a> {
 
             for i in 0..num_batches {
                 let accum_index = i % grad_accum;
+                // Average over the actual window, including a shorter final group.
+                let window_batches = grad_accum.min(num_batches - (i - accum_index));
                 if accum_index == 0 {
                     current_lr = self.scheduler.get_lr(self.global_step);
                     optimizer.set_lr(current_lr);
@@ -405,7 +407,7 @@ impl<'a> Trainer<'a> {
 
                     // Backward pass timing (gradient computation)
                     let bwd_start = Instant::now();
-                    let scaled_loss = loss.affine(1.0 / (grad_accum as f64), 0.0)?;
+                    let scaled_loss = loss.affine(1.0 / (window_batches as f64), 0.0)?;
                     let grads = scaled_loss.backward()?;
                     let bwd_ms = bwd_start.elapsed().as_secs_f64() * 1000.0;
                     accum_bwd_ms += bwd_ms;
@@ -449,8 +451,7 @@ impl<'a> Trainer<'a> {
                     loss_val
                 };
 
-                let is_accum_end = accum_index == grad_accum - 1 || i + 1 == num_batches;
-                if is_accum_end {
+                if accum_index + 1 == window_batches {
                     // Optimizer step timing
                     let opt_start = Instant::now();
                     if let Some(mut accum) = grad_accum_store.take() {
@@ -687,7 +688,8 @@ impl<'a> Trainer<'a> {
         for var in vars {
             let tensor = var.as_tensor();
             if let Some(g) = grads.get(&tensor) {
-                let val = g.sqr()?.sum_all()?.to_scalar::<f32>()? as f64;
+                // Upcast before squaring so BF16 gradients contribute an F32 norm.
+                let val = g.to_dtype(DType::F32)?.sqr()?.sum_all()?.to_scalar::<f32>()? as f64;
                 sum_sq += val;
             }
         }
@@ -1046,3 +1048,6 @@ impl<'a> Trainer<'a> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod accumulation_tests;

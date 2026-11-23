@@ -152,7 +152,7 @@
         {
           "path": "src/cpu/erf.rs",
           "upstream_sha256": "e9d7e063b6e1b3af2b785b4b26ea038e512608a380edbb0d65d0253f0f70dbdc",
-          "sha256": "e9d7e063b6e1b3af2b785b4b26ea038e512608a380edbb0d65d0253f0f70dbdc"
+          "sha256": "b8f91f458c65baf0277072f4258f1cbc491b8b50d2b57a10e31bdf82a77fbfc7"
         },
         {
           "path": "src/cpu/kernels.rs",
@@ -527,6 +527,7 @@
       ],
       "modified_paths": [
         "Cargo.toml",
+        "src/cpu/erf.rs",
         "src/npy.rs",
         "src/pickle.rs"
       ],
@@ -538,7 +539,7 @@
         }
       ],
       "patch_path": "patches/candle-core-0.9.2-zip9.patch",
-      "patch_sha256": "f0781a2a9a9b048c028a2cc6f503f25e305571ab557b2c922c46c96abf5197db"
+      "patch_sha256": "7a70de4041d1b1ec484445852b00370d4f97fdf123e7f3dc24e7a28f716dafb0"
     },
     {
       "package": "candle-core",
@@ -689,7 +690,7 @@
         {
           "path": "src/cpu/erf.rs",
           "upstream_sha256": "e9d7e063b6e1b3af2b785b4b26ea038e512608a380edbb0d65d0253f0f70dbdc",
-          "sha256": "e9d7e063b6e1b3af2b785b4b26ea038e512608a380edbb0d65d0253f0f70dbdc"
+          "sha256": "b8f91f458c65baf0277072f4258f1cbc491b8b50d2b57a10e31bdf82a77fbfc7"
         },
         {
           "path": "src/cpu/kernels.rs",
@@ -1069,6 +1070,7 @@
       ],
       "modified_paths": [
         "Cargo.toml",
+        "src/cpu/erf.rs",
         "src/npy.rs",
         "src/pickle.rs"
       ],
@@ -1080,7 +1082,7 @@
         }
       ],
       "patch_path": "patches/candle-core-0.10.2-zip9.patch",
-      "patch_sha256": "20f1f2958968a724dad97324b0d2fc2c8bbae4222c8185515b1e266899c5361c"
+      "patch_sha256": "f149cebf3dfab71807b7d9eea0cb13736ece21dd64ec0fbe3a4f65a250f2aa97"
     },
     {
       "package": "candle-core",
@@ -1246,7 +1248,7 @@
         {
           "path": "src/cpu/erf.rs",
           "upstream_sha256": "e034235ab4045d75ff82f2c5ff4ca446a6a4b6f4f983e4ae5055e93a38eb3ed3",
-          "sha256": "e034235ab4045d75ff82f2c5ff4ca446a6a4b6f4f983e4ae5055e93a38eb3ed3"
+          "sha256": "76682497d42eac75e101cb88948cfecea1845a28322b194b4fb75f50e8f1bda4"
         },
         {
           "path": "src/cpu/kernels.rs",
@@ -1651,6 +1653,7 @@
       ],
       "modified_paths": [
         "Cargo.toml",
+        "src/cpu/erf.rs",
         "src/npy.rs",
         "src/pickle.rs"
       ],
@@ -1662,7 +1665,7 @@
         }
       ],
       "patch_path": "patches/candle-core-0.11.0-zip9.patch",
-      "patch_sha256": "550094e715bc09252f0d5861dd3f46161498e9d4e7a2b71594a0c1e5777a0837"
+      "patch_sha256": "61aa56e8045d0420722cd5f5049d85e6288a8901deefae0ef77e6901f510e3c9"
     }
   ]
 }

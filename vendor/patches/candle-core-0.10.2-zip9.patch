@@ -127,3 +127,13 @@
          let is_fortran_contiguous = tensor_info.layout.is_fortran_contiguous();
          let rank = tensor_info.layout.shape().rank();
  
+--- a/src/cpu/erf.rs
++++ b/src/cpu/erf.rs
+@@ -29,7 +29,6 @@
+         sum
+     }
+ }
+-use std::f64;
+ 
+ /// `erf` calculates the error function at `x`.
+ pub fn erf_f64(x: f64) -> f64 {

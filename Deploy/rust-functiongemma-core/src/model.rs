@@ -29,22 +29,31 @@ pub struct Config {
 struct RmsNorm {
     weight: Tensor,
     eps: f64,
+    training: Cell<bool>,
 }
 
 impl RmsNorm {
     fn new(dim: usize, eps: f64, vb: VarBuilder) -> Result<Self> {
         let weight = vb.get(dim, "weight")?;
-        Ok(Self { weight, eps })
+        Self::from_weight(weight, eps)
     }
 
     fn from_weight(weight: Tensor, eps: f64) -> Result<Self> {
-        Ok(Self { weight, eps })
+        Ok(Self {
+            weight,
+            eps,
+            training: Cell::new(false),
+        })
     }
 }
 
 impl Module for RmsNorm {
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
-        candle_nn::ops::rms_norm(x, &self.weight, self.eps as f32)
+        if self.training.get() {
+            candle_nn::ops::rms_norm_slow(x, &self.weight, self.eps as f32)
+        } else {
+            candle_nn::ops::rms_norm(x, &self.weight, self.eps as f32)
+        }
     }
 }
 
@@ -124,12 +133,19 @@ impl LoraLinear {
         };
 
         let lora_a = if settings.r > 0 {
-            Some(vb.pp("lora_a").get((settings.r, in_dim), "weight")?)
+            Some(vb.pp("lora_a").get_with_hints(
+                (settings.r, in_dim),
+                "weight",
+                candle_nn::init::DEFAULT_KAIMING_UNIFORM,
+            )?)
         } else {
             None
         };
         let lora_b = if settings.r > 0 {
-            Some(vb.pp("lora_b").get((out_dim, settings.r), "weight")?)
+            Some(
+                vb.pp("lora_b")
+                    .get_with_hints((out_dim, settings.r), "weight", candle_nn::init::ZERO)?,
+            )
         } else {
             None
         };
@@ -396,6 +412,7 @@ struct Attention {
     head_dim: usize,
     rotary_emb: RotaryEmbedding,
     use_flash_attn: bool,
+    training: Cell<bool>,
     #[expect(
         dead_code,
         reason = "sliding window attention config field reserved for Mistral/Gemma variants; not yet wired into the attention kernel"
@@ -532,6 +549,7 @@ impl Attention {
             head_dim,
             rotary_emb,
             use_flash_attn: lora.use_flash_attn,
+            training: Cell::new(false),
             sliding_window: if sliding { cfg.sliding_window } else { None },
         })
     }
@@ -579,6 +597,7 @@ impl Attention {
             head_dim,
             rotary_emb,
             use_flash_attn: lora.use_flash_attn,
+            training: Cell::new(false),
             sliding_window: if sliding { cfg.sliding_window } else { None },
         })
     }
@@ -623,7 +642,7 @@ impl Attention {
         let v = self.repeat_kv(v)?;
 
         let scale = 1.0 / (self.head_dim as f64).sqrt();
-        let attn_output = if self.use_flash_attn && x.device().is_cuda() {
+        let attn_output = if self.allows_flash_attention() && x.device().is_cuda() {
             let q_flash = q.transpose(1, 2)?.contiguous()?;
             let k_flash = k.transpose(1, 2)?.contiguous()?;
             let v_flash = v.transpose(1, 2)?.contiguous()?;
@@ -636,8 +655,8 @@ impl Attention {
             // diagonal are zero.  We use where_cond to replace those positions with
             // -inf so that softmax drives them to zero probability.
             let attn_weights = if seq_len > 1 {
-                let mask = Tensor::tril2(seq_len, attn_weights.dtype(), attn_weights.device())?
-                    .broadcast_as(attn_weights.shape())?;
+                let mask =
+                    Tensor::tril2(seq_len, DType::U8, attn_weights.device())?.broadcast_as(attn_weights.shape())?;
                 let neg_inf = Tensor::new(f32::NEG_INFINITY, attn_weights.device())?
                     .to_dtype(attn_weights.dtype())?
                     .broadcast_as(attn_weights.shape())?;
@@ -777,7 +796,7 @@ impl Attention {
         let v = self.repeat_kv(v)?;
 
         let scale = 1.0 / (self.head_dim as f64).sqrt();
-        let attn_output = if self.use_flash_attn && x.device().is_cuda() {
+        let attn_output = if self.allows_flash_attention() && x.device().is_cuda() {
             let q_flash = q.transpose(1, 2)?.contiguous()?;
             let k_flash = k.transpose(1, 2)?.contiguous()?;
             let v_flash = v.transpose(1, 2)?.contiguous()?;
@@ -865,7 +884,7 @@ impl Attention {
         let v = self.repeat_kv(v)?;
 
         let scale = 1.0 / (self.head_dim as f64).sqrt();
-        let attn_output = if self.use_flash_attn && x.device().is_cuda() {
+        let attn_output = if self.allows_flash_attention() && x.device().is_cuda() {
             let q_flash = q.transpose(1, 2)?.contiguous()?;
             let k_flash = k.transpose(1, 2)?.contiguous()?;
             let v_flash = v.transpose(1, 2)?.contiguous()?;
@@ -896,10 +915,19 @@ impl Attention {
     }
 
     fn set_training(&self, training: bool) {
+        self.training.set(training);
+        for norm in [&self.q_norm, &self.k_norm].into_iter().flatten() {
+            norm.training.set(training);
+        }
         self.q_proj.set_training(training);
         self.k_proj.set_training(training);
         self.v_proj.set_training(training);
         self.o_proj.set_training(training);
+    }
+
+    fn allows_flash_attention(&self) -> bool {
+        // The locked FlashAttention custom operation has no backward implementation.
+        self.use_flash_attn && !self.training.get()
     }
 }
 
@@ -1048,6 +1076,10 @@ impl DecoderLayer {
     }
 
     fn set_training(&self, training: bool) {
+        self.input_layernorm.training.set(training);
+        self.pre_feedforward_layernorm.training.set(training);
+        self.post_attention_layernorm.training.set(training);
+        self.post_feedforward_layernorm.training.set(training);
         self.self_attn.set_training(training);
         self.mlp.set_training(training);
     }
@@ -1564,12 +1596,12 @@ impl Model {
         Ok(generated)
     }
 
-    /// Enable or disable training mode for all LoRA layers in the model.
+    /// Select differentiable training or fused inference operations.
     ///
-    /// When training mode is active, LoRA dropout is applied during the forward
-    /// pass.  Call `set_training(false)` before evaluation or inference to
-    /// disable dropout.
+    /// Call `set_training(false)` before evaluation or inference to restore
+    /// fused normalization and configured FlashAttention and disable dropout.
     pub fn set_training(&self, training: bool) {
+        self.norm.training.set(training);
         for layer in &self.layers {
             layer.set_training(training);
         }
@@ -1594,7 +1626,7 @@ impl Model {
 mod tests {
     use super::*;
     use candle_core::{DType, Device, Result, Tensor};
-    use candle_nn::VarMap;
+    use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarMap};
 
     // Protects: CPU builds preserve full-precision weights and reject unavailable 4-bit QLoRA explicitly.
     // Detects: silently loading a 4-bit request as a full-precision layer or breaking the ordinary CPU path.
@@ -1624,6 +1656,119 @@ mod tests {
         let x = Tensor::ones((1, 10, 64), DType::F32, &device)?;
         let y = norm.forward(&x)?;
         assert_eq!(y.dims(), &[1, 10, 64]);
+        Ok(())
+    }
+
+    // Protects: full-precision adapter initialization and retained parameters.
+    // Detects: a non-identity fresh adapter or reinitializing existing weights.
+    // Needs: in-memory CPU tensors. Breadcrumb: LoraLinear::new_with_base.
+    #[test]
+    fn fresh_lora_preserves_base_output_and_existing_adapter_weights() -> Result<()> {
+        let device = Device::Cpu;
+        let vars = VarMap::new();
+        let vb = VarBuilder::from_varmap(&vars, DType::F32, &device);
+        let weight = Tensor::new(&[[1f32, 2.], [3., 4.]], &device)?;
+        let inputs = Tensor::new(&[[[1f32, 2.]]], &device)?;
+        let config = LoraSettings::new(1, 1., 0., false);
+        let layer = LoraLinear::new_with_base(weight.clone(), config, vb.clone())?;
+        let base = Linear::new(weight.clone(), None);
+        assert_eq!(
+            layer.forward(&inputs)?.to_vec3::<f32>()?,
+            base.forward(&inputs)?.to_vec3::<f32>()?
+        );
+        let (Some(a), Some(b)) = (&layer.lora_a, &layer.lora_b) else {
+            candle_core::bail!("expected fresh adapter weights");
+        };
+        assert!(a.sqr()?.sum_all()?.to_scalar::<f32>()? > 0.);
+        assert_eq!(b.to_vec2::<f32>()?, vec![vec![0.], vec![0.]]);
+
+        let mut checkpoint = vars.clone();
+        checkpoint.set_one("lora_a.weight", Tensor::new(&[[2f32, 3.]], &device)?)?;
+        checkpoint.set_one("lora_b.weight", Tensor::new(&[[4f32], [5.]], &device)?)?;
+        let reloaded = LoraLinear::new_with_base(weight, config, vb)?;
+        assert_eq!(reloaded.forward(&inputs)?.to_vec3::<f32>()?, vec![vec![vec![37., 51.]]]);
+        Ok(())
+    }
+
+    // Protects: end-to-end adapter training. Detects: normalization detaching
+    // attention Q/K or MLP gradients. Needs: one small CPU transformer and
+    // fixed inputs/weights. Breadcrumb: Model::set_training and Model::forward.
+    #[test]
+    fn training_step_updates_attention_and_mlp_lora_weights() -> Result<()> {
+        let device = Device::Cpu;
+        let vars = VarMap::new();
+        let vb = VarBuilder::from_varmap(&vars, DType::F32, &device);
+        let config = Config {
+            hidden_size: 4,
+            intermediate_size: 4,
+            num_hidden_layers: 1,
+            num_attention_heads: 1,
+            num_key_value_heads: 1,
+            head_dim: 4,
+            vocab_size: 5,
+            rms_norm_eps: 1e-5,
+            rope_theta: 10_000.,
+            sliding_window: None,
+            layer_types: None,
+        };
+        let mut settings = LoraSettings::new(1, 1., 0., false);
+        settings.enable_flash_attn();
+        let model = Model::new(&config, settings, vb, false)?;
+        let adapter_b = {
+            let vars = vars.data().lock().map_err(candle_core::Error::msg)?;
+            for (name, var) in vars.iter() {
+                if name.ends_with("lora_b.weight") {
+                    continue;
+                }
+                let weights = if name.ends_with("norm.weight") {
+                    Tensor::ones(var.shape(), DType::F32, &device)?
+                } else {
+                    let values = (0..var.elem_count())
+                        .map(|index| (((index * 7 + 3) % 19) as f32 - 9.) / 16.)
+                        .collect::<Vec<_>>();
+                    Tensor::from_vec(values, var.shape(), &device)?
+                };
+                var.set(&weights)?;
+            }
+            [
+                "model.layers.0.self_attn.q_proj.lora_b.weight",
+                "model.layers.0.self_attn.k_proj.lora_b.weight",
+                "model.layers.0.mlp.down_proj.lora_b.weight",
+            ]
+            .into_iter()
+            .map(|name| vars.get(name).cloned().ok_or_else(|| candle_core::Error::msg(name)))
+            .collect::<Result<Vec<_>>>()?
+        };
+        let input = Tensor::new(&[[0u32, 2, 3]], &device)?;
+        let labels = Tensor::new(&[2u32, 1, 4], &device)?;
+        let inference_logits = model.forward(&input)?;
+        assert!(model.layers[0].self_attn.allows_flash_attention());
+
+        model.set_training(true);
+        assert!(!model.layers[0].self_attn.allows_flash_attention());
+        let logits = model.forward(&input)?;
+        let difference = (logits.clone() - inference_logits)?
+            .abs()?
+            .max_all()?
+            .to_scalar::<f32>()?;
+        assert!(difference < 1e-5);
+        for param in &adapter_b {
+            assert_eq!(param.sqr()?.sum_all()?.to_scalar::<f32>()?, 0.);
+        }
+        let mut optimizer = AdamW::new(
+            adapter_b.clone(),
+            ParamsAdamW {
+                weight_decay: 0.,
+                ..ParamsAdamW::default()
+            },
+        )?;
+        let loss = candle_nn::loss::cross_entropy(&logits.reshape((3, config.vocab_size))?, &labels)?;
+        optimizer.backward_step(&loss)?;
+        for param in &adapter_b {
+            assert!(param.sqr()?.sum_all()?.to_scalar::<f32>()? > 0.);
+        }
+        model.set_training(false);
+        assert!(model.layers[0].self_attn.allows_flash_attention());
         Ok(())
     }
 

@@ -4,6 +4,8 @@ BeforeAll {
     $script:LlmRoot = Join-Path $PSScriptRoot '../../Modules/PC-AI.LLM'
     foreach ($file in Get-ChildItem (Join-Path $script:LlmRoot 'Private') -File -Filter '*.ps1') { . $file.FullName }
     foreach ($file in Get-ChildItem (Join-Path $script:LlmRoot 'Public') -File -Filter '*.ps1') { . $file.FullName }
+    # Shared origin-scoped bearer helper that Get-PcaiInferenceAuthHeader delegates to.
+    . (Join-Path $PSScriptRoot '../../Modules/PC-AI.Common/Public/Get-PcaiOriginBearerHeader.ps1')
     function Test-PcaiNativeAvailable { throw 'Unmocked native availability forbidden' }
     function Invoke-PcaiNativeFileSearch { param($Pattern, $Path, $MaxResults) throw 'Unmocked native search forbidden' }
     function Invoke-PcaiNativeDuplicates { param($Path, $MinimumSize) throw 'Unmocked native search forbidden' }
@@ -630,5 +632,58 @@ Describe 'LLM diagnosis optional fields under strict callers' -Tag 'Unit', 'LLM'
         }
         $summary | Should -Match 'fixture summary'
         $summary | Should -Not -Match 'Elapsed: 0'
+    }
+}
+
+Describe 'pcai-inference bearer token for PowerShell clients' -Tag 'Unit', 'LLM', 'Portable' {
+    # Protects: a server started with PCAI_INFERENCE_TOKEN (required for any non-loopback bind) stays
+    # usable from the module. Detects: the token missing from the pcai-inference probe or chat, the
+    # token reaching another provider's URL, or an unset/auto configured URL making every chat throw.
+    BeforeEach {
+        $script:ModuleConfig = New-LlmContractConfig
+        $script:SavedToken = [Environment]::GetEnvironmentVariable('PCAI_INFERENCE_TOKEN')
+        Mock Resolve-PcaiEndpoint { $ApiUrl }
+        Mock Invoke-RestMethod { throw 'Unexpected HTTP request' }
+    }
+    AfterEach {
+        [Environment]::SetEnvironmentVariable('PCAI_INFERENCE_TOKEN', $script:SavedToken)
+    }
+    It 'returns the bearer header only for the configured pcai-inference URL' {
+        [Environment]::SetEnvironmentVariable('PCAI_INFERENCE_TOKEN', ' fixture-token ')
+        (Get-PcaiInferenceAuthHeader -ApiUrl 'http://inference.invalid:18080/').Authorization | Should -Be 'Bearer fixture-token'
+        (Get-PcaiInferenceAuthHeader -ApiUrl $script:ModuleConfig.VLLMApiUrl).Count | Should -Be 0
+        (Get-PcaiInferenceAuthHeader -ApiUrl $script:ModuleConfig.LMStudioApiUrl).Count | Should -Be 0
+        (Get-PcaiInferenceAuthHeader -ApiUrl $script:ModuleConfig.OllamaApiUrl).Count | Should -Be 0
+    }
+    It 'returns nothing when no token is set or the token is blank' {
+        foreach ($value in $null, '', '   ') {
+            [Environment]::SetEnvironmentVariable('PCAI_INFERENCE_TOKEN', $value)
+            (Get-PcaiInferenceAuthHeader -ApiUrl 'http://inference.invalid:18080').Count | Should -Be 0
+        }
+    }
+    It 'does not throw when the configured URL is empty, auto or unresolvable' {
+        [Environment]::SetEnvironmentVariable('PCAI_INFERENCE_TOKEN', 'fixture-token')
+        foreach ($configured in $null, '', 'auto') {
+            $script:ModuleConfig.PcaiInferenceApiUrl = $configured
+            { Get-PcaiInferenceAuthHeader -ApiUrl 'http://vllm.invalid:8001' } | Should -Not -Throw
+            (Get-PcaiInferenceAuthHeader -ApiUrl 'http://vllm.invalid:8001').Count | Should -Be 0
+        }
+        $script:ModuleConfig.PcaiInferenceApiUrl = 'http://inference.invalid:18080'
+        Mock Resolve-PcaiEndpoint { throw 'fixture resolver failure' }
+        (Get-PcaiInferenceAuthHeader -ApiUrl 'http://vllm.invalid:8001').Count | Should -Be 0
+    }
+    It 'sends the token on the pcai-inference probe and chat, and on no other provider' {
+        [Environment]::SetEnvironmentVariable('PCAI_INFERENCE_TOKEN', 'fixture-token')
+        Mock Invoke-RestMethod { [pscustomobject]@{ data = @(); choices = @([pscustomobject]@{ message = [pscustomobject]@{ content = 'ok' } }) } }
+
+        Test-PcaiInferenceConnection | Should -BeTrue
+        Should -Invoke Invoke-RestMethod -Exactly -Times 1 -ParameterFilter { $Uri -eq 'http://inference.invalid:18080/v1/models' -and $Headers.Authorization -eq 'Bearer fixture-token' }
+
+        $messages = @(@{ role = 'user'; content = 'hi' })
+        $null = Invoke-OpenAIChat -Messages $messages -Model 'fixture' -Temperature 0.1 -ApiUrl $script:ModuleConfig.PcaiInferenceApiUrl
+        Should -Invoke Invoke-RestMethod -Exactly -Times 1 -ParameterFilter { $Uri -eq 'http://inference.invalid:18080/v1/chat/completions' -and $Headers.Authorization -eq 'Bearer fixture-token' }
+
+        $null = Invoke-OpenAIChat -Messages $messages -Model 'fixture' -Temperature 0.1 -ApiUrl $script:ModuleConfig.VLLMApiUrl
+        Should -Invoke Invoke-RestMethod -Exactly -Times 1 -ParameterFilter { $Uri -eq 'http://vllm.invalid:8001/v1/chat/completions' -and -not $Headers.ContainsKey('Authorization') }
     }
 }

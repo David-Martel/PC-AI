@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "2f439510c0672097f8d0c10d1a210fae8584d9ba",
+  "previousRecord": "Tests/Unit/driver-install-trust-review.json",
+  "hashConvention": "SHA-256 of UTF-8 LF text and exact parsed Pester It command extents.",
+  "sourceBindings": {
+    "Modules/PC-AI.Drivers/Private/Assert-DriverInstallTrust.ps1": "c4bb09bfa5c78528773f039a6640b0cf7691f9b541500b24912f4c3c87b9c4ca",
+    "Modules/PC-AI.Drivers/Public/Get-DriverRegistry.ps1": "0d4d31f8af39332966eaa440ea9bb9441d509d8f8d158da05cac50aa471ebc9e",
+    "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1": "55f4644765a059f38b792e6e5f0d77955069cb3d5210ae1224f8196504303fbb",
+    "Tools/Update-Drivers.ps1": "6dd0dca9efb8f0b658f1eba19c865ad0f96949f35f021c874f94e9f174b5608b",
+    "Tests/Unit/PC-AI.Drivers.Tests.ps1": "07ba1779deffecd4bd5153addd6b469cbdce6b00c15f8c401d4cc07a83363d3c",
+    "Tests/Unit/Update-DriversRegistry.Tests.ps1": "d44b03e3e2f5584cb47f9630aee0ea6d6411dd888ff54f215de0161c14168600",
+    "docs/driver-installation.md": "7925c145f4acb47a79045c154608450df8ee7eb1f31d8633b09a367d9e0567fb"
+  },
+  "selectors": [
+    {
+      "selector": "rejects an actual writable registry path before any driver download",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "49f60717536fcbdb82ec0e0a1900857efb15df57ba3eab005765bb7334654e38",
+      "protects": "a registry controlled by a non-admin cannot select an executable.",
+      "detects": "dropping both protected path checks before opening the registry.",
+      "needs": "Windows TestDrive ACLs and inert package fields. All external effects are mocked.",
+      "breadcrumb": "Resolve-DriverInstallRegistry calls Assert-DriverInstallTrustPath before Get-DriverRegistry reads.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "rejects an actual junction in the trusted registry path",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "0786955caf59993d82aa51d4878837643132561a9eb161352e461c41c6c212c9",
+      "protects": "a real path cannot escape the trust boundary through a junction.",
+      "detects": "dropping the reparse-point check or opening the registry first.",
+      "needs": "Windows NTFS TestDrive, inert target directory and one temporary junction.",
+      "breadcrumb": "Assert-DriverInstallTrustPath rejects file and ancestor ReparsePoint attributes.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "selects one registry for the batch <Mode> path",
+      "source": "Tests/Unit/Update-DriversRegistry.Tests.ps1",
+      "sha256": "462c71f85e5bd2b8093ca6a57b8a21c1581896dfcf0cc283224496f85ac82e66",
+      "protects": "the version scan, shared-group mapping and actual install use one effective registry.",
+      "detects": "scanning the bundled registry before switching to the machine trust registry.",
+      "needs": "disposable copy of the batch entrypoint and an inert PC-AI.Drivers module in a child pwsh.",
+      "breadcrumb": "Update-Drivers.ps1 resolves -ForInstall before Phase 1 and reuses the returned registry in Phase 2.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    }
+  ]
+}

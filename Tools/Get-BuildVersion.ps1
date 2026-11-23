@@ -7,11 +7,25 @@
     Extracts version information from git tags, commits, and timestamps
     for embedding into compiled binaries and build manifests.
 
-    Version Format: {semver}-{commits}+{hash}.{timestamp}
-    Example: 0.2.0-15+abc1234.20260201T143000Z
+    Version Format: {semver}[.{commits}]+{hash}[.dirty]
+    Example: 0.2.0.15+abc1234
+
+    {semver} is the latest v* tag without its v (0.2.0, or 0.2.0-rc.1 for a pre-release tag). With no tag it is the
+    [workspace.package] version in Native/pcai_core/Cargo.toml, and {commits} counts every commit. {commits} is
+    omitted at the tagged commit, {hash} is the 7-character commit hash (or "unknown" when git is unavailable) and
+    .dirty marks uncommitted changes. The build timestamp is a separate field, never part of the version string.
+    Policy: docs/VERSIONING.md. Tools/validate-doc-accuracy.ps1 (check "versioning") fails when this header, CLAUDE.md
+    or docs/VERSIONING.md documents a different format, and Tests/Unit/DocAccuracy.Tests.ps1 matches the live output.
 
 .PARAMETER Format
-    Output format: Object (default), Json, Env, Cargo, CMake
+    Output format:
+      Object  (default) the PSCustomObject described under OUTPUTS.
+      Json    that object as JSON.
+      Env     PCAI_*=value lines for shells and CI.
+      Cargo   cargo:rustc-env=PCAI_*=value lines for a build.rs to echo.
+      CMake   set(PCAI_* "value") lines for CMake to include(): PCAI_VERSION, PCAI_SEMVER,
+              PCAI_VERSION_MAJOR/MINOR/PATCH (unquoted integers), PCAI_GIT_HASH, PCAI_GIT_HASH_SHORT,
+              PCAI_GIT_BRANCH, PCAI_BUILD_TIMESTAMP and PCAI_BUILD_TYPE.
 
 .PARAMETER SetEnv
     Set environment variables for the current session.
@@ -45,6 +59,10 @@
 .EXAMPLE
     .\Get-BuildVersion.ps1 -Format Cargo
     Outputs Cargo-compatible environment variable exports.
+
+.EXAMPLE
+    .\Get-BuildVersion.ps1 -Format CMake > build/pcai-version.cmake
+    Writes set() commands that a CMakeLists.txt can include().
 #>
 
 [CmdletBinding()]
@@ -97,6 +115,8 @@ function Import-CargoToolsBuildVersion {
                 return $true
             }
         } catch {
+            # Optional: a candidate that does not load leaves the script's own git fallback in charge.
+            Write-Verbose "CargoTools candidate '$candidate' did not load: $($_.Exception.Message)"
         }
     }
 
@@ -162,23 +182,45 @@ function Invoke-GitText {
     return ($output -join "`n")
 }
 
+function Get-PcaiWorkspaceVersion {
+    # The [workspace.package] version of Native/pcai_core/Cargo.toml: the version an untagged history builds as
+    # (docs/VERSIONING.md). Reading it keeps one source; the literal it replaces (0.1.0) had already drifted from the
+    # manifest. 0.0.0 marks a checkout without the manifest rather than impersonating a real release.
+    [CmdletBinding()]
+    param()
+
+    $manifest = Join-Path $script:GitContextRoot 'Native/pcai_core/Cargo.toml'
+    if (Test-Path -LiteralPath $manifest) {
+        $inSection = $false
+        foreach ($line in [System.IO.File]::ReadAllLines($manifest)) {
+            $trimmed = $line.Trim()
+            if ($trimmed.StartsWith('[')) { $inSection = ($trimmed -eq '[workspace.package]'); continue }
+            if ($inSection -and $trimmed -match '^version\s*=\s*"(\d+\.\d+\.\d+)"') { return $Matches[1] }
+        }
+    }
+    return '0.0.0'
+}
+
 function Get-BuildVersion {
     [CmdletBinding()]
     param(
         [switch]$Quiet
     )
 
+    $defaultVersion = Get-PcaiWorkspaceVersion
+    $defaultParts = $defaultVersion.Split('.')
+
     if (Import-CargoToolsBuildVersion) {
-        $sharedInfo = Get-BuildVersionInfo -RepoRoot $script:GitContextRoot -DefaultVersion '0.1.0'
+        $sharedInfo = Get-BuildVersionInfo -RepoRoot $script:GitContextRoot -DefaultVersion $defaultVersion
         return ConvertTo-PcaiVersionInfo -VersionInfo $sharedInfo
     }
 
     $result = [ordered]@{
         Version         = ''
-        SemVer          = '0.1.0'
-        Major           = 0
-        Minor           = 1
-        Patch           = 0
+        SemVer          = $defaultVersion
+        Major           = [int]$defaultParts[0]
+        Minor           = [int]$defaultParts[1]
+        Patch           = [int]$defaultParts[2]
         PreRelease      = ''
         GitHash         = ''
         GitHashShort    = ''
@@ -192,8 +234,8 @@ function Get-BuildVersion {
         Features        = @()
         GitDescribe     = ''
         ReleaseTag      = ''
-        AssemblyVersion = '0.1.0.0'
-        FileVersion     = '0.1.0.0'
+        AssemblyVersion = "$defaultVersion.0"
+        FileVersion     = "$defaultVersion.0"
         InformationalVersion = ''
     }
 

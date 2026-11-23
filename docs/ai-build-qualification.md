@@ -22,9 +22,20 @@ complete toolkit's `nvcc --list-gpu-code` for each numeric target. For `120a` or
 `120f`, nvcc must advertise `sm_120` and the same toolkit's `ptxas --help` must
 list the exact suffixed code. Plain numeric targets use only the nvcc list. The
 [native inference build](../Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1)
-validates its requested targets before invoking Cargo. The legacy llama-rs
-backend builds for numeric targets. NVFP4 execution belongs to the modern
-llama.cpp qualification path. [NVIDIA nvcc target listing](https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#list-gpu-code-code-ls)
+validates its requested targets before invoking Cargo. The Windows build process
+keeps the selected toolkit's `bin` first for `nvcc` and adds its `bin/x64` when
+present for CUDA runtime DLLs. Optional cuDNN and TensorRT setup preserves both
+locations. The legacy llama-rs backend builds for numeric targets. NVFP4 execution
+belongs to the modern llama.cpp qualification path. [NVIDIA nvcc target listing](https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#list-gpu-code-code-ls)
+
+Mistral's kernel builder reads one `CUDA_COMPUTE_CAP` value. The Windows recipe
+uses an existing `CUDA_COMPUTE_CAP` first, then `CUDA_COMPUTE_CAPS` and `CUDAARCHS`.
+For one declared target it passes the normalized value to Cargo, for example
+`89` from `8.9`. The pinned cudaforge uses an `a` suffix for plain targets
+from `90` upward, so admission also checks the selected toolkit's assembler for
+that code. An explicit `a` is preserved and a single `f` request fails with
+guidance to choose a compatible target or a modern llama.cpp build. Omitting
+all settings or using a multi-value fallback preserves native detection. [Pinned cudaforge architecture parser](https://github.com/guoqingbao/cudaforge/blob/9b8621c612e45856e04ba3b5a8fc36605f928cdf/src/compute_cap.rs#L32-L76)
 
 ## Model admission
 

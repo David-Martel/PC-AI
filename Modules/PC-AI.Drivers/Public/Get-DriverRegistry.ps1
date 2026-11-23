@@ -17,6 +17,10 @@
     Full path to an alternate driver-registry.json file. When omitted, the function
     resolves the path automatically from the module root.
 
+.PARAMETER ForInstall
+    Require elevation and resolve the protected machine registry. Use its
+    RegistryPath when scanning and installing from the same source.
+
 .PARAMETER DeviceId
     Filter the .devices array to the single entry whose "id" property matches this
     value exactly.
@@ -42,7 +46,7 @@
     Loads a registry file from a custom path.
 
 .OUTPUTS
-    PSCustomObject representing the registry: .version, .lastUpdated,
+    PSCustomObject representing the registry: .RegistryPath, .version, .lastUpdated,
     .trustedSources, .categories, .devices (filtered when -DeviceId or -Category
     is specified).
 #>
@@ -57,12 +61,17 @@ function Get-DriverRegistry {
         [string]$DeviceId,
 
         [Parameter()]
-        [string]$Category
+        [string]$Category,
+
+        [Parameter()]
+        [switch]$ForInstall
     )
 
     try {
         # --- Resolve registry file path ---
-        if (-not $RegistryPath) {
+        if ($ForInstall) {
+            $RegistryPath = Resolve-DriverInstallRegistry -RegistryPath $RegistryPath
+        } elseif (-not $RegistryPath) {
             # $script:ModuleRoot is set to $PSScriptRoot in PC-AI.Drivers.psm1 (the Modules\PC-AI.Drivers\ dir).
             # Navigate up two levels: PC-AI.Drivers -> Modules -> PC_AI, then into Config\.
             $moduleRoot   = $script:ModuleRoot
@@ -103,6 +112,7 @@ function Get-DriverRegistry {
 
         # Return a new object so we don't mutate the deserialized original
         return [PSCustomObject]@{
+            RegistryPath   = $RegistryPath
             Version        = $registry.version
             LastUpdated    = $registry.lastUpdated
             TrustedSources = $registry.trustedSources

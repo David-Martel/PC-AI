@@ -656,9 +656,23 @@ function Initialize-BuildEnvironment {
             if ($ggmlCaps -match '(?:^|[,;\s])(?:(?:sm|compute)_?)?\d{1,2}\.?\d[af](?:$|[,;\s])') {
                 throw 'The legacy llama-rs build accepts numeric CUDA targets only. Use the modern llama.cpp runtime for NVFP4 kernels.'
             }
+            $mistralTarget = $null
+            $mistralTokens = @($mistralCaps -split '[,;\s]+' | Where-Object { $_ })
+            if ($mistralTokens.Count -eq 1 -and $mistralTokens[0] -cmatch '^(?i:(?:sm|compute)_?)?(?<major>\d{1,2})\.?(?<minor>\d)(?<suffix>[af]?)$') {
+                $suffix = $Matches.suffix
+                $mistralTarget = "$($Matches.major)$($Matches.minor)$suffix"
+                if ($suffix -eq 'f') {
+                    throw "Mistral CUDA cannot compile target $mistralTarget with the pinned cudaforge. Declare its a-suffixed target where applicable, or use modern llama.cpp for the f-suffixed target."
+                }
+                # cudaforge 0.1.5 maps an unsuffixed target >= 90 to the corresponding a code.
+                if (-not $suffix -and [int]$mistralTarget -ge 90) {
+                    $mistralCaps = "$mistralCaps,$($mistralTarget)a"
+                }
+            }
             $cudaInfo = Initialize-CudaEnvironment -Quiet -TargetComputeCaps (@($ggmlCaps, $mistralCaps) -join ',')
             if ($cudaInfo.Found) {
                 if ($ggmlCaps) { $env:GGML_CUDA_ARCH_LIST = $ggmlCaps }
+                if ($mistralTarget) { $env:CUDA_COMPUTE_CAP = $mistralTarget }
                 Write-Host "  CUDA initialized: $($cudaInfo.CudaPath)" -ForegroundColor Green
                 $env:LLAMA_CUDA = '1'
                 $env:GGML_CUDA = 'ON'
@@ -715,6 +729,7 @@ function Initialize-BuildEnvironment {
                 # Optional CUDA libraries (cuDNN/TensorRT)
                 Initialize-CudnnEnvironment -CudaPath $cudaInfo.CudaPath
                 Initialize-TensorRtEnvironment
+                # Optional libraries prepend their own paths. Reapply toolkit compiler and runtime precedence.
                 $null = Set-PreferredCudaBinPath (Join-Path $cudaInfo.CudaPath 'bin')
             } else {
                 $detail = $cudaInfo.Notes -join '; '
@@ -1284,11 +1299,16 @@ if (-not (Test-Path $script:BuildLogsDir)) {
     New-Item -ItemType Directory -Path $script:BuildLogsDir -Force | Out-Null
 }
 
-Initialize-BuildEnvironment
-Clear-IncompleteCmakeConfig
+$previousMistralCudaTarget = $env:CUDA_COMPUTE_CAP
+try {
+    Initialize-BuildEnvironment
+    Clear-IncompleteCmakeConfig
 
-Invoke-Build -BackendName $Backend
-Copy-CompiledArtifacts -Configuration $Configuration -BackendBuilt $Backend
+    Invoke-Build -BackendName $Backend
+    Copy-CompiledArtifacts -Configuration $Configuration -BackendBuilt $Backend
+} finally {
+    $env:CUDA_COMPUTE_CAP = $previousMistralCudaTarget
+}
 
 # Build Summary
 $totalDuration = (Get-Date) - $script:BuildStartTime

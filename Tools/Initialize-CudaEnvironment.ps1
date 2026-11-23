@@ -45,10 +45,14 @@ function Add-ToPath {
 function Set-PreferredCudaBinPath {
     param([string]$BinPath)
 
+    $preferred = @($BinPath)
+    $runtimeBin = Join-Path $BinPath 'x64'
+    if (Test-Path -LiteralPath $runtimeBin -PathType Container) { $preferred += $runtimeBin }
+
     $segments = if ($env:PATH) { $env:PATH -split ';' }
-    $preferred = (@($BinPath) + @($segments | Where-Object { $_ -ine $BinPath })) -join ';'
-    if ($preferred -ceq $env:PATH) { return $false }
-    $env:PATH = $preferred
+    $updatedPath = ($preferred + @($segments | Where-Object { $_ -notin $preferred })) -join ';'
+    if ($updatedPath -ceq $env:PATH) { return $false }
+    $env:PATH = $updatedPath
     return $true
 }
 
@@ -403,7 +407,7 @@ function Initialize-CudaEnvironment {
         }
     }
 
-    # Rust CUDA builders launch bare nvcc. Keep the admitted compiler first in PATH.
+    # Keep bare nvcc and the selected toolkit's CUDA runtime libraries on PATH.
     $pathUpdated = (Set-PreferredCudaBinPath (Join-Path $selected 'bin')) -or $pathUpdated
 
     $result = [PSCustomObject]@{

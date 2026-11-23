@@ -2236,7 +2236,7 @@ function Get-FunctionGemmaCargoArguments {
         [switch]$EnableCuda
     )
 
-    $arguments = @($Command, '--locked', '--no-default-features')
+    $arguments = @($Command, '--no-default-features')
     if ($Configuration -eq 'Release') { $arguments += '--release' }
     if ($Project -eq 'runtime') {
         $arguments += @('--features', $(if ($EnableCuda) { 'cuda' } else { 'model' }))

@@ -40,7 +40,7 @@ Describe 'FunctionGemma build and test profiles' -Tag 'Unit', 'Portable' {
         @{ Project = 'trainer'; Mode = 'CUDA'; WithCuda = $true; Features = @('--features', 'cuda,flash-attn') }
     ) {
         foreach ($command in @('build', 'test')) {
-            $expected = @($command, '--locked', '--no-default-features', '--release') + $Features
+            $expected = @($command, '--no-default-features', '--release') + $Features
             $actual = Get-FunctionGemmaCargoArguments -Command $command -Project $Project -Configuration Release -EnableCuda:$WithCuda
             ($actual -join '|') | Should -BeExactly ($expected -join '|')
         }
@@ -67,7 +67,7 @@ Describe 'FunctionGemma build operation routing' -Tag 'Unit', 'Portable' {
 
 Describe 'FunctionGemma build entry-point forwarding' -Tag 'Unit', 'Portable', 'FunctionGemmaForwarding' {
     BeforeAll {
-        foreach ($name in 'Invoke-FunctionGemmaBuild', 'Invoke-PostBuildTests') {
+        foreach ($name in 'Invoke-FunctionGemmaBuild', 'Invoke-PostBuildTests', 'Add-CargoDependencyFlags') {
             $definition = $script:BuildAst.Find({
                 param($node)
                 $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
@@ -110,23 +110,26 @@ Describe 'FunctionGemma build entry-point forwarding' -Tag 'Unit', 'Portable', '
             param([string]$Path, [string[]]$CargoArgs)
             $crate = Split-Path $Path -Leaf
             if ($crate -in 'rust-functiongemma-runtime', 'rust-functiongemma-train') {
-                $script:ForwardingCalls.Add((@($crate) + $CargoArgs -join '|'))
+                $effective = Add-CargoDependencyFlags -CargoArgs $CargoArgs
+                $script:ForwardingCalls.Add((@($crate) + $effective -join '|'))
             }
             return $true
         }
     }
 
-    # Protects: both component dispatch and requested post-build tests forward the same CUDA setting.
+    # Protects: both component dispatch and requested post-build tests forward the CUDA and dependency settings.
     # Detects: dropped forwarding at either top-level or helper call, loss of FunctionGemma from all,
-    # or invoking tests despite SkipTests.
+    # invoking tests despite SkipTests, or replacing frozen or update with locked.
     # Needs: PowerShell and Pester 5. Actual Build.ps1 dispatch calls inert Cargo and media fixtures.
     # Breadcrumb: Build.ps1 component selection, Invoke-FunctionGemmaBuild and Invoke-PostBuildTests.
-    It 'forwards <Mode> through the <Target> entry point with SkipTests=<SkipRequested>' -ForEach @(
-        @{ Target = 'functiongemma'; Mode = 'CPU';  WithCuda = $false; SkipRequested = $false }
-        @{ Target = 'functiongemma'; Mode = 'CUDA'; WithCuda = $true;  SkipRequested = $false }
-        @{ Target = 'all';           Mode = 'CPU';  WithCuda = $false; SkipRequested = $false }
-        @{ Target = 'all';           Mode = 'CUDA'; WithCuda = $true;  SkipRequested = $false }
-        @{ Target = 'all';           Mode = 'CUDA'; WithCuda = $true;  SkipRequested = $true }
+    It 'forwards <Mode> and <Policy> through <Target> with SkipTests=<SkipRequested>' -ForEach @(
+        @{ Target = 'functiongemma'; Mode = 'CPU';  WithCuda = $false; SkipRequested = $false; Policy = 'locked'; Flag = '|--locked' }
+        @{ Target = 'functiongemma'; Mode = 'CUDA'; WithCuda = $true;  SkipRequested = $false; Policy = 'locked'; Flag = '|--locked' }
+        @{ Target = 'all';           Mode = 'CPU';  WithCuda = $false; SkipRequested = $false; Policy = 'locked'; Flag = '|--locked' }
+        @{ Target = 'all';           Mode = 'CUDA'; WithCuda = $true;  SkipRequested = $false; Policy = 'locked'; Flag = '|--locked' }
+        @{ Target = 'all';           Mode = 'CUDA'; WithCuda = $true;  SkipRequested = $true;  Policy = 'locked'; Flag = '|--locked' }
+        @{ Target = 'functiongemma'; Mode = 'CPU';  WithCuda = $false; SkipRequested = $false; Policy = 'frozen'; Flag = '|--frozen' }
+        @{ Target = 'all';           Mode = 'CUDA'; WithCuda = $true;  SkipRequested = $false; Policy = 'update'; Flag = '' }
     ) {
         $script:ProjectRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         $script:BuildLogsDir = Join-Path $script:ProjectRoot 'logs'
@@ -142,9 +145,12 @@ Describe 'FunctionGemma build entry-point forwarding' -Tag 'Unit', 'Portable', '
         $RunTests = $true
         $SkipTests = $SkipRequested
         $priorExitCode = $global:LASTEXITCODE
+        $priorStrategy = $script:DependencyStrategy
         try {
+            $script:DependencyStrategy = $Policy
             . $script:ForwardingDispatch
         } finally {
+            $script:DependencyStrategy = $priorStrategy
             $global:LASTEXITCODE = $priorExitCode
         }
 
@@ -154,8 +160,8 @@ Describe 'FunctionGemma build entry-point forwarding' -Tag 'Unit', 'Portable', '
         $expected = foreach ($command in $commands) {
             $runtimeFeature = if ($WithCuda) { 'cuda' } else { 'model' }
             $trainerFeatures = if ($WithCuda) { '|--features|cuda,flash-attn' } else { '' }
-            "rust-functiongemma-runtime|$command|--locked|--no-default-features|--release|--features|$runtimeFeature"
-            "rust-functiongemma-train|$command|--locked|--no-default-features|--release$trainerFeatures"
+            "rust-functiongemma-runtime|$command|--no-default-features|--release|--features|$runtimeFeature$Flag"
+            "rust-functiongemma-train|$command|--no-default-features|--release$trainerFeatures$Flag"
         }
         ($script:ForwardingCalls -join [Environment]::NewLine) |
             Should -BeExactly ($expected -join [Environment]::NewLine)

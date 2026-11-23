@@ -4,7 +4,7 @@
   "ReviewedAtUtc": "2026-11-22T22:44:44.6448531-05:00",
   "HashConvention": "SHA-256 of UTF-8 LF sources and the exact Pester It command AST extent without a trailing newline.",
   "SourceBindings": {
-    "Build.ps1": "96282de082bf632df8c6f267d1d71c493d34ac86e1d9bc3ed488e61784de40d6",
+    "Build.ps1": "35c99916d5ba1bb75cae5ed1c6c30636f34347829f3f0a49aab69b3aa5de7dec",
     "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "dca555c90db61518e8e5fa6a74a0ecc0b816d4c1e5795064e2f0e825fa1d68e2",
     "Tests/Unit/BuildReleaseGate.Tests.ps1": "cb04097b0b099e0e2c4e854698575d89b7f46560f16d5b9c1c64533dc6372bf6"
   },

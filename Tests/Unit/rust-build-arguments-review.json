@@ -4,7 +4,7 @@
   "recordedAtUtc": "2026-11-23T01:53:28.4559784Z",
   "hashConvention": "SHA-256 of UTF-8 LF source files and exact PowerShell It command AST extents.",
   "sourceBindings": {
-    "Build.ps1": "96282de082bf632df8c6f267d1d71c493d34ac86e1d9bc3ed488e61784de40d6",
+    "Build.ps1": "35c99916d5ba1bb75cae5ed1c6c30636f34347829f3f0a49aab69b3aa5de7dec",
     "Tools/Invoke-RustBuild.ps1": "9a5a44f4040aef3eb2b07653dd077207607158ec3353cb28ce5bed113c9e3be9",
     "Tests/Unit/Invoke-RustBuild.Tests.ps1": "ee8ecf5f3134043953ad5daa95e42ca63dcc203ccf591b5a873c2087cb1154ad"
   },

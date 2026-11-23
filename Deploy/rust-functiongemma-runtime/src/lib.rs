@@ -1,3 +1,4 @@
+use anyhow::Context;
 use axum::{
     extract::DefaultBodyLimit,
     middleware,
@@ -5,7 +6,6 @@ use axum::{
     Router,
 };
 use std::fs;
-use std::io;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -59,15 +59,9 @@ fn write_bound_addr(addr: SocketAddr) {
 }
 
 async fn bind_listener(addr: SocketAddr) -> anyhow::Result<tokio::net::TcpListener> {
-    match tokio::net::TcpListener::bind(addr).await {
-        Ok(listener) => Ok(listener),
-        Err(err) if err.kind() == io::ErrorKind::AddrInUse => {
-            let fallback = std::net::SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, 0));
-            tracing::warn!("router_addr {} already in use; falling back to {}", addr, fallback);
-            Ok(tokio::net::TcpListener::bind(fallback).await?)
-        }
-        Err(err) => Err(err.into()),
-    }
+    tokio::net::TcpListener::bind(addr)
+        .await
+        .with_context(|| format!("failed to bind FunctionGemma router to {addr}"))
 }
 
 pub async fn serve(addr: SocketAddr) -> anyhow::Result<()> {
@@ -80,4 +74,46 @@ pub async fn serve(addr: SocketAddr) -> anyhow::Result<()> {
     tracing::info!("FunctionGemma runtime listening on {}", bound_addr);
     axum::serve(listener, app).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::bind_listener;
+    use std::io;
+    use std::net::{Ipv4Addr, SocketAddr};
+    use tokio::net::TcpListener;
+
+    // Protects: a fixed router binding. Detects: silently using a different port
+    // after a bind conflict. Needs: a loopback socket held by this test.
+    // Breadcrumb: bind_listener and serve.
+    #[tokio::test]
+    async fn occupied_router_address_returns_bind_error() -> anyhow::Result<()> {
+        let occupied = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let addr = occupied.local_addr()?;
+        let Err(error) = bind_listener(addr).await else {
+            anyhow::bail!("router unexpectedly bound while {addr} was occupied");
+        };
+
+        assert!(error.to_string().contains(&addr.to_string()));
+        assert_eq!(
+            error.downcast_ref::<io::Error>().map(io::Error::kind),
+            Some(io::ErrorKind::AddrInUse)
+        );
+        drop(occupied);
+        Ok(())
+    }
+
+    // Protects: an explicit ephemeral router binding. Detects: rejecting port
+    // zero or binding outside loopback. Needs: an OS-assigned loopback port.
+    // Breadcrumb: bind_listener and config::runtime_addr.
+    #[tokio::test]
+    async fn explicit_ephemeral_router_address_binds_loopback() -> anyhow::Result<()> {
+        let addr = SocketAddr::from((Ipv4Addr::LOCALHOST, 0));
+        let listener = bind_listener(addr).await?;
+        let bound = listener.local_addr()?;
+
+        assert_eq!(bound.ip(), addr.ip());
+        assert_ne!(bound.port(), 0);
+        Ok(())
+    }
 }

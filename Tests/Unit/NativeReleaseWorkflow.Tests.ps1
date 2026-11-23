@@ -115,3 +115,247 @@ Describe 'Native release workflow source and permissions' -Tag 'Unit', 'Portable
         $release | Should -Match '(?m)^          tag_name: \$\{\{ needs\.test\.outputs\.release_tag \}\}\s*$'
     }
 }
+
+Describe 'Native release workflow artifact staging' -Tag 'Unit', 'Portable' {
+    BeforeAll {
+        function Invoke-PrepareNativeArtifact {
+            param(
+                [string]$Root,
+                [string]$Backend,
+                [bool]$Cuda,
+                [string]$MetadataJson,
+                [ValidateSet('normal', 'missing', 'repeated', 'unterminated', 'oversized', 'split')]
+                [string]$MetadataMode = 'normal'
+            )
+
+            if (-not $PSBoundParameters.ContainsKey('MetadataJson')) {
+                $features = @($Backend, 'ffi', 'server')
+                if ($Cuda) { $features += "cuda-$Backend" }
+                $MetadataJson = @{
+                    git_hash = $script:SourceCommit
+                    features = $features -join ','
+                    target = 'x86_64-pc-windows-msvc'
+                    profile = 'release'
+                } |
+                    ConvertTo-Json -Compress
+            }
+
+            $fixtureExe = Join-Path $Root ".pcai/build/artifacts/pcai-$Backend/pcai-$Backend.exe"
+            if ($MetadataMode -ne 'missing' -and (Test-Path -LiteralPath $fixtureExe -PathType Leaf)) {
+                $marker = 'PCAI_BUILD_IDENTITY_V1' + [char]0
+                $metadata = switch ($MetadataMode) {
+                    'repeated' { ($marker + $MetadataJson + [char]0) * 2 }
+                    'unterminated' { $marker + $MetadataJson }
+                    'oversized' { $marker + ('a' * 4097) + [char]0 }
+                    default { $marker + $MetadataJson + [char]0 }
+                }
+                if ($MetadataMode -eq 'split') {
+                    # Split the marker across the archive reader's 1 MiB chunk boundary.
+                    $padding = 1MB - (Get-Item -LiteralPath $fixtureExe).Length - 5
+                    Add-Content -LiteralPath $fixtureExe -Value ('p' * $padding) -Encoding utf8NoBOM -NoNewline
+                }
+                Add-Content -LiteralPath $fixtureExe -Value $metadata -Encoding utf8NoBOM -NoNewline
+            }
+
+            $pattern = '(?ms)^      - name: Prepare Artifact\r?\n.*?^        run: \|\r?\n(?<body>.*?)(?=^      [#-]|\z)'
+            $body = [regex]::Match($script:WorkflowText, $pattern).Groups['body'].Value
+            if (-not $body) { throw 'Missing native release artifact preparation step.' }
+            $body = $body.Replace('${{ matrix.backend }}', $Backend)
+            $body = $body.Replace('${{ matrix.cuda }}', $Cuda.ToString().ToLowerInvariant())
+            $body = $body.Replace('${{ steps.features.outputs.BIN_NAME }}', "pcai-$Backend")
+            $check = [scriptblock]::Create(($body -replace '(?m)^          ', ''))
+
+            $priorOutput = $env:GITHUB_OUTPUT
+            $priorCommit = $env:PCAI_EXPECTED_SOURCE_COMMIT
+            Push-Location -LiteralPath $Root
+            try {
+                $env:GITHUB_OUTPUT = Join-Path $Root 'github-output'
+                $env:PCAI_EXPECTED_SOURCE_COMMIT = $script:SourceCommit
+                & $check
+            }
+            finally {
+                $env:GITHUB_OUTPUT = $priorOutput
+                $env:PCAI_EXPECTED_SOURCE_COMMIT = $priorCommit
+                Pop-Location
+            }
+        }
+
+        function Read-NativeArchive {
+            param([string]$Path)
+
+            $entries = @{}
+            $digests = @{}
+            $archive = [IO.Compression.ZipFile]::OpenRead($Path)
+            try {
+                foreach ($entry in $archive.Entries) {
+                    $reader = [IO.StreamReader]::new($entry.Open())
+                    try { $entries.Add($entry.FullName, $reader.ReadToEnd()) }
+                    finally { $reader.Dispose() }
+
+                    $stream = $entry.Open()
+                    try {
+                        $digest = (Get-FileHash -InputStream $stream -Algorithm SHA256).Hash
+                        $digests.Add($entry.FullName, $digest.ToLowerInvariant())
+                    }
+                    finally { $stream.Dispose() }
+                }
+            }
+            finally { $archive.Dispose() }
+            return @{ Files = $entries; Digests = $digests }
+        }
+    }
+
+    # Protects: packaged native variants include the staged executable and P/Invoke alias.
+    # Detects: stale DLLs, mismatched checksums, incorrect model formats, or losing metadata across a chunk boundary.
+    # Needs: PowerShell 7, Pester 5, workflow text, and synthetic files in TestDrive.
+    # Breadcrumb: .github/workflows/release-cuda.yml Prepare Artifact, Build.ps1 Invoke-InferenceBuild.
+    It 'packs the canonical <Backend> <Variant> staged files' -ForEach @(
+        @{ Backend = 'llamacpp'; Variant = 'cpu'; Cuda = $false },
+        @{ Backend = 'llamacpp'; Variant = 'cuda'; Cuda = $true },
+        @{ Backend = 'mistralrs'; Variant = 'cpu'; Cuda = $false },
+        @{ Backend = 'mistralrs'; Variant = 'cuda'; Cuda = $true }
+    ) {
+        $name = "pcai-inference-$Backend-$Variant-win64"
+        $root = Join-Path $TestDrive $name
+        $staged = Join-Path $root ".pcai/build/artifacts/pcai-$Backend"
+        $legacy = Join-Path $root 'Native/pcai_core/pcai_inference/target/release'
+        $zipScratch = Join-Path $root "staging/$name"
+        $null = New-Item -ItemType Directory -Path $staged, $legacy, $zipScratch -Force
+
+        $exe = "pcai-$Backend.exe"
+        Set-Content -LiteralPath (Join-Path $staged $exe) -Value 'canonical executable' -NoNewline
+        Set-Content -LiteralPath (Join-Path $staged 'pcai_inference.dll') -Value 'canonical library' -NoNewline
+        Set-Content -LiteralPath (Join-Path $staged 'pcai_inference_lib.dll') -Value 'canonical library' -NoNewline
+        Set-Content -LiteralPath (Join-Path $legacy 'pcai_inference.dll') -Value 'stale alias' -NoNewline
+        Set-Content -LiteralPath (Join-Path $legacy 'pcai_inference_lib.dll') -Value 'stale library' -NoNewline
+        Set-Content -LiteralPath (Join-Path $zipScratch 'old-artifact.dll') -Value 'stale stage' -NoNewline
+
+        $metadataMode = if ($Variant -eq 'cuda') { 'split' } else { 'normal' }
+        Invoke-PrepareNativeArtifact -Root $root -Backend $Backend -Cuda $Cuda -MetadataMode $metadataMode | Out-Null
+        $archive = Read-NativeArchive -Path (Join-Path $root "$name.zip")
+        $files = $archive.Files
+        $files[$exe] | Should -BeLike 'canonical executable*PCAI_BUILD_IDENTITY_V1*'
+        $files['pcai_inference.dll'] | Should -BeExactly 'canonical library'
+        $files['pcai_inference_lib.dll'] | Should -BeExactly $files['pcai_inference.dll']
+        $files['README.txt'] | Should -Match '--config \.\\pcai-inference\.json'
+        $files['README.txt'] | Should -Not -Match '--(?:model|port)'
+        if ($Backend -eq 'llamacpp') {
+            $files['README.txt'] | Should -Match 'legacy-model\.bin'
+            $files['README.txt'] | Should -Match 'legacy GGML, GGMF or GGJT weights'
+        } else {
+            $files['README.txt'] | Should -Match 'path/to/model\.gguf'
+        }
+        $files.ContainsKey('old-artifact.dll') | Should -BeFalse
+        $manifest = $files['manifest.json'] | ConvertFrom-Json
+        $manifest.schemaVersion | Should -Be 1
+        $manifest.commit | Should -BeExactly $script:SourceCommit
+        $manifest.variant | Should -BeExactly $name
+        [string[]]$payload = @($exe, 'pcai_inference.dll', 'pcai_inference_lib.dll', 'README.txt')
+        [Array]::Sort($payload, [StringComparer]::Ordinal)
+        ($manifest.files.path -join ',') | Should -BeExactly ($payload -join ',')
+        foreach ($entry in $manifest.files) {
+            $entry.sha256 | Should -BeExactly $archive.Digests[$entry.path]
+        }
+
+        [string[]]$coveredNames = $payload + 'manifest.json'
+        [Array]::Sort($coveredNames, [StringComparer]::Ordinal)
+        $expectedLines = foreach ($file in $coveredNames) {
+            '{0}  {1}' -f $archive.Digests[$file], $file
+        }
+        $lineFeed = [string][char]10
+        $files['SHA256SUMS'] | Should -BeExactly (($expectedLines -join $lineFeed) + $lineFeed)
+        @($files.Keys).Count | Should -Be ($payload.Count + 2)
+        Get-Content -LiteralPath (Join-Path $root 'github-output') | Should -Contain "ARTIFACT_PATH=$name.zip"
+    }
+
+    # Protects: incomplete canonical builds never emit a release ZIP.
+    # Detects: stale Cargo output substituted for a missing executable or alias, or an empty alias accepted.
+    # Needs: PowerShell 7, Pester 5, workflow text, and synthetic files in TestDrive.
+    # Breadcrumb: .github/workflows/release-cuda.yml Prepare Artifact.
+    It 'rejects an incomplete canonical artifact when <Case>' -ForEach @(
+        @{ Case = 'the executable is absent'; Missing = 'pcai-llamacpp.exe'; Empty = $false },
+        @{ Case = 'the alias is absent'; Missing = 'pcai_inference.dll'; Empty = $false },
+        @{ Case = 'the alias is empty'; Missing = 'pcai_inference.dll'; Empty = $true },
+        @{ Case = 'the Cargo library is absent'; Missing = 'pcai_inference_lib.dll'; Empty = $false }
+    ) {
+        $root = Join-Path $TestDrive $Case
+        $staged = Join-Path $root '.pcai/build/artifacts/pcai-llamacpp'
+        $legacy = Join-Path $root 'Native/pcai_core/pcai_inference/target/release'
+        $null = New-Item -ItemType Directory -Path $staged, $legacy -Force
+        foreach ($file in @('pcai-llamacpp.exe', 'pcai_inference.dll', 'pcai_inference_lib.dll')) {
+            Set-Content -LiteralPath (Join-Path $legacy $file) -Value 'retired output' -NoNewline
+            if ($file -ne $Missing) {
+                Set-Content -LiteralPath (Join-Path $staged $file) -Value 'canonical output' -NoNewline
+            }
+            elseif ($Empty) {
+                [IO.File]::WriteAllBytes((Join-Path $staged $file), [byte[]]::new(0))
+            }
+        }
+
+        { Invoke-PrepareNativeArtifact -Root $root -Backend llamacpp -Cuda $false } |
+            Should -Throw -ExpectedMessage "*required staged native release file*$Missing*"
+        Test-Path -LiteralPath (Join-Path $root 'pcai-inference-llamacpp-cpu-win64.zip') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $root 'github-output') | Should -BeFalse
+    }
+
+    # Protects: the compatibility alias is the same native library as Cargo built.
+    # Detects: a stale alias accepted and hashed as an independent binary.
+    # Needs: PowerShell 7, Pester 5 and two different synthetic DLLs in TestDrive.
+    # Breadcrumb: .github/workflows/release-cuda.yml Prepare Artifact digest comparison.
+    It 'rejects a P/Invoke alias with different bytes from the Cargo library' {
+        $root = Join-Path $TestDrive 'mismatched-alias'
+        $staged = Join-Path $root '.pcai/build/artifacts/pcai-llamacpp'
+        $null = New-Item -ItemType Directory -Path $staged -Force
+        Set-Content -LiteralPath (Join-Path $staged 'pcai-llamacpp.exe') -Value 'canonical executable' -NoNewline
+        Set-Content -LiteralPath (Join-Path $staged 'pcai_inference.dll') -Value 'stale alias' -NoNewline
+        Set-Content -LiteralPath (Join-Path $staged 'pcai_inference_lib.dll') -Value 'canonical library' -NoNewline
+
+        { Invoke-PrepareNativeArtifact -Root $root -Backend llamacpp -Cuda $false } |
+            Should -Throw -ExpectedMessage '*P/Invoke alias does not match the Cargo library*'
+        Test-Path -LiteralPath (Join-Path $root 'pcai-inference-llamacpp-cpu-win64.zip') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $root 'github-output') | Should -BeFalse
+    }
+
+    # Protects: source revision and CPU/CUDA variants have matching runtime build identity.
+    # Detects: wrong backend, CPU masquerading as CUDA, stale commit, incompatible target or profile, or missing or malformed embedded metadata.
+    # Needs: PowerShell 7, Pester 5 and inert synthetic files with raw embedded identity bytes.
+    # Breadcrumb: .github/workflows/release-cuda.yml Prepare Artifact and pcai_inference/build.rs.
+    It 'rejects the staged executable when <Case>' -ForEach @(
+        @{ Case = 'the feature set is CPU-only'; Features = 'llamacpp,ffi,server'; ErrorText = '*feature set does not match*' },
+        @{ Case = 'another backend was built'; Features = 'mistralrs,cuda-mistralrs,ffi,server'; ErrorText = '*feature set does not match*' },
+        @{ Case = 'the source commit is stale'; Sha = '1111111111111111111111111111111111111111'; ErrorText = '*source commit does not match*' },
+        @{ Case = 'the identity is missing'; IdentityMode = 'missing'; ErrorText = '*Missing or incomplete*' },
+        @{ Case = 'the identity is unterminated'; IdentityMode = 'unterminated'; ErrorText = '*Missing or incomplete*' },
+        @{ Case = 'the identity is repeated'; IdentityMode = 'repeated'; ErrorText = '*Multiple embedded*' },
+        @{ Case = 'the identity is oversized'; IdentityMode = 'oversized'; ErrorText = '*exceeds 4096 bytes*' },
+        @{ Case = 'the identity is invalid JSON'; Malformed = $true; ErrorText = '*invalid JSON*' },
+        @{ Case = 'a debug binary was staged'; MetadataProfile = 'debug'; ErrorText = '*target or profile is incompatible*' },
+        @{ Case = 'an ARM64 binary was staged'; MetadataTarget = 'aarch64-pc-windows-msvc'; ErrorText = '*target or profile is incompatible*' },
+        @{ Case = 'the target is an array'; MetadataTarget = @('x86_64-pc-windows-msvc'); ErrorText = '*target or profile is incompatible*' },
+        @{ Case = 'the profile is an array'; MetadataProfile = @('release'); ErrorText = '*target or profile is incompatible*' }
+    ) {
+        $root = Join-Path $TestDrive $Case
+        $staged = Join-Path $root '.pcai/build/artifacts/pcai-llamacpp'
+        $null = New-Item -ItemType Directory -Path $staged -Force
+        Set-Content -LiteralPath (Join-Path $staged 'pcai-llamacpp.exe') -Value 'canonical executable' -NoNewline
+        Set-Content -LiteralPath (Join-Path $staged 'pcai_inference.dll') -Value 'canonical library' -NoNewline
+        Set-Content -LiteralPath (Join-Path $staged 'pcai_inference_lib.dll') -Value 'canonical library' -NoNewline
+        $commit = if ($Sha) { $Sha } else { $script:SourceCommit }
+        $identity = if ($Malformed) {
+            '{broken'
+        } else {
+            @{
+                git_hash = $commit
+                features = $(if ($Features) { $Features } else { 'llamacpp,cuda-llamacpp,ffi,server' })
+                target = $(if ($null -ne $MetadataTarget) { ,$MetadataTarget } else { 'x86_64-pc-windows-msvc' })
+                profile = $(if ($null -ne $MetadataProfile) { ,$MetadataProfile } else { 'release' })
+            } | ConvertTo-Json -Compress
+        }
+
+        $query = @{ Root = $root; Backend = 'llamacpp'; Cuda = $true; MetadataJson = $identity }
+        if ($IdentityMode) { $query['MetadataMode'] = $IdentityMode }
+        { Invoke-PrepareNativeArtifact @query } | Should -Throw -ExpectedMessage $ErrorText
+        Test-Path -LiteralPath (Join-Path $root 'pcai-inference-llamacpp-cuda-win64.zip') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $root 'github-output') | Should -BeFalse
+    }
+}

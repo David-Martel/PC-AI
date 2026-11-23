@@ -8,11 +8,12 @@ use axum::{
     Json, Router,
 };
 use futures::stream;
+use pcai_http_guard::{bind_listener, parse_bind_addr, pick_token, SecurityError, SecurityOptions, SecurityPolicy};
 use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
 use std::{convert::Infallible, sync::Arc, sync::OnceLock};
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
-use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use uuid::Uuid;
 
@@ -64,40 +65,95 @@ pub struct AppState {
     backend: Arc<RwLock<Box<dyn InferenceBackend>>>,
 }
 
+impl AppState {
+    /// Wrap a backend in the shared state the routes read from.
+    pub fn new(backend: Box<dyn InferenceBackend>) -> Self {
+        Self {
+            backend: Arc::new(RwLock::new(backend)),
+        }
+    }
+}
+
+/// Environment variable that supplies (and overrides) the bearer token.
+pub const TOKEN_ENV_VAR: &str = "PCAI_INFERENCE_TOKEN";
+
 /// Run the HTTP server
+///
+/// The bind address must be an IP literal (see [`pcai_http_guard::parse_bind_addr`]). Binding a
+/// non-loopback address requires a bearer token, from `server.auth_token` or the
+/// `PCAI_INFERENCE_TOKEN` environment variable (the variable wins). The call fails, naming the
+/// address, if the configuration is unsafe or the socket cannot be bound; it never falls back to
+/// another port.
 pub async fn run_server(
-    config: ServerConfig,
+    mut config: ServerConfig,
     router_config: RouterConfig,
     backend: Box<dyn InferenceBackend>,
 ) -> Result<()> {
-    tracing::info!("Starting HTTP server on {}:{}", config.host, config.port);
+    config.auth_token = pick_token(std::env::var(TOKEN_ENV_VAR).ok(), config.auth_token.take());
+    if config.legacy_cors == Some(true) && config.cors_allowed_origins.is_empty() {
+        tracing::warn!(
+            "server.cors=true no longer enables CORS; list browser origins in server.cors_allowed_origins instead"
+        );
+    }
+
+    let (addr, _) = security_policy(&config)?;
+    tracing::info!("Starting HTTP server on {}", addr);
 
     let _ = ROUTER_SETTINGS.set(map_router_settings(&router_config));
 
-    let state = AppState {
-        backend: Arc::new(RwLock::new(backend)),
-    };
+    let state = Arc::new(AppState::new(backend));
+    let app = build_router(state, &config)?;
 
-    let mut app = Router::new()
-        .route("/health", get(health_check))
-        .route("/v1/models", get(list_models))
-        .route("/v1/completions", post(completions))
-        .route("/v1/chat/completions", post(chat_completions))
-        .with_state(Arc::new(state))
-        .layer(TraceLayer::new_for_http());
+    let listener = bind_listener(addr).await.map_err(|e| Error::Other(e.into()))?;
 
-    if config.cors {
-        app = app.layer(CorsLayer::permissive());
-    }
-
-    let addr = format!("{}:{}", config.host, config.port);
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
-
-    tracing::info!("Server listening on {}", addr);
+    tracing::info!(
+        "Server listening on {} (bearer auth {})",
+        addr,
+        if config.auth_token.is_some() { "required" } else { "off" }
+    );
 
     axum::serve(listener, app).await.map_err(|e| Error::Other(e.into()))?;
 
     Ok(())
+}
+
+/// Parse the bind address and validate the security settings against it.
+fn security_policy(config: &ServerConfig) -> Result<(SocketAddr, SecurityPolicy)> {
+    let addr = parse_bind_addr(&config.host, config.port).map_err(|e| Error::Config(e.to_string()))?;
+    let options = SecurityOptions {
+        allowed_hosts: config.allowed_hosts.clone(),
+        cors_allowed_origins: config.cors_allowed_origins.clone(),
+        auth_token: config.auth_token.clone(),
+    };
+    let policy = SecurityPolicy::new(addr, &options).map_err(|e| match e {
+        SecurityError::TokenRequired { .. } => Error::Config(format!(
+            "{e}: set server.auth_token in the config or {TOKEN_ENV_VAR} in the environment"
+        )),
+        other => Error::Config(other.to_string()),
+    })?;
+    Ok((addr, policy))
+}
+
+/// Build the HTTP router with its middleware stack.
+///
+/// From the outside in: request tracing, the `Host` allow-list, the `Origin` check, CORS (only
+/// when `cors_allowed_origins` is set) and the bearer token (only when one is configured; `GET
+/// /health` stays open). `config.auth_token` is used as given; [`run_server`] merges in the
+/// environment variable first.
+///
+/// # Errors
+///
+/// [`Error::Config`] when the bind address is not an IP literal, or the settings are unsafe for
+/// it (a non-loopback bind without a token) or invalid (a bad origin or allowed host).
+pub fn build_router(state: Arc<AppState>, config: &ServerConfig) -> Result<Router> {
+    let (_, policy) = security_policy(config)?;
+    let routes = Router::new()
+        .route("/health", get(health_check))
+        .route("/v1/models", get(list_models))
+        .route("/v1/completions", post(completions))
+        .route("/v1/chat/completions", post(chat_completions))
+        .with_state(state);
+    Ok(policy.apply(routes).layer(TraceLayer::new_for_http()))
 }
 
 /// Health check endpoint
@@ -1031,6 +1087,8 @@ fn chunk_text(text: &str, max_chars: usize) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    mod hardening;
+
     use super::*;
     use crate::backends::GenerateResponse;
 

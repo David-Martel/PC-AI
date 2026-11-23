@@ -19,21 +19,23 @@ Describe 'Media qualification boundaries' -Skip:(-not $IsWindows) {
             (& $script:MediaScript @parameters | Out-String) | Should -Match 'synthetic'
         }
     }
-    # Protects passive inspection with a custom scan budget; detects discovery,
-    # subprocess or report writes during DryRun. Needs mocks only.
+    # Protects passive inspection with explicit GPU encode requests; detects
+    # discovery, subprocess or report writes during DryRun. Needs mocks only.
     # Breadcrumb: Get-MediaToolchainReport DryRun branch and script output guard.
     It 'does no process, provider, discovery or output work in DryRun' {
         Mock Invoke-MediaProcess { throw 'Process forbidden' }
         Mock Get-MediaGpuInventory { throw 'CIM forbidden' }
         Mock Find-MediaExecutable { throw 'Discovery forbidden' }
-        $result = Get-MediaToolchainReport -DryRun -ValidateIntelQsv -GStreamerScanTimeoutSeconds 7
+        $result = Get-MediaToolchainReport -DryRun -ValidateIntelQsv -ValidateNvidiaNvenc -GStreamerScanTimeoutSeconds 7
         $result.status | Should -Be 'DryRun'
         $result.intelSyntheticFrames | Should -Be 16
+        $result.nvidiaSyntheticFrames | Should -Be 16
         foreach ($name in @('Invoke-MediaProcess', 'Get-MediaGpuInventory', 'Find-MediaExecutable')) {
             Should -Invoke $name -Times 0 -Exactly
         }
         $path = Join-Path $TestDrive 'dry.json'
-        & $script:MediaScript -DryRun -OutputPath $path -GStreamerScanTimeoutSeconds 7 | Out-Null
+        (& $script:MediaScript -DryRun -ValidateNvidiaNvenc -OutputPath $path -GStreamerScanTimeoutSeconds 7).nvidiaSyntheticFrames |
+            Should -Be 16
         Test-Path -LiteralPath $path | Should -BeFalse
     }
     It 'rejects reserved, relative, alternate stream, existing and missing-parent outputs' {
@@ -85,12 +87,16 @@ Describe 'Media report semantics' -Skip:(-not $IsWindows) {
             else { New-ProbeResult -Stdout 'fixture version' }
         }
     }
+    # Protects passive reporting; detects treating compiled NVENC support as a
+    # working encoder or opening an input by default. Needs metadata mocks.
+    # Breadcrumb: Get-MediaToolchainReport FFmpeg discovery and nvidiaRuntime default.
     It 'separates compiled NVIDIA support from runtime and does not encode by default' {
         $result = Get-MediaToolchainReport
         $result.ffmpeg.compiledHardwareMethods | Should -Contain 'cuda'
         $result.ffmpeg.compiledEncoders | Should -Contain 'h264_nvenc'
         $result.intelQsv.status | Should -Be 'NotRequested'
         $result.nvidiaRuntime.status | Should -Be 'NotAttempted'
+        $result.nvidiaRuntime.probe | Should -BeNullOrEmpty
         Should -Invoke Invoke-MediaProcess -Times 3 -Exactly
         Should -Invoke Invoke-MediaProcess -Times 0 -Exactly -ParameterFilter { $Arguments -contains '-i' }
     }
@@ -121,6 +127,94 @@ Describe 'Media report semantics' -Skip:(-not $IsWindows) {
         Mock Get-MediaGpuInventory { [pscustomobject]@{status = 'Available'; devices = @([pscustomobject]@{Name = 'NVIDIA RTX'}); error = $null} }
         (Get-MediaToolchainReport -ValidateIntelQsv).intelQsv.status | Should -Be 'NoIntelGpu'
         Should -Invoke Invoke-MediaProcess -Times 0 -Exactly -ParameterFilter { $Arguments -contains 'lavfi' }
+    }
+    Context 'Explicit NVIDIA NVENC encode' {
+        BeforeEach {
+            Mock Find-MediaExecutable { param($Name) "C:\fixture\$Name" }
+            Mock Get-MediaGpuInventory {
+                [pscustomobject]@{ status = 'Available'; devices = @([pscustomobject]@{
+                        Name = 'NVIDIA fixture'; PNPDeviceID = 'PCI\VEN_10DE&DEV_1234'
+                    }); error = $null }
+            }
+        }
+
+        # Protects bounded hardware-only validation; detects a changed encoder,
+        # input or output destination. Needs vendor inventory and FFmpeg mocks.
+        # Breadcrumb: Get-MediaToolchainReport NVENC command and final progress.
+        It 'qualifies a completed NVENC encode with the exact synthetic workload' {
+            Mock Invoke-MediaProcess { New-ProbeResult -Stdout "frame=4`r`nprogress=continue`r`nframe=16`r`nprogress=end`r`n" } -ParameterFilter {
+                $Arguments -contains 'lavfi'
+            }
+            $result = Get-MediaToolchainReport -ValidateNvidiaNvenc -TimeoutSeconds 4
+            $result.status | Should -Be 'Completed'
+            $result.nvidiaRuntime.status | Should -Be 'Validated'
+            $result.nvidiaRuntime.encoder | Should -Be 'h264_nvenc'
+            $result.nvidiaRuntime.observedFrames | Should -Be 16
+            $result.intelQsv.status | Should -Be 'NotRequested'
+            Should -Invoke Invoke-MediaProcess -Times 1 -Exactly -ParameterFilter {
+                $FilePath -eq 'C:\fixture\ffmpeg.exe' -and $TimeoutSeconds -eq 4 -and
+                ($Arguments -join ' ') -ceq ('-nostdin -hide_banner -loglevel error -abort_on empty_output ' +
+                    '-progress pipe:1 -f lavfi -i color=c=black:s=320x240:r=30 -frames:v 16 -an ' +
+                    '-pix_fmt nv12 -c:v h264_nvenc -f null -')
+            }
+        }
+
+        # Protects the end-to-end verdict; detects early progress, incomplete
+        # output and false successes on failed children. Needs process mocks.
+        # Breadcrumb: NVENC probe status and final progress parsing.
+        It 'retains NVENC <Case> without reporting validation' -ForEach @(
+            @{ Case = 'missing final progress'; Output = "frame=16`nprogress=continue`n"; ProbeStatus = 'Succeeded'; Code = 0; Expected = 'IncompleteOutput' }
+            @{ Case = 'no encoded frames'; Output = "frame=0`nprogress=end`n"; ProbeStatus = 'Succeeded'; Code = 0; Expected = 'IncompleteOutput' }
+            @{ Case = 'a short final block'; Output = "frame=16`nprogress=continue`nframe=15`nprogress=end`n"; ProbeStatus = 'Succeeded'; Code = 0; Expected = 'IncompleteOutput' }
+            @{ Case = 'multiple final frame counts'; Output = "frame=16`nframe=15`nprogress=end`n"; ProbeStatus = 'Succeeded'; Code = 0; Expected = 'IncompleteOutput' }
+            @{ Case = 'a driver error'; Output = "frame=16`nprogress=end`n"; ProbeStatus = 'Failed'; Code = 9; Expected = 'Failed' }
+            @{ Case = 'a timeout'; Output = "frame=16`nprogress=end`n"; ProbeStatus = 'TimedOut'; Code = -1; Expected = 'TimedOut' }
+        ) {
+            Mock Invoke-MediaProcess { New-ProbeResult -Status $ProbeStatus -ExitCode $Code -Stdout $Output -Stderr 'probe evidence' } -ParameterFilter {
+                $Arguments -contains 'lavfi'
+            }
+            $result = Get-MediaToolchainReport -ValidateNvidiaNvenc
+            $result.status | Should -Be 'CompletedWithIssues'
+            $result.nvidiaRuntime.status | Should -Be $Expected
+            $result.nvidiaRuntime.observedFrames | Should -BeNullOrEmpty
+            $result.nvidiaRuntime.probe.exitCode | Should -Be $Code
+            $result.nvidiaRuntime.probe.stderr | Should -Be 'probe evidence'
+        }
+
+        # Protects workload admission; detects confusing an absent encoder with
+        # failed inspection. Needs process mocks. Breadcrumb: NVENC preflight.
+        It 'does not encode when encoder inventory is <ListStatus> and no NVENC was found' -ForEach @(
+            @{ ListStatus = 'Succeeded'; Expected = 'EncoderUnavailable' }
+            @{ ListStatus = 'Failed'; Expected = 'EncoderInventoryFailed' }
+        ) {
+            Mock Invoke-MediaProcess { New-ProbeResult -Status $ListStatus -Stdout ' V..... h264_qsv QSV' } -ParameterFilter {
+                $Arguments -contains '-encoders'
+            }
+            $result = Get-MediaToolchainReport -ValidateNvidiaNvenc
+            $result.status | Should -Be 'CompletedWithIssues'
+            $result.nvidiaRuntime.status | Should -Be $Expected
+            $result.nvidiaRuntime.probe | Should -BeNullOrEmpty
+            Should -Invoke Invoke-MediaProcess -Times 0 -Exactly -ParameterFilter { $Arguments -contains 'lavfi' }
+        }
+
+        # Protects device admission; detects accepting a marketing name without
+        # a matching hardware vendor or guessing on provider failure. Needs mocks.
+        # Breadcrumb: Get-MediaToolchainReport PCI NVIDIA inventory check.
+        It 'does not encode when GPU inventory is <InventoryStatus> without a matched device' -ForEach @(
+            @{ InventoryStatus = 'Available'; Expected = 'NoNvidiaGpu' }
+            @{ InventoryStatus = 'Unknown'; Expected = 'UnknownGpuInventory' }
+        ) {
+            Mock Get-MediaGpuInventory {
+                [pscustomobject]@{ status = $InventoryStatus; devices = @([pscustomobject]@{
+                        Name = 'NVIDIA fixture'; PNPDeviceID = 'PCI\VEN_8086&DEV_1234'
+                    }); error = $null }
+            }
+            $result = Get-MediaToolchainReport -ValidateNvidiaNvenc
+            $result.status | Should -Be 'CompletedWithIssues'
+            $result.nvidiaRuntime.status | Should -Be $Expected
+            $result.nvidiaRuntime.probe | Should -BeNullOrEmpty
+            Should -Invoke Invoke-MediaProcess -Times 0 -Exactly -ParameterFilter { $Arguments -contains 'lavfi' }
+        }
     }
     It 'accepts expected DirectShow listing exit while preserving its actual code' {
         Mock Invoke-MediaProcess { New-ProbeResult -Status 'Failed' -ExitCode 1 -Stderr '[dshow] Fixture Camera (video)' } -ParameterFilter { $Arguments -contains 'dshow' }

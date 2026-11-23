@@ -249,8 +249,8 @@ Describe "Functional: Text Generation" -Tag "Functional", "Generation" {
             # Either returns something or fails gracefully
             # Empty prompt behavior varies by model
             $status = Get-PcaiInferenceStatus
-            # Just verify no crash
-            $true | Should -BeTrue
+            # No crash means the runtime still answers a status query after an empty prompt.
+            $status | Should -Not -BeNullOrEmpty -Because 'the inference runtime must still report its status after an empty prompt'
         }
     }
 

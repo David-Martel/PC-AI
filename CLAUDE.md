@@ -28,6 +28,7 @@ PC_AI/
 ├── Native/pcai_core/                  # Rust workspace (members: Native/pcai_core/Cargo.toml)
 │   ├── pcai_inference/                # LLM inference engine (HTTP + FFI, llama.cpp/mistral.rs)
 │   ├── pcai_core_lib/                 # Shared library (telemetry, fs, search, Windows APIs)
+│   ├── pcai_http_guard/               # Host/Origin/CORS/bearer guards + bind parsing shared by both HTTP servers
 │   ├── pcai_ollama_rs/                # Ollama benchmark/integration tool
 │   ├── pcai_media/                    # Media processing FFI DLL (Janus-Pro)
 │   ├── pcai_media_model/              # Media model definitions and config
@@ -534,6 +535,21 @@ clients (`Config/llm-config.json`, `Get-PcaiRuntimeConfig`) point at `http://127
 `pcai-inference` alias in `Config/hvsock-proxy.conf` forwards. Anything that starts a server must pass the port its
 clients expect; do not assume 8080.
 
+**Browser and network hardening** (shared crate `Native/pcai_core/pcai_http_guard`, full reference in
+[docs/http-server-security.md](docs/http-server-security.md)). Both HTTP servers (`pcai-inference`, `pcai-media`) refuse
+cross-site and DNS-rebinding requests and unauthenticated network binds:
+
+- **Host allow-list:** the `Host` header must be `localhost`, `127.0.0.1`, `[::1]`, the bind address or an entry of
+  `server.allowed_hosts`, on any port; otherwise `421` (`400` for a missing, duplicated or malformed Host; HTTP/1.0 may omit
+  it). A wildcard bind (`0.0.0.0`, `::`) needs `allowed_hosts`.
+- **CORS:** off by default. A request with an `Origin` header is refused (`403`) unless the origin is in
+  `server.cors_allowed_origins`, which also turns on CORS headers for exactly those origins. The old `"cors": true` key
+  is ignored.
+- **Token:** an optional bearer token (`server.auth_token` or `PCAI_INFERENCE_TOKEN`; `PCAI_MEDIA_TOKEN` for media) is
+  required on every route except `GET /health`. PowerShell clients send `PCAI_INFERENCE_TOKEN` to the pcai-inference URL.
+- **Bind:** `server.host` must be an IP literal (`::1`, `[::1]`, `fe80::1%12` and `localhost` are accepted). A non-loopback
+  bind without a token refuses to start, and any bind failure exits nonzero naming the address.
+
 ### Async Inference (FFI)
 
 - `pcai_generate_async(prompt, max_tokens, temperature)` - Initiate async generation, returns request ID
@@ -573,6 +589,7 @@ cargo test --no-default-features --features server,ffi --lib
 | `backends/llamacpp.rs` | 3     | llama.cpp backend specifics                              | feature `llamacpp`          |
 | `backends/mistralrs.rs`| 3     | mistral.rs backend specifics                             | feature `mistralrs-backend` |
 | `http/mod.rs`          | 65    | Chat prompt, tokens, stop sequences, chunks, StopTracker | feature `server`            |
+| `http/tests/hardening.rs` | 25 | Host allow-list, CORS/Origin, bearer token, bind rules, socket end-to-end | feature `server` |
 | `ffi/mod.rs`           | 45    | FFI edge cases, init/shutdown, error codes               | feature `ffi`               |
 | `version.rs`           | 3     | Build version detection and formatting                   | always                      |
 

@@ -214,6 +214,8 @@ not valid YAML and had never run. Repaired in the 2026-09-07 pass; see
 
 ## Active Priorities
 
+- [ ] Use the [AI qualification matrix](docs/ai-build-qualification.md) to reconcile build target selection and runtime device admission. Prioritize installed CPU, CUDA with and without an attached GPU, and a maintained Intel GPU backend. Gate model promotion on model-hash-pinned functional evidence and use the benchmark admission rules for any reported acceleration.
+
 ### 1. OneDrive, Boot, And UI Responsiveness
 
 - [x] Monitor OneDrive after installer repair and reset until at least one clean
@@ -335,19 +337,22 @@ suspicion.
   `qa_check_rust` a `rust.dir` (or manifest-path) setting defaulting to
   `$REPO_ROOT`. git-guard is shared fleet infrastructure, so that change needs
   an ownership announcement before anyone makes it.
-- [ ] The `Deploy\rust-functiongemma` workspace does not resolve at all.
-  Its `[workspace] members` are `"../rust-functiongemma-runtime"`,
-  `"../rust-functiongemma-train"` and `"../rust-functiongemma-core"`, and Cargo
-  rejects members that are not hierarchically below the workspace root:
-  `cargo metadata` fails outright, so `cargo fmt`/`cargo clippy`/`cargo build`
-  cannot be run against that root. `Build.ps1` still points a build path at it
-  (`Build.ps1:1190`). Either move the three crates under
-  `Deploy\rust-functiongemma\` or drop the aggregating root and treat the
-  three as independent crates. This is pre-existing and separate from the
-  CargoTools `cargo fix` bug noted above.
-- [ ] `release-cuda.yml` is now valid YAML but has still never executed — the
-  repo has no tags at all. Cut a throwaway pre-release tag to prove the
-  4-variant CUDA/CPU release path actually works end to end.
+- [x] The FunctionGemma workspace resolves from [`Deploy/Cargo.toml`](Deploy/Cargo.toml).
+  `cargo metadata --locked --no-deps --format-version 1 --manifest-path Deploy/Cargo.toml`
+  lists the core, runtime and trainer. [Build.ps1](Build.ps1) uses that workspace
+  for FunctionGemma clean and build paths.
+- [ ] Qualify the four Windows backend variants in an artifact-only run of
+  [the native release workflow](.github/workflows/release-cuda.yml) on a fixed
+  commit. Extract each archive, verify its manifest and checksums, and exercise
+  startup with a compatible model. CUDA startup needs a compatible runner with
+  an NVIDIA device. [The portable archive tests](Tests/Unit/NativeReleaseWorkflow.Tests.ps1)
+  exercise the archive contract with staged fixtures.
+- [ ] Use one publisher to admit the complete native and PowerShell asset set,
+  preserve prerelease state, and sign and verify the release assets. Both
+  [the PowerShell workflow](.github/workflows/release.yml) and the native release
+  workflow currently publish on `v*` and are manually disabled. Validate a
+  staged installer upgrade with configuration preservation and rollback before
+  enabling tag-driven publication.
 
 ### 1c. PowerShell Test Suite (opened 2026-09-07)
 

@@ -22,16 +22,22 @@ pub fn format_function_call(name: &str, args: &Map<String, Value>) -> String {
     format!("<start_function_call>call:{}{{{}}}<end_function_call>", name, args_text)
 }
 
+/// Parse a complete escaped argument list. Malformed arguments return null.
 pub fn parse_escape_args(args_text: &str) -> Value {
-    let mut map = serde_json::Map::new();
+    let mut map = Map::new();
     let mut rest = args_text.trim();
-    let escape = "<escape>";
-    while let Some(key_end) = rest.find(":<escape>") {
-        let key = rest[..key_end].trim();
-        let val_start = key_end + ":<escape>".len();
-        let remainder = &rest[val_start..];
-        let val_end = remainder.find(escape).unwrap_or(remainder.len());
-        let raw_val = remainder[..val_end].trim();
+    while !rest.is_empty() {
+        let Some((key, remainder)) = rest.split_once(":<escape>") else {
+            return Value::Null;
+        };
+        let key = key.trim();
+        if key.is_empty() || key.contains([':', ',', '{', '}', '<', '>']) {
+            return Value::Null;
+        }
+        let Some((raw_val, next)) = remainder.split_once("<escape>") else {
+            return Value::Null;
+        };
+        let raw_val = raw_val.trim();
         let value = if raw_val.eq_ignore_ascii_case("true") {
             Value::Bool(true)
         } else if raw_val.eq_ignore_ascii_case("false") {
@@ -39,20 +45,26 @@ pub fn parse_escape_args(args_text: &str) -> Value {
         } else if let Ok(n) = raw_val.parse::<i64>() {
             Value::Number(n.into())
         } else if let Ok(n) = raw_val.parse::<f64>() {
-            // `n` was just successfully parsed from a string so it is finite.
-            Value::Number(serde_json::Number::from_f64(n).unwrap_or_else(|| {
-                // Non-finite float (NaN/inf) — fall back to the raw string.
-                serde_json::Number::from(0i64)
-            }))
+            serde_json::Number::from_f64(n)
+                .map(Value::Number)
+                .unwrap_or_else(|| Value::String(raw_val.to_owned()))
         } else {
             Value::String(raw_val.to_string())
         };
-        map.insert(key.to_string(), value);
+        if map.insert(key.to_owned(), value).is_some() {
+            return Value::Null;
+        }
 
-        let next = &remainder[val_end + escape.len()..];
-        rest = next.trim_start_matches(',').trim();
-        if rest.is_empty() {
+        let next = next.trim();
+        if next.is_empty() {
             break;
+        }
+        let Some(next) = next.strip_prefix(',') else {
+            return Value::Null;
+        };
+        rest = next.trim();
+        if rest.is_empty() {
+            return Value::Null;
         }
     }
     Value::Object(map)
@@ -74,21 +86,12 @@ pub fn is_degenerate_output(text: &str) -> bool {
 }
 
 pub fn parse_function_call(output: &str) -> Option<(String, Value)> {
-    let start_tag = "<start_function_call>call:";
-    let end_tag = "<end_function_call>";
-    let start = output.find(start_tag)?;
-    let rest = &output[start + start_tag.len()..];
-    let end = rest.find(end_tag)?;
-    let body = &rest[..end];
-    let name_end = body.find('{')?;
-    let name = body[..name_end].trim();
-    let args_text = body[name_end + 1..].trim().trim_end_matches('}');
-    let args = if args_text.is_empty() {
-        serde_json::json!({})
-    } else {
-        parse_escape_args(args_text)
-    };
-    Some((name.to_string(), args))
+    let (_, rest) = output.split_once("<start_function_call>call:")?;
+    let (body, _) = rest.split_once("<end_function_call>")?;
+    let (name, rest) = body.split_once('{')?;
+    let name = name.trim();
+    let args = parse_escape_args(rest.trim_end().strip_suffix('}')?);
+    (!name.is_empty() && args.is_object()).then(|| (name.to_owned(), args))
 }
 
 /// Trim a token-ID sequence to `max_len` by keeping the first half and the
@@ -110,4 +113,45 @@ pub fn trim_input_ids(ids: Vec<u32>, max_len: usize) -> Vec<u32> {
     trimmed.extend_from_slice(&ids[..head]);
     trimmed.extend_from_slice(&ids[ids.len() - tail..]);
     trimmed
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // Protects valid tool calls and JSON scalar conversion.
+    // Detects split delimiters inside escaped text or a fabricated numeric zero.
+    // Needs only in-memory input. Breadcrumb: parse_function_call and parse_escape_args.
+    #[test]
+    fn complete_tool_calls_preserve_values() {
+        let arguments = json!({"label": "café, east: {ready}", "enabled": true, "count": 3, "ratio": 0.25});
+        let Some(map) = arguments.as_object() else {
+            panic!("fixture must contain an object");
+        };
+        let output = format_function_call("lookup", map);
+        assert_eq!(parse_function_call(&output), Some(("lookup".to_owned(), arguments)));
+        assert_eq!(parse_escape_args("value:<escape>NaN<escape>"), json!({"value": "NaN"}));
+        assert_eq!(
+            parse_function_call(&format_function_call("lookup", &Map::new())),
+            Some(("lookup".to_owned(), json!({})))
+        );
+    }
+
+    // Protects the router from emitting a partial tool call.
+    // Detects accepting argument prefixes as complete lists.
+    // Needs only a formatted in-memory call. Breadcrumb: parse_escape_args.
+    #[test]
+    fn incomplete_arguments_are_rejected_without_partial_results() {
+        let arguments = "a:<escape>true<escape>,b:<escape>ready<escape>";
+        for end in arguments.char_indices().map(|(index, _)| index) {
+            let prefix = &arguments[..end];
+            let output = format!("<start_function_call>call:lookup{{{prefix}}}<end_function_call>");
+            let closes_a_value = prefix.ends_with("<escape>") && prefix.matches("<escape>").count() % 2 == 0;
+            if !prefix.is_empty() && !closes_a_value {
+                assert!(parse_function_call(&output).is_none());
+            }
+        }
+        assert!(parse_escape_args("a:<escape>1<escape>,a:<escape>2<escape>").is_null());
+    }
 }

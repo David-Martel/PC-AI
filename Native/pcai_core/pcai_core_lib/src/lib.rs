@@ -504,6 +504,15 @@ pub extern "C" fn pcai_driver_version() -> *mut c_char {
 /// # Safety
 ///
 /// `model_path` must be null or a valid null-terminated UTF-8 C string.
+///
+/// # Panics
+///
+/// Never, by construction rather than by `catch_unwind`: the release profile is
+/// `panic = "abort"`, so a panic here would end the host process. The GGUF
+/// reader behind this call bounds nesting, string and entry counts and uses
+/// checked arithmetic on every value read from the file (see
+/// [`preflight::gguf::GgufLimitError`]), and a malformed model file surfaces as
+/// a `fail` verdict whose reason starts with `Preflight error:`.
 #[cfg(feature = "nvml")]
 /// FFI export.
 #[no_mangle]

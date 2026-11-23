@@ -34,5 +34,6 @@ Export-ModuleMember -Function @(
     'Import-PcaiAccelerationStack',
     'Resolve-PcaiRepoRoot',
     'Get-PcaiRuntimeConfig',
+    'Get-PcaiOriginBearerHeader',
     'Get-ScriptMetadata'
 )

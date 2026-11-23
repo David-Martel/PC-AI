@@ -6,6 +6,7 @@ members = [
     "pcai_tb_cli",
     "pcai_ollama_rs",
     "pcai_inference",
+    "pcai_http_guard",
     "pcai_media_model",
     "pcai_media",
     "pcai_media_server",
@@ -102,6 +103,9 @@ rand = "0.10.2"
 ollama-rs = { version = "0.3.4", features = ["stream"] }
 schemars = "1.2.2"
 url = "2.5"
+
+# Property-based testing (GGUF reader never-panics test). std only keeps the lock diff small.
+proptest = { version = "1", default-features = false, features = ["std"] }
 
 [profile.release]
 opt-level = 3      # Maximum optimization

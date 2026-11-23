@@ -80,6 +80,17 @@ cd C:\codedev\PC_AI\Tests
 .\Benchmarks\Invoke-PcaiToolingBenchmarks.ps1 -CaseId content-search,full-context
 ```
 
+### Model and hardware functional checks
+
+Use the [AI qualification matrix](../docs/ai-build-qualification.md) to choose a target and record the exact artifact, checkpoint and device. Run the CUDA media workflow explicitly with an installed or staged server and a local Janus checkpoint.
+
+```powershell
+pwsh -NoProfile -File ./Hardware/Invoke-PcaiMediaCudaFunctionalTests.ps1 `
+    -ServerPath ../bin/pcai-media-server.exe -ModelPath ../Models/Janus-Pro-1B -Device cuda:0
+```
+
+The [hardware runner](Hardware/Invoke-PcaiMediaCudaFunctionalTests.ps1) starts a temporary loopback listener and saves its logs and receipt. A startup, inference or cleanup failure exits nonzero. Pester discovers the [functional media tests](Functional/Media.Functional.Tests.ps1) independently of this hardware run.
+
 ### Validated Findings
 
 Results validated on March 7, 2026:
@@ -203,11 +214,38 @@ Get-MockDiskSpace -Status LowSpace  # <10% free
 Get-MockDiskSpace -Status Critical  # <5% free
 ```
 
+## Test assessment and gates
+
+`Tests/coverage-report.ps1` measures the suite and exits 1 when a gate fails. Run it with `pwsh Tests/coverage-report.ps1 -Tier Portable`
+(about 7 minutes: it runs `Tests/Unit` with the `Portable` tag and measures coverage over every `Modules/**/*.ps1|psm1` file) or with
+`-NoRun` for the static part only (seconds). It writes `.pcai/assessment/test-assessment.json` (gitignored) and nothing else in the
+repository. `-Tier Full` runs the path list `ci.yml` uses and needs its own baseline entry.
+
+The JSON holds the test inventory (Pester `It` blocks per directory, Rust and C# test attributes), which runners and workflows reach each
+`*.Tests.ps1` file (files nothing reaches are orphans), measured Pester coverage overall and per module, and quality counts found through
+the PowerShell AST: `It` blocks with no assertion, with only `Should -Not -Throw`, or with a constant input (`$true | Should -BeTrue`).
+
+The thresholds live in `Config/test-baseline.json` and only ratchet. They start at what was measured, not at the 85% target
+(`target_coverage_pct`), and `-UpdateBaseline` can raise the coverage minimums and lower the violation counts, the orphan allowlist and
+the known-failure budget, never the reverse. Known failures are recorded per test file, so a new failing file fails the gate even while
+the recorded ones are tracked elsewhere.
+
+All runners (`Invoke-PortableTests.ps1`, `Invoke-AllTests.ps1`, `.pester.ps1`, `test.ps1`, `Invoke-QualityGate.ps1`) judge a Pester run with
+`Tests/Helpers/Get-PesterRunVerdict.ps1`: a test file that does not parse, a failed `BeforeAll`, or a run that executed nothing fails,
+whatever `FailedCount` says. `Tests/Unit/TestAssessment.Tests.ps1` plants each of those failures and asserts it is reported.
+
+Every file under `Tests/Unit` runs in one PowerShell session, so a module an earlier file loaded is still loaded when the next starts.
+A test file that imports a `PC-AI.*` module dot-sources `Tests/Helpers/Import-PcaiTestModule.ps1`, calls `Import-PcaiTestModule -Name <module>` in
+`BeforeAll` and `Remove-PcaiTestModule` in `AfterAll`. The first removes every loaded `PC-AI*` and `Pcai*` module (nested copies included) and
+imports this checkout's manifest by absolute path; the second removes what the file, or PowerShell's module autoloader, loaded. Without them a
+stale copy turns `Mock -ModuleName` into "Multiple script or manifest modules named ... are currently loaded" (the helper's header records the
+measured chain). `Tests/Unit/TestModuleIsolation.Tests.ps1` plants stale copies and asserts the helper removes them.
+
 ## Code Coverage
 
 ### Coverage Requirements
 
-- **Target**: 85% code coverage minimum
+- **Target**: 85% code coverage minimum (the enforced floor is the ratcheted `Config/test-baseline.json` value; see above)
 - **Output Format**: JaCoCo XML for CI integration
 - **Excluded**: Test files themselves
 

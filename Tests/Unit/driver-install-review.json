@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-11-23T00:31:24.7488924Z",
+  "sourceBaseline": "2812521c67fa349a41ed840b15d0594ae068ee47",
+  "hashConvention": "SHA-256 after normalizing CRLF to LF. Selector extent includes the indented It command through its closing brace and LF. Parameterized cases share their selector extent.",
+  "sourceBindings": {
+    "Tests/Unit/PC-AI.Drivers.Tests.ps1": "49c556b9620412244eed9286bd4961a5216cc6e905a18f74839561be3a334a43",
+    "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1": "d03dc1c495498a84dd0256d8b880bf1245788279c390354ccadb121fecb3d05f",
+    "Modules/PC-AI.Drivers/Public/Update-DriverRegistry.ps1": "80aff2a9b87d6ae6068e95a495643f470634bd88b404afa9b7d594b46a548c49",
+    "Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1": "a32aa249048e5ec0501bbc10c57790d9901da652ac2bfe56ea02e3d9b9cca736",
+    "README.md": "f834afbe4f16496fada40ba4e866573afd818a966be4257f022c164a60dd1550",
+    "docs/driver-installation.md": "58406e34cf1443c09a75d3edf1631613368e094347a0d6d0a1d0992c60f89f25"
+  },
+  "selectors": [
+    {
+      "selector": "rejects an unelevated install before creating a directory or downloading",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "2d819ee5de33f6b65e8b0143b780bdf5cab9735178df841fd7483b811e814c11",
+      "codeUnderTest": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "disposition": "unreviewed",
+      "reviewScope": "a warning-only elevation check that lets a web request or launch proceed."
+    },
+    {
+      "selector": "rejects an install with a <Kind> digest before touching the cache",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "f3a281941b57789ad8e462f0ceaddb8e9061ca1d26a211c1d7b5a18b0b3e2728",
+      "codeUnderTest": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "disposition": "unreviewed",
+      "reviewScope": "any digest case that reaches download or installer dispatch."
+    },
+    {
+      "selector": "previews an install and permits an unpinned DownloadOnly without elevation",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "fa80ca7d20b7e7e009a0782eb54b7cd1705e79a857d6b1cc34b843a458c59013",
+      "codeUnderTest": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "disposition": "unreviewed",
+      "reviewScope": "Previews avoid writes, and a fresh unpinned download cannot reuse or overwrite the previously cached package."
+    },
+    {
+      "selector": "skips a <InstallerType> entry without elevation or a digest",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "ebb9d8f7d4ca4624c631aeee2e2f489c27b415a1b353ee45c39c4d311e61940f",
+      "codeUnderTest": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "disposition": "unreviewed",
+      "reviewScope": "querying install prerequisites, downloading, or dispatching for either skip type."
+    },
+    {
+      "selector": "fails closed when the actual returned installer path has different bytes",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "6cfb531d5bc5e74b0909a34a3b9150b57b26926f744bf4d86ebb00edb0be726d",
+      "codeUnderTest": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "disposition": "unreviewed",
+      "reviewScope": "launch after the selected file's contents fail the final source check."
+    },
+    {
+      "selector": "dispatches valid cached bytes for an elevated installer request",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "96417db7ddd2aa77c9514e76c31685aa5b0b93b9f3882167055da03357a25223",
+      "codeUnderTest": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "disposition": "unreviewed",
+      "reviewScope": "a guard that returns success or failure without ever dispatching approved bytes."
+    },
+    {
+      "selector": "extracts each <Type> install into a fresh directory",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "42f0ce10acefbc552515e636802b51ded6a11e2492f3241b8cdd59930b465083",
+      "codeUnderTest": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "disposition": "unreviewed",
+      "reviewScope": "reuse of the legacy extraction directory or of a prior invocation's package tree."
+    },
+    {
+      "selector": "rejects a malformed digest and preserves the registry a WhatIf edit targets",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "45e6da5ccf094ac63011085ad14e3ac3fbd2d663f0f2d3a0b08846b9b748e9bc",
+      "codeUnderTest": "Modules/PC-AI.Drivers/Public/Update-DriverRegistry.ps1",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "disposition": "unreviewed",
+      "reviewScope": "accepting misplaced whitespace or writing before argument validation/approval."
+    },
+    {
+      "selector": "stores the replacement URL and normalized pin even when a legacy entry lacked those fields",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "64a04938a9558da69aa9dcff82374399a5abf7556b6a838ed59602f2af542a08",
+      "codeUnderTest": "Modules/PC-AI.Drivers/Public/Update-DriverRegistry.ps1",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "disposition": "unreviewed",
+      "reviewScope": "no editor support for a valid digest, retaining a stale digest, or creating a second field in legacy entries."
+    },
+    {
+      "selector": "clears the old digest only when the package URL changes without a replacement",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "d0d8a33063304acb52e8b61aaad9a2174ae816791f8eb9be36926fd8eea42bfa",
+      "codeUnderTest": "Modules/PC-AI.Drivers/Public/Update-DriverRegistry.ps1",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "disposition": "unreviewed",
+      "reviewScope": "installing an old cached package as a new package after a registry URL change."
+    }
+  ]
+}

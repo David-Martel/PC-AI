@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-11-23T03:17:37Z",
+  "sourceBaseline": "3b3f1f2d4ca3c298224872e8e5410a61f54edaf6",
+  "upstreamReleaseMetadata": "https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/b12646",
+  "hashConvention": "SHA-256 over LF-normalized bytes. Selectors start at the indented It command and end at its closing brace and LF. Parameterized cases share their selector.",
+  "sourceBindings": {
+    "Tools/Install-PcaiLlamaRuntime.ps1": "446bec5a967fdefb62045ffdd94d21e9c2c3499002cb8e15a4da03c2097880c8",
+    "Config/llama-cpp-runtime.json": "c25bb1157a3111a2e9207dbc8f7a2dcafcbcdde620063d371f3c816df9a35b1a",
+    "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1": "cbc3ae06ac00413feefc1077e270a223fb97794e40733dc9ece54acd8ecc2b72"
+  },
+  "selectors": [
+    {
+      "selector": "pins all four published Windows x64 ZIP assets",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "56c87e6516629bb2a5268273ae66f1382155e753161b9bf80923075c423452d1",
+      "disposition": "unreviewed",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": null,
+      "reviewScope": "a missing CUDA runtime or drift from GitHub b12646 pin and release architecture."
+    },
+    {
+      "selector": "returns structured Unsupported on an unavailable platform",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "7fbde642eb991105b2e14d1a7be4abd72102f556c8ae466e5b1fcb170bf2cc35",
+      "disposition": "unreviewed",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": null,
+      "reviewScope": "accidentally treating an unsupported OS or process architecture as Windows x64."
+    },
+    {
+      "selector": "previews both modes without writing a destination",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "0c62388cb3f75de0e2879747e026b974f690a2d6549d5aaae3be449cb1613b08",
+      "disposition": "unreviewed",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": null,
+      "reviewScope": "creating a destination or fetching any package during planning."
+    },
+    {
+      "selector": "stages verified cached runners and rejects an occupied destination",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "9c0bc774e4bf4746c6892f911cc8bbae5e0db92b99883c0c08580739b91ce9f7",
+      "disposition": "unreviewed",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": null,
+      "reviewScope": "launching files, publishing an incomplete runtime, or replacing an occupied route."
+    },
+    {
+      "selector": "rejects a same-length digest mismatch from <Origin> without publishing",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "0507f9dc0c0476185ce0bed3360c8e6adaae2a82d71ff55465fb98a67638342d",
+      "disposition": "unreviewed",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": null,
+      "reviewScope": "publishing a different same-length ZIP or bypassing a bad cache with a refresh."
+    },
+    {
+      "selector": "refuses <Issue> runner layouts after digest validation",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "a61b6512ea2b8ca5d225b17856532c06617906821fbe7beeb231044e67ef82ae",
+      "disposition": "unreviewed",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": null,
+      "reviewScope": "ambiguous or incomplete runner discovery or leaked temporary staging."
+    },
+    {
+      "selector": "stages the matched CUDA runtime next to the unique server and benchmark",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "3eaf05f040d1e2557de2ac338630ee035cff63578a0fed7cb8537abcb5ceb46d",
+      "disposition": "unreviewed",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "reviewedAtUtc": null,
+      "reviewScope": "omitting its dependency bundle or publishing after that asset fails admission."
+    },
+    {
+      "selector": "rejects a pinned ZIP with a parent traversal entry",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "785b04d353bd4d0ed24cc4adb4d6735e0a2de28a8404810ed91b90b6e1fdecbe",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "A digest-pinned synthetic ZIP with a parent entry must be rejected without writing outside or publishing."
+    }
+  ]
+}

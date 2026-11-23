@@ -20,6 +20,9 @@ on:
       - 'Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1'
       - 'Tools/SystemScripts/Networking/Resolve-Usb4PeerJournal.ps1'
       - 'Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1'
+      - 'Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1'
+      - 'Modules/PC-AI.Drivers/**'
+      - 'Tests/Unit/PC-AI.Drivers.Tests.ps1'
       - 'Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1'
       - 'Config/usb4-peer-network.example.json'
       - 'Tools/SystemScripts/Networking/Export-ThunderboltEnrolledObserver.sh'
@@ -41,6 +44,8 @@ on:
       - 'Tests/Portable/usb4-journal-publication-review.json'
       - 'Tests/Portable/usb4-state-admission-review.json'
       - 'Tests/Portable/Test-Usb4PeerNetworkInstall.ps1'
+      - 'Tests/Portable/Test-Usb4PrivateAccess.ps1'
+      - 'Tests/Portable/usb4-private-access-review.json'
       - 'Tests/Portable/Test-Usb4PeerDeployment.ps1'
       - 'Tests/Portable/usb4-deployment-doctor-review.json'
       - 'Tests/Portable/test_usb4_fabric_cli.py'
@@ -52,6 +57,7 @@ on:
       - 'Tests/Integration/ThunderboltLinuxProfile.Tests.ps1'
       - 'Tests/Integration/thunderbolt-linux-idempotency-review.json'
       - 'docs/usb4/hardware-testing.md'
+      - 'docs/usb4/private-access.md'
       - '.github/actions/setup-job-rust/action.yml'
       - '.github/workflows/usb4-lifecycle.yml'
   workflow_dispatch:
@@ -148,6 +154,30 @@ jobs:
       - name: File-only deployment inspection contracts
         shell: pwsh
         run: ./Tests/Portable/Test-Usb4PeerDeployment.ps1
+      # Protects exact-link authorization, firewall scope, and rollback custody.
+      # Detects aliases or peers outside the enrolled link and partial publication.
+      # Needs pwsh and synthetic Windows providers. Source: Install-PcaiUsb4PrivateAccess.ps1.
+      - name: USB4 private access contracts
+        shell: pwsh
+        run: ./Tests/Portable/Test-Usb4PrivateAccess.ps1
+      # Protects legacy registration from creating the retired broad firewall rule.
+      # Detects direct provisioning and the rule name reaching a Drivers helper.
+      # Needs pwsh, Pester and the Drivers module. No real registration or firewall changes.
+      # Breadcrumb: Modules/PC-AI.Drivers/Public/Register-ThunderboltPeer.ps1.
+      - name: Windows legacy USB4 registration firewall contract
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable Pester | Where-Object Version -eq '5.7.1')) {
+            Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force
+          }
+          Import-Module Pester -RequiredVersion 5.7.1
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'Tests/Unit/PC-AI.Drivers.Tests.ps1'
+          $config.Run.PassThru = $true
+          $config.Filter.FullName = '*.does not provision firewall rules during legacy USB4 registration'
+          $result = Invoke-Pester -Configuration $config
+          if ($result.Result -ne 'Passed' -or $result.FailedCount -ne 0 -or $result.PassedCount -ne 1) { exit 1 }
       # Protects fresh native stdio handles and unrelated/jail environment custody.
       # Detects stale OpenSSH ancestor descriptors through a real inert child.
       # Needs Windows + pwsh only; no peer, credentials, service or network changes.

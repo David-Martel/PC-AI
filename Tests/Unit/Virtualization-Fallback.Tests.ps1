@@ -1,11 +1,14 @@
 #Requires -Version 5.1
 
 BeforeAll {
-    $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    $modulePath = Join-Path $RepoRoot 'Modules\PC-AI.Virtualization\PC-AI.Virtualization.psd1'
-    if (Test-Path $modulePath) {
-        Import-Module $modulePath -Force -ErrorAction Stop
-    }
+    # The helper removes every module an earlier file left loaded first; see its header.
+    . (Join-Path $PSScriptRoot '..\Helpers\Import-PcaiTestModule.ps1')
+    $null = Import-PcaiTestModule -Name 'PC-AI.Virtualization'
+}
+
+AfterAll {
+    # This file used to leave PC-AI.Virtualization loaded for every later file.
+    Remove-PcaiTestModule
 }
 
 Describe 'Virtualization external script fallback' -Tag 'Unit', 'Virtualization', 'Portable' {

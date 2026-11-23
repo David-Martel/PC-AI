@@ -36,7 +36,6 @@ function New-PcaiServerConfigFile {
         server = @{
             host = $uri.Host
             port = $serverPort
-            cors = $true
         }
     }
 

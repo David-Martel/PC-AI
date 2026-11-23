@@ -5,7 +5,7 @@
   "HashConvention": "SHA-256 of UTF-8 LF sources and the exact Pester It command AST extent without a trailing newline.",
   "SourceBindings": {
     "Build.ps1": "46b50d68f18f9854a171c729dc9208458adb4ac556759399696d988444cf5885",
-    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "73d083ecb3312fb919e52496a67a199f753a21fd7fb99c8c367ac2f835125caf",
+    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "2b655671522ed87c75d71cd41afd940c2d4b63b9479489803174fd53e66804b0",
     "Tests/Unit/BuildReleaseGate.Tests.ps1": "7d621dfaa476907e12f79bcead5610bf3882f456478b54305101256943e313c9"
   },
   "Validation": "PowerShell 7 and Pester 5.7.1 on Windows. Isolated fixtures exercise the publication and child-failure boundaries with local temporary files. Real build, release contents, fleet installation, and CUDA hardware qualification remain separate.",
@@ -100,6 +100,17 @@
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed",
       "ReviewScope": "The fixture links a parent outside the named build path, verifies early refusal, and verifies untouched destination and archive paths."
+    }
+  ],
+  "SourceRechecks": [
+    {
+      "source": "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1",
+      "previousSha256": "73d083ecb3312fb919e52496a67a199f753a21fd7fb99c8c367ac2f835125caf",
+      "sha256": "2b655671522ed87c75d71cd41afd940c2d4b63b9479489803174fd53e66804b0",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Related failed-toolkit selectors are unchanged and passed. Explicit CUDA readiness now checks a requested compiler target list."
     }
   ]
 }

@@ -14,6 +14,10 @@
 .PARAMETER CudaPath
     Explicit CUDA installation path to prefer over auto-detection.
 
+.PARAMETER TargetComputeCaps
+    Optional comma-, semicolon-, or space-separated targets, such as 89,120.
+    Check that nvcc emits code for every target before setting build variables.
+
 .PARAMETER Quiet
     Suppress informational output (still returns a result object).
 #>
@@ -21,6 +25,7 @@
 param(
     [string[]]$PreferredVersions = @('v13.1', 'v13.2', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
     [string]$CudaPath,
+    [string]$TargetComputeCaps,
     [switch]$Quiet,
     [switch]$InstallMachineGlobal,
     [switch]$WorkaroundMsvc1944
@@ -97,6 +102,54 @@ function Get-CudaCandidates {
         Select-Object -Unique
 }
 
+function Get-NvccGpuCodes {
+    param([string]$CompilerPath)
+
+    try {
+        $output = @(& $CompilerPath --list-gpu-code 2>$null)
+        if ($LASTEXITCODE -eq 0) { $output | ForEach-Object { $_.Trim() } }
+    } catch {
+        Write-Verbose "nvcc target probe failed: $($_.Exception.Message)"
+    }
+}
+
+function Select-CudaToolkit {
+    param([string[]]$Candidates, [string]$TargetComputeCaps)
+
+    $targetCodes = @($TargetComputeCaps -split '[,;\s]+' | Where-Object { $_ } | ForEach-Object {
+        $target = $_ -replace '^(sm|compute)_?', ''
+        if ($target -match '^\d{1,2}\.\d$') { $target = $target.Replace('.', '') }
+        if ($target -cnotmatch '^\d{2,3}[af]?$') { throw "Invalid CUDA compute target: $_" }
+        "sm_$target"
+    } | Select-Object -Unique)
+    $reasons = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($candidate in $Candidates) {
+        $nvcc = Join-Path $candidate 'bin\nvcc.exe'
+        $header = Join-Path $candidate 'include\cuda_runtime.h'
+        if (-not (Test-Path -LiteralPath $nvcc -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $header -PathType Leaf)) {
+            $reasons.Add("Incomplete CUDA toolkit: $candidate")
+            continue
+        }
+        if ($targetCodes.Count) {
+            $supported = @(Get-NvccGpuCodes -CompilerPath $nvcc)
+            if (-not $supported.Count) {
+                $reasons.Add("nvcc could not list GPU targets: $candidate")
+                continue
+            }
+            $missing = @($targetCodes | Where-Object { $_ -cnotin $supported })
+            if ($missing.Count) {
+                $reasons.Add("Unsupported CUDA targets $($missing -join ', ') in $candidate")
+                continue
+            }
+        }
+        return @{ Path = $candidate; Notes = $reasons.ToArray(); TargetCodes = $targetCodes }
+    }
+
+    return @{ Path = $null; Notes = $reasons.ToArray(); TargetCodes = $targetCodes }
+}
+
 function Resolve-MsvcCompilerBin {
     $candidates = [System.Collections.Generic.List[string]]::new()
 
@@ -161,36 +214,15 @@ function Initialize-CudaEnvironment {
     param(
         [string[]]$PreferredVersions = @('v13.1', 'v13.2', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
         [string]$CudaPath,
+        [string]$TargetComputeCaps,
         [switch]$Quiet,
         [switch]$InstallMachineGlobal,
         [switch]$WorkaroundMsvc1944
     )
 
     $candidates = Get-CudaCandidates -PreferredVersions $PreferredVersions -CudaPath $CudaPath
-    $selected = $null
-    $reasons = @()
-
-    foreach ($candidate in $candidates) {
-        if (-not (Test-Path $candidate)) {
-            $reasons += "Not found: $candidate"
-            continue
-        }
-
-        $nvcc = Join-Path $candidate 'bin\nvcc.exe'
-        $include = Join-Path $candidate 'include\cuda_runtime.h'
-
-        if (-not (Test-Path $nvcc)) {
-            $reasons += "nvcc missing: $candidate"
-            continue
-        }
-        if (-not (Test-Path $include)) {
-            $reasons += "cuda_runtime.h missing: $candidate"
-            continue
-        }
-
-        $selected = $candidate
-        break
-    }
+    $toolkit = Select-CudaToolkit -Candidates $candidates -TargetComputeCaps $TargetComputeCaps
+    $selected = $toolkit.Path
 
     if (-not $selected) {
         return [PSCustomObject]@{
@@ -200,7 +232,8 @@ function Initialize-CudaEnvironment {
             Cicc        = $null
             Include     = $null
             PathUpdated = $false
-            Notes       = $reasons
+            TargetCodes = $toolkit.TargetCodes
+            Notes       = $toolkit.Notes
         }
     }
 
@@ -344,9 +377,10 @@ function Initialize-CudaEnvironment {
         IncludeUpdated       = $includeUpdated
         LibUpdated           = $libUpdated
         CudaArchs            = $env:CUDAARCHS
+        TargetCodes          = $toolkit.TargetCodes
         NvccCcbin            = $env:NVCC_CCBIN
         CompatibilityWarning = $null
-        Notes                = @()
+        Notes                = @($toolkit.Notes)
     }
 
     $majorVersion = 0
@@ -378,5 +412,5 @@ function Initialize-CudaEnvironment {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-    Initialize-CudaEnvironment -PreferredVersions $PreferredVersions -CudaPath $CudaPath -Quiet:$Quiet -InstallMachineGlobal:$InstallMachineGlobal -WorkaroundMsvc1944:$WorkaroundMsvc1944
+    Initialize-CudaEnvironment -PreferredVersions $PreferredVersions -CudaPath $CudaPath -TargetComputeCaps $TargetComputeCaps -Quiet:$Quiet -InstallMachineGlobal:$InstallMachineGlobal -WorkaroundMsvc1944:$WorkaroundMsvc1944
 }

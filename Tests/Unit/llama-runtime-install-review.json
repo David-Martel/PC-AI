@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
-  "recordedAtUtc": "2026-11-23T01:07:40Z",
-  "sourceBaseline": "75f489dc7d2a02b5cef24595c26449ded770b5e9",
-  "upstreamReleaseMetadata": "https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/b12635",
+  "recordedAtUtc": "2026-11-23T03:17:37Z",
+  "sourceBaseline": "3b3f1f2d4ca3c298224872e8e5410a61f54edaf6",
+  "upstreamReleaseMetadata": "https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/b12646",
   "hashConvention": "SHA-256 over LF-normalized bytes. Selectors start at the indented It command and end at its closing brace and LF. Parameterized cases share their selector.",
   "sourceBindings": {
-    "Tools/Install-PcaiLlamaRuntime.ps1": "a16eadd921e8cf16a5908e13e26ce3a4b6261ef718b14eeb81309f60297dad38",
-    "Config/llama-cpp-runtime.json": "629182c1551ed1b7558a6e460a81618ab5b17daeb7aeac82d42a3bfd05659ae6",
-    "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1": "da11906e36cd3e75bc62802c4f624b4797f9350a083488da33494c5a5f80f67f"
+    "Tools/Install-PcaiLlamaRuntime.ps1": "446bec5a967fdefb62045ffdd94d21e9c2c3499002cb8e15a4da03c2097880c8",
+    "Config/llama-cpp-runtime.json": "c25bb1157a3111a2e9207dbc8f7a2dcafcbcdde620063d371f3c816df9a35b1a",
+    "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1": "cbc3ae06ac00413feefc1077e270a223fb97794e40733dc9ece54acd8ecc2b72"
   },
   "selectors": [
     {
       "selector": "pins all four published Windows x64 ZIP assets",
       "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
-      "sha256": "fe7abe57de7009f9125e33886377a36264cef08bcb4bc7d4c5a7ed61469cc35f",
+      "sha256": "56c87e6516629bb2a5268273ae66f1382155e753161b9bf80923075c423452d1",
       "disposition": "unreviewed",
       "reviewer": "codex",
       "reviewerType": "author self-review",
       "reviewedAtUtc": null,
-      "reviewScope": "a missing CUDA runtime or drift from GitHub b12635 pin and release architecture."
+      "reviewScope": "a missing CUDA runtime or drift from GitHub b12646 pin and release architecture."
     },
     {
       "selector": "returns structured Unsupported on an unavailable platform",
@@ -53,7 +53,7 @@
     {
       "selector": "rejects a same-length digest mismatch from <Origin> without publishing",
       "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
-      "sha256": "e18aae83a0db62145400579393182ccddd9625def62f8f0d5781ca177fcb0c99",
+      "sha256": "0507f9dc0c0476185ce0bed3360c8e6adaae2a82d71ff55465fb98a67638342d",
       "disposition": "unreviewed",
       "reviewer": "codex",
       "reviewerType": "author self-review",

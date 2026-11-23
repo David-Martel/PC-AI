@@ -103,6 +103,9 @@ ollama-rs = { version = "0.3.4", features = ["stream"] }
 schemars = "1.2.2"
 url = "2.5"
 
+# Property-based testing (GGUF reader never-panics test). std only keeps the lock diff small.
+proptest = { version = "1", default-features = false, features = ["std"] }
+
 [profile.release]
 opt-level = 3      # Maximum optimization
 lto = "thin"       # Thin LTO: 2-5% runtime speedup, moderate compile cost

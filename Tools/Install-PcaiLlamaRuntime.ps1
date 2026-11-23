@@ -30,7 +30,7 @@
     ./Tools/Install-PcaiLlamaRuntime.ps1 -Route IntelVulkan -OutputRoot ./llama-runtime -DryRun
 
 .LINK
-    https://github.com/ggml-org/llama.cpp/releases/tag/b12635
+    https://github.com/ggml-org/llama.cpp/releases
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(

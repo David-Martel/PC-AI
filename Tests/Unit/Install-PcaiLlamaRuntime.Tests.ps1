@@ -32,20 +32,20 @@ BeforeAll {
 
 Describe 'Pinned llama.cpp runtime staging' -Tag 'Unit', 'Portable', 'LlamaRuntime' {
     # Protects: the published Windows routes select the exact versioned upstream assets.
-    # Detects: a missing CUDA runtime or drift from GitHub b12635 pin and release architecture.
+    # Detects: a missing CUDA runtime or drift from GitHub b12646 pin and release architecture.
     # Needs: shipped manifest only, on any PowerShell 7.4 host.
     # Breadcrumb: Config/llama-cpp-runtime.json; Tools/Install-PcaiLlamaRuntime.ps1.
     It 'pins all four published Windows x64 ZIP assets' {
         $manifest = Get-Content -LiteralPath $sourceManifest -Raw | ConvertFrom-Json -AsHashtable
-        $manifest.version | Should -BeExactly 'b12635'
-        $manifest.commit | Should -BeExactly 'ad50351f5092436f312d98d25689207df25f4802'
+        $manifest.version | Should -BeExactly 'b12646'
+        $manifest.commit | Should -BeExactly 'f4f6f2e7db76e98c95cc9b7fc608ea669c806044'
         $profile = $manifest.platforms['windows-x64']
         $profile.routes.CPU -join ',' | Should -BeExactly 'cpu'
         $profile.routes.IntelVulkan -join ',' | Should -BeExactly 'vulkan'
         $profile.routes.NvidiaCuda -join ',' | Should -BeExactly 'cuda,cudart'
-        $profile.assets.cpu.sha256 | Should -BeExactly 'c0fcd7ef0412f2a02b76713c6228d68717973a61f0cc17b9299eb98e3bf048dc'
-        $profile.assets.vulkan.sha256 | Should -BeExactly 'f2249334614c44e1222616754616a401c1d5ee460830868b1891166c455cb142'
-        $profile.assets.cuda.sha256 | Should -BeExactly '8b6c1eee485a1b53dbfb04d84d481ec8e8bcf364fb4061b95dfb86d9d68e4c3a'
+        $profile.assets.cpu.sha256 | Should -BeExactly 'a1ea7429343ff32fdd5533fe587b6ab88fb05839a281e285afbaf4d97b5d722f'
+        $profile.assets.vulkan.sha256 | Should -BeExactly 'a410c2d5b1db2a6c709724da26b1a791ac5960d35baf7041e1ac8177ccd956f5'
+        $profile.assets.cuda.sha256 | Should -BeExactly '9625603a500192585c3d272d74dcc3a0008c420c08bc044eb8d8d44eee1a1658'
         $profile.assets.cudart.sha256 | Should -BeExactly 'c2bf4cc202bfbaaa7a0b75f5082457c3811326947bb216059b72839d844e9cba'
     }
 
@@ -75,7 +75,7 @@ Describe 'Pinned llama.cpp runtime staging' -Tag 'Unit', 'Portable', 'LlamaRunti
             $profile = $script:fixtureManifest.platforms['windows-x64']
             $cache = Join-Path $fixtureRoot 'cache'
             $output = Join-Path $fixtureRoot 'out'
-            $final = Join-Path $output 'b12635/windows-x64/CPU'
+            $final = Join-Path $output 'b12646/windows-x64/CPU'
             $cpuZip = Join-Path $cache $profile.assets.cpu.name
             Mock Invoke-WebRequest { throw 'Unexpected fixture download.' }
             Mock Start-Process { throw 'Unexpected process launch.' }
@@ -150,7 +150,7 @@ Describe 'Pinned llama.cpp runtime staging' -Tag 'Unit', 'Portable', 'LlamaRunti
             $remainingStages.Count | Should -Be 0
             if ($Origin -eq 'cache') { Should -Invoke Invoke-WebRequest -Exactly -Times 0 }
             else {
-                $expectedUrl = "https://github.com/ggml-org/llama.cpp/releases/download/b12635/$($profile.assets.cpu.name)"
+                $expectedUrl = "https://github.com/ggml-org/llama.cpp/releases/download/b12646/$($profile.assets.cpu.name)"
                 Should -Invoke Invoke-WebRequest -Exactly -Times 1 -ParameterFilter { [string]$Uri -ceq $expectedUrl }
             }
         }

@@ -9,12 +9,18 @@ fn main() {
     // (reported by codex on PR #403). Cargo sets CARGO_FEATURE_* for the compiled features, and a feature change
     // already gives this script a new run, so these reads need no trigger of their own.
     let has_cuda = cuda_compiled();
+
+    // PATH is an input of every build, not only CUDA builds: `git` (the commit, the branch, `git describe` and the
+    // watch paths below) and, with a CUDA feature, `nvcc` are looked up on it. A first build without git on PATH
+    // embeds `unknown` and records no Git watch paths, so without this declaration a later warm build with git
+    // available never reruns the script and keeps `unknown` (reported by codex on PR #403). Declaring it costs a
+    // rerun when a shell or wrapper changes PATH, which is the point: the metadata then reflects the tools the
+    // build can actually see. Tests/Portable/test_inference_build_metadata.py checks the declaration and replays
+    // that exact sequence.
+    println!("cargo:rerun-if-env-changed=PATH");
+
     if has_cuda {
         println!("cargo:rustc-cfg=has_cuda");
-        // get_cuda_version runs the nvcc found on PATH to label a CUDA build, so PATH is an input whenever a CUDA
-        // feature is compiled. It is not declared otherwise: PATH differs between shells and build wrappers, and
-        // nothing else here depends on it.
-        println!("cargo:rerun-if-env-changed=PATH");
     }
 
     // Generate version information

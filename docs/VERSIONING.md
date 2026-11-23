@@ -126,8 +126,9 @@ PATCH, MINOR or MAJOR after it.
   - every environment variable it embeds (`PCAI_VERSION`, `PCAI_BUILD_VERSION`, `PCAI_SEMVER`, `PCAI_GIT_HASH`,
     `PCAI_GIT_HASH_SHORT`, `PCAI_GIT_BRANCH`, `PCAI_BUILD_TIMESTAMP`, `PCAI_BUILD_TYPE`), each read through
     `tracked_env`, which declares it to Cargo whether or not it is set;
-  - `PATH`, but only when a CUDA feature is compiled, because the script then runs the `nvcc` found on `PATH` to
-    label the CUDA version;
+  - `PATH`, on every build: the script looks up `git` on it (and `nvcc` too when a CUDA feature is compiled). A first
+    build without git on `PATH` embeds `unknown` and records no Git watch paths, so without this trigger a later warm
+    build with git available would keep `unknown`. Changing `PATH` therefore reruns the script, which is cheap;
   - the compiled features (Cargo reruns the script when they change). `has_cuda` is true only when
     `cuda-llamacpp` or `cuda-mistralrs` is compiled in; the build host's CUDA toolkit settings are never consulted,
     so a build without a CUDA feature reports `has_cuda: false` on any machine;
@@ -135,7 +136,9 @@ PATCH, MINOR or MAJOR after it.
     `git rev-parse --git-path` so linked worktrees resolve too.
 
   [test_inference_build_metadata.py](../Tests/Portable/test_inference_build_metadata.py) changes each input alone
-  in a warm build and checks that the embedded constant changed, and that an unchanged rebuild stays cached.
+  in a warm build and checks that the embedded constant changed, and that an unchanged rebuild stays cached. It also
+  builds without git on `PATH`, restores it, rebuilds warm and expects the real commit. With git unavailable the
+  embedded commit, branch and version say `unknown` (the version is `{crate version}+unknown`), never a stale value.
   `pcai-llamacpp --version-json` and
   `pcai-mistralrs --version-json` print the embedded build info, and the FFI export `pcai_version` returns the crate
   version.

@@ -22,6 +22,15 @@ reads has a rerun trigger.
   step and asserts that the generated ``build_info.rs`` constant changed. Its
   negative control asserts that an unchanged rebuild neither reruns the build
   script nor recompiles the crate, so the cache still works.
+- ``PATH`` is an input of every build, because the script looks ``git`` up on it.
+  Codex found (PR #403, 15c00d73) that the declaration sat inside ``if has_cuda``:
+  a first CPU build without git on PATH embeds ``unknown``, records no Git watch
+  paths, and a later warm build with git available never reran the script. Three
+  tests cover it at three costs: a static check that the declaration is
+  unconditional, a fast check of the build script's ``output`` file for a CPU-only
+  feature set, and the exact warm-rebuild sequence (build without git, restore
+  PATH, rebuild warm, expect the real commit, then withdraw git again and expect
+  ``unknown`` rather than the stale commit).
 
 Breadcrumbs: Native/pcai_core/pcai_inference/build.rs (``tracked_env``);
 docs/VERSIONING.md, "How builds, installs and tests read the version". CI runs
@@ -95,6 +104,14 @@ HOST_CUDA_PROBES = ('"CUDA_PATH"', '"CUDA_HOME"', '"nvidia-smi"')
 # pcai-inference declares crate-type = ["cdylib", "rlib"]; its kind is never "lib".
 LIBRARY_KINDS = {"lib", "rlib", "cdylib", "dylib", "staticlib"}
 
+# A build script that runs git must declare PATH as a top-level statement of
+# ``main`` (rustfmt indents that by exactly four spaces). A declaration nested in
+# a conditional is the bug: it covers only the builds that take that branch.
+RUNS_GIT = re.compile(r'Command::new\(\s*"git"\s*\)')
+PATH_DECLARED_UNCONDITIONALLY = re.compile(
+    r'^    println!\("cargo:rerun-if-env-changed=PATH"\);$', re.MULTILINE
+)
+
 ENV_READ = re.compile(r'(?:env::var(?:_os)?|option_env!|env!)\(\s*"([A-Z0-9_]+)"')
 RERUN_ENV = re.compile(r"rerun-if-env-changed=([A-Z0-9_]+)")
 TRACKED_CALL = re.compile(r'tracked_env\(\s*"([A-Z0-9_]+)"')
@@ -117,11 +134,20 @@ def untracked_inputs(source: str) -> set[str]:
 
 @dataclass(frozen=True)
 class CheckResult:
-    """One cargo check: the generated build_info.rs, its mtime, crate freshness."""
+    """One cargo check: build_info.rs, mtime, crate freshness, script output."""
 
     text: str
     mtime: int
     lib_fresh: bool
+    output: str = ""
+
+
+def constant(text: str, name: str) -> str:
+    """The value of ``pub const NAME: &str = "...";`` in build_info.rs."""
+    match = re.search(rf'pub const {name}: &str = "([^"]*)";', text)
+    if match is None:
+        raise AssertionError(f"build_info.rs has no string constant {name}")
+    return match.group(1)
 
 
 class BuildScriptInputsAreDeclared(unittest.TestCase):
@@ -157,6 +183,47 @@ class BuildScriptInputsAreDeclared(unittest.TestCase):
         self.assertIn("CARGO_FEATURE_CUDA_LLAMACPP", source)
         self.assertIn("CARGO_FEATURE_CUDA_MISTRALRS", source)
 
+    def test_a_build_script_that_runs_git_tracks_path_unconditionally(self):
+        """Protects: PATH is a rerun trigger on every build of a script that runs git.
+
+        Detects: the PR #403 regression where ``rerun-if-env-changed=PATH`` was emitted
+        only inside ``if has_cuda``, so CPU builds kept metadata computed under a
+        different PATH. Needs: only the sources. This sees the declaration's position,
+        not whether it is reached; the build-script output test covers that.
+        """
+        scripts = [
+            script
+            for script in build_scripts()
+            if RUNS_GIT.search(script.read_text(encoding="utf-8"))
+        ]
+        self.assertIn(
+            INFERENCE_BUILD_RS,
+            scripts,
+            "the inference script runs git and must be scanned",
+        )
+        for script in scripts:
+            with self.subTest(script=str(script.relative_to(REPO))):
+                source = script.read_text(encoding="utf-8")
+                self.assertIsNotNone(
+                    PATH_DECLARED_UNCONDITIONALLY.search(source),
+                    "runs git but does not declare PATH at the top level of main",
+                )
+
+    def test_the_path_scan_rejects_a_conditional_declaration(self):
+        """Positive control: the scan flags the PR #403 shape and accepts the fix."""
+        conditional = (
+            "fn main() {\n    if has_cuda {\n"
+            '        println!("cargo:rerun-if-env-changed=PATH");\n    }\n}\n'
+        )
+        unconditional = (
+            'fn main() {\n    println!("cargo:rerun-if-env-changed=PATH");\n'
+            "    if has_cuda {\n    }\n}\n"
+        )
+        self.assertIsNone(PATH_DECLARED_UNCONDITIONALLY.search(conditional))
+        self.assertIsNotNone(PATH_DECLARED_UNCONDITIONALLY.search(unconditional))
+        self.assertIsNotNone(RUNS_GIT.search('Command::new("git")'))
+        self.assertIsNone(RUNS_GIT.search('Command::new("nvcc")'))
+
     def test_the_scan_finds_an_untracked_read(self):
         """Positive control: the scan flags an untracked read, accepts a tracked one."""
         self.assertEqual(
@@ -185,7 +252,11 @@ class InferenceWarmRebuild(unittest.TestCase):
         cls.scratch_dir = tempfile.TemporaryDirectory(prefix="pcai-build-metadata-")
         cls.addClassCleanup(cls.scratch_dir.cleanup)
         cls.scratch = Path(cls.scratch_dir.name)
-        cls.target = cls.scratch / "target"
+        # PCAI_BUILD_METADATA_TARGET_DIR keeps one target directory across runs
+        # on a disk that cannot hold several; every test here is independent of
+        # what an earlier run left in it.
+        persistent = os.environ.get("PCAI_BUILD_METADATA_TARGET_DIR")
+        cls.target = Path(persistent) if persistent else cls.scratch / "target"
         # Start from no metadata input at all, and never share a target directory.
         cls.base_env = {
             key: value
@@ -193,6 +264,45 @@ class InferenceWarmRebuild(unittest.TestCase):
             if not key.startswith("PCAI_")
             and key not in {"CUDA_PATH", "CUDA_HOME", "CARGO_TARGET_DIR"}
         }
+        cls.nonce = 0
+
+    def fresh_nonce(self, label: str) -> str:
+        """A PCAI_BUILD_TYPE no earlier run used, so the script reruns for it."""
+        type(self).nonce += 1
+        return f"{label}-{os.getpid()}-{type(self).nonce}"
+
+    def path_without_git(self) -> str:
+        """PATH on which ``git`` cannot run, leaving cargo, rustc and the linker.
+
+        Windows: drop every PATH entry that holds a git executable (git lives in
+        its own directories there). Elsewhere git shares /usr/bin with the C
+        toolchain, so put a ``git`` that always fails first instead.
+        """
+        original = self.base_env["PATH"]
+        self.assertIsNotNone(
+            shutil.which("git", path=original),
+            "git must be installed: without it this scenario proves nothing",
+        )
+        if os.name == "nt":
+            kept = [
+                entry
+                for entry in original.split(os.pathsep)
+                if entry and shutil.which("git", path=entry) is None
+            ]
+            stripped = os.pathsep.join(kept)
+            self.assertIsNone(shutil.which("git", path=stripped))
+            self.assertIsNotNone(
+                shutil.which("rustc", path=stripped)
+                or shutil.which("cargo", path=stripped),
+                "stripping git from PATH also removed the Rust toolchain",
+            )
+            return stripped
+        stub_dir = self.scratch / "no-git"
+        stub_dir.mkdir(exist_ok=True)
+        stub = stub_dir / "git"
+        stub.write_text("#!/bin/sh\nexit 127\n", encoding="utf-8")
+        stub.chmod(0o755)
+        return os.pathsep.join([str(stub_dir), original])
 
     def check(self, overrides: Mapping[str, str | None]) -> CheckResult:
         env = dict(self.base_env)
@@ -239,8 +349,14 @@ class InferenceWarmRebuild(unittest.TestCase):
         if lib_fresh is None:
             self.fail("cargo reported no pcai-inference library artifact")
         info = out_dir / "build_info.rs"
+        # <target>/<profile>/build/pcai-inference-<hash>/{out,output}: `output`
+        # is what the script printed.
+        output = out_dir.parent / "output"
         return CheckResult(
-            info.read_text(encoding="utf-8"), info.stat().st_mtime_ns, lib_fresh
+            info.read_text(encoding="utf-8"),
+            info.stat().st_mtime_ns,
+            lib_fresh,
+            output.read_text(encoding="utf-8"),
         )
 
     def test_each_metadata_input_change_reaches_the_generated_constants(self):
@@ -282,6 +398,75 @@ class InferenceWarmRebuild(unittest.TestCase):
         result = self.check(fake)
         self.assertIn("pub const HAS_CUDA: bool = false;", result.text)
         self.assertIn('pub const CUDA_VERSION: &str = "none";', result.text)
+
+    def test_a_cpu_build_script_declares_path_in_its_output(self):
+        """Protects: a CPU-only build tracks PATH (fast form of the warm rebuild).
+
+        Detects: ``rerun-if-env-changed=PATH`` emitted only for CUDA builds. Cargo
+        records what the script printed in
+        ``<target>/<profile>/build/<pkg>-<hash>/output``.
+        The nonce forces a fresh script run, so the file is not left over from an
+        earlier run. Needs: cargo (shares the class's target directory).
+        """
+        result = self.check({"PCAI_BUILD_TYPE": self.fresh_nonce("output")})
+        self.assertNotIn(
+            "cargo:rustc-cfg=has_cuda",
+            result.output,
+            "this must be a CPU-only build for the check to mean anything",
+        )
+        self.assertIn("cargo:rerun-if-env-changed=PATH", result.output.splitlines())
+
+    def test_git_becoming_available_reaches_a_warm_cpu_rebuild(self):
+        """Protects: a warm CPU rebuild embeds the real commit once git is on PATH.
+
+        Detects: the PR #403 failure. (1) A CPU build with git off PATH must say
+        ``unknown`` for the commit, the branch and the version; (2) restoring PATH
+        and rebuilding warm, in the same target directory, must embed HEAD; (3)
+        removing git again must go back to ``unknown``, never keep the old commit.
+        PCAI_BUILD_TYPE stays fixed (and unique to this run) across the steps, so
+        PATH is the only input that changes between them. Needs: cargo, git.
+        """
+        head = subprocess.run(
+            ["git", "-C", str(REPO), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        original_path = self.base_env["PATH"]
+        no_git_path = self.path_without_git()
+        same = {"PCAI_BUILD_TYPE": self.fresh_nonce("gitpath")}
+
+        without_git = self.check({**same, "PATH": no_git_path})
+        for name in ("GIT_HASH", "GIT_HASH_SHORT", "GIT_BRANCH"):
+            self.assertEqual(
+                constant(without_git.text, name),
+                "unknown",
+                f"{name} must say unknown when git is unavailable",
+            )
+        self.assertTrue(
+            constant(without_git.text, "VERSION").endswith("+unknown"),
+            "VERSION must carry an explicit +unknown build",
+        )
+
+        with_git = self.check({**same, "PATH": original_path})
+        self.assertEqual(
+            constant(with_git.text, "GIT_HASH"),
+            head,
+            "a warm rebuild after git became available kept the stale metadata",
+        )
+        self.assertEqual(constant(with_git.text, "GIT_HASH_SHORT"), head[:7])
+        self.assertIn(head[:7], constant(with_git.text, "VERSION"))
+        self.assertNotIn("unknown", constant(with_git.text, "VERSION"))
+        self.assertFalse(
+            with_git.lib_fresh, "the crate was not rebuilt with the new metadata"
+        )
+
+        withdrawn = self.check({**same, "PATH": no_git_path})
+        self.assertEqual(
+            constant(withdrawn.text, "GIT_HASH"),
+            "unknown",
+            "git withdrawn from PATH left the previous commit embedded",
+        )
 
     def test_unchanged_inputs_keep_the_build_cached(self):
         """Negative control: with no input changed, nothing reruns or recompiles.

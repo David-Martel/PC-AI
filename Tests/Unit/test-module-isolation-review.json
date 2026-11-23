@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": null,
+  "reviewer": "pending independent review",
+  "reviewerType": "pending independent review",
+  "authorFamily": "claude",
+  "sourceBaseline": "b20268710fe1f621f77fee39fcc348637ad6b002",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent.",
+  "sourceBindings": {
+    "Tests/Helpers/Import-PcaiTestModule.ps1": "18c215088d7722b73445809187a1a0e7463e136dd0819ff27051ca83655bcd21",
+    "Tests/Unit/TestModuleIsolation.Tests.ps1": "ad4df531f423dd6cb810d89a32d14489d37a02147eebfd61937adf5c1c3389a6"
+  },
+  "selectors": [
+    {
+      "selector": "the stale copy makes Pester refuse a module-scoped mock (the failure being prevented)",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "acc78bfbc08b151c901c30b675a0bd9e0b4d8ef8bcdf9e075c4bd49a87d2043e",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5, TestDrive and synthetic modules; Windows and Linux.",
+      "detects": "Pester or PowerShell no longer refusing duplicate module names, which would make every isolation test vacuous.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    },
+    {
+      "selector": "leaves exactly one copy, the one imported from the requested path",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "ab5b3429eda535ffcb1018437cf80f90907fea2b090e8474ee683895d1c303c7",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5, TestDrive and synthetic modules; Windows and Linux.",
+      "detects": "A helper that replaces only the copy it matches by path and leaves a second copy loaded.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    },
+    {
+      "selector": "lets a module-scoped mock resolve after the import",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "e14a09571a3d162cc0d429add107d0f82a814e2d6b7138889123bfae15a1a18a",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5, TestDrive and synthetic modules; Windows and Linux.",
+      "detects": "A helper that imports cleanly but leaves a duplicate, so Mock -ModuleName fails.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    },
+    {
+      "selector": "removes other PC-AI family modules too, so the file starts as it does when run alone",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "c488f7033320fb3c89084974f419561aa64ebca661042e44301fa218e508dca8",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5, TestDrive and synthetic modules; Windows and Linux.",
+      "detects": "A helper that clears only the named module and leaves the sibling that sends the autoloader to the installed PC-AI package.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    },
+    {
+      "selector": "keeps the other family modules when -KeepLoaded is given",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "e6aacd0c797b59de137a2c9ae1927c894fd1cc5c2d06030a5eed057f20eec33b",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5, TestDrive and synthetic modules; Windows and Linux.",
+      "detects": "-KeepLoaded clearing the family anyway.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    },
+    {
+      "selector": "leaves modules outside the family alone, and removes -Alongside names",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "960aca3b5524c8f11ee4ab9609dc0448c74d19450f46a198ceb28cc6a24f5d7b",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5, TestDrive and synthetic modules; Windows and Linux.",
+      "detects": "The family wildcard removing fixture or Pester modules, or -Alongside being ignored.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    },
+    {
+      "selector": "throws naming the manifest it looked for",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "2f0d8679d91e6b06b99e12e53ecc072ff4ee9eb717708f5ab1730861b8e26841",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5; Windows and Linux.",
+      "detects": "A missing module surfacing as a generic or late error.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    },
+    {
+      "selector": "imports the manifest under this checkout's Modules directory",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "16c3ceebb2c979a7cfa4ff0517d0bed175cc003a2cbf8bd4ed0a1a395db3d7ad",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5 and the repository module Modules/PC-AI.Common; Windows and Linux.",
+      "detects": "A name-based import that loads a copy from PSModulePath instead of this checkout.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    },
+    {
+      "selector": "removes a copy imported into the test scope without -Global",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "0a8db1f489c5585467eafe42880bcc4a42ac050a06d3f63b108bcb6db79ef173",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5, TestDrive and synthetic modules; Windows and Linux.",
+      "detects": "A removal that reaches only the global scope.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    },
+    {
+      "selector": "removes a global copy and a path-distinct copy in one call",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "de5600ce81318df0c3a2cbedec377e59d6547a3617187de9ea766eaeb5dcf027",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5, TestDrive and synthetic modules; Windows and Linux.",
+      "detects": "A removal that stops at the first copy of a name.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    },
+    {
+      "selector": "removes only the names it is given, and a name that is not loaded removes nothing",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "a0ad5699b6dafd7b248a0728533722882967ba5d2695db87b2e813aa629330ad",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5, TestDrive and synthetic modules; Windows and Linux.",
+      "detects": "A removal that ignores -Name and clears the family.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    },
+    {
+      "selector": "leaves a module outside the family loaded when called with no name",
+      "source": "Tests/Unit/TestModuleIsolation.Tests.ps1",
+      "sha256": "2ef9fdaecbf740f5c814baf52f45e0f7a39b948be446e56276e0990c5a013456",
+      "codeUnderTest": [
+        "Tests/Helpers/Import-PcaiTestModule.ps1"
+      ],
+      "disposition": "unreviewed",
+      "needs": "Pester 5, TestDrive and synthetic modules; Windows and Linux.",
+      "detects": "The default pattern matching a fixture or Pester module.",
+      "reviewScope": "Pending independent review. The reviewer is not the claude family. Reviewer questions: does the selector still protect behavior that ships (relevance), does it fail when the helper is broken (coverage; the first selector is the positive control that two loaded copies make Pester refuse a module-scoped mock), and what does a change to it permit that was refused before (breaking behavior)."
+    }
+  ],
+  "adoptingFiles": [
+    {
+      "path": "Tests/Unit/PC-AI.USB.Tests.ps1",
+      "sha256": "173b12342b61992936a5ec3e73be2862e2351a8416fb69c8abe67f05c083ac55",
+      "itBlockCount": 24,
+      "itBlocksSha256Before": "87afece5885050fc9472353774069543cc6a0cbd718355e40b0e8e14326e47d5",
+      "itBlocksSha256After": "87afece5885050fc9472353774069543cc6a0cbd718355e40b0e8e14326e47d5",
+      "itBlocksUnchanged": true,
+      "changedBlocks": "BeforeAll and AfterAll only: module import and cleanup through Tests/Helpers/Import-PcaiTestModule.ps1"
+    },
+    {
+      "path": "Tests/Unit/PC-AI.Virtualization.Tests.ps1",
+      "sha256": "fe2efffa9fa8b7d6d96ef5786a8211d0a88308799b9c98558f22b1a9c8d9ef47",
+      "itBlockCount": 38,
+      "itBlocksSha256Before": "4769aa507cf68704e99cd224388dc2470f918cac12df8b2ca13f31511ecc0dbc",
+      "itBlocksSha256After": "4769aa507cf68704e99cd224388dc2470f918cac12df8b2ca13f31511ecc0dbc",
+      "itBlocksUnchanged": true,
+      "changedBlocks": "BeforeAll and AfterAll only: module import and cleanup through Tests/Helpers/Import-PcaiTestModule.ps1"
+    },
+    {
+      "path": "Tests/Unit/Virtualization-Fallback.Tests.ps1",
+      "sha256": "b17cb44403db59abe36c0199711050d4658d0a637595de79d2e986952ccf3284",
+      "itBlockCount": 3,
+      "itBlocksSha256Before": "61d1aeed225097152b0c9b509053ae651608e7d719fa1c12e2ae7ef54c59d493",
+      "itBlocksSha256After": "61d1aeed225097152b0c9b509053ae651608e7d719fa1c12e2ae7ef54c59d493",
+      "itBlocksUnchanged": true,
+      "changedBlocks": "BeforeAll and AfterAll only: module import and cleanup through Tests/Helpers/Import-PcaiTestModule.ps1"
+    },
+    {
+      "path": "Tests/Unit/PcaiNetworkContracts.Tests.ps1",
+      "sha256": "bd5f90bb7dbe22d077de20da14ae3763905e287c3270dc9cff7723ccf4830a58",
+      "itBlockCount": 37,
+      "itBlocksSha256Before": "4fed29636f1f8359dc29f1e346e639fa013a22cd11167a83d1d01bd64064b12d",
+      "itBlocksSha256After": "4fed29636f1f8359dc29f1e346e639fa013a22cd11167a83d1d01bd64064b12d",
+      "itBlocksUnchanged": true,
+      "changedBlocks": "BeforeAll and AfterAll only: module import and cleanup through Tests/Helpers/Import-PcaiTestModule.ps1"
+    },
+    {
+      "path": "Tests/Unit/Set-LLMProviderOrder.Tests.ps1",
+      "sha256": "7ffb17f36dcba0728fd600ec26c95fdf866c8333624b4fb49aa01a61db2d2f7d",
+      "itBlockCount": 8,
+      "itBlocksSha256Before": "5f376fb0fb1a3f938272aeccb0571680516294ba77188d5a048e073110ae2f59",
+      "itBlocksSha256After": "5f376fb0fb1a3f938272aeccb0571680516294ba77188d5a048e073110ae2f59",
+      "itBlocksUnchanged": true,
+      "changedBlocks": "BeforeAll and AfterAll only: module import and cleanup through Tests/Helpers/Import-PcaiTestModule.ps1"
+    },
+    {
+      "path": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "66c226f81f9e9d856e5561b05058238dd821c5908ebf47d6a1fcfe525566414d",
+      "itBlockCount": 72,
+      "itBlocksSha256Before": "c7683b642964dcaec64cc6f18b1cd5b847e4ed53cc88a10a96d439bac21dad3b",
+      "itBlocksSha256After": "c7683b642964dcaec64cc6f18b1cd5b847e4ed53cc88a10a96d439bac21dad3b",
+      "itBlocksUnchanged": true,
+      "changedBlocks": "BeforeAll and AfterAll only: module import and cleanup through Tests/Helpers/Import-PcaiTestModule.ps1"
+    }
+  ],
+  "evidence": "Tests/Unit/test-module-isolation-evidence.json"
+}

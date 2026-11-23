@@ -239,7 +239,9 @@ A test file that imports a `PC-AI.*` module dot-sources `Tests/Helpers/Import-Pc
 `BeforeAll` and `Remove-PcaiTestModule` in `AfterAll`. The first removes every loaded `PC-AI*` and `Pcai*` module (nested copies included) and
 imports this checkout's manifest by absolute path; the second removes what the file, or PowerShell's module autoloader, loaded. Without them a
 stale copy turns `Mock -ModuleName` into "Multiple script or manifest modules named ... are currently loaded" (the helper's header records the
-measured chain). `Tests/Unit/TestModuleIsolation.Tests.ps1` plants stale copies and asserts the helper removes them.
+measured chain). [`Tests/Unit/TestModuleIsolation.Tests.ps1`](Unit/TestModuleIsolation.Tests.ps1) plants stale copies and asserts the helper removes them;
+its [review register](Unit/test-module-isolation-review.json) binds each selector and the six adopting files by hash, and the
+[whole-suite before/after evidence](Unit/test-module-isolation-evidence.json) records the `known_failures` entries this change removed.
 
 ## Code Coverage
 

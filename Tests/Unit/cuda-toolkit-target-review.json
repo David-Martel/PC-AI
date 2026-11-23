@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "sourceBaseline": "0450cf85bdb2cd580f3217af235456f713fec50a",
-  "recordedAtUtc": "2026-11-23T02:13:32.7689088Z",
+  "recordedAtUtc": "2026-11-23T03:32:49.0842411Z",
   "hashConvention": "SHA-256 of UTF-8 LF-normalized source text and exact Pester It AST extents",
   "sourceBindings": {
     "Tools/Initialize-CudaEnvironment.ps1": "32ae89903b3030e289c68cd8dbf217c0190ac38e462437a0f703e86cb785de2a",
     "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "dca555c90db61518e8e5fa6a74a0ecc0b816d4c1e5795064e2f0e825fa1d68e2",
-    "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1": "8f27954f2bc37aa4639b03e4fd5e5e16c695c1b964996f364f89ef7994f95bad",
-    "docs/ai-build-qualification.md": "b24b81315268827b4ba6997b16fd89df6053a17d173f90fb5347ababcf8c53a3"
+    "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1": "84b9dc0b3556bc86d0f6b20c5357e6ed74d295079e2cf563299faed9ebc0894f",
+    "docs/ai-build-qualification.md": "d4b4ed6dd0da98a455b5a7e592ebd3ae6420bda54689eeff2dbdb1e44be5ecdf"
   },
   "selectors": [
     {
@@ -135,6 +135,32 @@
       "reviewerType": "author self-review",
       "disposition": "unreviewed",
       "reviewScope": "Seven red cases on the runtime-path change alone turn green. Two controls keep auto and multi-value fallback unchanged. This fixture qualifies argument selection only."
+    },
+    {
+      "selector": "leaves a foreign CUDA runtime in place when the selected toolkit has none",
+      "source": "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1",
+      "sha256": "8ded5a787d37584d245e6d765d92cc4975313aa2556c0e0842f8fd7536a04bbd",
+      "protects": "The selected compiler stays first while unrelated PATH entries retain their order.",
+      "detects": "Promoting a foreign runtime when the selected toolkit has no bin/x64 directory.",
+      "needs": "Pester TestDrive, two inert toolkit directories and a process-scoped PATH.",
+      "breadcrumb": "Tools/Initialize-CudaEnvironment.ps1 Set-PreferredCudaBinPath.",
+      "reviewer": "codex-gen9-cuda-review",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "The selector fails when the helper takes a foreign bin/x64 directory from PATH. The production helper passes."
+    },
+    {
+      "selector": "restores the inherited Mistral CUDA target after <Case>",
+      "source": "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1",
+      "sha256": "0d9b62ae41f932c948c8dfe04e2e61705252dcb27a9bb98e60f4f1b60783118d",
+      "protects": "The original Mistral CUDA target is restored for the next build in the same process.",
+      "detects": "A build-specific CUDA target surviving success or a terminating build error.",
+      "needs": "Pester, the actual top-level build tail and inert initialization, build and artifact copy.",
+      "breadcrumb": "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1 snapshot and finally cleanup.",
+      "reviewer": "codex-gen9-cuda-review",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "All four cases fail when the actual restoration assignment is removed. The production tail passes with and without an inherited target."
     }
   ]
 }

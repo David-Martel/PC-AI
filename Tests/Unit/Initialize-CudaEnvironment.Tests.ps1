@@ -122,6 +122,28 @@ Describe 'Initialize-CudaEnvironment' -Tag 'Unit', 'Cuda', 'Portable' {
             $env:PATH = $originalPath
         }
     }
+
+    # Protects: a selected compiler without a runtime directory keeps unrelated PATH entries in order.
+    # Detects: promoting an older toolkit's CUDA runtime ahead of unrelated entries.
+    # Needs: Pester TestDrive directory fixtures and process PATH, restored even on failure.
+    # Breadcrumb: Tools/Initialize-CudaEnvironment.ps1 Set-PreferredCudaBinPath.
+    It 'leaves a foreign CUDA runtime in place when the selected toolkit has none' {
+        $selectedBin = Join-Path (New-ToolkitFixture 'compiler-only') 'bin'
+        $foreignBin = Join-Path (New-ToolkitFixture 'older-with-runtime') 'bin'
+        $foreignRuntime = Join-Path $foreignBin 'x64'
+        $null = New-Item -ItemType Directory -Path $foreignRuntime
+        $systemBin = Join-Path $TestDrive 'other-tools'
+        $originalPath = $env:PATH
+
+        try {
+            $env:PATH = @($systemBin, $foreignBin, $foreignRuntime) -join ';'
+            Set-PreferredCudaBinPath $selectedBin | Should -BeTrue
+            $env:PATH | Should -BeExactly (@($selectedBin, $systemBin, $foreignBin, $foreignRuntime) -join ';')
+        } finally {
+            $env:PATH = $originalPath
+        }
+    }
+
     # Protects: suffixed CUDA targets require the admitted toolkit's own assembler.
     # Detects: accepting an advertised numeric code with no sibling ptxas.
     # Needs: a complete numeric-only toolkit fixture and mocked compiler output.
@@ -239,6 +261,21 @@ Describe 'PC-AI CUDA build admission' -Tag 'Unit', 'Cuda', 'Portable' {
         }
         if (@($cudaBranch).Count -ne 1) { throw 'The explicit CUDA selector was not found.' }
         $script:CudaProbe = [scriptblock]::Create($cudaBranch.Extent.Text)
+
+        $tailStart = $cudaAst.EndBlock.Statements | Where-Object {
+            $_ -is [Management.Automation.Language.AssignmentStatementAst] -and
+            $_.Left.Extent.Text -eq '$previousMistralCudaTarget'
+        }
+        $tailEnd = $cudaAst.EndBlock.Statements | Where-Object {
+            $_ -is [Management.Automation.Language.AssignmentStatementAst] -and
+            $_.Left.Extent.Text -eq '$totalDuration'
+        }
+        if (@($tailStart).Count -ne 1 -or @($tailEnd).Count -ne 1) {
+            throw 'The CUDA build tail was not found.'
+        }
+        $tailOffset = $tailStart.Extent.StartOffset
+        $tailLength = $tailEnd.Extent.StartOffset - $tailOffset
+        $script:CudaBuildTail = [scriptblock]::Create($cudaAst.Extent.Text.Substring($tailOffset, $tailLength))
     }
 
     # Protects: toolkit admission follows each backend's own target override.
@@ -429,6 +466,51 @@ function Initialize-CudaEnvironment {
         } finally {
             $script:MsvcClPath = $originalScriptMsvcClPath
             foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name, $original[$name]) }
+        }
+    }
+
+    # Protects: subsequent same-process builds see the caller's original Mistral target.
+    # Detects: normalized targets leaking from either a successful build or a build that throws.
+    # Needs: Pester, the actual top-level build tail and inert initialization, build and copy commands.
+    # Breadcrumb: Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1 snapshot and finally cleanup.
+    It 'restores the inherited Mistral CUDA target after <Case>' -ForEach @(
+        @{ Case = 'success with a caller target'; CallerTarget = 'sm_89'; BuildTarget = '89'; BuildFails = $false },
+        @{ Case = 'failure with a caller target'; CallerTarget = 'sm_89'; BuildTarget = '89'; BuildFails = $true },
+        @{ Case = 'success without a caller target'; CallerTarget = $null; BuildTarget = '120'; BuildFails = $false },
+        @{ Case = 'failure without a caller target'; CallerTarget = $null; BuildTarget = '120'; BuildFails = $true }
+    ) {
+        $Backend = 'mistralrs'
+        $Configuration = 'Release'
+        $steps = [System.Collections.Generic.List[string]]::new()
+        function Initialize-BuildEnvironment { $env:CUDA_COMPUTE_CAP = $BuildTarget }
+        function Clear-IncompleteCmakeConfig {}
+        function Invoke-Build {
+            param([string]$BackendName)
+            $steps.Add($BackendName)
+            $env:CUDA_COMPUTE_CAP | Should -BeExactly $BuildTarget
+            if ($BuildFails) { throw 'CUDA fixture build failed' }
+        }
+        function Copy-CompiledArtifacts {
+            param([string]$Configuration, [string]$BackendBuilt)
+            $steps.Add("$BackendBuilt/$Configuration")
+        }
+        $originalTarget = [Environment]::GetEnvironmentVariable('CUDA_COMPUTE_CAP')
+        try {
+            $env:CUDA_COMPUTE_CAP = $CallerTarget
+            if ($BuildFails) {
+                { & $script:CudaBuildTail } | Should -Throw 'CUDA fixture build failed'
+                ($steps -join ',') | Should -BeExactly 'mistralrs'
+            } else {
+                & $script:CudaBuildTail
+                ($steps -join ',') | Should -BeExactly 'mistralrs,mistralrs/Release'
+            }
+            if ($null -eq $CallerTarget) {
+                $env:CUDA_COMPUTE_CAP | Should -BeNullOrEmpty
+            } else {
+                $env:CUDA_COMPUTE_CAP | Should -BeExactly $CallerTarget
+            }
+        } finally {
+            [Environment]::SetEnvironmentVariable('CUDA_COMPUTE_CAP', $originalTarget)
         }
     }
 }

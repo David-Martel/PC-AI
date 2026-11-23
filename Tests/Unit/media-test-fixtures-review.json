@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "54229a8c7f1194e340926b40586796bf01d46b7f",
+  "recordedAtUtc": "2026-11-23T04:48:19.0832348+00:00",
+  "hashConvention": "SHA-256 of UTF-8 LF source and each Pester It command AST extent.",
+  "reviewer": "codex",
+  "reviewerType": "author self-review",
+  "sourceBindings": {
+    "Tests/Unit/PC-AI.Media.Tests.ps1": "80f1c496ced66882244d13b10bf89c5b61a555895b8ffb9d5f963ac033b16c0e",
+    "Modules/PcaiMedia.psm1": "40a82a3076d78689a67c4bb440c24530d66f056c13ce5edf93bbc91b860ae605",
+    "Tests/README.md": "d46ac27b6663632ecb666850a9de5e3c0b8ccd7c6a19d7962cbffe81de062613"
+  },
+  "validation": {
+    "host": "PowerShell 7 on Windows, Pester 5.7.1",
+    "command": "Invoke-Pester -Path Tests/Unit/PC-AI.Media.Tests.ps1",
+    "sharedScratch": "An owned temporary directory was supplied as the shared process scratch root. An independent file at the former fixed name was removed by the baseline test. Both concurrent candidate runs preserved the file and passed all 83 tests each.",
+    "evidenceSha256": "0b227e6e61ca70aa7e88c06e2aa657eb193bc0bd5a210e56f257c664d320b05d"
+  },
+  "selectors": [
+    {
+      "selector": "Returns async request metadata with a positive RequestId",
+      "source": "Tests/Unit/PC-AI.Media.Tests.ps1",
+      "sha256": "76d3899d857ab14f4ade828966a27dd66938f5c2c98410b3338b2653f5f20ea9",
+      "codeUnderTest": "Modules/PcaiMedia.psm1 New-PcaiImageAsync",
+      "needs": "PowerShell, Pester 5, a per-session TestDrive, and the native media stub in this test file.",
+      "detects": "Loss of request identity, the fixture output path, or completion state.",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "Default Question is Describe this image in detail.",
+      "source": "Tests/Unit/PC-AI.Media.Tests.ps1",
+      "sha256": "5385e4684d735e0c6e5c93bd8ada2fdaa3b1b6c1f2b91a1c1815176ed0b5e2d6",
+      "codeUnderTest": "Modules/PcaiMedia.psm1 Get-PcaiImageAnalysis",
+      "needs": "PowerShell, Pester 5, a per-session TestDrive, and the native media stub in this test file.",
+      "detects": "A changed default analysis question.",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "Returns success object with ImagePath, Question, and Response when model loaded",
+      "source": "Tests/Unit/PC-AI.Media.Tests.ps1",
+      "sha256": "c1e6247dd36b62b01f2349473d1c818e8ee0d78186a6809cdba036ffed3f55d6",
+      "codeUnderTest": "Modules/PcaiMedia.psm1 Get-PcaiImageAnalysis",
+      "needs": "PowerShell, Pester 5, a per-session TestDrive, and the native media stub in this test file.",
+      "detects": "A lost image path, question, or analysis response.",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "Accepts a custom Question parameter",
+      "source": "Tests/Unit/PC-AI.Media.Tests.ps1",
+      "sha256": "68eb6ae6b9df40bcb695766f34347aee9ccb691730066d2db42ab654ae7659f7",
+      "codeUnderTest": "Modules/PcaiMedia.psm1 Get-PcaiImageAnalysis",
+      "needs": "PowerShell, Pester 5, a per-session TestDrive, and the native media stub in this test file.",
+      "detects": "Replacement of the supplied question with a default.",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "Defaults MaxTokens to 512",
+      "source": "Tests/Unit/PC-AI.Media.Tests.ps1",
+      "sha256": "7f221f4482299aec2d4df1be15d64595741d229be9b615de9fdbd072f5b7e097",
+      "codeUnderTest": "Modules/PcaiMedia.psm1 Get-PcaiImageAnalysis",
+      "needs": "PowerShell, Pester 5, a per-session TestDrive, and the native media stub in this test file.",
+      "detects": "A changed default token budget.",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "Defaults Temperature to 0.7",
+      "source": "Tests/Unit/PC-AI.Media.Tests.ps1",
+      "sha256": "5a7dc43605fafcc93b99591fcee9e7b3d9b83752e527188584f56a538ebd3870",
+      "codeUnderTest": "Modules/PcaiMedia.psm1 Get-PcaiImageAnalysis",
+      "needs": "PowerShell, Pester 5, a per-session TestDrive, and the native media stub in this test file.",
+      "detects": "A changed default analysis temperature.",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "Throws when media pipeline is not initialized",
+      "source": "Tests/Unit/PC-AI.Media.Tests.ps1",
+      "sha256": "6beaad5080b2f39b88776d779581bb68febe521c2ebd117c849730be133210ac",
+      "codeUnderTest": "Modules/PcaiMedia.psm1 Invoke-PcaiUpscale",
+      "needs": "PowerShell, Pester 5, a per-session TestDrive, and the native media stub in this test file.",
+      "detects": "An upscale request entering the pipeline before initialization.",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "Throws when input file does not exist",
+      "source": "Tests/Unit/PC-AI.Media.Tests.ps1",
+      "sha256": "594155c0b0aaf9988b037a4a6e8fc45504b82c9f519619bb51836a69efda6745",
+      "codeUnderTest": "Modules/PcaiMedia.psm1 Invoke-PcaiUpscale",
+      "needs": "PowerShell, Pester 5, a per-session TestDrive, and the native media stub in this test file.",
+      "detects": "A missing input reaching the model check or the native call.",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "Throws when ONNX model does not exist",
+      "source": "Tests/Unit/PC-AI.Media.Tests.ps1",
+      "sha256": "a18b13bdd0b6586daed32c4724c0ccda9574ab47c73443dd2ebbdc9d5226abc5",
+      "codeUnderTest": "Modules/PcaiMedia.psm1 Invoke-PcaiUpscale",
+      "needs": "PowerShell, Pester 5, a per-session TestDrive, and the native media stub in this test file.",
+      "detects": "A missing model reaching native upscaling or being reported as a missing input.",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "Constructs default ONNX model path from project root when -ModelPath is omitted",
+      "source": "Tests/Unit/PC-AI.Media.Tests.ps1",
+      "sha256": "b7a0a57ea3ac67118920e915f5afcfd785de29a047c3a28d0a6289a7022fc3b7",
+      "codeUnderTest": "Modules/PcaiMedia.psm1 Invoke-PcaiUpscale",
+      "needs": "PowerShell, Pester 5, a per-session TestDrive, and the native media stub in this test file.",
+      "detects": "A misplaced default model path or successful return for the absent model.",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "Returns success object with ScaleFactor of 4 when inputs are valid",
+      "source": "Tests/Unit/PC-AI.Media.Tests.ps1",
+      "sha256": "7f7aa0793a27e1e986236227665f7aaa063e3a6d9b36711ffcdf4d5efcaa544c",
+      "codeUnderTest": "Modules/PcaiMedia.psm1 Invoke-PcaiUpscale",
+      "needs": "PowerShell, Pester 5, a per-session TestDrive, and the native media stub in this test file.",
+      "detects": "Loss of the successful result, the scale, or the selected input and output paths.",
+      "disposition": "unreviewed"
+    }
+  ]
+}

@@ -9,6 +9,7 @@
     Tests the PcaiMedia module (Modules/PcaiMedia.psm1) with mocked FFI calls.
     All native DLL interactions are replaced with Pester mocks so these tests
     run without a built PcaiNative.dll or pcai_media.dll.
+    Image analysis, upscaling, and async output fixtures use Pester's TestDrive.
 
     Test categories covered:
     - Module structure and export surface (10 public functions)
@@ -551,12 +552,13 @@ Write-Output 'fresh-bridge-loaded'
         }
 
         It 'Returns async request metadata with a positive RequestId' {
-            InModuleScope PcaiMedia {
+            $outPath = Join-Path $TestDrive 'async-output.png'
+            InModuleScope PcaiMedia -Parameters @{ OutPath = $outPath } {
+                param($OutPath)
                 $script:ModelLoaded = $true
-                $outPath = Join-Path $env:TEMP 'pcai_async_unit.png'
-                $job = New-PcaiImageAsync -Prompt 'async sunset' -OutputPath $outPath
+                $job = New-PcaiImageAsync -Prompt 'async sunset' -OutputPath $OutPath
                 $job.RequestId | Should -BeGreaterThan 0
-                $job.OutputPath | Should -Be $outPath
+                $job.OutputPath | Should -Be $OutPath
                 $job.Status | Should -Be 'Completed'
             }
         }
@@ -586,6 +588,11 @@ Write-Output 'fresh-bridge-loaded'
 
     Context 'Get-PcaiImageAnalysis' {
 
+        BeforeAll {
+            $analysisImage = Join-Path $TestDrive 'analysis-input.png'
+            [IO.File]::WriteAllBytes($analysisImage, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
+        }
+
         BeforeEach {
             InModuleScope PcaiMedia {
                 $script:ModelLoaded = $false
@@ -603,76 +610,50 @@ Write-Output 'fresh-bridge-loaded'
         }
 
         It 'Default Question is Describe this image in detail.' {
-            InModuleScope PcaiMedia {
+            InModuleScope PcaiMedia -Parameters @{ AnalysisImage = $analysisImage } {
+                param($AnalysisImage)
                 $script:ModelLoaded = $true
-                $tempImg = Join-Path $env:TEMP 'pcai_unit_test_default_question.png'
-                [System.IO.File]::WriteAllBytes($tempImg, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
-                try {
-                    $result = Get-PcaiImageAnalysis -ImagePath $tempImg
-                    $result.Question | Should -Be 'Describe this image in detail.'
-                } finally {
-                    Remove-Item $tempImg -Force -ErrorAction SilentlyContinue
-                }
+                $result = Get-PcaiImageAnalysis -ImagePath $AnalysisImage
+                $result.Question | Should -Be 'Describe this image in detail.'
             }
         }
 
         It 'Returns success object with ImagePath, Question, and Response when model loaded' {
-            InModuleScope PcaiMedia {
+            InModuleScope PcaiMedia -Parameters @{ AnalysisImage = $analysisImage } {
+                param($AnalysisImage)
                 $script:ModelLoaded = $true
-                # Create a temporary file to pass the Test-Path check
-                $tempImg = Join-Path $env:TEMP 'pcai_unit_test.png'
-                [System.IO.File]::WriteAllBytes($tempImg, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
-                try {
-                    $result = Get-PcaiImageAnalysis -ImagePath $tempImg
-                    $result.Success   | Should -BeTrue
-                    $result.ImagePath | Should -Be $tempImg
-                    $result.Question  | Should -Be 'Describe this image in detail.'
-                    $result.Response  | Should -Not -BeNullOrEmpty
-                } finally {
-                    Remove-Item $tempImg -Force -ErrorAction SilentlyContinue
-                }
+                $result = Get-PcaiImageAnalysis -ImagePath $AnalysisImage
+                $result.Success   | Should -BeTrue
+                $result.ImagePath | Should -Be $AnalysisImage
+                $result.Question  | Should -Be 'Describe this image in detail.'
+                $result.Response  | Should -Not -BeNullOrEmpty
             }
         }
 
         It 'Accepts a custom Question parameter' {
-            InModuleScope PcaiMedia {
+            InModuleScope PcaiMedia -Parameters @{ AnalysisImage = $analysisImage } {
+                param($AnalysisImage)
                 $script:ModelLoaded = $true
-                $tempImg = Join-Path $env:TEMP 'pcai_unit_test_q.png'
-                [System.IO.File]::WriteAllBytes($tempImg, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
-                try {
-                    $result = Get-PcaiImageAnalysis -ImagePath $tempImg -Question 'What OS is shown?'
-                    $result.Question | Should -Be 'What OS is shown?'
-                } finally {
-                    Remove-Item $tempImg -Force -ErrorAction SilentlyContinue
-                }
+                $result = Get-PcaiImageAnalysis -ImagePath $AnalysisImage -Question 'What OS is shown?'
+                $result.Question | Should -Be 'What OS is shown?'
             }
         }
 
         It 'Defaults MaxTokens to 512' {
-            InModuleScope PcaiMedia {
+            InModuleScope PcaiMedia -Parameters @{ AnalysisImage = $analysisImage } {
+                param($AnalysisImage)
                 $script:ModelLoaded = $true
-                $tempImg = Join-Path $env:TEMP 'pcai_unit_test_max_tokens.png'
-                [System.IO.File]::WriteAllBytes($tempImg, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
-                try {
-                    $result = Get-PcaiImageAnalysis -ImagePath $tempImg
-                    $result.MaxTokens | Should -Be 512
-                } finally {
-                    Remove-Item $tempImg -Force -ErrorAction SilentlyContinue
-                }
+                $result = Get-PcaiImageAnalysis -ImagePath $AnalysisImage
+                $result.MaxTokens | Should -Be 512
             }
         }
 
         It 'Defaults Temperature to 0.7' {
-            InModuleScope PcaiMedia {
+            InModuleScope PcaiMedia -Parameters @{ AnalysisImage = $analysisImage } {
+                param($AnalysisImage)
                 $script:ModelLoaded = $true
-                $tempImg = Join-Path $env:TEMP 'pcai_unit_test_temperature.png'
-                [System.IO.File]::WriteAllBytes($tempImg, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
-                try {
-                    $result = Get-PcaiImageAnalysis -ImagePath $tempImg
-                    [Math]::Abs($result.Temperature - 0.7) | Should -BeLessThan 0.0001
-                } finally {
-                    Remove-Item $tempImg -Force -ErrorAction SilentlyContinue
-                }
+                $result = Get-PcaiImageAnalysis -ImagePath $AnalysisImage
+                [Math]::Abs($result.Temperature - 0.7) | Should -BeLessThan 0.0001
             }
         }
     }
@@ -683,6 +664,16 @@ Write-Output 'fresh-bridge-loaded'
 
     Context 'Invoke-PcaiUpscale' {
 
+        BeforeAll {
+            $upscaleInput = Join-Path $TestDrive 'upscale-input.png'
+            $upscaleOutput = Join-Path $TestDrive 'upscale-output.png'
+            $upscaleModel = Join-Path $TestDrive 'upscale-model.onnx'
+            $fixtureProject = Join-Path $TestDrive 'upscale-project'
+            [IO.Directory]::CreateDirectory($fixtureProject) | Out-Null
+            [IO.File]::WriteAllBytes($upscaleInput, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
+            [IO.File]::WriteAllBytes($upscaleModel, [byte[]]@(0))
+        }
+
         BeforeEach {
             InModuleScope PcaiMedia {
                 $script:Initialized = $false
@@ -690,64 +681,57 @@ Write-Output 'fresh-bridge-loaded'
         }
 
         It 'Throws when media pipeline is not initialized' {
-            { Invoke-PcaiUpscale -InputPath 'C:\in.png' -OutputPath 'C:\out.png' } |
+            { Invoke-PcaiUpscale -InputPath $upscaleInput -OutputPath $upscaleOutput } |
                 Should -Throw '*not initialized*'
         }
 
         It 'Throws when input file does not exist' {
             InModuleScope PcaiMedia { $script:Initialized = $true }
-            { Invoke-PcaiUpscale -InputPath 'C:\nonexistent_pcai_input.png' -OutputPath 'C:\out.png' } |
+            $missingImage = Join-Path $TestDrive 'missing-upscale-input.png'
+            { Invoke-PcaiUpscale -InputPath $missingImage -OutputPath $upscaleOutput } |
                 Should -Throw '*Input image not found*'
         }
 
         It 'Throws when ONNX model does not exist' {
             InModuleScope PcaiMedia { $script:Initialized = $true }
-            $tempIn = Join-Path $env:TEMP 'pcai_upscale_in.png'
-            [System.IO.File]::WriteAllBytes($tempIn, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
-            try {
-                { Invoke-PcaiUpscale -InputPath $tempIn -OutputPath 'C:\out.png' -ModelPath 'C:\nonexistent.onnx' } |
-                    Should -Throw '*ONNX model not found*'
-            } finally {
-                Remove-Item $tempIn -Force -ErrorAction SilentlyContinue
-            }
+            $missingModel = Join-Path $TestDrive 'missing-upscale-model.onnx'
+            { Invoke-PcaiUpscale -InputPath $upscaleInput -OutputPath $upscaleOutput -ModelPath $missingModel } |
+                Should -Throw '*ONNX model not found*'
         }
 
         It 'Constructs default ONNX model path from project root when -ModelPath is omitted' {
-            InModuleScope PcaiMedia {
+            InModuleScope PcaiMedia -Parameters @{
+                FixtureProject = $fixtureProject
+                FixtureInput = $upscaleInput
+                FixtureOutput = $upscaleOutput
+            } {
+                param($FixtureProject, $FixtureInput, $FixtureOutput)
                 $script:Initialized = $true
-                $tempIn = Join-Path $env:TEMP 'pcai_upscale_in2.png'
-                [System.IO.File]::WriteAllBytes($tempIn, [byte[]]@(0x89, 0x50, 0x4E, 0x47))
+                $previousModulePath = $script:ModulePath
                 try {
-                    # The function will throw because the default ONNX path won't exist;
-                    # verify the error message contains the expected default path segment.
-                    try {
-                        Invoke-PcaiUpscale -InputPath $tempIn -OutputPath 'C:\out.png'
-                    } catch {
-                        $_.Exception.Message | Should -Match 'RealESRGAN'
-                    }
+                    $script:ModulePath = Join-Path $FixtureProject 'Modules'
+                    $expectedModel = Join-Path $FixtureProject 'Models\RealESRGAN\RealESRGAN_x4.onnx'
+                    { Invoke-PcaiUpscale -InputPath $FixtureInput -OutputPath $FixtureOutput } |
+                        Should -Throw -ExpectedMessage "RealESRGAN ONNX model not found: $expectedModel"
                 } finally {
-                    Remove-Item $tempIn -Force -ErrorAction SilentlyContinue
+                    $script:ModulePath = $previousModulePath
                 }
             }
         }
 
         It 'Returns success object with ScaleFactor of 4 when inputs are valid' {
-            InModuleScope PcaiMedia {
+            InModuleScope PcaiMedia -Parameters @{
+                FixtureInput = $upscaleInput
+                FixtureModel = $upscaleModel
+                FixtureOutput = $upscaleOutput
+            } {
+                param($FixtureInput, $FixtureModel, $FixtureOutput)
                 $script:Initialized = $true
-                $tempIn    = Join-Path $env:TEMP 'pcai_upscale_src.png'
-                $tempOnnx  = Join-Path $env:TEMP 'pcai_realesrgan.onnx'
-                $tempOut   = Join-Path $env:TEMP 'pcai_upscale_out.png'
-                [System.IO.File]::WriteAllBytes($tempIn,   [byte[]]@(0x89, 0x50, 0x4E, 0x47))
-                [System.IO.File]::WriteAllBytes($tempOnnx, [byte[]]@(0x00))
-                try {
-                    $result = Invoke-PcaiUpscale -InputPath $tempIn -OutputPath $tempOut -ModelPath $tempOnnx
-                    $result.Success     | Should -BeTrue
-                    $result.ScaleFactor | Should -Be 4
-                    $result.InputPath   | Should -Be $tempIn
-                    $result.OutputPath  | Should -Be $tempOut
-                } finally {
-                    Remove-Item $tempIn, $tempOnnx -Force -ErrorAction SilentlyContinue
-                }
+                $result = Invoke-PcaiUpscale -InputPath $FixtureInput -OutputPath $FixtureOutput -ModelPath $FixtureModel
+                $result.Success     | Should -BeTrue
+                $result.ScaleFactor | Should -Be 4
+                $result.InputPath   | Should -Be $FixtureInput
+                $result.OutputPath  | Should -Be $FixtureOutput
             }
         }
     }

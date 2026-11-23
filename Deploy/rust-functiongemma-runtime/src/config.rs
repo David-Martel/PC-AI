@@ -39,7 +39,6 @@ pub(crate) struct RuntimeConfig {
     pub(crate) router_cuda_mem_pool_release_threshold_mb: Option<u64>,
     pub(crate) router_cuda_mem_pool_trim_mb: Option<u64>,
     pub(crate) router_cuda_mem_snapshot: bool,
-    pub(crate) verbose: bool,
     pub(crate) log_filter: String,
     pub(crate) router_queue_depth: usize,
     pub(crate) router_request_timeout_secs: u64,
@@ -74,7 +73,6 @@ impl Default for RuntimeConfig {
             router_cuda_mem_pool_release_threshold_mb: None,
             router_cuda_mem_pool_trim_mb: None,
             router_cuda_mem_snapshot: false,
-            verbose: false,
             log_filter: "info".to_string(),
             router_queue_depth: 4,
             router_request_timeout_secs: 30,
@@ -208,9 +206,4 @@ pub(crate) fn router_engine() -> RouterEngine {
         "model" => RouterEngine::Model,
         _ => RouterEngine::Heuristic,
     }
-}
-
-#[cfg(feature = "model")]
-pub(crate) fn is_verbose() -> bool {
-    runtime_config().verbose
 }

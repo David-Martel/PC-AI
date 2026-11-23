@@ -4,9 +4,9 @@
   "ReviewedAtUtc": "2026-11-23T00:22:58.2419085Z",
   "HashConvention": "SHA-256 of UTF-8 LF sources and the exact Pester It command AST extent without a trailing newline.",
   "SourceBindings": {
-    "Build.ps1": "46b50d68f18f9854a171c729dc9208458adb4ac556759399696d988444cf5885",
+    "Build.ps1": "a95867bea2bff74bc0f61d436ba1450f7eb788e76f9438c53e033c86fb37030e",
     "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "73d083ecb3312fb919e52496a67a199f753a21fd7fb99c8c367ac2f835125caf",
-    "Tests/Unit/BuildReleaseGate.Tests.ps1": "7d621dfaa476907e12f79bcead5610bf3882f456478b54305101256943e313c9"
+    "Tests/Unit/BuildReleaseGate.Tests.ps1": "ae8ec99cd063617eb2a8adb4a8c530bcb0cfc29b196e4e3ee88e29d79c1dba15"
   },
   "Validation": "PowerShell 7 and Pester 5.7.1 on Windows. Isolated fixtures exercise the publication and child-failure boundaries with local temporary files. Real build, release contents, fleet installation, and CUDA hardware qualification remain separate.",
   "Selectors": [
@@ -100,6 +100,26 @@
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed",
       "ReviewScope": "The fixture links a parent outside the named build path, verifies early refusal, and verifies untouched destination and archive paths."
+    }
+  ],
+  "sourceRechecks": [
+    {
+      "source": "Build.ps1",
+      "previousSha256": "46b50d68f18f9854a171c729dc9208458adb4ac556759399696d988444cf5885",
+      "sha256": "a95867bea2bff74bc0f61d436ba1450f7eb788e76f9438c53e033c86fb37030e",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
+    },
+    {
+      "source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
+      "previousSha256": "7d621dfaa476907e12f79bcead5610bf3882f456478b54305101256943e313c9",
+      "sha256": "ae8ec99cd063617eb2a8adb4a8c530bcb0cfc29b196e4e3ee88e29d79c1dba15",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
     }
   ]
 }

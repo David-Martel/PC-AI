@@ -69,7 +69,7 @@ function Invoke-PostBuildTests {
     $script:BuildProbePwsh = (Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
 
     $buildFunctionNames = @(
-        'Invoke-InferenceBuild', 'Invoke-FunctionGemmaBuild',
+        'Invoke-InferenceBuild', 'Invoke-FunctionGemmaBuild', 'Get-FunctionGemmaCargoArguments',
         'Save-BuildPublicationOutputs', 'Get-BuildDeployBundleName'
     )
     foreach ($functionName in $buildFunctionNames) {

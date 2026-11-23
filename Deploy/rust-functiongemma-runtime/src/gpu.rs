@@ -1,6 +1,6 @@
 #![cfg(feature = "model")]
 
-use crate::config::runtime_config;
+use crate::config::{runtime_config, RuntimeConfig};
 use candle_core::Device;
 use rust_functiongemma_core::gpu::{
     configure_and_log_cuda_mem_pool, log_cuda_snapshot, resolve_device_with_index, CudaMemPoolConfig,
@@ -41,36 +41,26 @@ pub(crate) fn parse_visible_devices() -> Option<Vec<usize>> {
     Some(list)
 }
 
-pub(crate) fn resolve_cuda_index_for_config() -> Option<usize> {
-    let cfg = runtime_config();
+pub(crate) fn resolve_device(cfg: &RuntimeConfig) -> (Device, Option<usize>) {
     let params = DeviceSelectionParams {
         device_label: &cfg.router_device,
         gpu_index: cfg.router_gpu,
-        force_cpu: false,
+        force_cpu: !cfg!(feature = "cuda"),
         min_vram_mb: cfg.min_vram_mb,
         cuda_visible_devices: &cfg.cuda_visible_devices,
     };
-    resolve_device_with_index(&params).1
+    resolve_device_with_index(&params)
 }
 
-pub(crate) fn resolve_device() -> Device {
-    let cfg = runtime_config();
-    let params = DeviceSelectionParams {
-        device_label: &cfg.router_device,
-        gpu_index: cfg.router_gpu,
-        force_cpu: false,
-        min_vram_mb: cfg.min_vram_mb,
-        cuda_visible_devices: &cfg.cuda_visible_devices,
-    };
-    resolve_device_with_index(&params).0
-}
-
-pub(crate) fn device_label() -> String {
-    let configured_device = runtime_config().router_device.trim().to_string();
+pub(crate) fn device_label(cfg: &RuntimeConfig) -> String {
+    if !cfg!(feature = "cuda") {
+        return "cpu".to_string();
+    }
+    let configured_device = cfg.router_device.trim().to_string();
     if !configured_device.is_empty() && configured_device.to_lowercase() != "auto" {
         return normalize_device_label(&configured_device);
     }
-    if let Some(gpu) = runtime_config().router_gpu {
+    if let Some(gpu) = cfg.router_gpu {
         return format!("cuda:{}", gpu);
     }
     if let Some(idx) = auto_cuda_index() {
@@ -110,4 +100,33 @@ pub(crate) fn maybe_log_cuda_snapshot(tag: &str, device_index: Option<usize>) {
         return;
     }
     log_cuda_snapshot(tag, device_index);
+}
+
+#[cfg(all(test, not(feature = "cuda")))]
+mod tests {
+    use super::*;
+
+    // Protects: the CPU model build uses and reports CPU even with CUDA options present.
+    // Detects: implicit GPU selection, a misleading health label, or a missing CPU tensor backend.
+    // Needs: the model feature, no CUDA feature, and host CPU only.
+    // Breadcrumb: resolve_device, device_label and FunctionGemma core's force_cpu selection.
+    #[test]
+    fn cpu_model_uses_cpu_even_with_cuda_preferences() -> anyhow::Result<()> {
+        for label in ["auto", "cpu", "cuda:1"] {
+            let cfg = RuntimeConfig {
+                router_device: label.to_string(),
+                router_gpu: Some(1),
+                cuda_visible_devices: vec![1],
+                ..RuntimeConfig::default()
+            };
+
+            let (device, cuda_index) = resolve_device(&cfg);
+            assert!(matches!(device, Device::Cpu));
+            assert_eq!(cuda_index, None);
+            assert_eq!(device_label(&cfg), "cpu");
+            let values = candle_core::Tensor::new(&[2.0f32, 3.0], &device)?;
+            assert_eq!(values.sqr()?.to_vec1::<f32>()?, [4.0, 9.0]);
+        }
+        Ok(())
+    }
 }

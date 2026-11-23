@@ -12,11 +12,11 @@
     "Deploy/rust-functiongemma-train/tests/full_training_test.rs": "063ec960ef12e704a7c3c121e6058c7e7128f0cca84110c1a6e2150efa80e35c",
     "Deploy/rust-functiongemma-train/tests/trainer_lora_test.rs": "8f6e1c9b5b857d140e327530b7af2456793300c48f65fb6d2828d8274bef5783",
     "Deploy/rust-functiongemma-train/tests/integration_test.rs": "e62b28885150584e5218060e0a7bf406f3e65cffde9fc80470a6c2d44f798588",
-    "Deploy/rust-functiongemma-core/src/model.rs": "9887a9c2a8b460c6f699147bf53f52ccfc4b82401a2171998125234eaada5911",
-    "Build.ps1": "92ef324fbad5d93a9d898814142ae9fc8b7743e14c3abc706e3958147d3d682f",
+    "Deploy/rust-functiongemma-core/src/model.rs": "a4ca9eab1f43dd6fb302c2e2e56df535c1ba57cd79e1a9d52109c7cfbb41576d",
+    "Build.ps1": "a95867bea2bff74bc0f61d436ba1450f7eb788e76f9438c53e033c86fb37030e",
     "Tools/Invoke-DocPipeline.ps1": "3b68829694976fdb9a7cedda4e1492ce207089a347d9c92c62700c68f180c6ab",
-    ".github/workflows/functiongemma-runtime.yml": "a6bdded080bd952b9dfce68b3445bf12591c4b2962bc2cd3a41d8a53c89d6b62",
-    "Tests/Unit/FunctionGemmaPreparation.Tests.ps1": "ffcb4dbe89335cde9435eb2850c00bd353169b2a3af130b1e7431d89c6887476",
+    ".github/workflows/functiongemma-runtime.yml": "30231668f523e4bc4d0cb3274272a38d2aad6c2b1653f55ea26405f9dd3d4102",
+    "Tests/Unit/FunctionGemmaPreparation.Tests.ps1": "190d3153a17b89dc2969430e2bfcf388c7592e70341cb4cd54a754c6b13551c5",
     "Deploy/rust-functiongemma-train/src/trainer/accumulation_tests.rs": "2e26e04da3ffa8f72d63e213442416c893766711e110fd909f7d24482935c7da"
   },
   "selectors": [
@@ -168,6 +168,44 @@
       "reviewedAtUtc": "2026-11-22T23:56:17.205Z",
       "disposition": "unreviewed",
       "reviewScope": "CPU fixture measures a 939 squared norm and checks the exact half-scale in both native dtypes. CUDA training and device support require runtime qualification."
+    }
+  ],
+  "sourceRechecks": [
+    {
+      "source": "Deploy/rust-functiongemma-core/src/model.rs",
+      "previousSha256": "9887a9c2a8b460c6f699147bf53f52ccfc4b82401a2171998125234eaada5911",
+      "sha256": "a4ca9eab1f43dd6fb302c2e2e56df535c1ba57cd79e1a9d52109c7cfbb41576d",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
+    },
+    {
+      "source": "Build.ps1",
+      "previousSha256": "92ef324fbad5d93a9d898814142ae9fc8b7743e14c3abc706e3958147d3d682f",
+      "sha256": "a95867bea2bff74bc0f61d436ba1450f7eb788e76f9438c53e033c86fb37030e",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
+    },
+    {
+      "source": ".github/workflows/functiongemma-runtime.yml",
+      "previousSha256": "a6bdded080bd952b9dfce68b3445bf12591c4b2962bc2cd3a41d8a53c89d6b62",
+      "sha256": "30231668f523e4bc4d0cb3274272a38d2aad6c2b1653f55ea26405f9dd3d4102",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
+    },
+    {
+      "source": "Tests/Unit/FunctionGemmaPreparation.Tests.ps1",
+      "previousSha256": "ffcb4dbe89335cde9435eb2850c00bd353169b2a3af130b1e7431d89c6887476",
+      "sha256": "190d3153a17b89dc2969430e2bfcf388c7592e70341cb4cd54a754c6b13551c5",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
     }
   ]
 }

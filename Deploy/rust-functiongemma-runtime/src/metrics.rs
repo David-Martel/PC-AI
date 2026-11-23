@@ -1,5 +1,7 @@
 use crate::config::{default_model, router_engine, runtime_config};
-use crate::types::{LoraMetadata, RouterMetadata, RouterStats, SystemMetrics, ToolsMetadata};
+#[cfg(not(feature = "model"))]
+use crate::types::LoraMetadata;
+use crate::types::{RouterMetadata, RouterStats, SystemMetrics, ToolsMetadata};
 use serde_json::Value;
 use std::fs;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -77,7 +79,7 @@ pub(crate) fn router_metadata() -> RouterMetadata {
     };
 
     #[cfg(feature = "model")]
-    let device = Some(device_label());
+    let device = Some(device_label(runtime_config()));
     #[cfg(not(feature = "model"))]
     let device: Option<String> = None;
 

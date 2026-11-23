@@ -1467,9 +1467,7 @@ impl Model {
                 None => self.forward(input_ids)?,
             };
             let last_logits_tensor = logits.squeeze(0)?.squeeze(0)?;
-            // Use to_vec1 + index instead of to_scalar to avoid a GPU→CPU scalar
-            // transfer that stalls the pipeline; to_vec1 batches the copy.
-            let next_id = last_logits_tensor.argmax(0)?.to_vec1::<u32>()?[0];
+            let next_id = last_logits_tensor.argmax(0)?.to_scalar::<u32>()?;
             generated.push(next_id);
 
             if next_id == 1 || next_id == 107 || next_id == 106 {
@@ -1557,7 +1555,7 @@ impl Model {
                 None => self.forward(input_ids)?,
             };
             let last_logits_tensor = logits.squeeze(0)?.squeeze(0)?;
-            let next_id = last_logits_tensor.argmax(0)?.to_vec1::<u32>()?[0];
+            let next_id = last_logits_tensor.argmax(0)?.to_scalar::<u32>()?;
             generated.push(next_id);
 
             if next_id == 1 || next_id == 107 || next_id == 106 {
@@ -1580,9 +1578,7 @@ impl Model {
             let (_b, s, _v) = logits.dims3()?;
             let last_logits = logits.narrow(1, s - 1, 1)?.squeeze(0)?.squeeze(0)?;
 
-            // Greedy sampling — use to_vec1 + index instead of to_scalar so a
-            // single batched copy services the GPU→CPU transfer.
-            let next_id = last_logits.argmax(0)?.to_vec1::<u32>()?[0];
+            let next_id = last_logits.argmax(0)?.to_scalar::<u32>()?;
             generated.push(next_id);
 
             // Check for EOS (special ID for Gemma) - typically 1 or 107
@@ -1644,6 +1640,49 @@ mod tests {
 
         let layer = LoraLinear::new_with_base(base.clone(), LoraSettings::new(0, 1.0, 0.0, false), vb)?;
         assert_eq!(layer.forward(&base)?.to_vec2::<f32>()?, vec![vec![2.0; 2]; 2]);
+        Ok(())
+    }
+
+    // Protects: greedy decoding produces real token IDs in every cache mode.
+    // Detects: reading the rank-zero argmax as a vector, returning the wrong token, or failing on a decode step.
+    // Needs: a two-dimensional CPU fixture with deterministic vocabulary weights.
+    // Breadcrumb: Model::generate, Model::generate_with_cache and Model::generate_with_prealloc_cache.
+    #[test]
+    fn greedy_generation_selects_tokens_with_and_without_cache() -> Result<()> {
+        let device = Device::Cpu;
+        let mut weights = VarMap::new();
+        let builder = VarBuilder::from_varmap(&weights, DType::F32, &device);
+        let config = Config {
+            hidden_size: 2,
+            intermediate_size: 4,
+            num_hidden_layers: 0,
+            num_attention_heads: 1,
+            num_key_value_heads: 1,
+            head_dim: 2,
+            vocab_size: 3,
+            rms_norm_eps: 1e-5,
+            rope_theta: 10_000.,
+            sliding_window: None,
+            layer_types: None,
+        };
+        let model = Model::new(&config, LoraSettings::new(0, 1., 0., false), builder, true)?;
+        weights.set_one(
+            "model.embed_tokens.weight",
+            Tensor::new(&[[0f32, 0.], [1., 0.], [2., 0.]], &device)?,
+        )?;
+        weights.set_one("model.norm.weight", Tensor::new(&[1f32, 1.], &device)?)?;
+        let prompt = Tensor::new(&[[0u32, 1]], &device)?;
+        let expected = [2, 2];
+
+        assert_eq!(model.generate(&prompt, 2, &device)?, expected);
+        assert_eq!(
+            model.generate_with_cache(&prompt, 2, &device, KvCacheQuant::None, None, false)?,
+            expected
+        );
+        assert_eq!(
+            model.generate_with_prealloc_cache(&prompt, 2, &device, &config, 4)?,
+            expected
+        );
         Ok(())
     }
 

@@ -5,7 +5,7 @@
   "hashConvention": "SHA-256 of UTF-8 LF text. Rust selector extents include the test attribute through the closing brace and final LF.",
   "sourceBindings": {
     "Deploy/rust-functiongemma-core/src/prompt.rs": "4bd2c8cd600bb4ab098710910a82d6e5f2593c24f2c612e0b78a8db9dff4ae3e",
-    "docs/functiongemma-runtime-validation.md": "001a7562c1e624d080bc777166f836a96448d7f5c7b551228be8011073a7d6f2"
+    "docs/functiongemma-runtime-validation.md": "cb12a4dce4d404f9e68cfbfa41c5c7a2b4190d93d25f5f3cc67e3a1fc87e218e"
   },
   "selectors": [
     {
@@ -25,6 +25,17 @@
       "reviewerType": "author-family source review",
       "disposition": "keep",
       "reviewScope": "Incomplete argument prefixes, trailing commas and duplicate keys are rejected before the runtime can dispatch a tool call."
+    }
+  ],
+  "sourceRechecks": [
+    {
+      "source": "docs/functiongemma-runtime-validation.md",
+      "previousSha256": "001a7562c1e624d080bc777166f836a96448d7f5c7b551228be8011073a7d6f2",
+      "sha256": "cb12a4dce4d404f9e68cfbfa41c5c7a2b4190d93d25f5f3cc67e3a1fc87e218e",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
     }
   ]
 }

@@ -1,20 +1,17 @@
 #![cfg(feature = "model")]
 
 use crate::config::{default_model, router_lora_path_override, router_model_path_override, runtime_config};
-use crate::gpu::{
-    default_dtype, maybe_configure_cuda_mem_pool, maybe_log_cuda_snapshot, resolve_cuda_index_for_config,
-    resolve_device,
-};
+use crate::gpu::{default_dtype, maybe_configure_cuda_mem_pool, maybe_log_cuda_snapshot, resolve_device};
 use crate::routing::build_tool_calls;
 use crate::types::{InferenceResult, LoraMetadata, Message};
-use candle_core::{DType, Device, Tensor};
+use candle_core::Tensor;
 use candle_nn::{VarBuilder, VarMap};
 use rust_functiongemma_core::chat_template::render_chat_prompt;
 use rust_functiongemma_core::lora_utils::resolve_lora_from_path;
 use rust_functiongemma_core::prompt::parse_function_call;
 use rust_functiongemma_core::{
     collect_model_safetensors, custom_load, detect_tie_embeddings, is_degenerate_output, open_mmaped_safetensors,
-    parse_ggml_dtype, trim_input_ids, Config, KvCacheQuant, LoraInfo, LoraSettings, Model, PreAllocKvCache,
+    parse_ggml_dtype, trim_input_ids, Config, KvCacheQuant, LoraInfo, LoraSettings, Model,
 };
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -35,8 +32,6 @@ struct ModelCache {
     model: Model,
     tokenizer: Tokenizer,
     config: Config,
-    tie_embeddings: bool,
-    lora_loaded: bool,
 }
 
 // SAFETY: `Model` is composed entirely of `candle_core::Tensor` (which uses
@@ -76,17 +71,11 @@ fn load_model_cache() -> anyhow::Result<ModelCache> {
     let lora_r = lora_info.as_ref().map(|l| l.r).unwrap_or(0);
     let lora_alpha = lora_info.as_ref().map(|l| l.alpha).unwrap_or(32.0);
     let lora_dropout = lora_info.as_ref().map(|l| l.dropout).unwrap_or(0.0);
-    let lora_loaded = lora_info.is_some();
 
     let config_raw = std::fs::read_to_string(model_path.join("config.json"))?;
     let config: Config = serde_json::from_str(&config_raw)?;
 
-    let device = resolve_device();
-    let device_index = if device.is_cuda() {
-        resolve_cuda_index_for_config()
-    } else {
-        None
-    };
+    let (device, device_index) = resolve_device(runtime_config());
     maybe_configure_cuda_mem_pool(device_index);
     maybe_log_cuda_snapshot("before_model_load", device_index);
 
@@ -129,7 +118,7 @@ fn load_model_cache() -> anyhow::Result<ModelCache> {
     let varmap = VarMap::new();
     let vb = VarBuilder::from_varmap(&varmap, default_dtype(&device), &device);
     let mut lora_settings = LoraSettings::new(lora_r, lora_alpha, lora_dropout, false);
-    if runtime_config().router_flash_attn {
+    if runtime_config().router_flash_attn && device.is_cuda() {
         lora_settings.enable_flash_attn();
     }
     if runtime_config().router_candle_qmatmul {
@@ -151,8 +140,6 @@ fn load_model_cache() -> anyhow::Result<ModelCache> {
         model,
         tokenizer,
         config,
-        tie_embeddings,
-        lora_loaded,
     })
 }
 
@@ -171,7 +158,7 @@ pub(crate) fn resolve_lora_adapter(model_path: &Path) -> Option<LoraInfo> {
     None
 }
 
-pub(crate) fn lora_metadata() -> Option<crate::types::LoraMetadata> {
+pub(crate) fn lora_metadata() -> Option<LoraMetadata> {
     let from_config = router_lora_path_override();
     let from_model = router_model_path_override().map(|p| PathBuf::from(p).join("adapter_model.safetensors"));
     let candidate = from_config.or(from_model)?;
@@ -201,12 +188,7 @@ pub(crate) fn infer_with_model(req: &crate::types::ChatCompletionRequest) -> any
         None => render_prompt(&req.messages, &json!([]))?,
     };
 
-    let device = resolve_device();
-    let device_index = if device.is_cuda() {
-        resolve_cuda_index_for_config()
-    } else {
-        None
-    };
+    let (device, device_index) = resolve_device(runtime_config());
 
     // Resolve the effective seed: per-request seed takes priority, then the
     // config-level default.  With greedy (argmax) decoding the seed does not

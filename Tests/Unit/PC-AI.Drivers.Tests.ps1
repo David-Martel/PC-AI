@@ -440,7 +440,7 @@ Describe "Install-DriverUpdate" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
 
     Context "Unknown device id" {
         It "Should write error for non-existent device" {
-            { Install-DriverUpdate -DeviceId 'nonexistent-device' -RegistryPath $script:TempRegistryPath -ErrorAction Stop } | Should -Throw
+            { Install-DriverUpdate -DeviceId 'nonexistent-device' -RegistryPath $script:TempRegistryPath -WhatIf -ErrorAction Stop } | Should -Throw
         }
     }
 }
@@ -453,15 +453,27 @@ Describe 'Driver download WhatIf and existing-byte integrity contracts' -Tag 'Un
 
     BeforeEach {
         $script:DownloadContractRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
-        $script:DownloadContractRegistry = Join-Path $TestDrive 'download-contract-registry.json'
+        $script:DriverTrustRoot = Join-Path $TestDrive ('trust-' + [guid]::NewGuid().ToString('N'))
+        [void][IO.Directory]::CreateDirectory($script:DriverTrustRoot)
+        $script:DownloadContractRegistry = Join-Path $script:DriverTrustRoot 'driver-registry.json'
         $registry = $script:MockRegistryJson | ConvertFrom-Json
         $registry.trustedSources[0].baseUrl = 'https://drivers.example.invalid'
         $registry.devices[0].driver.downloadUrl = 'https://drivers.example.invalid/driver.exe'
         $registry.devices[0].driver.installerType = 'exe'
         $registry.devices[0].driver.sha256 = $script:DownloadContractHash
+        $registry.devices[0].driver | Add-Member -NotePropertyName publisherCertificateSha256 -NotePropertyValue ('a' * 64)
         $registry.devices[0].sharedDriverGroup = $null
         $registry | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:DownloadContractRegistry -Encoding utf8
         Mock Test-AdminElevation { $true } -ModuleName PC-AI.Drivers
+        Mock Get-DriverInstallTrustRoot { $script:DriverTrustRoot } -ModuleName PC-AI.Drivers
+        Mock Assert-DriverInstallTrustPath {} -ModuleName PC-AI.Drivers
+        Mock New-DriverInstallStage {
+            param($TrustRoot)
+            $stage = Join-Path $TrustRoot ('install-' + [guid]::NewGuid().ToString('N'))
+            [void][IO.Directory]::CreateDirectory($stage)
+            $stage
+        } -ModuleName PC-AI.Drivers
+        Mock Assert-DriverInstallerSignature {} -ModuleName PC-AI.Drivers
         Mock Invoke-WebRequest { throw 'Unmocked driver network access is forbidden.' } -ModuleName PC-AI.Drivers
         Mock Start-Process { throw 'Actual driver installer execution is forbidden.' } -ModuleName PC-AI.Drivers
         Mock Expand-Archive { throw 'Actual driver archive extraction is forbidden.' } -ModuleName PC-AI.Drivers
@@ -665,7 +677,7 @@ Describe 'Driver download WhatIf and existing-byte integrity contracts' -Tag 'Un
         @{ InstallerType = 'none'; SkipDevice = 'firmware-hub' }
     ) {
         Mock Test-AdminElevation { throw 'A non-install entry queried elevation.' } -ModuleName PC-AI.Drivers
-        $result = Install-DriverUpdate -DeviceId $SkipDevice -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -Confirm:$false
+        $result = Install-DriverUpdate -DeviceId $SkipDevice -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly -Confirm:$false
         $result.Action | Should -BeExactly 'Skipped'
         $result.Success | Should -BeTrue
         [IO.Directory]::Exists($script:DownloadContractRoot) | Should -BeFalse
@@ -679,9 +691,11 @@ Describe 'Driver download WhatIf and existing-byte integrity contracts' -Tag 'Un
     # Needs: inert private file, stubbed download return and mocked process launch.
     # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.
     It 'fails closed when the actual returned installer path has different bytes' {
-        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
-        [IO.File]::WriteAllBytes((Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe'), [byte[]](0x78, 0x79, 0x7A))
-        Mock Invoke-TrustedDownload { param($OutFile) $OutFile } -ModuleName PC-AI.Drivers
+        Mock Invoke-TrustedDownload {
+            param($OutFile)
+            [IO.File]::WriteAllBytes($OutFile, [byte[]](0x78, 0x79, 0x7A))
+            $OutFile
+        } -ModuleName PC-AI.Drivers
 
         $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -Confirm:$false
         $result.Action | Should -BeExactly 'Failed'
@@ -692,32 +706,35 @@ Describe 'Driver download WhatIf and existing-byte integrity contracts' -Tag 'Un
 
     # Protects: a valid pinned executable can still reach the installer boundary.
     # Detects: a guard that returns success or failure without ever dispatching approved bytes.
-    # Needs: known cached "abc" bytes and a mocked process. No vendor binaries or hardware.
+    # Needs: inert fixture bytes, staged directory and mocked signer and process.
     # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.
-    It 'dispatches valid cached bytes for an elevated installer request' {
+    It 'dispatches signed staged bytes and preserves the separate download cache' {
         [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
         $path = Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe'
-        [IO.File]::WriteAllBytes($path, [byte[]](0x61, 0x62, 0x63))
+        [IO.File]::WriteAllText($path, 'manual artifact')
+        Mock Invoke-WebRequest { param($OutFile) [IO.File]::WriteAllBytes($OutFile, [byte[]](0x61, 0x62, 0x63)) } -ModuleName PC-AI.Drivers
         Mock Start-Process { [PSCustomObject]@{ ExitCode = 3010 } } -ModuleName PC-AI.Drivers
 
         $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -Confirm:$false
         $result.Action | Should -BeExactly 'Install'
         $result.ExitCode | Should -Be 3010
         $result.Success | Should -BeTrue
-        Should -Invoke Start-Process -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It -ParameterFilter { $FilePath -eq $path }
-        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Assert-DriverInstallerSignature -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It -ParameterFilter {
+            [IO.Path]::GetDirectoryName([IO.Path]::GetDirectoryName($FilePath)) -eq $script:DriverTrustRoot
+        }
+        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        @(Get-ChildItem -LiteralPath $script:DriverTrustRoot -Directory).Count | Should -Be 0
+        [IO.File]::ReadAllText($path) | Should -Be 'manual artifact'
     }
 
     # Protects: each archive-backed install dispatches entries from its own extraction directory.
     # Detects: reuse of the legacy extraction directory or of a prior invocation's package tree.
     # Needs: two runs per installer type, a private ZIP of inert text files and mocked process launch.
     # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.
-    It 'extracts each <Type> install into a fresh directory' -ForEach @(
-        @{ Type = 'zip-with-exe' },
-        @{ Type = 'inf' }
-    ) {
+    It 'extracts each signed ZIP install into a fresh protected directory and cleans it' {
         $fixture = Get-Content -LiteralPath $script:DownloadContractRegistry -Raw | ConvertFrom-Json
-        $fixture.devices[0].driver.installerType = $Type
+        $fixture.devices[0].driver.installerType = 'zip-with-exe'
         $legacyPath = Join-Path $script:DownloadContractRoot 'realtek-rtl8156-extracted'
         [void][IO.Directory]::CreateDirectory($legacyPath)
         foreach ($name in @('old.exe', 'old.inf')) {
@@ -733,6 +750,7 @@ Describe 'Driver download WhatIf and existing-byte integrity contracts' -Tag 'Un
         $fixture.devices[0].driver.sha256 = (Get-FileHash -LiteralPath $zipPath).Hash
         $fixture | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:DownloadContractRegistry -Encoding utf8
         $calls = [System.Collections.Generic.List[string]]::new()
+        Mock Invoke-WebRequest { param($OutFile) [IO.File]::Copy($zipPath, $OutFile) } -ModuleName PC-AI.Drivers
         Mock Expand-Archive {
             param($LiteralPath, $DestinationPath)
             Microsoft.PowerShell.Archive\Expand-Archive -LiteralPath $LiteralPath -DestinationPath $DestinationPath -ErrorAction Stop
@@ -756,7 +774,117 @@ Describe 'Driver download WhatIf and existing-byte integrity contracts' -Tag 'Un
         }
         $calls[0] | Should -Not -BeExactly $calls[1]
         Should -Invoke Expand-Archive -Times 2 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Assert-DriverInstallerSignature -Times 2 -Exactly -ModuleName PC-AI.Drivers -Scope It -ParameterFilter {
+            [IO.Path]::GetFileName($Path) -eq 'new.exe'
+        }
+        Should -Invoke Invoke-WebRequest -Times 2 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        @(Get-ChildItem -LiteralPath $script:DriverTrustRoot -Directory).Count | Should -Be 0
+        [IO.File]::Exists((Join-Path $legacyPath 'old.exe')) | Should -BeTrue
+    }
+    # Protects: an execution request reads only the administrator-controlled machine registry.
+    # Detects: a caller-owned registry substituting URL, digest and signer in one edit.
+    # Needs: copied inert registry and mocked admin, downloader and launcher.
+    # Breadcrumb: Install-DriverUpdate trust-root admission.
+    It 'refuses a caller registry outside the installation trust root' {
+        $alternate = Join-Path $TestDrive 'caller-registry.json'
+        Copy-Item -LiteralPath $script:DownloadContractRegistry -Destination $alternate
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $alternate -Confirm:$false
+        $result.Message | Should -Match 'installation registry'
+        $result.Success | Should -BeFalse
         Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: signature or access rejection leaves no executable behind and never dispatches.
+    # Detects: continuing to execution after any failed custody check.
+    # Needs: inert package bytes and mocked contract violation.
+    # Breadcrumb: Install-DriverUpdate stage and signature admission.
+    It 'cleans its protected stage when <Boundary> fails' -ForEach @(
+        @{ Boundary = 'signature' }, @{ Boundary = 'staging ACL' }
+    ) {
+        if ($Boundary -eq 'signature') {
+            Mock Assert-DriverInstallerSignature { throw 'fixture rejection' } -ModuleName PC-AI.Drivers
+        } else {
+            Mock Assert-DriverInstallTrustPath { throw 'fixture rejection' } -ModuleName PC-AI.Drivers -ParameterFilter {
+                [IO.Path]::GetFileName($Path) -like 'install-*'
+            }
+        }
+        Mock Invoke-WebRequest { param($OutFile) [IO.File]::WriteAllBytes($OutFile, [byte[]](0x61, 0x62, 0x63)) } -ModuleName PC-AI.Drivers
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -Confirm:$false
+        $result.Message | Should -Match 'fixture rejection'
+        $result.Success | Should -BeFalse
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        @(Get-ChildItem -LiteralPath $script:DriverTrustRoot -Directory).Count | Should -Be 0
+    }
+
+    # Protects: automatic install fails when its package format cannot be publisher-qualified.
+    # Detects: invoking pnputil on an arbitrary member of a ZIP.
+    # Needs: inert registry entry, no signature platform, drivers or network.
+    # Breadcrumb: Install-DriverUpdate format admission.
+    It 'leaves INF archives available only for manual acquisition' {
+        $entry = Get-Content -LiteralPath $script:DownloadContractRegistry -Raw | ConvertFrom-Json
+        $entry.devices[0].driver.installerType = 'inf'
+        $entry | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:DownloadContractRegistry
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -Confirm:$false
+        $result.Message | Should -Match 'Automatic installation does not support'
+        $result.Success | Should -BeFalse
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+}
+
+Describe 'Windows driver install trust primitives' -Tag 'Unit', 'Drivers', 'Portable' {
+    BeforeAll {
+        $module = Get-Module PC-AI.Drivers
+    }
+
+    # Protects: protected leaves cannot be replaced through a writable ancestor.
+    # Detects: leaf-only checks, trust for a caller-owned leaf, or granting delete-child to non-admins.
+    # Needs: Windows local fixture and synthetic security descriptors. No operating system ACL changes.
+    # Breadcrumb: Assert-DriverInstallTrustPath walks the path and inspects every raw allow ACE.
+    It 'accepts only the protected owner and ancestry for <Case>' -Skip:(-not $IsWindows) -ForEach @(
+        @{ Case = 'protected'; Ace = ''; UnsafeOnAncestor = $false; Owner = 'BA'; Accepted = $true },
+        @{ Case = 'ancestor delete-child'; Ace = '(A;;0x00000040;;;BU)'; UnsafeOnAncestor = $true; Owner = 'BA'; Accepted = $false },
+        @{ Case = 'leaf generic write'; Ace = '(A;;GW;;;BU)'; UnsafeOnAncestor = $false; Owner = 'BA'; Accepted = $false },
+        @{ Case = 'caller owner'; Ace = ''; UnsafeOnAncestor = $false; Owner = 'BU'; Accepted = $false }
+    ) {
+        $ancestor = Join-Path $TestDrive ('ancestor-' + [guid]::NewGuid().ToString('N'))
+        [void][IO.Directory]::CreateDirectory($ancestor)
+        $leaf = Join-Path $ancestor 'driver-registry.json'
+        [IO.File]::WriteAllText($leaf, '{}')
+        $goodAcl = [Security.AccessControl.FileSecurity]::new()
+        $goodAcl.SetSecurityDescriptorSddlForm('O:BAG:BAD:P(A;;FA;;;BA)(A;;FA;;;SY)')
+        $badAcl = [Security.AccessControl.FileSecurity]::new()
+        $badAcl.SetSecurityDescriptorSddlForm("O:${Owner}G:BAD:P(A;;FA;;;BA)(A;;FA;;;SY)$Ace")
+        $badPath = if ($UnsafeOnAncestor) { $ancestor } else { $leaf }
+        Mock Get-Acl { $goodAcl } -ModuleName PC-AI.Drivers
+        Mock Get-Acl { $badAcl } -ModuleName PC-AI.Drivers -ParameterFilter { $LiteralPath -eq $badPath }
+
+        if ($Accepted) {
+            { & $module { param($Path) Assert-DriverInstallTrustPath -Path $Path } $leaf } | Should -Not -Throw
+        }
+        else {
+            { & $module { param($Path) Assert-DriverInstallTrustPath -Path $Path } $leaf } | Should -Throw '*driver installation*'
+        }
+    }
+
+    # Protects: only a valid signature from the certificate pinned in the machine registry passes.
+    # Detects: subject-only matching, ignoring the status, or allowing a different valid signer.
+    # Needs: Windows Authenticode command mocked with an inert three-byte DER stand-in.
+    # Breadcrumb: Assert-DriverInstallerSignature status and certificate SHA256 checks.
+    It 'requires both a valid signature and identical publisher fingerprint for <Case>' -Skip:(-not $IsWindows) -ForEach @(
+        @{ Case = 'valid matching'; SignatureStatus = 'Valid'; Pin = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'; Accepted = $true },
+        @{ Case = 'valid different'; SignatureStatus = 'Valid'; Pin = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ae'; Accepted = $false },
+        @{ Case = 'invalid matching'; SignatureStatus = 'NotTrusted'; Pin = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'; Accepted = $false }
+    ) {
+        Mock Get-AuthenticodeSignature {
+            [PSCustomObject]@{
+                Status = $SignatureStatus
+                SignerCertificate = [PSCustomObject]@{ RawData = [byte[]](0x61, 0x62, 0x63) }
+            }
+        } -ModuleName PC-AI.Drivers
+        $assertion = { & $module { param($Pin) Assert-DriverInstallerSignature -Path 'fixture.exe' -PublisherCertificateSha256 $Pin } $Pin }
+        if ($Accepted) { $assertion | Should -Not -Throw } else { $assertion | Should -Throw '*Authenticode*' }
     }
 }
 

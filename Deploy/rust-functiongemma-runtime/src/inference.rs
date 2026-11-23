@@ -12,8 +12,8 @@ use rust_functiongemma_core::chat_template::render_chat_prompt;
 use rust_functiongemma_core::lora_utils::resolve_lora_from_path;
 use rust_functiongemma_core::prompt::parse_function_call;
 use rust_functiongemma_core::{
-    collect_model_safetensors, custom_load, detect_tie_embeddings, is_degenerate_output, open_mmaped_safetensors,
-    parse_ggml_dtype, trim_input_ids, Config, KvCacheQuant, LoraInfo, LoraSettings, Model,
+    collect_model_safetensors, custom_load, detect_tie_embeddings, open_mmaped_safetensors, parse_ggml_dtype,
+    trim_input_ids, Config, KvCacheQuant, LoraInfo, LoraSettings, Model,
 };
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -292,10 +292,6 @@ pub(crate) fn infer_with_model(req: &crate::types::ChatCompletionRequest) -> any
     let output_text = cache.tokenizer.decode(&output_ids, true).map_err(anyhow::Error::msg)?;
     drop(output_ids);
 
-    if is_degenerate_output(&output_text) {
-        return Err(anyhow::anyhow!("model output was empty/degenerate"));
-    }
-
     if let Some((name, args)) = parse_function_call(&output_text) {
         let calls = build_tool_calls(&name, args, "call_model");
         return Ok(InferenceResult {
@@ -304,15 +300,12 @@ pub(crate) fn infer_with_model(req: &crate::types::ChatCompletionRequest) -> any
         });
     }
 
-    if output_text.contains("NO_TOOL") {
-        Ok(InferenceResult {
-            content: Some("NO_TOOL".to_string()),
-            tool_calls: None,
-        })
-    } else {
-        Ok(InferenceResult {
-            content: Some(output_text),
-            tool_calls: None,
-        })
-    }
+    anyhow::ensure!(
+        output_text.trim() == "NO_TOOL",
+        "model output was neither a function call nor NO_TOOL"
+    );
+    Ok(InferenceResult {
+        content: Some("NO_TOOL".to_string()),
+        tool_calls: None,
+    })
 }

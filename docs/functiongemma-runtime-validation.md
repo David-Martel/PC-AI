@@ -29,8 +29,21 @@ and the [repository entrypoint](../README.md) for the broader build workflow.
 Both JSON and streaming chat responses carry `x-pcai-router-engine`. A
 `heuristic-fallback` response counts toward `router_stats.model_fallbacks`
 in `/health`. Require the `model` response header when qualifying a model.
+Model output must contain a parseable function call or consist of the
+`NO_TOOL` sentinel. Malformed output invokes the same recorded fallback.
 The [fallback fixture](../Deploy/rust-functiongemma-runtime/tests/model_fallback.rs)
-checks both response formats with an empty local model directory.
+checks both response formats with an empty local model directory. The
+[CPU model fixture](../Deploy/rust-functiongemma-runtime/tests/model_cpu.rs)
+checks valid and malformed outputs from a loaded model.
+
+For the published `google/functiongemma-270m-it` weights, set
+`runtime.router_model_profile` to `hf_gemma3_4_57_3` in a site configuration.
+Use a device-local KV cache with quantization set to `none`. Clear the LoRA
+path and disable the custom FlashAttention and quantized-matmul options.
+The [legacy model](../Deploy/rust-functiongemma-core/src/model.rs) remains
+the default for existing custom weights and LoRA configurations. Its
+normalization order, embedding scale, local rotary frequencies, and hard-coded
+EOS IDs differ from the [published checkpoint profile](../Deploy/rust-functiongemma-runtime/src/inference/hf_gemma3.rs).
 
 The [listener](../Deploy/rust-functiongemma-runtime/src/lib.rs) binds the
 configured address. If another process owns a fixed port, startup exits with

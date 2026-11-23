@@ -6,7 +6,7 @@
   "scope": "Two-layer causal logits and wrap parity, plus a one-layer CPU runtime request through the preallocated cache.",
   "source_sha256": {
     "Deploy/rust-functiongemma-core/src/model.rs": "f7bdfff55c9f413659954c83a6ed0b4994c5cf57c3bd994073d05af5a1a69d77",
-    "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs": "3521c5e84f1f7c5800626f6a62e364948b569ddcd98d1cf668bd6164d4e048e2",
+    "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs": "541e3aa230e0173e9bb570d3a8c6ac50338c46d19c6ae24366a9482e26de55e1",
     "Deploy/Cargo.lock": "2409d74fef9e5ac3ca76c72fa84cfe6dbf07ddc23fed01b925f34f5284a73e00"
   },
   "reviews": [
@@ -19,9 +19,9 @@
       "reviewed_at_utc": null
     },
     {
-      "selector": "cpu_model_route_generates_a_token_instead_of_falling_back",
+      "selector": "cpu_model_routes_valid_output_and_reports_malformed_fallback",
       "source": "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs",
-      "sha256": "87058b1c33196a52eb473ce7fa19886738ac83fcbd5d0cbdb13d45411a82c04f",
+      "sha256": "ce0fe9ea42c0901651504c76050d862aacf00da63c4e1c0c62100f71d16e66d3",
       "disposition": "unreviewed",
       "reviewer": null,
       "reviewed_at_utc": null

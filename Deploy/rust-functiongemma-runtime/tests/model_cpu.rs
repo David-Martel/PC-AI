@@ -29,7 +29,7 @@ impl ModelFixture {
                 "num_attention_heads": 1,
                 "num_key_value_heads": 1,
                 "head_dim": 2,
-                "vocab_size": 3,
+                "vocab_size": 5,
                 "rms_norm_eps": 1e-5,
                 "rope_theta": 10000.0,
             }),
@@ -41,17 +41,17 @@ impl ModelFixture {
                 "model": {
                     "type": "WordLevel",
                     "unk_token": "[UNK]",
-                    "vocab": {"[UNK]": 0, "question": 1, "CPU_PROOF": 2},
+                    "vocab": {"[UNK]": 0, "question": 1, "NO_TOOL": 2, "malformed NO_TOOL": 3, "broken": 4},
                 },
             }),
         )?;
         fs::write(self.0.join("chat_template.jinja"), "{{ messages[0].content }}")?;
 
-        // The tied output projection gives token 2 the highest logit after "question".
+        // The tied output projection prefers token 2 after "question" and token 3 after "broken".
         let mut weights = HashMap::from([
             (
                 "model.embed_tokens.weight",
-                Tensor::new(&[[0f32, 0.], [1., 0.], [2., 0.]], &Device::Cpu)?,
+                Tensor::new(&[[0f32, 0.], [1., 0.], [2., 0.], [-2., 0.], [-1., 0.]], &Device::Cpu)?,
             ),
             ("model.norm.weight", Tensor::new(&[1f32, 1.], &Device::Cpu)?),
         ]);
@@ -102,12 +102,12 @@ fn write_json(path: &Path, data: Value) -> anyhow::Result<()> {
     Ok(())
 }
 
-// Protects: a CPU model build decodes a token through a loaded attention layer and the chat handler.
-// Detects: empty cache attention, silent heuristic fallback, wrong CPU telemetry, or CUDA activation.
+// Protects: CPU attention supports routing and exposes fallback for malformed model output.
+// Detects: empty cache attention, false model success, wrong CPU telemetry, or CUDA activation.
 // Needs: the model feature without CUDA, synthetic one-layer weights, and loopback TCP.
 // Breadcrumb: handlers::chat, inference::infer_with_model, and core Model::generate_with_prealloc_cache.
 #[tokio::test]
-async fn cpu_model_route_generates_a_token_instead_of_falling_back() -> anyhow::Result<()> {
+async fn cpu_model_routes_valid_output_and_reports_malformed_fallback() -> anyhow::Result<()> {
     let fixture = ModelFixture::new()?;
     let router_config = fixture.0.join("router.json");
     let fixture_authorization = "local-fixture";
@@ -144,20 +144,32 @@ async fn cpu_model_route_generates_a_token_instead_of_falling_back() -> anyhow::
         .await?;
     assert_eq!(health["metadata"]["engine"], "model");
     assert_eq!(health["metadata"]["device"], "cpu");
+    assert_eq!(health["router_stats"]["model_fallbacks"], 0);
 
-    let response = client
-        .post(format!("http://{addr}/v1/chat/completions"))
+    for (input, engine) in [("question", "model"), ("broken", "heuristic-fallback")] {
+        let response = client
+            .post(format!("http://{addr}/v1/chat/completions"))
+            .bearer_auth(fixture_authorization)
+            .json(&json!({
+                "messages": [{"role": "user", "content": input}],
+                "max_tokens": 1,
+            }))
+            .send()
+            .await?
+            .error_for_status()?;
+        assert_eq!(response.headers()["x-pcai-router-engine"], engine);
+        let response: Value = response.json().await?;
+        assert_eq!(response["choices"][0]["message"]["content"], "NO_TOOL");
+    }
+    let health: Value = client
+        .get(format!("http://{addr}/health"))
         .bearer_auth(fixture_authorization)
-        .json(&json!({
-            "messages": [{"role": "user", "content": "question"}],
-            "max_tokens": 1,
-        }))
         .send()
         .await?
-        .error_for_status()?;
-    assert_eq!(response.headers()["x-pcai-router-engine"], "model");
-    let response: Value = response.json().await?;
-    assert_eq!(response["choices"][0]["message"]["content"], "CPU_PROOF");
+        .error_for_status()?
+        .json()
+        .await?;
+    assert_eq!(health["router_stats"]["model_fallbacks"], 1);
     server.abort();
     Ok(())
 }

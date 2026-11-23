@@ -7,13 +7,13 @@
     "Deploy/Cargo.lock": "2409d74fef9e5ac3ca76c72fa84cfe6dbf07ddc23fed01b925f34f5284a73e00",
     "Deploy/rust-functiongemma-runtime/Cargo.toml": "7529f15ed56f54b0ac0e360e4dd10522d59bb01621a61b985bb370c446099758",
     "Deploy/rust-functiongemma-runtime/src/gpu.rs": "11fd8ddc6a0cc11dbd7c4694b24f7c11996bc5826bd25a97e3dcbf21e845a9b8",
-    "Deploy/rust-functiongemma-runtime/src/inference.rs": "a12f1e2ab5c8ef54e6ea7df81d6e1978daa41750b9a5b75513e4122fa51d5f00",
+    "Deploy/rust-functiongemma-runtime/src/inference.rs": "82f90513ddaf33f8f0ad1d77b8f8bd599b1c5e098bcf2ff9e4ef08e9fb8dcaa7",
     "Deploy/rust-functiongemma-runtime/src/config.rs": "81fa113ff8abbb7b412c058d7b63cac815d997692b3eaf8880f2eebac5e8ad5f",
     "Deploy/rust-functiongemma-core/src/model.rs": "f7bdfff55c9f413659954c83a6ed0b4994c5cf57c3bd994073d05af5a1a69d77",
     "Deploy/rust-functiongemma-runtime/src/metrics.rs": "f30f02aebab4149b8fab467ebc36c242c72493a0013e15097c6d11ac116e76b1",
     "Deploy/rust-functiongemma-runtime/src/model_support.rs": "fd74546b048027da4ba6a1d836b7792017777209704ccbe63ddb3677a83a3b31",
     "Deploy/rust-functiongemma-runtime/src/handlers.rs": "2e30c117831f4aceae7cb65cf5c2133bb680199abd15a87f7cb1e176e01d5f8c",
-    "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs": "3521c5e84f1f7c5800626f6a62e364948b569ddcd98d1cf668bd6164d4e048e2",
+    "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs": "541e3aa230e0173e9bb570d3a8c6ac50338c46d19c6ae24366a9482e26de55e1",
     "Deploy/rust-functiongemma-runtime/README.md": "dac8fe7188e3ae71834be26eee25981e50050e1e545331179f4495a9d0c4601f"
   },
   "selectors": [
@@ -45,10 +45,10 @@
       "disposition": "unreviewed"
     },
     {
-      "selector": "cpu_model_route_generates_a_token_instead_of_falling_back",
+      "selector": "cpu_model_routes_valid_output_and_reports_malformed_fallback",
       "source": "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs",
-      "reviewScope": "A local safetensors checkpoint with one nonzero decoder layer exercises the preallocated cache and yields CPU_PROOF over loopback. The response header proves model routing.",
-      "sha256": "16f06218806afbb68fb0eb176177160010198bbbe5482ac3c5d3fd5e0b5cd0e2",
+      "reviewScope": "Run synthetic one-layer weights with the preallocated cache. Require the model engine for an exact NO_TOOL and recorded heuristic fallback for malformed output containing the same sentinel.",
+      "sha256": "d63106b23935e3ab61c765c214249df72f08eb3b0ce0e0ba779772981e3afd4e",
       "reviewer": "codex",
       "reviewerType": "author self-review",
       "disposition": "unreviewed"

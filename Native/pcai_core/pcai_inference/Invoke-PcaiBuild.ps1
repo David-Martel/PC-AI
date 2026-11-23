@@ -642,16 +642,21 @@ function Initialize-BuildEnvironment {
         $cudaHelper = Join-Path $ToolsDir 'Initialize-CudaEnvironment.ps1'
         if (Test-Path -LiteralPath $cudaHelper -PathType Leaf) {
             . $cudaHelper
-            $targetCaps = if ($env:CUDA_COMPUTE_CAPS) { $env:CUDA_COMPUTE_CAPS } else { $env:CUDAARCHS }
+            # The legacy Cargo build reads GGML/PCAI, never the bootstrap's CMake defaults.
             $ggmlCaps = if ($Backend -ne 'mistralrs') {
                 if ($env:GGML_CUDA_ARCH_LIST) { $env:GGML_CUDA_ARCH_LIST }
                 elseif ($env:PCAI_CUDA_ARCH_LIST) { $env:PCAI_CUDA_ARCH_LIST }
-                else { $targetCaps }
+                else { $env:CUDA_COMPUTE_CAPS }
+            }
+            $mistralCaps = if ($Backend -ne 'llamacpp') {
+                if ($env:CUDA_COMPUTE_CAP) { $env:CUDA_COMPUTE_CAP }
+                elseif ($env:CUDA_COMPUTE_CAPS) { $env:CUDA_COMPUTE_CAPS }
+                else { $env:CUDAARCHS }
             }
             if ($ggmlCaps -match '(?:^|[,;\s])(?:(?:sm|compute)_?)?\d{2,3}[af](?:$|[,;\s])') {
                 throw 'The legacy llama-rs build accepts numeric CUDA targets only. Use the modern llama.cpp runtime for NVFP4 kernels.'
             }
-            $cudaInfo = Initialize-CudaEnvironment -Quiet -TargetComputeCaps (@($targetCaps, $ggmlCaps) -join ',')
+            $cudaInfo = Initialize-CudaEnvironment -Quiet -TargetComputeCaps (@($ggmlCaps, $mistralCaps) -join ',')
             if ($cudaInfo.Found) {
                 if ($ggmlCaps) { $env:GGML_CUDA_ARCH_LIST = $ggmlCaps }
                 Write-Host "  CUDA initialized: $($cudaInfo.CudaPath)" -ForegroundColor Green

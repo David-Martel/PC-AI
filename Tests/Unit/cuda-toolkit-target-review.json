@@ -4,9 +4,9 @@
   "recordedAtUtc": "2026-11-23T01:03:26.1211697Z",
   "hashConvention": "SHA-256 of UTF-8 LF-normalized source text and exact Pester It AST extents",
   "sourceBindings": {
-    "Tools/Initialize-CudaEnvironment.ps1": "97b34471da78fa4c380f2f3dbb4edc969861966efecac45bbdbdd92a6340ff25",
-    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "2b655671522ed87c75d71cd41afd940c2d4b63b9479489803174fd53e66804b0",
-    "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1": "dbe30a4c13ddb05c08302918728b55af3af05148243b1b1986284c329241cef4",
+    "Tools/Initialize-CudaEnvironment.ps1": "6031845d8b2fc9c7a4a49de8bfde85d144c472b10b2ba38df9b02a524d0e7644",
+    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "ab47edebc6042c7c52240d19a2066440e042e884854af965f8854adac1697cd0",
+    "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1": "cc97047538489c1bdfa8b77c6fff6bb46a772183ea231e07b72e129a89b875eb",
     "docs/ai-build-qualification.md": "2c92bef432a75d83680a1e2a0d8ac221f798a7c340539d6efab5de42be118db0"
   },
   "selectors": [
@@ -41,6 +41,15 @@
       "reviewer": "codex-gen9-pcai-fleet",
       "reviewerType": "author self-review",
       "disposition": "unreviewed"
+    },
+    {
+      "selector": "prioritizes the selected CUDA bin already present in PATH",
+      "source": "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1",
+      "sha256": "e745462fadf6c24c757437637ada17936f1185ab3ee8486f01d1ba69c4945c25",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Baseline leaves the selected path behind an older installer. The exact initializer assignment prepends one selected segment, leaves the similarly named unrelated segment intact, and is idempotent."
     }
   ]
 }

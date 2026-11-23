@@ -315,4 +315,51 @@ function Initialize-CudaEnvironment {
         $EnableCuda = $false
         { & $script:CudaProbe } | Should -Not -Throw
     }
+
+    # Protects: toolkit admission follows each backend's own target override.
+    # Detects: a bootstrap CUDAARCHS default vetoing a valid legacy declaration or another backend's flags being ignored.
+    # Needs: real extracted CUDA branch and real toolkit selection with an inert compiler reply.
+    # Breadcrumb: Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment CUDA selection.
+    It 'probes the effective CUDA declaration for <Case>' -ForEach @(
+        @{ Case = 'legacy GGML with stale CMake defaults'; TargetBackend = 'llamacpp'; Ggml = '89'; Cmake = '75;80;86;89;120'; Expected = 'sm_89' },
+        @{ Case = 'legacy PCAI override'; TargetBackend = 'llamacpp'; Pcai = '89'; Plural = '120'; Expected = 'sm_89' },
+        @{ Case = 'legacy plural override'; TargetBackend = 'llamacpp'; Plural = '89'; Cmake = '120'; Expected = 'sm_89' },
+        @{ Case = 'legacy automatic compiler selection'; TargetBackend = 'llamacpp'; Cmake = '120'; Expected = '' },
+        @{ Case = 'mistral singular target'; TargetBackend = 'mistralrs'; Singular = '89'; Ggml = '120'; Cmake = '120'; Expected = 'sm_89' },
+        @{ Case = 'both backends'; TargetBackend = 'all'; Ggml = '89'; Cmake = '86'; Expected = 'sm_86,sm_89' }
+    ) {
+        $ToolsDir = Join-Path $TestDrive $Case
+        $null = New-Item -ItemType Directory -Path (Join-Path $ToolsDir 'bin'), (Join-Path $ToolsDir 'include')
+        $null = New-Item -ItemType File -Path (Join-Path $ToolsDir 'bin/nvcc.exe'), (Join-Path $ToolsDir 'include/cuda_runtime.h')
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../Tools/Initialize-CudaEnvironment.ps1') -Destination (Join-Path $ToolsDir 'RealToolkit.ps1')
+        @'
+. (Join-Path $PSScriptRoot 'RealToolkit.ps1')
+function Get-NvccGpuCodes { param([string]$CompilerPath) 'sm_89'; 'sm_86' }
+function Initialize-CudaEnvironment {
+    param([switch]$Quiet, [string]$TargetComputeCaps)
+    $selection = Select-CudaToolkit -Candidates $PSScriptRoot -TargetComputeCaps $TargetComputeCaps
+    if (-not $selection.Path) { throw ($selection.Notes -join '; ') }
+    throw "Fixture accepted: [$(($selection.TargetCodes | Sort-Object) -join ',')]"
+}
+'@ | Set-Content -LiteralPath (Join-Path $ToolsDir 'Initialize-CudaEnvironment.ps1')
+
+        $values = @{
+            GGML_CUDA_ARCH_LIST = $Ggml; PCAI_CUDA_ARCH_LIST = $Pcai
+            CUDA_COMPUTE_CAPS = $Plural; CUDA_COMPUTE_CAP = $Singular; CUDAARCHS = $Cmake
+        }
+        $original = @{}
+        $Backend = $TargetBackend
+        $EnableCuda = $true
+        try {
+            foreach ($name in $values.Keys) {
+                $original[$name] = [Environment]::GetEnvironmentVariable($name)
+                [Environment]::SetEnvironmentVariable($name, $values[$name])
+            }
+            { & $script:CudaProbe } | Should -Throw -ExpectedMessage "Fixture accepted: $([WildcardPattern]::Escape("[$Expected]"))"
+        } finally {
+            foreach ($name in $original.Keys) {
+                [Environment]::SetEnvironmentVariable($name, $original[$name])
+            }
+        }
+    }
 }

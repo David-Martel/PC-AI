@@ -42,6 +42,16 @@ function Add-ToPath {
     return $false
 }
 
+function Set-PreferredCudaBinPath {
+    param([string]$BinPath)
+
+    $segments = if ($env:PATH) { $env:PATH -split ';' }
+    $preferred = (@($BinPath) + @($segments | Where-Object { $_ -ine $BinPath })) -join ';'
+    if ($preferred -ceq $env:PATH) { return $false }
+    $env:PATH = $preferred
+    return $true
+}
+
 function Add-ToEnvList {
     param(
         [string]$Name,
@@ -248,7 +258,6 @@ function Initialize-CudaEnvironment {
     $env:CUDA_DIR = $selected
 
     $pathUpdated = $false
-    $pathUpdated = (Add-ToPath (Join-Path $selected 'bin')) -or $pathUpdated
     $pathUpdated = (Add-ToPath (Join-Path $selected 'nvvm\bin')) -or $pathUpdated
     $pathUpdated = (Add-ToPath (Join-Path $selected 'libnvvp')) -or $pathUpdated
 
@@ -364,6 +373,9 @@ function Initialize-CudaEnvironment {
             if (-not $Quiet) { Write-Host "Added $($envParts.Count) CUDA locations to Machine Path." -ForegroundColor Green }
         }
     }
+
+    # Rust CUDA builders launch bare nvcc. Keep the admitted compiler first in PATH.
+    $pathUpdated = (Set-PreferredCudaBinPath (Join-Path $selected 'bin')) -or $pathUpdated
 
     $result = [PSCustomObject]@{
         Found                = $true

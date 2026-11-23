@@ -75,4 +75,40 @@ Describe 'Initialize-CudaEnvironment' -Tag 'Unit', 'Cuda', 'Portable' {
             Should -Throw '*Invalid CUDA compute target*'
         Should -Invoke Get-NvccGpuCodes -Times 0 -Exactly
     }
+
+    # Protects: bare nvcc resolves to the compiler from the admitted CUDA toolkit.
+    # Detects: leaving the selected toolkit behind older PATH entries or treating a substring as an exact match.
+    # Needs: owned fixture directories and process-scoped PATH, restored on exit.
+    # Breadcrumb: Initialize-CudaEnvironment preferred CUDA bin PATH assignment.
+    It 'prioritizes the selected CUDA bin already present in PATH' {
+        $selected = New-ToolkitFixture 'selected-toolkit'
+        $older = Join-Path (New-ToolkitFixture 'older-toolkit') 'bin'
+        $bin = Join-Path $selected 'bin'
+        $nearMatch = "$bin-extras"
+        $ast = [Management.Automation.Language.Parser]::ParseInput($script:Content, [ref]$null, [ref]$null)
+        $bindings = @($ast.FindAll({
+                param($node)
+                $node -is [Management.Automation.Language.AssignmentStatementAst] -and
+                $node.Left.Extent.Text -eq '$pathUpdated' -and $node.Right.Extent.Text -match 'Join-Path \$selected ''bin'''
+            }, $true))
+        $bindings.Count | Should -Be 1
+        $bind = [scriptblock]::Create($bindings[0].Extent.Text)
+        $originalPath = $env:PATH
+
+        try {
+            $env:PATH = @($older, $nearMatch, $bin, $bin) -join ';'
+            $pathUpdated = $false
+            . $bind
+            $pathUpdated | Should -BeTrue
+            $expectedPath = @($bin, $older, $nearMatch) -join ';'
+            $env:PATH | Should -BeExactly $expectedPath
+
+            $pathUpdated = $false
+            . $bind
+            $pathUpdated | Should -BeFalse
+            $env:PATH | Should -BeExactly $expectedPath
+        } finally {
+            $env:PATH = $originalPath
+        }
+    }
 }

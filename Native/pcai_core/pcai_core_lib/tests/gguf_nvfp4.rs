@@ -132,6 +132,7 @@ fn synthetic_nvfp4_header_sums_to_the_hand_computed_bytes() {
         l.meta.file_type
     );
     assert_eq!(l.tensor_count, 2);
+    assert_eq!(l.nvfp4_tensors, 1, "one of the two tensors is NVFP4");
     assert_eq!(l.tensor_bytes, FIXTURE_TENSOR_BYTES);
     assert_eq!(l.tensor_bytes, 94_388_224, "hand-computed: 90 MiB + 16 KiB");
 }

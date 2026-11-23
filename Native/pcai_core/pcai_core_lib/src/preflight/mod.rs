@@ -21,6 +21,7 @@ use std::path::Path;
 
 use anyhow::Result;
 use serde::Serialize;
+use thiserror::Error;
 
 pub use vram_audit::{GpuVramSnapshot, VramProcess};
 
@@ -57,6 +58,29 @@ pub struct PreflightResult {
     pub gpus: Vec<GpuVramSnapshot>,
 }
 
+/// A model that the readiness check declines to assess.
+///
+/// Returned (wrapped in [`anyhow::Error`]) by [`check_readiness`]; recover it
+/// with `err.downcast_ref::<PreflightError>()`. Through the
+/// `pcai_gpu_preflight_json` export it surfaces as a `fail` verdict whose reason
+/// starts with `Preflight error:`, never as `go`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+#[non_exhaustive]
+pub enum PreflightError {
+    /// The model uses NVFP4, and NVFP4 readiness is deferred.
+    ///
+    /// The GGUF reader sizes NVFP4 tensors from the upstream block layout, but
+    /// does not yet validate the declared tensor offsets, alignment or the
+    /// file extent. A file written with a different NVFP4 block layout, which
+    /// llama.cpp refuses to load, sums to a plausible size, so an estimate
+    /// could report `go` for a model that cannot load.
+    #[error(
+        "NVFP4 model not assessed: readiness for NVFP4 is deferred until tensor offsets, alignment and file extent \
+         are validated, because a plausible size estimate can describe a file that llama.cpp refuses to load"
+    )]
+    Nvfp4NotAssessed,
+}
+
 // ── Public API ─────────────────────────────────────────────────────────────
 
 /// Run a full preflight check for loading a GGUF model.
@@ -66,6 +90,21 @@ pub struct PreflightResult {
 /// 2. Queries NVML for live VRAM state on all GPUs.
 /// 3. Returns a verdict with the best GPU choice (or why it will not fit).
 ///
+/// # What a [`Verdict::Go`] proves, and what it does not
+///
+/// A `go` proves one thing: the sum of the tensor sizes the header declares,
+/// plus a KV cache at fp16 for `context_length` and 10% overhead, fits in the
+/// free VRAM of one GPU with at least 20% to spare, at the moment of the check.
+///
+/// It does **not** prove that the file loads. The check reads the header only:
+/// it does not validate the declared tensor offsets, their alignment or the
+/// file extent, and it does not look at tensor data, so a truncated or
+/// corrupted file can still say `go`. It does not prove the inference backend
+/// supports every tensor type, and it says nothing about VRAM that another
+/// process takes afterwards.
+///
+/// NVFP4 models are not assessed at all: see [`PreflightError::Nvfp4NotAssessed`].
+///
 /// `context_length` overrides the model's default context length for
 /// KV-cache estimation.  Pass `0` to use the model's built-in default.
 ///
@@ -74,16 +113,9 @@ pub struct PreflightResult {
 /// Returns an error if the GGUF file cannot be read or NVML queries fail
 /// after successful initialisation. A model with a tensor of an unknown ggml
 /// type or an invalid shape is an error too ([`gguf::GgufTensorError`]), not a
-/// zero-size estimate.
+/// zero-size estimate, and an NVFP4 model is [`PreflightError::Nvfp4NotAssessed`].
 pub fn check_readiness(model_path: &str, context_length: u64) -> Result<PreflightResult> {
-    let model_estimate_mb = estimate_model_mb(Path::new(model_path), context_length)?;
-    let gpus = vram_audit::vram_snapshot_all()?;
-
-    let mut result = compute_verdict(&gpus, model_estimate_mb);
-    result.model_estimate_mb = model_estimate_mb;
-    result.gpus = gpus;
-
-    Ok(result)
+    readiness(Path::new(model_path), context_length, vram_audit::vram_snapshot_all)
 }
 
 /// Run a preflight check without a model file -- just report GPU VRAM state.
@@ -117,6 +149,25 @@ pub fn check_vram_state(required_mb: u64) -> Result<PreflightResult> {
 
 // ── Private helpers ────────────────────────────────────────────────────────
 
+/// [`check_readiness`] with the GPU snapshot supplied by `snapshot`, so a test can give it any VRAM state.
+///
+/// The model is read and sized first: a model that cannot be assessed fails
+/// before NVML is queried, as it always has.
+fn readiness(
+    path: &Path,
+    context_length: u64,
+    snapshot: impl FnOnce() -> Result<Vec<GpuVramSnapshot>>,
+) -> Result<PreflightResult> {
+    let model_estimate_mb = estimate_model_mb(path, context_length)?;
+    let gpus = snapshot()?;
+
+    let mut result = compute_verdict(&gpus, model_estimate_mb);
+    result.model_estimate_mb = model_estimate_mb;
+    result.gpus = gpus;
+
+    Ok(result)
+}
+
 /// Estimate the megabytes of VRAM that loading `path` at `context_length` needs.
 ///
 /// Reads the GGUF header and tensor infos (never tensor data) and sums the exact
@@ -125,9 +176,16 @@ pub fn check_vram_state(required_mb: u64) -> Result<PreflightResult> {
 /// not know is an error, not a size of zero: [`check_readiness`] then reports a
 /// `fail` verdict through its caller and never a `go`.
 ///
+/// An NVFP4 model, by file type or by any tensor, is not sized at all
+/// ([`PreflightError::Nvfp4NotAssessed`]) until offset, alignment and
+/// file-extent validation lands.
+///
 /// `context_length` of `0` means the model's own default.
 fn estimate_model_mb(path: &Path, context_length: u64) -> Result<u64> {
     let layout = gguf::read_gguf_layout(path)?;
+    if layout.nvfp4_tensors > 0 || matches!(layout.meta.file_type, gguf::GgufFileType::Nvfp4) {
+        return Err(PreflightError::Nvfp4NotAssessed.into());
+    }
     let ctx = if context_length > 0 {
         context_length
     } else {
@@ -225,8 +283,8 @@ fn compute_verdict(gpus: &[GpuVramSnapshot], model_estimate_mb: u64) -> Prefligh
 mod tests {
     use super::*;
 
-    /// A GGUF v3 header with an NVFP4 file type and one tensor of `type_id` and `dims`.
-    fn one_tensor_gguf(type_id: u32, dims: &[u64]) -> Vec<u8> {
+    /// A GGUF v3 header with `general.file_type` set to `file_type` and one tensor of `type_id` and `dims`.
+    fn one_tensor_gguf(file_type: u32, type_id: u32, dims: &[u64]) -> Vec<u8> {
         fn put_str(b: &mut Vec<u8>, s: &str) {
             b.extend_from_slice(&(s.len() as u64).to_le_bytes());
             b.extend_from_slice(s.as_bytes());
@@ -237,7 +295,7 @@ mod tests {
         b.extend_from_slice(&1_u64.to_le_bytes()); // metadata entries
         put_str(&mut b, "general.file_type");
         b.extend_from_slice(&4_u32.to_le_bytes()); // u32
-        b.extend_from_slice(&39_u32.to_le_bytes()); // NVFP4
+        b.extend_from_slice(&file_type.to_le_bytes());
         put_str(&mut b, "w");
         b.extend_from_slice(&(dims.len() as u32).to_le_bytes());
         for d in dims {
@@ -255,21 +313,22 @@ mod tests {
         f
     }
 
-    /// Why: the readiness estimate must come from the tensor sizes. One NVFP4 tensor of
-    /// `[4096, 40960]` is 90 MiB; the default context of 2048 on the default 32 x 4096
-    /// dimensions adds a 1024 MiB KV cache, so `(90 + 1024) * 1.1` is 1225 MB with integer
-    /// division. Detects the estimate falling back to the dimension-based guess.
+    /// Why: the readiness estimate must come from the tensor sizes. One Q8_0 tensor of
+    /// `[4096, 40960]` is 128 blocks of 34 bytes per row, 40960 rows: 170 MiB. The default
+    /// context of 2048 on the default 32 x 4096 dimensions adds a 1024 MiB KV cache, so
+    /// `(170 + 1024) * 1.1` is 1313 MB with integer division. Detects the estimate falling
+    /// back to the dimension-based guess.
     #[test]
-    fn estimate_uses_the_exact_nvfp4_tensor_size() {
-        let f = write_temp(&one_tensor_gguf(40, &[4096, 40_960]));
-        assert_eq!(estimate_model_mb(f.path(), 0).expect("estimate"), 1225);
+    fn estimate_uses_the_exact_tensor_size() {
+        let f = write_temp(&one_tensor_gguf(7, 8, &[4096, 40_960]));
+        assert_eq!(estimate_model_mb(f.path(), 0).expect("estimate"), 1313);
     }
 
     /// Why: a model whose tensor type this build does not know must not be estimated at all,
     /// least of all as 0 MB (which would be a `go`). The FFI turns the error into a `fail`.
     #[test]
     fn estimate_fails_for_an_unknown_tensor_type() {
-        let f = write_temp(&one_tensor_gguf(9_999, &[4096, 4096]));
+        let f = write_temp(&one_tensor_gguf(7, 9_999, &[4096, 4096]));
         let err = estimate_model_mb(f.path(), 0).expect_err("unknown tensor type");
         assert!(
             matches!(
@@ -278,6 +337,58 @@ mod tests {
             ),
             "got: {err:#}"
         );
+    }
+
+    fn not_assessed(err: &anyhow::Error) -> bool {
+        err.downcast_ref::<PreflightError>() == Some(&PreflightError::Nvfp4NotAssessed)
+    }
+
+    /// Why: NVFP4 readiness is deferred until offsets, alignment and extent are validated, so
+    /// no NVFP4 signal may reach an estimate: the file type alone, one NVFP4 tensor alone, or both.
+    /// Detects: removing either half of the gate in `estimate_model_mb`.
+    #[test]
+    fn nvfp4_by_file_type_or_by_tensor_is_not_assessed() {
+        // file_type 39 = NVFP4 with an F32 tensor; file_type Q5_0 with an NVFP4 tensor; both.
+        for (file_type, type_id) in [(39, 0), (7, 40), (39, 40)] {
+            let f = write_temp(&one_tensor_gguf(file_type, type_id, &[64]));
+            let err = estimate_model_mb(f.path(), 0).expect_err("NVFP4 is not assessed");
+            assert!(not_assessed(&err), "file_type {file_type}, tensor {type_id}: {err:#}");
+        }
+    }
+
+    /// A GPU with a terabyte free, far more than any model needs.
+    fn ample_gpus() -> Result<Vec<GpuVramSnapshot>> {
+        Ok(vec![GpuVramSnapshot {
+            index: 0,
+            name: "Ample GPU".to_owned(),
+            total_mb: 1_048_576,
+            used_mb: 0,
+            free_mb: 1_048_576,
+            processes: vec![],
+        }])
+    }
+
+    /// Why: the point of deferring NVFP4: with ample VRAM an NVFP4 header must not yield `go`.
+    /// The positive control proves the same GPU does say `go` for a model that is assessed, so
+    /// the error is the gate and not a broken fixture.
+    #[test]
+    fn nvfp4_header_with_ample_vram_is_not_go() {
+        let nvfp4 = write_temp(&one_tensor_gguf(39, 40, &[4096, 4096]));
+        let err = readiness(nvfp4.path(), 0, ample_gpus).expect_err("NVFP4 must not be assessed");
+        assert!(not_assessed(&err), "got: {err:#}");
+
+        let q8 = write_temp(&one_tensor_gguf(7, 8, &[4096, 4096]));
+        let ok = readiness(q8.path(), 0, ample_gpus).expect("a Q8_0 model is assessed");
+        assert_eq!(ok.verdict, Verdict::Go);
+    }
+
+    /// Why: an unassessable model fails before NVML is asked anything.
+    #[test]
+    fn an_unassessable_model_does_not_query_the_gpus() {
+        let nvfp4 = write_temp(&one_tensor_gguf(39, 40, &[64]));
+        let err =
+            readiness(nvfp4.path(), 0, || panic!("the GPU snapshot must not be taken")).expect_err("not assessed");
+        assert!(not_assessed(&err));
     }
 
     #[test]

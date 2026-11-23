@@ -574,6 +574,8 @@ pub struct GgufLayout {
     pub tensor_count: u64,
     /// Sum of the byte sizes of all tensors, without per-tensor alignment padding.
     pub tensor_bytes: u64,
+    /// Number of tensors of type [`GgmlType::Nvfp4`].
+    pub nvfp4_tensors: u64,
     /// Bytes read from the stream: everything up to the end of the tensor-info section.
     pub header_bytes: u64,
 }
@@ -821,11 +823,12 @@ pub fn read_gguf_layout_from<R: Read>(reader: R) -> Result<GgufLayout> {
             }
             .into());
         }
-        let tensor_bytes = read_tensor_bytes(&mut *reader, tensor_count)?;
+        let (tensor_bytes, nvfp4_tensors) = read_tensor_bytes(&mut *reader, tensor_count)?;
         Ok(GgufLayout {
             meta,
             tensor_count,
             tensor_bytes,
+            nvfp4_tensors,
             header_bytes: reader.consumed(),
         })
     })
@@ -984,12 +987,14 @@ fn parse_header(mut reader: impl Read) -> Result<(GgufModelMeta, u64)> {
     Ok((meta, tensor_count))
 }
 
-/// Read `tensor_count` tensor-info records and return the sum of their sizes.
+/// Read `tensor_count` tensor-info records and return the sum of their sizes
+/// and the number of NVFP4 tensors among them.
 ///
 /// Nothing is allocated from the declared count or from a name length: names
 /// are skipped, and at most [`MAX_TENSOR_DIMS`] extents are held at a time.
-fn read_tensor_bytes(r: &mut impl Read, tensor_count: u64) -> Result<u64> {
+fn read_tensor_bytes(r: &mut impl Read, tensor_count: u64) -> Result<(u64, u64)> {
     let mut total = 0_u64;
+    let mut nvfp4 = 0_u64;
     for index in 0..tensor_count {
         skip_gguf_string(r)?;
         let n_dims = read_u32_le(r)?;
@@ -1017,8 +1022,12 @@ fn read_tensor_bytes(r: &mut impl Read, tensor_count: u64) -> Result<u64> {
         total = total
             .checked_add(size)
             .ok_or(GgufTensorError::TotalOverflow { index })?;
+        if ggml_type == GgmlType::Nvfp4 {
+            // At most `index + 1`, which is bounded by MAX_TENSOR_COUNT.
+            nvfp4 += 1;
+        }
     }
-    Ok(total)
+    Ok((total, nvfp4))
 }
 
 /// `4 * emb^2 * blocks + 32_000 * emb`, or `None` if any step overflows `u64`.

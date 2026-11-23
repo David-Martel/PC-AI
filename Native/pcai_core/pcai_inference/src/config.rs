@@ -38,7 +38,38 @@ pub enum BackendConfig {
         /// Device policy: `cpu`, `auto` (default) or `cuda:N`; see [`DeviceSpec`].
         #[serde(default)]
         device: Option<String>,
+
+        /// How layers are placed on the device; see [`DeviceLayers`]. Unset means `auto`.
+        #[serde(default)]
+        device_layers: Option<DeviceLayers>,
     },
+}
+
+/// How the mistral.rs backend places a model's layers.
+///
+/// mistral.rs maps layers automatically by default and, when the model does not fit the GPU,
+/// puts the last layers on the CPU. For GGUF models that split fails at the first forward pass
+/// (`device mismatch in rms-norm, lhs: Cpu, rhs: Cuda`), so the load looks fine and every request
+/// then errors. `all` removes the split.
+///
+/// # Examples
+///
+/// ```
+/// use pcai_inference_lib::config::DeviceLayers;
+///
+/// let layers: DeviceLayers = serde_json::from_str("\"all\"").unwrap();
+/// assert_eq!(layers, DeviceLayers::All);
+/// assert_eq!(DeviceLayers::default(), DeviceLayers::Auto);
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DeviceLayers {
+    /// Let mistral.rs choose the placement, which may split layers between the GPU and the CPU.
+    #[default]
+    Auto,
+    /// Put every layer on the selected device. A model that does not fit fails at load with the
+    /// loader's out-of-memory error instead of loading as a CPU/GPU split.
+    All,
 }
 
 /// Where a backend should run the model, parsed from the `device` setting.
@@ -431,6 +462,31 @@ mod tests {
             assert!(err.contains(&format!("{bad:?}")), "error must name {bad:?}: {err}");
             assert!(err.contains("cuda:N"), "error must list the accepted forms: {err}");
         }
+    }
+
+    // Protects the config contract of `backend.device_layers`: absent means automatic placement,
+    // the two documented values parse, anything else is rejected rather than ignored.
+    #[cfg(feature = "mistralrs-backend")]
+    #[test]
+    fn device_layers_setting_parses_and_defaults_to_auto() {
+        let parse = |json: &str| -> serde_json::Result<BackendConfig> { serde_json::from_str(json) };
+        let absent = parse(r#"{"type":"mistral_rs","device":"cuda:0"}"#).expect("test: no device_layers is valid");
+        assert!(matches!(
+            absent,
+            BackendConfig::MistralRs {
+                device_layers: None,
+                ..
+            }
+        ));
+        let all = parse(r#"{"type":"mistral_rs","device_layers":"all"}"#).expect("test: all is valid");
+        assert!(matches!(
+            all,
+            BackendConfig::MistralRs {
+                device_layers: Some(DeviceLayers::All),
+                ..
+            }
+        ));
+        assert!(parse(r#"{"type":"mistral_rs","device_layers":"half"}"#).is_err());
     }
 
     #[test]

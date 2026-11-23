@@ -136,6 +136,21 @@ by `DeviceSpec` in `src/config.rs`, and shared by the `pcai-mistralrs` binary an
 
 Any other string is a configuration error that lists the accepted forms.
 
+### Layer placement
+
+`backend.device_layers` controls how layers are placed on the device (default `auto`):
+
+| Value | Behaviour |
+|---|---|
+| unset, `auto` | mistral.rs chooses. A model that does not fit the GPU is split, with the last layers on the CPU. For GGUF models that split loads and then fails the first forward pass with `device mismatch in rms-norm, lhs: Cpu, rhs: Cuda` (seen with Qwen2.5-7B Q4_K_M on an 8 GB GPU); the readiness probe below turns that into a not-ready server. |
+| `all` | Every layer on the selected device. A model that does not fit fails at load with the loader's out-of-memory error instead of loading as a split. It has no effect with `device: "cpu"`, where every layer is already on the CPU. |
+
+```json
+{ "backend": { "type": "mistral_rs", "device": "cuda:0", "device_layers": "all" } }
+```
+
+A partial split (a number of GPU layers) is not offered: the mixed placement is the one that fails.
+
 ### Readiness
 
 `pcai-mistralrs` runs one short deterministic generation (a few tokens, temperature 0) after the model loads,

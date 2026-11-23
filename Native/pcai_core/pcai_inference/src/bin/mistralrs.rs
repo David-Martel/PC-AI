@@ -3,7 +3,7 @@
 
 use pcai_inference_lib::{
     backends::{mistralrs::MistralRsBackend, InferenceBackend},
-    config::{DeviceSpec, InferenceConfig},
+    config::{DeviceLayers, DeviceSpec, InferenceConfig},
     http::run_server_probed,
     version,
 };
@@ -67,11 +67,12 @@ async fn main() -> anyhow::Result<()> {
     // `DeviceSpec` is the one place the accepted device strings are defined. An explicit
     // `cuda:N` that cannot be honoured makes `load_model` fail below, so the process exits
     // non-zero instead of serving from the CPU.
-    let device = match &config.backend {
+    let (device, device_layers) = match &config.backend {
         #[cfg(feature = "mistralrs-backend")]
-        pcai_inference_lib::config::BackendConfig::MistralRs { device, .. } => {
-            DeviceSpec::from_setting(device.as_deref())?
-        }
+        pcai_inference_lib::config::BackendConfig::MistralRs { device, device_layers } => (
+            DeviceSpec::from_setting(device.as_deref())?,
+            device_layers.unwrap_or(DeviceLayers::Auto),
+        ),
 
         #[cfg(feature = "llamacpp")]
         pcai_inference_lib::config::BackendConfig::LlamaCpp { .. } => {
@@ -81,7 +82,7 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
-    let mut backend = Box::new(MistralRsBackend::with_device(device));
+    let mut backend = Box::new(MistralRsBackend::with_device(device).with_device_layers(device_layers));
 
     // Load model
     tracing::info!("Loading model from {:?}", config.model.path);

@@ -11,10 +11,10 @@ use std::path::Path;
 use std::sync::Arc;
 
 use mistralrs::{Device, GgufModelBuilder, Model, RequestBuilder, TextMessageRole, TextModelBuilder};
-use mistralrs_core::ChatCompletionResponse;
+use mistralrs_core::{ChatCompletionResponse, DeviceLayerMapMetadata, DeviceMapMetadata, DeviceMapSetting};
 
 use super::{FinishReason, GenerateRequest, GenerateResponse, InferenceBackend};
-use crate::config::DeviceSpec;
+use crate::config::{DeviceLayers, DeviceSpec};
 use crate::{Error, Result};
 
 /// mistral.rs backend implementation
@@ -27,6 +27,8 @@ pub struct MistralRsBackend {
     is_gguf: bool,
     /// Where the model should run
     device: DeviceSpec,
+    /// How layers are placed on that device
+    device_layers: DeviceLayers,
 }
 
 impl MistralRsBackend {
@@ -44,6 +46,7 @@ impl MistralRsBackend {
             model_path: None,
             is_gguf: false,
             device: DeviceSpec::Auto,
+            device_layers: DeviceLayers::Auto,
         }
     }
 
@@ -65,7 +68,29 @@ impl MistralRsBackend {
             model_path: None,
             is_gguf: false,
             device,
+            device_layers: DeviceLayers::Auto,
         }
+    }
+
+    /// Choose how layers are placed; see [`DeviceLayers`]. The default is automatic placement.
+    #[must_use]
+    pub fn with_device_layers(mut self, device_layers: DeviceLayers) -> Self {
+        self.device_layers = device_layers;
+        self
+    }
+
+    /// Every repeating layer on the primary device, with none on the host.
+    ///
+    /// mistral.rs clamps the layer count to the model's, so `usize::MAX` means "all" without
+    /// reading the layer count first. A model that is too large then fails to load instead of
+    /// being split.
+    fn all_layers_on_device() -> DeviceMapSetting {
+        DeviceMapSetting::Map(DeviceMapMetadata::from_num_device_layers(vec![
+            DeviceLayerMapMetadata {
+                ordinal: 0,
+                layers: usize::MAX,
+            },
+        ]))
     }
 
     /// Decide whether the builder must be forced onto the CPU, or fail.
@@ -166,8 +191,10 @@ impl MistralRsBackend {
         let force_cpu = self.requires_cpu()?;
         if force_cpu {
             builder = builder.with_force_cpu();
+        } else if self.device_layers == DeviceLayers::All {
+            builder = builder.with_device_mapping(Self::all_layers_on_device());
         }
-        tracing::info!(force_cpu, device = %self.device, "Loading GGUF with the selected device policy");
+        tracing::info!(force_cpu, device = %self.device, layers = ?self.device_layers, "Loading GGUF with the selected device policy");
         let model = builder
             .build()
             .await
@@ -189,8 +216,10 @@ impl MistralRsBackend {
         let force_cpu = self.requires_cpu()?;
         if force_cpu {
             builder = builder.with_force_cpu();
+        } else if self.device_layers == DeviceLayers::All {
+            builder = builder.with_device_mapping(Self::all_layers_on_device());
         }
-        tracing::info!(force_cpu, device = %self.device, "Loading text model with the selected device policy");
+        tracing::info!(force_cpu, device = %self.device, layers = ?self.device_layers, "Loading text model with the selected device policy");
         let model = builder
             .build()
             .await
@@ -370,6 +399,38 @@ mod tests {
             .expect_err("a missing device must be an error")
             .to_string();
         assert!(missing.contains("no such device"), "{missing}");
+    }
+
+    // Protects `device_layers = "all"`: a single-entry map that covers every layer. Detects a
+    // count that does not clamp to the model (mistral.rs bails when device + host layers differ
+    // from the model's), and a mapping that leaves layers on the host. Uses the real mapper on
+    // the CPU device, so it needs no GPU. Breadcrumb: MistralRsBackend::all_layers_on_device.
+    #[test]
+    fn all_layers_mapping_clamps_to_any_model_depth() {
+        let setting = MistralRsBackend::all_layers_on_device();
+        match &setting {
+            DeviceMapSetting::Map(metadata) => {
+                let layers = metadata.device_layers().expect("test: the map must name device layers");
+                assert_eq!(layers.len(), 1);
+                assert_eq!(layers[0].ordinal, 0);
+                assert_eq!(layers[0].layers, usize::MAX);
+                assert_eq!(metadata.host_layers(), None);
+            }
+            other => panic!("test: expected a manual map, got {other:?}"),
+        }
+        for depth in [1usize, 22, 28, 80] {
+            setting
+                .into_mapper(depth, &Device::Cpu, None, &[Device::Cpu])
+                .unwrap_or_else(|error| panic!("test: {depth} layers must map: {error}"));
+        }
+    }
+
+    // Protects the builder API: the knob is stored, and the default stays automatic.
+    #[test]
+    fn device_layers_defaults_to_auto_and_can_be_set() {
+        assert_eq!(MistralRsBackend::new().device_layers, DeviceLayers::Auto);
+        let backend = MistralRsBackend::new().with_device_layers(DeviceLayers::All);
+        assert_eq!(backend.device_layers, DeviceLayers::All);
     }
 
     // Protects default loading with a Windows CPU-only artifact.

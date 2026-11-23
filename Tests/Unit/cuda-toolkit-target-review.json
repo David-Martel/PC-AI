@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourceBaseline": "aa4aaee0582cd094fc01342b6d193c2ed202b881",
-  "recordedAtUtc": "2026-11-23T01:40:59.3896926Z",
+  "sourceBaseline": "664a4bb3afdec832106626717299c54bd78dfe1b",
+  "recordedAtUtc": "2026-11-23T01:46:29.5099752Z",
   "hashConvention": "SHA-256 of UTF-8 LF-normalized source text and exact Pester It AST extents",
   "sourceBindings": {
     "Tools/Initialize-CudaEnvironment.ps1": "117dcf48a1364b64d0fbe5dce4263b1e2e2af958346318051a9a6426d356ce11",
-    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "ab47edebc6042c7c52240d19a2066440e042e884854af965f8854adac1697cd0",
-    "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1": "8cc5db59402316c031fe058858925bf8d624c421ca229144ca89e7b962ceece8",
+    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "0072caa17dc407192ef1d7607283ae942315ed96a1edb658d1fec73450b4d153",
+    "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1": "59b621a903d24173e398e16ac2e034d6f0f9c6c6703da436e22d8238f3b21672",
     "docs/ai-build-qualification.md": "45a6c300557721072c84c35891b98e29f3e034a6518a9d82b866de5b07f2511e"
   },
   "selectors": [
@@ -70,6 +70,45 @@
       "reviewerType": "author self-review",
       "disposition": "unreviewed",
       "reviewScope": "The real Gen7 CUDA 13.1 GPU-name allowed-values list inserts LTO entries between compute and SM entries. The fixture reproduced an empty result on aa4aaee0, verifies that other option entries are excluded, and certifies only exact SM suffixes. The read-only Gen7 retest selected sm_89, sm_120, sm_120a and sm_120f."
+    },
+    {
+      "selector": "probes the effective CUDA declaration for <Case>",
+      "source": "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1",
+      "sha256": "375eba9791dabf4518ae87c6ab692a00363c0a24deb592f76d3cec47303d5fa2",
+      "protects": "Each backend validates its effective CUDA declaration, including a numeric legacy GGML override when shell defaults request unsupported targets.",
+      "detects": "An unrelated default rejecting a valid backend, a missing effective declaration, or a combined backend build checking only one target list.",
+      "needs": "Pester 5, the actual extracted CUDA branch, inert directories and a synthetic nvcc code list.",
+      "breadcrumb": "Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment explicit CUDA selection.",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Baseline daff6198 failed four of six cases. The revised branch and real toolkit selector use each effective declaration without invoking nvcc or a real CUDA install."
+    },
+    {
+      "selector": "rejects an architecture suffix in legacy GGML input <Target>",
+      "source": "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1",
+      "sha256": "1687872324f0ab192235aab6c0179aa07db2ed5b3c85837235bfd038cb34b28a",
+      "protects": "Legacy GGML receives numeric architecture targets only.",
+      "detects": "A suffixed target, including a dotted target, reaching the compiler and later being discarded.",
+      "needs": "Pester 5, the extracted production CUDA branch, a stub that throws if invoked.",
+      "breadcrumb": "Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment GGML suffix guard.",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Both compact and dotted suffix spellings fail before a compiler probe."
+    },
+    {
+      "selector": "preserves the GGML override and compiler after optional CUDA library setup",
+      "source": "Tests/Unit/Initialize-CudaEnvironment.Tests.ps1",
+      "sha256": "ad3fd0abd7bc2b5fb68019c8a2fb6670441593db4c6cefefa709ced7cb00d875",
+      "protects": "The child receives the admitted GGML target and CUDA toolkit after optional library setup.",
+      "detects": "Dropping the target export or picking another compiler whose path was prepended during library setup.",
+      "needs": "Pester 5, TestDrive, the extracted production CUDA branch and actual path helper with inert discovery and library stubs.",
+      "breadcrumb": "Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment process exports.",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "The fixture verifies override admission and export, promotes the selected CUDA path after a library prepends its own path, and retains that library path."
     }
   ]
 }

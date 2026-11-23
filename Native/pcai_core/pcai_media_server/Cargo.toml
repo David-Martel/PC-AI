@@ -1,6 +1,6 @@
 [package]
 name = "pcai-media-server"
-version = "0.1.0"
+version.workspace = true
 edition = "2021"
 description = "HTTP server for Janus-Pro media inference"
 license = "MIT"

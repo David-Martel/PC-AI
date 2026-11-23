@@ -81,7 +81,7 @@ Describe 'Initialize-CudaEnvironment' -Tag 'Unit', 'Cuda', 'Portable' {
         Should -Invoke Get-NvccGpuCodes -Times 0 -Exactly
     }
 
-    # Protects: bare nvcc resolves to the compiler from the admitted CUDA toolkit.
+    # Protects: bare nvcc and CUDA 13 runtime libraries resolve from the admitted CUDA toolkit.
     # Detects: leaving the selected toolkit behind older PATH entries or treating a substring as an exact match.
     # Needs: owned fixture directories and process-scoped PATH, restored on exit.
     # Breadcrumb: Initialize-CudaEnvironment preferred CUDA bin PATH assignment.
@@ -112,6 +112,12 @@ Describe 'Initialize-CudaEnvironment' -Tag 'Unit', 'Cuda', 'Portable' {
             . $bind
             $pathUpdated | Should -BeFalse
             $env:PATH | Should -BeExactly $expectedPath
+
+            $runtimeBin = Join-Path $bin 'x64'
+            $null = New-Item -ItemType Directory -Path $runtimeBin
+            . $bind
+            $pathUpdated | Should -BeTrue
+            $env:PATH | Should -BeExactly (@($bin, $runtimeBin, $older, $nearMatch) -join ';')
         } finally {
             $env:PATH = $originalPath
         }
@@ -305,15 +311,18 @@ function Initialize-CudaEnvironment { throw 'Compiler probe must not run' }
         }
     }
 
-    # Protects: the child gets the selected target and compiler after optional library setup.
-    # Detects: a lost GGML override or another toolkit taking precedence on PATH.
+    # Protects: the child gets the selected target, compiler and runtime DLL path after optional library setup.
+    # Detects: a lost GGML override, a missing CUDA 13 runtime path or another toolkit taking precedence on PATH.
     # Needs: actual CUDA branch and PATH helper, inert toolkit and optional library fixtures.
     # Breadcrumb: Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment process exports.
     It 'preserves the GGML override and compiler after optional CUDA library setup' {
         $ToolsDir = Join-Path $TestDrive 'admitted-toolkit'
         $cudaBin = Join-Path $ToolsDir 'bin'
-        $otherBin = Join-Path $TestDrive 'other-toolkit/bin'
-        $null = New-Item -ItemType Directory -Path $cudaBin, $otherBin
+        $runtimeBin = Join-Path $cudaBin 'x64'
+        $cudnnBin = Join-Path $TestDrive 'optional-cudnn/bin'
+        $tensorRtBin = Join-Path $TestDrive 'optional-tensorrt/bin'
+        $null = New-Item -ItemType Directory -Path $runtimeBin, $cudnnBin, $tensorRtBin
+        $null = New-Item -ItemType File -Path (Join-Path $runtimeBin 'cudart64_13.dll')
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../Tools/Initialize-CudaEnvironment.ps1') `
             -Destination (Join-Path $ToolsDir 'RealToolkit.ps1')
         @'
@@ -325,8 +334,11 @@ function Initialize-CudaEnvironment {
     @{ Found = $true; CudaPath = $PSScriptRoot }
 }
 '@ | Set-Content -LiteralPath (Join-Path $ToolsDir 'Initialize-CudaEnvironment.ps1')
-        function Initialize-CudnnEnvironment { param([string]$CudaPath) }
-        function Initialize-TensorRtEnvironment { $env:PATH = "$otherBin;$env:PATH" }
+        function Initialize-CudnnEnvironment {
+            param([string]$CudaPath)
+            $env:PATH = "$cudnnBin;$env:PATH"
+        }
+        function Initialize-TensorRtEnvironment { $env:PATH = "$tensorRtBin;$env:PATH" }
 
         $envNames = @('PATH', 'GGML_CUDA_ARCH_LIST', 'PCAI_CUDA_ARCH_LIST', 'LLAMA_CUDA', 'GGML_CUDA',
             'RUSTFLAGS', 'CUDA_NVCC_FLAGS', 'NVCCFLAGS', 'CMAKE_ARGS', 'CL', '_CL_', 'LIB', 'INCLUDE')
@@ -338,12 +350,85 @@ function Initialize-CudaEnvironment {
         try {
             $env:GGML_CUDA_ARCH_LIST = $null
             $env:PCAI_CUDA_ARCH_LIST = '89'
+            $priorPath = Join-Path $TestDrive 'existing-selection/bin'
+            $env:PATH = @($priorPath, $runtimeBin, $cudaBin, $runtimeBin) -join ';'
             $null = & $script:CudaProbe
             $env:GGML_CUDA_ARCH_LIST | Should -BeExactly '89'
-            ($env:PATH -split ';')[0] | Should -BeExactly $cudaBin
-            ($env:PATH -split ';') | Should -Contain $otherBin
+            $env:PATH | Should -BeExactly (@($cudaBin, $runtimeBin, $tensorRtBin, $cudnnBin, $priorPath) -join ';')
         } finally {
             foreach ($name in $envNames) { [Environment]::SetEnvironmentVariable($name, $original[$name]) }
+        }
+    }
+
+    # Protects the Mistral build from probing one target and asking cudaforge to compile for another.
+    # Detects dropped overrides, unqualified auto-suffixes and unsupported suffixes reaching Cargo.
+    # Needs the actual CUDA branch, toolkit selector and inert advertised compiler and assembler targets.
+    # Breadcrumb: Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment Mistral target selection.
+    It 'hands Mistral the admitted architecture for <Case>' -ForEach @(
+        @{ Case = 'Ada plural shorthand'; Plural = '8.9'; Expected = '89' },
+        @{ Case = 'Ada CMake fallback'; Cmake = 'compute_89'; Expected = '89' },
+        @{ Case = 'Ada singular preference'; Singular = 'sm_89'; Plural = '120'; Expected = '89' },
+        @{ Case = 'Blackwell numeric requires assembler'; Plural = '120'; ExpectedError = '*Unsupported CUDA targets sm_120a*' },
+        @{ Case = 'Blackwell numeric with assembler'; Plural = '120'; AssemblerA = $true; Expected = '120' },
+        @{ Case = 'Blackwell exact suffix'; Singular = 'sm_120a'; AssemblerA = $true; Expected = '120a' },
+        @{ Case = 'Blackwell unsupported family suffix'; Plural = '120f'; ExpectedError = '*Mistral CUDA cannot compile target 120f*' },
+        @{ Case = 'Native automatic'; Expected = '' },
+        @{ Case = 'Native multiple candidates'; Plural = '89;120'; Expected = '' }
+    ) {
+        $ToolsDir = Join-Path $TestDrive $Case
+        $null = New-Item -ItemType Directory -Path (Join-Path $ToolsDir 'bin'), (Join-Path $ToolsDir 'include')
+        $null = New-Item -ItemType File -Path (Join-Path $ToolsDir 'bin/nvcc.exe'),
+            (Join-Path $ToolsDir 'bin/ptxas.exe'), (Join-Path $ToolsDir 'include/cuda_runtime.h')
+        if ($AssemblerA) { $null = New-Item -ItemType File -Path (Join-Path $ToolsDir 'supports-120a') }
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../Tools/Initialize-CudaEnvironment.ps1') `
+            -Destination (Join-Path $ToolsDir 'RealToolkit.ps1')
+        @'
+. (Join-Path $PSScriptRoot 'RealToolkit.ps1')
+function Get-NvccGpuCodes { param([string]$CompilerPath) 'sm_89'; 'sm_120' }
+function Get-PtxasGpuCodes {
+    param([string]$AssemblerPath)
+    'sm_120f'
+    if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'supports-120a')) { 'sm_120a' }
+}
+function Initialize-CudaEnvironment {
+    param([switch]$Quiet, [string]$TargetComputeCaps)
+    $choice = Select-CudaToolkit -Candidates $PSScriptRoot -TargetComputeCaps $TargetComputeCaps
+    if (-not $choice.Path) { return @{ Found = $false; Notes = $choice.Notes } }
+    if (-not $env:CUDAARCHS) { $env:CUDAARCHS = '75;80;86;89;120' }
+    @{ Found = $true; CudaPath = $choice.Path }
+}
+'@ | Set-Content -LiteralPath (Join-Path $ToolsDir 'Initialize-CudaEnvironment.ps1')
+        function Resolve-MsvcClPath { return $null }
+        function Initialize-CudnnEnvironment { param([string]$CudaPath) }
+        function Initialize-TensorRtEnvironment {}
+
+        $names = @('PATH', 'CUDA_COMPUTE_CAP', 'CUDA_COMPUTE_CAPS', 'CUDAARCHS', 'LLAMA_CUDA',
+            'GGML_CUDA', 'RUSTFLAGS', 'CUDA_NVCC_FLAGS', 'NVCCFLAGS', 'CMAKE_ARGS', 'CL', '_CL_',
+            'LIB', 'INCLUDE', 'CMAKE_CUDA_COMPILER', 'NVCC_CCBIN')
+        $original = @{}
+        foreach ($name in $names) { $original[$name] = [Environment]::GetEnvironmentVariable($name) }
+        $originalScriptMsvcClPath = $script:MsvcClPath
+        $Backend = 'mistralrs'
+        $Configuration = 'Release'
+        $EnableCuda = $true
+        try {
+            $script:MsvcClPath = $null
+            [Environment]::SetEnvironmentVariable('CUDA_COMPUTE_CAP', $Singular)
+            [Environment]::SetEnvironmentVariable('CUDA_COMPUTE_CAPS', $Plural)
+            [Environment]::SetEnvironmentVariable('CUDAARCHS', $Cmake)
+            if ($ExpectedError) {
+                { & $script:CudaProbe } | Should -Throw -ExpectedMessage $ExpectedError
+            } else {
+                $null = & $script:CudaProbe
+                if ($Expected) {
+                    $env:CUDA_COMPUTE_CAP | Should -BeExactly $Expected
+                } else {
+                    $env:CUDA_COMPUTE_CAP | Should -BeNullOrEmpty
+                }
+            }
+        } finally {
+            $script:MsvcClPath = $originalScriptMsvcClPath
+            foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name, $original[$name]) }
         }
     }
 }

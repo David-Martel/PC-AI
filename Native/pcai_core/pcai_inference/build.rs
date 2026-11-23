@@ -84,6 +84,25 @@ fn generate_version_info() {
         "none".to_string()
     };
 
+    // The release workflow reads this frame without loading the executable or its GPU runtime.
+    const IDENTITY_MARKER: &[u8] = b"PCAI_BUILD_IDENTITY_V1\0";
+    let identity_json = serde_json::json!({
+        "version": version,
+        "semver": semver,
+        "git_hash": git_hash,
+        "git_branch": git_branch,
+        "build_timestamp": build_timestamp,
+        "build_type": build_type,
+        "target": target,
+        "profile": profile,
+        "features": features_str,
+        "cuda_version": cuda_version,
+        "has_cuda": has_cuda,
+    })
+    .to_string();
+    let identity = [IDENTITY_MARKER, identity_json.as_bytes(), b"\0"].concat();
+    fs::write(Path::new(&out_dir).join("build_identity.bin"), identity).expect("Failed to write build_identity.bin");
+
     // Generate Rust source file with build info
     let content = format!(
         r##"// Auto-generated build information. Do not edit.
@@ -148,12 +167,15 @@ pub fn build_info() -> String {{
     )
 }}
 
+// The CLI uses these exact bytes for --version-info. Pass the whole frame through black_box
+// before slicing it so the optimizer keeps the marker and terminator in release executables.
+static BUILD_IDENTITY: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/build_identity.bin"));
+
 /// Version info as JSON
 pub fn build_info_json() -> String {{
-    format!(
-        r#"{{{{"version":"{{}}","semver":"{{}}","git_hash":"{{}}","git_branch":"{{}}","build_timestamp":"{{}}","build_type":"{{}}","target":"{{}}","profile":"{{}}","features":"{{}}","cuda_version":"{{}}","has_cuda":{{}}}}}}"#,
-        VERSION, SEMVER, GIT_HASH, GIT_BRANCH, BUILD_TIMESTAMP, BUILD_TYPE, TARGET, PROFILE, FEATURES, CUDA_VERSION, HAS_CUDA
-    )
+    let identity = std::hint::black_box(BUILD_IDENTITY);
+    let json = &identity[{identity_marker_len}..identity.len() - 1];
+    std::str::from_utf8(json).expect("embedded build identity is UTF-8").to_owned()
 }}
 "##,
         version = version,
@@ -168,6 +190,7 @@ pub fn build_info_json() -> String {{
         features_str = features_str,
         cuda_version = cuda_version,
         has_cuda = has_cuda,
+        identity_marker_len = IDENTITY_MARKER.len(),
     );
 
     fs::write(&dest_path, content).expect("Failed to write build_info.rs");

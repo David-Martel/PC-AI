@@ -124,7 +124,8 @@ Describe 'Native release workflow artifact staging' -Tag 'Unit', 'Portable' {
                 [string]$Backend,
                 [bool]$Cuda,
                 [string]$MetadataJson,
-                [int]$MetadataExit = 0
+                [ValidateSet('normal', 'missing', 'repeated', 'unterminated', 'oversized', 'split')]
+                [string]$MetadataMode = 'normal'
             )
 
             if (-not $PSBoundParameters.ContainsKey('MetadataJson')) {
@@ -139,15 +140,21 @@ Describe 'Native release workflow artifact staging' -Tag 'Unit', 'Portable' {
                     ConvertTo-Json -Compress
             }
 
-            function Invoke-ArtifactMetadataFixture {
-                param([string]$ProbePath)
-                $expectedPath = Join-Path $Root ".pcai/build/artifacts/pcai-$Backend/pcai-$Backend.exe"
-                if ($args.Count -ne 1 -or $args[0] -ne '--version-json' -or
-                    (Resolve-Path -LiteralPath $ProbePath).Path -ne (Resolve-Path -LiteralPath $expectedPath).Path) {
-                    throw 'Version query did not use the canonical staged executable.'
+            $fixtureExe = Join-Path $Root ".pcai/build/artifacts/pcai-$Backend/pcai-$Backend.exe"
+            if ($MetadataMode -ne 'missing' -and (Test-Path -LiteralPath $fixtureExe -PathType Leaf)) {
+                $marker = 'PCAI_BUILD_IDENTITY_V1' + [char]0
+                $metadata = switch ($MetadataMode) {
+                    'repeated' { ($marker + $MetadataJson + [char]0) * 2 }
+                    'unterminated' { $marker + $MetadataJson }
+                    'oversized' { $marker + ('a' * 4097) + [char]0 }
+                    default { $marker + $MetadataJson + [char]0 }
                 }
-                $global:LASTEXITCODE = $MetadataExit
-                $MetadataJson
+                if ($MetadataMode -eq 'split') {
+                    # Split the marker across the archive reader's 1 MiB chunk boundary.
+                    $padding = 1MB - (Get-Item -LiteralPath $fixtureExe).Length - 5
+                    Add-Content -LiteralPath $fixtureExe -Value ('p' * $padding) -Encoding utf8NoBOM -NoNewline
+                }
+                Add-Content -LiteralPath $fixtureExe -Value $metadata -Encoding utf8NoBOM -NoNewline
             }
 
             $pattern = '(?ms)^      - name: Prepare Artifact\r?\n.*?^        run: \|\r?\n(?<body>.*?)(?=^      [#-]|\z)'
@@ -156,13 +163,10 @@ Describe 'Native release workflow artifact staging' -Tag 'Unit', 'Portable' {
             $body = $body.Replace('${{ matrix.backend }}', $Backend)
             $body = $body.Replace('${{ matrix.cuda }}', $Cuda.ToString().ToLowerInvariant())
             $body = $body.Replace('${{ steps.features.outputs.BIN_NAME }}', "pcai-$Backend")
-            # Stub only the owned binary invocation. Run the YAML's other packaging code unchanged.
-            $body = $body.Replace('& $nativeExecutable --version-json', 'Invoke-ArtifactMetadataFixture $nativeExecutable --version-json')
             $check = [scriptblock]::Create(($body -replace '(?m)^          ', ''))
 
             $priorOutput = $env:GITHUB_OUTPUT
             $priorCommit = $env:PCAI_EXPECTED_SOURCE_COMMIT
-            $priorExit = $global:LASTEXITCODE
             Push-Location -LiteralPath $Root
             try {
                 $env:GITHUB_OUTPUT = Join-Path $Root 'github-output'
@@ -172,7 +176,6 @@ Describe 'Native release workflow artifact staging' -Tag 'Unit', 'Portable' {
             finally {
                 $env:GITHUB_OUTPUT = $priorOutput
                 $env:PCAI_EXPECTED_SOURCE_COMMIT = $priorCommit
-                $global:LASTEXITCODE = $priorExit
                 Pop-Location
             }
         }
@@ -203,7 +206,7 @@ Describe 'Native release workflow artifact staging' -Tag 'Unit', 'Portable' {
     }
 
     # Protects: packaged native variants include the staged executable and P/Invoke alias.
-    # Detects: stale DLLs or staging residue, mismatched manifest files or incorrect SHA-256 checksums.
+    # Detects: stale DLLs, mismatched checksums, incorrect model formats, or losing metadata across a chunk boundary.
     # Needs: PowerShell 7, Pester 5, workflow text, and synthetic files in TestDrive.
     # Breadcrumb: .github/workflows/release-cuda.yml Prepare Artifact, Build.ps1 Invoke-InferenceBuild.
     It 'packs the canonical <Backend> <Variant> staged files' -ForEach @(
@@ -227,14 +230,21 @@ Describe 'Native release workflow artifact staging' -Tag 'Unit', 'Portable' {
         Set-Content -LiteralPath (Join-Path $legacy 'pcai_inference_lib.dll') -Value 'stale library' -NoNewline
         Set-Content -LiteralPath (Join-Path $zipScratch 'old-artifact.dll') -Value 'stale stage' -NoNewline
 
-        Invoke-PrepareNativeArtifact -Root $root -Backend $Backend -Cuda $Cuda | Out-Null
+        $metadataMode = if ($Variant -eq 'cuda') { 'split' } else { 'normal' }
+        Invoke-PrepareNativeArtifact -Root $root -Backend $Backend -Cuda $Cuda -MetadataMode $metadataMode | Out-Null
         $archive = Read-NativeArchive -Path (Join-Path $root "$name.zip")
         $files = $archive.Files
-        $files[$exe] | Should -BeExactly 'canonical executable'
+        $files[$exe] | Should -BeLike 'canonical executable*PCAI_BUILD_IDENTITY_V1*'
         $files['pcai_inference.dll'] | Should -BeExactly 'canonical library'
         $files['pcai_inference_lib.dll'] | Should -BeExactly $files['pcai_inference.dll']
         $files['README.txt'] | Should -Match '--config \.\\pcai-inference\.json'
         $files['README.txt'] | Should -Not -Match '--(?:model|port)'
+        if ($Backend -eq 'llamacpp') {
+            $files['README.txt'] | Should -Match 'legacy-model\.bin'
+            $files['README.txt'] | Should -Match 'legacy GGML, GGMF or GGJT weights'
+        } else {
+            $files['README.txt'] | Should -Match 'path/to/model\.gguf'
+        }
         $files.ContainsKey('old-artifact.dll') | Should -BeFalse
         $manifest = $files['manifest.json'] | ConvertFrom-Json
         $manifest.schemaVersion | Should -Be 1
@@ -307,19 +317,22 @@ Describe 'Native release workflow artifact staging' -Tag 'Unit', 'Portable' {
     }
 
     # Protects: source revision and CPU/CUDA variants have matching runtime build identity.
-    # Detects: wrong backend, CPU masquerading as CUDA, stale commit, incompatible target or profile, or a failed query.
-    # Needs: PowerShell 7, Pester 5, synthetic files and a stubbed child version response.
+    # Detects: wrong backend, CPU masquerading as CUDA, stale commit, incompatible target or profile, or missing or malformed embedded metadata.
+    # Needs: PowerShell 7, Pester 5 and inert synthetic files with raw embedded identity bytes.
     # Breadcrumb: .github/workflows/release-cuda.yml Prepare Artifact and pcai_inference/build.rs.
     It 'rejects the staged executable when <Case>' -ForEach @(
-        @{ Case = 'the feature set is CPU-only'; Sha = 'valid'; Features = 'llamacpp,ffi,server'; MetadataExit = 0; Malformed = $false; ErrorText = '*feature set does not match*' },
-        @{ Case = 'another backend was built'; Sha = 'valid'; Features = 'mistralrs,cuda-mistralrs,ffi,server'; MetadataExit = 0; Malformed = $false; ErrorText = '*feature set does not match*' },
-        @{ Case = 'the source commit is stale'; Sha = '1111111111111111111111111111111111111111'; Features = 'llamacpp,cuda-llamacpp,ffi,server'; MetadataExit = 0; Malformed = $false; ErrorText = '*source commit does not match*' },
-        @{ Case = 'the child exits nonzero'; Sha = 'valid'; Features = 'llamacpp,cuda-llamacpp,ffi,server'; MetadataExit = 7; Malformed = $false; ErrorText = '*query failed with exit code 7*' },
-        @{ Case = 'the child output is invalid JSON'; Sha = 'valid'; Features = 'llamacpp,cuda-llamacpp,ffi,server'; MetadataExit = 0; Malformed = $true; ErrorText = '*did not return JSON*' },
-        @{ Case = 'a debug binary was staged'; Sha = 'valid'; MetadataProfile = 'debug'; MetadataExit = 0; Malformed = $false; ErrorText = '*target or profile is incompatible*' },
-        @{ Case = 'an ARM64 binary was staged'; Sha = 'valid'; MetadataTarget = 'aarch64-pc-windows-msvc'; MetadataExit = 0; Malformed = $false; ErrorText = '*target or profile is incompatible*' },
-        @{ Case = 'the target is an array'; Sha = 'valid'; MetadataTarget = @('x86_64-pc-windows-msvc'); MetadataExit = 0; Malformed = $false; ErrorText = '*target or profile is incompatible*' },
-        @{ Case = 'the profile is an array'; Sha = 'valid'; MetadataProfile = @('release'); MetadataExit = 0; Malformed = $false; ErrorText = '*target or profile is incompatible*' }
+        @{ Case = 'the feature set is CPU-only'; Features = 'llamacpp,ffi,server'; ErrorText = '*feature set does not match*' },
+        @{ Case = 'another backend was built'; Features = 'mistralrs,cuda-mistralrs,ffi,server'; ErrorText = '*feature set does not match*' },
+        @{ Case = 'the source commit is stale'; Sha = '1111111111111111111111111111111111111111'; ErrorText = '*source commit does not match*' },
+        @{ Case = 'the identity is missing'; IdentityMode = 'missing'; ErrorText = '*Missing or incomplete*' },
+        @{ Case = 'the identity is unterminated'; IdentityMode = 'unterminated'; ErrorText = '*Missing or incomplete*' },
+        @{ Case = 'the identity is repeated'; IdentityMode = 'repeated'; ErrorText = '*Multiple embedded*' },
+        @{ Case = 'the identity is oversized'; IdentityMode = 'oversized'; ErrorText = '*exceeds 4096 bytes*' },
+        @{ Case = 'the identity is invalid JSON'; Malformed = $true; ErrorText = '*invalid JSON*' },
+        @{ Case = 'a debug binary was staged'; MetadataProfile = 'debug'; ErrorText = '*target or profile is incompatible*' },
+        @{ Case = 'an ARM64 binary was staged'; MetadataTarget = 'aarch64-pc-windows-msvc'; ErrorText = '*target or profile is incompatible*' },
+        @{ Case = 'the target is an array'; MetadataTarget = @('x86_64-pc-windows-msvc'); ErrorText = '*target or profile is incompatible*' },
+        @{ Case = 'the profile is an array'; MetadataProfile = @('release'); ErrorText = '*target or profile is incompatible*' }
     ) {
         $root = Join-Path $TestDrive $Case
         $staged = Join-Path $root '.pcai/build/artifacts/pcai-llamacpp'
@@ -327,7 +340,7 @@ Describe 'Native release workflow artifact staging' -Tag 'Unit', 'Portable' {
         Set-Content -LiteralPath (Join-Path $staged 'pcai-llamacpp.exe') -Value 'canonical executable' -NoNewline
         Set-Content -LiteralPath (Join-Path $staged 'pcai_inference.dll') -Value 'canonical library' -NoNewline
         Set-Content -LiteralPath (Join-Path $staged 'pcai_inference_lib.dll') -Value 'canonical library' -NoNewline
-        $commit = if ($Sha -eq 'valid') { $script:SourceCommit } else { $Sha }
+        $commit = if ($Sha) { $Sha } else { $script:SourceCommit }
         $identity = if ($Malformed) {
             '{broken'
         } else {
@@ -339,7 +352,8 @@ Describe 'Native release workflow artifact staging' -Tag 'Unit', 'Portable' {
             } | ConvertTo-Json -Compress
         }
 
-        $query = @{ Root = $root; Backend = 'llamacpp'; Cuda = $true; MetadataJson = $identity; MetadataExit = $MetadataExit }
+        $query = @{ Root = $root; Backend = 'llamacpp'; Cuda = $true; MetadataJson = $identity }
+        if ($IdentityMode) { $query['MetadataMode'] = $IdentityMode }
         { Invoke-PrepareNativeArtifact @query } | Should -Throw -ExpectedMessage $ErrorText
         Test-Path -LiteralPath (Join-Path $root 'pcai-inference-llamacpp-cuda-win64.zip') | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $root 'github-output') | Should -BeFalse

@@ -251,15 +251,56 @@ jobs:
           }
 
           $nativeExecutable = Join-Path $artifactDir "$binName.exe"
-          $versionOutput = & $nativeExecutable --version-json
-          if ($LASTEXITCODE -ne 0) {
-            throw "Staged native version query failed with exit code $LASTEXITCODE."
+          # Hosted builders can link CUDA without having a runtime GPU driver.
+          # Read the EXE's build-time identity without starting the executable.
+          $marker = 'PCAI_BUILD_IDENTITY_V1' + [char]0
+          $binaryPath = (Get-Item -LiteralPath $nativeExecutable -ErrorAction Stop).FullName
+          $reader = [IO.StreamReader]::new($binaryPath, [Text.Encoding]::Latin1, $false)
+          $buffer = [char[]]::new(1MB)
+          $pending = ''
+          $readingIdentity = $false
+          $identityJson = $null
+          try {
+            while (($count = $reader.ReadBlock($buffer, 0, $buffer.Length)) -gt 0) {
+              $window = $pending + [string]::new($buffer, 0, $count)
+              if (-not $readingIdentity) {
+                $start = $window.IndexOf($marker, [StringComparison]::Ordinal)
+                if ($start -ge 0) {
+                  if ($null -ne $identityJson) { throw 'Multiple embedded native build identities.' }
+                  $window = $window.Substring($start + $marker.Length)
+                  $readingIdentity = $true
+                }
+              }
+              if ($readingIdentity) {
+                $end = $window.IndexOf([char]0)
+                if ($end -gt 4096 -or ($end -lt 0 -and $window.Length -gt 4096)) {
+                  throw 'Embedded native build identity exceeds 4096 bytes.'
+                }
+                if ($end -lt 0) {
+                  $pending = $window
+                  continue
+                }
+                $bytes = [Text.Encoding]::Latin1.GetBytes($window.Substring(0, $end))
+                $identityJson = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+                $readingIdentity = $false
+                $window = $window.Substring($end + 1)
+                if ($window.Contains($marker, [StringComparison]::Ordinal)) {
+                  throw 'Multiple embedded native build identities.'
+                }
+              }
+              $pending = $window.Substring([math]::Max(0, $window.Length - $marker.Length + 1))
+            }
+          } finally {
+            $reader.Dispose()
+          }
+          if ($readingIdentity -or $null -eq $identityJson) {
+            throw 'Missing or incomplete embedded native build identity.'
           }
           try {
-            $identity = ($versionOutput -join [Environment]::NewLine) | ConvertFrom-Json -ErrorAction Stop
+            $identity = $identityJson | ConvertFrom-Json -ErrorAction Stop
           }
           catch {
-            throw 'Staged native version query did not return JSON.'
+            throw 'Embedded native build identity is invalid JSON.'
           }
           if ($env:PCAI_EXPECTED_SOURCE_COMMIT -cnotmatch '\A[0-9a-f]{40}\z' -or
               $identity.git_hash -isnot [string] -or $identity.git_hash -cne $env:PCAI_EXPECTED_SOURCE_COMMIT) {
@@ -298,9 +339,10 @@ jobs:
           } else {
             [ordered]@{ type = 'mistral_rs'; device = $(if ($cuda) { 'auto' } else { 'cpu' }) }
           }
+          $modelPath = if ($backend -eq 'llamacpp') { 'path/to/legacy-model.bin' } else { 'path/to/model.gguf' }
           $configExample = [ordered]@{
             backend = $backendConfig
-            model = @{ path = 'path/to/model.gguf' }
+            model = @{ path = $modelPath }
             server = [ordered]@{ host = '127.0.0.1'; port = 8080 }
           } | ConvertTo-Json -Depth 4
           $readmeLines = @(
@@ -329,6 +371,15 @@ jobs:
             'Invoke-RestMethod http://127.0.0.1:8080/health'
             '```'
           )
+
+          if ($backend -eq 'llamacpp') {
+            $readmeLines += @(
+              ''
+              '## Model format'
+              'This compatibility binary uses the pinned llama-rs loader and requires supported legacy GGML, GGMF or GGJT weights.'
+              'For GGUF models, use a supported modern llama-server or qualify the mistral.rs variant for the model.'
+            )
+          }
 
           if ($cuda) {
             $readmeLines += @(
@@ -456,11 +507,11 @@ jobs:
           ### Downloads
 
           **CUDA (GPU-Accelerated)**
-          Requires NVIDIA GPU (Turing or newer) + CUDA Toolkit 13.x runtime
+          Requires a supported NVIDIA GPU and a driver and runtime compatible with CUDA 13.x.
 
           | File | Backend | Best For |
           |------|---------|----------|
-          | `pcai-inference-llamacpp-cuda-win64.zip` | llama.cpp | GGUF models (recommended) |
+          | `pcai-inference-llamacpp-cuda-win64.zip` | llama-rs compatibility | Supported legacy GGML-family weights |
           | `pcai-inference-mistralrs-cuda-win64.zip` | mistral.rs | Mistral/Llama3 with optimizations |
 
           **CPU-Only**
@@ -468,7 +519,7 @@ jobs:
 
           | File | Backend | Notes |
           |------|---------|-------|
-          | `pcai-inference-llamacpp-cpu-win64.zip` | llama.cpp | Slower but universal |
+          | `pcai-inference-llamacpp-cpu-win64.zip` | llama-rs compatibility | Supported legacy GGML-family weights |
           | `pcai-inference-mistralrs-cpu-win64.zip` | mistral.rs | CPU-optimized |
 
           ### Requirements
@@ -476,7 +527,7 @@ jobs:
           **CUDA builds:**
           - Windows 10/11 x64
           - NVIDIA GPU (RTX 20/30/40 series)
-          - CUDA Toolkit 13.x runtime (cudart64_13.dll)
+          - CUDA 13.x runtime libraries available to the executable and a compatible NVIDIA driver
 
           **CPU builds:**
           - Windows 10/11 x64

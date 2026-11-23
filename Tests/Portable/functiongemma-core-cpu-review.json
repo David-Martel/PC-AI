@@ -5,10 +5,10 @@
   "hashConvention": "SHA-256 of UTF-8 LF file text, with exact selector extents including indentation and final LF",
   "sourceBindings": {
     ".github/workflows/functiongemma-runtime.yml": "30231668f523e4bc4d0cb3274272a38d2aad6c2b1653f55ea26405f9dd3d4102",
-    "Deploy/Cargo.lock": "29305303d42b346d9ce98cbf803d410d682532df3d6364a65b4522a0fc1543ef",
+    "Deploy/Cargo.lock": "2409d74fef9e5ac3ca76c72fa84cfe6dbf07ddc23fed01b925f34f5284a73e00",
     "Deploy/rust-functiongemma-core/Cargo.toml": "11408bb3a7cf1491f9e0d9c6f8414f8641d212d52b3b1d23ff676eba14cca144",
     "Deploy/rust-functiongemma-core/src/gpu.rs": "3dc8e75dc074bdd91a86feacc510c7266b98ccd925a1eb0c1f11245dfad9026c",
-    "Deploy/rust-functiongemma-core/src/model.rs": "a4ca9eab1f43dd6fb302c2e2e56df535c1ba57cd79e1a9d52109c7cfbb41576d",
+    "Deploy/rust-functiongemma-core/src/model.rs": "ae65f151c0e2f017676cdefa164053f744c86be0064c77e7f89ee74f7ec4e5e2",
     "Deploy/rust-functiongemma-core/src/config.rs": "6d64103c00d85e347698e2c0d2d6ab43a02d1fbd4788441fb6b8cbfe34fbd982"
   },
   "selectors": [

@@ -4,8 +4,8 @@
   "sourceBaseline": "244fe612fd88dcd0884234bf9a4a180ede218dec",
   "hashConvention": "SHA-256 of LF-normalized UTF-8. Rust selector extents run from the attribute through the closing brace and LF. Python selector extents include the def line through the final body line and LF.",
   "sourceBindings": {
-    "Deploy/rust-functiongemma-runtime/src/metrics.rs": "14121f46658e2842786c2c69c9de57b3254840c22a6c18883c7941edb0bf8bf5",
-    "Deploy/rust-functiongemma-runtime/src/types.rs": "096edf0cc768eddaed3c3bdc2397d2a5c70afe3975a844fc9ea293043c00d2a9",
+    "Deploy/rust-functiongemma-runtime/src/metrics.rs": "f30f02aebab4149b8fab467ebc36c242c72493a0013e15097c6d11ac116e76b1",
+    "Deploy/rust-functiongemma-runtime/src/types.rs": "9c18217d46c789f7a9ce564d16a5e2b00a6fb136a0868427dda64cfb4f5d5006",
     "Deploy/rust-functiongemma-runtime/tests/http_router.rs": "f81498a8acd6ad20194e43b7ddcef786861ab3bfb4a982d763b1c46cde9a18ee",
     "Tests/Benchmarks/measure_functiongemma_health.py": "feda8f7274944d5c94cb9065fb5c4d6604116ed26fdae2422d9bb277a4ccc09a"
   },

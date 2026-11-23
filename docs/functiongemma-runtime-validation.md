@@ -26,6 +26,12 @@ fall back to heuristic routing when model support is absent. See the
 [runtime README](../Deploy/rust-functiongemma-runtime/README.md) for model setup
 and the [repository entrypoint](../README.md) for the broader build workflow.
 
+Both JSON and streaming chat responses carry `x-pcai-router-engine`. A
+`heuristic-fallback` response counts toward `router_stats.model_fallbacks`
+in `/health`. Require the `model` response header when qualifying a model.
+The [fallback fixture](../Deploy/rust-functiongemma-runtime/tests/model_fallback.rs)
+checks both response formats with an empty local model directory.
+
 The [listener](../Deploy/rust-functiongemma-runtime/src/lib.rs) binds the
 configured address. If another process owns a fixed port, startup exits with
 the requested address and the operating system's bind error before publishing

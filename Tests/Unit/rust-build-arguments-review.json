@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "0cf6a7bdc76a885d971cce2534555d6b059c165d",
+  "recordedAtUtc": "2026-11-23T01:53:28.4559784Z",
+  "hashConvention": "SHA-256 of UTF-8 LF source files and exact PowerShell It command AST extents.",
+  "sourceBindings": {
+    "Build.ps1": "96282de082bf632df8c6f267d1d71c493d34ac86e1d9bc3ed488e61784de40d6",
+    "Tools/Invoke-RustBuild.ps1": "2e1d9b843e7ce4a89f2f386ab94fe60f913522f8f43d922a6eb9c8c9cd9bd2f6",
+    "Tests/Unit/Invoke-RustBuild.Tests.ps1": "ee8ecf5f3134043953ad5daa95e42ca63dcc203ccf591b5a873c2087cb1154ad"
+  },
+  "validation": "Windows Pester 5.7.1. An independent offline smoke of the actual staged Build.ps1 caller and pwsh wrapper used real Cargo tree on an inert crate. The declared feature succeeded and the nonexistent feature failed with the expected Cargo diagnostic.",
+  "selectors": [
+    {
+      "selector": "delivers exact Cargo tokens and status for <Case>",
+      "source": "Tests/Unit/Invoke-RustBuild.Tests.ps1",
+      "sha256": "3335989a7e20c564430e3df8df38d92ea4e3b162b40b08414a1cff4315a84e66",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Extracts the real build caller, spawns a real profile-free pwsh wrapper child, and compares exact native arguments through an inert Cargo recorder. It checks an ordered build, an invalid feature with nonzero exit, and a named lib test. All three cases failed at 0cf6a7bd."
+    },
+    {
+      "selector": "preserves mixed bound and trailing Cargo arguments",
+      "source": "Tests/Unit/Invoke-RustBuild.Tests.ps1",
+      "sha256": "252f2330ea9bd402c6665d7d9d65cfb307745d5257c8f1bc1d53ceffc7c2864f",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Runs the direct historical -File call around a recorder. Args bound to CargoArgs and RemainingArgs arrive in order and child status 37 is preserved. The base lost the flags and status."
+    },
+    {
+      "selector": "preserves test filter arguments after the tool separator",
+      "source": "Tests/Unit/Invoke-RustBuild.Tests.ps1",
+      "sha256": "1729132f9e825d68dd707dfe919f2a52f50ef8e4c7ecca6460fb10515b90e365",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Exercises the real direct route to show dependency flags precede the tool separator and the downstream named test filter remains after it. The control passed at the base and still passes."
+    }
+  ]
+}

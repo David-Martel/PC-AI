@@ -899,18 +899,15 @@ function Invoke-RustBuildCommand {
 
     $effectiveCargoArgs = Add-CargoDependencyFlags -CargoArgs $CargoArgs
 
-    # The Invoke-RustBuild.ps1 wrapper is spawned via `pwsh -File`, whose param
-    # binder consumes a bare `--` as the end-of-parameters token and then fails
-    # with "parameter name '' is ambiguous". Any cargo command that forwards
-    # tool args after `--` (e.g. `clippy ... -- -D warnings`) must therefore use
-    # the direct cargo path below, which splats the args as an array with no
-    # command-line reparsing. The wrapper's lld/sccache/preflight machinery is
-    # irrelevant to lint/quality commands anyway.
+    # Preserve the direct Cargo route for commands with underlying tool arguments.
     $hasToolSeparator = $effectiveCargoArgs -contains '--'
 
     if ((Test-Path $script:RustBuildWrapper) -and -not $hasToolSeparator) {
         $shellExe = Resolve-PowerShellExecutable
-        $wrapperArgs = @('-NoProfile', '-File', $script:RustBuildWrapper, '-Path', $Path, '-CargoArgs') + $effectiveCargoArgs
+        # Pass the array as one opaque argument so pwsh -File cannot bind or reorder Cargo flags.
+        $cargoJson = ConvertTo-Json -InputObject @($effectiveCargoArgs) -Compress
+        $cargoPayload = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($cargoJson))
+        $wrapperArgs = @('-NoProfile', '-File', $script:RustBuildWrapper, '-Path', $Path, '-EncodedCargoArgs', $cargoPayload)
 
         if ($env:CARGO_USE_LLD -eq '1') {
             $wrapperArgs += '-UseLld'

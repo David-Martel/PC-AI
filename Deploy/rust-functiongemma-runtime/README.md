@@ -51,6 +51,11 @@ Set `runtime.router_engine` to `model` to enable inference. The default bind
 address is `127.0.0.1:8000`. The server exposes `GET /health`, `GET /v1/models`,
 and `POST /v1/chat/completions`.
 
+Chat responses, including streams, report their route in `x-pcai-router-engine`.
+The `heuristic-fallback` value marks a request that switched from the model
+engine to the heuristic. `/health` reports the process's cumulative count at
+`router_stats.model_fallbacks`.
+
 The CPU model profile reports `cpu` even if a shared configuration supplies
 CUDA preferences. With the CUDA profile, `runtime.router_device` still accepts
 `auto`, `cpu`, and `cuda:N`. The runtime uses

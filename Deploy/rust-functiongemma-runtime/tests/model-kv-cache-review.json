@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "source_baseline": "0cf6a7bdc76a885d971cce2534555d6b059c165d",
+  "recorded_at_utc": "2026-11-23T01:55:07+00:00",
+  "hash_normalization": "CRLF to LF before SHA-256. Selectors include the fn line through its final brace and newline.",
+  "scope": "Two-layer causal logits and wrap parity, plus a one-layer CPU runtime request through the preallocated cache.",
+  "source_sha256": {
+    "Deploy/rust-functiongemma-core/src/model.rs": "ae65f151c0e2f017676cdefa164053f744c86be0064c77e7f89ee74f7ec4e5e2",
+    "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs": "7e304004cc57620fc6a50f67405b9ff273ec446c20bba0ddc41b146ab410d0a2",
+    "Deploy/Cargo.lock": "2409d74fef9e5ac3ca76c72fa84cfe6dbf07ddc23fed01b925f34f5284a73e00"
+  },
+  "reviews": [
+    {
+      "selector": "layered_preallocated_cache_matches_uncached_and_append_only_logits",
+      "source": "Deploy/rust-functiongemma-core/src/model.rs",
+      "sha256": "659749d3b11734a345e4b900c2b72a882640afe2525b96e2f2f8a21e526d4569",
+      "disposition": "unreviewed",
+      "reviewer": null,
+      "reviewed_at_utc": null
+    },
+    {
+      "selector": "cpu_model_route_generates_a_token_instead_of_falling_back",
+      "source": "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs",
+      "sha256": "87058b1c33196a52eb473ce7fa19886738ac83fcbd5d0cbdb13d45411a82c04f",
+      "disposition": "unreviewed",
+      "reviewer": null,
+      "reviewed_at_utc": null
+    }
+  ]
+}

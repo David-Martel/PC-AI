@@ -9,12 +9,12 @@
     "Deploy/rust-functiongemma-runtime/src/gpu.rs": "11fd8ddc6a0cc11dbd7c4694b24f7c11996bc5826bd25a97e3dcbf21e845a9b8",
     "Deploy/rust-functiongemma-runtime/src/inference.rs": "963729a375b5c5cb45b796cde5a4aab12beeb4eb4d92e5c1df6c1931863ab7b7",
     "Deploy/rust-functiongemma-runtime/src/config.rs": "44d74a69d181d9225b0224c782f6cafa7a77d9c9607f5226658b5160ae59940c",
-    "Deploy/rust-functiongemma-core/src/model.rs": "a4ca9eab1f43dd6fb302c2e2e56df535c1ba57cd79e1a9d52109c7cfbb41576d",
-    "Deploy/rust-functiongemma-runtime/src/metrics.rs": "14121f46658e2842786c2c69c9de57b3254840c22a6c18883c7941edb0bf8bf5",
+    "Deploy/rust-functiongemma-core/src/model.rs": "ae65f151c0e2f017676cdefa164053f744c86be0064c77e7f89ee74f7ec4e5e2",
+    "Deploy/rust-functiongemma-runtime/src/metrics.rs": "f30f02aebab4149b8fab467ebc36c242c72493a0013e15097c6d11ac116e76b1",
     "Deploy/rust-functiongemma-runtime/src/model_support.rs": "fd74546b048027da4ba6a1d836b7792017777209704ccbe63ddb3677a83a3b31",
-    "Deploy/rust-functiongemma-runtime/src/handlers.rs": "887f3cbf251ad531a7dadef7ed2d00fe2b42d8749c7395790678db9a7effe7c2",
-    "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs": "420692cbb0b7903bd8e16627e125b82195a362506767966bcd88170da4ff3131",
-    "Deploy/rust-functiongemma-runtime/README.md": "53e04d6e760bca249bca2c1f1f94d95a20d40eb7175d4d00c2a022086508920f"
+    "Deploy/rust-functiongemma-runtime/src/handlers.rs": "2e30c117831f4aceae7cb65cf5c2133bb680199abd15a87f7cb1e176e01d5f8c",
+    "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs": "3521c5e84f1f7c5800626f6a62e364948b569ddcd98d1cf668bd6164d4e048e2",
+    "Deploy/rust-functiongemma-runtime/README.md": "f6ca3e1ffdd17eb103dc77740beea69d0e454adfc948d1472b6ce729a2c834ff"
   },
   "selectors": [
     {
@@ -47,8 +47,8 @@
     {
       "selector": "cpu_model_route_generates_a_token_instead_of_falling_back",
       "source": "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs",
-      "reviewScope": "The loopback HTTP route reports model engine/CPU and emits a token only the synthetic local safetensors model generates. The fixture intentionally includes CUDA preferences and uses the default preallocated KV path to detect unexpected heuristic fallback.",
-      "sha256": "064d090cb30eb4a0c2f10127b58836a960694e0298d07a5a17d439ba0f5f4f5b",
+      "reviewScope": "A local safetensors checkpoint with one nonzero decoder layer exercises the preallocated cache and yields CPU_PROOF over loopback. The response header proves model routing.",
+      "sha256": "16f06218806afbb68fb0eb176177160010198bbbe5482ac3c5d3fd5e0b5cd0e2",
       "reviewer": "codex",
       "reviewerType": "author self-review",
       "disposition": "unreviewed"

@@ -871,14 +871,13 @@ impl Attention {
         let k = k.to_dtype(buf_dtype)?.contiguous()?;
         let v = v.to_dtype(buf_dtype)?.contiguous()?;
 
-        // Write into pre-allocated buffer — zero allocation, zero copy
-        cache.write_and_advance(layer_idx, &k, &v)?;
-
-        // Read back the valid portion of the cache for attention.
-        // Cast back to the query dtype for the matmul.
+        // Include the K/V just written without advancing the shared cursor
+        // until every layer has processed this token.
+        let layer_len = cache.write_and_advance(layer_idx, &k, &v)?;
+        let layer = &cache.layers[layer_idx];
         let q_dtype = q.dtype();
-        let k = cache.k_valid(layer_idx)?.to_dtype(q_dtype)?.to_device(device)?;
-        let v = cache.v_valid(layer_idx)?.to_dtype(q_dtype)?.to_device(device)?;
+        let k = layer.k.narrow(2, 0, layer_len)?.to_dtype(q_dtype)?.to_device(device)?;
+        let v = layer.v.narrow(2, 0, layer_len)?.to_dtype(q_dtype)?.to_device(device)?;
 
         let k = self.repeat_kv(k)?;
         let v = self.repeat_kv(v)?;
@@ -1259,9 +1258,10 @@ impl PreAllocKvCache {
         self.valid_len = 0;
     }
 
-    /// Write a new K/V pair into layer `layer_idx` at the current cursor and
-    /// advance.  Returns the valid sequence length after the write (for
-    /// constructing the attention mask / RoPE offset).
+    /// Write a K/V pair at the current cursor and return the layer's valid length.
+    ///
+    /// The returned length includes this layer's new token. The shared cursor
+    /// and committed length advance only after every layer completes the step.
     ///
     /// `new_k` and `new_v` have shape `[batch, num_kv_heads, 1, head_dim]`
     /// (a single new token).
@@ -1278,7 +1278,7 @@ impl PreAllocKvCache {
         // Only advance cursor after last layer to keep layers in sync.
         // The caller (Model::forward_with_prealloc_cache) advances once
         // after iterating all layers by calling `advance_cursor()`.
-        Ok(self.valid_len.min(self.max_seq_len))
+        Ok(self.valid_len.saturating_add(1).min(self.max_seq_len))
     }
 
     /// Advance the write cursor by one position.  Call once per decode step
@@ -1496,11 +1496,10 @@ impl Model {
         for (idx, layer) in self.layers.iter().enumerate() {
             x = layer.forward_with_prealloc_cache(&x, cache, idx)?;
         }
-        // Advance cursor once after all layers have written their K/V
-        cache.advance_cursor();
-
         let x = self.norm.forward(&x)?;
-        self.lm_head.forward(&x)
+        let logits = self.lm_head.forward(&x)?;
+        cache.advance_cursor();
+        Ok(logits)
     }
 
     /// Generate tokens using the pre-allocated ring-buffer KV cache.
@@ -1683,6 +1682,73 @@ mod tests {
             model.generate_with_prealloc_cache(&prompt, 2, &device, &config, 4)?,
             expected
         );
+        Ok(())
+    }
+
+    // Protects: each layer attends to its new token before the shared cursor advances once.
+    // Detects: empty first-token attention, exclusion of current K/V, per-layer cursor drift or ring overwrite errors.
+    // Needs: deterministic two-layer F32 weights on CPU and six synthetic token IDs.
+    // Breadcrumb: Model::forward_with_prealloc_cache and Attention::forward_with_prealloc_cache.
+    #[test]
+    fn layered_preallocated_cache_matches_uncached_and_append_only_logits() -> Result<()> {
+        let device = Device::Cpu;
+        let weights = VarMap::new();
+        let builder = VarBuilder::from_varmap(&weights, DType::F32, &device);
+        let cfg = Config {
+            hidden_size: 4,
+            intermediate_size: 8,
+            num_hidden_layers: 2,
+            num_attention_heads: 2,
+            num_key_value_heads: 1,
+            head_dim: 2,
+            vocab_size: 8,
+            rms_norm_eps: 1e-5,
+            rope_theta: 10_000.,
+            sliding_window: None,
+            layer_types: None,
+        };
+        let model = Model::new(&cfg, LoraSettings::new(0, 1., 0., false), builder, true)?;
+        for (name, var) in weights.data().lock().unwrap().iter() {
+            let phase = name.bytes().map(usize::from).sum::<usize>();
+            let values = if var.rank() == 1 {
+                vec![1f32; var.elem_count()]
+            } else {
+                (0..var.elem_count())
+                    .map(|index| ((index * 7 + phase) % 23) as f32 / 20. - 0.55)
+                    .collect()
+            };
+            var.set(&Tensor::from_vec(values, var.shape().clone(), &device)?)?;
+        }
+
+        let ids = [2u32, 4, 3, 6, 7, 5];
+        let mut append = KvCache::new(2, KvCacheQuant::None, None, false);
+        let mut bounded = KvCache::new(2, KvCacheQuant::None, Some(3), false);
+        let mut prealloc = PreAllocKvCache::new(2, 1, 1, 2, ids.len(), DType::F32, &device)?;
+        let mut ring = PreAllocKvCache::new(2, 1, 1, 2, 3, DType::F32, &device)?;
+
+        for end in 1..=ids.len() {
+            let token = Tensor::from_slice(&ids[end - 1..end], (1, 1), &device)?;
+            let prefix = Tensor::from_slice(&ids[..end], (1, end), &device)?;
+            let uncached = model.forward(&prefix)?.narrow(1, end - 1, 1)?;
+            let append_logits = model.forward_with_cache(&token, &mut append)?;
+            let prealloc_logits = model.forward_with_prealloc_cache(&token, &mut prealloc)?;
+            let bounded_logits = model.forward_with_cache(&token, &mut bounded)?;
+            let ring_logits = model.forward_with_prealloc_cache(&token, &mut ring)?;
+
+            for (label, actual, expected) in [
+                ("append vs. uncached", &append_logits, &uncached),
+                ("preallocated vs. uncached", &prealloc_logits, &uncached),
+                ("ring vs. bounded append", &ring_logits, &bounded_logits),
+            ] {
+                let delta = (actual - expected)?.abs()?.max_all()?.to_scalar::<f32>()?;
+                assert!(delta < 1e-4, "{label} at token {end}: {delta}");
+            }
+
+            assert_eq!(prealloc.rope_offset(), end);
+            assert_eq!(ring.rope_offset(), end);
+            assert_eq!(prealloc.valid_len, end);
+            assert_eq!(ring.valid_len, end.min(3));
+        }
         Ok(())
     }
 

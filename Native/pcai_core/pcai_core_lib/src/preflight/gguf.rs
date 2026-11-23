@@ -28,7 +28,10 @@ pub const MAX_KV_COUNT: u64 = 1 << 20;
 /// Maximum number of bytes read from one stream while parsing metadata.
 ///
 /// Large tokenizer vocabularies make the metadata section tens of megabytes;
-/// this budget bounds the work done on a hostile or endless stream.
+/// this budget bounds the work done on a hostile or endless stream. A stream
+/// that still has data when the budget is spent fails with
+/// [`GgufLimitError::ByteBudgetExceeded`]; a stream that simply ends early is a
+/// truncated file and fails with an ordinary `UnexpectedEof` I/O error.
 pub const MAX_METADATA_BYTES: u64 = 256 * 1024 * 1024;
 
 /// A resource limit or arithmetic bound that GGUF metadata violated.
@@ -76,6 +79,15 @@ pub enum GgufLimitError {
         embedding_length: u64,
         /// The declared block count.
         block_count: u64,
+    },
+    /// The stream held more than [`MAX_METADATA_BYTES`] of metadata.
+    ///
+    /// Distinct from a truncated file: here the budget ran out while the stream
+    /// still had data, not the other way round.
+    #[error("GGUF metadata exceeds the read budget of {max} bytes")]
+    ByteBudgetExceeded {
+        /// The budget that was exceeded.
+        max: u64,
     },
     /// A value that must be non-negative is negative.
     #[error("GGUF value {value} is negative but must not be")]
@@ -308,8 +320,17 @@ pub fn read_gguf_meta(path: &Path) -> Result<GgufModelMeta> {
 /// # Errors
 ///
 /// Returns an error if the stream is not a valid GGUF header, is truncated, or
-/// exceeds a limit. Limit violations carry a [`GgufLimitError`], recoverable
-/// with `err.downcast_ref::<GgufLimitError>()`.
+/// exceeds a limit.
+///
+/// - Every limit violation, including the read budget, is a
+///   [`GgufLimitError`] at the top of the chain, recoverable with
+///   `err.downcast_ref::<GgufLimitError>()`.
+/// - A stream that ends before the header is complete is *not* a limit
+///   violation: it surfaces as a [`std::io::Error`] of kind
+///   [`UnexpectedEof`](std::io::ErrorKind::UnexpectedEof) somewhere in
+///   `err.chain()`, and `downcast_ref::<GgufLimitError>()` returns `None`.
+/// - Bad magic, an unsupported version, invalid UTF-8 and unknown value types
+///   are plain errors with a message and no typed cause.
 ///
 /// # Panics
 ///
@@ -329,8 +350,67 @@ pub fn read_gguf_meta(path: &Path) -> Result<GgufModelMeta> {
 /// # Ok::<(), anyhow::Error>(())
 /// ```
 pub fn read_gguf_meta_from<R: Read>(reader: R) -> Result<GgufModelMeta> {
-    let mut reader = reader.take(MAX_METADATA_BYTES);
+    let mut reader = BudgetReader::new(reader, MAX_METADATA_BYTES);
+    parse_header(&mut reader).map_err(|err| {
+        if reader.exceeded {
+            // The budget error crossed `?` boundaries as an `io::Error`; report
+            // the typed cause instead so callers can match on it.
+            GgufLimitError::ByteBudgetExceeded {
+                max: MAX_METADATA_BYTES,
+            }
+            .into()
+        } else {
+            err
+        }
+    })
+}
 
+/// A reader that stops after a fixed number of bytes and says why.
+///
+/// `Read::take` reports an exhausted limit as ordinary end of file, so a file
+/// truncated by its writer and a stream cut off by the budget look the same.
+/// This reader probes the inner stream once the budget is spent: a stream that
+/// is also at its end returns EOF (a genuinely truncated or exactly
+/// budget-sized file), while one that still has data sets `exceeded` and fails.
+struct BudgetReader<R> {
+    inner: R,
+    remaining: u64,
+    exceeded: bool,
+}
+
+impl<R: Read> BudgetReader<R> {
+    fn new(inner: R, budget: u64) -> Self {
+        Self {
+            inner,
+            remaining: budget,
+            exceeded: false,
+        }
+    }
+}
+
+impl<R: Read> Read for BudgetReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if buf.is_empty() {
+            return Ok(0);
+        }
+        if self.remaining == 0 {
+            let mut probe = [0u8; 1];
+            return if self.inner.read(&mut probe)? == 0 {
+                Ok(0)
+            } else {
+                self.exceeded = true;
+                Err(io::Error::other("GGUF metadata read budget exceeded"))
+            };
+        }
+        let allowed = usize::try_from(self.remaining).map_or(buf.len(), |r| r.min(buf.len()));
+        let n = self.inner.read(&mut buf[..allowed])?;
+        self.remaining -= n as u64;
+        Ok(n)
+    }
+}
+
+/// Parse the header from an already budgeted stream.
+fn parse_header(mut reader: impl Read) -> Result<GgufModelMeta> {
     // Magic
     let mut magic = [0u8; 4];
     reader.read_exact(&mut magic).context("Failed to read GGUF magic")?;

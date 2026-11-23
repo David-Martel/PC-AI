@@ -18,7 +18,7 @@ use std::io::{self, Cursor, Read};
 
 use pcai_core_lib::preflight::gguf::{
     estimate_model_memory_mb, read_gguf_meta_from, GgufFileType, GgufLimitError, GgufModelMeta, MAX_ARRAY_NESTING,
-    MAX_KV_COUNT, MAX_STRING_LEN,
+    MAX_KV_COUNT, MAX_METADATA_BYTES, MAX_STRING_LEN,
 };
 use proptest::prelude::*;
 
@@ -404,34 +404,111 @@ fn excessive_entry_count_is_a_typed_error() {
     }
 }
 
-/// An endless stream must hit the read budget instead of looping for ever.
+/// Header plus one key whose value is a `u8` array declaring `count` elements.
+fn u8_array_prefix(count: u64) -> Vec<u8> {
+    let mut prefix = header(1);
+    kv_header(&mut prefix, "x.blob", TYPE_ARRAY);
+    prefix.extend_from_slice(&TYPE_U8.to_le_bytes());
+    prefix.extend_from_slice(&count.to_le_bytes());
+    prefix
+}
+
+/// True if some error in the chain is an `UnexpectedEof` I/O error.
+fn is_truncation(err: &anyhow::Error) -> bool {
+    err.chain().any(|cause| {
+        cause
+            .downcast_ref::<io::Error>()
+            .is_some_and(|e| e.kind() == io::ErrorKind::UnexpectedEof)
+    })
+}
+
+/// An endless stream must hit the read budget instead of looping for ever, and
+/// say so with the typed error.
 ///
-/// Detects: removing the per-stream byte budget. On the unfixed reader this
-/// test does not return (it loops 2^62 times), so it is the one test that needs
-/// an external timeout to show RED.
+/// Detects: removing the per-stream byte budget (on the unfixed reader this
+/// test does not return, so it is the one test that needs an external timeout
+/// to show RED), and a budget that reports plain end of file instead of the
+/// typed error.
 #[test]
 fn endless_stream_stops_at_the_byte_budget() {
-    let mut prefix = header(1);
-    kv_header(&mut prefix, "x.endless", TYPE_ARRAY);
-    prefix.extend_from_slice(&TYPE_U8.to_le_bytes());
-    prefix.extend_from_slice(&(1_u64 << 62).to_le_bytes());
-    let stream = Cursor::new(prefix).chain(io::repeat(0));
-    assert!(read_gguf_meta_from(stream).is_err());
+    let stream = Cursor::new(u8_array_prefix(1 << 62)).chain(io::repeat(0));
+    let err = read_gguf_meta_from(stream).expect_err("an endless stream must be refused");
+    assert_eq!(
+        limit(&err),
+        GgufLimitError::ByteBudgetExceeded {
+            max: MAX_METADATA_BYTES
+        }
+    );
+}
+
+/// A stream of exactly the budget is accepted: the budget is a maximum, not an
+/// off-by-one refusal of a file that fits.
+#[test]
+fn metadata_exactly_at_the_budget_is_accepted() {
+    let prefix = u8_array_prefix(0);
+    let count = MAX_METADATA_BYTES - prefix.len() as u64;
+    let stream = Cursor::new(u8_array_prefix(count)).chain(io::repeat(0).take(count));
+    read_gguf_meta_from(stream).expect("exactly MAX_METADATA_BYTES must parse");
+}
+
+/// One byte of metadata past the budget, with data still in the stream, is the
+/// typed budget error.
+#[test]
+fn one_byte_past_the_budget_is_the_typed_budget_error() {
+    let prefix = u8_array_prefix(0);
+    let count = MAX_METADATA_BYTES - prefix.len() as u64 + 1;
+    let stream = Cursor::new(u8_array_prefix(count)).chain(io::repeat(0).take(count));
+    let err = read_gguf_meta_from(stream).expect_err("one byte over budget must fail");
+    assert_eq!(
+        limit(&err),
+        GgufLimitError::ByteBudgetExceeded {
+            max: MAX_METADATA_BYTES
+        }
+    );
+}
+
+/// A file that ends exactly where the budget does, but promises one more byte,
+/// is truncated, not over budget. Telling the two apart is the point of the
+/// custom budget reader; `Read::take` reports both as plain end of file.
+///
+/// Detects: a budget that treats "budget spent" as "budget exceeded" without
+/// checking whether the stream has more data.
+#[test]
+fn a_file_that_ends_at_the_budget_is_truncated_not_over_budget() {
+    let prefix = u8_array_prefix(0);
+    let available = MAX_METADATA_BYTES - prefix.len() as u64;
+    let stream = Cursor::new(u8_array_prefix(available + 1)).chain(io::repeat(0).take(available));
+    let err = read_gguf_meta_from(stream).expect_err("a file one byte short must fail");
+    assert!(
+        err.downcast_ref::<GgufLimitError>().is_none(),
+        "truncation must not be reported as a limit: {err:#}"
+    );
+    assert!(is_truncation(&err), "expected an UnexpectedEof cause, got: {err:#}");
 }
 
 // -- Truncation ------------------------------------------------------------------
 
 /// Every strict prefix of a valid file is an error, never a panic, and the
-/// full file is accepted (so the loop is not vacuous).
+/// full file is accepted (so the loop is not vacuous). Each error is a
+/// truncation (`UnexpectedEof`) and never a limit violation, so a caller can
+/// tell a cut-off file from an over-limit one.
 ///
-/// This passes on the unfixed reader too (it was already EOF-safe): it is a
-/// regression guard, not a red test.
+/// The "is an error" half passes on the unfixed reader too (it was already
+/// EOF-safe); the "not a limit error" half guards the typed-error contract.
 #[test]
-fn every_truncation_of_a_valid_header_is_an_error() {
+fn every_truncation_of_a_valid_header_is_an_eof_error_not_a_limit_error() {
     let full = valid_fixture();
     parse(&full).expect("positive control: the whole fixture parses");
     for cut in 0..full.len() {
-        assert!(parse(&full[..cut]).is_err(), "prefix of {cut} bytes must not parse");
+        let err = parse(&full[..cut]).expect_err(&format!("prefix of {cut} bytes must not parse"));
+        assert!(
+            err.downcast_ref::<GgufLimitError>().is_none(),
+            "prefix of {cut} bytes was reported as a limit violation: {err:#}"
+        );
+        assert!(
+            is_truncation(&err),
+            "prefix of {cut} bytes should be an UnexpectedEof, got: {err:#}"
+        );
     }
 }
 

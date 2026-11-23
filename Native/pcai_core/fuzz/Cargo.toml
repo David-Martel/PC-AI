@@ -26,4 +26,17 @@ test = false
 doc = false
 bench = false
 
+# The M-STATIC-VERIFICATION contract (Tests/Unit/RustGuidelines.Compliance.Tests.ps1) requires every
+# crate directory under Native/pcai_core to wire workspace lints. This crate is its own workspace
+# root, so it declares the same lint groups here and inherits them.
+[lints]
+workspace = true
+
 [workspace]
+
+[workspace.lints.clippy]
+complexity = { level = "warn", priority = -1 }
+correctness = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+suspicious = { level = "warn", priority = -1 }

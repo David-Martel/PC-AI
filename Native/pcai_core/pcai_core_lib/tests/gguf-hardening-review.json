@@ -1,0 +1,444 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 LF, selector spans its doc comment and attributes through closing brace and final newline",
+  "base_commit": "099135423462574cbd4d992ed211e6202b858fe3",
+  "reviews": [
+    {
+      "selector": "gguf_hardening::valid_fixture_parses_to_the_expected_meta",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "Positive control: a realistic header parses to the expected meta, so every error-path test below cannot pass merely because the reader rejects everything.",
+      "selector_sha256": "03b9c1247f4f98e6e6852bdaa5ecc8d947684c986bc8105a92d786bdef43f95f",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::nesting_at_the_limit_is_accepted",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "Arrays nested exactly MAX_ARRAY_NESTING deep still parse, pinning the limit's boundary from the accepting side.",
+      "selector_sha256": "0409c0f4d185f533788a6061fe6fc6f998581c7cf28dcc32e239e4855fae599d",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::nesting_one_past_the_limit_is_a_typed_error",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "One level past the limit is GgufLimitError::NestingTooDeep; fails if the depth limit is removed.",
+      "selector_sha256": "2a5c1a38235962c67f79f33437325c82e0771f21e51b7840c1a4501ec190dfc4",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::nesting_limit_applies_under_a_recognised_key",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "The depth limit also holds on the typed-reader fallback path for a recognised key with an array value.",
+      "selector_sha256": "763f1e2a10785e36e7564e3ca058e00e16c603f1e5861ef8b579dace5b48004f",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::very_deep_nesting_is_rejected_without_overflowing_the_stack",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "The original crash: 200000 nested arrays abort the process on the unbounded reader; with the limit it is an ordinary typed error.",
+      "selector_sha256": "804b859ddff45597819ff578585edcf27c71a496135f7ff8702e06ccee6e4e1b",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::overflowing_dimensions_are_a_typed_error_not_a_panic_or_a_wrapped_estimate",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "Five overflow shapes for 4*emb*emb*blocks+32000*emb each yield DimensionsOverflow instead of a debug panic or a wrapped release estimate.",
+      "selector_sha256": "4cbe1ae0cd8e72da7fda6bdb6c43b3c25b104fdb868f61d6a5dd402ea203232a",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::large_but_representable_dimensions_still_parse",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "Checked arithmetic must not reject large dimensions that fit u64; guards against an over-eager limit.",
+      "selector_sha256": "762930ca190b4c78b5e3bdc44a119b8554b77215cac0c7877fe55ea2c9a5081e",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::memory_estimate_saturates_instead_of_overflowing",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "estimate_model_memory_mb on u64::MAX inputs saturates and reports an absurdly large estimate rather than panicking or wrapping.",
+      "selector_sha256": "30ff3654332cf2bc5098c8766b93064e177452a323ec97922281336c08d58e0e",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::negative_dimensions_are_rejected_rather_than_reinterpreted_as_huge",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "A negative Int32/Int64 block_count is NegativeValue; it used to become an enormous u64 and panic the estimate.",
+      "selector_sha256": "b54bceea85f67dd22a4c0212c10c77bf986966ac14790655e7a5a7fba32a5bf7",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::a_mistyped_dimension_falls_back_to_defaults_not_zero",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "A recognised key with the wrong type uses the default like an absent key; it used to become Some(0) and collapse the estimate so preflight said go.",
+      "selector_sha256": "f8eb511359281fed4fe7ec7f5a6ab21531a44b4d212f7c687c67e8ec1b525d0b",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::oversized_string_length_is_a_typed_error",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "Declared string lengths above MAX_STRING_LEN, including u64::MAX, are StringTooLong; fails if the cap is removed.",
+      "selector_sha256": "12bcc8051c8edf72e778480c7ece7304c8cbfe2f071706053d26f144be4a424b",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::declared_string_length_does_not_drive_the_allocation",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "A string declaring the full cap with a short body must not allocate the declared size; the largest allocation stays under 64 KiB.",
+      "selector_sha256": "e76846ea1adcf30a6ef89a34050cd3eaeb3ab203ef76111b25067e2e48323a9f",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::huge_array_count_with_a_short_file_fails_without_allocating",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "Declared array counts near u64::MAX over string, fixed-width and nested element types fail on the missing bytes without large allocations.",
+      "selector_sha256": "081d34ff0d86486fc1d8df7ed27d768cc02737bfce92f23b3fbc7ee8a40634a3",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::array_byte_size_overflow_is_a_typed_error",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "2^61 eight-byte elements overflow u64 and are ArraySizeOverflow; fails if count*elem_size is unchecked.",
+      "selector_sha256": "0b35993b138de82c8c6cd4a55cbfaf0dba2ff0ec1cf1a7054c30db82612bf0bf",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::excessive_entry_count_is_a_typed_error",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "A header declaring more than MAX_KV_COUNT entries is TooManyEntries; fails if the cap is removed.",
+      "selector_sha256": "a77326f5be35a8eeff3db30024a377bcb0e223987c9048fc576f02ef24626552",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::endless_stream_stops_at_the_byte_budget",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "An endless stream is refused with the typed ByteBudgetExceeded error instead of looping; the unfixed reader never returns.",
+      "selector_sha256": "3bbf5e154c2c9c00a1960814b5e04b620eb0e0155bf1cf179a9b668b320c7d68",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::metadata_exactly_at_the_budget_is_accepted",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "A stream of exactly MAX_METADATA_BYTES parses, pinning the budget boundary from the accepting side.",
+      "selector_sha256": "1612ce5904842a28109a5287bb422edcd5eab6d38d850063bdbcf69e7a540965",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::one_byte_past_the_budget_is_the_typed_budget_error",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "One byte past the budget with data still available is ByteBudgetExceeded rather than plain end of file.",
+      "selector_sha256": "8d363993cce9cd2c2d748555c0f4df36cdae36d904c9a751cb1476f34bc6e1ac",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::a_file_that_ends_at_the_budget_is_truncated_not_over_budget",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "A file ending exactly at the budget but promising one more byte is an UnexpectedEof truncation, not a limit; fails if the budget reader conflates the two.",
+      "selector_sha256": "c5511d7b4c1fe5bc313bc894fc426c44a382deff6c5d935b8c45120527f39b34",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::every_truncation_of_a_valid_header_is_an_eof_error_not_a_limit_error",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "Every strict prefix of a valid header is an UnexpectedEof error and never a GgufLimitError, so callers can tell a cut-off file from an over-limit one.",
+      "selector_sha256": "3022b056d64b86fded8f2e94a4ced8de6700f79757094d721fee2aaf31ca4fbd",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::reader_never_panics_on_structured_garbage",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "Proptest of 2048 cases with a valid header and arbitrary typed entries on arithmetic edge values; the reader must return, never panic.",
+      "selector_sha256": "72e1524e94d4ae439ad1ff74876421ef5c4a3e98e268401a60d4c2feed98af84",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::reader_never_panics_on_arbitrary_tail",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "Proptest with a valid magic and version followed by arbitrary bytes; the reader must never panic.",
+      "selector_sha256": "72658b3debe624b17a6da2de9f10e6a75497cab1424c43a5726145f5f2a651f6",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_hardening::reader_never_panics_on_arbitrary_bytes",
+      "disposition": "keep",
+      "reviewer": "claude-pcai-gguf-hardening",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T00:20:52Z",
+      "rationale": "Proptest of fully arbitrary bytes; rejection at the magic must never panic.",
+      "selector_sha256": "d14e9b50c07eee12e04b98252555f96d98c15e29d134db871040d1459ac51696",
+      "source_files": [
+        {
+          "path": "tests/gguf_hardening.rs",
+          "sha256": "7263b8168710b9798e63878b3235de8ec47d92b5ced8dfb85cc1860dbbe3da5e"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "5e521b4a561b2580f23c5706079dfd18e1a932eed61eb0dfdc5478faa28712cf"
+        }
+      ]
+    }
+  ]
+}

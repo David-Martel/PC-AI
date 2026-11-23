@@ -11,7 +11,7 @@ use libfuzzer_sys::fuzz_target;
 
 // The reader source itself, so fuzzing exercises exactly the shipped code.
 #[path = "../../pcai_core_lib/src/preflight/gguf.rs"]
-#[allow(dead_code)]
+#[expect(dead_code, reason = "the fuzz target exercises only read_gguf_meta_from; the rest of the module is shipped code compiled along with it")]
 mod gguf;
 
 use gguf::{estimate_model_memory_mb, read_gguf_meta_from};

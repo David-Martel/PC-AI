@@ -24,7 +24,7 @@ BeforeAll {
 
     function Set-LlamaFixturePin {
         param([string]$Id, [string]$Path)
-        $script:fixtureManifest.platforms['windows-x64'].assets[$Id].sha256 = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+        $script:fixtureManifest.platforms['windows-x64'].assets[$Id].sha256 = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
         $script:fixtureManifest.platforms['windows-x64'].assets[$Id].sizeBytes = (Get-Item -LiteralPath $Path).Length
         $script:fixtureManifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:fixtureConfig
     }
@@ -108,6 +108,10 @@ Describe 'Pinned llama.cpp runtime staging' -Tag 'Unit', 'Portable', 'LlamaRunti
             $installed.Destination | Should -BeExactly $final
             Get-Content -LiteralPath $installed.ServerPath -Raw | Should -BeExactly 'inert server'
             Get-Content -LiteralPath $installed.BenchmarkPath -Raw | Should -BeExactly 'inert bench'
+            $receipt = Get-Content -LiteralPath $installed.ReceiptPath -Raw | ConvertFrom-Json -AsHashtable
+            $receipt.BenchmarkRelativePath | Should -BeExactly 'bin/llama-bench.exe'
+            $receipt.Binaries.Count | Should -Be 2
+            $receipt.Binaries['bin/llama-bench.exe'] | Should -BeExactly (Get-FileHash -LiteralPath $installed.BenchmarkPath).Hash.ToLowerInvariant()
             { & $installer -Route CPU -OutputRoot $output -CacheRoot $cache } | Should -Throw '*already occupied*'
             Get-Content -LiteralPath $installed.ServerPath -Raw | Should -BeExactly 'inert server'
             Should -Invoke Invoke-WebRequest -Exactly -Times 0
@@ -124,7 +128,9 @@ Describe 'Pinned llama.cpp runtime staging' -Tag 'Unit', 'Portable', 'LlamaRunti
         ) {
             New-LlamaArchiveFixture -Path $cpuZip -Entries @{ 'llama-server.exe' = 'inert server'; 'llama-bench.exe' = 'inert bench' }
             Set-LlamaFixturePin -Id cpu -Path $cpuZip
-            $script:fixtureManifest.platforms['windows-x64'].assets.cpu.sha256 = '0' * 64
+            $expected = $script:fixtureManifest.platforms['windows-x64'].assets.cpu.sha256
+            $different = if ($expected[-1] -ceq '0') { '1' } else { '0' }
+            $script:fixtureManifest.platforms['windows-x64'].assets.cpu.sha256 = $expected.Substring(0, 63) + $different
             $script:fixtureManifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:fixtureConfig
             $params = @{ Route = 'CPU'; OutputRoot = $output }
             if ($Origin -eq 'cache') {
@@ -143,7 +149,24 @@ Describe 'Pinned llama.cpp runtime staging' -Tag 'Unit', 'Portable', 'LlamaRunti
             $remainingStages = @(Get-ChildItem -LiteralPath (Split-Path $final) -Force -Filter '.stage-*')
             $remainingStages.Count | Should -Be 0
             if ($Origin -eq 'cache') { Should -Invoke Invoke-WebRequest -Exactly -Times 0 }
-            else { Should -Invoke Invoke-WebRequest -Exactly -Times 1 }
+            else {
+                $expectedUrl = "https://github.com/ggml-org/llama.cpp/releases/download/b12635/$($profile.assets.cpu.name)"
+                Should -Invoke Invoke-WebRequest -Exactly -Times 1 -ParameterFilter { [string]$Uri -ceq $expectedUrl }
+            }
+        }
+
+        # Protects: a pinned archive still has to stay inside its extraction root.
+        # Detects: accepting a parent path and publishing a traversing ZIP.
+        # Needs: an inert digest-pinned ZIP with a crafted entry name, no executable payload.
+        # Breadcrumb: Install-PcaiLlamaRuntime.ps1 Expand-VerifiedLlamaZip.
+        It 'rejects a pinned ZIP with a parent traversal entry' {
+            New-LlamaArchiveFixture -Path $cpuZip -Entries @{
+                'llama-server.exe' = 'inert server'; 'llama-bench.exe' = 'inert bench'; '../escaped.dll' = 'inert outside file'
+            }
+            Set-LlamaFixturePin -Id cpu -Path $cpuZip
+            { & $installer -Route CPU -OutputRoot $output -CacheRoot $cache } | Should -Throw '*ZIP entry path*'
+            Test-Path -LiteralPath $final | Should -BeFalse
+            @(Get-ChildItem -LiteralPath $output -Filter 'escaped.dll' -File -Recurse -Force).Count | Should -Be 0
         }
 
         # Protects: a new release requires a single server and benchmark before atomic promotion.

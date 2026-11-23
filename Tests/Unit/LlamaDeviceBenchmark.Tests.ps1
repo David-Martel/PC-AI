@@ -49,7 +49,7 @@ function Invoke-VigilBoundedProcess {
         $layers = if ($Device -eq 'none') { 0 } else { 999 }
         $rows = foreach ($tokens in @(@(256, 0), @(0, 64))) {
             @{
-                build_commit = '123456789a'; build_number = 12635; model_filename = $script:Inputs.ModelPath
+                build_commit = 'ad50351f5'; build_number = 12635; model_filename = $script:Inputs.ModelPath
                 devices = $Device; n_gpu_layers = $layers; n_threads = 4
                 n_prompt = $tokens[0]; n_gen = $tokens[1]; avg_ts = 200.25
                 samples_ts = @(200.0, 200.25, 200.5); samples_ns = @(1000000, 1000001, 1000002)
@@ -58,7 +58,9 @@ function Invoke-VigilBoundedProcess {
         ConvertTo-Json -InputObject @($rows) -Depth 4
     }
 
-    $exe = Join-Path $TestDrive 'staged benchmark.exe'
+    $runtime = Join-Path $TestDrive 'runtime'
+    [void][IO.Directory]::CreateDirectory($runtime)
+    $exe = Join-Path $runtime 'staged benchmark.exe'
     $gguf = Join-Path $TestDrive 'staged model [A] & é.gguf'
     [IO.File]::WriteAllText($exe, 'inert executable')
     [IO.File]::WriteAllText($gguf, 'inert model')
@@ -67,7 +69,22 @@ function Invoke-VigilBoundedProcess {
         ModelPath = $gguf; ModelSha256 = (Get-FileHash -LiteralPath $gguf).Hash
     }
     foreach ($name in 'ggml-vulkan.dll', 'ggml-cuda.dll') {
-        [IO.File]::WriteAllText((Join-Path $TestDrive $name), "inert $name sidecar")
+        [IO.File]::WriteAllText((Join-Path $runtime $name), "inert $name sidecar")
+    }
+    $script:RuntimeDirectory = $runtime
+    $script:ReceiptPaths = @{}
+    $digests = @{}
+    foreach ($file in Get-ChildItem -LiteralPath $runtime -File) {
+        $digests[$file.Name] = (Get-FileHash -LiteralPath $file.FullName).Hash.ToLowerInvariant()
+    }
+    foreach ($route in 'CPU', 'IntelVulkan', 'NvidiaCuda') {
+        $path = Join-Path $runtime "receipt-$route.json"
+        $script:ReceiptPaths[$route] = $path
+        [IO.File]::WriteAllText($path, (ConvertTo-Json -InputObject @{
+            Schema = 'pcai.llama-runtime-receipt/v1'; Route = $route; Version = 'b12635'
+            Commit = 'ad50351f5092436f312d98d25689207df25f4802'; BenchmarkRelativePath = Split-Path $exe -Leaf
+            Binaries = $digests
+        } -Depth 4))
     }
     $script:Listing = @(
         'Available devices:'
@@ -88,6 +105,32 @@ Describe 'llama-bench benchmark admission' -Tag 'Unit', 'Portable' {
         [Environment]::SetEnvironmentVariable('GGML_CUDA_MMQ_PREC', $script:SavedPrecision)
     }
 
+    # Protects: code loaded by the benchmark comes from the verified distribution.
+    # Detects: trusting an unlisted DLL or launching after another process replaces a DLL.
+    # Needs: nonexecutable fixtures, a receipt and the existing process recorder.
+    # Breadcrumb: the receipt and binary admission in Invoke-PcaiLlamaDeviceBenchmark.ps1.
+    It 'rejects staged binary changes before launching any workload' {
+        $params = $script:Inputs
+        $existing = Join-Path $script:RuntimeDirectory 'ggml-vulkan.dll'
+        $added = Join-Path $script:RuntimeDirectory 'ggml-extra.dll'
+        $original = [IO.File]::ReadAllBytes($existing)
+        try {
+            [IO.File]::WriteAllText($existing, 'modified sidecar')
+            { & $script:Runner @params -Route IntelVulkan -ReceiptPath $script:ReceiptPaths.IntelVulkan } |
+                Should -Throw '*SHA256 mismatch*ggml-vulkan.dll*'
+        } finally {
+            [IO.File]::WriteAllBytes($existing, $original)
+        }
+        try {
+            [IO.File]::WriteAllText($added, 'unlisted sidecar')
+            { & $script:Runner @params -Route IntelVulkan -ReceiptPath $script:ReceiptPaths.IntelVulkan } |
+                Should -Throw '*runtime binary count differs*'
+        } finally {
+            [IO.File]::Delete($added)
+        }
+        (Get-Item -LiteralPath $script:CallPath).Length | Should -Be 0
+    }
+
     # Protects: the CPU route requests no GPU and admits both measured slices.
     # Detects: ambient CUDA precision, unnecessary discovery, or wrong arguments.
     # Needs: inert hashed files and a process stub returning benchmark-shaped JSON.
@@ -95,7 +138,7 @@ Describe 'llama-bench benchmark admission' -Tag 'Unit', 'Portable' {
     It 'reports both CPU slices with explicit no-device selection' {
         Set-LlamaFixtureReplies -Replies @(@{ ExitCode = 0; Stdout = (New-LlamaFixtureRows 'none'); Stderr = 'offloaded 0/17 layers to GPU' })
         $params = $script:Inputs
-        $report = & $script:Runner @params -Route CPU
+        $report = & $script:Runner @params -Route CPU -ReceiptPath $script:ReceiptPaths.CPU
         $report.PSTypeNames[0] | Should -BeExactly 'Pcai.LlamaDeviceBenchmark'
         $report.Device | Should -BeExactly 'none'
         $report.Prefill.TokensPerSecond | Should -Be 200.25
@@ -134,12 +177,12 @@ Describe 'llama-bench benchmark admission' -Tag 'Unit', 'Portable' {
 
         $params = $script:Inputs.Clone()
         if ($Precision) { $params.MmqPrecision = $Precision }
-        $report = & $script:Runner @params -Route $Route
+        $report = & $script:Runner @params -Route $Route -ReceiptPath $script:ReceiptPaths[$Route]
         $report.Device | Should -BeExactly $Device
         $report.OffloadedLayers | Should -Be 17
         $report.DeviceModelBufferMiB | Should -Be 694.76
         $report.BackendSidecar.FileName | Should -BeExactly $Sidecar
-        $report.BackendSidecar.Sha256 | Should -Be (Get-FileHash -LiteralPath (Join-Path $TestDrive $Sidecar)).Hash
+        $report.BackendSidecar.Sha256 | Should -Be (Get-FileHash -LiteralPath (Join-Path $script:RuntimeDirectory $Sidecar)).Hash
         $calls = @(Get-Content -LiteralPath $script:CallPath | ConvertFrom-Json)
         $calls.Count | Should -Be 2
         $calls[0].Arguments | Should -Contain '--list-devices'
@@ -160,7 +203,7 @@ Describe 'llama-bench benchmark admission' -Tag 'Unit', 'Portable' {
 
         $run.Stderr = $log.Replace('17/17', '1/17')
         Set-LlamaFixtureReplies -Replies @($probe, $run)
-        { & $script:Runner @params -Route $Route } | Should -Throw '*complete device and model offload evidence*'
+        { & $script:Runner @params -Route $Route -ReceiptPath $script:ReceiptPaths[$Route] } | Should -Throw '*complete device and model offload evidence*'
         [Environment]::GetEnvironmentVariable('GGML_CUDA_MMQ_PREC') | Should -BeExactly 'ambient-fixture'
     }
 
@@ -238,7 +281,7 @@ Start-Sleep -Seconds 40
     ) {
         Set-LlamaFixtureReplies -Replies @(@{ ExitCode = 0; Stdout = $script:Listing; Stderr = $Detail })
         $params = $script:Inputs
-        { & $script:Runner @params -Route NvidiaCuda -MmqPrecision q4 } | Should -Throw '*confirmed CUDA compute capability*'
+        { & $script:Runner @params -Route NvidiaCuda -ReceiptPath $script:ReceiptPaths.NvidiaCuda -MmqPrecision q4 } | Should -Throw '*confirmed CUDA compute capability*'
         @(Get-Content -LiteralPath $script:CallPath).Count | Should -Be 1
         [Environment]::GetEnvironmentVariable('GGML_CUDA_MMQ_PREC') | Should -BeExactly 'ambient-fixture'
     }
@@ -251,10 +294,10 @@ Start-Sleep -Seconds 40
         foreach ($field in 'BenchSha256', 'ModelSha256') {
             $params = $script:Inputs.Clone()
             $params[$field] = '0' * 64
-            { & $script:Runner @params -Route IntelVulkan } | Should -Throw '*SHA256 mismatch*'
+            { & $script:Runner @params -Route IntelVulkan -ReceiptPath $script:ReceiptPaths.IntelVulkan } | Should -Throw '*SHA256 mismatch*'
         }
         $params = $script:Inputs
-        { & $script:Runner @params -Route IntelVulkan -MmqPrecision q4 } | Should -Throw '*only for NvidiaCuda*'
+        { & $script:Runner @params -Route IntelVulkan -ReceiptPath $script:ReceiptPaths.IntelVulkan -MmqPrecision q4 } | Should -Throw '*only for NvidiaCuda*'
         @(Get-Content -LiteralPath $script:CallPath).Count | Should -Be 0
     }
 
@@ -268,7 +311,7 @@ Start-Sleep -Seconds 40
     ) {
         Set-LlamaFixtureReplies -Replies @(@{ ExitCode = 0; Stdout = ($Records -join [char]10); Stderr = '' })
         $params = $script:Inputs
-        { & $script:Runner @params -Route IntelVulkan } | Should -Throw "*found $ExpectedCount*"
+        { & $script:Runner @params -Route IntelVulkan -ReceiptPath $script:ReceiptPaths.IntelVulkan } | Should -Throw "*found $ExpectedCount*"
         @(Get-Content -LiteralPath $script:CallPath).Count | Should -Be 1
     }
 
@@ -279,6 +322,6 @@ Start-Sleep -Seconds 40
     It 'rejects a success status with no benchmark rows' {
         Set-LlamaFixtureReplies -Replies @(@{ ExitCode = 0; Stdout = '[]'; Stderr = '' })
         $params = $script:Inputs
-        { & $script:Runner @params -Route CPU } | Should -Throw '*two benchmark rows*'
+        { & $script:Runner @params -Route CPU -ReceiptPath $script:ReceiptPaths.CPU } | Should -Throw '*two benchmark rows*'
     }
 }

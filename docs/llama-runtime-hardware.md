@@ -9,13 +9,17 @@ Use `-DryRun` to inspect the selected platform and files. [Upstream release](htt
 
 ```powershell
 $stage = ./Tools/Install-PcaiLlamaRuntime.ps1 -Route IntelVulkan -OutputRoot ./.pcai/llama-runtime
-$benchHash = (Get-FileHash -LiteralPath $stage.BenchmarkPath -Algorithm SHA256).Hash
 ./Tests/Hardware/Invoke-PcaiLlamaDeviceBenchmark.ps1 `
-    -BenchPath $stage.BenchmarkPath -BenchSha256 $benchHash `
+    -BenchPath $stage.BenchmarkPath -ReceiptPath $stage.ReceiptPath `
     -ModelPath $modelPath -ModelSha256 $modelSha256 -Route IntelVulkan -Repetitions 5
 ```
 
 Use the expected model digest from the model publisher for `$modelSha256`.
+Use the receipt produced during digest-verified installation. The benchmark
+verifies the complete recorded executable and DLL set and holds open read
+handles during the run. Keep the receipt and runtime together under your
+account's controlled staging directory. An actor who can replace the account's
+receipt and staged files crosses this per-user trust boundary.
 The [benchmark runner](../Tests/Hardware/Invoke-PcaiLlamaDeviceBenchmark.ps1)
 discovers device names on each run, requires a unique match, and requires the
 selected GPU to report full layer offload. CPU uses explicit no-device mode.
@@ -32,6 +36,7 @@ Invoke-Pester -Path Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1,Tests/Unit/Lla
 
 ## Gen9 measurements
 
+These are single-host measurements of device placement and workload throughput.
 All rows used build `b12635` (`ad50351f5`), four host threads, 64 decode tokens,
 and five repetitions. The Intel comparison used the same LFM2.5 Q4_K_M weights
 and 256 prefill tokens on both routes. The Blackwell comparison used the same

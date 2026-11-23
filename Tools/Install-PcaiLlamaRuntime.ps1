@@ -134,6 +134,7 @@ $result = [ordered]@{
     Destination = $null
     ServerPath = $null
     BenchmarkPath = $null
+    ReceiptPath = $null
     Assets = @()
     Reason = $null
 }
@@ -193,7 +194,7 @@ try {
         Expand-VerifiedLlamaZip -ArchivePath $archivePath -Asset $asset -PackageRoot $package
     }
 
-    $files = Get-ChildItem -LiteralPath $package -File -Recurse
+    $files = Get-ChildItem -LiteralPath $package -File -Recurse -Force
     $servers = @($files | Where-Object Name -EQ 'llama-server.exe')
     $benchmarks = @($files | Where-Object Name -EQ 'llama-bench.exe')
     if ($servers.Count -ne 1 -or $benchmarks.Count -ne 1 -or
@@ -204,9 +205,26 @@ try {
 
     $serverRelative = [IO.Path]::GetRelativePath($package, $servers[0].FullName)
     $benchmarkRelative = [IO.Path]::GetRelativePath($package, $benchmarks[0].FullName)
+    $receiptName = 'pcai-runtime-receipt.json'
+    $receiptPath = Join-Path $package $receiptName
+    if (Test-Path -LiteralPath $receiptPath) { throw 'The archive contains the reserved runtime receipt path.' }
+    $receipt = [ordered]@{
+        Schema = 'pcai.llama-runtime-receipt/v1'
+        Route = $canonicalRoute
+        Version = $manifest.version
+        Commit = $manifest.commit
+        BenchmarkRelativePath = $benchmarkRelative.Replace('\', '/')
+        Binaries = [ordered]@{}
+    }
+    foreach ($file in $files | Where-Object Extension -In '.exe', '.dll' | Sort-Object FullName) {
+        $relative = [IO.Path]::GetRelativePath($package, $file.FullName).Replace('\', '/')
+        $receipt.Binaries[$relative] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    [IO.File]::WriteAllText($receiptPath, (ConvertTo-Json -InputObject $receipt -Depth 5))
     [IO.Directory]::Move($package, $destination)
     $result.ServerPath = Join-Path $destination $serverRelative
     $result.BenchmarkPath = Join-Path $destination $benchmarkRelative
+    $result.ReceiptPath = Join-Path $destination $receiptName
     $result.Status = 'Installed'
     [pscustomobject]$result
 } finally {

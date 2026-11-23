@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourceBaseline": "48f0866d87626a937cfdf0340646e9376992ffc2",
-  "reviewedAtUtc": "2026-11-23T01:32:40.0843460Z",
+  "sourceBaseline": "75f489dc7d2a02b5cef24595c26449ded770b5e9",
+  "reviewedAtUtc": "2026-11-23T01:32:40.084346Z",
   "hashConvention": "SHA-256 of UTF-8 LF sources and exact Pester It AST extent. Parameterized selectors are reviewed as groups.",
   "sourceBindings": {
-    "Tests/Hardware/Invoke-PcaiLlamaDeviceBenchmark.ps1": "d093e909b9ebd4b55197be799cc3674aacf0ab0011d0b75fea68d4289e3287ed",
-    "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1": "d077e81bc4529d8ec5068df1c7599c16d3ce8fa52bca54fed8ed37165e3f4def",
-    "docs/llama-runtime-hardware.md": "bd90aadc6ef5cf1a8ee596e874f2d76866d483a5f9c780895fe11d8a5ff1e516",
+    "Tests/Hardware/Invoke-PcaiLlamaDeviceBenchmark.ps1": "f29a3b9b9ceed27766c4a84b77935219c1ab57ae9a6c2577d3e37fde82fdb122",
+    "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1": "0fb5fc6481b244f5619d7283b74998f0e68df7c93749bdd98c593a236e77bc57",
+    "docs/llama-runtime-hardware.md": "cd37530f05f531984b3b1c16168813296a8aae9897d1dc597765badcec3b2c6c",
     "Tests/linux-ci-pester.txt": "2d114046cabe4bf26156b064dd1bbe8582d7dde0b9861d273e1bd6cd6bc7a29c",
     "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1": "caa89c4ec2e46fc37b56caf911df76b176d918074231213f8cf6c866b9498040"
   },
@@ -14,7 +14,7 @@
     {
       "selector": "reports both CPU slices with explicit no-device selection",
       "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
-      "sha256": "3f42df41fe9c2d8f62a5095a2078ed23216facbdb03404ca2b33e16d425cefde",
+      "sha256": "4410174eb25aa8691184cb5053d30faeb0501a12b98e78c7c4a529acafffb456",
       "reviewer": "codex",
       "reviewerType": "author self-review",
       "disposition": "unreviewed",
@@ -23,7 +23,7 @@
     {
       "selector": "qualifies <Route> only when reported offload is complete",
       "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
-      "sha256": "96d15e1b570064ebfda1b9523663080773bf34cf5e0f24c0e4029b33568de116",
+      "sha256": "9ad872eba9a43b6c90a4fd644c9cd994c11696a7dac0631413a85dcfdb074902",
       "reviewer": "codex",
       "reviewerType": "author self-review",
       "disposition": "unreviewed",
@@ -32,7 +32,7 @@
     {
       "selector": "rejects q4 before timing with a <Case> CUDA capability",
       "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
-      "sha256": "0cf2cc7a389d58ecc87ea000cb3e790a6ded20874eed06a9c06a8d1124f8055e",
+      "sha256": "c05e5aa4bd8163819c2145eacf52a3c16d43344d827beac14a4cc80f5733d516",
       "reviewer": "codex-gen9-pcai-fleet",
       "reviewerType": "author self-review",
       "disposition": "unreviewed"
@@ -40,7 +40,7 @@
     {
       "selector": "blocks either wrong digest and incompatible CUDA precision",
       "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
-      "sha256": "3a63a50a75fdfa3c8d590bb9d24e4f3d20b80b5a8a7079ca9e17a31df2df666b",
+      "sha256": "d2756da4d6c676299119dd3622d438e70822b6d95b604861cb770d535338429b",
       "reviewer": "codex-gpu-lane",
       "reviewerType": "author source review",
       "disposition": "keep",
@@ -49,7 +49,7 @@
     {
       "selector": "rejects <Case> matching Intel Vulkan devices",
       "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
-      "sha256": "8eafa86151f8577c6e96999b5d0e16ae4cfc041eef0cf0bcdcb7768633b440f4",
+      "sha256": "ca0f3ab78b1d793efe387d58bc6294c48890805d49bf41c243502315684cee48",
       "reviewer": "codex-gpu-lane",
       "reviewerType": "author source review",
       "disposition": "keep",
@@ -58,7 +58,7 @@
     {
       "selector": "rejects a success status with no benchmark rows",
       "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
-      "sha256": "b7d69a210ecaa4e70122b2db7a2e9da5621d3c4c546aee5fcc7242bc1b08f106",
+      "sha256": "cf11ce779d66f874411a78ddce3ec227defcef5119d9dc86a7be6f94d57e48b8",
       "reviewer": "codex-gpu-lane",
       "reviewerType": "author source review",
       "disposition": "keep",
@@ -81,6 +81,15 @@
       "reviewer": "codex",
       "reviewerType": "author self-review",
       "disposition": "unreviewed"
+    },
+    {
+      "selector": "rejects staged binary changes before launching any workload",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "f33d978ca5a6ca7944e41523629cf0e8c6fd638c77cc9a24cd557780e2b03357",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Tampering with an admitted DLL or adding an unlisted DLL must prevent even device discovery."
     }
   ]
 }

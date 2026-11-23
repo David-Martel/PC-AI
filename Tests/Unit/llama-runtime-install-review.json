@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-11-23T01:07:40Z",
+  "sourceBaseline": "9e69f7b4e386ce9f01f5b5eb16c00d036353f34d",
+  "upstreamReleaseMetadata": "https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/b12635",
+  "hashConvention": "SHA-256 over LF-normalized bytes. Selectors start at the indented It command and end at its closing brace and LF. Parameterized cases share their selector.",
+  "sourceBindings": {
+    "Tools/Install-PcaiLlamaRuntime.ps1": "b720e5912834346321ddb672aef1e3062aa6e68719be0fda418726d7090764e2",
+    "Config/llama-cpp-runtime.json": "629182c1551ed1b7558a6e460a81618ab5b17daeb7aeac82d42a3bfd05659ae6",
+    "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1": "bb039e09ff656bfd50787383af0b054ef715c2ac10994aad5c586e4242d3bb8f"
+  },
+  "selectors": [
+    {
+      "selector": "pins all four published Windows x64 ZIP assets",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "fe7abe57de7009f9125e33886377a36264cef08bcb4bc7d4c5a7ed61469cc35f",
+      "disposition": "unreviewed",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "reviewScope": "a missing CUDA runtime or drift from GitHub b12635 pin and release architecture."
+    },
+    {
+      "selector": "returns structured Unsupported on an unavailable platform",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "7fbde642eb991105b2e14d1a7be4abd72102f556c8ae466e5b1fcb170bf2cc35",
+      "disposition": "unreviewed",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "reviewScope": "accidentally treating an unsupported OS or process architecture as Windows x64."
+    },
+    {
+      "selector": "previews both modes without writing a destination",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "0c62388cb3f75de0e2879747e026b974f690a2d6549d5aaae3be449cb1613b08",
+      "disposition": "unreviewed",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "reviewScope": "creating a destination or fetching any package during planning."
+    },
+    {
+      "selector": "stages verified cached runners and rejects an occupied destination",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "764e43a4ed7544b8a7a465e97d350235e9971adeeae2f10e378fcdb8a47ce72a",
+      "disposition": "unreviewed",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "reviewScope": "launching files, publishing an incomplete runtime, or replacing an occupied route."
+    },
+    {
+      "selector": "rejects a same-length digest mismatch from <Origin> without publishing",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "e50788d711f8d29af62e8bd9f105dfe79882129bb79f047358199fb61fb51194",
+      "disposition": "unreviewed",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "reviewScope": "publishing a different same-length ZIP or bypassing a bad cache with a refresh."
+    },
+    {
+      "selector": "refuses <Issue> runner layouts after digest validation",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "a61b6512ea2b8ca5d225b17856532c06617906821fbe7beeb231044e67ef82ae",
+      "disposition": "unreviewed",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "reviewScope": "ambiguous or incomplete runner discovery or leaked temporary staging."
+    },
+    {
+      "selector": "stages the matched CUDA runtime next to the unique server and benchmark",
+      "source": "Tests/Unit/Install-PcaiLlamaRuntime.Tests.ps1",
+      "sha256": "3eaf05f040d1e2557de2ac338630ee035cff63578a0fed7cb8537abcb5ceb46d",
+      "disposition": "unreviewed",
+      "reviewer": null,
+      "reviewerType": null,
+      "reviewedAtUtc": null,
+      "reviewScope": "omitting its dependency bundle or publishing after that asset fails admission."
+    }
+  ]
+}

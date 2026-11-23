@@ -27,12 +27,14 @@ FunctionGemmaPreparation.Tests.ps1
 FunctionGemmaConfig.Tests.ps1
 Get-JulesPRStatus.Tests.ps1
 Initialize-CudaEnvironment.Tests.ps1
+Install-PcaiLlamaRuntime.Tests.ps1
 Invoke-JulesOrchestrator.Tests.ps1
 Invoke-JulesSession.Tests.ps1
 Invoke-LLMChatRouted.Tests.ps1
 Invoke-RustBuild.Tests.ps1
 EvaluationSmokeWorkflow.Tests.ps1
 NativeReleaseWorkflow.Tests.ps1
+LlamaDeviceBenchmark.Tests.ps1
 LLM-ErrorHandling.Tests.ps1
 LLM-Fallback.Tests.ps1
 LLM-Logging.Tests.ps1

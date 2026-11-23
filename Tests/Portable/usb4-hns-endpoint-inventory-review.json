@@ -1,0 +1,63 @@
+{
+  "SchemaVersion": 1,
+  "SourceBaseline": "0fc498ccd8a03c314a965afee5a36cab1104d38e",
+  "ReviewedAtUtc": "2026-11-22T19:21:03.7266925+00:00",
+  "HashConvention": "SHA-256 of UTF-8 LF files and exact PowerShell function AST extents",
+  "SourceBindings": {
+    "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1": "cf5b68777379d8c7284f4ec1a9d97481f021a78585999f1aefca1a23fa7f9e99",
+    "Tests/Portable/Test-Usb4HnsEndpointInventory.ps1": "628b74edf27e2fc58bad7f617529035fe15cee7e405383f99408343d777cb737",
+    ".github/workflows/usb4-lifecycle.yml": "71509b3c1404f78e5bf3402472002d4d6f83bf94baa44db25c5254a5260b6672",
+    "docs/usb4/peer-networking.md": "59a7255def26c921cee09c683d49947c291f2d4881bede39ca7f49db4dad2fbe",
+    "AGENTS.md": "45e85a5475a97348ff9e931c9ccb90660eac276859b8b720bb59fd626a10e2ae"
+  },
+  "Selectors": [
+    {
+      "Selector": "Test-Usb4HnsAuthoritativeEmpty",
+      "Source": "Tests/Portable/Test-Usb4HnsEndpointInventory.ps1",
+      "Sha256": "1b38f1e403cc0dedc35d2ad17e166b0055c4fe5d2d38c80ff13fac04db6cf647",
+      "Protects": "Authoritative empty HNS enumeration",
+      "Detects": "A successful empty result treated as an unknown allocation",
+      "Needs": "PowerShell 7 and inert fixture providers",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1::Get-Usb4ExistingNatInventory",
+      "Reviewer": "codex/recovery",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "Test-Usb4HnsRetainsEndpointReservations",
+      "Source": "Tests/Portable/Test-Usb4HnsEndpointInventory.ps1",
+      "Sha256": "ee587a3d6c803e8f4a826178bf3079ca64ac7389323fdda0c26dfbe96c11a11b",
+      "Protects": "Known endpoint addresses and identities",
+      "Detects": "Dropping or misreading allocated endpoint addresses",
+      "Needs": "PowerShell 7 and inert fixture providers",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1::Get-Usb4HnsEndpointInventory normalization",
+      "Reviewer": "codex/recovery",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "Test-Usb4HnsRefusesUntrustedResponses",
+      "Source": "Tests/Portable/Test-Usb4HnsEndpointInventory.ps1",
+      "Sha256": "ac7b52467592490761fbcb4829024883d0a16d3fcd9a17034e8358015bac33ac",
+      "Protects": "Positive evidence for HNS custody",
+      "Detects": "A damaged envelope, null, or invalid endpoint address admitted as empty or valid",
+      "Needs": "PowerShell 7 and inert fixture providers",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1::Get-Usb4HnsEndpointInventory envelope and address checks",
+      "Reviewer": "codex/recovery",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    },
+    {
+      "Selector": "Test-Usb4HnsPreservesTransportFailure",
+      "Source": "Tests/Portable/Test-Usb4HnsEndpointInventory.ps1",
+      "Sha256": "78941383bb57133399ac5eaa7c0a7c7a0b5885fbf5c0da30489168054a8c01ba",
+      "Protects": "Failed GET remains a failed inventory",
+      "Detects": "COM errors sanitized into an empty collection",
+      "Needs": "PowerShell 7 and inert fixture providers",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1::Get-Usb4HnsEndpointInventory Request2",
+      "Reviewer": "codex/recovery",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed"
+    }
+  ]
+}

@@ -33,8 +33,8 @@ permissions:
 jobs:
   upscale-contracts:
     # Protects: the optional ORT loader and default FFI compile/lint contract.
-    # Detects: feature-hidden API drift and tensor/file-error regressions.
-    # Needs: native linker and downloadable ORT binary; no model or GPU.
+    # Detects: feature-hidden API drift, file errors and successful-session regressions.
+    # Needs: native linker, ORT library and the checked-in synthetic graph; CPU only.
     # Scope/review: docs/media-upscale-validation.md
     strategy:
       fail-fast: false
@@ -58,9 +58,20 @@ jobs:
           components: clippy
       - uses: dtolnay/rust-toolchain@stable
         if: runner.environment != 'self-hosted'
+      # Protects fixture provenance. Detects any ONNX byte that the source cannot
+      # reproduce. Needs Python 3.9+ and the checked-in generator and fixture.
+      - name: Verify reproducible ONNX fixture
+        shell: pwsh
+        run: |
+          $python = if ($IsWindows) { 'python' } else { 'python3' }
+          $fixture = 'Native/pcai_core/pcai_media/tests/fixtures'
+          & $python "$fixture/generate_tile_4x.py" "$fixture/tile-4x.onnx.pb" --check
+          if ($LASTEXITCODE) { throw 'ONNX fixture differs from its generator' }
       - name: Check default FFI and optional CPU upscale
         run: cargo check --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale
       - name: Run real tensor and missing-model contracts
         run: cargo test --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale upscale::tests
+      - name: Run a deterministic CPU ONNX graph
+        run: cargo test --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale --test upscale_cpu_inference
       - name: Lint the feature-enabled library
         run: cargo clippy --locked --manifest-path Native/pcai_core/Cargo.toml -p pcai-media --features upscale --lib -- -D warnings

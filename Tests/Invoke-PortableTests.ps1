@@ -42,10 +42,16 @@ param(
 
     [switch]$FailFast,
 
+    # A section that cannot run (tool missing) is SKIP. By default that fails the run, because a runner that
+    # reports success for checks it never performed cannot fail. Use this on hosts that lack cargo or dotnet.
+    [switch]$AllowSkip,
+
     [string]$ResultsDir
 )
 
 $ErrorActionPreference = 'Stop'
+
+. (Join-Path $PSScriptRoot 'Helpers/Get-PesterRunVerdict.ps1')
 
 # --- Paths ---
 $RepoRoot    = Split-Path -Parent $PSScriptRoot
@@ -78,12 +84,17 @@ function New-SectionResult {
 function Invoke-Timed {
     param([string]$Name, [scriptblock]$Block)
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    try   { $result = & $Block }
-    catch { $result = $_ }
+    try   { $output = @(& $Block) }
+    catch { $output = @(New-SectionResult $Name 'FAIL' "section threw: $($_.Exception.Message)") }
     $sw.Stop()
-    if ($result -is [pscustomobject]) {
-        $result.duration_ms = $sw.ElapsedMilliseconds
+    # The section result is the last object that looks like one; anything else the block leaked is ignored.
+    # A block that returns no result is a failure, not a pass: before this, a thrown ErrorRecord was stored as
+    # the result, its .status was null, and the section was counted neither FAIL nor anything else.
+    $result = $output | Where-Object { $_ -is [pscustomobject] -and $_.PSObject.Properties['status'] } | Select-Object -Last 1
+    if ($null -eq $result) {
+        $result = New-SectionResult $Name 'FAIL' 'section produced no result object'
     }
+    $result.duration_ms = $sw.ElapsedMilliseconds
     return $result
 }
 
@@ -169,6 +180,11 @@ if ($RunSections -contains 'Rust' -and -not $AnyFail) {
             $detail = if ($status -eq 'FAIL') {
                 ($output | Select-String 'FAILED|error\[' | Select-Object -First 20 | Out-String).Trim()
             } else { '' }
+            if ($status -eq 'PASS' -and ($passed + $failed) -eq 0) {
+                # cargo exits 0 for a workspace whose tests were all filtered out or not compiled in.
+                $status = 'FAIL'
+                $detail = 'cargo test exited 0 but reported no test results'
+            }
             New-SectionResult 'Rust' $status $detail @{ passed = $passed; failed = $failed; ignored = $ignored }
         } finally { Pop-Location }
     }
@@ -223,11 +239,15 @@ if ($RunSections -contains 'Pester' -and -not $AnyFail) {
         $cfg.TestResult.OutputPath   = $xmlOut
         $cfg.Run.PassThru        = $true
         $pResult = Invoke-Pester -Configuration $cfg
-        $status = if ($pResult.FailedCount -eq 0) { 'PASS' } else { 'FAIL' }
-        New-SectionResult 'Pester' $status '' @{
-            passed  = $pResult.PassedCount
-            failed  = $pResult.FailedCount
-            skipped = $pResult.SkippedCount
+        # FailedCount alone is not a verdict: a syntax-error test file leaves it 0 with FailedContainersCount 1, and an
+        # empty tag filter leaves Result 'Passed' with nothing executed. Get-PesterRunVerdict reads both.
+        $verdict = Get-PesterRunVerdict -Result $pResult
+        $status = if ($verdict.Passed) { 'PASS' } else { 'FAIL' }
+        New-SectionResult 'Pester' $status ($verdict.Violations -join "`n") @{
+            passed             = $pResult.PassedCount
+            failed             = $pResult.FailedCount
+            skipped            = $pResult.SkippedCount
+            failed_containers  = $pResult.FailedContainersCount
         }
     }
     $Results['Pester'] = $r
@@ -266,7 +286,12 @@ if ($RunSections -contains 'Lint' -and -not $AnyFail) {
 
 # --- Summarise ---
 $GlobalStart.Stop()
-$overallStatus = if (@($Results.Values | Where-Object status -eq 'FAIL').Count -gt 0) { 'FAIL' } else { 'PASS' }
+$failedSections = @($Results.Values | Where-Object status -eq 'FAIL').Count
+$skippedSections = @($Results.Values | Where-Object status -eq 'SKIP').Count
+$overallStatus = if ($failedSections -gt 0 -or ($skippedSections -gt 0 -and -not $AllowSkip) -or $Results.Count -eq 0) { 'FAIL' } else { 'PASS' }
+if ($skippedSections -gt 0 -and -not $AllowSkip) {
+    Write-Warning "$skippedSections section(s) were skipped, which fails the run; pass -AllowSkip on a host without those tools."
+}
 
 $sectionsDict = [ordered]@{}
 foreach ($key in $Results.Keys) {

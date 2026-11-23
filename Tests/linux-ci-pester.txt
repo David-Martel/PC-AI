@@ -23,6 +23,7 @@ SetupJobRustAction.Tests.ps1
 # Remove a file when it becomes Windows-dependent. One file name per line, relative to Tests/Unit. '#' starts a comment.
 CargoTools.Tests.ps1
 Compare-ProcessListPerformance.Tests.ps1
+FunctionGemmaPreparation.Tests.ps1
 FunctionGemmaConfig.Tests.ps1
 Get-JulesPRStatus.Tests.ps1
 Initialize-CudaEnvironment.Tests.ps1

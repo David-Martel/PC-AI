@@ -1,0 +1,62 @@
+{
+  "SchemaVersion": 1,
+  "SourceBaseline": "7c45a41d4c6a57cf093c6bbb5190671760a3fe29",
+  "ReviewedAtUtc": "2026-11-22T15:15:51.4043619-05:00",
+  "HashConvention": "SHA-256 of UTF-8 LF files and exact Pester It AST extents",
+  "SourceBindings": {
+    "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1": "af3e9618d47fa8727d44301c90b9a764509c817268d55a82a22c5b291d888acb",
+    "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1": "742b951ac41b3a4b6834fc8d5bdf3c2b14b0dfab7d97b6a5c8eb528a7757f012",
+    "Tools/SystemScripts/Networking/README.md": "611952235ca15c0eb8f235c865579ba0ea54140c6dfa337afc0095f119abd29c"
+  },
+  "Selectors": [
+    {
+      "Selector": "reconciles a profile with <Scenario> drift instead of declaring a ready link",
+      "Source": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
+      "Sha256": "f489387aedc52c4f6b6553f9ce8e43e0e8ef4b568bbc90d68ae7ad9262647ae1",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "Protects": "reconciliation when the stored profile and running link differ.",
+      "Detects": "declaring a match from profile identity alone, despite incorrect live settings.",
+      "Needs": "Linux Bash, Python 3 and fixture-only nmcli. Windows runs through SSH.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript."
+    },
+    {
+      "Selector": "reconciles an isolated <Scenario> profile by UUID and enables link-local IPv6",
+      "Source": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
+      "Sha256": "30a1d120ec333ac50bdd513f65569ae841f46a863d99e8059901627ee7869d45",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "Protects": "migration of the original isolated profile and repeated configuration.",
+      "Detects": "disabling IPv6 or mutating a profile through an ambiguous connection name.",
+      "Needs": "SSH to a Linux host with Bash, Python 3 and fixture-only nmcli.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript."
+    },
+    {
+      "Selector": "refuses a stored IPv6 token before writing a managed EUI-64 profile",
+      "Source": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
+      "Sha256": "1b8af260f222361a3fd7eb383aa19b625fc4e16eae0614cf1d64fba0c1359b4a",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "Protects": "owner-selected IPv6 tokens from migration or silent EUI-64 override.",
+      "Detects": "activation or changes when a stored token overrides hardware-derived generation.",
+      "Needs": "Linux Bash, Python 3 and fixture-only nmcli. Windows runs through SSH.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript."
+    },
+    {
+      "Selector": "creates the isolated manual profile before modifying and activating it",
+      "Source": "Tests/Integration/ThunderboltLinuxProfile.Tests.ps1",
+      "Sha256": "8719fa4a52ba242ce0dac14e38825d0877e038a651b1e174a5e10127628de032",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "Protects": "first installation of a manual IPv4 and link-local IPv6 profile.",
+      "Detects": "a disabled IPv6 default, upstream route enablement, or reversed operation order.",
+      "Needs": "SSH to Linux with Bash, Python 3 and fixture-only nmcli.",
+      "Breadcrumb": "Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1::New-TbLinuxConfigureScript."
+    }
+  ],
+  "Validation": "Seven cases detected the old behavior. All 23 passed using the isolated Bash fixture, and real NetworkManager 1.54.3 produced matching new and migrated keyfiles in offline mode."
+}

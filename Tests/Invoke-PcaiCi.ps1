@@ -12,7 +12,7 @@
     Tiers:
       Quick  credential scan, workflow syntax, PSScriptAnalyzer on the files this branch changed
              (Tools/Test-ChangedPowerShellLint.ps1), rustfmt. Seconds to about a minute.
-      Full   everything ci.yml runs that this script mirrors: credential scan, workflow syntax,
+      Full   everything ci.yml runs that this script mirrors, plus the TestAssessment gate (Tests/coverage-report.ps1,\n             local only: measured coverage against the ratcheted Config/test-baseline.json): credential scan, workflow syntax,
              the full PSScriptAnalyzer pass (about 12 minutes serial), rustfmt, cargo check,
              clippy, the pcai_inference unit tests and the Pester Unit and Boot suites (the
              17-path list ci.yml uses).
@@ -185,6 +185,9 @@ $allSteps = @(
     New-CiStep -Id 'PesterUnitBoot' -Tiers @('Full') -Description 'Pester Unit and Boot suites' `
         -CiCommand "`$config.Run.Path" `
         -Command @('pwsh', '-NoProfile', '-Command', $pesterProbe)
+    New-CiStep -Id 'TestAssessment' -Tiers @('Full') -Description 'Test assessment: measured Pester coverage, quality counts, orphan gate (local gate, not in ci.yml)' `
+        -CiCommand '' -RequiresModule 'Pester' `
+        -Command @('pwsh', '-NoProfile', '-File', (Join-Path $repoRoot 'Tests/coverage-report.ps1'), '-Tier', 'Portable')
 )
 
 # -Only names steps explicitly, so it ignores the tier; otherwise asking for a Full step from the

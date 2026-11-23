@@ -28,6 +28,9 @@
       6. Optionally updates the Windows hosts file (<peer>-tb -> Peer PrimaryUla) and
          registers an event-driven Scheduled Task triggered on NetworkProfile Event 10000.
 
+    Configure inbound access separately for enrolled links using
+    Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1.
+
 .PARAMETER InterfaceAlias
     Optional USB4 / Thunderbolt interface alias filter(s). When omitted, all active
     USB4 P2P adapters on the local machine are processed.
@@ -324,10 +327,6 @@ function Register-ThunderboltPeer {
     if ($v6Proto -and [string]$v6Proto.RandomizeIdentifiers -ne 'Disabled') {
         Set-NetIPv6Protocol -RandomizeIdentifiers Disabled -ErrorAction SilentlyContinue | Out-Null
     }
-    if (-not (Get-NetFirewallRule -Name 'PC-AI-USB4-P2P-Allow' -ErrorAction SilentlyContinue)) {
-        New-NetFirewallRule -Name 'PC-AI-USB4-P2P-Allow' -DisplayName 'PC-AI USB4 P2P ULA & Link-Local Allow' -Direction Inbound -Action Allow -Profile Any -RemoteAddress @('fd00:7462:7032::/48', 'fe80::/10', '169.254.0.0/16', '172.31.240.0/20') -ErrorAction SilentlyContinue | Out-Null
-    }
-
     if ($EnableSmbDirect) {
         $smbCli = Get-SmbClientConfiguration -ErrorAction SilentlyContinue
         if ($smbCli -and (-not $smbCli.EnableMultiChannel -or -not $smbCli.EnableLargeMtu -or $smbCli.EnableBandwidthThrottling)) {

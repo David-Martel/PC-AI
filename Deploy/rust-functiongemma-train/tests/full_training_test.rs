@@ -1,9 +1,9 @@
 use rust_functiongemma_train::{
     checkpoint::{Checkpoint, CheckpointConfig},
     early_stopping::{EarlyStopping, EarlyStoppingConfig},
-    lora::LoraConfig,
     scheduler::{LRScheduler, SchedulerConfig, SchedulerType},
     trainer::TrainerConfig,
+    LoraSettings,
 };
 use tempfile::TempDir;
 
@@ -33,18 +33,21 @@ fn base_trainer_config() -> TrainerConfig {
     }
 }
 
+// Protects: LoRA and scheduling setup from trainer configuration.
+// Detects: the fixture no longer maps live LoRA rank or scheduler warmup.
+// Needs: in-memory settings. Breadcrumb: trainer::TrainerConfig, model::LoraSettings::new, scheduler::LRScheduler.
 #[test]
 fn test_full_training_config_integration() {
     // Verify all components can be configured together
     let trainer_cfg = base_trainer_config();
 
     // Verify LoRA config can be derived
-    let lora_cfg = LoraConfig {
-        r: trainer_cfg.lora_r,
-        alpha: trainer_cfg.lora_alpha,
-        dropout: trainer_cfg.lora_dropout,
-        target_modules: vec!["q_proj".to_string(), "k_proj".to_string()],
-    };
+    let lora_cfg = LoraSettings::new(
+        trainer_cfg.lora_r,
+        trainer_cfg.lora_alpha,
+        trainer_cfg.lora_dropout,
+        trainer_cfg.use_4bit,
+    );
 
     // Verify scheduler config
     let scheduler_cfg = SchedulerConfig {
@@ -95,11 +98,14 @@ fn test_checkpoint_workflow() {
     assert_eq!(loaded.rng_state, Some(42));
 }
 
+// Protects: construction of training and LoRA settings.
+// Detects: the available constructors and default settings drift.
+// Needs: in-memory settings. Breadcrumb: trainer::TrainerConfig, model::LoraSettings::new.
 #[test]
 fn test_training_components_compatibility() {
     // Test that all module types can be used together
     let _trainer_cfg = TrainerConfig::default();
-    let _lora_cfg = LoraConfig::default();
+    let _lora_cfg = LoraSettings::new(8, 16.0, 0.0, false);
     let _scheduler_cfg = SchedulerConfig::default();
     let _checkpoint_cfg = CheckpointConfig::default();
     let _early_stopping_cfg = EarlyStoppingConfig::default();
@@ -135,6 +141,9 @@ fn test_scheduler_warmup_and_decay() {
     assert!(lr_1000 <= lr_500, "LR should continue decreasing");
 }
 
+// Protects: mapping explicit LoRA settings into the shared model.
+// Detects: rank, alpha, dropout or quantization settings are lost.
+// Needs: in-memory settings. Breadcrumb: trainer::TrainerConfig, model::LoraSettings::new.
 #[test]
 fn test_lora_config_derivation() {
     let trainer_cfg = TrainerConfig {
@@ -153,22 +162,17 @@ fn test_lora_config_derivation() {
     };
 
     // Derive LoRA config from trainer config
-    let lora_cfg = LoraConfig {
-        r: trainer_cfg.lora_r,
-        alpha: trainer_cfg.lora_alpha,
-        dropout: trainer_cfg.lora_dropout,
-        target_modules: vec![
-            "q_proj".to_string(),
-            "k_proj".to_string(),
-            "v_proj".to_string(),
-            "o_proj".to_string(),
-        ],
-    };
+    let lora_cfg = LoraSettings::new(
+        trainer_cfg.lora_r,
+        trainer_cfg.lora_alpha,
+        trainer_cfg.lora_dropout,
+        trainer_cfg.use_4bit,
+    );
 
     assert_eq!(lora_cfg.r, 16);
     assert_eq!(lora_cfg.alpha, 32.0);
     assert_eq!(lora_cfg.dropout, 0.1);
-    assert_eq!(lora_cfg.target_modules.len(), 4);
+    assert_eq!(lora_cfg.use_4bit, trainer_cfg.use_4bit);
 }
 
 #[test]
@@ -273,16 +277,19 @@ fn test_scheduler_types() {
     assert_eq!(constant_mid, max_lr, "Constant should stay at max_lr");
 }
 
+// Protects: learning-rate bounds across simulated epochs.
+// Detects: the scheduler exceeds the allowed range for configured steps.
+// Needs: in-memory settings. Breadcrumb: scheduler::LRScheduler::get_lr.
 #[test]
 fn test_full_pipeline_simulation() {
     // Simulate a complete training configuration
     let trainer_cfg = TrainerConfig::default();
-    let lora_cfg = LoraConfig {
-        r: trainer_cfg.lora_r,
-        alpha: trainer_cfg.lora_alpha,
-        dropout: trainer_cfg.lora_dropout,
-        target_modules: vec!["q_proj".to_string(), "v_proj".to_string()],
-    };
+    let lora_cfg = LoraSettings::new(
+        trainer_cfg.lora_r,
+        trainer_cfg.lora_alpha,
+        trainer_cfg.lora_dropout,
+        trainer_cfg.use_4bit,
+    );
 
     let scheduler_cfg = SchedulerConfig {
         scheduler_type: SchedulerType::Cosine,
@@ -300,7 +307,7 @@ fn test_full_pipeline_simulation() {
     // Simulate training steps
     let mut global_step = 0;
     for epoch in 0..trainer_cfg.epochs {
-        for batch in 0..10 {
+        for _ in 0..10 {
             let current_lr = scheduler.get_lr(global_step);
             global_step += 1;
 

@@ -34,6 +34,9 @@ fn test_trainer_config_lora_fields() {
     assert_eq!(config.eos_token_id, 2);
 }
 
+// Protects: explicit TrainerConfig overrides.
+// Detects: the fixture loses rank/dropout/alpha or optimizer schedule settings.
+// Needs: an in-memory config. Breadcrumb: trainer::TrainerConfig.
 #[test]
 fn test_trainer_config_custom_values() {
     let config = TrainerConfig {
@@ -52,6 +55,7 @@ fn test_trainer_config_custom_values() {
         scheduler_type: "linear".to_string(),
         early_stopping: None,
         use_4bit: false,
+        ..TrainerConfig::default()
     };
 
     assert_eq!(config.lora_r, 16);

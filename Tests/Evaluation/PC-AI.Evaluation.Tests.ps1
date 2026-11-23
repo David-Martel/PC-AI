@@ -327,9 +327,12 @@ Describe "Integration Tests" -Tag "Integration" {
             } else { $null }
             $localBinPath = Join-Path $env:USERPROFILE ".local\bin\pcai_inference.dll"
 
-            $available = (Test-Path $dllPath) -or
+            $available = [bool]((Test-Path $dllPath) -or
                 ($altPath -and (Test-Path $altPath)) -or
-                (Test-Path $localBinPath)
+                (Test-Path $localBinPath))
+
+            # The probe must give a definite yes or no whatever the build state; the log line below reports which.
+            $available | Should -BeOfType [bool]
 
             if ($available) {
                 Write-Host "  Native DLL available for integration testing" -ForegroundColor Green

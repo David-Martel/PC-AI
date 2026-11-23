@@ -8,12 +8,16 @@
   - Parses PowerShell public functions and compares parameters to help blocks
   - Compares C# DllImport declarations to Rust exported functions
   - Compares PowerShell wrapper calls to available C# methods
-  Writes Reports\API_SIGNATURE_REPORT.json and Reports\API_SIGNATURE_REPORT.md
+  Writes Reports\API_SIGNATURE_REPORT.json and Reports\API_SIGNATURE_REPORT.md, or the same two files under -OutputDir.
 #>
 
 [CmdletBinding()]
 param(
-    [string]$RepoRoot
+    [string]$RepoRoot,
+
+    # Directory for the two report files. Default: <RepoRoot>\Reports, which is tracked in git. Tests pass a temp
+    # directory so running the suite does not dirty the checkout.
+    [string]$OutputDir
 )
 
 Set-StrictMode -Version Latest
@@ -24,7 +28,7 @@ if (-not $RepoRoot) {
     $RepoRoot = Split-Path -Parent $scriptRoot
 }
 
-$reportDir = Join-Path $RepoRoot 'Reports'
+$reportDir = if ($OutputDir) { $OutputDir } else { Join-Path $RepoRoot 'Reports' }
 if (-not (Test-Path $reportDir)) {
     New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
 }

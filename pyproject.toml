@@ -9,3 +9,11 @@ select = ["E", "F"]
 "vendor/candle-core-0.9.2/tests/pth.py" = ["E402", "E501"]
 "vendor/candle-core-0.10.2/tests/pth.py" = ["E402", "E501"]
 "vendor/candle-core-0.11.0/tests/pth.py" = ["E402", "E501"]
+
+# These three files arrived from main with long lines and are bound by hash in other
+# lanes' custody records (the USB4 TCP hardware-in-the-loop reviews and the upscale CPU
+# review), so wrapping them would invalidate that evidence.  Only the line-length rule is
+# relaxed, so a merge of main can pass the commit gate; every other rule stays checked.
+"Tests/Hardware/usb4_tcp_hil.py" = ["E501"]
+"Tests/Portable/test_usb4_tcp_hil.py" = ["E501"]
+"Native/pcai_core/pcai_media/tests/fixtures/generate_tile_4x.py" = ["E501"]

@@ -353,6 +353,9 @@ Describe "Integration Tests" -Tag 'Integration' {
             if ($tcpTest.TcpTestSucceeded) {
                 $modules = redis-cli -p 6379 module list 2>&1
 
+                # The module query itself must answer, or the search check below proves nothing.
+                $modules | Should -Not -BeNullOrEmpty -Because 'redis-cli module list returned nothing from a reachable Redis'
+
                 # Docker Redis Stack should have search module
                 $hasSearch = $modules -match "search"
 

@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "target_coverage_pct": 85,
+  "files_analyzed_ratio_min": 0.95,
+  "per_module_tolerance_pct": 1.0,
+  "quality": {
+    "no_assertion_it_max": 0,
+    "not_throw_only_it_max": 61,
+    "tautology_it_max": 14,
+    "parse_error_files_max": 0
+  },
+  "orphans_allowed": [
+    "Modules/PC-AI.Acceleration/Tests/Find-DuplicatesFast.Tests.ps1",
+    "Modules/PC-AI.Acceleration/Tests/Find-FilesFast.Tests.ps1",
+    "Modules/PC-AI.Hardware/Tests/PC-AI.Hardware.Tests.ps1",
+    "Reports/keyboard-investigation-20260912/profile-fixes/ProfileFixes.Tests.ps1",
+    "Tools/SystemScripts/C-Scripts/Startup/host-startup.Tests.ps1",
+    "Tools/SystemScripts/C-Scripts/Startup/ollama-service.Tests.ps1",
+    "Tools/SystemScripts/C-Scripts/Startup/Tests/Example.Tests.ps1",
+    "Tools/SystemScripts/C-Scripts/Startup/Tests/Initialize-BitwardenSession.Tests.ps1",
+    "Tools/SystemScripts/C-Scripts/Startup/Tests/Start-WSLDockerServices.Tests.ps1",
+    "Tools/SystemScripts/C-Scripts/Startup/Tests/Sync-RegistryCredentials.Tests.ps1",
+    "Tools/SystemScripts/UserBin/tests/Test-RAGRedisHealth.Tests.ps1"
+  ],
+  "tiers": {
+    "Portable": {
+      "coverage_min_pct": 48.0,
+      "per_module_min_pct": {
+        "PC-AI.Acceleration": 16.0,
+        "PC-AI.CLI": 69.0,
+        "PC-AI.Cleanup": 51.0,
+        "PC-AI.Common": 70.0,
+        "PC-AI.Drivers": 58.0,
+        "PC-AI.Evaluation": 0.0,
+        "PC-AI.Gpu": 58.0,
+        "PC-AI.Hardware": 65.0,
+        "PC-AI.LLM": 61.0,
+        "PC-AI.Network": 38.0,
+        "PC-AI.Performance": 30.0,
+        "PC-AI.Reliability": 79.0,
+        "PC-AI.USB": 14.0,
+        "PC-AI.Virtualization": 46.0,
+        "PcaiInference": 25.0,
+        "PcaiMedia": 70.0
+      },
+      "known_failures": {
+        "containers": [
+          "Set-LLMProviderOrder.Tests.ps1"
+        ],
+        "tests_by_file": {
+          "EnrichedSystemPromptMetrics.Tests.ps1": 31,
+          "PC-AI.USB.Tests.ps1": 23,
+          "PC-AI.Virtualization.Tests.ps1": 38,
+          "PcaiGpuContracts.Tests.ps1": 1,
+          "PcaiNativeArtifactPairing.Tests.ps1": 3,
+          "PcaiNativeInitializationContracts.Tests.ps1": 1,
+          "PerformanceConsumerContracts.Tests.ps1": 1,
+          "Set-LLMProviderOrder.Tests.ps1": 13,
+          "Virtualization-Fallback.Tests.ps1": 3
+        },
+        "blocks_by_file": {
+          "PC-AI.USB.Tests.ps1": 12,
+          "PC-AI.Virtualization.Tests.ps1": 13
+        }
+      },
+      "measured": {
+        "pct": 48.69,
+        "files_analyzed": 244,
+        "module_files_total": 245,
+        "failed_tests": 114,
+        "failed_blocks": 25
+      }
+    }
+  }
+}

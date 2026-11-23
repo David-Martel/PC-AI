@@ -1,5 +1,8 @@
 # Thunderbolt Linux peers
 
+For Windows USB4NET endpoints, use the [private-access installer](../../../docs/usb4/private-access.md)
+to set the enrolled adapter's network profile and scoped IPv6 echo policy.
+
 `Invoke-ThunderboltLinuxPeer.ps1` uses an existing LAN SSH alias and verified SSH
 host key to prepare an Ubuntu peer, discover a real Thunderbolt peer interface,
 configure an isolated /30 and measure the actual link. The maintained wrapper is
@@ -46,13 +49,31 @@ Ethernet adapters cannot satisfy these checks. The SSH control path stays on LAN
 Configuration adds the Windows address without deleting unrelated addresses.
 Linux creates the persistent NetworkManager profile `pcai-tb-<peer>` and rejects
 ambiguous names or an existing profile with unexpected interface, address,
-IP method, gateway, DNS, routes, IPv6 settings, or autoconnect policy. Existing
-profiles are selected by UUID. It sets no
-gateway or DNS, disables default routing, and uses MTU 1500 at both ends. If a
-later Windows step fails, the Linux isolated profile can remain configured; the
-error is surfaced and LAN SSH remains available for recovery. Re-running is
-idempotent. Rollback removes only the added Windows /30 address and owned Linux
-profile; undo module persistence only if it is no longer needed.
+IP method, gateway, DNS, routes, or autoconnect policy. Existing profiles are
+selected by UUID. Configure sets `ipv6.method link-local`, `ipv6.never-default yes`
+and `ipv6.addr-gen-mode eui64` for the isolated USB4 profile. A stored IPv6 token
+blocks this change. The hardware-derived address helps locate the peer. The
+live neighbor binding and SSH host key continue to govern identity checks.
+An explicit Apply can migrate a matching `disabled` profile after it verifies
+that the profile has no stored IPv6 addresses, DNS, gateway, or routes. The
+IPv4 address pair still provides the source-bound SSH and benchmark paths.
+See the [Linux profile tests](../../../Tests/Integration/ThunderboltLinuxProfile.Tests.ps1)
+and the [profile migration](../../../Tests/Integration/thunderbolt-linux-profile-review.json)
+and [repeat Configure](../../../Tests/Integration/thunderbolt-linux-idempotency-review.json) review records.
+The [EUI-64 review record](../../../Tests/Integration/thunderbolt-linux-eui64-review.json)
+covers creation, migration and activation guards.
+Run `Invoke-Pester Tests/Integration/ThunderboltLinuxProfile.Tests.ps1` on Linux
+to execute the generated Bash against fixture-only NetworkManager commands.
+On Windows, set `PCAI_TB_TEST_SSH_ALIAS` to a key-authenticated Linux host.
+CI runs this fixture on a disposable Linux runner.
+Configure sets no gateway or DNS and uses the configured MTU for Windows IPv4
+and the Linux link. A repeat Apply leaves Linux traffic undisturbed when the
+stored profile, active connection UUID, live MTU and addresses all match and
+the device has no gateway or DNS entries. Activating a profile can interrupt the data link,
+so use the LAN management alias for changes. If a later Windows step fails,
+the Linux profile can remain configured and the error is surfaced. Rollback
+removes only the added Windows /30 address and owned Linux profile. Undo
+module persistence only if it is no longer needed.
 
 After applying Configure, the tool verifies SSH over the Thunderbolt address with
 the local source bound and checks Linux's return route. Its `ThunderboltSsh`

@@ -10,6 +10,41 @@ removing Python and Docker from the critical path.
 - Preserve the router I/O contract used by PC_AI (tools in, tool_calls out).
 - Keep Docker optional and disabled by default.
 
+## CPU-only build and test
+
+Run these commands from the repository root. The CPU selection also enables
+dataset and token-cache preparation on hosts without a CUDA toolkit.
+
+```sh
+rustup toolchain install stable
+cargo build --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-train --no-default-features
+cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-train --no-default-features
+cargo run --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-train --no-default-features -- --help
+```
+
+The [trainer manifest](Cargo.toml) retains its CUDA and FlashAttention defaults.
+Use `--no-default-features --features cuda` to build without FlashAttention.
+The [repository build entrypoint](../../Build.ps1) selects the locked CPU
+build for `functiongemma-router-data` and `functiongemma-token-cache`.
+The locked [Windows and Linux CI selector](../../.github/workflows/functiongemma-runtime.yml)
+includes the CPU trainer and shared core. Its fixtures train tiny in-memory
+models and verify that optimizer steps change weights, preserve causal prefix
+behavior, and scale the final accumulation window by its actual microbatch count.
+The CUDA tensor check is explicit. Run it on a qualified accelerator host with
+a complete CUDA build environment.
+
+```sh
+cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-train --no-default-features --features cuda --lib cuda_tensor_reduction_computes_expected_sum -- --ignored
+```
+
+FunctionGemma switches to differentiable RMSNorm and standard attention while
+training. The pinned fused RMSNorm and FlashAttention paths continue to serve
+inference. Fresh full-precision LoRA adapters start with nonzero A and zero B,
+so their initial output equals the base model. Existing weights retain their
+checkpoint names. The CPU fixtures check parameter updates and checkpoint
+preservation. CUDA training and model-scale throughput require accelerator
+qualification.
+
 ## Runtime + training split
 Runtime and training are separate Rust crates:
 

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-22T23:48:49Z",
+  "sourceBaseline": "a8f55809ddd889e8ccb7505bad487c28284c4a8a",
+  "hashConvention": "SHA-256 of UTF-8 LF text. Rust selector extents include the test attribute through the closing brace and final LF.",
+  "sourceBindings": {
+    "Deploy/rust-functiongemma-core/src/prompt.rs": "4bd2c8cd600bb4ab098710910a82d6e5f2593c24f2c612e0b78a8db9dff4ae3e",
+    "docs/functiongemma-runtime-validation.md": "001a7562c1e624d080bc777166f836a96448d7f5c7b551228be8011073a7d6f2"
+  },
+  "selectors": [
+    {
+      "selector": "complete_tool_calls_preserve_values",
+      "source": "Deploy/rust-functiongemma-core/src/prompt.rs",
+      "sha256": "3cf526c00a0c81eb6205553aee4b6aab5fd69ca9017fd64ffa7aa92bec6c2031",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Formatted calls preserve Unicode, punctuation, empty arguments and JSON scalar types. Nonfinite text stays a string."
+    },
+    {
+      "selector": "incomplete_arguments_are_rejected_without_partial_results",
+      "source": "Deploy/rust-functiongemma-core/src/prompt.rs",
+      "sha256": "f1c186ed8bddce1e3f7222b57febf1f1c978c154862b50bf031b8fa59ece9c63",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Incomplete argument prefixes, trailing commas and duplicate keys are rejected before the runtime can dispatch a tool call."
+    }
+  ]
+}

@@ -108,6 +108,8 @@ Use Windows USB4NET/OS connection-manager drivers and Linux thunderbolt_net. Nea
 
 ## Measurement and staged delivery
 
+Use the [USB4 TCP hardware test](hardware-testing.md) to qualify the direct Windows USB4NET edges in a private fleet profile and attach the exact-revision receipt to a release review.
+
 Measure fixed-source sequential upload/download, simultaneous directions, latency/jitter, CPU, reconnect/resume time and observer overhead. Retain payload size, duration, exact endpoints/interfaces, software/build identity and before/after configuration. Nominal link speed and a TCP handshake are not authenticated file-transfer throughput. Preserve MTU/offloads until measured evidence justifies a reversible tuning change. Bound traffic, output and runtime; keep benchmarks opt-in and outside active HIL sessions. Use NTTTCP/iperf-style transport tools as qualified on each host, actual authenticated copy separately, and ETW/perf only for a concrete question.
 
 Execution boundary: this design was reviewed during a Gen9/Gen7 HIL hold prohibiting local builds, tests, heavy jobs, device scans/connections, app starts and network/runtime changes. Check current fleet ownership before validation. While such a hold is active, source review/editing and permitted remote CI may progress; publication does not qualify installed behavior.

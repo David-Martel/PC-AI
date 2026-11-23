@@ -19,8 +19,9 @@ published `tests/test.pt`, also present in
 It requires neither Python/PyTorch installation nor a downloaded model. Tests
 use owned temporary files, CPU tensors and unchanged runtime reader APIs.
 
-The independent [review register](review.json) binds selectors and exact source
-hashes. Windows preparation ran the identical 36 cases against untouched,
+The independent [archive review](review.json) binds the original selectors and
+exact source hashes. The [compiler compatibility review register](rust-f64-compat-review.json)
+records the current source bindings for the custody controls. Windows preparation ran the identical 36 cases against untouched,
 checksum-verified published sources: fifteen valid cases passed and all
 twenty-one header-rejection cases failed. The strict backport passed all 36.
 These are software archive controls; no GPU, performance or deployment claim

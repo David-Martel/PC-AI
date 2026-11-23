@@ -3,17 +3,27 @@
 .SYNOPSIS
     A/B code quality comparison between two git refs for PC_AI.
 .DESCRIPTION
-    Measures Rust Clippy warnings, Rust test counts, Pester unit test counts, and
-    PSScriptAnalyzer violations on HEAD first, then checks out the base ref, measures
-    again, restores HEAD, and reports deltas.  Dirty working trees are allowed (warned).
+    Measures Rust Clippy findings, Rust test counts, Pester unit test counts, and PSScriptAnalyzer violations
+    on the current working tree (head), then on BaseRef in a temporary detached worktree, and reports deltas.
+    Dirty working trees are allowed (warned): head metrics include them.
+
+    The base ref is checked out into a temporary `git worktree add --detach` under the system temp directory and
+    removed (and pruned) in a finally block, so the live checkout is never switched and no registered worktree
+    outlives the run. It used to run `git checkout <ref>` in place, which left a detached HEAD behind and, on a
+    dirty tree, failed silently so the "base" numbers were really HEAD's.
+
+    The gate fails closed. A metric that cannot be measured (no cargo, no Pester 5, no PSScriptAnalyzer, a Rust
+    build that does not compile, a test run that executed nothing) is a measurement error, reported and exit 1,
+    never a silent 0. It used to count `"level":"warning"` while running `-D warnings` (always 0), read only the
+    last `test result:` line, and report 0 for a missing tool.
 .PARAMETER BaseRef
     Baseline git ref (default: origin/main).
 .PARAMETER HeadRef
-    Head git ref representing the changes (default: HEAD).
+    Label for the head side. Head metrics always come from the working tree of this checkout.
 .PARAMETER Format
     Output format: Table (default), Json, or Markdown.
 .PARAMETER FailOnRegression
-    Exit 1 if any metric regresses.
+    Exit 1 if any metric regresses. Measurement errors exit 1 regardless.
 .PARAMETER ResultsDir
     Directory for result JSON files (relative to repo root).
 .EXAMPLE
@@ -27,181 +37,487 @@ param(
     [string]$ResultsDir = 'Tests/Results'
 )
 
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'Helpers/Get-PesterRunVerdict.ps1')
 
-$RepoRoot    = git -C $PSScriptRoot rev-parse --show-toplevel
-$CargoRoot   = Join-Path $RepoRoot 'Native/pcai_core'
-$ModulesPath = Join-Path $RepoRoot 'Modules'
-$PesterPath  = Join-Path $RepoRoot 'Tests/Unit'
-$ResultsDirAbs = if ([System.IO.Path]::IsPathRooted($ResultsDir)) { $ResultsDir } else { Join-Path $RepoRoot $ResultsDir }
+# --- metric helpers: every one takes the root it measures and throws when it cannot measure --------------------
 
-# --- metric helpers -----------------------------------------------------------
-
-function Measure-ClippyWarnings {
-    Push-Location $CargoRoot
+function Measure-ClippyFindings {
+    <#
+    .SYNOPSIS
+        Counts clippy lints in the cargo JSON stream and fails when the tree does not build.
+    .DESCRIPTION
+        Lints are measured with `--cap-lints warn`, so a lint is only ever a warning and can never fail the build.
+        That leaves one rule with no lint-denial reasoning and no stderr classification: the measurement is valid only
+        when cargo exits 0 and its `build-finished` message says success:true, and a `compiler-message` at level error
+        is never acceptable. Anything else (an unresolved import, a syntax error, a `build.rs` that panics, a linker
+        or manifest error, a crash) throws "build failed", so a tree that does not build can neither count as a
+        baseline nor hide behind a lint in another crate (codex review of #384). The same diagnostic is emitted once
+        per target (lib and lib test), so a lint is counted once. Stderr is captured with the JSON and is quoted in
+        the failure message, because a custom build command failure is only reported there as text.
+    .PARAMETER Root
+        Repository root (the workspace is Root/Native/pcai_core).
+    #>
+    param([Parameter(Mandatory)][string]$Root)
+    if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) { throw 'cargo is not on PATH' }
+    Push-Location (Join-Path $Root 'Native/pcai_core')
     try {
         $out = & cargo clippy --workspace --all-targets --no-deps --message-format=json `
-            -- -D warnings -A clippy::type_complexity 2>&1
-        @($out | Where-Object { $_ -match '"level":"warning"' }).Count
+            -- --cap-lints warn -A clippy::type_complexity 2>&1
+        $exit = $LASTEXITCODE
     } finally { Pop-Location }
+    $seen = [System.Collections.Generic.HashSet[string]]::new()
+    $lints = 0
+    $errors = [System.Collections.Generic.List[string]]::new()
+    $stderrErrors = [System.Collections.Generic.List[string]]::new()
+    $finished = $null
+    foreach ($line in $out) {
+        $text = [string]$line
+        if (-not $text.StartsWith('{')) {
+            # Non-JSON output is cargo's own text (stderr): keep the error lines for the message.
+            if ($text -match '^\s*error') { $stderrErrors.Add($text.Trim()) }
+            continue
+        }
+        try { $msg = $text | ConvertFrom-Json -ErrorAction Stop } catch { continue }
+        if ($msg.reason -eq 'build-finished') { $finished = [bool]$msg.success; continue }
+        if ($msg.reason -ne 'compiler-message') { continue }
+        $level = [string]$msg.message.level
+        if ($level -notin 'warning', 'error') { continue }
+        $code = if ($msg.message.code) { [string]$msg.message.code.code } else { '' }
+        $primary = @($msg.message.spans | Where-Object { $_.is_primary } | Select-Object -First 1)
+        $where = if ($primary.Count -gt 0 -and $primary[0]) { "$($primary[0].file_name):$($primary[0].line_start):$($primary[0].column_start)" } else { '' }
+        $key = "$level|$code|$($msg.message.message)|$where"
+        if (-not $seen.Add($key)) { continue }
+        if ($level -eq 'warning') {
+            if ($code) { $lints++ }
+        } elseif ([string]$msg.message.message -notmatch '^(aborting due to|could not compile)') {
+            $errors.Add($(if ($code) { "$code $($msg.message.message)" } else { [string]$msg.message.message }))
+        }
+    }
+    $detail = @($errors) + @($stderrErrors | Where-Object { $_ -notmatch '^error: could not compile' })
+    $shown = (@($detail) | Select-Object -First 4) -join ' | '
+    if ($errors.Count -gt 0) {
+        throw "build failed: $($errors.Count) rustc error(s), not lints (exit $exit): $shown"
+    }
+    if ($exit -ne 0 -or $finished -ne $true) {
+        $fin = if ($null -eq $finished) { 'no build-finished message' } else { "build-finished success=$finished" }
+        throw "build failed: cargo clippy exited $exit ($fin), so this is not a measurement: $(if ($shown) { $shown } else { (@($out | ForEach-Object { [string]$_ }) | Select-Object -Last 3) -join ' | ' })"
+    }
+    $lints
+}
+function Measure-RustTests {
+    <#
+    .SYNOPSIS
+        Sums the Rust test results and fails when the workspace does not compile.
+    .PARAMETER Root
+        Repository root (the workspace is Root/Native/pcai_core).
+    #>
+    param([Parameter(Mandatory)][string]$Root)
+    if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) { throw 'cargo is not on PATH' }
+    Push-Location (Join-Path $Root 'Native/pcai_core')
+    # The CargoTools wrapper rewrites `cargo test` to `cargo nextest run` when CARGO_USE_NEXTEST is set, and it sets the
+    # variable itself in the calling process after its first run. nextest prints no `test result:` lines, so this
+    # measurement pins the variable to 0 and restores it.
+    $savedNextest = $env:CARGO_USE_NEXTEST
+    try {
+        $env:CARGO_USE_NEXTEST = '0'
+        $out = & cargo test --workspace --no-fail-fast --message-format=json --no-default-features --features server,ffi 2>&1
+        $exit = $LASTEXITCODE
+    } finally {
+        Pop-Location
+        $env:CARGO_USE_NEXTEST = $savedNextest
+    }
+    $lines = @($out | ForEach-Object { [string]$_ })
+    # Compilation must have succeeded before any count means anything: a test binary that built can run while another
+    # target failed to compile.
+    $compileFailures = @($lines | Where-Object { $_ -match '^\s*error(\[E\d{4}\])?: could not compile' -or $_ -match '^\s*error\[E\d{4}\]' })
+    if ($compileFailures.Count -gt 0) {
+        throw "build failed: cargo test did not compile: $((@($compileFailures) | Select-Object -First 3) -join ' | ')"
+    }
+    # One `test result:` line per test binary: sum them all. Reading only the last line reported one crate's tests,
+    # and a compile failure printed none, which the old code turned into 0/0 and called "unchanged".
+    # --no-fail-fast keeps cargo running the later test binaries after one fails; without it a failure in a_fail.rs
+    # hides a new failure in z_hidden.rs (both sides read Failed=1). Failures are also kept by name, qualified by the
+    # binary that ran them, so a swapped failure with an unchanged count is still a change.
+    #
+    # A failure is identified by its package, target and full name.
+    # Target: Cargo's `Running <path> (<exe>)` and `Doc-tests <crate>` headers, matched case-sensitively (-cmatch):
+    #   -match is case-insensitive, so libtest's own `running 1 test` overwrote the header and every failure was filed
+    #   under "1 test".
+    # Package: a header names a target (`tests\contract.rs`) but not its package, so two workspace packages that both
+    #   have tests/contract.rs and a test `same` collapsed to one key. The same cargo call emits `compiler-artifact`
+    #   messages (--message-format=json), and each test executable's artifact carries its manifest path, target kind and
+    #   name. The executable named in the header (hash included) is looked up in those artifacts, and the key is
+    #   `<package dir relative to the workspace>|<kind>|<target>`: stable between the base worktree and the head, unique
+    #   per package. A Doc-tests crate is resolved to the one lib target of that name. An executable or crate that
+    #   resolves to nothing, or to more than one package, is a measurement error: never a guess.
+    # Order: headers go to stderr and the libtest lines to stdout, and the CargoTools wrapper hands the two to this
+    #   process as separate streams (all headers first), so a failure is NOT attributed to the header that precedes it.
+    #   Cargo runs its targets one after another and each prints one `running N tests` line, so the Nth `running`
+    #   block belongs to the Nth header, whatever the interleaving.
+    # Name: everything between `test ` and ` ... FAILED`, so a doctest such as `src/lib.rs - first (line 12)` is kept.
+    $passed = 0; $failed = 0; $results = 0
+    $workspace = [IO.Path]::GetFullPath((Join-Path $Root 'Native/pcai_core'))
+    $norm = { param([string]$path) ([IO.Path]::GetFullPath($path, $workspace)).Replace('\', '/').TrimEnd('/').ToLowerInvariant() }
+    $byExe = @{}
+    $byCrate = @{}
+    foreach ($line in $lines) {
+        if (-not $line.StartsWith('{') -or $line -notmatch '"reason"\s*:\s*"compiler-artifact"') { continue }
+        try { $art = $line | ConvertFrom-Json -ErrorAction Stop } catch { continue }
+        if (-not $art.manifest_path -or -not $art.target) { continue }
+        $pkgDir = [IO.Path]::GetRelativePath($workspace, [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath([string]$art.manifest_path))).Replace('\', '/')
+        $kinds = @($art.target.kind | ForEach-Object { [string]$_ })
+        if ($art.executable -and $art.profile -and $art.profile.test) {
+            $k = & $norm ([string]$art.executable)
+            if (-not $byExe.ContainsKey($k)) { $byExe[$k] = [System.Collections.Generic.List[string]]::new() }
+            $key = "$pkgDir|$($kinds -join '+')|$($art.target.name)"
+            if (-not $byExe[$k].Contains($key)) { $byExe[$k].Add($key) }
+        }
+        if ($kinds | Where-Object { $_ -in 'lib', 'rlib', 'proc-macro' }) {
+            $crate = ([string]$art.target.name).Replace('-', '_').ToLowerInvariant()
+            if (-not $byCrate.ContainsKey($crate)) { $byCrate[$crate] = [System.Collections.Generic.List[string]]::new() }
+            $key = "$pkgDir|doctest|$($art.target.name)"
+            if (-not $byCrate[$crate].Contains($key)) { $byCrate[$crate].Add($key) }
+        }
+    }
+    $headers = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in $lines) {
+        if ($line -cmatch '^\s*Running\s+(?<what>.+?)\s+\((?<exe>[^()]*)\)\s*$') {
+            $found = $byExe[(& $norm $Matches['exe'])]
+            if ($null -eq $found -or $found.Count -ne 1) {
+                throw "build failed: cannot attribute Rust test failures to a package: the test executable '$($Matches['exe'])' of target '$($Matches['what'].Trim())' matched $(if ($null -eq $found) { 0 } else { $found.Count }) compiler artifact(s)"
+            }
+            $headers.Add($found[0])
+        } elseif ($line -cmatch '^\s*Doc-tests\s+(?<crate>\S+)\s*$') {
+            $found = $byCrate[$Matches['crate'].Replace('-', '_').ToLowerInvariant()]
+            if ($null -eq $found -or $found.Count -ne 1) {
+                throw "build failed: cannot attribute Rust doctest failures to a package: the crate '$($Matches['crate'])' matched $(if ($null -eq $found) { 0 } else { $found.Count }) lib target(s)"
+            }
+            $headers.Add($found[0])
+        }
+    }
+    # Depth, not a flat count: a test that runs a nested `cargo test` prints its own `running N tests` and `test result:`
+    # lines in the middle of the outer block (measured on this repo: pcai_tb prints four), so only a `running` line seen
+    # at depth 0 starts a target's block.
+    $block = 0
+    $depth = 0
+    $failedNames = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in $lines) {
+        if ($line -cmatch '^running \d+ tests?\s*$') { if ($depth -eq 0) { $block++ }; $depth++ }
+        if ($line -cmatch '^test (?<name>.+?) \.\.\. FAILED\s*$') {
+            $target = if ($block -ge 1 -and $block -le $headers.Count) { $headers[$block - 1] } else { "target#$block" }
+            $failedNames.Add("${target}::$($Matches['name'])")
+        }
+        if ($line -match 'test result: \w+\.\s+(\d+) passed;\s+(\d+) failed') {
+            $passed += [int]$Matches[1]; $failed += [int]$Matches[2]; $results++
+            if ($depth -gt 0) { $depth-- }
+        }
+    }
+    if ($results -eq 0 -or ($passed + $failed) -eq 0) {
+        throw "build failed or nothing ran: cargo test exited $exit and reported no test results: $((@($lines) | Select-Object -Last 3) -join ' | ')"
+    }
+    if ($exit -ne 0 -and $failed -eq 0) {
+        throw "cargo test exited $exit with no failed test counted (build error after some tests ran)"
+    }
+    # Attribution is positional (see above), so it is only valid while every target has one header, one `running`
+    # block and one result line. A target that prints a header but no `running` block (a harness = false binary), or a
+    # binary that starts and dies before its summary, breaks that 1:1 mapping and would silently shift every later
+    # failure onto the wrong target: a measurement error, never a guess.
+    if ($block -ne $headers.Count) {
+        throw "build failed: cannot attribute Rust test failures to targets: cargo printed $($headers.Count) target header(s) but $block 'running N tests' block(s)"
+    }
+    if ($depth -ne 0) {
+        throw "build failed: a Rust test block started and never reported a result (a test binary crashed or printed no summary; $depth unclosed)"
+    }
+    [pscustomobject]@{ Passed = $passed; Failed = $failed; FailedNames = $failedNames.ToArray() }
 }
 
-function Measure-RustTests {
-    Push-Location $CargoRoot
-    try {
-        $out  = & cargo test --workspace --no-default-features --features server,ffi 2>&1
-        $line = $out | Where-Object { $_ -match '^test result:' } | Select-Object -Last 1
-        if ($line -match 'test result:.*?(\d+) passed.*?(\d+) failed') {
-            return [pscustomobject]@{ Passed = [int]$Matches[1]; Failed = [int]$Matches[2] }
-        }
-    } finally { Pop-Location }
-    [pscustomobject]@{ Passed = 0; Failed = 0 }
-}
+# Child process for the Pester measurement. Head and base are measured in separate sessions: the modules under
+# test are imported by name (PC-AI.USB, PC-AI.Virtualization, ...), so a second tree measured in the same session
+# collides with the first ("Multiple script or manifest modules named ... are currently loaded") and the base side
+# would be inflated with failures that are not the base ref's. The child also runs under the default
+# $ErrorActionPreference, because Stop leaks into the tests and turns tolerated errors into failures.
+$script:PesterChildScript = @'
+param([string]$Root, [string]$Helper, [string]$OutPath)
+. $Helper
+Import-Module Pester -MinimumVersion 5.0.0
+Set-Location $Root
+$cfg = New-PesterConfiguration
+$cfg.Run.Path = Join-Path $Root 'Tests/Unit'
+$cfg.Filter.Tag = @('Portable')
+$cfg.Output.Verbosity = 'None'
+$cfg.Run.PassThru = $true
+$r = Invoke-Pester -Configuration $cfg
+$v = Get-PesterRunVerdict -Result $r -MaxFailedTests ([int]::MaxValue) -MaxFailedContainers ([int]::MaxValue) -MaxFailedBlocks ([int]::MaxValue)
+[IO.File]::WriteAllText($OutPath, ([ordered]@{
+    Passed = [int]$r.PassedCount; Failed = [int]$r.FailedCount; FailedContainers = [int]$r.FailedContainersCount
+    FailedBlocks = [int]$r.FailedBlocksCount; Result = [string]$r.Result
+    Executed = $v.Executed; Violations = $v.Violations } | ConvertTo-Json))
+'@
 
 function Measure-PesterTests {
-    if (-not (Get-Module -ListAvailable Pester | Where-Object Version -ge '5.0') -or -not (Test-Path $PesterPath)) {
-        return [pscustomobject]@{ Passed = 0; Failed = 0 }
+    <#
+    .SYNOPSIS
+        Counts passed and failed Portable Pester tests in a child process and fails closed on an unusable child.
+    .DESCRIPTION
+        Failed = failed tests + failed containers (files that did not load) + failed blocks (a throwing
+        BeforeAll/AfterAll). A Result other than Passed with every counter at 0 counts as one failure, so an
+        unexplained failure never reads as zero. A child that exits non-zero, writes no result file, writes
+        something that is not JSON, or omits a field is an error, not a measurement.
+    .PARAMETER Root
+        Repository root whose Tests/Unit is measured.
+    #>
+    param([Parameter(Mandatory)][string]$Root)
+    if (-not (Get-Module -ListAvailable Pester | Where-Object Version -ge '5.0')) { throw 'Pester 5+ is not installed' }
+    if (-not (Test-Path (Join-Path $Root 'Tests/Unit'))) { throw "no Pester path at $(Join-Path $Root 'Tests/Unit')" }
+    $scratch = Join-Path ([System.IO.Path]::GetTempPath()) ('pcai-qg-pester-' + [guid]::NewGuid().ToString('N'))
+    [System.IO.Directory]::CreateDirectory($scratch) | Out-Null
+    try {
+        $childScript = Join-Path $scratch 'measure.ps1'
+        $outPath = Join-Path $scratch 'result.json'
+        [System.IO.File]::WriteAllText($childScript, $script:PesterChildScript)
+        $helper = Join-Path $PSScriptRoot 'Helpers/Get-PesterRunVerdict.ps1'
+        & pwsh -NoProfile -File $childScript -Root $Root -Helper $helper -OutPath $outPath *> $null
+        $childExit = $LASTEXITCODE
+        if ($childExit -ne 0) { throw "the Pester child process exited $childExit" }
+        if (-not (Test-Path -LiteralPath $outPath)) { throw 'the Pester child process wrote no result' }
+        try { $r = Get-Content -LiteralPath $outPath -Raw | ConvertFrom-Json -ErrorAction Stop }
+        catch { throw "the Pester child result is not valid JSON: $($_.Exception.Message)" }
+    } finally {
+        Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
     }
-    $cfg = New-PesterConfiguration
-    $cfg.Run.Path        = $PesterPath
-    $cfg.Filter.Tag      = @('Portable')
-    $cfg.Output.Verbosity = 'None'
-    $cfg.Run.PassThru    = $true
-    $r = Invoke-Pester -Configuration $cfg
-    [pscustomobject]@{ Passed = $r.PassedCount; Failed = $r.FailedCount }
+    foreach ($field in 'Passed', 'Failed', 'FailedContainers', 'FailedBlocks', 'Executed', 'Result') {
+        if ($null -eq $r -or $null -eq $r.PSObject.Properties[$field] -or $null -eq $r.$field) { throw "the Pester child result is missing '$field'" }
+    }
+    # Failures are a metric here, not a stop: the gate compares them between refs. Only a run that is not a
+    # measurement at all (nothing executed) is an error.
+    if ([int]$r.Executed -lt 1) { throw "Pester executed no tests: $(@($r.Violations) -join '; ')" }
+    $failed = [int]$r.Failed + [int]$r.FailedContainers + [int]$r.FailedBlocks
+    if ([string]$r.Result -ne 'Passed' -and $failed -eq 0) { $failed = 1 }
+    [pscustomobject]@{ Passed = [int]$r.Passed; Failed = $failed }
 }
 
 function Measure-ScriptAnalyzer {
-    if (-not (Get-Module -ListAvailable PSScriptAnalyzer) -or -not (Test-Path $ModulesPath)) { return 0 }
-    @(Invoke-ScriptAnalyzer -Path $ModulesPath -Recurse -Severity Warning, Error).Count
+    param([Parameter(Mandatory)][string]$Root)
+    if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) { throw 'PSScriptAnalyzer is not installed' }
+    $modules = Join-Path $Root 'Modules'
+    if (-not (Test-Path $modules)) { throw "no Modules directory at $modules" }
+    @(Invoke-ScriptAnalyzer -Path $modules -Recurse -Severity Warning, Error).Count
 }
 
+function Compare-RustFailedNames {
+    <#
+    .SYNOPSIS
+        Returns the failed Rust tests that fail in Head and did not fail in Base, compared by name.
+    #>
+    param([string[]]$Base = @(), [string[]]$Head = @())
+    $known = [System.Collections.Generic.HashSet[string]]::new([string[]]@($Base))
+    @($Head | Where-Object { -not $known.Contains($_) })
+}
 function Invoke-Metrics {
-    param([string]$Label)
+    param([string]$Label, [string]$Root)
     Write-Host "  Collecting $Label ..." -ForegroundColor Gray
-    $c = Measure-ClippyWarnings
-    $r = Measure-RustTests
-    $p = Measure-PesterTests
-    $a = Measure-ScriptAnalyzer
-    [pscustomobject]@{
-        ClippyWarnings       = $c
-        RustTestsPassed      = $r.Passed
-        RustTestsFailed      = $r.Failed
-        PesterPassed         = $p.Passed
-        PesterFailed         = $p.Failed
-        PSAnalyzerViolations = $a
+    $metrics = [ordered]@{}
+    $errors = [System.Collections.Generic.List[string]]::new()
+    $try = {
+        param([string]$Name, [scriptblock]$Measure)
+        try { & $Measure } catch { $errors.Add("${Label}: $Name could not be measured: $($_.Exception.Message)"); $null }
     }
+    $metrics.ClippyWarnings = & $try 'clippy' { Measure-ClippyFindings -Root $Root }
+    $r = & $try 'Rust tests' { Measure-RustTests -Root $Root }
+    $metrics.RustTestsPassed = if ($r) { $r.Passed } else { $null }
+    $metrics.RustTestsFailed = if ($r) { $r.Failed } else { $null }
+    # The leading comma keeps an empty list: an `if` expression would unroll it to $null and read as "not measured".
+    $metrics.RustFailedNames = if ($r) { , @($r.FailedNames) } else { $null }
+    $p = & $try 'Pester tests' { Measure-PesterTests -Root $Root }
+    $metrics.PesterPassed = if ($p) { $p.Passed } else { $null }
+    $metrics.PesterFailed = if ($p) { $p.Failed } else { $null }
+    $metrics.PSAnalyzerViolations = & $try 'PSScriptAnalyzer' { Measure-ScriptAnalyzer -Root $Root }
+    [pscustomobject]@{ Metrics = [pscustomobject]$metrics; Errors = $errors.ToArray() }
 }
 
 function Get-DeltaStatus ([string]$Metric, [int]$Delta) {
     if ($Delta -eq 0) { return 'unchanged' }
-    $lowerBetter = 'ClippyWarnings','RustTestsFailed','PesterFailed','PSAnalyzerViolations'
-    if ($Metric -in $lowerBetter) { return if ($Delta -lt 0) { 'improved' } else { 'regressed' } }
-    return if ($Delta -gt 0) { 'improved' } else { 'regressed' }
+    $lowerBetter = 'ClippyWarnings', 'RustTestsFailed', 'PesterFailed', 'PSAnalyzerViolations'
+    if ($Metric -in $lowerBetter) {
+        if ($Delta -lt 0) { return 'improved' } else { return 'regressed' }
+    }
+    if ($Delta -gt 0) { return 'improved' } else { return 'regressed' }
 }
 
-# --- pre-flight ---------------------------------------------------------------
+function Invoke-WithBaseRefWorktree {
+    <#
+    .SYNOPSIS
+        Runs a script block against a temporary detached worktree of a ref and always removes the worktree.
+    .DESCRIPTION
+        `git worktree add --detach` under ParentDir, never `git checkout` in the live tree: the checkout used to leave a
+        detached HEAD behind and failed silently on a dirty tree. The removal and prune are in a finally block, so
+        the registered worktree set is the same afterwards even when the script block throws.
+    .PARAMETER RepoRoot
+        The repository whose ref is checked out.
+    .PARAMETER Ref
+        Commit-ish to check out.
+    .PARAMETER Script
+        Script block; receives the worktree path as its argument. Its output is returned.
+    .PARAMETER ParentDir
+        Where the temporary directory is created. Default: the system temp directory.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$RepoRoot,
+        [Parameter(Mandatory)][string]$Ref,
+        [Parameter(Mandatory)][scriptblock]$Script,
+        [string]$ParentDir = [System.IO.Path]::GetTempPath()
+    )
+    $tree = Join-Path $ParentDir ('pcai-qg-base-' + [guid]::NewGuid().ToString('N'))
+    $added = $false
+    try {
+        git -C $RepoRoot worktree add --quiet --detach $tree $Ref 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "git worktree add failed for $Ref" }
+        $added = $true
+        & $Script $tree
+    } finally {
+        # A build inside the temporary tree may leave junctions or symlinks (this repo's target/ directories can be
+        # junctions into the shared T:\RustCache cache). Remove each link itself, non-recursively, first: neither
+        # `git worktree remove` nor a recursive Remove-Item is allowed to walk through one into the shared cache.
+        if (Test-Path -LiteralPath $tree) {
+            foreach ($link in @(Get-ChildItem -LiteralPath $tree -Recurse -Force -Attributes ReparsePoint -ErrorAction SilentlyContinue)) {
+                try { $link.Delete() } catch { Write-Warning "could not remove link $($link.FullName): $($_.Exception.Message)" }
+            }
+        }
+        if ($added) { git -C $RepoRoot worktree remove --force $tree 2>&1 | Out-Null }
+        if (Test-Path -LiteralPath $tree) { Remove-Item -LiteralPath $tree -Recurse -Force -ErrorAction SilentlyContinue }
+        git -C $RepoRoot worktree prune 2>&1 | Out-Null
+    }
+}
 
-$currentHead = git -C $RepoRoot rev-parse HEAD 2>&1
+# --- body: only when run, so the unit tests can dot-source the helpers above -----------------------------------
+
+if ($MyInvocation.InvocationName -eq '.') { return }
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+$RepoRoot = git -C $PSScriptRoot rev-parse --show-toplevel
+$ResultsDirAbs = if ([System.IO.Path]::IsPathRooted($ResultsDir)) { $ResultsDir } else { Join-Path $RepoRoot $ResultsDir }
+
 if ((git -C $RepoRoot status --porcelain 2>&1) -ne '') {
-    Write-Warning "Working tree has uncommitted changes — head metrics include them."
+    Write-Warning 'Working tree has uncommitted changes: head metrics include them.'
 }
-
-# --- collect metrics: HEAD first, then base, restore -------------------------
 
 Write-Host "=== Quality Gate: $HeadRef vs $BaseRef ===" -ForegroundColor Cyan
-$headMetrics = Invoke-Metrics -Label "HEAD ($HeadRef)"
+$measurementErrors = [System.Collections.Generic.List[string]]::new()
+$head = Invoke-Metrics -Label "HEAD ($HeadRef)" -Root $RepoRoot
+foreach ($e in $head.Errors) { $measurementErrors.Add($e) }
 
-Write-Host "  Checking out $BaseRef ..." -ForegroundColor Gray
-git -C $RepoRoot checkout $BaseRef --quiet
+$base = $null
 try {
-    $baseMetrics = Invoke-Metrics -Label "BASE ($BaseRef)"
-} finally {
-    Write-Host "  Restoring HEAD ..." -ForegroundColor Gray
-    git -C $RepoRoot checkout $currentHead --quiet
+    Write-Host "  Checking out $BaseRef into a temporary worktree ..." -ForegroundColor Gray
+    $base = Invoke-WithBaseRefWorktree -RepoRoot $RepoRoot -Ref $BaseRef -Script {
+        param($tree)
+        Invoke-Metrics -Label "BASE ($BaseRef)" -Root $tree
+    }
+    foreach ($e in $base.Errors) { $measurementErrors.Add($e) }
+} catch {
+    $measurementErrors.Add("BASE ($BaseRef): $($_.Exception.Message)")
 }
 
-# --- compute deltas -----------------------------------------------------------
+# --- compute deltas ----------------------------------------------------------------------------------------------
 
 $metricDefs = @(
-    @{ Key='ClippyWarnings';       Label='Clippy warnings'             }
-    @{ Key='RustTestsPassed';      Label='Rust tests passing'          }
-    @{ Key='RustTestsFailed';      Label='Rust tests failing'          }
-    @{ Key='PesterPassed';         Label='Pester tests passing'        }
-    @{ Key='PesterFailed';         Label='Pester tests failing'        }
-    @{ Key='PSAnalyzerViolations'; Label='PSScriptAnalyzer violations' }
+    @{ Key = 'ClippyWarnings'; Label = 'Clippy findings' }
+    @{ Key = 'RustTestsPassed'; Label = 'Rust tests passing' }
+    @{ Key = 'RustTestsFailed'; Label = 'Rust tests failing' }
+    @{ Key = 'PesterPassed'; Label = 'Pester tests passing' }
+    @{ Key = 'PesterFailed'; Label = 'Pester tests failing (incl. unloadable files)' }
+    @{ Key = 'PSAnalyzerViolations'; Label = 'PSScriptAnalyzer violations' }
 )
 
-$deltas      = [ordered]@{}
+$deltas = [ordered]@{}
 $regressions = [System.Collections.Generic.List[string]]::new()
-
 foreach ($m in $metricDefs) {
-    $base   = [int]$baseMetrics.($m.Key)
-    $head   = [int]$headMetrics.($m.Key)
-    $delta  = $head - $base
+    $b = if ($base) { $base.Metrics.($m.Key) } else { $null }
+    $h = $head.Metrics.($m.Key)
+    if ($null -eq $b -or $null -eq $h) {
+        $deltas[$m.Key] = [pscustomobject]@{ Label = $m.Label; Base = $b; Head = $h; Delta = $null; Status = 'unmeasured' }
+        continue
+    }
+    $delta = [int]$h - [int]$b
     $status = Get-DeltaStatus -Metric $m.Key -Delta $delta
-    $deltas[$m.Key] = [pscustomobject]@{ Label=$m.Label; Base=$base; Head=$head; Delta=$delta; Status=$status }
+    $deltas[$m.Key] = [pscustomobject]@{ Label = $m.Label; Base = [int]$b; Head = [int]$h; Delta = $delta; Status = $status }
     if ($status -eq 'regressed') { $regressions.Add($m.Key) }
 }
 
-$overall = if ($regressions.Count -gt 0) { 'REGRESSED' }
-           elseif (@($deltas.Values | Where-Object Status -eq 'improved').Count -gt 0) { 'IMPROVED' }
-           else { 'UNCHANGED' }
+# A failure that is new by name is a regression even when the failing count is unchanged (a swapped failure).
+if ($base -and $null -ne $head.Metrics.RustFailedNames -and $null -ne $base.Metrics.RustFailedNames) {
+    $newFailed = @(Compare-RustFailedNames -Base @($base.Metrics.RustFailedNames) -Head @($head.Metrics.RustFailedNames))
+    $newStatus = if ($newFailed.Count -gt 0) { 'regressed' } else { 'unchanged' }
+    $deltas['RustNewFailedTests'] = [pscustomobject]@{ Label = 'Rust tests newly failing (by name)'; Base = 0; Head = $newFailed.Count; Delta = $newFailed.Count; Status = $newStatus }
+    if ($newStatus -eq 'regressed') { $regressions.Add('RustNewFailedTests') }
+}
+$overall = if ($measurementErrors.Count -gt 0) { 'ERROR' }
+elseif ($regressions.Count -gt 0) { 'REGRESSED' }
+elseif (@($deltas.Values | Where-Object Status -eq 'improved').Count -gt 0) { 'IMPROVED' }
+else { 'UNCHANGED' }
 
-# --- persist results ----------------------------------------------------------
+# --- persist results ---------------------------------------------------------------------------------------------
 
 $null = New-Item -ItemType Directory -Path $ResultsDirAbs -Force
 $outFile = Join-Path $ResultsDirAbs "quality-gate-$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
-
 $jsonDeltas = [ordered]@{}
 foreach ($kv in $deltas.GetEnumerator()) {
-    $jsonDeltas[$kv.Key] = [ordered]@{ base=$kv.Value.Base; head=$kv.Value.Head; delta=$kv.Value.Delta; status=$kv.Value.Status }
+    $jsonDeltas[$kv.Key] = [ordered]@{ base = $kv.Value.Base; head = $kv.Value.Head; delta = $kv.Value.Delta; status = $kv.Value.Status }
 }
 [ordered]@{
-    base_ref    = $BaseRef
-    head_ref    = $HeadRef
-    timestamp   = (Get-Date -Format 'o')
-    deltas      = $jsonDeltas
-    overall     = $overall
-    regressions = $regressions.ToArray()
+    base_ref           = $BaseRef
+    head_ref           = $HeadRef
+    timestamp          = (Get-Date -Format 'o')
+    deltas             = $jsonDeltas
+    overall            = $overall
+    regressions        = $regressions.ToArray()
+    measurement_errors = $measurementErrors.ToArray()
 } | ConvertTo-Json -Depth 5 | Set-Content -Path $outFile -Encoding utf8
 Write-Host "Results saved: $outFile" -ForegroundColor Gray
 
-# --- render output ------------------------------------------------------------
+# --- render output -----------------------------------------------------------------------------------------------
 
-$statusColor = @{ improved='Green'; unchanged='Gray'; regressed='Red' }
+$statusColor = @{ improved = 'Green'; unchanged = 'Gray'; regressed = 'Red'; unmeasured = 'Red' }
+$fmtDelta = { param($d) if ($null -eq $d) { 'n/a' } elseif ($d -gt 0) { "+$d" } else { "$d" } }
 
 switch ($Format) {
     'Json' { Get-Content $outFile }
     'Markdown' {
         "## Quality Gate: $HeadRef vs $BaseRef`n"
-        "| Metric | Base | Head | Delta | Status |"
-        "|--------|------|------|-------|--------|"
+        '| Metric | Base | Head | Delta | Status |'
+        '|--------|------|------|-------|--------|'
         foreach ($kv in $deltas.GetEnumerator()) {
             $d = $kv.Value
-            "| $($d.Label) | $($d.Base) | $($d.Head) | $(if ($d.Delta -gt 0){'+'}else{''})$($d.Delta) | $($d.Status) |"
+            "| $($d.Label) | $($d.Base) | $($d.Head) | $(& $fmtDelta $d.Delta) | $($d.Status) |"
         }
-        ""
-        "**Overall: $overall** ($($regressions.Count) regression(s))"
+        ''
+        foreach ($e in $measurementErrors) { "- measurement error: $e" }
+        "**Overall: $overall** ($($regressions.Count) regression(s), $($measurementErrors.Count) measurement error(s))"
     }
     default {
-        Write-Host ""
-        Write-Host ("{0,-35} {1,6} {2,6} {3,7}  {4}" -f 'Metric','Base','Head','Delta','Status') -ForegroundColor Cyan
-        Write-Host ('-' * 65) -ForegroundColor DarkGray
+        Write-Host ''
+        Write-Host ('{0,-45} {1,6} {2,6} {3,7}  {4}' -f 'Metric', 'Base', 'Head', 'Delta', 'Status') -ForegroundColor Cyan
+        Write-Host ('-' * 75) -ForegroundColor DarkGray
         foreach ($kv in $deltas.GetEnumerator()) {
             $d = $kv.Value
-            Write-Host ("{0,-35} {1,6} {2,6} {3,7}  {4}" -f $d.Label,$d.Base,$d.Head,"$(if($d.Delta -gt 0){'+'}else{''})$($d.Delta)",$d.Status) `
-                -ForegroundColor $statusColor[$d.Status]
+            Write-Host ('{0,-45} {1,6} {2,6} {3,7}  {4}' -f $d.Label, $d.Base, $d.Head, (& $fmtDelta $d.Delta), $d.Status) -ForegroundColor $statusColor[$d.Status]
         }
-        Write-Host ('-' * 65) -ForegroundColor DarkGray
-        $oc = if ($overall -eq 'REGRESSED'){'Red'} elseif ($overall -eq 'IMPROVED'){'Green'} else {'Gray'}
-        Write-Host "Overall: $overall  ($($regressions.Count) regression(s))" -ForegroundColor $oc
-        Write-Host ""
+        Write-Host ('-' * 75) -ForegroundColor DarkGray
+        foreach ($e in $measurementErrors) { Write-Host "  measurement error: $e" -ForegroundColor Red }
+        $oc = switch ($overall) { 'ERROR' { 'Red' } 'REGRESSED' { 'Red' } 'IMPROVED' { 'Green' } default { 'Gray' } }
+        Write-Host "Overall: $overall  ($($regressions.Count) regression(s), $($measurementErrors.Count) measurement error(s))" -ForegroundColor $oc
+        Write-Host ''
     }
 }
 
+if ($measurementErrors.Count -gt 0) {
+    Write-Error "Quality gate could not measure: $($measurementErrors.Count) error(s). A metric that cannot be measured is not a pass." -ErrorAction Continue
+    exit 1
+}
 if ($FailOnRegression -and $regressions.Count -gt 0) {
-    Write-Error "Quality gate FAILED: $($regressions.Count) regression(s): $($regressions -join ', ')"
+    Write-Error "Quality gate FAILED: $($regressions.Count) regression(s): $($regressions -join ', ')" -ErrorAction Continue
     exit 1
 }

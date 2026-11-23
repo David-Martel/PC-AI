@@ -13,7 +13,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -51,7 +51,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -89,7 +89,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Source-bound lock-acquisition and Pending->Running transition subpath with minimal state; plus structural assertions that no state lock is held across generation or the publish step. No complete FFI, public polling recovery, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -127,7 +127,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -169,7 +169,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -211,7 +211,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "CRLF and lookup controls for the media worker lock contract; they build the real FFI source as an LF and a CRLF copy into scratch target directories. No complete FFI, model, GPU, installation or hardware qualification.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -253,7 +253,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -275,7 +275,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "f0041979716d32018108dcfbffd58cdc63ef1ed294295c759e989c34fbb9af3c"
+          "sha256": "ffe62a5a380659a78930b9c1d4959a2d8e49a84fe178565cfeec50e7480c5250"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -295,7 +295,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -317,7 +317,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "f0041979716d32018108dcfbffd58cdc63ef1ed294295c759e989c34fbb9af3c"
+          "sha256": "ffe62a5a380659a78930b9c1d4959a2d8e49a84fe178565cfeec50e7480c5250"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -337,7 +337,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -359,7 +359,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "f0041979716d32018108dcfbffd58cdc63ef1ed294295c759e989c34fbb9af3c"
+          "sha256": "ffe62a5a380659a78930b9c1d4959a2d8e49a84fe178565cfeec50e7480c5250"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -379,7 +379,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -401,7 +401,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "f0041979716d32018108dcfbffd58cdc63ef1ed294295c759e989c34fbb9af3c"
+          "sha256": "ffe62a5a380659a78930b9c1d4959a2d8e49a84fe178565cfeec50e7480c5250"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -421,7 +421,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -443,7 +443,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "f0041979716d32018108dcfbffd58cdc63ef1ed294295c759e989c34fbb9af3c"
+          "sha256": "ffe62a5a380659a78930b9c1d4959a2d8e49a84fe178565cfeec50e7480c5250"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -463,7 +463,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -485,7 +485,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "f0041979716d32018108dcfbffd58cdc63ef1ed294295c759e989c34fbb9af3c"
+          "sha256": "ffe62a5a380659a78930b9c1d4959a2d8e49a84fe178565cfeec50e7480c5250"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -505,7 +505,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -527,7 +527,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "f0041979716d32018108dcfbffd58cdc63ef1ed294295c759e989c34fbb9af3c"
+          "sha256": "ffe62a5a380659a78930b9c1d4959a2d8e49a84fe178565cfeec50e7480c5250"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -547,7 +547,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -569,7 +569,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "f0041979716d32018108dcfbffd58cdc63ef1ed294295c759e989c34fbb9af3c"
+          "sha256": "ffe62a5a380659a78930b9c1d4959a2d8e49a84fe178565cfeec50e7480c5250"
         }
       ],
       "review_verdict": "pending-independent-review",
@@ -589,7 +589,7 @@
       "disposition": "keep",
       "reviewer": "claude-change-author",
       "reviewer_type": "author-rebind-not-independent",
-      "reviewed_utc": "2026-11-23T00:29:41.162909+00:00",
+      "reviewed_utc": "2026-11-23T02:47:48.261488+00:00",
       "scope": "Hash custody of the two media test registers against the working tree. Reads repository files only, as text; builds nothing, runs no model, GPU or network. It proves the bindings match the bytes, not that the bound tests are correct.",
       "receipt": "media-worker-lock/README.md",
       "fixture_peers": [
@@ -611,7 +611,7 @@
         },
         {
           "path": "Tests/Portable/media-weight-safety-review.json",
-          "sha256": "f0041979716d32018108dcfbffd58cdc63ef1ed294295c759e989c34fbb9af3c"
+          "sha256": "ffe62a5a380659a78930b9c1d4959a2d8e49a84fe178565cfeec50e7480c5250"
         }
       ],
       "review_verdict": "pending-independent-review",

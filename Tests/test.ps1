@@ -2,6 +2,12 @@
 .SYNOPSIS
     Universal Test Runner for PC-AI
     Automates environment setup (Path, Modules) before executing tests.
+
+.DESCRIPTION
+    Sets the process PATH and loads PC-AI.Acceleration, then runs Pester and exits 1 unless the run is clean.
+    Failed tests, failed containers (a test file that does not parse) and a run that executed nothing all fail,
+    see Tests/Helpers/Get-PesterRunVerdict.ps1. Before this, the script printed "Test Execution Complete" in green
+    and never set an exit code, whatever Pester reported.
 #>
 
 [CmdletBinding()]
@@ -16,6 +22,8 @@ $PesterRoot = $PSScriptRoot
 $PcaiRoot = Split-Path $PesterRoot -Parent
 $BinPath = Join-Path $PcaiRoot "bin"
 $ModulePath = Join-Path $PcaiRoot "Modules\PC-AI.Acceleration\PC-AI.Acceleration.psd1"
+
+. (Join-Path $PesterRoot 'Helpers/Get-PesterRunVerdict.ps1')
 
 Write-Host "--- PC-AI Test Orchestration ---" -ForegroundColor Cyan
 Write-Host "Root: $PcaiRoot"
@@ -41,6 +49,14 @@ if ($UnitOnly) { $TestPath = Join-Path $PesterRoot "Unit" }
 
 # 4. Execute Pester
 Write-Host "Executing Pester tests in: $TestPath`n" -ForegroundColor Cyan
-Invoke-Pester -Path $TestPath -Output Detailed
+$result = Invoke-Pester -Path $TestPath -Output Detailed -PassThru
 
-Write-Host "`nTest Execution Complete." -ForegroundColor Green
+# 5. Judge the run
+$verdict = Get-PesterRunVerdict -Result $result
+if ($verdict.Passed) {
+    Write-Host "`nTest Execution Complete." -ForegroundColor Green
+    exit 0
+}
+foreach ($reason in $verdict.Violations) { Write-Host "  $reason" -ForegroundColor Red }
+Write-Host "`nTests FAILED." -ForegroundColor Red
+exit 1

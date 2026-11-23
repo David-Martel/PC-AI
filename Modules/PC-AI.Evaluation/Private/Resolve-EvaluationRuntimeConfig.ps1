@@ -6,6 +6,7 @@ function Initialize-EvaluationRuntimeDefaults {
         $runtimeConfig = Get-PcaiRuntimeConfig -ProjectRoot (Split-Path -Parent $PSScriptRoot)
         if ($runtimeConfig.PcaiInferenceUrl) {
             $script:EvaluationConfig.HttpBaseUrl = $runtimeConfig.PcaiInferenceUrl
+            $script:EvaluationConfig.PcaiInferenceUrl = $runtimeConfig.PcaiInferenceUrl
         }
         if ($runtimeConfig.OllamaBaseUrl) {
             $script:EvaluationConfig.OllamaBaseUrl = $runtimeConfig.OllamaBaseUrl

@@ -1,0 +1,31 @@
+[package]
+name = "pcai_http_guard"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Host-header, Origin, CORS and bearer-token guards plus bind-address parsing for the local PC_AI HTTP servers"
+
+[dependencies]
+axum.workspace = true
+tower-http.workspace = true
+tokio.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+# Constant-time token comparison. Already in the lock via rustls/crypto crates.
+subtle = "2"
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = ["Win32_NetworkManagement_IpHelper"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+
+[lints]
+workspace = true

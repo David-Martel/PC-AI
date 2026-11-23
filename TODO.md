@@ -87,8 +87,14 @@ component results; they do not establish fleet or physical acceptance.
 - [ ] Obtain the existing Sunshine provider reference and affected seat/firewall
   scope from its owner, then validate authenticated video/input/reconnect and the
   full VIGIL UI with matching production ROS message packages.
-- [ ] Identify a Thunderbolt peer and measure its actual throughput; no peer NIC
-  is observed through the current CalDigit topology.
+- [x] Identify direct USB4NET peers and measure simultaneous TCP throughput on
+  both edges. Use the [USB4 TCP hardware test](docs/usb4/hardware-testing.md)
+  for repeatable underlay measurements and release evidence.
+- [ ] Qualify the CalDigit path separately and investigate the direct-link
+  duplex asymmetry before raising the affected edge's performance baseline.
+  The four-stream trial dropped to 1.48 / 21.31 Gbps on one edge. A later
+  single-stream trial on the merged revision measured 15.42 / 2.46 Gbps on
+  the other edge. Retain failed receipts alongside passing runs.
 - [ ] Validate eduroam/MWireless using usable supported credentials, provision
   AMT with its own management credentials/network, and qualify physical HIL paths.
 - [ ] Validate original-user/browser behavior and remaining Cog revision provenance
@@ -207,6 +213,8 @@ not valid YAML and had never run. Repaired in the 2026-09-07 pass; see
   vulnerabilities, not warnings, which is why the exit code is 0.
 
 ## Active Priorities
+
+- [ ] Use the [AI qualification matrix](docs/ai-build-qualification.md) to reconcile build target selection and runtime device admission. Prioritize installed CPU, CUDA with and without an attached GPU, and a maintained Intel GPU backend. Gate model promotion on model-hash-pinned functional evidence and use the benchmark admission rules for any reported acceleration.
 
 ### 1. OneDrive, Boot, And UI Responsiveness
 

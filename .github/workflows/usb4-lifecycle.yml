@@ -10,7 +10,7 @@ on:
       - 'Deploy/Cargo.lock'
       - 'Deploy/**/Cargo.toml'
       - 'Config/thunderbolt-peers.json'
-      - 'Config/machine-profiles/dtm-super-nuc.json'
+      - 'Config/machine-profiles/*.json'
       - 'Tools/SystemScripts/Networking/Configure-ThunderboltSwitchRoutes.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltRcloneMount.ps1'
       - 'Tools/SystemScripts/Networking/Invoke-ThunderboltEnrolledPeer.ps1'
@@ -20,6 +20,9 @@ on:
       - 'Tools/SystemScripts/Networking/Invoke-Usb4PeerNetwork.ps1'
       - 'Tools/SystemScripts/Networking/Resolve-Usb4PeerJournal.ps1'
       - 'Tools/SystemScripts/Networking/Install-Usb4PeerNetwork.ps1'
+      - 'Tools/SystemScripts/Networking/Install-PcaiUsb4PrivateAccess.ps1'
+      - 'Modules/PC-AI.Drivers/**'
+      - 'Tests/Unit/PC-AI.Drivers.Tests.ps1'
       - 'Tools/SystemScripts/Networking/Get-Usb4PeerDeployment.ps1'
       - 'Config/usb4-peer-network.example.json'
       - 'Tools/SystemScripts/Networking/Export-ThunderboltEnrolledObserver.sh'
@@ -32,6 +35,8 @@ on:
       - 'Tests/Portable/ssh-process-capture-review.json'
       - 'docs/usb4/ssh-process-capture.md'
       - 'Tests/Portable/Test-Usb4PeerNetwork.ps1'
+      - 'Tests/Portable/Test-Usb4HnsEndpointInventory.ps1'
+      - 'Tests/Portable/usb4-hns-endpoint-inventory-review.json'
       - 'Tests/Portable/Test-Usb4StateAdmission.ps1'
       - 'Tests/Portable/Test-Usb4StatePublication.ps1'
       - 'Tests/Portable/Test-Usb4StateHistoryRetention.ps1'
@@ -39,9 +44,20 @@ on:
       - 'Tests/Portable/usb4-journal-publication-review.json'
       - 'Tests/Portable/usb4-state-admission-review.json'
       - 'Tests/Portable/Test-Usb4PeerNetworkInstall.ps1'
+      - 'Tests/Portable/Test-Usb4PrivateAccess.ps1'
+      - 'Tests/Portable/usb4-private-access-review.json'
       - 'Tests/Portable/Test-Usb4PeerDeployment.ps1'
       - 'Tests/Portable/usb4-deployment-doctor-review.json'
       - 'Tests/Portable/test_usb4_fabric_cli.py'
+      - 'Tests/Portable/test_usb4_tcp_hil.py'
+      - 'Tests/Portable/Test-Usb4TcpEndpoint.ps1'
+      - 'Tests/Portable/usb4-tcp-hil-review.json'
+      - 'Tests/Hardware/**'
+      - 'Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1'
+      - 'Tests/Integration/ThunderboltLinuxProfile.Tests.ps1'
+      - 'Tests/Integration/thunderbolt-linux-idempotency-review.json'
+      - 'docs/usb4/hardware-testing.md'
+      - 'docs/usb4/private-access.md'
       - '.github/actions/setup-job-rust/action.yml'
       - '.github/workflows/usb4-lifecycle.yml'
   workflow_dispatch:
@@ -54,6 +70,29 @@ concurrency:
 permissions:
   contents: read
 jobs:
+  linux-profile:
+    # Keep generated shell fixtures on a disposable runner, away from fleet
+    # NetworkManager even if a future script bypasses a test double.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Protects repeat Apply from reactivating a healthy link. Detects redundant
+      # writes and ignored drift. Needs Bash, Python 3, pwsh and Pester.
+      # Source: Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1.
+      - name: Linux NetworkManager profile contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Module -ListAvailable Pester | Where-Object Version -eq '5.7.1')) {
+            Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force
+          }
+          Import-Module Pester -RequiredVersion 5.7.1
+          $result = Invoke-Pester -Path Tests/Integration/ThunderboltLinuxProfile.Tests.ps1 -PassThru
+          if ($result.Result -ne 'Passed' -or $result.PassedCount -eq 0) { throw 'Linux profile contracts failed' }
+
   lifecycle:
     strategy:
       fail-fast: false
@@ -103,6 +142,11 @@ jobs:
           ./Tests/Portable/Test-Usb4StateHistoryRetention.ps1
           ./Tests/Portable/Test-Usb4JournalRetirement.ps1
           ./Tests/Portable/Test-Usb4PeerNetworkInstall.ps1
+      # Protects endpoint allocation evidence. Detects lost provider errors and
+      # malformed inventories being treated as empty. Needs pwsh and JSON fixtures.
+      - name: HNS endpoint inventory contracts
+        shell: pwsh
+        run: ./Tests/Portable/Test-Usb4HnsEndpointInventory.ps1
       # Protects file-only installed-release inspection, pointer containment and
       # recovery/freshness truth. Detects unsafe reads and invented readiness.
       # Needs pwsh and owned temporary fixtures; no live task/network collection.
@@ -110,6 +154,30 @@ jobs:
       - name: File-only deployment inspection contracts
         shell: pwsh
         run: ./Tests/Portable/Test-Usb4PeerDeployment.ps1
+      # Protects exact-link authorization, firewall scope, and rollback custody.
+      # Detects aliases or peers outside the enrolled link and partial publication.
+      # Needs pwsh and synthetic Windows providers. Source: Install-PcaiUsb4PrivateAccess.ps1.
+      - name: USB4 private access contracts
+        shell: pwsh
+        run: ./Tests/Portable/Test-Usb4PrivateAccess.ps1
+      # Protects legacy registration from creating the retired broad firewall rule.
+      # Detects direct provisioning and the rule name reaching a Drivers helper.
+      # Needs pwsh, Pester and the Drivers module. No real registration or firewall changes.
+      # Breadcrumb: Modules/PC-AI.Drivers/Public/Register-ThunderboltPeer.ps1.
+      - name: Windows legacy USB4 registration firewall contract
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable Pester | Where-Object Version -eq '5.7.1')) {
+            Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force
+          }
+          Import-Module Pester -RequiredVersion 5.7.1
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'Tests/Unit/PC-AI.Drivers.Tests.ps1'
+          $config.Run.PassThru = $true
+          $config.Filter.FullName = '*.does not provision firewall rules during legacy USB4 registration'
+          $result = Invoke-Pester -Configuration $config
+          if ($result.Result -ne 'Passed' -or $result.FailedCount -ne 0 -or $result.PassedCount -ne 1) { exit 1 }
       # Protects fresh native stdio handles and unrelated/jail environment custody.
       # Detects stale OpenSSH ancestor descriptors through a real inert child.
       # Needs Windows + pwsh only; no peer, credentials, service or network changes.
@@ -138,6 +206,17 @@ jobs:
           $python = if ($IsWindows) { 'python' } else { 'python3' }
           & $python Tests/Portable/test_usb4_fabric_cli.py --exe $binary
           if ($LASTEXITCODE -ne 0) { throw 'USB4 topology CLI contracts failed' }
+      # Protects physical-edge admission and release receipt validation. Detects
+      # wrong bindings, incomplete duplex samples, stale or mismatched receipts.
+      # Needs Python 3 and pwsh; uses synthetic evidence and Windows provider
+      # fixtures with no peers or firewall access. Source: Tests/Hardware/.
+      - name: USB4 hardware test software contracts
+        shell: pwsh
+        run: |
+          ./Tests/Portable/Test-Usb4TcpEndpoint.ps1
+          $python = if ($IsWindows) { 'python' } else { 'python3' }
+          & $python -m unittest discover -s Tests/Portable -p test_usb4_tcp_hil.py
+          if ($LASTEXITCODE -ne 0) { throw 'USB4 hardware test software contracts failed' }
       # Protects target-cfg portability for ARM64 on each supported host OS.
       # This checks production and test targets without linking/running ARM64
       # binaries. Build scripts still run on the host; native SDK prerequisites

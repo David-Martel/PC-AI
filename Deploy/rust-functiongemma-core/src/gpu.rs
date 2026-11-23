@@ -1,6 +1,9 @@
-use anyhow::{Context, Result};
+#[cfg(feature = "cuda")]
+use anyhow::Context;
+use anyhow::Result;
 use candle_core::quantized::GgmlDType;
 use candle_core::{DType, Device};
+#[cfg(feature = "cuda")]
 use std::ffi::c_void;
 use std::process::Command;
 #[cfg(feature = "nvml")]
@@ -494,6 +497,8 @@ pub fn configure_and_log_cuda_mem_pool(device_index: usize, cfg: CudaMemPoolConf
     }
 }
 
+/// Read CUDA runtime memory counters when available.
+#[cfg(feature = "cuda")]
 pub fn cuda_mem_snapshot(device_index: Option<usize>) -> Option<CudaMemSnapshot> {
     use cudarc::runtime::{result, sys};
     if let Some(idx) = device_index {
@@ -512,6 +517,14 @@ pub fn cuda_mem_snapshot(device_index: Option<usize>) -> Option<CudaMemSnapshot>
     })
 }
 
+/// Report CUDA runtime counters as unavailable on CPU builds.
+#[cfg(not(feature = "cuda"))]
+pub fn cuda_mem_snapshot(_device_index: Option<usize>) -> Option<CudaMemSnapshot> {
+    None
+}
+
+/// Configure the CUDA memory pool if the device supports it.
+#[cfg(feature = "cuda")]
 pub fn configure_cuda_mem_pool(device_index: usize, cfg: CudaMemPoolConfig) -> Result<Option<CudaMemPoolStatus>> {
     use cudarc::runtime::sys;
 
@@ -632,4 +645,30 @@ pub fn configure_cuda_mem_pool(device_index: usize, cfg: CudaMemPoolConfig) -> R
         reserved_current_bytes: Some(reserved_current),
         used_current_bytes: Some(used_current),
     }))
+}
+
+/// Report CUDA pool tuning as unavailable on CPU builds.
+#[cfg(not(feature = "cuda"))]
+pub fn configure_cuda_mem_pool(_device_index: usize, _cfg: CudaMemPoolConfig) -> Result<Option<CudaMemPoolStatus>> {
+    Ok(None)
+}
+
+#[cfg(all(test, not(feature = "cuda")))]
+mod cpu_tests {
+    use super::*;
+
+    // Protects: callers can request CUDA telemetry and tuning from a CPU build.
+    // Detects: fabricated telemetry, a pool reported as configured, or an error on an unavailable device.
+    // Needs: core built without the cuda feature; no GPU or driver.
+    // Breadcrumb: gpu::cuda_mem_snapshot and gpu::configure_cuda_mem_pool.
+    #[test]
+    fn cpu_build_reports_cuda_memory_operations_unavailable() -> Result<()> {
+        let requested = CudaMemPoolConfig {
+            enable: true,
+            ..Default::default()
+        };
+        assert!(cuda_mem_snapshot(Some(0)).is_none());
+        assert!(configure_cuda_mem_pool(0, requested)?.is_none());
+        Ok(())
+    }
 }

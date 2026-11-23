@@ -1,7 +1,21 @@
 //! GGUF header parser for model memory estimation.
 //!
-//! Reads only the metadata section of a GGUF file (first few KB) to extract
-//! the fields needed for VRAM estimation. Does NOT load tensors.
+//! Reads only the header of a GGUF file to extract the fields needed for VRAM
+//! estimation. Never reads tensor data.
+//!
+//! Three entry points share one bounded reader:
+//!
+//! - [`read_gguf_meta_from`] stops after the key-value metadata and estimates
+//!   the weight size from the architecture dimensions and `general.file_type`.
+//! - [`read_gguf_header_from`] reads the same metadata, then looks through the
+//!   tensor-info section only to say whether the model uses NVFP4. It never
+//!   fails because of the tensor section, so for every other model it behaves
+//!   exactly as [`read_gguf_meta_from`]. This is what the readiness check uses.
+//! - [`read_gguf_layout_from`] reads the tensor-info section in full and sums
+//!   the exact byte size of every tensor from its ggml type and shape, the way
+//!   upstream llama.cpp does (`ggml/src/gguf.cpp`). A tensor whose type this
+//!   module does not know is an error, never a size of zero. The readiness
+//!   check does not use it yet.
 
 use std::io::{self, Read};
 use std::path::Path;
@@ -16,6 +30,15 @@ use thiserror::Error;
 /// scores, token types). Eight levels is far beyond any producer and keeps the
 /// recursive skipper to a constant, tiny stack footprint.
 pub const MAX_ARRAY_NESTING: usize = 8;
+
+/// Maximum number of tensors a header may declare.
+///
+/// Real models declare a few hundred to a few thousand. The tensor-info reader
+/// allocates nothing from the declared count; this bounds only the loop.
+pub const MAX_TENSOR_COUNT: u64 = 1 << 20;
+
+/// Maximum number of dimensions of one tensor (`GGML_MAX_DIMS` in `ggml.h`).
+pub const MAX_TENSOR_DIMS: usize = 4;
 
 /// Maximum length in bytes of a single GGUF string.
 pub const MAX_STRING_LEN: u64 = 1_000_000;
@@ -59,6 +82,14 @@ pub enum GgufLimitError {
     /// The header declares more than [`MAX_KV_COUNT`] entries.
     #[error("GGUF metadata entry count {count} exceeds the limit of {max}")]
     TooManyEntries {
+        /// The declared count.
+        count: u64,
+        /// The limit that was exceeded.
+        max: u64,
+    },
+    /// The header declares more than [`MAX_TENSOR_COUNT`] tensors.
+    #[error("GGUF tensor count {count} exceeds the limit of {max}")]
+    TooManyTensors {
         /// The declared count.
         count: u64,
         /// The limit that was exceeded.
@@ -157,6 +188,9 @@ pub enum GgufFileType {
     IQ2XS,
     /// IQ 3-bit, extra-extra-small.
     IQ3XXS,
+    /// NVFP4: 4-bit E2M1 values with E4M3 scales per 16 values
+    /// (`LLAMA_FTYPE_MOSTLY_NVFP4` = 39).
+    Nvfp4,
     /// Unrecognised file type — stores the raw integer for diagnostics.
     Unknown(u32),
 }
@@ -181,6 +215,8 @@ impl GgufFileType {
             Self::Q2K => 2.5,
             Self::IQ2XXS | Self::IQ2XS => 2.5,
             Self::IQ3XXS => 3.5,
+            // 36 bytes per 64 values: 64 * 4 bits of values plus four one-byte scales.
+            Self::Nvfp4 => 4.5,
             Self::Unknown(_) => 8.0, // conservative default
         }
     }
@@ -207,9 +243,355 @@ impl GgufFileType {
             19 => Self::IQ2XXS,
             20 => Self::IQ2XS,
             21 => Self::IQ3XXS,
+            39 => Self::Nvfp4,
             other => Self::Unknown(other),
         }
     }
+}
+
+// -- Tensor types and sizes -------------------------------------------------------
+
+/// Elements per super-block of the K-quants and most IQ types (`QK_K` in `ggml-common.h`).
+const QK_K: u64 = 256;
+
+/// A ggml tensor element type, as stored in a GGUF tensor-info record.
+///
+/// The ids and the `(block size, bytes per block)` pairs mirror upstream
+/// llama.cpp at commit `ad50351f5092436f312d98d25689207df25f4802` (b12635):
+/// `GGMLQuantizationType` and `GGML_QUANT_SIZES` in `gguf-py/gguf/constants.py`,
+/// and `ggml/include/ggml.h`. An id that is not listed here is not a variant;
+/// [`GgmlType::from_id`] returns `None` for it and the reader reports an error
+/// rather than guess a size.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
+pub enum GgmlType {
+    /// 32-bit float (id 0).
+    F32,
+    /// 16-bit float (id 1).
+    F16,
+    /// 4-bit, variant 0 (id 2).
+    Q4_0,
+    /// 4-bit, variant 1 (id 3).
+    Q4_1,
+    /// 5-bit, variant 0 (id 6).
+    Q5_0,
+    /// 5-bit, variant 1 (id 7).
+    Q5_1,
+    /// 8-bit, variant 0 (id 8).
+    Q8_0,
+    /// 8-bit, variant 1 (id 9).
+    Q8_1,
+    /// 2-bit K-quant (id 10).
+    Q2K,
+    /// 3-bit K-quant (id 11).
+    Q3K,
+    /// 4-bit K-quant (id 12).
+    Q4K,
+    /// 5-bit K-quant (id 13).
+    Q5K,
+    /// 6-bit K-quant (id 14).
+    Q6K,
+    /// 8-bit K-quant (id 15).
+    Q8K,
+    /// IQ 2-bit, extra-extra-small (id 16).
+    IQ2XXS,
+    /// IQ 2-bit, extra-small (id 17).
+    IQ2XS,
+    /// IQ 3-bit, extra-extra-small (id 18).
+    IQ3XXS,
+    /// IQ 1-bit, small (id 19).
+    IQ1S,
+    /// IQ 4-bit non-linear (id 20).
+    IQ4NL,
+    /// IQ 3-bit, small (id 21).
+    IQ3S,
+    /// IQ 2-bit, small (id 22).
+    IQ2S,
+    /// IQ 4-bit, extra-small (id 23).
+    IQ4XS,
+    /// 8-bit integer (id 24).
+    I8,
+    /// 16-bit integer (id 25).
+    I16,
+    /// 32-bit integer (id 26).
+    I32,
+    /// 64-bit integer (id 27).
+    I64,
+    /// 64-bit float (id 28).
+    F64,
+    /// IQ 1-bit, medium (id 29).
+    IQ1M,
+    /// bfloat16 (id 30).
+    Bf16,
+    /// Ternary, 1.6875 bits (id 34).
+    TQ1_0,
+    /// Ternary, 2.0625 bits (id 35).
+    TQ2_0,
+    /// MXFP4: 32 E2M1 values with one E8M0 scale (id 39).
+    Mxfp4,
+    /// NVFP4: 64 E2M1 values with four E4M3 scales, one per 16 values (id 40).
+    Nvfp4,
+    /// 1-bit, 128 values per block (id 41).
+    Q1_0,
+    /// 2-bit, 64 values per block (id 42).
+    Q2_0,
+    /// 8-bit float, E4M3 (id 43).
+    F8E4M3,
+}
+
+impl GgmlType {
+    /// The ggml type for a raw tensor-info type id, or `None` if this reader does not know it.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use pcai_core_lib::preflight::gguf::GgmlType;
+    ///
+    /// assert_eq!(GgmlType::from_id(40), Some(GgmlType::Nvfp4));
+    /// assert_eq!(GgmlType::from_id(9_999), None);
+    /// ```
+    #[must_use]
+    pub const fn from_id(id: u32) -> Option<Self> {
+        Some(match id {
+            0 => Self::F32,
+            1 => Self::F16,
+            2 => Self::Q4_0,
+            3 => Self::Q4_1,
+            6 => Self::Q5_0,
+            7 => Self::Q5_1,
+            8 => Self::Q8_0,
+            9 => Self::Q8_1,
+            10 => Self::Q2K,
+            11 => Self::Q3K,
+            12 => Self::Q4K,
+            13 => Self::Q5K,
+            14 => Self::Q6K,
+            15 => Self::Q8K,
+            16 => Self::IQ2XXS,
+            17 => Self::IQ2XS,
+            18 => Self::IQ3XXS,
+            19 => Self::IQ1S,
+            20 => Self::IQ4NL,
+            21 => Self::IQ3S,
+            22 => Self::IQ2S,
+            23 => Self::IQ4XS,
+            24 => Self::I8,
+            25 => Self::I16,
+            26 => Self::I32,
+            27 => Self::I64,
+            28 => Self::F64,
+            29 => Self::IQ1M,
+            30 => Self::Bf16,
+            34 => Self::TQ1_0,
+            35 => Self::TQ2_0,
+            39 => Self::Mxfp4,
+            40 => Self::Nvfp4,
+            41 => Self::Q1_0,
+            42 => Self::Q2_0,
+            43 => Self::F8E4M3,
+            _ => return None,
+        })
+    }
+
+    /// `(values per block, bytes per block)`, written as upstream's `GGML_QUANT_SIZES` writes them.
+    const fn layout(self) -> (u64, u64) {
+        match self {
+            Self::F32 | Self::I32 => (1, 4),
+            Self::F16 | Self::Bf16 | Self::I16 => (1, 2),
+            Self::Q4_0 | Self::IQ4NL => (32, 2 + 16),
+            Self::Q4_1 => (32, 2 + 2 + 16),
+            Self::Q5_0 => (32, 2 + 4 + 16),
+            Self::Q5_1 => (32, 2 + 2 + 4 + 16),
+            Self::Q8_0 => (32, 2 + 32),
+            Self::Q8_1 => (32, 2 + 2 + 32),
+            Self::Q2K => (QK_K, 2 + 2 + QK_K / 16 + QK_K / 4),
+            Self::Q3K => (QK_K, 2 + QK_K / 4 + QK_K / 8 + 12),
+            Self::Q4K => (QK_K, 2 + 2 + QK_K / 2 + 12),
+            Self::Q5K => (QK_K, 2 + 2 + QK_K / 2 + QK_K / 8 + 12),
+            Self::Q6K => (QK_K, 2 + QK_K / 2 + QK_K / 4 + QK_K / 16),
+            Self::Q8K => (QK_K, 4 + QK_K + QK_K / 8),
+            Self::IQ2XXS => (QK_K, 2 + QK_K / 4),
+            Self::IQ2XS => (QK_K, 2 + QK_K / 4 + QK_K / 32),
+            Self::IQ3XXS => (QK_K, 2 + QK_K / 4 + QK_K / 8),
+            Self::IQ1S => (QK_K, 2 + QK_K / 8 + QK_K / 16),
+            Self::IQ3S => (QK_K, 2 + QK_K / 4 + QK_K / 8 + QK_K / 32 + 4),
+            Self::IQ2S => (QK_K, 2 + QK_K / 4 + QK_K / 16),
+            Self::IQ4XS => (QK_K, 2 + 2 + QK_K / 2 + QK_K / 64),
+            Self::I8 | Self::F8E4M3 => (1, 1),
+            Self::I64 | Self::F64 => (1, 8),
+            Self::IQ1M => (QK_K, QK_K / 8 + QK_K / 16 + QK_K / 32),
+            Self::TQ1_0 => (QK_K, 2 + 4 * 13),
+            Self::TQ2_0 => (QK_K, 2 + 64),
+            Self::Mxfp4 => (32, 1 + 16),
+            // `block_nvfp4` in ggml-common.h: QK_NVFP4 = 64 values, a 4-byte
+            // `d[QK_NVFP4 / QK_NVFP4_SUB]` scale array and 32 bytes of packed nibbles.
+            Self::Nvfp4 => (64, 4 + 32),
+            Self::Q1_0 => (128, 2 + 16),
+            Self::Q2_0 => (64, 2 + 16),
+        }
+    }
+
+    /// Number of values stored in one block (1 for unquantized types).
+    #[must_use]
+    pub const fn block_size(self) -> u64 {
+        self.layout().0
+    }
+
+    /// Number of bytes one block occupies.
+    #[must_use]
+    pub const fn type_size(self) -> u64 {
+        self.layout().1
+    }
+
+    /// Size in bytes of a contiguous tensor of this type and shape.
+    ///
+    /// `dims` lists the extents from the innermost (row) dimension outwards, as
+    /// a GGUF tensor-info record does; missing outer dimensions count as 1. The
+    /// rule is upstream's (`gguf.cpp`, tensor-info validation): the row length
+    /// `dims[0]` must be a multiple of the block size (it is the row, not the
+    /// element total, that must divide), and the size is
+    /// `type_size * (dims[0] / block_size) * dims[1] * dims[2] * dims[3]`.
+    /// Every step is checked.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GgufTensorSizeError`] if more than [`MAX_TENSOR_DIMS`]
+    /// dimensions are given, if the row length is not a multiple of the block
+    /// size, or if the element count or byte size overflows.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use pcai_core_lib::preflight::gguf::GgmlType;
+    ///
+    /// // 64 values per 36-byte block: a 4096 x 4096 matrix is 64 blocks per row.
+    /// assert_eq!(GgmlType::Nvfp4.tensor_byte_size(&[4096, 4096])?, 4096 * 64 * 36);
+    /// // A row of 96 is not a whole number of 64-value blocks, even though 96 x 2 = 192 is.
+    /// assert!(GgmlType::Nvfp4.tensor_byte_size(&[96, 2]).is_err());
+    /// # Ok::<(), pcai_core_lib::preflight::gguf::GgufTensorSizeError>(())
+    /// ```
+    pub fn tensor_byte_size(self, dims: &[u64]) -> Result<u64, GgufTensorSizeError> {
+        if dims.len() > MAX_TENSOR_DIMS {
+            return Err(GgufTensorSizeError::TooManyDims {
+                n_dims: u64::try_from(dims.len()).unwrap_or(u64::MAX),
+            });
+        }
+        let mut extents = [1_u64; MAX_TENSOR_DIMS];
+        for (slot, &dim) in extents.iter_mut().zip(dims) {
+            // Upstream reads each extent as `int64_t` and rejects a negative one.
+            if i64::try_from(dim).is_err() {
+                return Err(GgufTensorSizeError::Overflow);
+            }
+            *slot = dim;
+        }
+        // Upstream also requires the element count to fit in `int64_t`.
+        let elements = extents
+            .iter()
+            .try_fold(1_u64, |acc, &d| acc.checked_mul(d))
+            .filter(|&n| i64::try_from(n).is_ok())
+            .ok_or(GgufTensorSizeError::Overflow)?;
+        let (block, bytes) = self.layout();
+        let row_len = extents[0];
+        if row_len % block != 0 {
+            return Err(GgufTensorSizeError::RowNotBlockMultiple {
+                ggml_type: self,
+                row_len,
+                block_size: block,
+            });
+        }
+        // `elements` is the product of all extents; an empty tensor has no bytes.
+        // Otherwise bytes = type_size * (elements / block_size), exact because the row divides.
+        (elements / block)
+            .checked_mul(bytes)
+            .ok_or(GgufTensorSizeError::Overflow)
+    }
+}
+
+/// Why the byte size of one tensor could not be computed.
+///
+/// Mirrors the checks upstream's GGUF loader makes before it accepts a
+/// tensor-info record.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[non_exhaustive]
+pub enum GgufTensorSizeError {
+    /// More than [`MAX_TENSOR_DIMS`] dimensions were declared.
+    #[error("tensor declares {n_dims} dimensions, more than the maximum of {MAX_TENSOR_DIMS}")]
+    TooManyDims {
+        /// The declared dimension count.
+        n_dims: u64,
+    },
+    /// The row length is not a whole number of quantization blocks.
+    #[error("{ggml_type:?} row of {row_len} values is not a multiple of its block size {block_size}")]
+    RowNotBlockMultiple {
+        /// The tensor's type.
+        ggml_type: GgmlType,
+        /// The innermost extent.
+        row_len: u64,
+        /// Values per block of `ggml_type`.
+        block_size: u64,
+    },
+    /// An extent, the element count or the byte size does not fit the integer range upstream uses.
+    #[error("tensor shape overflows the representable size")]
+    Overflow,
+}
+
+/// A tensor-info record this reader cannot turn into a size.
+///
+/// Returned (wrapped in [`anyhow::Error`]) by [`read_gguf_layout_from`];
+/// recover it with `err.downcast_ref::<GgufTensorError>()`.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[non_exhaustive]
+pub enum GgufTensorError {
+    /// The tensor has a ggml type id this reader does not know.
+    ///
+    /// A model that uses a newer type than this reader has been taught is not
+    /// sized as zero or guessed at; the readiness check fails with this error.
+    #[error("GGUF tensor {index} has unknown ggml type id {id}; its size cannot be estimated")]
+    UnknownType {
+        /// Zero-based position of the tensor in the header.
+        index: u64,
+        /// The raw type id.
+        id: u32,
+    },
+    /// The tensor's shape is invalid for its type.
+    #[error("GGUF tensor {index}: {source}")]
+    InvalidShape {
+        /// Zero-based position of the tensor in the header.
+        index: u64,
+        /// What was wrong with the shape.
+        #[source]
+        source: GgufTensorSizeError,
+    },
+    /// The summed tensor sizes do not fit in `u64`.
+    #[error("GGUF tensor sizes overflow u64 after {index} tensors")]
+    TotalOverflow {
+        /// Number of tensors summed before the overflow.
+        index: u64,
+    },
+}
+
+/// The metadata of a GGUF file and whether the model uses NVFP4.
+#[derive(Debug, Clone, Serialize)]
+pub struct GgufHeader {
+    /// The key-value metadata, exactly as [`read_gguf_meta_from`] returns it.
+    pub meta: GgufModelMeta,
+    /// `general.file_type` is NVFP4, or at least one tensor has the NVFP4 type.
+    pub uses_nvfp4: bool,
+}
+
+/// Header of a GGUF file with the exact weight size read from its tensor infos.
+#[derive(Debug, Clone, Serialize)]
+pub struct GgufLayout {
+    /// The key-value metadata, as [`read_gguf_meta_from`] returns it.
+    pub meta: GgufModelMeta,
+    /// Number of tensors the header declares.
+    pub tensor_count: u64,
+    /// Sum of the byte sizes of all tensors, without per-tensor alignment padding.
+    pub tensor_bytes: u64,
+    /// Number of tensors of type [`GgmlType::Nvfp4`].
+    pub nvfp4_tensors: u64,
+    /// Bytes read from the stream: everything up to the end of the tensor-info section.
+    pub header_bytes: u64,
 }
 
 /// Estimate total VRAM needed to load and run a model at the given context size.
@@ -230,7 +612,44 @@ pub fn estimate_model_memory_mb(meta: &GgufModelMeta, context_length: u64) -> u6
         reason = "weight_bytes is always non-negative (parameter_count * positive bits / 8)"
     )]
     let weight_mb = (weight_bytes / (1024.0 * 1024.0)) as u64;
+    add_kv_and_overhead_mb(weight_mb, meta, context_length)
+}
 
+/// Estimate total VRAM in megabytes from the exact tensor sizes of a [`GgufLayout`].
+///
+/// Same components as [`estimate_model_memory_mb`], except the weights are the
+/// sum of the tensor sizes read from the header rather than a figure derived
+/// from the architecture dimensions and `general.file_type`.
+///
+/// Available but **not** used by the readiness check: it has not been
+/// calibrated against measured VRAM, and the KV cache and activation overhead it
+/// adds are fixed guesses that differ per inference backend. A header that
+/// declares no tensors has nothing to sum, so this falls back to that
+/// dimension-based estimate.
+///
+/// # Examples
+///
+/// ```
+/// use pcai_core_lib::preflight::gguf::{estimate_layout_memory_mb, read_gguf_layout_from};
+///
+/// let mut bytes = b"GGUF".to_vec();
+/// bytes.extend_from_slice(&3_u32.to_le_bytes()); // version
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // tensor count
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // metadata entries
+/// let layout = read_gguf_layout_from(bytes.as_slice())?;
+/// assert!(estimate_layout_memory_mb(&layout, 0) > 0); // dimension-based fallback
+/// # Ok::<(), anyhow::Error>(())
+/// ```
+#[must_use]
+pub fn estimate_layout_memory_mb(layout: &GgufLayout, context_length: u64) -> u64 {
+    if layout.tensor_count == 0 {
+        return estimate_model_memory_mb(&layout.meta, context_length);
+    }
+    add_kv_and_overhead_mb(layout.tensor_bytes / (1024 * 1024), &layout.meta, context_length)
+}
+
+/// Add the fp16 KV cache and the 10% overhead to a weight size in megabytes.
+fn add_kv_and_overhead_mb(weight_mb: u64, meta: &GgufModelMeta, context_length: u64) -> u64 {
     // KV cache at fp16: 2 (K+V) * layers * hidden_dim * ctx_len * 2 bytes
     let kv_bytes = 2_u64
         .saturating_mul(meta.block_count)
@@ -350,8 +769,150 @@ pub fn read_gguf_meta(path: &Path) -> Result<GgufModelMeta> {
 /// # Ok::<(), anyhow::Error>(())
 /// ```
 pub fn read_gguf_meta_from<R: Read>(reader: R) -> Result<GgufModelMeta> {
+    with_budget(reader, |reader| parse_header(reader).map(|(meta, _tensor_count)| meta))
+}
+
+/// Read GGUF header metadata and whether the model uses NVFP4, from a file path.
+///
+/// A thin wrapper over [`read_gguf_header_from`].
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, or for any reason
+/// [`read_gguf_meta`] fails. Never because of the tensor-info section.
+///
+/// # Panics
+///
+/// Never; see [`read_gguf_meta`].
+pub fn read_gguf_header(path: &Path) -> Result<GgufHeader> {
+    let file = std::fs::File::open(path).with_context(|| format!("Cannot open GGUF file: {}", path.display()))?;
+    read_gguf_header_from(io::BufReader::new(file))
+}
+
+/// Read GGUF header metadata and whether the model uses NVFP4.
+///
+/// The metadata is parsed as [`read_gguf_meta_from`] parses it, and any failure
+/// there is the same error. The tensor-info section is then scanned for the
+/// NVFP4 tensor type only: it is read best effort, with no size computed and no
+/// type validated, and a tensor section that is truncated, over a limit or
+/// otherwise unreadable counts as "no NVFP4 tensor found" rather than an error.
+/// A model is therefore treated as it always was unless `general.file_type` is
+/// NVFP4 or a readable tensor-info record carries the NVFP4 type id.
+///
+/// # Errors
+///
+/// Exactly those of [`read_gguf_meta_from`].
+///
+/// # Panics
+///
+/// Never; see [`read_gguf_meta`].
+///
+/// # Examples
+///
+/// ```
+/// use pcai_core_lib::preflight::gguf::read_gguf_header_from;
+///
+/// let mut bytes = b"GGUF".to_vec();
+/// bytes.extend_from_slice(&3_u32.to_le_bytes()); // version
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // tensor count
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // metadata entries
+/// let header = read_gguf_header_from(bytes.as_slice())?;
+/// assert!(!header.uses_nvfp4);
+/// # Ok::<(), anyhow::Error>(())
+/// ```
+pub fn read_gguf_header_from<R: Read>(reader: R) -> Result<GgufHeader> {
+    with_budget(reader, |reader| {
+        let (meta, tensor_count) = parse_header(&mut *reader)?;
+        let uses_nvfp4 = matches!(meta.file_type, GgufFileType::Nvfp4)
+            || scan_for_nvfp4(&mut *reader, tensor_count.min(MAX_TENSOR_COUNT)).unwrap_or(false);
+        Ok(GgufHeader { meta, uses_nvfp4 })
+    })
+}
+
+/// Read GGUF header metadata and the exact tensor sizes from a file path.
+///
+/// A thin wrapper over [`read_gguf_layout_from`]. Never reads tensor data.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, or for any reason
+/// [`read_gguf_layout_from`] fails.
+///
+/// # Panics
+///
+/// Never; see [`read_gguf_meta`].
+pub fn read_gguf_layout(path: &Path) -> Result<GgufLayout> {
+    let file = std::fs::File::open(path).with_context(|| format!("Cannot open GGUF file: {}", path.display()))?;
+    read_gguf_layout_from(io::BufReader::new(file))
+}
+
+/// Read GGUF header metadata and sum the byte size of every tensor.
+///
+/// Parses the key-value metadata as [`read_gguf_meta_from`] does, then the
+/// tensor-info section: for each tensor a name, up to [`MAX_TENSOR_DIMS`]
+/// extents, a ggml type id and a data offset. The size of each tensor comes
+/// from [`GgmlType::tensor_byte_size`]. Tensor data is never read, and the
+/// whole read, tensor infos included, stays within [`MAX_METADATA_BYTES`].
+///
+/// # Errors
+///
+/// Everything [`read_gguf_meta_from`] rejects, plus:
+///
+/// - more than [`MAX_TENSOR_COUNT`] tensors is a [`GgufLimitError`];
+/// - a tensor of an unknown ggml type, an invalid shape (a row that is not a
+///   whole number of blocks, more than [`MAX_TENSOR_DIMS`] dimensions, an
+///   overflowing size) or a total that overflows `u64` is a [`GgufTensorError`],
+///   recoverable with `err.downcast_ref::<GgufTensorError>()`.
+///
+/// # Panics
+///
+/// Never; see [`read_gguf_meta`].
+///
+/// # Examples
+///
+/// ```
+/// use pcai_core_lib::preflight::gguf::read_gguf_layout_from;
+///
+/// let mut bytes = b"GGUF".to_vec();
+/// bytes.extend_from_slice(&3_u32.to_le_bytes()); // version
+/// bytes.extend_from_slice(&1_u64.to_le_bytes()); // tensor count
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // metadata entries
+/// bytes.extend_from_slice(&1_u64.to_le_bytes()); // name length
+/// bytes.push(b'w'); // name
+/// bytes.extend_from_slice(&2_u32.to_le_bytes()); // dimensions
+/// bytes.extend_from_slice(&64_u64.to_le_bytes()); // row length
+/// bytes.extend_from_slice(&3_u64.to_le_bytes()); // rows
+/// bytes.extend_from_slice(&40_u32.to_le_bytes()); // NVFP4
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // data offset
+/// let layout = read_gguf_layout_from(bytes.as_slice())?;
+/// assert_eq!(layout.tensor_bytes, 3 * 36); // three 64-value blocks of 36 bytes
+/// # Ok::<(), anyhow::Error>(())
+/// ```
+pub fn read_gguf_layout_from<R: Read>(reader: R) -> Result<GgufLayout> {
+    with_budget(reader, |reader| {
+        let (meta, tensor_count) = parse_header(&mut *reader)?;
+        if tensor_count > MAX_TENSOR_COUNT {
+            return Err(GgufLimitError::TooManyTensors {
+                count: tensor_count,
+                max: MAX_TENSOR_COUNT,
+            }
+            .into());
+        }
+        let (tensor_bytes, nvfp4_tensors) = read_tensor_bytes(&mut *reader, tensor_count)?;
+        Ok(GgufLayout {
+            meta,
+            tensor_count,
+            tensor_bytes,
+            nvfp4_tensors,
+            header_bytes: reader.consumed(),
+        })
+    })
+}
+
+/// Run `parse` over `reader` limited to [`MAX_METADATA_BYTES`], and report a spent budget as a typed error.
+fn with_budget<R: Read, T>(reader: R, parse: impl FnOnce(&mut BudgetReader<R>) -> Result<T>) -> Result<T> {
     let mut reader = BudgetReader::new(reader, MAX_METADATA_BYTES);
-    parse_header(&mut reader).map_err(|err| {
+    parse(&mut reader).map_err(|err| {
         if reader.exceeded {
             // The budget error crossed `?` boundaries as an `io::Error`; report
             // the typed cause instead so callers can match on it.
@@ -374,6 +935,7 @@ pub fn read_gguf_meta_from<R: Read>(reader: R) -> Result<GgufModelMeta> {
 /// budget-sized file), while one that still has data sets `exceeded` and fails.
 struct BudgetReader<R> {
     inner: R,
+    budget: u64,
     remaining: u64,
     exceeded: bool,
 }
@@ -382,9 +944,15 @@ impl<R: Read> BudgetReader<R> {
     fn new(inner: R, budget: u64) -> Self {
         Self {
             inner,
+            budget,
             remaining: budget,
             exceeded: false,
         }
+    }
+
+    /// Bytes handed out so far.
+    fn consumed(&self) -> u64 {
+        self.budget - self.remaining
     }
 }
 
@@ -409,8 +977,10 @@ impl<R: Read> Read for BudgetReader<R> {
     }
 }
 
-/// Parse the header from an already budgeted stream.
-fn parse_header(mut reader: impl Read) -> Result<GgufModelMeta> {
+/// Parse the magic, counts and key-value metadata from an already budgeted
+/// stream. Returns the metadata and the declared tensor count; the reader is
+/// left at the start of the tensor-info section.
+fn parse_header(mut reader: impl Read) -> Result<(GgufModelMeta, u64)> {
     // Magic
     let mut magic = [0u8; 4];
     reader.read_exact(&mut magic).context("Failed to read GGUF magic")?;
@@ -424,8 +994,8 @@ fn parse_header(mut reader: impl Read) -> Result<GgufModelMeta> {
         bail!("Unsupported GGUF version: {version} (expected 2 or 3)");
     }
 
-    // Tensor count (informational; not directly used in param estimation)
-    let _tensor_count = read_u64_le(&mut reader)?;
+    // Tensor count: not used by the dimension-based estimate, read by `read_gguf_layout_from`.
+    let tensor_count = read_u64_le(&mut reader)?;
 
     // Metadata KV count
     let kv_count = read_u64_le(&mut reader)?;
@@ -481,14 +1051,88 @@ fn parse_header(mut reader: impl Read) -> Result<GgufModelMeta> {
         block_count: blocks,
     })?;
 
-    Ok(GgufModelMeta {
+    let meta = GgufModelMeta {
         architecture,
         file_type: GgufFileType::from_u32(file_type_raw.unwrap_or(15)),
         parameter_count: estimated_params,
         context_length: context_length.unwrap_or(2048),
         embedding_length: emb,
         block_count: blocks,
-    })
+    };
+    Ok((meta, tensor_count))
+}
+
+/// One tensor-info record, with the name skipped and the data offset ignored.
+struct TensorRecord {
+    /// Extents, innermost first; only the first `n_dims` are meaningful.
+    dims: [u64; MAX_TENSOR_DIMS],
+    n_dims: usize,
+    /// The raw ggml type id, not validated.
+    type_id: u32,
+}
+
+/// Read one tensor-info record.
+///
+/// Nothing is allocated from a name length: the name is skipped, and at most
+/// [`MAX_TENSOR_DIMS`] extents are held. A dimension count above the maximum is
+/// rejected before any extent is read, so a hostile count reads nothing more.
+fn read_tensor_record(r: &mut impl Read, index: u64) -> Result<TensorRecord> {
+    skip_gguf_string(r)?;
+    let n_dims = read_u32_le(r)?;
+    let n_dims = usize::try_from(n_dims)
+        .ok()
+        .filter(|&n| n <= MAX_TENSOR_DIMS)
+        .ok_or_else(|| GgufTensorError::InvalidShape {
+            index,
+            source: GgufTensorSizeError::TooManyDims {
+                n_dims: u64::from(n_dims),
+            },
+        })?;
+    let mut dims = [0_u64; MAX_TENSOR_DIMS];
+    for dim in dims.iter_mut().take(n_dims) {
+        *dim = read_u64_le(r)?;
+    }
+    let type_id = read_u32_le(r)?;
+    let _data_offset = read_u64_le(r)?;
+    Ok(TensorRecord { dims, n_dims, type_id })
+}
+
+/// Look through up to `tensor_count` tensor-info records for one of the NVFP4 type.
+///
+/// Stops at the first NVFP4 record. Validates nothing about the records it
+/// passes: an unknown type id or an odd shape is not an error here.
+fn scan_for_nvfp4(r: &mut impl Read, tensor_count: u64) -> Result<bool> {
+    for index in 0..tensor_count {
+        if GgmlType::from_id(read_tensor_record(r, index)?.type_id) == Some(GgmlType::Nvfp4) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+/// Read `tensor_count` tensor-info records and return the sum of their sizes
+/// and the number of NVFP4 tensors among them.
+fn read_tensor_bytes(r: &mut impl Read, tensor_count: u64) -> Result<(u64, u64)> {
+    let mut total = 0_u64;
+    let mut nvfp4 = 0_u64;
+    for index in 0..tensor_count {
+        let record = read_tensor_record(r, index)?;
+        let ggml_type = GgmlType::from_id(record.type_id).ok_or(GgufTensorError::UnknownType {
+            index,
+            id: record.type_id,
+        })?;
+        let size = ggml_type
+            .tensor_byte_size(&record.dims[..record.n_dims])
+            .map_err(|source| GgufTensorError::InvalidShape { index, source })?;
+        total = total
+            .checked_add(size)
+            .ok_or(GgufTensorError::TotalOverflow { index })?;
+        if ggml_type == GgmlType::Nvfp4 {
+            // At most `index + 1`, which is bounded by MAX_TENSOR_COUNT.
+            nvfp4 += 1;
+        }
+    }
+    Ok((total, nvfp4))
 }
 
 /// `4 * emb^2 * blocks + 32_000 * emb`, or `None` if any step overflows `u64`.
@@ -551,6 +1195,19 @@ fn read_gguf_string(r: &mut impl Read) -> Result<String> {
         return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "GGUF string is truncated").into());
     }
     String::from_utf8(buf).context("Invalid UTF-8 in GGUF string")
+}
+
+/// Skip a length-prefixed string without holding it, applying the [`MAX_STRING_LEN`] cap.
+fn skip_gguf_string(r: &mut impl Read) -> Result<()> {
+    let len = read_u64_le(r)?;
+    if len > MAX_STRING_LEN {
+        return Err(GgufLimitError::StringTooLong {
+            len,
+            max: MAX_STRING_LEN,
+        }
+        .into());
+    }
+    skip_bytes(r, len)
 }
 
 fn read_gguf_typed_string(r: &mut impl Read, vtype: Option<GgufValueType>) -> Result<String> {
@@ -814,10 +1471,185 @@ mod tests {
             GgufFileType::IQ2XXS,
             GgufFileType::IQ2XS,
             GgufFileType::IQ3XXS,
+            GgufFileType::Nvfp4,
             GgufFileType::Unknown(42),
         ];
         for ft in types {
             assert!(ft.bits_per_param() > 0.0, "{ft:?} should have positive bits_per_param");
         }
+    }
+
+    // -- NVFP4 and the ggml type table --------------------------------------------
+    //
+    // The expected numbers below are written out as literals, not computed from
+    // the table's own expressions, so a wrong block size or block byte count in
+    // `GgmlType::layout` fails here. Sources, all at llama.cpp ad50351f (b12635):
+    // `GGML_QUANT_SIZES` in gguf-py/gguf/constants.py and `block_nvfp4` in
+    // ggml/src/ggml-common.h.
+
+    /// Why: the NVFP4 constants are the point of this change; id 40 must not drift to MXFP4's 39.
+    #[test]
+    fn nvfp4_tensor_type_has_the_upstream_id_block_size_and_block_bytes() {
+        assert_eq!(GgmlType::from_id(40), Some(GgmlType::Nvfp4));
+        assert_eq!(GgmlType::Nvfp4.block_size(), 64, "QK_NVFP4");
+        assert_eq!(GgmlType::Nvfp4.type_size(), 36, "4 scale bytes + 32 packed bytes");
+    }
+
+    /// Why: tensor id 39 is MXFP4 and file_type 39 is NVFP4; the two id spaces must stay separate.
+    #[test]
+    fn tensor_type_and_file_type_id_spaces_are_distinct() {
+        assert_eq!(GgmlType::from_id(39), Some(GgmlType::Mxfp4));
+        assert_eq!(GgmlType::Mxfp4.block_size(), 32);
+        assert_eq!(GgmlType::Mxfp4.type_size(), 17);
+        assert!(matches!(GgufFileType::from_u32(39), GgufFileType::Nvfp4));
+        // file_type 40 is Q1_0 upstream; this reader does not know it, and it must not alias NVFP4.
+        assert!(matches!(GgufFileType::from_u32(40), GgufFileType::Unknown(40)));
+    }
+
+    /// Why: `bits_per_param` drives the estimate when a header lists no tensors, so it must agree
+    /// with the block layout that sizes real tensors.
+    #[test]
+    fn nvfp4_file_type_bits_match_the_block_layout() {
+        let from_layout = (GgmlType::Nvfp4.type_size() * 8) as f64 / GgmlType::Nvfp4.block_size() as f64;
+        assert!((GgufFileType::Nvfp4.bits_per_param() - from_layout).abs() < f64::EPSILON);
+        assert!((GgufFileType::Nvfp4.bits_per_param() - 4.5).abs() < f64::EPSILON);
+    }
+
+    /// Why: the reader must size the 1-d tensors of a "mostly NVFP4" file, which are not NVFP4,
+    /// so the whole upstream table is pinned, not just the new row.
+    #[test]
+    fn every_known_type_matches_the_upstream_quant_sizes_table() {
+        // (id, block size, bytes per block), evaluated by hand from GGML_QUANT_SIZES.
+        let upstream: [(u32, u64, u64); 36] = [
+            (0, 1, 4),
+            (1, 1, 2),
+            (2, 32, 18),
+            (3, 32, 20),
+            (6, 32, 22),
+            (7, 32, 24),
+            (8, 32, 34),
+            (9, 32, 36),
+            (10, 256, 84),
+            (11, 256, 110),
+            (12, 256, 144),
+            (13, 256, 176),
+            (14, 256, 210),
+            (15, 256, 292),
+            (16, 256, 66),
+            (17, 256, 74),
+            (18, 256, 98),
+            (19, 256, 50),
+            (20, 32, 18),
+            (21, 256, 110),
+            (22, 256, 82),
+            (23, 256, 136),
+            (24, 1, 1),
+            (25, 1, 2),
+            (26, 1, 4),
+            (27, 1, 8),
+            (28, 1, 8),
+            (29, 256, 56),
+            (30, 1, 2),
+            (34, 256, 54),
+            (35, 256, 66),
+            (39, 32, 17),
+            (40, 64, 36),
+            (41, 128, 18),
+            (42, 64, 18),
+            (43, 1, 1),
+        ];
+        for (id, block, bytes) in upstream {
+            let ty = GgmlType::from_id(id).unwrap_or_else(|| panic!("type id {id} should be known"));
+            assert_eq!(
+                (ty.block_size(), ty.type_size()),
+                (block, bytes),
+                "type id {id} ({ty:?})"
+            );
+        }
+    }
+
+    /// Why: ids outside the table (removed, reserved or newer than this reader) must not map to a type.
+    #[test]
+    fn unlisted_type_ids_are_not_known() {
+        for id in [4, 5, 31, 32, 33, 36, 37, 38, 44, 45, 1_000, u32::MAX] {
+            assert_eq!(GgmlType::from_id(id), None, "id {id}");
+        }
+    }
+
+    /// Why: the hand-computed size of a real-shaped NVFP4 matrix: 4096 rows of 64 blocks of 36 bytes.
+    #[test]
+    fn nvfp4_tensor_size_is_blocks_times_36() {
+        assert_eq!(GgmlType::Nvfp4.tensor_byte_size(&[64]), Ok(36));
+        assert_eq!(GgmlType::Nvfp4.tensor_byte_size(&[128, 3]), Ok(2 * 36 * 3));
+        assert_eq!(GgmlType::Nvfp4.tensor_byte_size(&[4096, 4096]), Ok(9_437_184));
+        assert_eq!(GgmlType::Nvfp4.tensor_byte_size(&[64, 2, 3, 5]), Ok(36 * 2 * 3 * 5));
+    }
+
+    /// Why: upstream rejects a row that is not a whole number of blocks, judging the row and not the
+    /// total. `[96, 2]` has 192 elements, a multiple of 64, and must still be rejected.
+    #[test]
+    fn row_not_a_multiple_of_the_block_size_is_rejected_even_when_the_total_is() {
+        assert_eq!(
+            GgmlType::Nvfp4.tensor_byte_size(&[96, 2]),
+            Err(GgufTensorSizeError::RowNotBlockMultiple {
+                ggml_type: GgmlType::Nvfp4,
+                row_len: 96,
+                block_size: 64,
+            })
+        );
+        assert!(GgmlType::Nvfp4.tensor_byte_size(&[63]).is_err());
+        assert!(GgmlType::Nvfp4.tensor_byte_size(&[65]).is_err());
+        // A scalar has a row of 1, which no multi-value block divides.
+        assert!(GgmlType::Nvfp4.tensor_byte_size(&[]).is_err());
+    }
+
+    /// Why: unquantized types have a block of 1, so any shape is accepted, a scalar included.
+    #[test]
+    fn unquantized_types_accept_any_row_length() {
+        assert_eq!(GgmlType::F32.tensor_byte_size(&[]), Ok(4));
+        assert_eq!(GgmlType::F32.tensor_byte_size(&[7, 3]), Ok(7 * 3 * 4));
+        assert_eq!(GgmlType::F16.tensor_byte_size(&[5]), Ok(10));
+    }
+
+    /// Why: an empty tensor is representable upstream and has no bytes.
+    #[test]
+    fn zero_extent_gives_zero_bytes_without_an_error() {
+        assert_eq!(GgmlType::Nvfp4.tensor_byte_size(&[0]), Ok(0));
+        assert_eq!(GgmlType::Nvfp4.tensor_byte_size(&[64, 0]), Ok(0));
+    }
+
+    /// Why: every step of the size arithmetic is checked; a crafted shape must be an error, not a wrap.
+    #[test]
+    fn overflowing_shapes_are_errors_not_wrapped_sizes() {
+        // Element count overflows u64.
+        assert_eq!(
+            GgmlType::F32.tensor_byte_size(&[1 << 62, 1 << 62]),
+            Err(GgufTensorSizeError::Overflow)
+        );
+        // Element count fits i64 but bytes (8 per element) overflow u64.
+        assert_eq!(
+            GgmlType::F64.tensor_byte_size(&[i64::MAX as u64]),
+            Err(GgufTensorSizeError::Overflow)
+        );
+        // An extent above i64::MAX is a negative `int64_t` upstream.
+        assert_eq!(
+            GgmlType::F32.tensor_byte_size(&[u64::MAX]),
+            Err(GgufTensorSizeError::Overflow)
+        );
+        // Element count 2^63 is above i64::MAX but still within u64.
+        assert_eq!(
+            GgmlType::I8.tensor_byte_size(&[1 << 62, 2]),
+            Err(GgufTensorSizeError::Overflow)
+        );
+    }
+
+    /// Why: GGML_MAX_DIMS is 4.
+    #[test]
+    fn more_than_four_dimensions_are_rejected() {
+        assert_eq!(
+            GgmlType::F32.tensor_byte_size(&[1, 1, 1, 1, 1]),
+            Err(GgufTensorSizeError::TooManyDims { n_dims: 5 })
+        );
+        assert!(GgmlType::F32.tensor_byte_size(&[1, 1, 1, 1]).is_ok());
     }
 }

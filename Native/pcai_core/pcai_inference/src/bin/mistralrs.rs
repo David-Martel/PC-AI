@@ -3,8 +3,8 @@
 
 use pcai_inference_lib::{
     backends::{mistralrs::MistralRsBackend, InferenceBackend},
-    config::InferenceConfig,
-    http::run_server,
+    config::{DeviceSpec, InferenceConfig},
+    http::run_server_probed,
     version,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -64,14 +64,14 @@ async fn main() -> anyhow::Result<()> {
     let config = InferenceConfig::from_file(config_path)?;
 
     // Create backend
-    let force_cpu = match &config.backend {
+    // `DeviceSpec` is the one place the accepted device strings are defined. An explicit
+    // `cuda:N` that cannot be honoured makes `load_model` fail below, so the process exits
+    // non-zero instead of serving from the CPU.
+    let device = match &config.backend {
         #[cfg(feature = "mistralrs-backend")]
-        pcai_inference_lib::config::BackendConfig::MistralRs { device } => match device.as_deref().map(str::trim) {
-            None | Some("") => false,
-            Some(value) if value.eq_ignore_ascii_case("cpu") => true,
-            Some(value) if value.eq_ignore_ascii_case("auto") => false,
-            Some(_) => anyhow::bail!("mistral.rs backend device must be 'cpu' or 'auto'"),
-        },
+        pcai_inference_lib::config::BackendConfig::MistralRs { device, .. } => {
+            DeviceSpec::from_setting(device.as_deref())?
+        }
 
         #[cfg(feature = "llamacpp")]
         pcai_inference_lib::config::BackendConfig::LlamaCpp { .. } => {
@@ -81,7 +81,7 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
-    let mut backend = Box::new(MistralRsBackend::with_config(force_cpu));
+    let mut backend = Box::new(MistralRsBackend::with_device(device));
 
     // Load model
     tracing::info!("Loading model from {:?}", config.model.path);
@@ -98,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
     // Start server
     let server_config = config.server.clone().unwrap_or_default();
     let router_config = config.router.clone();
-    run_server(server_config, router_config, backend).await?;
+    run_server_probed(server_config, router_config, backend).await?;
 
     Ok(())
 }

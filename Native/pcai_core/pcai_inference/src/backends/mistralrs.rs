@@ -10,10 +10,11 @@ use async_trait::async_trait;
 use std::path::Path;
 use std::sync::Arc;
 
-use mistralrs::{best_device, GgufModelBuilder, Model, RequestBuilder, TextMessageRole, TextModelBuilder};
+use mistralrs::{Device, GgufModelBuilder, Model, RequestBuilder, TextMessageRole, TextModelBuilder};
 use mistralrs_core::ChatCompletionResponse;
 
 use super::{FinishReason, GenerateRequest, GenerateResponse, InferenceBackend};
+use crate::config::DeviceSpec;
 use crate::{Error, Result};
 
 /// mistral.rs backend implementation
@@ -24,8 +25,8 @@ pub struct MistralRsBackend {
     model_path: Option<String>,
     /// Whether the current model is a GGUF model
     is_gguf: bool,
-    /// Whether to force CPU execution
-    force_cpu: bool,
+    /// Where the model should run
+    device: DeviceSpec,
 }
 
 impl MistralRsBackend {
@@ -42,40 +43,85 @@ impl MistralRsBackend {
             model: None,
             model_path: None,
             is_gguf: false,
-            force_cpu: false,
+            device: DeviceSpec::Auto,
         }
     }
 
     /// Create a new mistral.rs backend with configuration
+    ///
+    /// `force_cpu` selects [`DeviceSpec::Cpu`], otherwise [`DeviceSpec::Auto`]. Use
+    /// [`MistralRsBackend::with_device`] to request a specific CUDA device.
     pub fn with_config(force_cpu: bool) -> Self {
+        Self::with_device(if force_cpu { DeviceSpec::Cpu } else { DeviceSpec::Auto })
+    }
+
+    /// Create a new mistral.rs backend for an explicit device policy.
+    ///
+    /// An explicit [`DeviceSpec::Cuda`] never falls back to the CPU: `load_model` returns an
+    /// error when the build has no CUDA support or the device cannot be initialized.
+    pub fn with_device(device: DeviceSpec) -> Self {
         Self {
             model: None,
             model_path: None,
             is_gguf: false,
-            force_cpu,
+            device,
         }
     }
 
-    fn requires_cpu(&self) -> bool {
-        // The pinned builder tries CUDA when it was compiled in, even if a
-        // device is missing. Check initialization before opening the model.
-        self.select_cpu(Self::cuda_enabled(), || match best_device(false) {
-            Ok(_) => true,
-            Err(error) => {
-                tracing::warn!(%error, "CUDA device unavailable, loading the model on CPU");
-                false
-            }
+    /// Decide whether the builder must be forced onto the CPU, or fail.
+    ///
+    /// The pinned builder tries CUDA when it was compiled in, even if a device is missing, so the
+    /// device is initialized here before the model is opened.
+    fn requires_cpu(&self) -> Result<bool> {
+        Self::plan_device(self.device, Self::cuda_enabled(), |ordinal| {
+            Device::new_cuda(ordinal).map(|_| ()).map_err(|error| error.to_string())
         })
     }
 
-    fn select_cpu(&self, cuda_compiled: bool, cuda_available: impl FnOnce() -> bool) -> bool {
-        if self.force_cpu {
-            return true;
+    /// Pure device policy: `Ok(true)` means force the CPU, `Ok(false)` means let the builder use
+    /// CUDA device 0, `Err` means the request cannot be honoured. `cuda_compiled` and
+    /// `probe_cuda` are parameters so every branch is testable without a GPU.
+    fn plan_device(
+        device: DeviceSpec,
+        cuda_compiled: bool,
+        probe_cuda: impl FnOnce(usize) -> std::result::Result<(), String>,
+    ) -> Result<bool> {
+        match device {
+            DeviceSpec::Cpu => Ok(true),
+            DeviceSpec::Auto if cuda_compiled => match probe_cuda(0) {
+                Ok(()) => Ok(false),
+                Err(error) => {
+                    tracing::warn!(%error, "CUDA device unavailable, loading the model on CPU");
+                    Ok(true)
+                }
+            },
+            DeviceSpec::Auto => Ok(cfg!(target_os = "windows")),
+            DeviceSpec::Cuda(ordinal) => {
+                if !cuda_compiled {
+                    return Err(Error::Backend(format!(
+                        "device cuda:{ordinal} was requested but this build has no CUDA support; \
+                         rebuild with the cuda-mistralrs feature or use device \"cpu\" or \"auto\""
+                    )));
+                }
+                probe_cuda(ordinal).map_err(|error| {
+                    Error::Backend(format!(
+                        "device cuda:{ordinal} was requested but cannot be used: {error}"
+                    ))
+                })?;
+                if ordinal != 0 {
+                    // mistral.rs 0.8.1 resolves the device with `resolve_device(force_cpu, None)`
+                    // for both the GGUF and the text builder, so `with_device` has no effect and
+                    // the model would land on CUDA device 0. Refuse instead of loading on the
+                    // wrong GPU.
+                    return Err(Error::Backend(format!(
+                        "device cuda:{ordinal} exists, but mistral.rs 0.8.1 can only load models on CUDA \
+                         device 0; start this process with CUDA_VISIBLE_DEVICES={ordinal} and use device \
+                         \"cuda:0\""
+                    )));
+                }
+                Ok(false)
+            }
         }
-        if cuda_compiled {
-            return !cuda_available();
-        }
-        cfg!(target_os = "windows")
     }
 
     /// Detect if a path is a GGUF model
@@ -117,11 +163,11 @@ impl MistralRsBackend {
 
         // mistral.rs 0.8.1 resolves the device using its builder's force_cpu setting.
         let mut builder = GgufModelBuilder::new(&model_id, vec![&gguf_file]).with_logging();
-        let force_cpu = self.requires_cpu();
+        let force_cpu = self.requires_cpu()?;
         if force_cpu {
             builder = builder.with_force_cpu();
         }
-        tracing::info!(force_cpu, "Loading GGUF with the selected device policy");
+        tracing::info!(force_cpu, device = %self.device, "Loading GGUF with the selected device policy");
         let model = builder
             .build()
             .await
@@ -140,11 +186,11 @@ impl MistralRsBackend {
         tracing::info!("Loading SafeTensors model from: {}", path);
 
         let mut builder = TextModelBuilder::new(path.to_string()).with_logging();
-        let force_cpu = self.requires_cpu();
+        let force_cpu = self.requires_cpu()?;
         if force_cpu {
             builder = builder.with_force_cpu();
         }
-        tracing::info!(force_cpu, "Loading text model with the selected device policy");
+        tracing::info!(force_cpu, device = %self.device, "Loading text model with the selected device policy");
         let model = builder
             .build()
             .await
@@ -260,23 +306,70 @@ impl InferenceBackend for MistralRsBackend {
 mod tests {
     use super::*;
 
+    fn no_probe(_: usize) -> std::result::Result<(), String> {
+        panic!("this device request must not initialize CUDA")
+    }
+
     // Protects explicit CPU mode regardless of the compiled GPU features.
     // Detects changes that allow the automatic device probe in explicit CPU mode.
-    // Needs no device or checkpoint. Breadcrumb: MistralRsBackend::requires_cpu.
+    // Needs no device or checkpoint. Breadcrumb: MistralRsBackend::plan_device.
     #[test]
     fn explicit_cpu_mode_requires_cpu() {
-        assert!(MistralRsBackend::with_config(true)
-            .select_cpu(true, || { panic!("an explicit CPU request must not initialize CUDA") }));
+        assert!(MistralRsBackend::plan_device(DeviceSpec::Cpu, true, no_probe).unwrap());
+        assert!(MistralRsBackend::with_config(true).requires_cpu().unwrap());
     }
 
     // Protects automatic selection for a CUDA artifact with a detachable GPU.
     // Detects retaining CUDA after a failed probe or choosing CPU with a ready device.
-    // Needs two synthetic probe outcomes. Breadcrumb: MistralRsBackend::select_cpu.
+    // Needs two synthetic probe outcomes. Breadcrumb: MistralRsBackend::plan_device.
     #[test]
     fn auto_mode_falls_back_only_when_cuda_is_unavailable() {
-        let backend = MistralRsBackend::new();
-        assert!(backend.select_cpu(true, || false));
-        assert!(!backend.select_cpu(true, || true));
+        assert!(MistralRsBackend::plan_device(DeviceSpec::Auto, true, |_| Err("no device".into())).unwrap());
+        assert!(!MistralRsBackend::plan_device(DeviceSpec::Auto, true, |_| Ok(())).unwrap());
+    }
+
+    // Protects `cuda:0` as an explicit request, which the binary used to reject.
+    // Detects selecting CPU for a usable device. Breadcrumb: MistralRsBackend::plan_device.
+    #[test]
+    fn explicit_cuda_zero_uses_the_gpu_when_it_initializes() {
+        assert!(!MistralRsBackend::plan_device(DeviceSpec::Cuda(0), true, |n| {
+            assert_eq!(n, 0);
+            Ok(())
+        })
+        .unwrap());
+    }
+
+    // Protects the no-silent-CPU-fallback rule for an explicit device.
+    // Detects `cuda:N` degrading to the CPU when the probe fails or CUDA is not built in.
+    #[test]
+    fn explicit_cuda_never_falls_back_to_cpu() {
+        let probe_failed = MistralRsBackend::plan_device(DeviceSpec::Cuda(0), true, |_| Err("driver missing".into()))
+            .expect_err("a failed probe must be an error")
+            .to_string();
+        assert!(
+            probe_failed.contains("cuda:0") && probe_failed.contains("driver missing"),
+            "{probe_failed}"
+        );
+
+        let not_built = MistralRsBackend::plan_device(DeviceSpec::Cuda(0), false, no_probe)
+            .expect_err("a build without CUDA must be an error")
+            .to_string();
+        assert!(not_built.contains("no CUDA support"), "{not_built}");
+    }
+
+    // Protects against loading on the wrong GPU. mistral.rs 0.8.1 ignores `with_device` for its
+    // GGUF and text builders, so only ordinal 0 can be honoured. Detects `cuda:1` loading on 0.
+    #[test]
+    fn explicit_cuda_other_than_zero_is_refused_with_the_workaround() {
+        let message = MistralRsBackend::plan_device(DeviceSpec::Cuda(1), true, |_| Ok(()))
+            .expect_err("cuda:1 cannot be honoured")
+            .to_string();
+        assert!(message.contains("CUDA_VISIBLE_DEVICES=1"), "{message}");
+
+        let missing = MistralRsBackend::plan_device(DeviceSpec::Cuda(1), true, |_| Err("no such device".into()))
+            .expect_err("a missing device must be an error")
+            .to_string();
+        assert!(missing.contains("no such device"), "{missing}");
     }
 
     // Protects default loading with a Windows CPU-only artifact.
@@ -285,7 +378,18 @@ mod tests {
     #[cfg(all(target_os = "windows", not(feature = "cuda-mistralrs")))]
     #[test]
     fn windows_cpu_artifact_defaults_to_cpu_mode() {
-        assert!(MistralRsBackend::new().requires_cpu());
+        assert!(MistralRsBackend::new().requires_cpu().unwrap());
+    }
+
+    // Protects the build-without-CUDA path end to end through the real probe closure.
+    // Detects `cuda:0` loading anyway on a CPU-only artifact.
+    #[cfg(not(any(feature = "cuda", feature = "cuda-mistralrs")))]
+    #[test]
+    fn explicit_cuda_on_a_cpu_only_build_fails_to_load() {
+        let error = MistralRsBackend::with_device(DeviceSpec::Cuda(0))
+            .requires_cpu()
+            .expect_err("a CPU-only build cannot honour cuda:0");
+        assert!(error.to_string().contains("no CUDA support"), "{error}");
     }
 
     #[test]

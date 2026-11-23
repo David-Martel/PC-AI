@@ -63,6 +63,9 @@ fn router_settings() -> &'static RouterSettings {
 /// Shared application state
 pub struct AppState {
     backend: Arc<RwLock<Box<dyn InferenceBackend>>>,
+    /// Why the backend cannot serve although a model may be loaded; `None` while nothing is known
+    /// to be wrong. Set once at startup by [`run_server_probed`].
+    not_ready: std::sync::RwLock<Option<String>>,
 }
 
 impl AppState {
@@ -70,8 +73,44 @@ impl AppState {
     pub fn new(backend: Box<dyn InferenceBackend>) -> Self {
         Self {
             backend: Arc::new(RwLock::new(backend)),
+            not_ready: std::sync::RwLock::new(None),
         }
     }
+
+    /// Record why the server cannot serve inference. `/health` then reports `not_ready` with
+    /// this reason and the inference routes answer 503.
+    pub fn mark_not_ready(&self, reason: impl Into<String>) {
+        if let Ok(mut slot) = self.not_ready.write() {
+            *slot = Some(reason.into());
+        }
+    }
+
+    /// The reason recorded by [`AppState::mark_not_ready`], if any.
+    pub fn not_ready_reason(&self) -> Option<String> {
+        self.not_ready.read().ok().and_then(|slot| slot.clone())
+    }
+}
+
+/// Longest reason `/health` and the 503 bodies will carry.
+const MAX_REASON_CHARS: usize = 240;
+
+/// Reduce an error to what an unauthenticated caller may see: its first line, bounded in length.
+/// Backtraces and file paths in the rest of the text go to the log only.
+fn public_reason(error: &dyn std::fmt::Display) -> String {
+    let text = error.to_string();
+    let first_line = text.lines().next().unwrap_or("").trim();
+    first_line.chars().take(MAX_REASON_CHARS).collect()
+}
+
+/// The 503 an inference route returns while [`AppState::not_ready_reason`] is set.
+fn not_ready_response(reason: &str) -> Response {
+    let body = Json(serde_json::json!({
+        "error": {
+            "message": format!("Model not ready: {reason}"),
+            "type": "server_error",
+        }
+    }));
+    (StatusCode::SERVICE_UNAVAILABLE, body).into_response()
 }
 
 /// Environment variable that supplies (and overrides) the bearer token.
@@ -85,9 +124,38 @@ pub const TOKEN_ENV_VAR: &str = "PCAI_INFERENCE_TOKEN";
 /// address, if the configuration is unsafe or the socket cannot be bound; it never falls back to
 /// another port.
 pub async fn run_server(
-    mut config: ServerConfig,
+    config: ServerConfig,
     router_config: RouterConfig,
     backend: Box<dyn InferenceBackend>,
+) -> Result<()> {
+    serve(config, router_config, backend, false).await
+}
+
+/// Like [`run_server`], but first proves the loaded model can generate.
+///
+/// One short deterministic request runs through [`crate::backends::probe_or_unload`] before the
+/// socket is bound. If it fails, the failure is logged in full, the model is unloaded, and the
+/// server still starts so a supervisor can see why: `GET /health` answers 503 with
+/// `"status": "not_ready"` and the first line of the error as `"reason"`, and every inference
+/// route answers 503. The process does not exit, and the state is never "ready" after a failed
+/// probe.
+///
+/// # Errors
+///
+/// The same conditions as [`run_server`].
+pub async fn run_server_probed(
+    config: ServerConfig,
+    router_config: RouterConfig,
+    backend: Box<dyn InferenceBackend>,
+) -> Result<()> {
+    serve(config, router_config, backend, true).await
+}
+
+async fn serve(
+    mut config: ServerConfig,
+    router_config: RouterConfig,
+    mut backend: Box<dyn InferenceBackend>,
+    probe: bool,
 ) -> Result<()> {
     config.auth_token = pick_token(std::env::var(TOKEN_ENV_VAR).ok(), config.auth_token.take());
     if config.legacy_cors == Some(true) && config.cors_allowed_origins.is_empty() {
@@ -101,7 +169,16 @@ pub async fn run_server(
 
     let _ = ROUTER_SETTINGS.set(map_router_settings(&router_config));
 
+    let failure = if probe {
+        probe_startup(backend.as_mut()).await
+    } else {
+        None
+    };
     let state = Arc::new(AppState::new(backend));
+    if let Some(reason) = failure {
+        tracing::error!(%reason, "starting not ready: /health reports not_ready and inference returns 503");
+        state.mark_not_ready(reason);
+    }
     let app = build_router(state, &config)?;
 
     let listener = bind_listener(addr).await.map_err(|e| Error::Other(e.into()))?;
@@ -115,6 +192,21 @@ pub async fn run_server(
     axum::serve(listener, app).await.map_err(|e| Error::Other(e.into()))?;
 
     Ok(())
+}
+
+/// Probe a freshly loaded backend. `Some(reason)` means it cannot generate and has been
+/// unloaded; the full error is logged and only its first line is returned.
+async fn probe_startup(backend: &mut dyn InferenceBackend) -> Option<String> {
+    if !backend.is_loaded() {
+        return None;
+    }
+    match crate::backends::probe_or_unload(backend).await {
+        Ok(()) => {
+            tracing::info!("generation probe succeeded; the model is ready");
+            None
+        }
+        Err(error) => Some(public_reason(&error)),
+    }
 }
 
 /// Parse the bind address and validate the security settings against it.
@@ -157,14 +249,32 @@ pub fn build_router(state: Arc<AppState>, config: &ServerConfig) -> Result<Route
 }
 
 /// Health check endpoint
+///
+/// Answers 200 with `"status": "ready"` only when a model is loaded and no startup failure was
+/// recorded. Otherwise it answers 503 with `"status": "not_ready"` and a one-line `"reason"`, so
+/// clients that only look at the HTTP status (every PowerShell caller does) do not treat a server
+/// that cannot generate as healthy. The route is unauthenticated, so the reason is the first line
+/// of the error only.
 async fn health_check(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let backend = state.backend.read().await;
-    let status = if backend.is_loaded() { "ready" } else { "not_ready" };
-
-    Json(serde_json::json!({
-        "status": status,
-        "backend": backend.backend_name(),
-    }))
+    let reason = state.not_ready_reason().or_else(|| {
+        if backend.is_loaded() {
+            None
+        } else {
+            Some("model not loaded".to_string())
+        }
+    });
+    let (code, body) = match reason {
+        None => (
+            StatusCode::OK,
+            serde_json::json!({ "status": "ready", "backend": backend.backend_name() }),
+        ),
+        Some(reason) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            serde_json::json!({ "status": "not_ready", "backend": backend.backend_name(), "reason": reason }),
+        ),
+    };
+    (code, Json(body))
 }
 
 /// OpenAI-compatible models list endpoint
@@ -193,6 +303,9 @@ async fn completions(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CompletionRequest>,
 ) -> std::result::Result<Response, AppError> {
+    if let Some(reason) = state.not_ready_reason() {
+        return Ok(not_ready_response(&reason));
+    }
     let prompt_tokens = estimate_tokens(&req.prompt);
     let stop = req.stop.clone();
     let generate_req = GenerateRequest {
@@ -271,6 +384,9 @@ async fn chat_completions(
         }
     }
 
+    if let Some(reason) = state.not_ready_reason() {
+        return Ok(not_ready_response(&reason));
+    }
     let prompt = build_chat_prompt(&req.messages)?;
     let prompt_tokens = estimate_tokens(&prompt);
 
@@ -1379,9 +1495,7 @@ mod tests {
     }
 
     fn state_with(backend: StubBackend) -> Arc<AppState> {
-        Arc::new(AppState {
-            backend: Arc::new(RwLock::new(Box::new(backend))),
-        })
+        Arc::new(AppState::new(Box::new(backend)))
     }
 
     async fn body_string(response: Response) -> String {
@@ -1431,8 +1545,81 @@ mod tests {
         let response = health_check(State(state_with(StubBackend::unloaded())))
             .await
             .into_response();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
         let body = body_string(response).await;
         assert!(body.contains("\"status\":\"not_ready\""), "body was {body}");
+        assert!(body.contains("\"reason\":\"model not loaded\""), "body was {body}");
+    }
+
+    // Protects the readiness contract: a recorded startup failure beats a loaded model.
+    // Detects /health answering 200 or "ready" after a failed probe, and a reason that leaks
+    // more than the first line (the route is unauthenticated; backtraces carry paths).
+    #[tokio::test]
+    async fn test_health_check_reports_not_ready_with_first_line_reason_after_failed_probe() {
+        let state = state_with(StubBackend::loaded("hi"));
+        state.mark_not_ready(public_reason(
+            &"device mismatch in rms-norm\n   0: backtrace frame\n   1: C:\\secret\\path",
+        ));
+        let response = health_check(State(state)).await.into_response();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        let body = body_string(response).await;
+        assert!(body.contains("\"status\":\"not_ready\""), "body was {body}");
+        assert!(body.contains("device mismatch in rms-norm"), "body was {body}");
+        assert!(
+            !body.contains("backtrace") && !body.contains("secret"),
+            "body was {body}"
+        );
+    }
+
+    // Protects inference routes from serving after a failed probe (they used to answer 500 on
+    // every request while /health said ready). Detects a missing gate on either route.
+    #[tokio::test]
+    async fn test_inference_routes_return_503_with_reason_when_not_ready() {
+        let state = state_with(StubBackend::loaded("hi"));
+        state.mark_not_ready("device mismatch in rms-norm");
+
+        let completion = completions(
+            State(state.clone()),
+            Json(completion_req(serde_json::json!({"prompt": "p"}))),
+        )
+        .await
+        .expect("test: a not-ready response is not an AppError");
+        assert_eq!(completion.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert!(body_string(completion).await.contains("device mismatch in rms-norm"));
+
+        let chat = chat_completions(
+            State(state),
+            Json(chat_req(
+                serde_json::json!({"messages": [{"role": "user", "content": "hi"}]}),
+            )),
+        )
+        .await
+        .expect("test: a not-ready response is not an AppError");
+        assert_eq!(chat.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert!(body_string(chat).await.contains("device mismatch in rms-norm"));
+    }
+
+    // Protects the startup probe wiring: a backend whose first generation fails ends up unloaded
+    // with a one-line reason, and a healthy one is left alone. Detects probing the wrong state.
+    #[tokio::test]
+    async fn test_probe_startup_reports_failure_and_unloads() {
+        let mut failing = StubBackend::failing("device mismatch in rms-norm\nstack frame 0");
+        let reason = probe_startup(&mut failing)
+            .await
+            .expect("test: a failing backend must not be ready");
+        assert!(reason.contains("device mismatch in rms-norm"), "{reason}");
+        assert!(!reason.contains("stack frame"), "{reason}");
+        assert!(!failing.is_loaded(), "a failed probe must unload the model");
+
+        let mut healthy = StubBackend::loaded("ok");
+        assert!(probe_startup(&mut healthy).await.is_none());
+        assert!(healthy.is_loaded());
+
+        let mut unloaded = StubBackend::unloaded();
+        assert!(
+            probe_startup(&mut unloaded).await.is_none(),
+            "nothing to probe is not a probe failure"
+        );
     }
 
     #[tokio::test]

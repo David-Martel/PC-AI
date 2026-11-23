@@ -124,11 +124,32 @@ pub struct MistralRsBackend {
 
 ### Device Selection
 
-The backend automatically selects the best available device:
+`backend.device` in the configuration selects where the model runs. The accepted values are defined once,
+by `DeviceSpec` in `src/config.rs`, and shared by the `pcai-mistralrs` binary and the backend:
 
-1. **Windows**: Always uses CPU (due to bindgen_cuda issues)
-2. **Linux/WSL2**: Prefers CUDA if available, falls back to CPU
-3. **macOS**: Uses Metal if compiled with `metal` feature, otherwise CPU
+| Value | Behaviour |
+|---|---|
+| unset, `""`, `auto` | CUDA when the build has it (`cuda-mistralrs`) and device 0 initializes; otherwise CPU. A Windows build without CUDA uses CPU. |
+| `cpu` | CPU, even when CUDA is available. |
+| `cuda:0` | CUDA device 0. Never falls back: a build without CUDA, or a device that fails to initialize, stops the load with an error naming the cause. |
+| `cuda:N`, N > 0 | Refused at load. mistral.rs 0.8.1 resolves the device for its GGUF and text builders without looking at `with_device`, so it can only load on CUDA device 0. Start the process with `CUDA_VISIBLE_DEVICES=N` and use `cuda:0`. |
+
+Any other string is a configuration error that lists the accepted forms.
+
+### Readiness
+
+`pcai-mistralrs` runs one short deterministic generation (a few tokens, temperature 0) after the model loads,
+before it binds the socket. mistral.rs 0.8.1 has no warm-up result to read, and loading the weights proves
+nothing about the first forward pass: a model whose layers are split between the CPU and a GPU loads, then
+fails every request with `device mismatch in rms-norm`. If the probe fails the server logs the full error,
+unloads the model and still starts, so a supervisor can see why:
+
+- `GET /health` answers `503` with `{"status":"not_ready","reason":"<first line of the error>"}`. The route is
+  unauthenticated, so the reason is one line; the backtrace stays in the log.
+- Every inference route answers `503` (after the bearer-token check, which still runs first).
+
+`GET /health` answers `200` with `"status":"ready"` only after the probe passes. It answered `200` with
+`not_ready` before, which clients that only check the HTTP status (the PowerShell callers) read as healthy.
 
 ### Response Mapping
 

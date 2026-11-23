@@ -1100,22 +1100,183 @@ fn verbatim_path(path: &Path) -> Option<PathBuf> {
 /// Attempts to find an unused staging name before giving up.
 const STAGING_ATTEMPTS: u32 = 8;
 
+/// A staging file this process created: its path and the identity of the file
+/// object behind it when it was created.
+///
+/// The path alone does not say whose bytes are there: another writer can rename a
+/// file over it.  Cleanup therefore goes through [`discard_staging`], which deletes
+/// the path only while it still holds this identity.  Dereferences to the path.
+struct StagedFile {
+    path: PathBuf,
+    identity: FileIdentity,
+}
+
+impl AsRef<Path> for StagedFile {
+    fn as_ref(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl std::ops::Deref for StagedFile {
+    type Target = Path;
+
+    fn deref(&self) -> &Path {
+        &self.path
+    }
+}
+
+/// Which file object a path or handle refers to: volume and file index (Windows
+/// `GetFileInformationByHandle`), device and inode (Unix).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct FileIdentity {
+    volume: u64,
+    index: u64,
+}
+
+#[cfg(unix)]
+fn identity_of_file(file: &File) -> io::Result<FileIdentity> {
+    use std::os::unix::fs::MetadataExt;
+    let metadata = file.metadata()?;
+    Ok(FileIdentity {
+        volume: metadata.dev(),
+        index: metadata.ino(),
+    })
+}
+
+/// Identity of whatever is at `path`, without following a symlink.
+#[cfg(unix)]
+fn identity_at(path: &Path) -> io::Result<FileIdentity> {
+    use std::os::unix::fs::MetadataExt;
+    let metadata = fs::symlink_metadata(path)?;
+    Ok(FileIdentity {
+        volume: metadata.dev(),
+        index: metadata.ino(),
+    })
+}
+
+#[cfg(windows)]
+fn identity_of_file(file: &File) -> io::Result<FileIdentity> {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Storage::FileSystem::{GetFileInformationByHandle, BY_HANDLE_FILE_INFORMATION};
+    // SAFETY: an all-zero BY_HANDLE_FILE_INFORMATION is a valid value to overwrite.
+    let mut info: BY_HANDLE_FILE_INFORMATION = unsafe { std::mem::zeroed() };
+    // SAFETY: the handle is valid while `file` is borrowed and `info` is a valid
+    // out pointer for the call.
+    if unsafe { GetFileInformationByHandle(file.as_raw_handle(), &mut info) } == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(FileIdentity {
+        volume: u64::from(info.dwVolumeSerialNumber),
+        index: (u64::from(info.nFileIndexHigh) << 32) | u64::from(info.nFileIndexLow),
+    })
+}
+
+/// Identity of whatever is at `path`; a reparse point is opened, not followed.  A
+/// directory cannot be opened this way and is reported as an error.
+#[cfg(windows)]
+fn identity_at(path: &Path) -> io::Result<FileIdentity> {
+    use std::fs::OpenOptions;
+    use std::os::windows::fs::OpenOptionsExt;
+    const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+    let file = OpenOptions::new()
+        .read(true)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(path)?;
+    identity_of_file(&file)
+}
+
+#[cfg(not(any(unix, windows)))]
+fn identity_of_file(_file: &File) -> io::Result<FileIdentity> {
+    Ok(FileIdentity { volume: 0, index: 0 })
+}
+
+#[cfg(not(any(unix, windows)))]
+fn identity_at(path: &Path) -> io::Result<FileIdentity> {
+    fs::symlink_metadata(path).map(|_| FileIdentity { volume: 0, index: 0 })
+}
+
 /// Encode `image` into a fresh, exclusively created staging file next to
 /// `dest` and flush it to disk.  Any failure removes the staging file.
 fn stage_image(
     image: &image::RgbImage,
     dest: &Path,
     encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
-) -> io::Result<PathBuf> {
-    let (staged, mut file) = create_staging_file(dest)?;
-    let written = encode(image, &mut file).and_then(|()| file.sync_all());
+) -> io::Result<StagedFile> {
+    let (path, mut file) = create_staging_file(dest)?;
+    let written = encode(image, &mut file)
+        .and_then(|()| file.sync_all())
+        .and_then(|()| identity_of_file(&file));
     drop(file);
     match written {
-        Ok(()) => Ok(staged),
+        Ok(identity) => Ok(StagedFile { path, identity }),
         Err(error) => {
-            let _ = fs::remove_file(&staged);
+            // The file was created a moment ago by this call; nothing else has it.
+            let _ = fs::remove_file(&path);
             Err(error)
         }
+    }
+}
+
+/// Remove the staging file after a failed or abandoned publish, but only if it is
+/// still ours; return a note for the caller's error when something was kept.
+///
+/// - the path holds the file this process created: it is deleted, `None`;
+/// - the path is gone: nothing to do, `None`;
+/// - the path holds anything else, or its identity cannot be read: that is
+///   somebody's data and is NEVER deleted.  It is moved to a
+///   `.pcai-<hex>.rescued` name beside it (never over an existing file) and the
+///   note names that path; if the move fails the file stays where it is and the
+///   note names the staging path.
+fn discard_staging(staged: &StagedFile) -> Option<String> {
+    discard_staging_with(staged, rescue_move)
+}
+
+#[cfg(any(unix, windows))]
+fn rescue_move(from: &Path, to: &Path) -> io::Result<()> {
+    move_without_replacing(from, to)
+}
+
+#[cfg(not(any(unix, windows)))]
+fn rescue_move(from: &Path, to: &Path) -> io::Result<()> {
+    fs::rename(from, to)
+}
+
+/// [`discard_staging`] with the rescue move injected, so tests can make it fail.
+fn discard_staging_with(staged: &StagedFile, rescue: impl FnOnce(&Path, &Path) -> io::Result<()>) -> Option<String> {
+    match identity_at(&staged.path) {
+        Ok(found) if found == staged.identity => match fs::remove_file(&staged.path) {
+            Ok(()) => None,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => None,
+            Err(error) => Some(format!(
+                "the staging file {} could not be removed ({error})",
+                staged.path.display()
+            )),
+        },
+        Err(error) if error.kind() == io::ErrorKind::NotFound => None,
+        _ => {
+            let rescued = staged
+                .path
+                .with_file_name(format!(".pcai-{:016x}.rescued", rand::random::<u64>()));
+            Some(match rescue(&staged.path, &rescued) {
+                Ok(()) => format!(
+                    "a file that is not the generated image was found at the staging path {} and was kept at {}",
+                    staged.path.display(),
+                    rescued.display()
+                ),
+                Err(error) => format!(
+                    "a file that is not the generated image was found at {} and was left there ({error})",
+                    staged.path.display()
+                ),
+            })
+        }
+    }
+}
+
+/// `error` with `note` (from [`discard_staging`]) appended.
+fn with_note(error: io::Error, note: Option<String>) -> io::Error {
+    match note {
+        Some(note) => io::Error::new(error.kind(), format!("{error}; {note}")),
+        None => error,
     }
 }
 
@@ -1256,8 +1417,8 @@ fn publish_staged_with(
 /// - absent: new-file permissions, then [`move_without_replacing`]; a file that
 ///   appears in the meantime is never overwritten ("not overwritten" error);
 /// - existing regular file: its mode, group and ACL handling, then
-///   [`replace_existing`], which holds the probe's file type and identity (device
-///   and inode) against what is actually replaced;
+///   [`replace_existing`], which re-checks the probe's file type and identity
+///   (device and inode) just before a plain rename;
 /// - any other probe error, or an existing destination that is not a regular file
 ///   (a symlink, a directory, a device): the publish fails before anything is
 ///   changed.
@@ -1292,102 +1453,38 @@ fn publish_staged_checked(
 
 /// Replace `dest`, a regular file at the probe (`validated`), with `staged`.
 ///
-/// Linux swaps the two names with `renameat2(RENAME_EXCHANGE)`, which, unlike
-/// `rename`, fails with `ENOENT` if `dest` has vanished (so a vanished target is
-/// not recreated), and then checks what landed at the staging name
-/// ([`finish_exchange`]).  The exchange is used for that existence guarantee: a
-/// plain `rename(2)` would create the file if the target had gone.  The kernel
-/// allows exchanging objects of different types, so the check is what keeps a
-/// directory, a symlink or another writer's file from being displaced.
+/// A plain `rename(2)`, after one more look at `dest`: it must still be the
+/// regular file that was validated (same device and inode, not a symlink), else
+/// the publish fails ("changed" if something else is there, "disappeared" if
+/// nothing is) and nothing has been touched.
 ///
-/// Where the kernel or the filesystem lacks the flag, and on other Unix systems,
-/// the fallback is a plain `rename`.  It is atomic and the kernel refuses to
-/// rename a file over a directory, but it does NOT detect a target that vanished
-/// or was swapped for another file or a symlink in the gap: it replaces whatever
-/// regular file or symlink is at `dest`, or creates the file if nothing is.
+/// There is deliberately no `renameat2(RENAME_EXCHANGE)`.  It would make a vanished
+/// target fail atomically, but the kernel lets it swap objects of different types,
+/// which needs a rollback, and a rollback that fails or is contended leaves an
+/// object that is not ours at the staging path.  A failed `rename` changes
+/// nothing: afterwards the staging path still holds our own file and `dest` is
+/// as it was, so cleanup has nothing to get wrong.
+///
+/// What the primitive enforces: the rename is atomic, and the kernel refuses to
+/// rename a file over a directory (`EISDIR`).  What it does NOT: the look at `dest`
+/// and the rename are two steps, so a target that vanishes, or is swapped for
+/// another regular file or a symlink, in that gap is not detected; the rename then
+/// replaces that file or symlink (never follows it) or creates `dest`.  That is
+/// the same window every rename-based atomic save has.
 #[cfg(unix)]
 fn replace_existing(staged: &Path, dest: &Path, validated: &fs::Metadata) -> io::Result<()> {
-    #[cfg(target_os = "linux")]
-    {
-        match exchange_names(staged, dest) {
-            Ok(()) => return finish_exchange(staged, dest, validated),
-            Err(error) if error.raw_os_error() == Some(libc::ENOENT) => return Err(disappeared(dest)),
-            Err(error) if is_unsupported(&error) => {}
-            Err(error) => return Err(error),
-        }
-    }
-    #[cfg(not(target_os = "linux"))]
-    let _ = validated;
-    fs::rename(staged, dest)
-}
-
-/// After a successful exchange the replaced object is at `staged`.  If it is the
-/// regular file validated at the probe (same device and inode) it is removed and the
-/// publish is done.  Otherwise something else was at `dest`: it is exchanged back,
-/// the publish fails, and nothing is deleted.
-///
-/// If the exchange back itself fails the other object is moved to a
-/// `.pcai-<hex>.kept` name beside `dest` so that the cleanup of the staging name
-/// cannot delete it, and the error says where it is.
-#[cfg(target_os = "linux")]
-fn finish_exchange(staged: &Path, dest: &Path, validated: &fs::Metadata) -> io::Result<()> {
     use std::os::unix::fs::MetadataExt;
-    let validated_object = matches!(
-        fs::symlink_metadata(staged),
-        Ok(landed) if landed.is_file() && landed.dev() == validated.dev() && landed.ino() == validated.ino()
-    );
-    if validated_object {
-        if let Err(error) = fs::remove_file(staged) {
-            tracing::warn!(
-                staging = %staged.display(),
-                %error,
-                "published, but the replaced file could not be removed from the staging name"
-            );
+    match fs::symlink_metadata(dest) {
+        Ok(now) if now.is_file() && now.dev() == validated.dev() && now.ino() == validated.ino() => {
+            fs::rename(staged, dest)
         }
-        return Ok(());
-    }
-    match exchange_names(staged, dest) {
-        Ok(()) => Err(io::Error::other(format!(
+        Ok(_) => Err(io::Error::other(format!(
             "{} changed while the image was being published (it is no longer the file that was checked); \
-             it was left in place and nothing was published",
+             nothing was published",
             dest.display()
         ))),
-        Err(back) => {
-            let aside = staged.with_file_name(format!(".pcai-{:016x}.kept", rand::random::<u64>()));
-            let kept = match move_without_replacing(staged, &aside) {
-                Ok(()) => aside,
-                Err(_) => staged.to_path_buf(),
-            };
-            Err(io::Error::other(format!(
-                "{} changed while the image was being published and could not be put back ({back}); \
-                 the object that was there is at {}",
-                dest.display(),
-                kept.display()
-            )))
-        }
-    }
-}
-
-/// `renameat2(RENAME_EXCHANGE)`: swap two existing names atomically.
-#[cfg(target_os = "linux")]
-fn exchange_names(first: &Path, second: &Path) -> io::Result<()> {
-    use std::os::unix::ffi::OsStrExt;
-    let first = CString::new(first.as_os_str().as_bytes()).map_err(io::Error::other)?;
-    let second = CString::new(second.as_os_str().as_bytes()).map_err(io::Error::other)?;
-    // SAFETY: both strings are NUL-terminated and outlive the call.
-    let status = unsafe {
-        libc::renameat2(
-            libc::AT_FDCWD,
-            first.as_ptr(),
-            libc::AT_FDCWD,
-            second.as_ptr(),
-            libc::RENAME_EXCHANGE,
-        )
-    };
-    if status == 0 {
-        Ok(())
-    } else {
-        Err(io::Error::last_os_error())
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Err(disappeared(dest)),
+        Err(error) => Err(error),
     }
 }
 
@@ -1781,10 +1878,18 @@ fn create_private_file(path: &Path) -> io::Result<File> {
 /// Stage and publish in one step, for the synchronous paths that cannot be
 /// cancelled but must still never leave a partial destination.
 fn write_image_atomically(image: &image::RgbImage, dest: &Path) -> io::Result<()> {
+    write_image_atomically_with(image, dest, publish_staged)
+}
+
+/// [`write_image_atomically`] with the publish step injected, so tests can make it
+/// fail.  A failed publish goes through [`discard_staging`], never a bare unlink.
+fn write_image_atomically_with(
+    image: &image::RgbImage,
+    dest: &Path,
+    publish: impl FnOnce(&Path, &Path) -> io::Result<()>,
+) -> io::Result<()> {
     let staged = stage_image(image, dest, encode_for(dest))?;
-    publish_staged(&staged, dest).inspect_err(|_| {
-        let _ = fs::remove_file(&staged);
-    })
+    publish(&staged.path, dest).map_err(|error| with_note(error, discard_staging(&staged)))
 }
 
 /// Run one queued async generation request to a terminal status.
@@ -1860,13 +1965,13 @@ fn execute_async_request_staged(
 
     // Commit to publishing under the lock, then rename without it.
     if !begin_publish(id) {
-        let _ = fs::remove_file(&staged);
+        let _ = discard_staging(&staged);
         return;
     }
     let terminal = match publish(&staged, dest) {
         Ok(()) => MediaRequestStatus::Complete(output_path),
         Err(e) => {
-            let _ = fs::remove_file(&staged);
+            let e = with_note(e, discard_staging(&staged));
             MediaRequestStatus::Failed(format!("Save failed: {e}"))
         }
     };
@@ -3948,7 +4053,7 @@ mod tests {
 
         let staged = stage_image(&image::RgbImage::new(2, 2), &dest, encode_for(&dest)).expect("stage");
         let deny = std::process::Command::new("icacls")
-            .arg(&staged)
+            .arg(&staged.path)
             .args(["/deny", &format!("{user}:(WDAC)")])
             .output()
             .expect("run icacls");
@@ -4766,13 +4871,12 @@ mod tests {
 
     // Protects: a directory that takes the destination's name after validation is never
     //   swapped out of place: the request is Failed, the directory and its contents are
-    //   still at the destination path, and the staging file is removed.  `rename(2)` of a
-    //   file over a directory fails; the exchange primitive does not, so the publish checks
-    //   what it moved and exchanges back.
-    // Detects: an exchange without the type and identity check, which reports success while
-    //   the unrelated directory sits at the staging name (the cleanup cannot remove it).
-    // Needs: Linux (renameat2 RENAME_EXCHANGE); the substitution is injected between the
-    //   validation and the publish.
+    //   still at the destination path, and the staging file is removed.  The destination is
+    //   re-checked just before a plain rename, and the kernel would refuse the rename of a
+    //   file over a directory anyway.
+    // Detects: a publish that skips the re-check and reports a different outcome than the
+    //   explicit "changed" refusal (here the kernel's EISDIR, with no custody message).
+    // Needs: Linux; the substitution is injected between the validation and the publish.
     #[cfg(target_os = "linux")]
     #[test]
     fn test_directory_substituted_after_validation_is_not_exchanged() {
@@ -4805,8 +4909,8 @@ mod tests {
     // Protects: a different regular file that replaces the validated one (another writer,
     //   new inode) is not displaced either: Failed, that file is back at the destination
     //   with its bytes, and the staging file is removed.
-    // Detects: an exchange that checks only the file type, not the identity (dev and inode)
-    //   recorded at validation.
+    // Detects: a re-check that looks only at the file type, not the identity (dev and inode)
+    //   recorded at validation: a plain rename would replace the other writer's file.
     // Needs: Linux; the substitute is created under another name first and renamed over the
     //   destination, so it cannot reuse the old inode number.
     #[cfg(target_os = "linux")]
@@ -4834,8 +4938,8 @@ mod tests {
     // Protects: a symlink that replaces the destination after validation is neither
     //   followed nor replaced: Failed, the symlink is still at the destination path and still
     //   points at its target, whose bytes are untouched.
-    // Detects: an exchange that accepts anything at the staging name, or a publish that
-    //   writes through the link.
+    // Detects: a re-check that lets a symlink through (a plain rename replaces the link
+    //   itself), or a publish that writes through the link.
     // Needs: Linux; the substitution is injected between validation and publish.
     #[cfg(target_os = "linux")]
     #[test]
@@ -4948,6 +5052,176 @@ mod tests {
         assert!(error.to_string().contains("neither"), "explicit error: {error}");
         assert!(!dest.exists(), "nothing was published");
         assert_eq!(fs::read(&staged).unwrap(), b"first", "the staged file is untouched");
+    }
+
+    /// Stage a small image next to a destination in `dir` and return it.
+    #[cfg(any(unix, windows))]
+    fn staged_in(dir: &Path) -> StagedFile {
+        let dest = dir.join("private.png");
+        stage_image(&image::RgbImage::new(1, 1), &dest, encode_for(&dest)).expect("stage")
+    }
+
+    /// Put another file's bytes at `path` by renaming a new file over it, so the path now
+    /// refers to a different file object (the new file is created while the old one exists,
+    /// so it cannot reuse its identity).
+    #[cfg(any(unix, windows))]
+    fn replace_with_foreign_file(path: &Path, bytes: &[u8]) {
+        let other = path.with_file_name("foreign.tmp");
+        fs::write(&other, bytes).unwrap();
+        fs::rename(&other, path).unwrap();
+    }
+
+    /// The `.pcai-*.rescued` file in `dir`, if any.
+    #[cfg(any(unix, windows))]
+    fn rescued_file(dir: &Path) -> Option<PathBuf> {
+        dir_listing(dir)
+            .into_iter()
+            .find(|name| name.ends_with(".rescued"))
+            .map(|name| dir.join(name))
+    }
+
+    // Protects: cleanup after a failed publish deletes the staging path only while it still
+    //   holds the file this process created, and does nothing if it is already gone.
+    // Detects: a cleanup that leaves our own staging file behind, or that reports a problem
+    //   where there is none.
+    // Needs: Unix or Windows (file identity is read from the OS); no global state.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_discard_staging_removes_the_generated_file_and_tolerates_absence() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = staged_in(tmp.path());
+        assert!(staged.exists());
+        assert_eq!(discard_staging(&staged), None, "an owned file is removed silently");
+        assert!(!staged.exists(), "the generated file is gone");
+        assert_eq!(discard_staging(&staged), None, "an absent staging path is not an error");
+        assert_eq!(dir_listing(tmp.path()), Vec::<String>::new());
+    }
+
+    // Protects: if something other than the generated file is at the staging path (another
+    //   writer renamed a file over it), cleanup never deletes it: the file is moved to a
+    //   `.pcai-<hex>.rescued` name beside it, with its bytes, and the note names that path.
+    // Detects: a cleanup that unlinks by path (the other writer's data would be lost), or
+    //   that drops the identity comparison, or that skips the rescue.
+    // Needs: Unix or Windows; no global state.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_discard_staging_rescues_a_file_that_is_not_the_generated_image() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = staged_in(tmp.path());
+        replace_with_foreign_file(&staged.path, b"somebody else's data");
+        let note = discard_staging(&staged).expect("a note: something was kept");
+        let rescued = rescued_file(tmp.path()).expect("the foreign file was rescued");
+        assert!(
+            note.contains(rescued.to_string_lossy().as_ref()),
+            "the note names {rescued:?}: {note}"
+        );
+        assert_eq!(
+            fs::read(&rescued).unwrap(),
+            b"somebody else's data",
+            "its bytes are intact"
+        );
+        assert!(!staged.exists(), "nothing is left at the staging path");
+        assert_eq!(dir_listing(tmp.path()).len(), 1, "only the rescued file remains");
+    }
+
+    // Protects: if the rescue itself fails, the file that is not ours is left exactly where
+    //   it is (never deleted) and the note names the staging path.
+    // Detects: a cleanup that unlinks after a failed rescue.
+    // Needs: Unix or Windows; the rescue failure is injected; no global state.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_failed_rescue_leaves_the_foreign_file_in_place_and_names_it() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = staged_in(tmp.path());
+        replace_with_foreign_file(&staged.path, b"somebody else's data");
+        let note = discard_staging_with(&staged, |_, _| Err(io::Error::other("injected rescue failure")))
+            .expect("a note: something was kept");
+        assert!(
+            note.contains(staged.path.to_string_lossy().as_ref()),
+            "names the path: {note}"
+        );
+        assert!(note.contains("injected rescue failure"), "gives the reason: {note}");
+        assert_eq!(
+            fs::read(&staged.path).unwrap(),
+            b"somebody else's data",
+            "left in place, intact"
+        );
+        assert_eq!(rescued_file(tmp.path()), None, "no rescue happened");
+    }
+
+    // Protects: on the asynchronous path, a publish that fails after another writer has put a
+    //   file at the staging path does not delete it: the request is Failed, the error names
+    //   the `.rescued` file, which holds the other writer's bytes, and the destination keeps
+    //   its own bytes.
+    // Detects: a caller that unlinks the staging path on any error.
+    // Needs: Unix or Windows; the failure and the foreign file are injected through the
+    //   publish seam.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_async_publish_failure_never_deletes_a_file_that_took_the_staging_path() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let id = register_request(MediaRequestStatus::Pending);
+        let encode = encode_for(&dest);
+        execute_async_request_staged(
+            id,
+            dest.to_string_lossy().into_owned(),
+            mock_image,
+            encode,
+            |staged, _dest| {
+                replace_with_foreign_file(staged, b"somebody else's data");
+                Err(io::Error::other("injected publish failure"))
+            },
+        );
+        let (status, text) = poll_full(id);
+        let text = text.expect("failure message");
+        let rescued = rescued_file(tmp.path()).expect("the foreign file was rescued");
+        assert_eq!(status, 3);
+        assert!(text.contains("injected publish failure"));
+        assert!(
+            text.contains(rescued.to_string_lossy().as_ref()),
+            "the error names {rescued:?}: {text}"
+        );
+        assert_eq!(fs::read(&rescued).unwrap(), b"somebody else's data");
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "the destination is untouched");
+        assert_eq!(
+            dir_listing(tmp.path()).len(),
+            2,
+            "only the destination and the rescued file"
+        );
+    }
+
+    // Protects: the same on the synchronous path.
+    // Detects: a caller that unlinks the staging path on any error.
+    // Needs: Unix or Windows; the failure and the foreign file are injected through the
+    //   publish seam.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_sync_publish_failure_never_deletes_a_file_that_took_the_staging_path() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let error = write_image_atomically_with(&image::RgbImage::new(2, 2), &dest, |staged, _dest| {
+            replace_with_foreign_file(staged, b"somebody else's data");
+            Err(io::Error::other("injected publish failure"))
+        })
+        .expect_err("the publish failed");
+        let rescued = rescued_file(tmp.path()).expect("the foreign file was rescued");
+        let text = error.to_string();
+        assert!(text.contains("injected publish failure"));
+        assert!(
+            text.contains(rescued.to_string_lossy().as_ref()),
+            "the error names {rescued:?}: {text}"
+        );
+        assert_eq!(fs::read(&rescued).unwrap(), b"somebody else's data");
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "the destination is untouched");
+        assert_eq!(
+            dir_listing(tmp.path()).len(),
+            2,
+            "only the destination and the rescued file"
+        );
     }
 
     // Protects: every test that touches the process-wide FFI state takes the serial

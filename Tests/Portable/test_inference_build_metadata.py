@@ -41,7 +41,7 @@ this file in linux-ci.yml's portable-contracts job, which discovers
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 import os
 from pathlib import Path
@@ -104,6 +104,9 @@ HOST_CUDA_PROBES = ('"CUDA_PATH"', '"CUDA_HOME"', '"nvidia-smi"')
 # pcai-inference declares crate-type = ["cdylib", "rlib"]; its kind is never "lib".
 LIBRARY_KINDS = {"lib", "rlib", "cdylib", "dylib", "staticlib"}
 
+# build.rs writes the identity as MARKER + JSON + NUL; build_info_json() returns JSON.
+IDENTITY_MARKER = b"PCAI_BUILD_IDENTITY_V1\0"
+
 # A build script that runs git must declare PATH as a top-level statement of
 # ``main`` (rustfmt indents that by exactly four spaces). A declaration nested in
 # a conditional is the bug: it covers only the builds that take that branch.
@@ -140,6 +143,8 @@ class CheckResult:
     mtime: int
     lib_fresh: bool
     output: str = ""
+    # The JSON frame `--version-json` prints (build_identity.bin, see build.rs).
+    identity: dict[str, object] = field(default_factory=dict)
 
 
 def constant(text: str, name: str) -> str:
@@ -352,11 +357,15 @@ class InferenceWarmRebuild(unittest.TestCase):
         # <target>/<profile>/build/pcai-inference-<hash>/{out,output}: `output`
         # is what the script printed.
         output = out_dir.parent / "output"
+        frame = (out_dir / "build_identity.bin").read_bytes()
+        if not (frame.startswith(IDENTITY_MARKER) and frame.endswith(b"\0")):
+            self.fail("build_identity.bin is not MARKER + JSON + NUL")
         return CheckResult(
             info.read_text(encoding="utf-8"),
             info.stat().st_mtime_ns,
             lib_fresh,
             output.read_text(encoding="utf-8"),
+            json.loads(frame[len(IDENTITY_MARKER) : -1]),
         )
 
     def test_each_metadata_input_change_reaches_the_generated_constants(self):
@@ -447,12 +456,25 @@ class InferenceWarmRebuild(unittest.TestCase):
             constant(without_git.text, "VERSION").endswith("+unknown"),
             "VERSION must carry an explicit +unknown build",
         )
+        self.assertEqual(without_git.identity["git_hash"], "unknown")
+        self.assertEqual(without_git.identity["git_branch"], "unknown")
+        self.assertEqual(
+            without_git.identity["version"], constant(without_git.text, "VERSION")
+        )
 
         with_git = self.check({**same, "PATH": original_path})
         self.assertEqual(
             constant(with_git.text, "GIT_HASH"),
             head,
             "a warm rebuild after git became available kept the stale metadata",
+        )
+        self.assertEqual(
+            with_git.identity["git_hash"],
+            head,
+            "--version-json would still print the stale commit",
+        )
+        self.assertEqual(
+            with_git.identity["version"], constant(with_git.text, "VERSION")
         )
         self.assertEqual(constant(with_git.text, "GIT_HASH_SHORT"), head[:7])
         self.assertIn(head[:7], constant(with_git.text, "VERSION"))
@@ -467,6 +489,7 @@ class InferenceWarmRebuild(unittest.TestCase):
             "unknown",
             "git withdrawn from PATH left the previous commit embedded",
         )
+        self.assertEqual(withdrawn.identity["git_hash"], "unknown")
 
     def test_unchanged_inputs_keep_the_build_cached(self):
         """Negative control: with no input changed, nothing reruns or recompiles.

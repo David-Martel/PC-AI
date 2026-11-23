@@ -1,0 +1,585 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Whole-suite before/after evidence for the Config/test-baseline.json known_failures entries removed by the module-isolation change (#429). It covers the removals outside the files that change edited (PcaiNativeArtifactPairing, PcaiGpuContracts) and, for context, the edited ones.",
+  "run": {
+    "command": "Invoke-Pester over Tests/Unit with Filter.Tag = Portable (the tier Config/test-baseline.json records), one child pwsh per tree, TestResult NUnit3, Output None: Import-Module Pester -MinimumVersion 5.6.1; Set-Location <tree>; New-PesterConfiguration; Run.Path Tests/Unit; Filter.Tag Portable",
+    "pester": "5.7.1",
+    "host": "Windows 11, PowerShell 7.6.7",
+    "treeExtraction": "git archive of each commit into an empty directory, so neither tree carries .git",
+    "before": {
+      "commit": "3b3f1f2d4ca3c298224872e8e5410a61f54edaf6",
+      "description": "origin/main, the parent of the change",
+      "summary": {
+        "passed": 1862,
+        "failed": 115,
+        "skipped": 38,
+        "notRun": 1178,
+        "failedBlocks": 25,
+        "failedContainers": 1
+      },
+      "resultFileSha256": "b0893f9169ddb81475246cd7bebced9a461c0a0b2e8fc1d4a47d5e2a378e95cd",
+      "resultFileBytes": 1920671
+    },
+    "after": {
+      "commit": "b5d6d5acfec88387302f666310db0acbc836c036",
+      "description": "claude/test-module-isolation at the PR #429 head; squash-merged into main as b2026871 with identical content for these files",
+      "summary": {
+        "passed": 1954,
+        "failed": 35,
+        "skipped": 38,
+        "notRun": 1178,
+        "failedBlocks": 0,
+        "failedContainers": 0
+      },
+      "resultFileSha256": "23bcad3fda5bd5d51f51bfa795aac8d5194b0525c1975dde99744e56ffeb3bd6",
+      "resultFileBytes": 1913653
+    }
+  },
+  "removedEntries": [
+    {
+      "file": "Tests/Unit/PC-AI.USB.Tests.ps1",
+      "baselineEntryRemoved": {
+        "tests": 23,
+        "blocks": 12
+      },
+      "beforeCounts": {
+        "Passed": 1,
+        "Failed": 23,
+        "Skipped": 0
+      },
+      "afterCounts": {
+        "Passed": 24,
+        "Failed": 0,
+        "Skipped": 0
+      },
+      "failedBeforePassedAfter": [
+        {
+          "test": "Dismount-UsbFromWSL.When dismounting USB device from WSL.Should accept valid BusId format '2-1' with WhatIf",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Dismount-UsbFromWSL.When dismounting USB device from WSL.Should reject invalid BusId format",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Dismount-UsbFromWSL.When usbipd is not available.Should return error when usbipd not installed",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-UsbDeviceList.When no USB devices are connected.Should handle no devices gracefully",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-UsbDeviceList.When usbipd is available.Should have Source property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-UsbDeviceList.When usbipd is not installed.Should fall back to Get-CimInstance",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-UsbDeviceList.When usbipd is not installed.Should return USB devices from CIM",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-UsbWSLStatus.When checking USB/WSL status.Should have Severity property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-UsbWSLStatus.When checking USB/WSL status.Should have UsbDevices property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-UsbWSLStatus.When checking USB/WSL status.Should have WSLDistributions property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-UsbWSLStatus.When checking USB/WSL status.Should return status object",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Invoke-UsbBind.When binding USB device.Should accept valid BusId format '2-1' with WhatIf",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Invoke-UsbBind.When binding USB device.Should reject invalid BusId format",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Invoke-UsbBind.When binding USB device.Should support Force parameter with WhatIf",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Invoke-UsbBind.When not running as Administrator.Should return error requiring Administrator privileges",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Invoke-UsbBind.When usbipd is not available.Should return error when usbipd not installed",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Mount-UsbToWSL.When mounting USB device to WSL.Should accept valid BusId format '2-1' with WhatIf",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Mount-UsbToWSL.When mounting USB device to WSL.Should reject invalid BusId format 'abc'",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Mount-UsbToWSL.When mounting USB device to WSL.Should reject invalid BusId format 'invalid'",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Mount-UsbToWSL.When mounting USB device to WSL.Should support Distribution parameter with WhatIf",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Mount-UsbToWSL.When usbipd is not available.Should return error when usbipd not installed",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Test-UsbIpdInstalled (Private Function).When checking usbipd availability.Should return true when usbipd is available",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Test-UsbIpdInstalled (Private Function).When usbipd is not installed.Should return false when usbipd is not available",
+          "before": "Failed",
+          "after": "Passed"
+        }
+      ],
+      "failedBeforeNotPassedAfter": []
+    },
+    {
+      "file": "Tests/Unit/PC-AI.Virtualization.Tests.ps1",
+      "baselineEntryRemoved": {
+        "tests": 38,
+        "blocks": 13
+      },
+      "beforeCounts": {
+        "Passed": 0,
+        "Failed": 38,
+        "Skipped": 0
+      },
+      "afterCounts": {
+        "Passed": 38,
+        "Failed": 0,
+        "Skipped": 0
+      },
+      "failedBeforePassedAfter": [
+        {
+          "test": "Backup-WSLConfig.When .wslconfig does not exist.Should not call Copy-Item",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Backup-WSLConfig.When .wslconfig does not exist.Should return null",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Backup-WSLConfig.When .wslconfig exists.Should call Copy-Item",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Backup-WSLConfig.When .wslconfig exists.Should return backup path",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Backup-WSLConfig.When custom path is specified.Should use custom path",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-DockerStatus.When Docker Desktop is not installed.Should return result with Installed = false",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-DockerStatus.When Docker Desktop is running.Should have Installed property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-DockerStatus.When Docker Desktop is running.Should have Running property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-DockerStatus.When Docker Desktop is running.Should have Severity property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-DockerStatus.When Docker Desktop is running.Should return a PSCustomObject",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-HyperVStatus.When Hyper-V is disabled.Should return result with Enabled = false",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-HyperVStatus.When Hyper-V is enabled.Should have Enabled property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-HyperVStatus.When Hyper-V is enabled.Should have Services property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-HyperVStatus.When Hyper-V is enabled.Should have Severity property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-HyperVStatus.When Hyper-V is enabled.Should return a PSCustomObject",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-HyperVStatus.When running on Windows Home (no Hyper-V feature).Should return result with Installed = false",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-WSLStatus.When WSL is installed and running.Should have Distributions property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-WSLStatus.When WSL is installed and running.Should have Installed property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-WSLStatus.When WSL is installed and running.Should have Severity property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-WSLStatus.When WSL is installed and running.Should have WSLConfigPath property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-WSLStatus.When WSL is installed and running.Should return a PSCustomObject",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Get-WSLStatus.When WSL is not installed.Should return result with Installed = false",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Optimize-WSLConfig.When .wslconfig does not exist.Should create new config with -WhatIf",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Optimize-WSLConfig.When running in DryRun mode.Should have Config property with content",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Optimize-WSLConfig.When running in DryRun mode.Should have Memory property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Optimize-WSLConfig.When running in DryRun mode.Should have Processors property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Optimize-WSLConfig.When running in DryRun mode.Should return result without modifying files",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Optimize-WSLConfig.When specifying custom values.Should accept custom Memory value",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Optimize-WSLConfig.When specifying custom values.Should accept custom Processors value",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Repair-WSLNetworking.When repairing WSL networking.Should have Errors property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Repair-WSLNetworking.When repairing WSL networking.Should have NetworkStackReset property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Repair-WSLNetworking.When repairing WSL networking.Should have VirtualSwitchFixed property",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Repair-WSLNetworking.When repairing WSL networking.Should return PSCustomObject",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Repair-WSLNetworking.When running with -WhatIf.Should not make changes",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Set-WSLDefenderExclusions.When Add-MpPreference fails (not admin).Should capture errors in result",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Set-WSLDefenderExclusions.When Add-MpPreference succeeds.Should return PSCustomObject with exclusion lists",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Set-WSLDefenderExclusions.When running with -WhatIf.Should not actually add exclusions",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Set-WSLDefenderExclusions.resolves the owned Defender mock without importing providers or remoting",
+          "before": "Failed",
+          "after": "Passed"
+        }
+      ],
+      "failedBeforeNotPassedAfter": []
+    },
+    {
+      "file": "Tests/Unit/Set-LLMProviderOrder.Tests.ps1",
+      "baselineEntryRemoved": {
+        "tests": 13,
+        "container": true
+      },
+      "beforeCounts": {
+        "Passed": 0,
+        "Failed": 13,
+        "Skipped": 0
+      },
+      "afterCounts": {
+        "Passed": 13,
+        "Failed": 0,
+        "Skipped": 0
+      },
+      "failedBeforePassedAfter": [
+        {
+          "test": "Set-LLMProviderOrder.adds fallbackOrder when absent",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Set-LLMProviderOrder.does not change memory or create files when the config is missing",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Set-LLMProviderOrder.does not publish the new memory order when a real file write fails",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Set-LLMProviderOrder.leaves disk and memory unchanged under WhatIf",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Set-LLMProviderOrder.leaves malformed JSON and memory unchanged",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Set-LLMProviderOrder.supports every runtime provider and legacy alias",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Set-LLMProviderOrder.updates disk and memory while preserving machine configuration and BOM-free JSON",
+          "before": "Failed",
+          "after": "Passed"
+        }
+      ],
+      "failedBeforeNotPassedAfter": [
+        {
+          "test": "Set-LLMProviderOrder.rejects <Label> without changing disk or memory(,\"empty order\")",
+          "before": "Failed",
+          "after": "absent"
+        },
+        {
+          "test": "Set-LLMProviderOrder.rejects <Label> without changing disk or memory(invalid,\"unknown provider\")",
+          "before": "Failed",
+          "after": "absent"
+        },
+        {
+          "test": "Set-LLMProviderOrder.rejects <Label> without changing disk or memory(null,\"null order\")",
+          "before": "Failed",
+          "after": "absent"
+        },
+        {
+          "test": "Set-LLMProviderOrder.rejects <Label> without changing disk or memory(ollama  ,\"whitespace provider\")",
+          "before": "Failed",
+          "after": "absent"
+        },
+        {
+          "test": "Set-LLMProviderOrder.rejects <Label> without changing disk or memory(ollama ,\"empty provider\")",
+          "before": "Failed",
+          "after": "absent"
+        },
+        {
+          "test": "Set-LLMProviderOrder.rejects <Label> without changing disk or memory(ollama invalid,\"mixed known and unknown providers\")",
+          "before": "Failed",
+          "after": "absent"
+        }
+      ],
+      "note": "The container failed in BeforeAll before, so the 6 data-driven cases carry the unexpanded <Label> template in their names and cannot be paired by name. afterCounts shows the same 13 cases passing under expanded names."
+    },
+    {
+      "file": "Tests/Unit/Virtualization-Fallback.Tests.ps1",
+      "baselineEntryRemoved": {
+        "tests": 3
+      },
+      "beforeCounts": {
+        "Passed": 0,
+        "Failed": 3,
+        "Skipped": 0
+      },
+      "afterCounts": {
+        "Passed": 3,
+        "Failed": 0,
+        "Skipped": 0
+      },
+      "failedBeforePassedAfter": [
+        {
+          "test": "Virtualization external script fallback.Invoke-WSLDockerHealthCheck fallback.falls back to Get-WSLEnvironmentHealth when script missing",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Virtualization external script fallback.Invoke-WSLNetworkToolkit fallback.uses health fallback for check mode",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Virtualization external script fallback.Invoke-WSLNetworkToolkit fallback.uses repair fallback for repair mode",
+          "before": "Failed",
+          "after": "Passed"
+        }
+      ],
+      "failedBeforeNotPassedAfter": []
+    },
+    {
+      "file": "Tests/Unit/PcaiNativeArtifactPairing.Tests.ps1",
+      "baselineEntryRemoved": {
+        "tests": 3
+      },
+      "beforeCounts": {
+        "Passed": 9,
+        "Failed": 3,
+        "Skipped": 0
+      },
+      "afterCounts": {
+        "Passed": 12,
+        "Failed": 0,
+        "Skipped": 0
+      },
+      "failedBeforePassedAfter": [
+        {
+          "test": "Initialize-PcaiNative artifact resolution.finds the installed bridge bin under LOCALAPPDATA when Get-Module cannot see the module",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Initialize-PcaiNative artifact resolution.passes the explicit directory wrapper to the managed loader even when the repository has a complete pair",
+          "before": "Failed",
+          "after": "Passed"
+        },
+        {
+          "test": "Initialize-PcaiNative artifact resolution.publishes a wrapper and core from the same directory when an earlier search path holds only a core",
+          "before": "Failed",
+          "after": "Passed"
+        }
+      ],
+      "failedBeforeNotPassedAfter": []
+    },
+    {
+      "file": "Tests/Unit/PcaiGpuContracts.Tests.ps1",
+      "baselineEntryRemoved": {
+        "tests": 1
+      },
+      "beforeCounts": {
+        "Passed": 56,
+        "Failed": 1,
+        "Skipped": 0
+      },
+      "afterCounts": {
+        "Passed": 57,
+        "Failed": 0,
+        "Skipped": 0
+      },
+      "failedBeforePassedAfter": [
+        {
+          "test": "GPU installer public early-exit contracts.rejects an absent registry component before any download or installer",
+          "before": "Failed",
+          "after": "Passed"
+        }
+      ],
+      "failedBeforeNotPassedAfter": []
+    }
+  ],
+  "failuresBeforeByFile": {
+    "EnrichedSystemPromptMetrics.Tests.ps1": 31,
+    "PC-AI.USB.Tests.ps1": 23,
+    "PC-AI.Virtualization.Tests.ps1": 38,
+    "PcaiGpuContracts.Tests.ps1": 1,
+    "PcaiNativeArtifactPairing.Tests.ps1": 3,
+    "PcaiNativeInitializationContracts.Tests.ps1": 1,
+    "PerformanceConsumerContracts.Tests.ps1": 1,
+    "Set-LLMProviderOrder.Tests.ps1": 13,
+    "ToolingBenchmarks.Tests.ps1": 1,
+    "Virtualization-Fallback.Tests.ps1": 3
+  },
+  "failuresAfterByFile": {
+    "EnrichedSystemPromptMetrics.Tests.ps1": 31,
+    "PC-AI.Media.Tests.ps1": 1,
+    "PcaiNativeInitializationContracts.Tests.ps1": 1,
+    "PerformanceConsumerContracts.Tests.ps1": 1,
+    "ToolingBenchmarks.Tests.ps1": 1
+  },
+  "remainingNote": "Config/test-baseline.json still allows EnrichedSystemPromptMetrics 31, PcaiNativeInitializationContracts 1 and PerformanceConsumerContracts 1. Two other failures are artifacts of how this evidence was produced and are not baseline entries: ToolingBenchmarks fails in both git archive trees (no .git directory) and passed in the in-repo Portable run of the same head (1895 passed, 33 failed); PC-AI.Media failed once, in the after tree only, because the before and after runs executed at the same time and that file writes the fixed path %TEMP%/pcai_upscale_in.png (Tests/Unit/PC-AI.Media.Tests.ps1:705). Run alone in the after tree it passes 83 of 83.",
+  "resultFiles": "The two NUnit3 files (about 1.9 MB each) are not committed; the SHA-256 above identifies them and the per-test rows are extracted from them."
+}

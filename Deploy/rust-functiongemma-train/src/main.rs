@@ -814,8 +814,7 @@ fn main() -> Result<()> {
                 None => None,
             };
             let total = max_samples.map(|v| v.min(dataset.len())).unwrap_or(dataset.len());
-            for i in 0..total {
-                let item = &dataset.items[i];
+            for (i, item) in dataset.items.iter().take(total).enumerate() {
                 // For eval, we want to prompt with all messages EXCEPT the last model response
                 let mut eval_item = item.clone();
                 if let Some(last) = eval_item.messages.last() {
@@ -844,7 +843,7 @@ fn main() -> Result<()> {
 
                 if !quiet {
                     println!("\nTest Case {}:", i + 1);
-                    let user_text = item.messages.get(0).and_then(|m| m.content.as_deref()).unwrap_or("");
+                    let user_text = item.messages.first().and_then(|m| m.content.as_deref()).unwrap_or("");
                     println!("User: {}", user_text);
                 }
 
@@ -878,7 +877,7 @@ fn main() -> Result<()> {
                     let output_len = output_ids.len();
                     let record = json!({
                         "index": i,
-                        "user": item.messages.get(0).and_then(|m| m.content.as_deref()).unwrap_or(""),
+                        "user": item.messages.first().and_then(|m| m.content.as_deref()).unwrap_or(""),
                         "expected": expected_text,
                         "output": output_text,
                         "output_raw": output_raw,
@@ -996,7 +995,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn write_tokenizer_metadata(model_dir: &PathBuf, output_dir: &PathBuf) -> Result<()> {
+fn write_tokenizer_metadata(model_dir: &Path, output_dir: &Path) -> Result<()> {
     std::fs::create_dir_all(output_dir)?;
 
     let tokenizer_src = model_dir.join("tokenizer.json");

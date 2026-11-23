@@ -9,9 +9,11 @@ fn test_peft_adapter_config_format() {
     }
 }
 
+// Protects the expected two-file PEFT fixture inventory.
+// Detects accidental changes to the number of fixture entries.
+// Needs only literal names. Breadcrumb: trainer::Trainer::save_peft_adapter.
 #[test]
 fn test_peft_output_directory_structure() {
-    // Test expected file names
-    let expected_files = vec!["adapter_config.json", "adapter_model.safetensors"];
+    let expected_files = ["adapter_config.json", "adapter_model.safetensors"];
     assert_eq!(expected_files.len(), 2);
 }

@@ -6,10 +6,6 @@ use hf_hub::{api::sync::Api, Repo, RepoType};
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "model")]
-#[expect(
-    dead_code,
-    reason = "model path resolution helper; exported for the router runtime but not yet called when only the default feature set is active"
-)]
 pub fn resolve_model_path(model_id: &str) -> Result<PathBuf> {
     let p = PathBuf::from(model_id);
 
@@ -104,7 +100,12 @@ mod tests {
         std::fs::remove_dir_all(&base).ok();
     }
 
+    // Protects: the resolver handles a missing local path through its Hub fallback.
+    // Detects: a panic while setting up or attempting remote fallback.
+    // Needs: Hugging Face network access. This smoke is opt-in so portable CI stays offline.
+    // Breadcrumb: resolve_model_path, Hugging Face Hub fallback.
     #[test]
+    #[ignore = "requires the Hugging Face network fallback"]
     fn test_resolve_nonexistent_returns_error_or_fallback() {
         // With no HF token, this should either find nothing locally
         // or fail on HF download - just verify it doesn't panic

@@ -1,17 +1,19 @@
 use crate::config::{default_model, router_engine};
 use crate::error::ErrorResponse;
-use crate::metrics::{router_metadata, router_stats, system_metrics};
+use crate::metrics::{router_metadata, router_stats, system_metrics, MODEL_FALLBACKS};
 use crate::routing::{heuristic_route, last_user_message, parse_router_prompt};
 use crate::types::{
     AppState, ChatCompletionChunk, ChatCompletionRequest, ChatCompletionResponse, Choice, ChunkChoice, ChunkDelta,
-    HealthResponse, Message, ModelInfo, ModelList, RouterEngine, Usage,
+    HealthResponse, InferenceResult, Message, ModelInfo, ModelList, RouterEngine, Usage,
 };
 use axum::{
     extract::State,
+    http::HeaderValue,
     response::{IntoResponse, Response},
     Json,
 };
 use serde_json::{json, Value};
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -122,21 +124,42 @@ pub(crate) async fn chat(State(state): State<Arc<AppState>>, Json(req): Json<Cha
         return e.into_response();
     }
 
-    if req.stream {
-        return chat_stream(req).into_response();
-    }
-    chat_normal(req).into_response()
+    let (result, engine) = route_request(&req);
+    let mut response = if req.stream {
+        chat_stream(req, result).into_response()
+    } else {
+        chat_normal(req, result).into_response()
+    };
+    response
+        .headers_mut()
+        .insert("x-pcai-router-engine", HeaderValue::from_static(engine));
+    response
 }
 
-pub(crate) fn chat_normal(req: ChatCompletionRequest) -> Result<Json<ChatCompletionResponse>, ErrorResponse> {
+fn route_request(req: &ChatCompletionRequest) -> (InferenceResult, &'static str) {
+    let engine = if router_engine() == RouterEngine::Model {
+        #[cfg(feature = "model")]
+        match crate::inference::infer_with_model(req) {
+            Ok(result) => return (result, "model"),
+            Err(err) => tracing::warn!("model inference failed, falling back to heuristic: {err}"),
+        }
+        #[cfg(not(feature = "model"))]
+        tracing::warn!("model engine requested but runtime built without model feature; using heuristic");
+        MODEL_FALLBACKS.fetch_add(1, Ordering::Relaxed);
+        "heuristic-fallback"
+    } else {
+        "heuristic"
+    };
+    let message_text = last_user_message(&req.messages).unwrap_or_default();
+    (heuristic_route(req, &parse_router_prompt(message_text)), engine)
+}
+
+fn chat_normal(req: ChatCompletionRequest, result: InferenceResult) -> Json<ChatCompletionResponse> {
     let model = req.model.clone().unwrap_or_else(default_model);
     let created = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
-    let message_text = last_user_message(&req.messages).unwrap_or_default();
-    let prompt = parse_router_prompt(message_text);
-
     // Estimate prompt tokens
     let prompt_tokens = req
         .messages
@@ -144,27 +167,6 @@ pub(crate) fn chat_normal(req: ChatCompletionRequest) -> Result<Json<ChatComplet
         .filter_map(|m| m.content.as_ref())
         .map(|c| estimate_tokens(c))
         .sum::<u32>();
-
-    let result = match router_engine() {
-        RouterEngine::Heuristic => heuristic_route(&req, &prompt),
-        RouterEngine::Model => {
-            #[cfg(feature = "model")]
-            {
-                match crate::inference::infer_with_model(&req) {
-                    Ok(res) => res,
-                    Err(err) => {
-                        tracing::warn!("model inference failed, falling back to heuristic: {err}");
-                        heuristic_route(&req, &prompt)
-                    }
-                }
-            }
-            #[cfg(not(feature = "model"))]
-            {
-                tracing::warn!("model engine requested but runtime built without model feature; using heuristic");
-                heuristic_route(&req, &prompt)
-            }
-        }
-    };
 
     // Determine finish_reason based on whether tool was called
     let finish_reason = if result.tool_calls.is_some() {
@@ -187,7 +189,7 @@ pub(crate) fn chat_normal(req: ChatCompletionRequest) -> Result<Json<ChatComplet
         tool_calls: result.tool_calls,
     };
 
-    Ok(Json(ChatCompletionResponse {
+    Json(ChatCompletionResponse {
         id: format!("pcai-router-{}", created),
         object: "chat.completion".to_string(),
         created,
@@ -202,11 +204,12 @@ pub(crate) fn chat_normal(req: ChatCompletionRequest) -> Result<Json<ChatComplet
             completion_tokens,
             total_tokens: prompt_tokens + completion_tokens,
         }),
-    }))
+    })
 }
 
-pub(crate) fn chat_stream(
+fn chat_stream(
     req: ChatCompletionRequest,
+    result: InferenceResult,
 ) -> axum::response::sse::Sse<impl futures::Stream<Item = Result<axum::response::sse::Event, std::convert::Infallible>>>
 {
     use axum::response::sse;
@@ -217,29 +220,6 @@ pub(crate) fn chat_stream(
         .unwrap_or_default()
         .as_secs();
     let id = format!("pcai-router-{}", created);
-    let message_text = last_user_message(&req.messages).unwrap_or_default();
-    let prompt = parse_router_prompt(message_text);
-
-    let result = match router_engine() {
-        RouterEngine::Heuristic => heuristic_route(&req, &prompt),
-        RouterEngine::Model => {
-            #[cfg(feature = "model")]
-            {
-                match crate::inference::infer_with_model(&req) {
-                    Ok(res) => res,
-                    Err(err) => {
-                        tracing::warn!("model inference failed in stream, falling back: {err}");
-                        heuristic_route(&req, &prompt)
-                    }
-                }
-            }
-            #[cfg(not(feature = "model"))]
-            {
-                heuristic_route(&req, &prompt)
-            }
-        }
-    };
-
     let mut events: Vec<Result<sse::Event, std::convert::Infallible>> = Vec::new();
 
     // First chunk: role delta only

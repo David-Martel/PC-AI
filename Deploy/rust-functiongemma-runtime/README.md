@@ -1,67 +1,93 @@
-# Rust FunctionGemma Runtime (PC_AI)
+# Rust FunctionGemma runtime
 
-This is the Rust runtime server intended to replace the Python/vLLM FunctionGemma
-router in PC_AI. It exposes OpenAI-compatible endpoints and returns tool_calls.
+The FunctionGemma router provides OpenAI-compatible chat completions and tool calls.
 
-## Endpoints
-- GET /health
-- GET /v1/models
-- POST /v1/chat/completions
+## Install
 
-## Build (Primary: Build.ps1)
-From repo root:
+Use the repository's Rust toolchain and the Windows MSVC or Linux system
+toolchain. For model inference, place the model configuration, tokenizer, chat
+template, and safetensors weights in a local directory. The repository
+configuration uses `Models\functiongemma-270m-it` on Windows and
+`Models/functiongemma-270m-it` on Linux. To use a different directory, set
+`runtime.router_model_path` in the [router configuration](../../Config/pcai-functiongemma.json).
 
-  .\Build.ps1 -Component functiongemma
+## Build
 
-## Tests (Primary: Build.ps1)
+Run from the repository root.
 
-  .\Build.ps1 -Component functiongemma -RunTests
+```sh
+cargo build --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime --features model
+```
+
+`model` compiles CPU inference without the CUDA toolkit or NVIDIA runtime
+libraries. `cuda` includes `model` and enables CUDA inference, NVML discovery,
+and flash attention. Building that profile requires a compatible CUDA toolkit.
+
+```sh
+cargo build --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime --features cuda
+```
+
+Building with no features provides the heuristic router. The
+[PowerShell build](../../Build.ps1) selects the CPU model profile for
+`-Component functiongemma` and the CUDA profile when `-EnableCuda` is also set.
+
+## Test
+
+```sh
+cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime --features model -- --test-threads=1
+```
+
+The [CPU model test](tests/model_cpu.rs) generates local safetensors weights
+and exercises the chat route over loopback HTTP. The separate Hugging Face
+fallback smoke requires network access and is ignored by default.
 
 ## Run
 
-  # Edit Config/pcai-functiongemma.json (runtime section) as needed
-  .\Deploy\rust-functiongemma-runtime\target\debug\rust-functiongemma-runtime.exe --config Config\pcai-functiongemma.json
+```sh
+cargo run --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime --features model -- --config Config/pcai-functiongemma.json
+```
 
-Notes:
-- Default address is 127.0.0.1:8000 to match Invoke-FunctionGemmaReAct defaults.
-- The default engine is heuristic: it emits tool_calls when the user request
-  mentions a tool name, otherwise it returns NO_TOOL.
+Set `runtime.router_engine` to `model` to enable inference. The default bind
+address is `127.0.0.1:8000`. The server exposes `GET /health`, `GET /v1/models`,
+and `POST /v1/chat/completions`.
 
-## Model inference (experimental)
-Build with model features, then enable model engine:
+Chat responses, including streams, report their route in `x-pcai-router-engine`.
+The `heuristic-fallback` value marks a request that switched from the model
+engine to the heuristic. `/health` reports the process's cumulative count at
+`router_stats.model_fallbacks`.
 
-  # Preferred repo-wide build path
-  .\Build.ps1 -Component functiongemma
+The CPU model profile reports `cpu` even if a shared configuration supplies
+CUDA preferences. With the CUDA profile, `runtime.router_device` still accepts
+`auto`, `cpu`, and `cuda:N`. The runtime uses
+[shared device selection](../rust-functiongemma-core/src/gpu.rs) for GPU
+selection and telemetry. Set `runtime.router_kv_cache` to tune KV caching.
 
-  # Advanced crate-level override (optional)
-  .\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-runtime -CargoArgs @('build','--features','model')
-  # Update Config/pcai-functiongemma.json:
-  #   runtime.router_engine = "model"
-  #   runtime.router_model_path = "Models\\functiongemma-270m-it"
+### Publisher FunctionGemma checkpoint
 
-The model path is resolved from the repo root. On this workstation the live
-model directory is `C:\codedev\PC_AI\Models\functiongemma-270m-it`; avoid the
-older `C:\Users\david\PC_AI` path because that repo location is stale.
+For the publisher's unmodified tied-weight checkpoint, set
+`runtime.router_model_profile` to `hf_gemma3_4_57_3` with `router_engine`
+set to `model`. This selects Candle's locked Gemma3 implementation. Use an
+unquantized device-local KV cache and leave custom FlashAttention, qmatmul,
+and LoRA settings off. If extending the repository example, remove its
+`router_kv_cache_quant` setting or set it to `none`. The prompt and requested
+output must fit within 4,096 tokens or the lower configured context limit.
+Each request starts with a fresh KV cache. Existing native-model and training
+configurations keep their default profile. [Publisher checkpoint](https://huggingface.co/google/functiongemma-270m-it)
 
-This path loads the base model and attempts to parse FunctionGemma-style
-tool calls from the generated output. It is functional but not optimized.
+The shipped configuration selects the legacy route with an int8 KV cache for
+compatibility with existing deployments. On Gen9 that route fell back when
+given the stock publisher weights. Use the explicit publisher profile in a
+site configuration when serving those weights.
+[Runtime validation](../../docs/functiongemma-runtime-validation.md)
 
-## KV cache
-KV cache is enabled by default for model inference. Toggle in
-Config/pcai-functiongemma.json (runtime.router_kv_cache).
+Run the [local checkpoint fixture](tests/model_hf_gemma3.rs) with
+`PCAI_TEST_FUNCTIONGEMMA_MODEL_DIR` set to the local model directory. It
+requires `x-pcai-router-engine: model`, a structured tool call, and a measured
+generation count below the requested limit.
 
-## Optional model features
-Enable extra dependencies only when needed:
+```sh
+cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime --features model --test model_hf_gemma3 -- --ignored
+```
 
-  .\Tools\Invoke-RustBuild.ps1 -Path Deploy\rust-functiongemma-runtime -CargoArgs @('build','--features','model')
-
-This enables minijinja, tokenizers, hf-hub, and safetensors for future
-model loading + chat template rendering.
-
-## Router behavior (current)
-This runtime currently returns:
-- tool_calls when the user request mentions a tool name, or
-- NO_TOOL otherwise.
-
-The tool selection logic is intentionally minimal and will be replaced
-by real FunctionGemma inference.
+For the exact feature sets and CPU contract, see the
+[manifest](Cargo.toml) and [device selection fixture](src/gpu.rs).

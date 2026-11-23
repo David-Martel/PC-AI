@@ -60,6 +60,12 @@ jobs:
         if: runner.environment != 'self-hosted'
       - name: Test locked default runtime and documentation examples
         run: cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime
+      # Protects: the CPU model route can serve model requests without a CUDA toolkit.
+      # Detects: implicit CUDA activation or a failure in deterministic model inference.
+      # Needs: Rust stable and loopback sockets; model fixtures are local and synthetic.
+      # Breadcrumb: Deploy/rust-functiongemma-runtime/tests and Cargo.toml.
+      - name: Test locked CPU model runtime
+        run: cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime --no-default-features --features model
       # Protects: CPU-only shared model code, data preparation, and trainer behavior.
       # Detects: accidental CUDA activation, causal mask failures and trainer fixture drift.
       # Needs: Rust stable, the workspace lockfile and vendored patches; no CUDA or model weights.

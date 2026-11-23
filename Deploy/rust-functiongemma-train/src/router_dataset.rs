@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::{json, Map, Value};
 use std::fs;
 use std::io::{BufWriter, Write};

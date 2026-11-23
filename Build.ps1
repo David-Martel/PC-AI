@@ -899,18 +899,15 @@ function Invoke-RustBuildCommand {
 
     $effectiveCargoArgs = Add-CargoDependencyFlags -CargoArgs $CargoArgs
 
-    # The Invoke-RustBuild.ps1 wrapper is spawned via `pwsh -File`, whose param
-    # binder consumes a bare `--` as the end-of-parameters token and then fails
-    # with "parameter name '' is ambiguous". Any cargo command that forwards
-    # tool args after `--` (e.g. `clippy ... -- -D warnings`) must therefore use
-    # the direct cargo path below, which splats the args as an array with no
-    # command-line reparsing. The wrapper's lld/sccache/preflight machinery is
-    # irrelevant to lint/quality commands anyway.
+    # Preserve the direct Cargo route for commands with underlying tool arguments.
     $hasToolSeparator = $effectiveCargoArgs -contains '--'
 
     if ((Test-Path $script:RustBuildWrapper) -and -not $hasToolSeparator) {
         $shellExe = Resolve-PowerShellExecutable
-        $wrapperArgs = @('-NoProfile', '-File', $script:RustBuildWrapper, '-Path', $Path, '-CargoArgs') + $effectiveCargoArgs
+        # Pass the array as one opaque argument so pwsh -File cannot bind or reorder Cargo flags.
+        $cargoJson = ConvertTo-Json -InputObject @($effectiveCargoArgs) -Compress
+        $cargoPayload = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($cargoJson))
+        $wrapperArgs = @('-NoProfile', '-File', $script:RustBuildWrapper, '-Path', $Path, '-EncodedCargoArgs', $cargoPayload)
 
         if ($env:CARGO_USE_LLD -eq '1') {
             $wrapperArgs += '-UseLld'
@@ -2231,8 +2228,26 @@ function Invoke-InferenceBuild {
     }
 }
 
+function Get-FunctionGemmaCargoArguments {
+    param(
+        [ValidateSet('build', 'test')] [string]$Command,
+        [ValidateSet('runtime', 'trainer')] [string]$Project,
+        [string]$Configuration,
+        [switch]$EnableCuda
+    )
+
+    $arguments = @($Command, '--no-default-features')
+    if ($Configuration -eq 'Release') { $arguments += '--release' }
+    if ($Project -eq 'runtime') {
+        $arguments += @('--features', $(if ($EnableCuda) { 'cuda' } else { 'model' }))
+    } elseif ($EnableCuda) {
+        $arguments += @('--features', 'cuda,flash-attn')
+    }
+    return $arguments
+}
+
 function Invoke-FunctionGemmaBuild {
-    param([string]$Configuration)
+    param([string]$Configuration, [switch]$EnableCuda)
 
     $componentStart = Get-Date
     $runtimeDir = Join-Path $script:ProjectRoot 'Deploy\rust-functiongemma-runtime'
@@ -2254,10 +2269,9 @@ function Invoke-FunctionGemmaBuild {
     $logFile = Join-Path $logDir "build_functiongemma_$timestamp.log"
 
     try {
-        $cargoArgs = @('build')
-        if ($Configuration -eq 'Release') { $cargoArgs += '--release' }
-
         foreach ($projectDir in $projectDirs) {
+            $project = if ($projectDir -eq $runtimeDir) { 'runtime' } else { 'trainer' }
+            $cargoArgs = Get-FunctionGemmaCargoArguments -Command build -Project $project -Configuration $Configuration -EnableCuda:$EnableCuda
             $projectSuccess = Invoke-RustBuildCommand -Path $projectDir -CargoArgs $cargoArgs -LogFile $logFile
             if ($projectSuccess -ne $true) {
                 Write-BuildStep "FunctionGemma build failed in $projectDir. See: $logFile" 'error'
@@ -3106,7 +3120,8 @@ function New-ReleasePackages {
 function Invoke-PostBuildTests {
     param(
         [string[]]$BuildTargets,
-        [string]$Configuration
+        [string]$Configuration,
+        [switch]$EnableCuda
     )
 
     Write-BuildPhase 'Test' 'Running post-build test suites'
@@ -3145,7 +3160,9 @@ function Invoke-PostBuildTests {
             $name = Split-Path $path -Leaf
             $logFile = Join-Path $script:BuildLogsDir "test_${name}_$timestamp.log"
             Write-BuildStep "Testing $name..." 'running'
-            $ok = Invoke-RustBuildCommand -Path $path -CargoArgs @('test') -LogFile $logFile
+            $project = if ($path -eq $runtimeDir) { 'runtime' } else { 'trainer' }
+            $cargoArgs = Get-FunctionGemmaCargoArguments -Command test -Project $project -Configuration $Configuration -EnableCuda:$EnableCuda
+            $ok = Invoke-RustBuildCommand -Path $path -CargoArgs $cargoArgs -LogFile $logFile
             if (-not $ok) {
                 $testFailures += $name
                 Write-BuildStep "$name tests failed" 'error'
@@ -3541,7 +3558,7 @@ Write-BuildPhase 'Build' 'Compiling native components'
 
 foreach ($target in $buildTargets) {
     if ($target -eq 'functiongemma') {
-        $result = Invoke-FunctionGemmaBuild -Configuration $Configuration
+        $result = Invoke-FunctionGemmaBuild -Configuration $Configuration -EnableCuda:$EnableCuda
         $results['functiongemma'] = $result
         Write-BuildResult 'FunctionGemma' $result.Success $result.Duration $result.Artifacts
     } elseif ($target -eq 'functiongemma-router-data') {
@@ -3592,7 +3609,7 @@ $failedCount = @($results.Values | Where-Object { $_.Success -ne $true }).Count
 if ($SkipTests) {
     Write-BuildStep 'Post-build tests skipped by request' 'skip'
 } elseif ($RunTests) {
-    $testResult = Invoke-PostBuildTests -BuildTargets $buildTargets -Configuration $Configuration
+    $testResult = Invoke-PostBuildTests -BuildTargets $buildTargets -Configuration $Configuration -EnableCuda:$EnableCuda
     if ($testResult.Success -ne $true) {
         $failedSuites = @($testResult.Failed | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
         $failedCount += [math]::Max(1, $failedSuites.Count)

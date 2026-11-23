@@ -5,6 +5,7 @@ Install Rust stable, then run these commands from the repository root:
 ```sh
 cargo build --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime
 cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime
+cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime --no-default-features --features model
 cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-core --no-default-features
 cargo run --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime -- --config Config/pcai-functiongemma.json
 ```
@@ -12,14 +13,43 @@ cargo run --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runti
 The [runtime manifest](../Deploy/rust-functiongemma-runtime/Cargo.toml) has empty
 default features. The [core manifest](../Deploy/rust-functiongemma-core/Cargo.toml)
 defaults to CUDA and FlashAttention, so the core command disables defaults.
-Both commands use the [Deploy workspace](../Deploy/Cargo.toml) and run without
-model weights or a GPU.
+The locked commands use the [Deploy workspace](../Deploy/Cargo.toml) and run
+without downloading model weights or using a GPU. The `model` feature enables
+CPU inference without CUDA dependencies. The explicit `cuda` feature enables
+the CUDA model route. [Build.ps1](../Build.ps1) selects the CPU model runtime
+and CPU trainer for `-Component functiongemma`. `-EnableCuda` selects the CUDA
+runtime and trainer features. Requested post-build tests use the same profiles.
 The [binary entrypoint](../Deploy/rust-functiongemma-runtime/src/main.rs) reads the
 supplied [configuration](../Config/pcai-functiongemma.json). Although that file
 selects the model engine, the default-feature [chat handlers](../Deploy/rust-functiongemma-runtime/src/handlers.rs)
 fall back to heuristic routing when model support is absent. See the
 [runtime README](../Deploy/rust-functiongemma-runtime/README.md) for model setup
 and the [repository entrypoint](../README.md) for the broader build workflow.
+
+Both JSON and streaming chat responses carry `x-pcai-router-engine`. A
+`heuristic-fallback` response counts toward `router_stats.model_fallbacks`
+in `/health`. Require the `model` response header when qualifying a model.
+Model output must contain a parseable function call or consist of the
+`NO_TOOL` sentinel. Malformed output invokes the same recorded fallback.
+The [fallback fixture](../Deploy/rust-functiongemma-runtime/tests/model_fallback.rs)
+checks both response formats with an empty local model directory. The
+[CPU model fixture](../Deploy/rust-functiongemma-runtime/tests/model_cpu.rs)
+checks valid and malformed outputs from a loaded model.
+
+For the published `google/functiongemma-270m-it` weights, set
+`runtime.router_model_profile` to `hf_gemma3_4_57_3` in a site configuration.
+Use a device-local KV cache with quantization set to `none`. Clear the LoRA
+path and disable the custom FlashAttention and quantized-matmul options.
+The [legacy model](../Deploy/rust-functiongemma-core/src/model.rs) remains
+the default for existing custom weights and LoRA configurations. Its
+normalization order, embedding scale, local rotary frequencies, and hard-coded
+EOS IDs differ from the [published checkpoint profile](../Deploy/rust-functiongemma-runtime/src/inference/hf_gemma3.rs).
+The shipped configuration selects the legacy route and an int8 KV cache.
+On Gen9, a stock publisher checkpoint exercised with those settings produced
+a recorded heuristic fallback. The publisher profile requires the checkpoint's
+attention scale to match its head dimension, which is the scale used by the
+locked Candle implementation. The real-checkpoint test checks measured
+generated-token counts to detect skipped EOS stops.
 
 The [listener](../Deploy/rust-functiongemma-runtime/src/lib.rs) binds the
 configured address. If another process owns a fixed port, startup exits with
@@ -29,7 +59,8 @@ IPv4 loopback port or explicitly set an address with port `0`. The listener
 tests cover an occupied fixed port and an explicit ephemeral loopback bind.
 
 The [FunctionGemma workflow](../.github/workflows/functiongemma-runtime.yml) runs
-both locked test commands on Ubuntu and Windows for runtime or core changes,
+the locked default runtime, CPU model, core, and trainer tests on Ubuntu and
+Windows for runtime or core changes,
 including changes limited to the core or its Candle patch. Its 25-minute job bound limits stalled or cold
 builds; reaching it fails the job and requires investigation. Revert the workflow
 change to roll back this gate. Watch each matrix job's result and duration;
@@ -38,6 +69,9 @@ Linux execution alone does not establish Windows qualification.
 The [HTTP tests](../Deploy/rust-functiongemma-runtime/tests/http_router.rs) exercise
 JSON health/model metadata, ordinary and tool-call chat responses, streamed
 completion framing and queue-full rejection over ephemeral loopback sockets.
+The [CPU model HTTP test](../Deploy/rust-functiongemma-runtime/tests/model_cpu.rs)
+generates local synthetic weights and requires the expected token and CPU model
+health metadata. Heuristic fallback fails the test.
 Cargo also compiles the [authentication documentation
 example](../Deploy/rust-functiongemma-runtime/src/auth.rs), which uses the public
 [router factory](../Deploy/rust-functiongemma-runtime/src/lib.rs). This catches
@@ -79,7 +113,7 @@ accepts full-precision weights and rejects an explicit 4-bit QLoRA request.
 The [tool-output parser](../Deploy/rust-functiongemma-core/src/prompt.rs)
 requires a complete call envelope and complete escaped argument values. The
 core tests cover formatted calls, Unicode values, and partial model output.
-The trainer, model-backed HTTP integration, CUDA kernels,
-production throughput and GPU memory limits require separate validation. Existing test rationale
+Production checkpoints, CUDA kernels, throughput, and GPU memory limits
+require separate validation. Existing test rationale
 and hash-bound review coverage remain subject to the repository's shared
 [documentation and test standard](https://github.com/David-Martel/dtm-claude/blob/main/docs/reference/DOCUMENTATION_AND_TEST_STANDARD.md).

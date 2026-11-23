@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "b8bb1694cf82e0bf22edb4d7454b445c6e83b542",
+  "hashConvention": "SHA-256 of UTF-8 LF source and exact Pester It AST extent.",
+  "sourceBindings": {
+    "Build.ps1": "35c99916d5ba1bb75cae5ed1c6c30636f34347829f3f0a49aab69b3aa5de7dec",
+    "Config/pcai-functiongemma.json": "96b38be365db6aaba730789418cd645c31d0ed7e9b68499d591c0f92a74c7e2d",
+    "Tests/Unit/FunctionGemmaPreparation.Tests.ps1": "58901af89df1ec8b246f685ff6294e7c407f2327d8639bd069429c85bbd840ca",
+    "Tests/Unit/FunctionGemmaConfig.Tests.ps1": "4f27cc355898f224824f0ee170ca33fe41a76b70de15982e154b6a013653e66f"
+  },
+  "selectors": [
+    {
+      "selector": "forwards <Mode> through the <Target> entry point with SkipTests=<SkipRequested>",
+      "source": "Tests/Unit/FunctionGemmaPreparation.Tests.ps1",
+      "sha256": "61fd53e240dedeb0a23ef2469d5510dee78362fb75c5f9c963d61a6a5762a54a",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "keeps the shipped runtime on the legacy profile and cache settings",
+      "source": "Tests/Unit/FunctionGemmaConfig.Tests.ps1",
+      "sha256": "38e1fbbbe467935445c8d711a825bbc7e2df7af24f7039b9a80cda4f5244150b",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    }
+  ],
+  "earlierMutationControls": {
+    "head": "5e557b450e0771a1c7e87527bcedf4f28a3d1efe",
+    "failedAssertions": {
+      "missing build entry-point CUDA switch": 3,
+      "missing post-tests entry-point CUDA switch": 2,
+      "missing build argument selector CUDA switch": 3,
+      "missing post-test argument selector CUDA switch": 2,
+      "missing FunctionGemma from all targets": 3,
+      "shipped config selects HF profile with legacy int8 cache": 1
+    }
+  },
+  "policyOverrideControl": {
+    "sourceBaseline": "a50f096e710081207770fa3b7b7b3b23025c06bf",
+    "mutation": "Restore --locked in the FunctionGemma profile helper before the shared dependency policy.",
+    "lockedCasesPassed": 5,
+    "frozenAndUpdateCasesFailed": 2
+  }
+}

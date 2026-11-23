@@ -372,9 +372,9 @@ impl RotaryEmbedding {
             .step_by(2)
             .map(|i| 1f32 / self.theta.powf(i as f32 / dim as f32))
             .collect();
-        let inv_freq = Tensor::new(&inv_freq[..], &device)?.to_dtype(DType::F32)?;
+        let inv_freq = Tensor::new(&inv_freq[..], device)?.to_dtype(DType::F32)?;
 
-        let t = Tensor::arange(0u32, seq_len as u32, &device)?.to_dtype(DType::F32)?;
+        let t = Tensor::arange(0u32, seq_len as u32, device)?.to_dtype(DType::F32)?;
         let freqs = t.unsqueeze(1)?.matmul(&inv_freq.unsqueeze(0)?)?;
 
         let emb = Tensor::cat(&[&freqs, &freqs], 1)?;
@@ -521,6 +521,15 @@ fn load_weight(st: &MmapedSafetensors, name: &str, device: &Device, dtype: DType
     Ok(tensor)
 }
 
+struct AttentionBaseWeights {
+    q_weight: Tensor,
+    k_weight: Tensor,
+    v_weight: Tensor,
+    o_weight: Tensor,
+    q_norm_weight: Option<Tensor>,
+    k_norm_weight: Option<Tensor>,
+}
+
 impl Attention {
     fn new(cfg: &Config, lora: LoraSettings, sliding: bool, vb: VarBuilder) -> Result<Self> {
         let dim = cfg.hidden_size;
@@ -559,26 +568,21 @@ impl Attention {
         lora: LoraSettings,
         sliding: bool,
         vb: VarBuilder,
-        q_weight: Tensor,
-        k_weight: Tensor,
-        v_weight: Tensor,
-        o_weight: Tensor,
-        q_norm_weight: Option<Tensor>,
-        k_norm_weight: Option<Tensor>,
+        weights: AttentionBaseWeights,
     ) -> Result<Self> {
         let num_heads = cfg.num_attention_heads;
         let num_kv_heads = cfg.num_key_value_heads;
         let head_dim = cfg.head_dim;
 
-        let q_proj = LoraLinear::new_with_base(q_weight, lora, vb.pp("q_proj"))?;
-        let k_proj = LoraLinear::new_with_base(k_weight, lora, vb.pp("k_proj"))?;
-        let v_proj = LoraLinear::new_with_base(v_weight, lora, vb.pp("v_proj"))?;
-        let o_proj = LoraLinear::new_with_base(o_weight, lora, vb.pp("o_proj"))?;
-        let q_norm = match q_norm_weight {
+        let q_proj = LoraLinear::new_with_base(weights.q_weight, lora, vb.pp("q_proj"))?;
+        let k_proj = LoraLinear::new_with_base(weights.k_weight, lora, vb.pp("k_proj"))?;
+        let v_proj = LoraLinear::new_with_base(weights.v_weight, lora, vb.pp("v_proj"))?;
+        let o_proj = LoraLinear::new_with_base(weights.o_weight, lora, vb.pp("o_proj"))?;
+        let q_norm = match weights.q_norm_weight {
             Some(weight) => Some(RmsNorm::from_weight(weight, cfg.rms_norm_eps)?),
             None => Some(RmsNorm::new(head_dim, cfg.rms_norm_eps, vb.pp("q_norm"))?),
         };
-        let k_norm = match k_norm_weight {
+        let k_norm = match weights.k_norm_weight {
             Some(weight) => Some(RmsNorm::from_weight(weight, cfg.rms_norm_eps)?),
             None => Some(RmsNorm::new(head_dim, cfg.rms_norm_eps, vb.pp("k_norm"))?),
         };
@@ -871,14 +875,13 @@ impl Attention {
         let k = k.to_dtype(buf_dtype)?.contiguous()?;
         let v = v.to_dtype(buf_dtype)?.contiguous()?;
 
-        // Write into pre-allocated buffer — zero allocation, zero copy
-        cache.write_and_advance(layer_idx, &k, &v)?;
-
-        // Read back the valid portion of the cache for attention.
-        // Cast back to the query dtype for the matmul.
+        // Include the K/V just written without advancing the shared cursor
+        // until every layer has processed this token.
+        let layer_len = cache.write_and_advance(layer_idx, &k, &v)?;
+        let layer = &cache.layers[layer_idx];
         let q_dtype = q.dtype();
-        let k = cache.k_valid(layer_idx)?.to_dtype(q_dtype)?.to_device(device)?;
-        let v = cache.v_valid(layer_idx)?.to_dtype(q_dtype)?.to_device(device)?;
+        let k = layer.k.narrow(2, 0, layer_len)?.to_dtype(q_dtype)?.to_device(device)?;
+        let v = layer.v.narrow(2, 0, layer_len)?.to_dtype(q_dtype)?.to_device(device)?;
 
         let k = self.repeat_kv(k)?;
         let v = self.repeat_kv(v)?;
@@ -1014,12 +1017,14 @@ impl DecoderLayer {
             lora,
             is_sliding,
             vb.pp("self_attn"),
-            q_weight,
-            k_weight,
-            v_weight,
-            o_weight,
-            Some(q_norm_weight),
-            Some(k_norm_weight),
+            AttentionBaseWeights {
+                q_weight,
+                k_weight,
+                v_weight,
+                o_weight,
+                q_norm_weight: Some(q_norm_weight),
+                k_norm_weight: Some(k_norm_weight),
+            },
         )?;
         let mlp = Mlp::new_with_base(cfg, lora, vb.pp("mlp"), gate_weight, up_weight, down_weight)?;
         let input_layernorm = RmsNorm::from_weight(input_ln_weight, cfg.rms_norm_eps)?;
@@ -1116,6 +1121,10 @@ pub enum KvCacheQuant {
 }
 
 impl KvCacheQuant {
+    #[expect(
+        clippy::should_implement_trait,
+        reason = "Preserve optional configuration input and infallible defaulting in the public API"
+    )]
     pub fn from_str(value: Option<&str>) -> Self {
         match value.unwrap_or("none").to_ascii_lowercase().as_str() {
             "int8" | "i8" => KvCacheQuant::Int8,
@@ -1259,9 +1268,10 @@ impl PreAllocKvCache {
         self.valid_len = 0;
     }
 
-    /// Write a new K/V pair into layer `layer_idx` at the current cursor and
-    /// advance.  Returns the valid sequence length after the write (for
-    /// constructing the attention mask / RoPE offset).
+    /// Write a K/V pair at the current cursor and return the layer's valid length.
+    ///
+    /// The returned length includes this layer's new token. The shared cursor
+    /// and committed length advance only after every layer completes the step.
     ///
     /// `new_k` and `new_v` have shape `[batch, num_kv_heads, 1, head_dim]`
     /// (a single new token).
@@ -1278,7 +1288,7 @@ impl PreAllocKvCache {
         // Only advance cursor after last layer to keep layers in sync.
         // The caller (Model::forward_with_prealloc_cache) advances once
         // after iterating all layers by calling `advance_cursor()`.
-        Ok(self.valid_len.min(self.max_seq_len))
+        Ok(self.valid_len.saturating_add(1).min(self.max_seq_len))
     }
 
     /// Advance the write cursor by one position.  Call once per decode step
@@ -1467,9 +1477,7 @@ impl Model {
                 None => self.forward(input_ids)?,
             };
             let last_logits_tensor = logits.squeeze(0)?.squeeze(0)?;
-            // Use to_vec1 + index instead of to_scalar to avoid a GPU→CPU scalar
-            // transfer that stalls the pipeline; to_vec1 batches the copy.
-            let next_id = last_logits_tensor.argmax(0)?.to_vec1::<u32>()?[0];
+            let next_id = last_logits_tensor.argmax(0)?.to_scalar::<u32>()?;
             generated.push(next_id);
 
             if next_id == 1 || next_id == 107 || next_id == 106 {
@@ -1498,11 +1506,10 @@ impl Model {
         for (idx, layer) in self.layers.iter().enumerate() {
             x = layer.forward_with_prealloc_cache(&x, cache, idx)?;
         }
-        // Advance cursor once after all layers have written their K/V
-        cache.advance_cursor();
-
         let x = self.norm.forward(&x)?;
-        self.lm_head.forward(&x)
+        let logits = self.lm_head.forward(&x)?;
+        cache.advance_cursor();
+        Ok(logits)
     }
 
     /// Generate tokens using the pre-allocated ring-buffer KV cache.
@@ -1557,7 +1564,7 @@ impl Model {
                 None => self.forward(input_ids)?,
             };
             let last_logits_tensor = logits.squeeze(0)?.squeeze(0)?;
-            let next_id = last_logits_tensor.argmax(0)?.to_vec1::<u32>()?[0];
+            let next_id = last_logits_tensor.argmax(0)?.to_scalar::<u32>()?;
             generated.push(next_id);
 
             if next_id == 1 || next_id == 107 || next_id == 106 {
@@ -1580,9 +1587,7 @@ impl Model {
             let (_b, s, _v) = logits.dims3()?;
             let last_logits = logits.narrow(1, s - 1, 1)?.squeeze(0)?.squeeze(0)?;
 
-            // Greedy sampling — use to_vec1 + index instead of to_scalar so a
-            // single batched copy services the GPU→CPU transfer.
-            let next_id = last_logits.argmax(0)?.to_vec1::<u32>()?[0];
+            let next_id = last_logits.argmax(0)?.to_scalar::<u32>()?;
             generated.push(next_id);
 
             // Check for EOS (special ID for Gemma) - typically 1 or 107
@@ -1644,6 +1649,116 @@ mod tests {
 
         let layer = LoraLinear::new_with_base(base.clone(), LoraSettings::new(0, 1.0, 0.0, false), vb)?;
         assert_eq!(layer.forward(&base)?.to_vec2::<f32>()?, vec![vec![2.0; 2]; 2]);
+        Ok(())
+    }
+
+    // Protects: greedy decoding produces real token IDs in every cache mode.
+    // Detects: reading the rank-zero argmax as a vector, returning the wrong token, or failing on a decode step.
+    // Needs: a two-dimensional CPU fixture with deterministic vocabulary weights.
+    // Breadcrumb: Model::generate, Model::generate_with_cache and Model::generate_with_prealloc_cache.
+    #[test]
+    fn greedy_generation_selects_tokens_with_and_without_cache() -> Result<()> {
+        let device = Device::Cpu;
+        let mut weights = VarMap::new();
+        let builder = VarBuilder::from_varmap(&weights, DType::F32, &device);
+        let config = Config {
+            hidden_size: 2,
+            intermediate_size: 4,
+            num_hidden_layers: 0,
+            num_attention_heads: 1,
+            num_key_value_heads: 1,
+            head_dim: 2,
+            vocab_size: 3,
+            rms_norm_eps: 1e-5,
+            rope_theta: 10_000.,
+            sliding_window: None,
+            layer_types: None,
+        };
+        let model = Model::new(&config, LoraSettings::new(0, 1., 0., false), builder, true)?;
+        weights.set_one(
+            "model.embed_tokens.weight",
+            Tensor::new(&[[0f32, 0.], [1., 0.], [2., 0.]], &device)?,
+        )?;
+        weights.set_one("model.norm.weight", Tensor::new(&[1f32, 1.], &device)?)?;
+        let prompt = Tensor::new(&[[0u32, 1]], &device)?;
+        let expected = [2, 2];
+
+        assert_eq!(model.generate(&prompt, 2, &device)?, expected);
+        assert_eq!(
+            model.generate_with_cache(&prompt, 2, &device, KvCacheQuant::None, None, false)?,
+            expected
+        );
+        assert_eq!(
+            model.generate_with_prealloc_cache(&prompt, 2, &device, &config, 4)?,
+            expected
+        );
+        Ok(())
+    }
+
+    // Protects: each layer attends to its new token before the shared cursor advances once.
+    // Detects: empty first-token attention, exclusion of current K/V, per-layer cursor drift or ring overwrite errors.
+    // Needs: deterministic two-layer F32 weights on CPU and six synthetic token IDs.
+    // Breadcrumb: Model::forward_with_prealloc_cache and Attention::forward_with_prealloc_cache.
+    #[test]
+    fn layered_preallocated_cache_matches_uncached_and_append_only_logits() -> Result<()> {
+        let device = Device::Cpu;
+        let weights = VarMap::new();
+        let builder = VarBuilder::from_varmap(&weights, DType::F32, &device);
+        let cfg = Config {
+            hidden_size: 4,
+            intermediate_size: 8,
+            num_hidden_layers: 2,
+            num_attention_heads: 2,
+            num_key_value_heads: 1,
+            head_dim: 2,
+            vocab_size: 8,
+            rms_norm_eps: 1e-5,
+            rope_theta: 10_000.,
+            sliding_window: None,
+            layer_types: None,
+        };
+        let model = Model::new(&cfg, LoraSettings::new(0, 1., 0., false), builder, true)?;
+        for (name, var) in weights.data().lock().unwrap().iter() {
+            let phase = name.bytes().map(usize::from).sum::<usize>();
+            let values = if var.rank() == 1 {
+                vec![1f32; var.elem_count()]
+            } else {
+                (0..var.elem_count())
+                    .map(|index| ((index * 7 + phase) % 23) as f32 / 20. - 0.55)
+                    .collect()
+            };
+            var.set(&Tensor::from_vec(values, var.shape().clone(), &device)?)?;
+        }
+
+        let ids = [2u32, 4, 3, 6, 7, 5];
+        let mut append = KvCache::new(2, KvCacheQuant::None, None, false);
+        let mut bounded = KvCache::new(2, KvCacheQuant::None, Some(3), false);
+        let mut prealloc = PreAllocKvCache::new(2, 1, 1, 2, ids.len(), DType::F32, &device)?;
+        let mut ring = PreAllocKvCache::new(2, 1, 1, 2, 3, DType::F32, &device)?;
+
+        for end in 1..=ids.len() {
+            let token = Tensor::from_slice(&ids[end - 1..end], (1, 1), &device)?;
+            let prefix = Tensor::from_slice(&ids[..end], (1, end), &device)?;
+            let uncached = model.forward(&prefix)?.narrow(1, end - 1, 1)?;
+            let append_logits = model.forward_with_cache(&token, &mut append)?;
+            let prealloc_logits = model.forward_with_prealloc_cache(&token, &mut prealloc)?;
+            let bounded_logits = model.forward_with_cache(&token, &mut bounded)?;
+            let ring_logits = model.forward_with_prealloc_cache(&token, &mut ring)?;
+
+            for (label, actual, expected) in [
+                ("append vs. uncached", &append_logits, &uncached),
+                ("preallocated vs. uncached", &prealloc_logits, &uncached),
+                ("ring vs. bounded append", &ring_logits, &bounded_logits),
+            ] {
+                let delta = (actual - expected)?.abs()?.max_all()?.to_scalar::<f32>()?;
+                assert!(delta < 1e-4, "{label} at token {end}: {delta}");
+            }
+
+            assert_eq!(prealloc.rope_offset(), end);
+            assert_eq!(ring.rope_offset(), end);
+            assert_eq!(prealloc.valid_len, end);
+            assert_eq!(ring.valid_len, end.min(3));
+        }
         Ok(())
     }
 

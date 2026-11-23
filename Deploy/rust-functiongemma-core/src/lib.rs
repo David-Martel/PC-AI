@@ -7,6 +7,7 @@ pub mod model;
 pub mod prompt;
 pub mod safetensors_utils;
 
+pub use candle_transformers::models::gemma3 as hf_gemma3;
 pub use config::{PcaiConfig, RuntimeConfig};
 pub use error::PcaiError;
 pub use gpu::{

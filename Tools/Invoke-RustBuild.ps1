@@ -7,6 +7,9 @@
   Standardizes Rust builds with CargoTools env setup, sccache, and optional
   lld-link configuration. Intended for repeatable, LLM-friendly builds.
 
+.PARAMETER EncodedCargoArgs
+  UTF-8 JSON string array encoded in Base64 for callers using pwsh -File.
+
 .PARAMETER Path
   Working directory to run cargo from.
 
@@ -61,11 +64,28 @@ param(
     [string]$PreflightMode = 'check',
     [switch]$PreflightBlocking,
     [string[]]$CargoArgs,
+    [string]$EncodedCargoArgs,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$RemainingArgs
 )
 
 $ErrorActionPreference = 'Stop'
+
+[string[]]$finalArgs = @()
+if ($PSBoundParameters.ContainsKey('EncodedCargoArgs')) {
+    if ($CargoArgs -or $RemainingArgs) {
+        throw 'EncodedCargoArgs cannot be combined with direct Cargo arguments.'
+    }
+    $encodedJson = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($EncodedCargoArgs))
+    $finalArgs = [Text.Json.JsonSerializer]::Deserialize($encodedJson, [string[]])
+    if ($finalArgs -contains $null) { throw 'Cargo argument entries must be strings.' }
+} else {
+    if ($CargoArgs) { $finalArgs += $CargoArgs }
+    if ($RemainingArgs) { $finalArgs += $RemainingArgs }
+}
+if (-not $finalArgs -or $finalArgs.Count -eq 0) {
+    throw 'No cargo arguments provided. Use -CargoArgs @(''check'') or pass cargo arguments after the script parameters.'
+}
 
 if ($DisableCache) {
     . (Join-Path $PSScriptRoot 'PcaiNativeBuildFlags.ps1')
@@ -105,18 +125,20 @@ if ($script:UseCargoTools -and -not (Get-Command cl.exe -ErrorAction SilentlyCon
     $script:UseCargoTools = $false
 }
 
-# Ensure LLVM lld-link path is configured for optional use
-$llvmBin = 'C:\Program Files\LLVM\bin'
-$lldPath = Join-Path $llvmBin 'lld-link.exe'
-if (Test-Path $lldPath) {
-    if (-not $env:CARGO_LLD_PATH) { $env:CARGO_LLD_PATH = $lldPath }
-    if ($env:PATH -notlike "*${llvmBin}*") {
-        $env:PATH = "$llvmBin;$env:PATH"
+# The optional LLVM/MSVC discovery uses Windows drive paths.
+if ($IsWindows) {
+    $llvmBin = 'C:\Program Files\LLVM\bin'
+    $lldPath = Join-Path $llvmBin 'lld-link.exe'
+    if (Test-Path $lldPath) {
+        if (-not $env:CARGO_LLD_PATH) { $env:CARGO_LLD_PATH = $lldPath }
+        if ($env:PATH -notlike "*${llvmBin}*") {
+            $env:PATH = "$llvmBin;$env:PATH"
+        }
     }
-}
-$libclangDll = Join-Path $llvmBin 'libclang.dll'
-if (Test-Path $libclangDll) {
-    $env:LIBCLANG_PATH = $llvmBin
+    $libclangDll = Join-Path $llvmBin 'libclang.dll'
+    if (Test-Path $libclangDll) {
+        $env:LIBCLANG_PATH = $llvmBin
+    }
 }
 
 # Let CargoTools choose the best linker by default. Only override when the
@@ -192,11 +214,6 @@ if ($LlmOutput) { $wrapperArgs += '--llm-output' }
 if ($UseLld) { $wrapperArgs += '--use-lld' }
 if ($NoLld) { $wrapperArgs += '--no-lld' }
 
-$finalArgs = if ($CargoArgs -and $CargoArgs.Count -gt 0) { $CargoArgs } else { $RemainingArgs }
-if ($finalArgs -is [string]) { $finalArgs = @($finalArgs) }
-if (-not $finalArgs -or $finalArgs.Count -eq 0) {
-    throw 'No cargo arguments provided. Use -CargoArgs @(''check'') or pass cargo arguments after the script parameters.'
-}
 $wrapperArgs += @($finalArgs)
 
 $resolvedPath = Resolve-Path -LiteralPath $Path -ErrorAction Stop

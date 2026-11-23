@@ -7,17 +7,21 @@
     "Deploy/rust-functiongemma-train/Cargo.toml": "27ff4de5451c395c0679a0804425138e73523f25e1e472e806ca0fa3aebbca4a",
     "Deploy/rust-functiongemma-train/README.md": "dfef5f0b477f9f4366727ca7fbf9c4a29d448e2b345b51bf026b8c1f0336c320",
     "Deploy/rust-functiongemma-train/src/lib.rs": "79f7eb3bb0ab307048032e6aa80fade45cbd62402e4edb57ef1073c928af34ee",
-    "Deploy/rust-functiongemma-train/src/trainer.rs": "a613f288a0180eab6e7aef06d0e977464f41e5342df42716dd734204e5e79830",
-    "Deploy/rust-functiongemma-train/src/eval.rs": "1cbfe11bba8ef962c1628ef3795e0acee196e234fbb51f676780d60cf2124359",
-    "Deploy/rust-functiongemma-train/tests/full_training_test.rs": "063ec960ef12e704a7c3c121e6058c7e7128f0cca84110c1a6e2150efa80e35c",
-    "Deploy/rust-functiongemma-train/tests/trainer_lora_test.rs": "8f6e1c9b5b857d140e327530b7af2456793300c48f65fb6d2828d8274bef5783",
+    "Deploy/rust-functiongemma-train/src/trainer.rs": "31814a6380615cb78c6ccb381967f742cdb741663732053aad137a7d25804394",
+    "Deploy/rust-functiongemma-train/src/eval.rs": "e33568b7c82cad91f29178c6a06b715291b95065e2a3b2a146cae97d06051e4b",
+    "Deploy/rust-functiongemma-train/tests/full_training_test.rs": "530d6619f744aac868f87312d0e183187f2a2681876856e54bad415ee1a8fbef",
+    "Deploy/rust-functiongemma-train/tests/trainer_lora_test.rs": "8093528e7e78e2dd8525cf028ebc88180fc4199ef62a1c785d5096a4f1e90dcc",
     "Deploy/rust-functiongemma-train/tests/integration_test.rs": "e62b28885150584e5218060e0a7bf406f3e65cffde9fc80470a6c2d44f798588",
-    "Deploy/rust-functiongemma-core/src/model.rs": "9887a9c2a8b460c6f699147bf53f52ccfc4b82401a2171998125234eaada5911",
-    "Build.ps1": "92ef324fbad5d93a9d898814142ae9fc8b7743e14c3abc706e3958147d3d682f",
+    "Deploy/rust-functiongemma-core/src/model.rs": "f7bdfff55c9f413659954c83a6ed0b4994c5cf57c3bd994073d05af5a1a69d77",
+    "Build.ps1": "35c99916d5ba1bb75cae5ed1c6c30636f34347829f3f0a49aab69b3aa5de7dec",
     "Tools/Invoke-DocPipeline.ps1": "3b68829694976fdb9a7cedda4e1492ce207089a347d9c92c62700c68f180c6ab",
-    ".github/workflows/functiongemma-runtime.yml": "a6bdded080bd952b9dfce68b3445bf12591c4b2962bc2cd3a41d8a53c89d6b62",
-    "Tests/Unit/FunctionGemmaPreparation.Tests.ps1": "ffcb4dbe89335cde9435eb2850c00bd353169b2a3af130b1e7431d89c6887476",
-    "Deploy/rust-functiongemma-train/src/trainer/accumulation_tests.rs": "2e26e04da3ffa8f72d63e213442416c893766711e110fd909f7d24482935c7da"
+    ".github/workflows/functiongemma-runtime.yml": "30231668f523e4bc4d0cb3274272a38d2aad6c2b1653f55ea26405f9dd3d4102",
+    "Tests/Unit/FunctionGemmaPreparation.Tests.ps1": "58901af89df1ec8b246f685ff6294e7c407f2327d8639bd069429c85bbd840ca",
+    "Deploy/rust-functiongemma-train/src/trainer/accumulation_tests.rs": "515608b4c3a4d78b060619a2af98bb7b9232e6a4c062d82f42fea17a593b75e6",
+    "Deploy/rust-functiongemma-train/tests/peft_output_test.rs": "a9533b4216590331e21274733645e7c2e90ea50a0aff2e84895c7787659bbdb8",
+    "Deploy/rust-functiongemma-train/src/dataset.rs": "609f3c9762c031f94c096822863d298b60e5111031e0c9db1372d5c25c399dc2",
+    "Deploy/rust-functiongemma-train/src/main.rs": "690a6db85e30d0dc3b2cbcd28f8d3b21c67d32f333643c48b6a0213c6e890550",
+    "Deploy/rust-functiongemma-train/src/router_dataset.rs": "5aaa53a83708fb98dc89ec6ecd3409e9a002bb1bfb47e838e764a130c82ed76d"
   },
   "selectors": [
     {
@@ -59,11 +63,11 @@
     {
       "selector": "test_training_components_compatibility",
       "source": "Deploy/rust-functiongemma-train/tests/full_training_test.rs",
-      "sha256": "8a4b2eddb312198510e78f1975ccbf2b1438601ff24fe340011e33527c01e480",
+      "sha256": "cecb004bd4dcf018f9ebae03bab3ef0441ba9d2e3c2faf85e5df6582e28a494d",
       "reviewer": "codex-gen9-pcai-fleet",
       "reviewerType": "author-family source review",
       "disposition": "keep",
-      "reviewScope": "Checks the authoritative core LoRA configuration and current training components fit together."
+      "reviewScope": "Compiles and runs the public training settings constructors without external resources."
     },
     {
       "selector": "test_lora_config_derivation",
@@ -168,6 +172,80 @@
       "reviewedAtUtc": "2026-11-22T23:56:17.205Z",
       "disposition": "unreviewed",
       "reviewScope": "CPU fixture measures a 939 squared norm and checks the exact half-scale in both native dtypes. CUDA training and device support require runtime qualification."
+    },
+    {
+      "selector": "test_summary_report_includes_f1",
+      "source": "Deploy/rust-functiongemma-train/src/eval.rs",
+      "sha256": "59791e4d29d9f2c7c144b0a69429e9e46fab3ab14a892dc96339ed7eb1560f1a",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Creates evaluation metrics in memory and checks that the report retains per-tool F1 and tool accuracy labels."
+    },
+    {
+      "selector": "test_trainer_config_scheduler_types",
+      "source": "Deploy/rust-functiongemma-train/tests/trainer_lora_test.rs",
+      "sha256": "c0d26349e01c429a864dfb55ef7ce826a7f0ba24d432823eed3e41b5e9da2aff",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Exercises initialization and reassignment of the public scheduler choice in memory."
+    },
+    {
+      "selector": "test_peft_output_directory_structure",
+      "source": "Deploy/rust-functiongemma-train/tests/peft_output_test.rs",
+      "sha256": "367b13abedb46625fb4c4f27da1b6374b58807e9f5f907299c4fbf829549314d",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Keeps the literal two-entry PEFT fixture inventory. This selector has no production export coverage."
+    },
+    {
+      "selector": "zero_checkpoint_interval_returns_an_error_before_training",
+      "source": "Deploy/rust-functiongemma-train/src/trainer/accumulation_tests.rs",
+      "sha256": "791d6e619286a490fe0cca9e3d0f81c4819881d0989184c1445ebd6069bd21f6",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "A tiny CPU model and nonempty inert dataset verify that an invalid checkpoint interval fails before updating the training step."
+    }
+  ],
+  "sourceRechecks": [
+    {
+      "source": "Deploy/rust-functiongemma-core/src/model.rs",
+      "previousSha256": "9887a9c2a8b460c6f699147bf53f52ccfc4b82401a2171998125234eaada5911",
+      "sha256": "a4ca9eab1f43dd6fb302c2e2e56df535c1ba57cd79e1a9d52109c7cfbb41576d",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
+    },
+    {
+      "source": "Build.ps1",
+      "previousSha256": "92ef324fbad5d93a9d898814142ae9fc8b7743e14c3abc706e3958147d3d682f",
+      "sha256": "a95867bea2bff74bc0f61d436ba1450f7eb788e76f9438c53e033c86fb37030e",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
+    },
+    {
+      "source": ".github/workflows/functiongemma-runtime.yml",
+      "previousSha256": "a6bdded080bd952b9dfce68b3445bf12591c4b2962bc2cd3a41d8a53c89d6b62",
+      "sha256": "30231668f523e4bc4d0cb3274272a38d2aad6c2b1653f55ea26405f9dd3d4102",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
+    },
+    {
+      "source": "Tests/Unit/FunctionGemmaPreparation.Tests.ps1",
+      "previousSha256": "ffcb4dbe89335cde9435eb2850c00bd353169b2a3af130b1e7431d89c6887476",
+      "sha256": "190d3153a17b89dc2969430e2bfcf388c7592e70341cb4cd54a754c6b13551c5",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
     }
   ]
 }

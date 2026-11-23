@@ -4,8 +4,8 @@
   "sourceBaseline": "a8f55809ddd889e8ccb7505bad487c28284c4a8a",
   "hashConvention": "SHA-256 of UTF-8 LF text. Rust selector extents include the test attribute through the closing brace and final LF.",
   "sourceBindings": {
-    "Deploy/rust-functiongemma-core/src/prompt.rs": "4bd2c8cd600bb4ab098710910a82d6e5f2593c24f2c612e0b78a8db9dff4ae3e",
-    "docs/functiongemma-runtime-validation.md": "001a7562c1e624d080bc777166f836a96448d7f5c7b551228be8011073a7d6f2"
+    "Deploy/rust-functiongemma-core/src/prompt.rs": "3fa1221a7c3c5e2bf30052bef47b4dfb0b8f7175c86b69849978bcd8a5e544bf",
+    "docs/functiongemma-runtime-validation.md": "f3a1c3e77e244f4857649482d9f3cd94622a1e9907319a2fec133e1f0a48a1eb"
   },
   "selectors": [
     {
@@ -20,11 +20,22 @@
     {
       "selector": "incomplete_arguments_are_rejected_without_partial_results",
       "source": "Deploy/rust-functiongemma-core/src/prompt.rs",
-      "sha256": "f1c186ed8bddce1e3f7222b57febf1f1c978c154862b50bf031b8fa59ece9c63",
+      "sha256": "d385bc5d477161df84194279e1940196ac6f1d30a08e78b7dbf4586f24d431f9",
       "reviewer": "codex-gpu-lane",
       "reviewerType": "author-family source review",
       "disposition": "keep",
       "reviewScope": "Incomplete argument prefixes, trailing commas and duplicate keys are rejected before the runtime can dispatch a tool call."
+    }
+  ],
+  "sourceRechecks": [
+    {
+      "source": "docs/functiongemma-runtime-validation.md",
+      "previousSha256": "001a7562c1e624d080bc777166f836a96448d7f5c7b551228be8011073a7d6f2",
+      "sha256": "cb12a4dce4d404f9e68cfbfa41c5c7a2b4190d93d25f5f3cc67e3a1fc87e218e",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
     }
   ]
 }

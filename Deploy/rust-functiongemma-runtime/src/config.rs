@@ -17,6 +17,8 @@ pub(crate) struct RuntimeConfig {
     pub(crate) router_addr: String,
     pub(crate) router_model: String,
     pub(crate) router_model_path: String,
+    #[cfg(feature = "model")]
+    pub(crate) router_model_profile: Option<String>,
     pub(crate) router_engine: String,
     pub(crate) tools_path: String,
     pub(crate) router_kv_cache: bool,
@@ -39,7 +41,6 @@ pub(crate) struct RuntimeConfig {
     pub(crate) router_cuda_mem_pool_release_threshold_mb: Option<u64>,
     pub(crate) router_cuda_mem_pool_trim_mb: Option<u64>,
     pub(crate) router_cuda_mem_snapshot: bool,
-    pub(crate) verbose: bool,
     pub(crate) log_filter: String,
     pub(crate) router_queue_depth: usize,
     pub(crate) router_request_timeout_secs: u64,
@@ -52,6 +53,8 @@ impl Default for RuntimeConfig {
             router_addr: "127.0.0.1:8000".to_string(),
             router_model: "functiongemma-270m-it".to_string(),
             router_model_path: String::new(),
+            #[cfg(feature = "model")]
+            router_model_profile: None,
             router_engine: "heuristic".to_string(),
             tools_path: "Config/pcai-tools.json".to_string(),
             router_kv_cache: true,
@@ -74,7 +77,6 @@ impl Default for RuntimeConfig {
             router_cuda_mem_pool_release_threshold_mb: None,
             router_cuda_mem_pool_trim_mb: None,
             router_cuda_mem_snapshot: false,
-            verbose: false,
             log_filter: "info".to_string(),
             router_queue_depth: 4,
             router_request_timeout_secs: 30,
@@ -208,9 +210,4 @@ pub(crate) fn router_engine() -> RouterEngine {
         "model" => RouterEngine::Model,
         _ => RouterEngine::Heuristic,
     }
-}
-
-#[cfg(feature = "model")]
-pub(crate) fn is_verbose() -> bool {
-    runtime_config().verbose
 }

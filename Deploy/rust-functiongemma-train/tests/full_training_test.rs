@@ -109,9 +109,6 @@ fn test_training_components_compatibility() {
     let _scheduler_cfg = SchedulerConfig::default();
     let _checkpoint_cfg = CheckpointConfig::default();
     let _early_stopping_cfg = EarlyStoppingConfig::default();
-
-    // If this compiles, the types are compatible
-    assert!(true);
 }
 
 #[test]

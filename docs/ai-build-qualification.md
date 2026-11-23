@@ -16,6 +16,16 @@ Generate a build plan from target OS/architecture, configured features, discover
 
 The November 22 audit observed an Intel iGPU and an RTX PRO 2000 Blackwell Laptop GPU with 8,151 MiB on Gen9. Both enumerate in Vulkan and the NVIDIA driver responds, while `nvcc` was absent. The NUC reports Iris Xe and a Vulkan probe, with no CUDA compiler. An eGPU destination remains a valid declared build target independent of what is attached today. No machine name is needed by the capability rules. [Upstream llama.cpp build options](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md) · [Intel SYCL device support](https://github.com/ggml-org/llama.cpp/blob/master/docs/backend/SYCL.md)
 
+The [Windows CUDA bootstrap](../Tools/Initialize-CudaEnvironment.ps1) accepts
+explicit compiler targets such as `-TargetComputeCaps '89,120'`. It checks each
+complete toolkit's `nvcc --list-gpu-code` for each numeric target. For `120a` or
+`120f`, nvcc must advertise `sm_120` and the same toolkit's `ptxas --help` must
+list the exact suffixed code. Plain numeric targets use only the nvcc list. The
+[native inference build](../Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1)
+validates its requested targets before invoking Cargo. The legacy llama-rs
+backend builds for numeric targets. NVFP4 execution belongs to the modern
+llama.cpp qualification path. [NVIDIA nvcc target listing](https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#list-gpu-code-code-ls)
+
 ## Model admission
 
 The [inference workspace](../Native/pcai_core/Cargo.toml) pins archived rustformers llama-rs. Its [legacy loader](../Native/pcai_core/pcai_inference/src/backends/llamacpp.rs) infers architectures from filenames. The Qwen2.5 GGUF paired with `llama_cpp` in the [server example](../Config/pcai-inference-server.json) therefore needs a compatible backend before promotion. Start with a pinned modern llama.cpp process behind the existing provider interface. Require a port-bound health check, an explicit device, and actual GGUF architecture and projector checks. Reuse the [native GGUF header parser](../Native/pcai_core/pcai_core_lib/src/preflight/gguf.rs) in [model discovery](../Tools/Invoke-ModelDiscovery.ps1) before advertising compatibility. [Archived llama-rs project](https://github.com/rustformers/llm) · [Current llama.cpp releases](https://github.com/ggml-org/llama.cpp/releases)
@@ -85,3 +95,36 @@ reported 17 of 17 layers offloaded and returned a nonempty completion.
 The single-case strict evaluation produced accepted and rejected reports
 across those runs. This checks device selection, generated output, exit
 status, and report preservation. A single case cannot establish model quality.
+
+## Native archive and model-format qualification
+
+The [Windows native archive step](../.github/workflows/release-cuda.yml) ran
+locally against a locked `pcai-llamacpp` CPU release build at `a8f55809`. The extracted
+EXE reported the expected commit and Cargo features. The P/Invoke DLL loaded
+and exposed `pcai_version`. The same archive gate rejected an actual Debug
+build. [Pester fixtures](../Tests/Unit/NativeReleaseWorkflow.Tests.ps1) cover
+all four package labels and check digests against the archived bytes.
+
+On Gen7 the native executable accepted its configuration and rejected the
+installed 668,788,096-byte TinyLlama 1.1B Q4_K_M GGUF at model load. Its pinned
+[llama-rs loader](https://github.com/rustformers/llm/blob/b11ffb14fde039f068c808df8dcbd1257a01b8db/crates/ggml/src/lib.rs)
+recognizes legacy GGML, GGMF and GGJT model containers.
+[Native setup and model selection](../Native/pcai_core/pcai_inference/README.md)
+describe that compatibility boundary. The installed upstream `llama-server`
+build 8565 (`b0f0dd3e5`) loaded the same weights on CPU, returned healthy over
+loopback, and generated 12 tokens without copying the model. This establishes
+upstream serving for that pair. Native mistral.rs, native CUDA packages and
+the modern model compatibility of each release variant need their own tests.
+
+The installed upstream `llama-bench` at `b0f0dd3e5` ran five repetitions on
+the same TinyLlama weights, with four threads, 256 prefill tokens, and 64
+decode tokens. The CUDA run selected `CUDA0`, an RTX 2000 Ada laptop GPU.
+
+| Execution route | Mean prefill tokens/s | Mean decode tokens/s |
+|---|---:|---:|
+| CPU, GPU offload disabled | 114.0 | 30.4 |
+| NVIDIA CUDA, 99 layers requested | 4,776.1 | 137.1 |
+
+Reproduce with the `llama-bench` command above. The model SHA-256 is
+`9fecc3b3cd76bba89d504f29b616eedf7da85b96540e490ca5824d3f7d2776a0`.
+These device measurements apply to the upstream benchmark on Gen7.

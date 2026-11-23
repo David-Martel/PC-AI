@@ -5,7 +5,7 @@ Dual-backend LLM inference engine for PC diagnostics with native Rust performanc
 ## Features
 
 - **Dual Backend Support**
-  - llama-rs (`llm`) via the `llamacpp` compatibility feature
+  - llama-rs (`llm`) via the `llamacpp` compatibility feature for supported legacy GGML-family weights
   - mistral.rs (feature: `mistralrs-backend`)
 
 - **Flexible Deployment**
@@ -13,7 +13,7 @@ Dual-backend LLM inference engine for PC diagnostics with native Rust performanc
   - C FFI exports for PowerShell integration (feature: `ffi`)
   - Optional CUDA acceleration (features: `cuda-llamacpp`, `cuda-mistralrs`)
 
-- **Production Ready**
+- **Runtime**
   - Async/await with Tokio
   - Structured logging with tracing
   - Type-safe error handling
@@ -23,25 +23,34 @@ Dual-backend LLM inference engine for PC diagnostics with native Rust performanc
 
 ### HTTP Server
 
-```bash
-# Build with llama.cpp backend and server
-cargo build --release --features "llamacpp,server"
+Run these commands from `Native/pcai_core` for a legacy llama-rs model:
 
-# Run server with config
-./target/release/pcai-inference --config config.json
+```bash
+cargo build --locked --release -p pcai-inference --features llamacpp,server --bin pcai-llamacpp
+./target/release/pcai-llamacpp --config config.json
 ```
+
+For a model supported by mistral.rs, build and run its separate executable:
+
+```bash
+cargo build --locked --release -p pcai-inference --features mistralrs-backend,server --bin pcai-mistralrs
+./target/release/pcai-mistralrs --config config.json
+```
+
+Set its configuration `backend.type` to `mistral_rs` and supply a compatible model.
+The pinned llama-rs loader used by `pcai-llamacpp` accepts supported GGML, GGMF
+and GGJT weights. For GGUF qualification, see the
+[backend comparison and model smoke](../../../docs/ai-build-qualification.md).
 
 ### Configuration
 
 ```json
 {
   "backend": {
-    "type": "llama_cpp",
-    "n_gpu_layers": 35,
-    "n_ctx": 4096
+    "type": "llama_cpp"
   },
   "model": {
-    "path": "/path/to/model.gguf",
+    "path": "/path/to/legacy-model.bin",
     "generation": {
       "max_tokens": 512,
       "temperature": 0.7,
@@ -51,7 +60,8 @@ cargo build --release --features "llamacpp,server"
   "server": {
     "host": "127.0.0.1",
     "port": 8080,
-    "cors": true
+    "cors_allowed_origins": [],
+    "allowed_hosts": []
   }
 }
 ```
@@ -76,7 +86,7 @@ curl -X POST http://localhost:8080/v1/completions \
 
 | Feature | Description | Default |
 |---------|-------------|---------|
-| `llamacpp` | llama-rs (`llm`) compatibility backend | Yes |
+| `llamacpp` | llama-rs (`llm`) compatibility backend for legacy weights | No |
 | `mistralrs-backend` | mistral.rs backend | No |
 | `cuda-llamacpp` | CUDA (cuBLAS) for llama-rs backend | No |
 | `cuda-mistralrs` | CUDA for mistral.rs backend | No |

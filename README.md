@@ -294,6 +294,7 @@ PC-AI/
 |   +-- pcai_core/               # Rust workspace (members: Native/pcai_core/Cargo.toml)
 |   |   +-- pcai_inference/      #   LLM engine (llama.cpp + mistral.rs)
 |   |   +-- pcai_core_lib/       #   Shared lib (search, perf, telemetry)
+|   |   +-- pcai_http_guard/     #   Host/Origin/CORS/bearer guards + bind parsing for the HTTP servers
 |   |   +-- pcai_perf_cli/       #   Performance CLI for PowerShell acceleration
 |   |   +-- pcai_tb_cli/         #   USB4/Thunderbolt peer discovery and routing CLI
 |   |   +-- pcai_media/          #   Media processing (Janus-Pro)

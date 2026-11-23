@@ -81,6 +81,44 @@ function Resolve-PcaiEndpoint {
     return $ApiUrl
 }
 
+function Get-PcaiInferenceAuthHeader {
+    <#
+    .SYNOPSIS
+        Returns the Authorization header for pcai-inference when PCAI_INFERENCE_TOKEN is set.
+    .DESCRIPTION
+        pcai-inference requires a bearer token on every route but GET /health when one is
+        configured, and refuses to bind a non-loopback address without one. The token is read from
+        the same environment variable the server reads. It is sent only to the configured
+        pcai-inference endpoint, never to Ollama, LM Studio or vLLM, so it cannot leak to another
+        provider. Returns an empty hashtable when no token is set or the URL is another provider's.
+    #>
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param(
+        [Parameter()]
+        [AllowEmptyString()]
+        [string]$ApiUrl
+    )
+
+    # Cheap exit before any endpoint resolution when no token is configured.
+    if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('PCAI_INFERENCE_TOKEN'))) { return @{} }
+
+    # An unset or "auto" configured URL must not throw (ApiUrl is mandatory in Resolve-PcaiEndpoint);
+    # it simply fails to match, so no header is sent.
+    $configuredUrl = $script:ModuleConfig.PcaiInferenceApiUrl
+    if ([string]::IsNullOrWhiteSpace($configuredUrl)) { $configuredUrl = 'auto' }
+    try {
+        $pcaiUrl = Resolve-PcaiEndpoint -ApiUrl $configuredUrl -ProviderName 'pcai-inference'
+    }
+    catch {
+        return @{}
+    }
+
+    # The origin rule and the header itself live in PC-AI.Common, shared with the evaluation
+    # harness and the media hardware runner.
+    return Get-PcaiOriginBearerHeader -RequestUrl $ApiUrl -BaseUrl $pcaiUrl -TokenVariable 'PCAI_INFERENCE_TOKEN'
+}
+
 function Resolve-OllamaNativeCliPath {
     [CmdletBinding()]
     [OutputType([string])]
@@ -627,9 +665,10 @@ function Test-PcaiInferenceConnection {
     )
 
     $ApiUrl = Resolve-PcaiEndpoint -ApiUrl $ApiUrl -ProviderName 'pcai-inference'
+    $authHeaders = Get-PcaiInferenceAuthHeader -ApiUrl $ApiUrl
 
     try {
-        $response = Invoke-RestMethod -Uri "$ApiUrl/v1/models" -Method Get -TimeoutSec $TimeoutSeconds -ErrorAction Stop
+        $response = Invoke-RestMethod -Uri "$ApiUrl/v1/models" -Method Get -Headers $authHeaders -TimeoutSec $TimeoutSeconds -ErrorAction Stop
         return $true
     }
     catch {
@@ -906,6 +945,7 @@ function Invoke-OpenAIChatWithProgress {
     $jsonBody = $body | ConvertTo-Json -Depth 10
     $headers = @{}
     if ($ApiKey) { $headers['Authorization'] = "Bearer $ApiKey" }
+    else { $headers = Get-PcaiInferenceAuthHeader -ApiUrl $ApiUrl }
 
     $uri = "$ApiUrl/v1/chat/completions"
     $job = Start-Job -ScriptBlock {
@@ -1187,6 +1227,9 @@ function Invoke-OpenAIChat {
     $headers = @{}
     if ($ApiKey) {
         $headers['Authorization'] = "Bearer $ApiKey"
+    }
+    else {
+        $headers = Get-PcaiInferenceAuthHeader -ApiUrl $ApiUrl
     }
 
     try {

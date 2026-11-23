@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "75f489dc7d2a02b5cef24595c26449ded770b5e9",
+  "reviewedAtUtc": "2026-11-23T01:32:40.084346Z",
+  "hashConvention": "SHA-256 of UTF-8 LF sources and exact Pester It AST extent. Parameterized selectors are reviewed as groups.",
+  "sourceBindings": {
+    "Tests/Hardware/Invoke-PcaiLlamaDeviceBenchmark.ps1": "f29a3b9b9ceed27766c4a84b77935219c1ab57ae9a6c2577d3e37fde82fdb122",
+    "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1": "0fb5fc6481b244f5619d7283b74998f0e68df7c93749bdd98c593a236e77bc57",
+    "docs/llama-runtime-hardware.md": "cd37530f05f531984b3b1c16168813296a8aae9897d1dc597765badcec3b2c6c",
+    "Tests/linux-ci-pester.txt": "2d114046cabe4bf26156b064dd1bbe8582d7dde0b9861d273e1bd6cd6bc7a29c",
+    "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1": "caa89c4ec2e46fc37b56caf911df76b176d918074231213f8cf6c866b9498040"
+  },
+  "selectors": [
+    {
+      "selector": "reports both CPU slices with explicit no-device selection",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "4410174eb25aa8691184cb5053d30faeb0501a12b98e78c7c4a529acafffb456",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Verifies exact no-device arguments and an unchanged ambient precision at native launch, with an opaque JSON payload delivered to a profile-free shell."
+    },
+    {
+      "selector": "qualifies <Route> only when reported offload is complete",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "9ad872eba9a43b6c90a4fd644c9cd994c11696a7dac0631413a85dcfdb074902",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Verifies the requested child precision, unchanged parent precision and explicit device arguments during both discovery and timing, with complete observed offload."
+    },
+    {
+      "selector": "rejects q4 before timing with a <Case> CUDA capability",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "c05e5aa4bd8163819c2145eacf52a3c16d43344d827beac14a4cc80f5733d516",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "blocks either wrong digest and incompatible CUDA precision",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "d2756da4d6c676299119dd3622d438e70822b6d95b604861cb770d535338429b",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author source review",
+      "disposition": "keep",
+      "reviewScope": "Checks both digest mismatches and refusal to apply CUDA precision on Intel before either native call."
+    },
+    {
+      "selector": "rejects <Case> matching Intel Vulkan devices",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "ca0f3ab78b1d793efe387d58bc6294c48890805d49bf41c243502315684cee48",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author source review",
+      "disposition": "keep",
+      "reviewScope": "Checks absent and ambiguous Intel candidates independently, including the reported number of qualifying devices."
+    },
+    {
+      "selector": "rejects a success status with no benchmark rows",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "cf11ce779d66f874411a78ddce3ec227defcef5119d9dc86a7be6f94d57e48b8",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author source review",
+      "disposition": "keep",
+      "reviewScope": "Checks that a successful process exit cannot stand in for the expected benchmark rows."
+    },
+    {
+      "selector": "preserves literal argv, raw streams and exit code with child-only precision",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "ab73c640f34d47589a6cc7e70fb363153e166fd46e8d17bed7ab974d0cb212ab",
+      "reviewScope": "The production launcher and owned Windows process runner pass literal argv, EOF, separate UTF-8 stdout and stderr, and exit status through an inert workload. The child sees q4, q8 or absence while the parent remains unchanged.",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "terminates the native workload at the launcher deadline",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "4a41a1852819c989ba5094187544086bff254908d2424bb41646f61c21ee228b",
+      "reviewScope": "An inert workload records its PID and blocks. The owned job reports timeout, closes the nested workload, and leaves ambient precision unchanged.",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "rejects staged binary changes before launching any workload",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "f33d978ca5a6ca7944e41523629cf0e8c6fd638c77cc9a24cd557780e2b03357",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Tampering with an admitted DLL or adding an unlisted DLL must prevent even device discovery."
+    }
+  ]
+}

@@ -1,11 +1,15 @@
 {
   "schemaVersion": 1,
-  "reviewedAtUtc": "2026-11-22T14:26:20.3194449Z",
-  "sourceBaseline": "03103fd3c38331a6a8e42c40e6ae68d216570361",
+  "reviewedAtUtc": "2026-11-23T00:25:20.6848873Z",
+  "sourceBaseline": "a8f55809ddd889e8ccb7505bad487c28284c4a8a",
   "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent. Parameterized selectors are reviewed as groups.",
   "sourceBindings": {
-    ".github/workflows/release-cuda.yml": "ee904246f9bcead0e996f281dcbad4045e05736d957d9feafb87d8b7b3876506",
-    "Tests/Unit/NativeReleaseWorkflow.Tests.ps1": "84226c9f153c0b6ad3383961d2821fbe9a9ed9441eb55f25f9c176de9a54fcd9"
+    ".github/workflows/release-cuda.yml": "8d5ee5adebc003875c7544d5bb266484551dd0c95aba7cae36f9ffcef9d982a2",
+    "Tests/Unit/NativeReleaseWorkflow.Tests.ps1": "693fd85a40db75eb4672e1de57350c342482a508a4832da8c431137a24d2cfcd",
+    "Native/pcai_core/pcai_inference/build.rs": "ed44bbb51065fc08bae2caa061826c476c42a15740c5ff23621a1336b428bd2e",
+    "Native/pcai_core/pcai_inference/Cargo.toml": "43f2bdb12ac5dccc58403a6783e8dab6ea7f682243c76879545f13b29f7a4b69",
+    "Native/pcai_core/pcai_inference/README.md": "c1813be817770552ca7aa1f67dcbceaae844b75793b3d69f86f6b0825a83e0bf",
+    "docs/ai-build-qualification.md": "7a727960ff71d38a0d9e58812374d1afc882a2ddbe0b3e66fb3eb6819fad9a3e"
   },
   "selectors": [
     {
@@ -43,6 +47,42 @@
       "reviewerType": "independent source agent",
       "disposition": "keep",
       "reviewScope": "Reviewed workflow source gating, failing baseline, test data groups and job permission wiring. Windows and Linux unit contracts cover pushed tags, mismatched refs, dispatch and publication boundary."
+    },
+    {
+      "selector": "packs the canonical <Backend> <Variant> staged files",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "8084fec9917f13d573acb648ecc2a47bc3fbb348f43c336342a6ac8a51dd5cdf",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Archives all four staged variants from inert files, including split metadata markers, validates the backend-format startup example, and checks exact ZIP bytes and checksums."
+    },
+    {
+      "selector": "rejects an incomplete canonical artifact when <Case>",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "552aeca23a1698e10bdf966ad05a216e35234bcc81e934d1bbba521b8ab456ed",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Confirms absent or empty required files block publication outputs even if stale Cargo outputs exist."
+    },
+    {
+      "selector": "rejects a P/Invoke alias with different bytes from the Cargo library",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "7c5c1223d6469c9523b18d52df368567ec794d5f468920ed8e70d2a2a0d8c637",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author-family source review",
+      "disposition": "keep",
+      "reviewScope": "Binds the alias check to genuine differing library bytes and requires no archive or artifact outputs."
+    },
+    {
+      "selector": "rejects the staged executable when <Case>",
+      "source": "Tests/Unit/NativeReleaseWorkflow.Tests.ps1",
+      "sha256": "762abd8e5ed20459586049d546913935154299c80b8957148569e978f0ed71cb",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Challenges the binary identity reader with wrong variant values and missing, incomplete, repeated, oversized, malformed, or incorrectly typed embedded metadata."
     }
   ]
 }

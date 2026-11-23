@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "b12635",
-  "commit": "ad50351f5092436f312d98d25689207df25f4802",
+  "version": "b12646",
+  "commit": "f4f6f2e7db76e98c95cc9b7fc608ea669c806044",
   "platforms": {
     "windows-x64": {
       "routes": {
@@ -18,19 +18,19 @@
       },
       "assets": {
         "cpu": {
-          "name": "llama-b12635-bin-win-cpu-x64.zip",
-          "sha256": "c0fcd7ef0412f2a02b76713c6228d68717973a61f0cc17b9299eb98e3bf048dc",
-          "sizeBytes": 25046284
+          "name": "llama-b12646-bin-win-cpu-x64.zip",
+          "sha256": "a1ea7429343ff32fdd5533fe587b6ab88fb05839a281e285afbaf4d97b5d722f",
+          "sizeBytes": 25096334
         },
         "vulkan": {
-          "name": "llama-b12635-bin-win-vulkan-x64.zip",
-          "sha256": "f2249334614c44e1222616754616a401c1d5ee460830868b1891166c455cb142",
-          "sizeBytes": 38888868
+          "name": "llama-b12646-bin-win-vulkan-x64.zip",
+          "sha256": "a410c2d5b1db2a6c709724da26b1a791ac5960d35baf7041e1ac8177ccd956f5",
+          "sizeBytes": 38939462
         },
         "cuda": {
-          "name": "llama-b12635-bin-win-cuda-13.5-x64.zip",
-          "sha256": "8b6c1eee485a1b53dbfb04d84d481ec8e8bcf364fb4061b95dfb86d9d68e4c3a",
-          "sizeBytes": 225651733
+          "name": "llama-b12646-bin-win-cuda-13.5-x64.zip",
+          "sha256": "9625603a500192585c3d272d74dcc3a0008c420c08bc044eb8d8d44eee1a1658",
+          "sizeBytes": 225702344
         },
         "cudart": {
           "name": "cudart-llama-bin-win-cuda-13.5-x64.zip",

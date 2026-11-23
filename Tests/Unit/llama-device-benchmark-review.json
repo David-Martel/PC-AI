@@ -1,31 +1,33 @@
 {
   "schemaVersion": 1,
-  "sourceBaseline": "9b119292cfe0368de00b1bc21d2f1230d3496c75",
-  "reviewedAtUtc": "2026-11-23T01:23:34.5366666Z",
+  "sourceBaseline": "48f0866d87626a937cfdf0340646e9376992ffc2",
+  "reviewedAtUtc": "2026-11-23T01:32:40.0843460Z",
   "hashConvention": "SHA-256 of UTF-8 LF sources and exact Pester It AST extent. Parameterized selectors are reviewed as groups.",
   "sourceBindings": {
-    "Tests/Hardware/Invoke-PcaiLlamaDeviceBenchmark.ps1": "5f0bbaa1b8ec7bfd8678da935ec74ecfcaf77831d88e33ce9f44a677f5f206e5",
-    "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1": "1c3de3ef8655e2754d2366894ddd6fb238e9ad6da4ff0a2db4d7f606af9b76e8",
-    "docs/llama-runtime-hardware.md": "0a3c28a2de3a91396db099aa3eb1091a12662a688cfeb2c04712704e95d27320",
-    "Tests/linux-ci-pester.txt": "2d114046cabe4bf26156b064dd1bbe8582d7dde0b9861d273e1bd6cd6bc7a29c"
+    "Tests/Hardware/Invoke-PcaiLlamaDeviceBenchmark.ps1": "d093e909b9ebd4b55197be799cc3674aacf0ab0011d0b75fea68d4289e3287ed",
+    "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1": "d077e81bc4529d8ec5068df1c7599c16d3ce8fa52bca54fed8ed37165e3f4def",
+    "docs/llama-runtime-hardware.md": "bd90aadc6ef5cf1a8ee596e874f2d76866d483a5f9c780895fe11d8a5ff1e516",
+    "Tests/linux-ci-pester.txt": "2d114046cabe4bf26156b064dd1bbe8582d7dde0b9861d273e1bd6cd6bc7a29c",
+    "Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1": "caa89c4ec2e46fc37b56caf911df76b176d918074231213f8cf6c866b9498040"
   },
   "selectors": [
     {
       "selector": "reports both CPU slices with explicit no-device selection",
       "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
-      "sha256": "c5fc13d2f756a640dac088a1c9bb553b7c98d1729f2fa8e0d5c81d3f01b2f6c5",
-      "reviewer": "codex-gpu-lane",
-      "reviewerType": "author source review",
-      "disposition": "keep",
-      "reviewScope": "Checks explicit CPU-only arguments, two slice measurements and MMQ environment restoration."
+      "sha256": "3f42df41fe9c2d8f62a5095a2078ed23216facbdb03404ca2b33e16d425cefde",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "Verifies exact no-device arguments and an unchanged ambient precision at native launch, with an opaque JSON payload delivered to a profile-free shell."
     },
     {
       "selector": "qualifies <Route> only when reported offload is complete",
       "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
-      "sha256": "7944367926625a264a88e3004e1611b071dee2bae457650b3ef59ce5dc34c8b7",
-      "reviewer": "codex-gen9-pcai-fleet",
+      "sha256": "96d15e1b570064ebfda1b9523663080773bf34cf5e0f24c0e4029b33568de116",
+      "reviewer": "codex",
       "reviewerType": "author self-review",
-      "disposition": "unreviewed"
+      "disposition": "unreviewed",
+      "reviewScope": "Verifies the requested child precision, unchanged parent precision and explicit device arguments during both discovery and timing, with complete observed offload."
     },
     {
       "selector": "rejects q4 before timing with a <Case> CUDA capability",
@@ -61,6 +63,24 @@
       "reviewerType": "author source review",
       "disposition": "keep",
       "reviewScope": "Checks that a successful process exit cannot stand in for the expected benchmark rows."
+    },
+    {
+      "selector": "preserves literal argv, raw streams and exit code with child-only precision",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "ab73c640f34d47589a6cc7e70fb363153e166fd46e8d17bed7ab974d0cb212ab",
+      "reviewScope": "The production launcher and owned Windows process runner pass literal argv, EOF, separate UTF-8 stdout and stderr, and exit status through an inert workload. The child sees q4, q8 or absence while the parent remains unchanged.",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "terminates the native workload at the launcher deadline",
+      "source": "Tests/Unit/LlamaDeviceBenchmark.Tests.ps1",
+      "sha256": "4a41a1852819c989ba5094187544086bff254908d2424bb41646f61c21ee228b",
+      "reviewScope": "An inert workload records its PID and blocks. The owned job reports timeout, closes the nested workload, and leaves ambient precision unchanged.",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed"
     }
   ]
 }

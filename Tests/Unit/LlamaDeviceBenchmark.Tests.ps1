@@ -8,13 +8,30 @@ BeforeAll {
     $script:ReplyPath = Join-Path $helperDir 'replies.json'
     $script:CallPath = Join-Path $helperDir 'calls.jsonl'
     Copy-Item -LiteralPath $source -Destination $script:Runner
+    $parseErrors = $null
+    $ast = [Management.Automation.Language.Parser]::ParseFile($source, [ref]$null, [ref]$parseErrors)
+    if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
+    $definition = $ast.Find({
+        param($node)
+        $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+            $node.Name -eq 'Invoke-LlamaBenchmarkChild'
+    }, $true)
+    $script:LaunchDefinition = if ($definition) { [scriptblock]::Create($definition.Extent.Text) }
     @'
 function Invoke-VigilBoundedProcess {
-    param([string]$FilePath, [string]$WorkingDirectory, [string[]]$Arguments, [int]$TimeoutSeconds)
+    param([string]$FilePath, [string]$WorkingDirectory, [string[]]$Arguments, [int]$TimeoutSeconds, [string]$InputText)
     $calls = Join-Path $PSScriptRoot 'calls.jsonl'
     $replies = ConvertFrom-Json -InputObject (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'replies.json') -Raw) -NoEnumerate
     $index = @(Get-Content -LiteralPath $calls).Count
-    $entry = @{ Arguments = $Arguments; FilePath = $FilePath; Precision = [Environment]::GetEnvironmentVariable('GGML_CUDA_MMQ_PREC') }
+    $parentPrecision = [Environment]::GetEnvironmentVariable('GGML_CUDA_MMQ_PREC')
+    $request = if ($InputText) { ConvertFrom-Json -InputObject $InputText -AsHashtable } else {
+        @{ filePath = $FilePath; workingDirectory = $WorkingDirectory; arguments = $Arguments; precision = $parentPrecision }
+    }
+    $entry = @{
+        Arguments = $request.arguments; FilePath = $request.filePath; WorkingDirectory = $request.workingDirectory
+        Precision = $request.precision; ParentPrecision = $parentPrecision
+        LauncherPath = $FilePath; LauncherArguments = $Arguments
+    }
     Add-Content -LiteralPath $calls -Value (ConvertTo-Json -InputObject $entry -Compress)
     if ($index -ge $replies.Count) { throw 'Unexpected synthetic native call.' }
     $replies[$index]
@@ -42,7 +59,7 @@ function Invoke-VigilBoundedProcess {
     }
 
     $exe = Join-Path $TestDrive 'staged benchmark.exe'
-    $gguf = Join-Path $TestDrive 'staged model.gguf'
+    $gguf = Join-Path $TestDrive 'staged model [A] & é.gguf'
     [IO.File]::WriteAllText($exe, 'inert executable')
     [IO.File]::WriteAllText($gguf, 'inert model')
     $script:Inputs = @{
@@ -87,10 +104,15 @@ Describe 'llama-bench benchmark admission' -Tag 'Unit', 'Portable' {
         [Environment]::GetEnvironmentVariable('GGML_CUDA_MMQ_PREC') | Should -BeExactly 'ambient-fixture'
         $calls = @(Get-Content -LiteralPath $script:CallPath | ConvertFrom-Json)
         $calls.Count | Should -Be 1
+        $calls[0].ParentPrecision | Should -BeExactly 'ambient-fixture'
         $calls[0].FilePath | Should -BeExactly $params.BenchPath
-        $calls[0].Arguments | Should -Contain $params.ModelPath
+        $calls[0].WorkingDirectory | Should -BeExactly (Split-Path -Parent $params.BenchPath)
         $calls[0].Precision | Should -BeNullOrEmpty
-        ($calls[0].Arguments -join ' ') | Should -Match '-p 256 -n 64 -r 3 -t 4 -dev none -ngl 0 -o json -v$'
+        $expected = @('--offline', '-m', $params.ModelPath, '-p', '256', '-n', '64', '-r', '3',
+            '-t', '4', '-dev', 'none', '-ngl', '0', '-o', 'json', '-v')
+        ($calls[0].Arguments -join [char]0) | Should -BeExactly ($expected -join [char]0)
+        ($calls[0].LauncherArguments[0..3] -join ' ') |
+            Should -BeExactly '-NoLogo -NoProfile -NonInteractive -EncodedCommand'
     }
 
     # Protects: GPU qualification uses both enumerated device and observed placement.
@@ -122,6 +144,11 @@ Describe 'llama-bench benchmark admission' -Tag 'Unit', 'Portable' {
         $calls.Count | Should -Be 2
         $calls[0].Arguments | Should -Contain '--list-devices'
         $calls[1].Arguments | Should -Contain $Device
+        foreach ($call in $calls) {
+            $call.ParentPrecision | Should -BeExactly 'ambient-fixture'
+            if ($Precision) { $call.Precision | Should -BeExactly $Precision }
+            else { $call.Precision | Should -BeNullOrEmpty }
+        }
         if ($Precision) {
             $calls[1].Precision | Should -BeExactly $Precision
             $report.RequestedMmqPrecision | Should -BeExactly $Precision
@@ -134,6 +161,70 @@ Describe 'llama-bench benchmark admission' -Tag 'Unit', 'Portable' {
         $run.Stderr = $log.Replace('17/17', '1/17')
         Set-LlamaFixtureReplies -Replies @($probe, $run)
         { & $script:Runner @params -Route $Route } | Should -Throw '*complete device and model offload evidence*'
+        [Environment]::GetEnvironmentVariable('GGML_CUDA_MMQ_PREC') | Should -BeExactly 'ambient-fixture'
+    }
+
+    # Protects: the real Windows launcher scopes MMQ precision to the native workload.
+    # Detects: rewriting parent state, mangling argv, recoding diagnostics, or losing the child status.
+    # Needs: Windows, pwsh and an inert child in TestDrive. No staged executable or GPU is used.
+    # Breadcrumb: Invoke-LlamaBenchmarkChild and Invoke-VigilBoundedProcess.
+    It 'preserves literal argv, raw streams and exit code with child-only precision' -Skip:(-not $IsWindows) {
+        $script:LaunchDefinition | Should -Not -BeNullOrEmpty
+        . $script:LaunchDefinition
+        . (Join-Path $PSScriptRoot '../../Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1')
+        $pwshPath = Join-Path $PSHOME 'pwsh.exe'
+        $child = Join-Path $TestDrive 'capture args & settings.ps1'
+        @'
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+$state = @{
+    arguments = @($args)
+    precision = [Environment]::GetEnvironmentVariable('GGML_CUDA_MMQ_PREC')
+    input = [Console]::In.ReadToEnd()
+}
+[Console]::Write((ConvertTo-Json -InputObject $state -Compress))
+[Console]::Error.Write('inert diagnostics éΩ')
+exit 19
+'@ | Set-Content -LiteralPath $child -Encoding utf8
+        $expected = @('space value', 'a"b', '', 'C:\trailing\', 'éΩ')
+        $arguments = @('-NoLogo', '-NoProfile', '-NonInteractive', '-File', $child) + $expected
+
+        foreach ($precision in @('q4', 'q8', $null)) {
+            $result = Invoke-LlamaBenchmarkChild -FilePath $pwshPath -WorkingDirectory $TestDrive `
+                -Arguments $arguments -Precision $precision -TimeoutSeconds 10
+            $result.ExitCode | Should -Be 19
+            $result.Stderr | Should -BeExactly 'inert diagnostics éΩ'
+            $actual = ConvertFrom-Json -InputObject $result.Stdout -AsHashtable
+            ($actual.arguments -join [char]0) | Should -BeExactly ($expected -join [char]0)
+            $actual.input | Should -BeExactly ''
+            if ($precision) { $actual.precision | Should -BeExactly $precision }
+            else { $actual.precision | Should -BeNullOrEmpty }
+            [Environment]::GetEnvironmentVariable('GGML_CUDA_MMQ_PREC') | Should -BeExactly 'ambient-fixture'
+        }
+    }
+
+    # Protects: the bounded launcher still owns the workload after adding a child shell.
+    # Detects: a timed-out workload surviving after the helper closes its job.
+    # Needs: Windows, pwsh and a sleeping inert child in TestDrive.
+    # Breadcrumb: Invoke-LlamaBenchmarkChild and the bounded helper's job cleanup.
+    It 'terminates the native workload at the launcher deadline' -Skip:(-not $IsWindows) {
+        $script:LaunchDefinition | Should -Not -BeNullOrEmpty
+        . $script:LaunchDefinition
+        . (Join-Path $PSScriptRoot '../../Tools/SystemScripts/Networking/Invoke-VigilBoundedProcess.ps1')
+        $pwshPath = Join-Path $PSHOME 'pwsh.exe'
+        $child = Join-Path $TestDrive 'owned delay.ps1'
+        $pidPath = Join-Path $TestDrive 'owned delay.pid'
+        @'
+[IO.File]::WriteAllText($args[0], [string]$PID)
+Start-Sleep -Seconds 40
+'@ | Set-Content -LiteralPath $child -Encoding utf8
+        $arguments = @('-NoLogo', '-NoProfile', '-NonInteractive', '-File', $child, $pidPath)
+
+        {
+            Invoke-LlamaBenchmarkChild -FilePath $pwshPath -WorkingDirectory $TestDrive `
+                -Arguments $arguments -Precision q4 -TimeoutSeconds 8
+        } | Should -Throw '*timed out*process tree terminated*'
+        $childId = [int](Get-Content -LiteralPath $pidPath -Raw)
+        Get-Process -Id $childId -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
         [Environment]::GetEnvironmentVariable('GGML_CUDA_MMQ_PREC') | Should -BeExactly 'ambient-fixture'
     }
 

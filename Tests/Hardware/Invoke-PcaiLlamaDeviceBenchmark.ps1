@@ -30,6 +30,63 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Invoke-LlamaBenchmarkChild {
+    param(
+        [string]$FilePath,
+        [string]$WorkingDirectory,
+        [string[]]$Arguments,
+        [AllowNull()][string]$Precision,
+        [int]$TimeoutSeconds
+    )
+
+    # The job-managed launcher reads data from stdin and applies the override
+    # to its child only. Forward both streams without PowerShell text handling.
+    $launcher = @'
+$ErrorActionPreference = 'Stop'
+[Console]::InputEncoding = [Text.UTF8Encoding]::new($false, $true)
+$request = ConvertFrom-Json -InputObject ([Console]::In.ReadToEnd()) -AsHashtable
+$start = [Diagnostics.ProcessStartInfo]::new()
+$start.FileName = $request.filePath
+$start.WorkingDirectory = $request.workingDirectory
+$start.UseShellExecute = $false
+$start.CreateNoWindow = $true
+$start.RedirectStandardInput = $true
+$start.RedirectStandardOutput = $true
+$start.RedirectStandardError = $true
+foreach ($argument in $request.arguments) {
+    $start.ArgumentList.Add($argument)
+}
+if ([string]::IsNullOrEmpty($request.precision)) {
+    [void]$start.Environment.Remove('GGML_CUDA_MMQ_PREC')
+} else {
+    $start.Environment['GGML_CUDA_MMQ_PREC'] = $request.precision
+}
+$child = [Diagnostics.Process]::Start($start)
+try {
+    $child.StandardInput.Close()
+    $stdout = $child.StandardOutput.BaseStream.CopyToAsync([Console]::OpenStandardOutput())
+    $stderr = $child.StandardError.BaseStream.CopyToAsync([Console]::OpenStandardError())
+    $child.WaitForExit()
+    [Threading.Tasks.Task]::WhenAll([Threading.Tasks.Task[]]@($stdout, $stderr)).GetAwaiter().GetResult()
+    exit $child.ExitCode
+} finally {
+    $child.Dispose()
+}
+'@
+    $inputText = ConvertTo-Json -Compress -InputObject @{
+        filePath = $FilePath
+        workingDirectory = $WorkingDirectory
+        arguments = $Arguments
+        precision = $Precision
+    }
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($launcher))
+    $pwshName = if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' }
+    $launcherArguments = @('-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', $encoded)
+    Invoke-VigilBoundedProcess -FilePath (Join-Path $PSHOME $pwshName) -WorkingDirectory $WorkingDirectory `
+        -Arguments $launcherArguments -InputText $inputText -TimeoutSeconds $TimeoutSeconds
+}
+
 if ($MmqPrecision -and $Route -ne 'NvidiaCuda') {
     throw 'MmqPrecision is supported only for NvidiaCuda.'
 }
@@ -72,45 +129,39 @@ $device = 'none'
 $description = $null
 $cudaCapability = $null
 $gpuLayers = 0
-$originalPrecision = [Environment]::GetEnvironmentVariable('GGML_CUDA_MMQ_PREC')
-try {
-    $childPrecision = if ($MmqPrecision) { $MmqPrecision.ToLowerInvariant() } else { $null }
-    [Environment]::SetEnvironmentVariable('GGML_CUDA_MMQ_PREC', $childPrecision)
-    if ($Route -ne 'CPU') {
-        $probe = Invoke-VigilBoundedProcess -FilePath $bench.FullName -WorkingDirectory $bench.DirectoryName -Arguments @('--list-devices') -TimeoutSeconds 10
-        if ($probe.ExitCode -ne 0) {
-            throw "llama-bench device discovery exited with code $($probe.ExitCode): $($probe.Stderr)"
-        }
-        $labelPattern = if ($Route -eq 'IntelVulkan') {
-            '(?<id>Vulkan[0-9]+): (?<name>Intel\b[^\r\n]+?)'
-        } else {
-            '(?<id>CUDA[0-9]+): (?<name>NVIDIA\b[^\r\n]+?)'
-        }
-        $devices = [regex]::Matches($probe.Stdout, "(?im)^[ \t]+$labelPattern \([0-9]+ MiB, [0-9]+ MiB free\)\r?$")
-        if ($devices.Count -ne 1) {
-            throw "Expected exactly one current llama-bench device for $Route, found $($devices.Count)."
-        }
-        $device = $devices[0].Groups['id'].Value
-        $description = $devices[0].Groups['name'].Value
-        if ($Route -eq 'NvidiaCuda') {
-            $index = $device.Substring(4)
-            $escapedName = [regex]::Escape($description)
-            $reported = [regex]::Matches($probe.Stderr, "(?im)^[ \t]*Device ${index}: $escapedName, compute capability (?<cap>[0-9]+\.[0-9]+)(?:,|\s|$)")
-            $caps = @($reported | ForEach-Object { $_.Groups['cap'].Value } | Select-Object -Unique)
-            if ($caps.Count -eq 1) { $cudaCapability = [version]$caps[0] }
-            if ($MmqPrecision -eq 'q4' -and (!$cudaCapability -or $cudaCapability.Major -lt 10)) {
-                throw "A q4 MMQ comparison requires confirmed CUDA compute capability 10.0 or newer for $device."
-            }
-        }
-        $gpuLayers = 999
+$childPrecision = if ($MmqPrecision) { $MmqPrecision.ToLowerInvariant() } else { $null }
+if ($Route -ne 'CPU') {
+    $probe = Invoke-LlamaBenchmarkChild -FilePath $bench.FullName -WorkingDirectory $bench.DirectoryName -Arguments @('--list-devices') -Precision $childPrecision -TimeoutSeconds 10
+    if ($probe.ExitCode -ne 0) {
+        throw "llama-bench device discovery exited with code $($probe.ExitCode): $($probe.Stderr)"
     }
-
-    $arguments = @('--offline', '-m', $model.FullName, '-p', "$PromptTokens", '-n', "$DecodeTokens",
-        '-r', "$Repetitions", '-t', "$Threads", '-dev', $device, '-ngl', "$gpuLayers", '-o', 'json', '-v')
-    $run = Invoke-VigilBoundedProcess -FilePath $bench.FullName -WorkingDirectory $bench.DirectoryName -Arguments $arguments -TimeoutSeconds $TimeoutSeconds
-} finally {
-    [Environment]::SetEnvironmentVariable('GGML_CUDA_MMQ_PREC', $originalPrecision)
+    $labelPattern = if ($Route -eq 'IntelVulkan') {
+        '(?<id>Vulkan[0-9]+): (?<name>Intel\b[^\r\n]+?)'
+    } else {
+        '(?<id>CUDA[0-9]+): (?<name>NVIDIA\b[^\r\n]+?)'
+    }
+    $devices = [regex]::Matches($probe.Stdout, "(?im)^[ \t]+$labelPattern \([0-9]+ MiB, [0-9]+ MiB free\)\r?$")
+    if ($devices.Count -ne 1) {
+        throw "Expected exactly one current llama-bench device for $Route, found $($devices.Count)."
+    }
+    $device = $devices[0].Groups['id'].Value
+    $description = $devices[0].Groups['name'].Value
+    if ($Route -eq 'NvidiaCuda') {
+        $index = $device.Substring(4)
+        $escapedName = [regex]::Escape($description)
+        $reported = [regex]::Matches($probe.Stderr, "(?im)^[ \t]*Device ${index}: $escapedName, compute capability (?<cap>[0-9]+\.[0-9]+)(?:,|\s|$)")
+        $caps = @($reported | ForEach-Object { $_.Groups['cap'].Value } | Select-Object -Unique)
+        if ($caps.Count -eq 1) { $cudaCapability = [version]$caps[0] }
+        if ($MmqPrecision -eq 'q4' -and (!$cudaCapability -or $cudaCapability.Major -lt 10)) {
+            throw "A q4 MMQ comparison requires confirmed CUDA compute capability 10.0 or newer for $device."
+        }
+    }
+    $gpuLayers = 999
 }
+
+$arguments = @('--offline', '-m', $model.FullName, '-p', "$PromptTokens", '-n', "$DecodeTokens",
+    '-r', "$Repetitions", '-t', "$Threads", '-dev', $device, '-ngl', "$gpuLayers", '-o', 'json', '-v')
+$run = Invoke-LlamaBenchmarkChild -FilePath $bench.FullName -WorkingDirectory $bench.DirectoryName -Arguments $arguments -Precision $childPrecision -TimeoutSeconds $TimeoutSeconds
 
 if ($run.ExitCode -ne 0) {
     throw "llama-bench exited with code $($run.ExitCode): $($run.Stderr)"

@@ -19,7 +19,8 @@ Use the expected model digest from the model publisher for `$modelSha256`.
 The [benchmark runner](../Tests/Hardware/Invoke-PcaiLlamaDeviceBenchmark.ps1)
 discovers device names on each run, requires a unique match, and requires the
 selected GPU to report full layer offload. CPU uses explicit no-device mode.
-`-MmqPrecision q4` and `q8` control the CUDA comparison. The q4 route checks the
+`-MmqPrecision q4` and `q8` control the CUDA comparison. Each request sets the
+precision only for its own benchmark child. The q4 route checks the
 current selected device's compute capability before timing. Kernel instruction
 qualification requires a profiler. [Upstream MMQ selection](https://github.com/ggml-org/llama.cpp/blob/b12635/ggml/src/ggml-cuda/mmq.cu)
 

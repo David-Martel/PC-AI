@@ -1,40 +1,40 @@
 {
   "SchemaVersion": 1,
-  "SourceBaseline": "a8f55809ddd889e8ccb7505bad487c28284c4a8a",
-  "ReviewedAtUtc": "2026-11-22T23:48:04.5822574Z",
+  "SourceBaseline": "484c643194c17e987e3725b88aea52cfc5daaceb",
+  "ReviewedAtUtc": "2026-11-23T00:22:58.2419085Z",
   "HashConvention": "SHA-256 of UTF-8 LF sources and the exact Pester It command AST extent without a trailing newline.",
   "SourceBindings": {
-    "Build.ps1": "43cf975aba31029e5295ecb9cfa6d15d7d589ea1502a8d88ee0dceb29b887fdd",
+    "Build.ps1": "46b50d68f18f9854a171c729dc9208458adb4ac556759399696d988444cf5885",
     "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "73d083ecb3312fb919e52496a67a199f753a21fd7fb99c8c367ac2f835125caf",
-    "Tests/Unit/BuildReleaseGate.Tests.ps1": "aa6399cb125d2c3b4632d8439cfd24428f3461d25a0214a1969ada567c6e2c98"
+    "Tests/Unit/BuildReleaseGate.Tests.ps1": "7d621dfaa476907e12f79bcead5610bf3882f456478b54305101256943e313c9"
   },
-  "Validation": "Windows PowerShell 7, Pester 5.7.1. Candidate has 11 passes. The same fixture against source baseline has seven expected failures and four passes. The controls validate release-writer admission and CUDA error reporting. Successful-run artifact provenance and archive contents need separate verification.",
+  "Validation": "PowerShell 7 and Pester 5.7.1 on Windows. Isolated fixtures exercise the publication and child-failure boundaries with local temporary files. Real build, release contents, fleet installation, and CUDA hardware qualification remain separate.",
   "Selectors": [
     {
       "Selector": "routes <Case> to exit <ExitCode> with the expected release writers",
       "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
-      "Sha256": "bb062fb29a7a1e0a3e20479f67acb74e80d1109a9a3edc0b000fb882bac327a9",
-      "Protects": "Requested release outputs require successful component and requested-test outcomes. Diagnostic and standalone modes retain their ordinary behavior.",
-      "Detects": "Release writers called after failure or exit status zero for missing or empty failure data.",
+      "Sha256": "c2f18cee6476cccccd48e90342bbde71bd82782b5b6331a90e2bfe5b976c90fa",
+      "Protects": "Only successful builds with a passing requested-test verdict publish outputs. Prior output retirement precedes preflight, and caught publication errors retire partial output. Standalone modes preserve their existing behavior.",
+      "Detects": "Release writer calls after failure, preflight before output retirement, lost diagnostics, or exit zero for missing or empty failure data.",
       "Needs": "PowerShell 7, Pester 5 and TestDrive. Extracted top-level statements run in an owned child with inert build and release stubs.",
       "Breadcrumb": "Build.ps1 main execution, post-build tests and release output calls.",
       "Reviewer": "codex",
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed",
-      "ReviewScope": "The original runs showed release-writer calls in failed component/test cases and exit zero for empty and missing requested-test verdicts. Successful deploy, diagnostic failure and standalone failure retained expected behavior."
+      "ReviewScope": "Exact top-level statements validated release and diagnostic gating, preflight failure, publication error recovery, successful deploy order, and standalone isolation."
     },
     {
-      "Selector": "returns no artifacts when the inference child exits unsuccessfully",
+      "Selector": "returns no artifacts when the inference child <Case>",
       "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
-      "Sha256": "924d52e124db54da132a4af21b260877604161226f436b66572e3b493cba2d4c",
-      "Protects": "Failed inference child invocations retain their logs and do not advertise cached target artifacts.",
-      "Detects": "Cargo target lookup or copying after a child exit code other than zero.",
+      "Sha256": "e385f82b83611b3371f9ab89e87c982e8a02649499a20a1c4960afe27ba42b54",
+      "Protects": "Failed inference invocations retain the log path and do not advertise cached target artifacts.",
+      "Detects": "Cargo target lookup or artifact copying after a child returns nonzero or throws.",
       "Needs": "PowerShell 7, Pester 5 and TestDrive with an inert child script.",
       "Breadcrumb": "Build.ps1 Invoke-InferenceBuild artifact collection.",
       "Reviewer": "codex",
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed",
-      "ReviewScope": "Before the fix, the child exited 17 and the production wrapper still called Resolve-CargoOutputDirectory. The candidate skips the call, returns no artifacts and retains the fixture log."
+      "ReviewScope": "An inert child exits 17 or throws a specific error. The fixture asserts failure, no artifact lookup, the expected error on throw, and a log for the nonzero exit."
     },
     {
       "Selector": "rejects explicit CUDA with <Case>",
@@ -47,12 +47,12 @@
       "Reviewer": "codex",
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed",
-      "ReviewScope": "Both missing-input cases fell through on the original and throw actionable errors in the candidate."
+      "ReviewScope": "Both missing-input cases fail with the documented message. The fixture uses the exact parsed production CUDA branch."
     },
     {
       "Selector": "does not require CUDA when the switch is absent",
       "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
-      "Sha256": "ad4ead471aa17c7a1855cc73bf785c704b2337c9285a913eef6c6f344cdd0f",
+      "Sha256": "ad4ead471aa17c7a1855cc73bf785c704b2337c9285a913eef6c6c6f344cdd0f",
       "Protects": "CPU-only builds do not require the CUDA toolkit or discovery helper.",
       "Detects": "Applying the toolkit guard to CPU-only requests.",
       "Needs": "PowerShell 7, Pester 5 and a nonexistent helper path in TestDrive.",
@@ -60,7 +60,46 @@
       "Reviewer": "codex",
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed",
-      "ReviewScope": "The CPU-only control passes on the original and candidate. This does not run the compiler."
+      "ReviewScope": "The unchanged CPU-only control passes without a helper; no compiler is run."
+    },
+    {
+      "Selector": "archives only the last publication for the requested mode and variant",
+      "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
+      "Sha256": "f0d0beda4b5e29c4bb732afffe351b026be3ad49cd7d101ca8c571c7a4a15830",
+      "Protects": "Previously published manifest, packages, and deploy directory are kept recoverable outside current publication paths.",
+      "Detects": "A stale standard output, byte changes, duplicate empty archives, or moving another variant or unrelated files.",
+      "Needs": "PowerShell 7, Pester 5, and owned temporary filesystem paths. Use a fixture version and no publisher.",
+      "Breadcrumb": "Build.ps1 Save-BuildPublicationOutputs and New-DeployBundle.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "The real archive helper moves only the expected paths and preserves sampled contents while leaving older versions, CUDA output, and unrelated cached files alone."
+    },
+    {
+      "Selector": "returns no FunctionGemma artifacts when the training child <Case>",
+      "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
+      "Sha256": "68fefdf9c3c2c3a7e049fe63d3878227c426fb38451f5e08f4bb14a6d53bd84c",
+      "Protects": "FunctionGemma needs both component builds to succeed before staging any artifact.",
+      "Detects": "A cached executable or DLL copied after a build failure or swallowed child exception.",
+      "Needs": "PowerShell 7, Pester 5, and a temporary cache with inert compiler and artifact resolver stubs.",
+      "Breadcrumb": "Build.ps1 Invoke-FunctionGemmaBuild child loop and artifact collection.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "A successful first crate followed by false or a thrown error must call no resolver and create no staging directory."
+    },
+    {
+      "Selector": "refuses an output root reached through a linked parent",
+      "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
+      "Sha256": "e226126c83762af0792f9cbb680d68d61e70ef3a5e1cc68f055910e63fb5a4c7",
+      "Protects": "Build output retirement cannot traverse a linked parent directory.",
+      "Detects": "A move through a Windows junction or Linux symlink before verifying managed output roots.",
+      "Needs": "PowerShell 7, Pester 5, TestDrive, and local filesystem link support.",
+      "Breadcrumb": "Build.ps1 Save-BuildPublicationOutputs ancestor validation.",
+      "Reviewer": "codex",
+      "ReviewerType": "author self-review",
+      "Disposition": "unreviewed",
+      "ReviewScope": "The fixture links a parent outside the named build path, verifies early refusal, and verifies untouched destination and archive paths."
     }
   ]
 }

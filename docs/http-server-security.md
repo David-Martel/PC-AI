@@ -80,10 +80,19 @@ is deliberately no `--token` flag: arguments show up in process listings.
 In-repo clients send `Host: 127.0.0.1:<port>` and no `Origin`, so they need no change when no
 token is configured. When a token is configured:
 
-- `Modules/PC-AI.LLM` sends `Authorization: Bearer` from `PCAI_INFERENCE_TOKEN` for the
-  `pcai-inference` connection probe and for `Invoke-OpenAIChat` / `Invoke-OpenAIChatWithProgress`
-  (`Get-PcaiInferenceAuthHeader`). The token goes only to the configured pcai-inference URL, never
-  to Ollama, LM Studio or vLLM.
+- One helper, `Get-PcaiOriginBearerHeader` (`Modules/PC-AI.Common/Public`), reads the token from the
+  named environment variable and returns the `Authorization: Bearer` header only when the request
+  URL has the same origin (scheme, host, port) as the server's configured URL. A request to any
+  other origin, such as Ollama, LM Studio or vLLM, gets no header. Three callers use it:
+  - `Modules/PC-AI.LLM` (`PCAI_INFERENCE_TOKEN`): the `pcai-inference` connection probe and
+    `Invoke-OpenAIChat` / `Invoke-OpenAIChatWithProgress`, via `Get-PcaiInferenceAuthHeader`.
+  - The evaluation harness (`Invoke-SingleTestCase`, `PCAI_INFERENCE_TOKEN`): the `/v1/completions`
+    and `/v1/chat/completions` requests, for the configured pcai-inference URL and for the
+    `llamacpp-bin` / `mistralrs-bin` servers it starts itself. An `http` backend pointed at any
+    other origin, and the `ollama` backend, get no header.
+  - The media CUDA hardware runner (`Tests/Hardware/Invoke-PcaiMediaCudaFunctionalTests.ps1`,
+    `PCAI_MEDIA_TOKEN`): its generate and understand POSTs to the child server it launches. The
+    child inherits the variable, and its `/health` readiness probe stays unauthenticated.
 - The streaming helpers (`Invoke-OpenAIChatStream`, `Invoke-OpenAICompletionStream`), the
   `PcaiNative` C# clients and `PcaiChatTui` do not send a token yet. Use a token-free loopback
   server with them for now.

@@ -4,6 +4,8 @@ BeforeAll {
     $script:LlmRoot = Join-Path $PSScriptRoot '../../Modules/PC-AI.LLM'
     foreach ($file in Get-ChildItem (Join-Path $script:LlmRoot 'Private') -File -Filter '*.ps1') { . $file.FullName }
     foreach ($file in Get-ChildItem (Join-Path $script:LlmRoot 'Public') -File -Filter '*.ps1') { . $file.FullName }
+    # Shared origin-scoped bearer helper that Get-PcaiInferenceAuthHeader delegates to.
+    . (Join-Path $PSScriptRoot '../../Modules/PC-AI.Common/Public/Get-PcaiOriginBearerHeader.ps1')
     function Test-PcaiNativeAvailable { throw 'Unmocked native availability forbidden' }
     function Invoke-PcaiNativeFileSearch { param($Pattern, $Path, $MaxResults) throw 'Unmocked native search forbidden' }
     function Invoke-PcaiNativeDuplicates { param($Path, $MinimumSize) throw 'Unmocked native search forbidden' }

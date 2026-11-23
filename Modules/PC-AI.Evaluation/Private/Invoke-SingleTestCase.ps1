@@ -44,8 +44,20 @@ function Invoke-SingleTestCase {
                     temperature = $Temperature
                 } | ConvertTo-Json
 
-                $response = Invoke-RestMethod -Uri "$($script:EvaluationConfig.HttpBaseUrl)/v1/completions" `
-                    -Method Post -Body $body -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec
+                # /v1/* is protected when the server has a token (docs/http-server-security.md). Send
+                # PCAI_INFERENCE_TOKEN only to the pcai-inference origin: the compiled backends are
+                # servers this harness started at HttpBaseUrl, while 'http' may point anywhere and
+                # then only matches if it is the configured pcai-inference URL.
+                $inferenceBase = $script:EvaluationConfig.HttpBaseUrl
+                $trustedBase = if ($Backend -in 'llamacpp-bin', 'mistralrs-bin') { $inferenceBase } else { $script:EvaluationConfig.PcaiInferenceUrl }
+                $authHeaders = if (Get-Command Get-PcaiOriginBearerHeader -ErrorAction SilentlyContinue) {
+                    Get-PcaiOriginBearerHeader -RequestUrl $inferenceBase -BaseUrl $trustedBase -TokenVariable 'PCAI_INFERENCE_TOKEN'
+                } else { @{} }
+                # Splat only a non-empty header set, so token-free runs make exactly the requests they always did.
+                $authParams = if ($authHeaders.Count -gt 0) { @{ Headers = $authHeaders } } else { @{} }
+
+                $response = Invoke-RestMethod -Uri "$inferenceBase/v1/completions" `
+                    -Method Post -Body $body -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec @authParams
                 $text = $response.choices[0].text
                 if ([string]::IsNullOrWhiteSpace($text) -and $response.choices[0].message) {
                     $text = $response.choices[0].message.content
@@ -63,8 +75,8 @@ function Invoke-SingleTestCase {
                         temperature = $Temperature
                     } | ConvertTo-Json -Depth 6
 
-                    $chatResponse = Invoke-RestMethod -Uri "$($script:EvaluationConfig.HttpBaseUrl)/v1/chat/completions" `
-                        -Method Post -Body $chatBody -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec
+                    $chatResponse = Invoke-RestMethod -Uri "$inferenceBase/v1/chat/completions" `
+                        -Method Post -Body $chatBody -ContentType 'application/json' -TimeoutSec $RequestTimeoutSec @authParams
                     $text = $chatResponse.choices[0].message.content
                 }
 

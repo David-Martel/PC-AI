@@ -100,8 +100,8 @@ function Get-PcaiInferenceAuthHeader {
         [string]$ApiUrl
     )
 
-    $token = [Environment]::GetEnvironmentVariable('PCAI_INFERENCE_TOKEN')
-    if ([string]::IsNullOrWhiteSpace($token)) { return @{} }
+    # Cheap exit before any endpoint resolution when no token is configured.
+    if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('PCAI_INFERENCE_TOKEN'))) { return @{} }
 
     # An unset or "auto" configured URL must not throw (ApiUrl is mandatory in Resolve-PcaiEndpoint);
     # it simply fails to match, so no header is sent.
@@ -113,10 +113,10 @@ function Get-PcaiInferenceAuthHeader {
     catch {
         return @{}
     }
-    if ([string]::IsNullOrWhiteSpace($pcaiUrl) -or [string]::IsNullOrWhiteSpace($ApiUrl)) { return @{} }
-    if ($ApiUrl.TrimEnd('/') -ne $pcaiUrl.TrimEnd('/')) { return @{} }
 
-    return @{ Authorization = "Bearer $($token.Trim())" }
+    # The origin rule and the header itself live in PC-AI.Common, shared with the evaluation
+    # harness and the media hardware runner.
+    return Get-PcaiOriginBearerHeader -RequestUrl $ApiUrl -BaseUrl $pcaiUrl -TokenVariable 'PCAI_INFERENCE_TOKEN'
 }
 
 function Resolve-OllamaNativeCliPath {

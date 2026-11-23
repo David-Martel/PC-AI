@@ -688,7 +688,8 @@ impl<'a> Trainer<'a> {
         for var in vars {
             let tensor = var.as_tensor();
             if let Some(g) = grads.get(&tensor) {
-                let val = g.sqr()?.sum_all()?.to_scalar::<f32>()? as f64;
+                // Upcast before squaring so BF16 gradients contribute an F32 norm.
+                let val = g.to_dtype(DType::F32)?.sqr()?.sum_all()?.to_scalar::<f32>()? as f64;
                 sum_sq += val;
             }
         }

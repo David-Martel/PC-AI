@@ -16,6 +16,22 @@ fn output_weights(varmap: &VarMap) -> Result<Vec<f32>> {
     Ok(projection.as_tensor().flatten_all()?.to_vec1::<f32>()?)
 }
 
+fn fixture_config() -> Config {
+    Config {
+        hidden_size: 4,
+        intermediate_size: 8,
+        num_hidden_layers: 1,
+        num_attention_heads: 1,
+        num_key_value_heads: 1,
+        head_dim: 4,
+        vocab_size: 16,
+        rms_norm_eps: 1e-5,
+        rope_theta: 10_000.0,
+        sliding_window: None,
+        layer_types: None,
+    }
+}
+
 fn train_windows(windows: &[(&[&str], usize)]) -> Result<(Vec<f32>, Vec<f32>)> {
     let tokenizer = Tokenizer::from_bytes(
         br#"{
@@ -29,19 +45,7 @@ fn train_windows(windows: &[(&[&str], usize)]) -> Result<(Vec<f32>, Vec<f32>)> {
         }"#,
     )
     .map_err(anyhow::Error::msg)?;
-    let cfg = Config {
-        hidden_size: 4,
-        intermediate_size: 8,
-        num_hidden_layers: 1,
-        num_attention_heads: 1,
-        num_key_value_heads: 1,
-        head_dim: 4,
-        vocab_size: 16,
-        rms_norm_eps: 1e-5,
-        rope_theta: 10_000.0,
-        sliding_window: None,
-        layer_types: None,
-    };
+    let cfg = fixture_config();
     let device = Device::Cpu;
     let vars = VarMap::new();
     let model = Model::new(
@@ -170,5 +174,70 @@ fn tail_after_a_full_window_matches_explicitly_partitioned_updates() -> Result<(
         difference < 1e-6,
         "tail update differed from the reference by {difference}"
     );
+    Ok(())
+}
+
+// Protects: global gradient clipping handles BF16 gradients without reducing in BF16 or
+// changing either parameter values or any gradient's stored dtype.
+// Detects: a BF16 scalar extraction error, BF16 rounding before the norm, or wrong
+// mixed-dtype scale or output dtype.
+// Needs: Candle's CPU backend and a synthetic model and gradient store. No model files or CUDA.
+// Breadcrumb: trainer::Trainer::clip_gradients, F32 global norm and dtype-preserving scaling.
+#[test]
+fn clips_mixed_bf16_and_f32_gradients_in_their_original_dtypes() -> Result<()> {
+    let cfg = fixture_config();
+    let device = Device::Cpu;
+    let varmap = VarMap::new();
+    let model = Model::new(
+        &cfg,
+        LoraSettings::new(0, 1.0, 0.0, false),
+        VarBuilder::from_varmap(&varmap, DType::F32, &device),
+        false,
+    )?;
+    let max_norm = 939.0f64.sqrt() / 2.0;
+    let trainer = Trainer::new(
+        model,
+        &cfg,
+        TrainerConfig {
+            max_grad_norm: Some(max_norm),
+            ..TrainerConfig::default()
+        },
+        device.clone(),
+        None,
+        varmap,
+    );
+    let bf16 = Var::from_tensor(&Tensor::new(&[1.0f32, -2.0], &device)?.to_dtype(DType::BF16)?)?;
+    let fp32 = Var::from_tensor(&Tensor::new(&[3.0f32], &device)?)?;
+    let seed = Var::from_tensor(&Tensor::new(&[0.0f32], &device)?)?;
+    let mut gradients = seed.as_tensor().backward()?;
+    gradients.remove(seed.as_tensor());
+    // 19² + 23² + 7² = 939. The BF16 squares would round before the reduction.
+    gradients.insert(
+        bf16.as_tensor(),
+        Tensor::new(&[19.0f32, -23.0], &device)?.to_dtype(DType::BF16)?,
+    );
+    gradients.insert(fp32.as_tensor(), Tensor::new(&[7.0f32], &device)?);
+
+    trainer.clip_gradients(&mut gradients, &[bf16.clone(), fp32.clone()])?;
+
+    let bf16_gradient = gradients.get(bf16.as_tensor()).expect("BF16 gradient");
+    let fp32_gradient = gradients.get(fp32.as_tensor()).expect("F32 gradient");
+    assert_eq!(bf16_gradient.dtype(), DType::BF16);
+    assert_eq!(fp32_gradient.dtype(), DType::F32);
+    let bf16_values = bf16_gradient.to_dtype(DType::F32)?.to_vec1::<f32>()?;
+    let fp32_values = fp32_gradient.to_vec1::<f32>()?;
+    assert_eq!(bf16_values, [9.5, -11.5]);
+    assert_eq!(fp32_values, [3.5]);
+    let clipped_norm = bf16_values
+        .into_iter()
+        .chain(fp32_values)
+        .map(|value| f64::from(value).powi(2))
+        .sum::<f64>()
+        .sqrt();
+    assert!((clipped_norm - max_norm).abs() < 1e-6);
+    assert_eq!(bf16.as_tensor().dtype(), DType::BF16);
+    assert_eq!(bf16.as_tensor().to_dtype(DType::F32)?.to_vec1::<f32>()?, [1.0, -2.0]);
+    assert_eq!(fp32.as_tensor().dtype(), DType::F32);
+    assert_eq!(fp32.as_tensor().to_vec1::<f32>()?, [3.0]);
     Ok(())
 }

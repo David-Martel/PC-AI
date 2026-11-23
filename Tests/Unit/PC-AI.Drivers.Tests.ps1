@@ -593,6 +593,171 @@ Describe 'Driver download WhatIf and existing-byte integrity contracts' -Tag 'Un
         Should -Invoke Get-FileHash -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
         Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
     }
+
+    # Protects: an unelevated caller cannot trigger any actual installation work.
+    # Detects: a warning-only elevation check that lets a web request or launch proceed.
+    # Needs: a fixture registry with a valid digest and mocked elevation/network/process.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.
+    It 'rejects an unelevated install before creating a directory or downloading' {
+        Mock Test-AdminElevation { $false } -ModuleName PC-AI.Drivers
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -Confirm:$false
+        $result.Action | Should -BeExactly 'Failed'
+        $result.Message | Should -Match 'administrator'
+        [IO.Directory]::Exists($script:DownloadContractRoot) | Should -BeFalse
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: missing, non-hex, short, and newline-suffixed digests cannot authorize installation.
+    # Detects: any digest case that reaches download or installer dispatch.
+    # Needs: a private registry, inert cases, and mocked elevated identity and side effects.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.
+    It 'rejects an install with a <Kind> digest before touching the cache' -ForEach @(
+        @{ Kind = 'missing'; Digest = $null },
+        @{ Kind = 'non-hex'; Digest = ('g' * 64) },
+        @{ Kind = 'short'; Digest = ('a' * 63) },
+        @{ Kind = 'newline-suffixed'; Digest = (('a' * 64) + [char]10) }
+    ) {
+        $fixture = Get-Content -LiteralPath $script:DownloadContractRegistry -Raw | ConvertFrom-Json
+        $fixture.devices[0].driver.sha256 = $Digest
+        $fixture | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:DownloadContractRegistry -Encoding utf8
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -Force -Confirm:$false
+        $result.Action | Should -BeExactly 'Failed'
+        $result.Message | Should -Match '64.*SHA256'
+        [IO.Directory]::Exists($script:DownloadContractRoot) | Should -BeFalse
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: previews and fresh unpinned downloads remain usable when an install is unavailable.
+    # Detects: requiring elevation or a digest for non-executing modes, or reusing an unpinned cached package after a URL change.
+    # Needs: unsigned fixture registry and inert web bytes. Installer launch is mocked.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.
+    It 'previews an install and permits an unpinned DownloadOnly without elevation' {
+        Mock Test-AdminElevation { throw 'Non-install route queried elevation.' } -ModuleName PC-AI.Drivers
+        $fixture = Get-Content -LiteralPath $script:DownloadContractRegistry -Raw | ConvertFrom-Json
+        $fixture.devices[0].driver.sha256 = $null
+        $fixture | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:DownloadContractRegistry -Encoding utf8
+        $preview = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -WhatIf
+        $preview.Action | Should -BeExactly 'WhatIf'
+        [IO.Directory]::Exists($script:DownloadContractRoot) | Should -BeFalse
+
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $old = Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe'
+        [IO.File]::WriteAllText($old, 'old package')
+        Mock Invoke-WebRequest { param($OutFile) [IO.File]::WriteAllBytes($OutFile, [byte[]](0x61, 0x62, 0x63)) } -ModuleName PC-AI.Drivers
+        $download = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -DownloadOnly -Confirm:$false
+        $download.Action | Should -BeExactly 'DownloadOnly'
+        $download.FilePath | Should -Not -BeExactly $old
+        [IO.File]::ReadAllText($download.FilePath) | Should -BeExactly 'abc'
+        [IO.File]::ReadAllText($old) | Should -BeExactly 'old package'
+        Should -Invoke Test-AdminElevation -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: Windows Update and inbox entries remain read-only skip routes.
+    # Detects: querying install prerequisites, downloading, or dispatching for either skip type.
+    # Needs: fixture registry and mocked elevation/network/process for both installer types.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.
+    It 'skips a <InstallerType> entry without elevation or a digest' -ForEach @(
+        @{ InstallerType = 'windows-update'; SkipDevice = 'usb4-p2p' },
+        @{ InstallerType = 'none'; SkipDevice = 'firmware-hub' }
+    ) {
+        Mock Test-AdminElevation { throw 'A non-install entry queried elevation.' } -ModuleName PC-AI.Drivers
+        $result = Install-DriverUpdate -DeviceId $SkipDevice -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -Confirm:$false
+        $result.Action | Should -BeExactly 'Skipped'
+        $result.Success | Should -BeTrue
+        [IO.Directory]::Exists($script:DownloadContractRoot) | Should -BeFalse
+        Should -Invoke Test-AdminElevation -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: the selected installer path is checked against the pin before dispatch.
+    # Detects: launch after the selected file's contents fail the final source check.
+    # Needs: inert private file, stubbed download return and mocked process launch.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.
+    It 'fails closed when the actual returned installer path has different bytes' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        [IO.File]::WriteAllBytes((Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe'), [byte[]](0x78, 0x79, 0x7A))
+        Mock Invoke-TrustedDownload { param($OutFile) $OutFile } -ModuleName PC-AI.Drivers
+
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -Confirm:$false
+        $result.Action | Should -BeExactly 'Failed'
+        $result.Message | Should -Match 'SHA256'
+        Should -Invoke Start-Process -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Expand-Archive -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: a valid pinned executable can still reach the installer boundary.
+    # Detects: a guard that returns success or failure without ever dispatching approved bytes.
+    # Needs: known cached "abc" bytes and a mocked process. No vendor binaries or hardware.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.
+    It 'dispatches valid cached bytes for an elevated installer request' {
+        [void][IO.Directory]::CreateDirectory($script:DownloadContractRoot)
+        $path = Join-Path $script:DownloadContractRoot 'realtek-rtl8156.exe'
+        [IO.File]::WriteAllBytes($path, [byte[]](0x61, 0x62, 0x63))
+        Mock Start-Process { [PSCustomObject]@{ ExitCode = 3010 } } -ModuleName PC-AI.Drivers
+
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -Confirm:$false
+        $result.Action | Should -BeExactly 'Install'
+        $result.ExitCode | Should -Be 3010
+        $result.Success | Should -BeTrue
+        Should -Invoke Start-Process -Times 1 -Exactly -ModuleName PC-AI.Drivers -Scope It -ParameterFilter { $FilePath -eq $path }
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
+
+    # Protects: each archive-backed install dispatches entries from its own extraction directory.
+    # Detects: reuse of the legacy extraction directory or of a prior invocation's package tree.
+    # Needs: two runs per installer type, a private ZIP of inert text files and mocked process launch.
+    # Breadcrumb: Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.
+    It 'extracts each <Type> install into a fresh directory' -ForEach @(
+        @{ Type = 'zip-with-exe' },
+        @{ Type = 'inf' }
+    ) {
+        $fixture = Get-Content -LiteralPath $script:DownloadContractRegistry -Raw | ConvertFrom-Json
+        $fixture.devices[0].driver.installerType = $Type
+        $legacyPath = Join-Path $script:DownloadContractRoot 'realtek-rtl8156-extracted'
+        [void][IO.Directory]::CreateDirectory($legacyPath)
+        foreach ($name in @('old.exe', 'old.inf')) {
+            [IO.File]::WriteAllText((Join-Path $legacyPath $name), 'inert old fixture')
+        }
+        $fixturePath = Join-Path $script:DownloadContractRoot 'archive-fixture'
+        [void][IO.Directory]::CreateDirectory($fixturePath)
+        foreach ($name in @('new.exe', 'new.inf')) {
+            [IO.File]::WriteAllText((Join-Path $fixturePath $name), 'inert new fixture')
+        }
+        $zipPath = Join-Path $script:DownloadContractRoot 'realtek-rtl8156.zip'
+        [IO.Compression.ZipFile]::CreateFromDirectory($fixturePath, $zipPath)
+        $fixture.devices[0].driver.sha256 = (Get-FileHash -LiteralPath $zipPath).Hash
+        $fixture | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:DownloadContractRegistry -Encoding utf8
+        $calls = [System.Collections.Generic.List[string]]::new()
+        Mock Expand-Archive {
+            param($LiteralPath, $DestinationPath)
+            Microsoft.PowerShell.Archive\Expand-Archive -LiteralPath $LiteralPath -DestinationPath $DestinationPath -ErrorAction Stop
+        } -ModuleName PC-AI.Drivers
+        Mock Start-Process {
+            param($FilePath, $ArgumentList)
+            $calls.Add(($FilePath + ' ' + ($ArgumentList -join ' ')))
+            [PSCustomObject]@{ ExitCode = 0 }
+        } -ModuleName PC-AI.Drivers
+
+        1..2 | ForEach-Object {
+            $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $script:DownloadContractRegistry -DownloadDir $script:DownloadContractRoot -Confirm:$false
+            $result.Action | Should -BeExactly 'Install'
+            $result.Success | Should -BeTrue
+        }
+
+        $calls.Count | Should -Be 2
+        foreach ($call in $calls) {
+            $call | Should -Match 'new\.(exe|inf)'
+            $call | Should -Not -Match 'realtek-rtl8156-extracted'
+        }
+        $calls[0] | Should -Not -BeExactly $calls[1]
+        Should -Invoke Expand-Archive -Times 2 -Exactly -ModuleName PC-AI.Drivers -Scope It
+        Should -Invoke Invoke-WebRequest -Times 0 -Exactly -ModuleName PC-AI.Drivers -Scope It
+    }
 }
 
 # ─── Update-DriverRegistry ───────────────────────────────────────────────────
@@ -609,6 +774,57 @@ Describe "Update-DriverRegistry" -Tag 'Unit', 'Drivers', 'Fast', 'Portable' {
             $reg = Get-DriverRegistry -RegistryPath $script:TempRegistryPath
             $device = $reg.Devices | Where-Object { $_.id -eq 'realtek-rtl8156' }
             $device.driver.latestVersion | Should -Be '9999.0.0.0'
+        }
+    }
+
+    Context 'Editor SHA256 contract' {
+        BeforeEach {
+            $script:EditorRegistry = Join-Path $TestDrive 'editor-registry.json'
+            $registry = $script:MockRegistryJson | ConvertFrom-Json
+            $registry.devices[0].driver.downloadUrl = 'https://drivers.example.invalid/original.zip'
+            $registry.devices[0].driver.sha256 = 'a' * 64
+            $registry | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $script:EditorRegistry -Encoding utf8
+        }
+
+        # Protects: a bad digest and a WhatIf editor request leave private registry bytes intact.
+        # Detects: accepting misplaced whitespace or writing before argument validation/approval.
+        # Needs: only a private fixture registry; no installed registry access.
+        # Breadcrumb: Modules/PC-AI.Drivers/Public/Update-DriverRegistry.ps1.
+        It 'rejects a malformed digest and preserves the registry a WhatIf edit targets' {
+            $before = [IO.File]::ReadAllText($script:EditorRegistry)
+            { Update-DriverRegistry -DeviceId 'realtek-rtl8156' -RegistryPath $script:EditorRegistry -Sha256 (('b' * 64) + [char]10) -ErrorAction Stop } | Should -Throw -ErrorId 'ParameterArgumentValidationError,Update-DriverRegistry'
+            Update-DriverRegistry -DeviceId 'realtek-rtl8156' -RegistryPath $script:EditorRegistry -Sha256 ('b' * 64) -WhatIf
+            [IO.File]::ReadAllText($script:EditorRegistry) | Should -BeExactly $before
+        }
+
+        # Protects: editing trusted package bytes normalizes the replacement pin and updates its URL together.
+        # Detects: no editor support for a valid digest, retaining a stale digest, or creating a second field in legacy entries.
+        # Needs: a fixture registry whose Windows Update slot predates the sha256 field.
+        # Breadcrumb: Modules/PC-AI.Drivers/Public/Update-DriverRegistry.ps1.
+        It 'stores the replacement URL and normalized pin even when a legacy entry lacked those fields' {
+            $url = 'https://drivers.example.invalid/future-package.zip'
+            Update-DriverRegistry -DeviceId 'usb4-p2p' -RegistryPath $script:EditorRegistry -DownloadUrl $url -Sha256 ('b' * 64)
+            $registry = Get-Content -LiteralPath $script:EditorRegistry -Raw | ConvertFrom-Json
+            $driver = ($registry.devices | Where-Object id -eq 'usb4-p2p').driver
+            $driver.downloadUrl | Should -BeExactly $url
+            $driver.sha256 | Should -BeExactly ('B' * 64)
+            $driver.installerType | Should -BeExactly 'windows-update'
+        }
+
+        # Protects: ordinary edits preserve a pin, and changing the package URL alone invalidates the old pin.
+        # Detects: installing an old cached package as a new package after a registry URL change.
+        # Needs: a fixture registry with a prior digest and URI; no actual network or installed registry.
+        # Breadcrumb: Modules/PC-AI.Drivers/Public/Update-DriverRegistry.ps1.
+        It 'clears the old digest only when the package URL changes without a replacement' {
+            $deviceId = 'realtek-rtl8156'
+            Update-DriverRegistry -DeviceId $deviceId -RegistryPath $script:EditorRegistry -LatestVersion '1.2.3'
+            $registry = Get-Content -LiteralPath $script:EditorRegistry -Raw | ConvertFrom-Json
+            $registry.devices[0].driver.sha256 | Should -BeExactly ('a' * 64)
+
+            Update-DriverRegistry -DeviceId $deviceId -RegistryPath $script:EditorRegistry -DownloadUrl 'https://drivers.example.invalid/replacement.zip'
+            $registry = Get-Content -LiteralPath $script:EditorRegistry -Raw | ConvertFrom-Json
+            $registry.devices[0].driver.sha256 | Should -BeNullOrEmpty
+            $registry.devices[0].driver.downloadUrl | Should -BeExactly 'https://drivers.example.invalid/replacement.zip'
         }
     }
 }

@@ -139,6 +139,7 @@ cd PC-AI
 | **PC-AI.LLM** | pcai-inference + FunctionGemma integration for AI analysis |
 | **PC-AI.Network** | Network diagnostics, adapter configuration |
 | **PC-AI.USB** | USB device management and status |
+| **PC-AI.Drivers** | Driver inventory and [verified Windows driver installation](docs/driver-installation.md) |
 | **PC-AI.Virtualization** | Hyper-V / WSL2 diagnostics (optional) |
 
 ## Native Acceleration

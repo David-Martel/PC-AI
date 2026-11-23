@@ -19,7 +19,7 @@
     "Tests/Unit/FunctionGemmaPreparation.Tests.ps1": "190d3153a17b89dc2969430e2bfcf388c7592e70341cb4cd54a754c6b13551c5",
     "Deploy/rust-functiongemma-train/src/trainer/accumulation_tests.rs": "515608b4c3a4d78b060619a2af98bb7b9232e6a4c062d82f42fea17a593b75e6",
     "Deploy/rust-functiongemma-train/tests/peft_output_test.rs": "a9533b4216590331e21274733645e7c2e90ea50a0aff2e84895c7787659bbdb8",
-    "Deploy/rust-functiongemma-train/src/dataset.rs": "4f2d884fdf20d58633d7e0ab5c3166093011c07f312f8da228fa48239bdb825f",
+    "Deploy/rust-functiongemma-train/src/dataset.rs": "609f3c9762c031f94c096822863d298b60e5111031e0c9db1372d5c25c399dc2",
     "Deploy/rust-functiongemma-train/src/main.rs": "690a6db85e30d0dc3b2cbcd28f8d3b21c67d32f333643c48b6a0213c6e890550",
     "Deploy/rust-functiongemma-train/src/router_dataset.rs": "5aaa53a83708fb98dc89ec6ecd3409e9a002bb1bfb47e838e764a130c82ed76d"
   },

@@ -573,7 +573,8 @@ impl TokenCache {
         let bytes = self.mmap.get(start..end).context("Token cache slice out of range")?;
         let mut ids = Vec::with_capacity(entry.len as usize);
         for chunk in bytes.chunks_exact(4) {
-            ids.push(u32::from_le_bytes(chunk.try_into().context("Invalid token cache word")?));
+            let word = chunk.try_into().context("Invalid token cache word")?;
+            ids.push(u32::from_le_bytes(word));
         }
         Ok(ids)
     }

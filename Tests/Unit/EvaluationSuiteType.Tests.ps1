@@ -75,6 +75,44 @@ $report = & $module[0] {
 Write-Output ('PCAI_EVAL_PROBE_JSON=' + ($report | ConvertTo-Json -Compress))
 '@)
 
+    $script:AuthChild = Join-Path $TestDrive 'auth-consumer.ps1'
+    [IO.File]::WriteAllText($script:AuthChild, @'
+param([string]$ModulePath, [string]$Backend, [string]$HttpBase, [string]$ConfiguredBase, [string]$Token, [int]$Fallback)
+$ErrorActionPreference = 'Stop'
+if ($Token) { $env:PCAI_INFERENCE_TOKEN = $Token } else { Remove-Item Env:PCAI_INFERENCE_TOKEN -ErrorAction SilentlyContinue }
+$module = @(Import-Module $ModulePath -Force -PassThru -WarningAction SilentlyContinue |
+    Where-Object { $_.Path -eq $ModulePath })
+if ($module.Count -ne 1) { throw 'The exact evaluation script module was not selected.' }
+$report = & $module[0] {
+    param($HttpBase, $ConfiguredBase, $Backend, $Fallback)
+    $script:EvaluationConfig.HttpBaseUrl = $HttpBase
+    $script:EvaluationConfig.PcaiInferenceUrl = $ConfiguredBase
+    $script:EvaluationConfig.OllamaBaseUrl = 'http://localhost:39992'
+    $script:AuthCalls = [Collections.Generic.List[object]]::new()
+    function script:Get-Command {
+        [CmdletBinding()]
+        param([string]$Name)
+        if ($Name -eq 'Send-OllamaRequest') { return $null }
+        Microsoft.PowerShell.Core\Get-Command @PSBoundParameters
+    }
+    function script:Invoke-RestMethod {
+        param([uri]$Uri, [string]$Method, [string]$Body, [string]$ContentType, [int]$TimeoutSec, [hashtable]$Headers)
+        $script:AuthCalls.Add([ordered]@{
+                Uri = $Uri.OriginalString
+                Authorization = if ($Headers) { $Headers['Authorization'] } else { $null }
+            })
+        if ($Fallback -and $Uri.AbsolutePath -eq '/v1/completions') {
+            return @{ choices = @(@{ text = ''; message = $null }) }
+        }
+        return @{ choices = @(@{ text = 'transport-response'; message = @{ content = 'transport-response' } }); response = 'transport-response' }
+    }
+    $case = New-EvaluationTestCase -Id 'auth-contract' -Prompt 'hello'
+    $result = Invoke-SingleTestCase -TestCase $case -Backend $Backend -Model 'fixture-model'
+    [ordered]@{ ErrorMessage = $result.ErrorMessage; Calls = @($script:AuthCalls) }
+} $HttpBase $ConfiguredBase $Backend $Fallback
+Write-Output ('PCAI_EVAL_PROBE_JSON=' + ($report | ConvertTo-Json -Compress -Depth 5))
+'@)
+
     function Invoke-EvaluationConsumerProbe {
         param([string]$ScriptPath, [string[]]$Arguments)
         $start = [Diagnostics.ProcessStartInfo]::new()
@@ -171,5 +209,41 @@ Describe 'Evaluation endpoint construction' -Tag 'Unit', 'Portable' {
         $result.Response | Should -BeNullOrEmpty
         $result.ErrorMessage | Should -BeExactly "Backend '$Backend' returned an empty completion."
         ($result.Uris -join '|') | Should -BeExactly $ExpectedUris
+    }
+}
+
+Describe 'Evaluation requests to a token-protected pcai-inference server' -Tag 'Unit', 'Portable' {
+    # Protects: evaluation runs against a server that has a bearer token (required for any non-loopback bind).
+    # The harness probes the open /health, then POSTs to the protected /v1/* routes; without the header every
+    # case would get 401. Also protects the credential: the token must reach only the pcai-inference origin.
+    # Detects: the header being dropped (401 on every case), or sent to every origin, such as an Ollama or
+    # LM Studio endpoint that the 'http' backend was pointed at.
+    # Needs: PowerShell 7, Pester 5 and fresh children; exact real psm1 with only the transport doubled.
+    # Breadcrumb: Modules/PC-AI.Evaluation/Private/Invoke-SingleTestCase.ps1, PC-AI.Common Get-PcaiOriginBearerHeader.
+    It '<Name>' -TestCases @(
+        @{ Name = 'sends the token to the configured pcai-inference origin'; Backend = 'http'; HttpBase = 'http://localhost:39991'; Configured = 'http://localhost:39991'; Token = 'eval-token'; Fallback = 0
+            Expected = @('Bearer eval-token') }
+        @{ Name = 'sends it on the chat fallback request as well'; Backend = 'http'; HttpBase = 'http://localhost:39991'; Configured = 'http://localhost:39991'; Token = 'eval-token'; Fallback = 1
+            Expected = @('Bearer eval-token', 'Bearer eval-token') }
+        @{ Name = 'does not send it when the http backend targets another origin (an ollama-style URL)'; Backend = 'http'; HttpBase = 'http://localhost:39992'; Configured = 'http://localhost:39991'; Token = 'eval-token'; Fallback = 0
+            Expected = @($null) }
+        @{ Name = 'does not send it when only the port differs from the configured origin'; Backend = 'http'; HttpBase = 'http://localhost:39990'; Configured = 'http://localhost:39991'; Token = 'eval-token'; Fallback = 1
+            Expected = @($null, $null) }
+        @{ Name = 'sends it to a compiled backend the harness started'; Backend = 'llamacpp-bin'; HttpBase = 'http://localhost:39995'; Configured = 'http://localhost:39991'; Token = 'eval-token'; Fallback = 0
+            Expected = @('Bearer eval-token') }
+        @{ Name = 'never sends it on the ollama backend'; Backend = 'ollama'; HttpBase = 'http://localhost:39991'; Configured = 'http://localhost:39991'; Token = 'eval-token'; Fallback = 0
+            Expected = @($null) }
+        @{ Name = 'sends nothing when no token is configured'; Backend = 'http'; HttpBase = 'http://localhost:39991'; Configured = 'http://localhost:39991'; Token = ''; Fallback = 1
+            Expected = @($null, $null) }
+    ) {
+        param($Name, $Backend, $HttpBase, $Configured, $Token, $Fallback, $Expected)
+        $result = Invoke-EvaluationConsumerProbe -ScriptPath $script:AuthChild -Arguments @(
+            '-ModulePath', $script:EvaluationScriptModule, '-Backend', $Backend, '-HttpBase', $HttpBase,
+            '-ConfiguredBase', $Configured, '-Token', $Token, '-Fallback', [string]$Fallback
+        )
+        $result.ErrorMessage | Should -BeNullOrEmpty
+        $seen = @($result.Calls | ForEach-Object { $_.Authorization })
+        $seen.Count | Should -Be $Expected.Count
+        for ($i = 0; $i -lt $Expected.Count; $i++) { $seen[$i] | Should -Be $Expected[$i] }
     }
 }

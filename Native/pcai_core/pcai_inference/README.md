@@ -51,7 +51,8 @@ cargo build --release --features "llamacpp,server"
   "server": {
     "host": "127.0.0.1",
     "port": 8080,
-    "cors": true
+    "cors_allowed_origins": [],
+    "allowed_hosts": []
   }
 }
 ```

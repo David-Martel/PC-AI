@@ -6,6 +6,7 @@ members = [
     "pcai_tb_cli",
     "pcai_ollama_rs",
     "pcai_inference",
+    "pcai_http_guard",
     "pcai_media_model",
     "pcai_media",
     "pcai_media_server",

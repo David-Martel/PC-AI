@@ -18,6 +18,7 @@
 //! pcai-media --model deepseek-ai/Janus-Pro-1B --port 8090 --device cuda:0
 //! ```
 
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -34,10 +35,10 @@ use image::{codecs::png::PngEncoder, ImageEncoder};
 use mimalloc::MiMalloc;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
-use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
+use pcai_http_guard::{bind_listener, parse_bind_addr, pick_token, SecurityError, SecurityOptions, SecurityPolicy};
 use pcai_media::config::PipelineConfig;
 use pcai_media::generate::GenerationPipeline;
 use pcai_media::understand::UnderstandingPipeline;
@@ -81,6 +82,67 @@ struct Args {
     /// When set, loads quantized weights from this file instead of full-precision safetensors.
     #[arg(long = "gguf")]
     gguf: Option<String>,
+
+    /// Extra `Host` header value to accept besides localhost, 127.0.0.1, [::1] and the bind
+    /// address. Repeatable. Required when binding a wildcard address.
+    #[arg(long = "allowed-host")]
+    allowed_hosts: Vec<String>,
+
+    /// Browser origin allowed to call the API cross-origin, e.g. `https://tools.example:3000`.
+    /// Repeatable. Without it no CORS headers are sent.
+    #[arg(long = "cors-origin")]
+    cors_origins: Vec<String>,
+}
+
+/// Network-facing security settings for the server.
+///
+/// The bearer token is deliberately not a command-line flag (it would show up in process
+/// listings); it is read from `PCAI_MEDIA_TOKEN`.
+struct ServeSecurity {
+    host: String,
+    port: u16,
+    allowed_hosts: Vec<String>,
+    cors_allowed_origins: Vec<String>,
+    auth_token: Option<String>,
+}
+
+/// Environment variable that supplies the bearer token.
+const TOKEN_ENV_VAR: &str = "PCAI_MEDIA_TOKEN";
+
+/// Parse the bind address and validate the security settings against it.
+///
+/// Runs before the model loads so an unsafe or unparsable configuration fails in milliseconds,
+/// not after the weights are in memory.
+fn security_policy(security: &ServeSecurity) -> Result<(SocketAddr, SecurityPolicy)> {
+    let addr = parse_bind_addr(&security.host, security.port)?;
+    let options = SecurityOptions {
+        allowed_hosts: security.allowed_hosts.clone(),
+        cors_allowed_origins: security.cors_allowed_origins.clone(),
+        auth_token: security.auth_token.clone(),
+    };
+    let policy = SecurityPolicy::new(addr, &options).map_err(|error| match error {
+        SecurityError::TokenRequired { .. } => {
+            anyhow::anyhow!("{error}: set the {TOKEN_ENV_VAR} environment variable")
+        }
+        other => anyhow::Error::new(other),
+    })?;
+    Ok((addr, policy))
+}
+
+/// Build the HTTP router with its middleware stack.
+///
+/// From the outside in: request tracing, the `Host` allow-list, the `Origin` check, CORS (only
+/// when origins are configured) and the bearer token (only when one is configured; `GET /health`
+/// stays open).
+fn build_router(state: SharedState, security: &ServeSecurity) -> Result<Router> {
+    let (_, policy) = security_policy(security)?;
+    let routes = Router::new()
+        .route("/health", get(health))
+        .route("/v1/models", get(list_models))
+        .route("/v1/images/generate", post(generate_image))
+        .route("/v1/images/understand", post(understand_image))
+        .with_state(state);
+    Ok(policy.apply(routes).layer(TraceLayer::new_for_http()))
 }
 
 // ---------------------------------------------------------------------------
@@ -381,11 +443,22 @@ async fn main() -> Result<()> {
 
     let args = Args::parse();
 
+    // Validate the network settings first: a non-loopback bind without a token, or a bad bind
+    // address, must stop the process before a multi-gigabyte model load.
+    let security = ServeSecurity {
+        host: args.host.clone(),
+        port: args.port,
+        allowed_hosts: args.allowed_hosts.clone(),
+        cors_allowed_origins: args.cors_origins.clone(),
+        auth_token: pick_token(std::env::var(TOKEN_ENV_VAR).ok(), None),
+    };
+    let (addr, _) = security_policy(&security)?;
+
     tracing::info!(
         model = %args.model,
-        host = %args.host,
-        port = args.port,
+        addr = %addr,
         device = %args.device,
+        bearer_auth = security.auth_token.is_some(),
         "starting pcai-media server"
     );
 
@@ -420,17 +493,10 @@ async fn main() -> Result<()> {
     let state: SharedState = Arc::new(RwLock::new(AppState { pipeline, config }));
 
     // Build the Axum router.
-    let app = Router::new()
-        .route("/health", get(health))
-        .route("/v1/models", get(list_models))
-        .route("/v1/images/generate", post(generate_image))
-        .route("/v1/images/understand", post(understand_image))
-        .with_state(state)
-        .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive());
+    let app = build_router(state, &security)?;
 
-    let addr = format!("{}:{}", args.host, args.port);
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    // No fallback: a bind failure exits nonzero with the address in the message.
+    let listener = bind_listener(addr).await?;
     tracing::info!(addr = %addr, "server listening");
 
     axum::serve(listener, app).await?;
@@ -444,6 +510,8 @@ async fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    mod hardening;
+
     use super::*;
 
     #[tokio::test]

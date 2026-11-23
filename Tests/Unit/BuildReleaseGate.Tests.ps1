@@ -307,12 +307,17 @@ function Initialize-CudaEnvironment {
     }
 
     # Protects: CPU-only builds are independent of the CUDA toolkit and its discovery helper.
-    # Detects: enforcing CUDA admission even though the build never requested it.
-    # Needs: Pester 5 and a nonexistent path in TestDrive. No discovery script or hardware.
+    # Detects: attempting toolkit discovery even though the build never requested it.
+    # Needs: Pester 5 and an inert helper that records a load in TestDrive.
     # Breadcrumb: Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment conditional CUDA branch.
     It 'does not require CUDA when the switch is absent' {
-        $ToolsDir = Join-Path $TestDrive 'absent'
+        $ToolsDir = Join-Path $TestDrive 'cpu-only'
+        New-Item -ItemType Directory -Path $ToolsDir -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $ToolsDir 'Initialize-CudaEnvironment.ps1') -Value @'
+Set-Content -LiteralPath (Join-Path $PSScriptRoot 'cuda-loaded') -Value 'loaded'
+'@
         $EnableCuda = $false
-        { & $script:CudaProbe } | Should -Not -Throw
+        & $script:CudaProbe
+        Test-Path -LiteralPath (Join-Path $ToolsDir 'cuda-loaded') | Should -BeFalse
     }
 }

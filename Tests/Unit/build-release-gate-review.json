@@ -1,12 +1,12 @@
 {
   "SchemaVersion": 1,
-  "SourceBaseline": "484c643194c17e987e3725b88aea52cfc5daaceb",
-  "ReviewedAtUtc": "2026-11-23T00:22:58.2419085Z",
+  "SourceBaseline": "88fae92d6de9af3de719a2a6d443652452de0631",
+  "ReviewedAtUtc": "2026-11-23T03:44:44.6448531+00:00",
   "HashConvention": "SHA-256 of UTF-8 LF sources and the exact Pester It command AST extent without a trailing newline.",
   "SourceBindings": {
-    "Build.ps1": "46b50d68f18f9854a171c729dc9208458adb4ac556759399696d988444cf5885",
-    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "73d083ecb3312fb919e52496a67a199f753a21fd7fb99c8c367ac2f835125caf",
-    "Tests/Unit/BuildReleaseGate.Tests.ps1": "7d621dfaa476907e12f79bcead5610bf3882f456478b54305101256943e313c9"
+    "Build.ps1": "61d0a3ba0ad637238f2e9b9f5698d38585142e3dbfee2a025be2c2110a66fabc",
+    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "0072caa17dc407192ef1d7607283ae942315ed96a1edb658d1fec73450b4d153",
+    "Tests/Unit/BuildReleaseGate.Tests.ps1": "6a13b346a1ca73a5e9965b5c7ad0bfb546b07a697ba438dc5fef60ff09c4c921"
   },
   "Validation": "PowerShell 7 and Pester 5.7.1 on Windows. Isolated fixtures exercise the publication and child-failure boundaries with local temporary files. Real build, release contents, fleet installation, and CUDA hardware qualification remain separate.",
   "Selectors": [
@@ -52,15 +52,15 @@
     {
       "Selector": "does not require CUDA when the switch is absent",
       "Source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
-      "Sha256": "ad4ead471aa17c7a1855cc73bf785c704b2337c9285a913eef6c6c6f344cdd0f",
+      "Sha256": "e121bc2bbfcfa1924347be57223a6b6a3cf0a0183a6d69dd8d7886bb7953f302",
       "Protects": "CPU-only builds do not require the CUDA toolkit or discovery helper.",
-      "Detects": "Applying the toolkit guard to CPU-only requests.",
-      "Needs": "PowerShell 7, Pester 5 and a nonexistent helper path in TestDrive.",
+      "Detects": "Loading the toolkit discovery helper in CPU-only mode.",
+      "Needs": "PowerShell 7, Pester 5 and an inert discovery helper with a load marker in TestDrive.",
       "Breadcrumb": "Invoke-PcaiBuild.ps1 Initialize-BuildEnvironment conditional CUDA branch.",
       "Reviewer": "codex",
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed",
-      "ReviewScope": "The unchanged CPU-only control passes without a helper; no compiler is run."
+      "ReviewScope": "The real parsed CUDA branch sees an available helper. The CPU-only control must leave its load marker absent."
     },
     {
       "Selector": "archives only the last publication for the requested mode and variant",

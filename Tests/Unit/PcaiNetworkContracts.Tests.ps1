@@ -11,6 +11,7 @@ param([string]$NetworkSourceRoot)
 BeforeAll {
     $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $networkRoot = if ($NetworkSourceRoot) { $NetworkSourceRoot } else { Join-Path $repoRoot 'Modules/PC-AI.Network' }
+    . (Join-Path $PSScriptRoot '..\Helpers\Import-PcaiTestModule.ps1')
     . (Join-Path $networkRoot 'Private/Adapter-Readiness.ps1')
     . (Join-Path $networkRoot 'Private/Network-Helpers.ps1')
     . (Join-Path $networkRoot 'Public/Get-StableNetAdapter.ps1')
@@ -398,7 +399,9 @@ Describe 'USB repair WhatIf and threshold contracts' -Tag 'Unit', 'Network', 'Wi
     BeforeAll {
         # GetNewClosure resolves the exported identity function through the actual module.
         # The dot-sourced function remains the repair unit; its identity dependency is real.
-        Import-Module (Join-Path $networkRoot 'PC-AI.Network.psd1') -Force -Global -ErrorAction Stop
+        # The helper removes every module an earlier file left loaded first; see its header. -Path keeps the
+        # -NetworkSourceRoot override this file takes.
+        $null = Import-PcaiTestModule -Name 'PC-AI.Network' -Path (Join-Path $networkRoot 'PC-AI.Network.psd1')
     }
     BeforeEach {
         Mock Get-NetAdapter { New-FixtureAdapter }
@@ -472,5 +475,5 @@ Describe 'USB repair WhatIf and threshold contracts' -Tag 'Unit', 'Network', 'Wi
 }
 
 AfterAll {
-    Remove-Module PC-AI.Network -Force -ErrorAction SilentlyContinue
+    Remove-PcaiTestModule
 }

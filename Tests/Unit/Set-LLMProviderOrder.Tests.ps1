@@ -4,10 +4,10 @@
 #>
 
 BeforeAll {
-    $modulePath = Join-Path $PSScriptRoot '../../Modules/PC-AI.LLM/PC-AI.LLM.psd1'
+    . (Join-Path $PSScriptRoot '..\Helpers\Import-PcaiTestModule.ps1')
     $script:RepositoryConfigPath = Join-Path $PSScriptRoot '../../Config/llm-config.json'
     $script:RepositoryConfigHash = (Get-FileHash -LiteralPath $script:RepositoryConfigPath).Hash
-    Import-Module $modulePath -Force -ErrorAction Stop
+    $null = Import-PcaiTestModule -Name 'PC-AI.LLM'
     $script:OriginalModuleConfig = InModuleScope PC-AI.LLM { $script:ModuleConfig.Clone() }
 }
 
@@ -16,7 +16,7 @@ AfterAll {
         $script:ModuleConfig = $Original
     }
     (Get-FileHash -LiteralPath $script:RepositoryConfigPath).Hash | Should -Be $script:RepositoryConfigHash
-    Remove-Module PC-AI.LLM -Force -ErrorAction SilentlyContinue
+    Remove-PcaiTestModule
 }
 
 Describe 'Set-LLMProviderOrder' -Tag 'Unit', 'LLM', 'Fast', 'Portable' {

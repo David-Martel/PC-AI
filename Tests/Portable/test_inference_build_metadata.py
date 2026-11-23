@@ -142,9 +142,23 @@ class CheckResult:
     text: str
     mtime: int
     lib_fresh: bool
-    output: str = ""
+    output: str | None = None
     # The JSON frame `--version-json` prints (build_identity.bin, see build.rs).
     identity: dict[str, object] = field(default_factory=dict)
+
+
+def build_script_stdout(out_dir: Path) -> str | None:
+    """What the build script printed, or None when cargo keeps it elsewhere.
+
+    Cargo's original layout stores it as ``build/<pkg>-<hash>/output``; the layout
+    newer cargo uses by default (build-dir v2) stores it as
+    ``build/<pkg>/<hash>/run/stdout``. ``out_dir`` is the ``out`` directory beside it.
+    """
+    unit = out_dir.parent
+    for candidate in (unit / "output", unit / "run" / "stdout"):
+        if candidate.is_file():
+            return candidate.read_text(encoding="utf-8")
+    return None
 
 
 def constant(text: str, name: str) -> str:
@@ -354,9 +368,6 @@ class InferenceWarmRebuild(unittest.TestCase):
         if lib_fresh is None:
             self.fail("cargo reported no pcai-inference library artifact")
         info = out_dir / "build_info.rs"
-        # <target>/<profile>/build/pcai-inference-<hash>/{out,output}: `output`
-        # is what the script printed.
-        output = out_dir.parent / "output"
         frame = (out_dir / "build_identity.bin").read_bytes()
         if not (frame.startswith(IDENTITY_MARKER) and frame.endswith(b"\0")):
             self.fail("build_identity.bin is not MARKER + JSON + NUL")
@@ -364,7 +375,7 @@ class InferenceWarmRebuild(unittest.TestCase):
             info.read_text(encoding="utf-8"),
             info.stat().st_mtime_ns,
             lib_fresh,
-            output.read_text(encoding="utf-8"),
+            build_script_stdout(out_dir),
             json.loads(frame[len(IDENTITY_MARKER) : -1]),
         )
 
@@ -413,11 +424,14 @@ class InferenceWarmRebuild(unittest.TestCase):
 
         Detects: ``rerun-if-env-changed=PATH`` emitted only for CUDA builds. Cargo
         records what the script printed in
-        ``<target>/<profile>/build/<pkg>-<hash>/output``.
+        ``<target>/<profile>/build/<pkg>-<hash>/output`` (``<pkg>/<hash>/run/stdout``
+        in the newer layout).
         The nonce forces a fresh script run, so the file is not left over from an
         earlier run. Needs: cargo (shares the class's target directory).
         """
         result = self.check({"PCAI_BUILD_TYPE": self.fresh_nonce("output")})
+        if result.output is None:
+            self.fail("cargo kept the build script's output in an unknown layout")
         self.assertNotIn(
             "cargo:rustc-cfg=has_cuda",
             result.output,

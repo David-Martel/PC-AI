@@ -44,24 +44,13 @@
         "PcaiMedia": 70.0
       },
       "known_failures": {
-        "containers": [
-          "Set-LLMProviderOrder.Tests.ps1"
-        ],
+        "containers": [],
         "tests_by_file": {
           "EnrichedSystemPromptMetrics.Tests.ps1": 31,
-          "PC-AI.USB.Tests.ps1": 23,
-          "PC-AI.Virtualization.Tests.ps1": 38,
-          "PcaiGpuContracts.Tests.ps1": 1,
-          "PcaiNativeArtifactPairing.Tests.ps1": 3,
           "PcaiNativeInitializationContracts.Tests.ps1": 1,
-          "PerformanceConsumerContracts.Tests.ps1": 1,
-          "Set-LLMProviderOrder.Tests.ps1": 13,
-          "Virtualization-Fallback.Tests.ps1": 3
+          "PerformanceConsumerContracts.Tests.ps1": 1
         },
-        "blocks_by_file": {
-          "PC-AI.USB.Tests.ps1": 12,
-          "PC-AI.Virtualization.Tests.ps1": 13
-        }
+        "blocks_by_file": {}
       },
       "measured": {
         "pct": 48.69,

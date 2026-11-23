@@ -66,3 +66,6 @@ LinuxCiGate.Tests.ps1
 # (WSL Ubuntu, 2026-11-21). DPAPI, Task Scheduler priority and Windows-path cases are not tagged Portable.
 PC-AI.Reliability.Tests.ps1
 DocAccuracy.Tests.ps1
+# The shared module-isolation helper (Tests/Helpers/Import-PcaiTestModule.ps1) uses only Join-Path and Pester,
+# so its own proof runs here; it plants stale module copies in TestDrive and needs no host module.
+TestModuleIsolation.Tests.ps1

@@ -234,6 +234,13 @@ All runners (`Invoke-PortableTests.ps1`, `Invoke-AllTests.ps1`, `.pester.ps1`, `
 `Tests/Helpers/Get-PesterRunVerdict.ps1`: a test file that does not parse, a failed `BeforeAll`, or a run that executed nothing fails,
 whatever `FailedCount` says. `Tests/Unit/TestAssessment.Tests.ps1` plants each of those failures and asserts it is reported.
 
+Every file under `Tests/Unit` runs in one PowerShell session, so a module an earlier file loaded is still loaded when the next starts.
+A test file that imports a `PC-AI.*` module dot-sources `Tests/Helpers/Import-PcaiTestModule.ps1`, calls `Import-PcaiTestModule -Name <module>` in
+`BeforeAll` and `Remove-PcaiTestModule` in `AfterAll`. The first removes every loaded `PC-AI*` and `Pcai*` module (nested copies included) and
+imports this checkout's manifest by absolute path; the second removes what the file, or PowerShell's module autoloader, loaded. Without them a
+stale copy turns `Mock -ModuleName` into "Multiple script or manifest modules named ... are currently loaded" (the helper's header records the
+measured chain). `Tests/Unit/TestModuleIsolation.Tests.ps1` plants stale copies and asserts the helper removes them.
+
 ## Code Coverage
 
 ### Coverage Requirements

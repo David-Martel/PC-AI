@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "source_baseline": "9b119292cfe0368de00b1bc21d2f1230d3496c75",
+  "recorded_utc": "2026-11-23T01:18:31+00:00",
+  "prior_archive_review": "review.json",
+  "hash_normalization": "CRLF converted to LF before SHA-256. Selectors include the indented def through the final body line and newline. Published-source provenance separately binds exact bytes.",
+  "source_sha256": {
+    "Tools/verify_candle_vendor.py": "0f5b1e826a3d8645a9d9906be894d0c6d51117cd458a0a51f928fdb888522081",
+    "Tests/Portable/test_candle_vendor.py": "06f728b427ea0fc118b34d222e3715839c31190dc3eb7b624aa931d5729f1afa",
+    "Tests/Portable/candle-zip-security/Cargo.lock": "4af449e198a163a21f8686986bfe468c2c8697d6edacd9ad518e86567733dcae",
+    "Deploy/Cargo.lock": "2409d74fef9e5ac3ca76c72fa84cfe6dbf07ddc23fed01b925f34f5284a73e00",
+    "Native/pcai_core/Cargo.lock": "b88c5d2bb6db5dfc5b2c89f254a88dd1a1549a36d39c8ca63d24b83412a16422",
+    "vendor/candle-core-provenance.json": "9ce81110ea4431f2f1cfe46470c3a82721ae29ea60ed5963f673e34f48a2fb35",
+    "vendor/candle-core-0.9.2/src/cpu/erf.rs": "b8f91f458c65baf0277072f4258f1cbc491b8b50d2b57a10e31bdf82a77fbfc7",
+    "vendor/patches/candle-core-0.9.2-zip9.patch": "7a70de4041d1b1ec484445852b00370d4f97fdf123e7f3dc24e7a28f716dafb0",
+    "vendor/candle-core-0.10.2/src/cpu/erf.rs": "b8f91f458c65baf0277072f4258f1cbc491b8b50d2b57a10e31bdf82a77fbfc7",
+    "vendor/patches/candle-core-0.10.2-zip9.patch": "f149cebf3dfab71807b7d9eea0cb13736ece21dd64ec0fbe3a4f65a250f2aa97",
+    "vendor/candle-core-0.11.0/src/cpu/erf.rs": "76682497d42eac75e101cb88948cfecea1845a28322b194b4fb75f50e8f1bda4",
+    "vendor/patches/candle-core-0.11.0-zip9.patch": "61aa56e8045d0420722cd5f5049d85e6288a8901deefae0ef77e6901f510e3c9"
+  },
+  "reviews": [
+    {
+      "selector": "CandleVendorCustody.test_actual_packet_is_complete",
+      "selector_sha256": "b66db3fbfbc30fbc3a861f937cfe802ffedfe6f50a8ccde04e48de3a50fbb31e",
+      "test_path": "Tests/Portable/test_candle_vendor.py",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "disposition": "unreviewed",
+      "scope": "a checker that refuses every packet or omits one locked Candle version."
+    },
+    {
+      "selector": "CandleVendorCustody.test_changed_upstream_bytes_are_refused",
+      "selector_sha256": "89c55d60ebd52df0788a80c9e07107eeaeb8969c82312fff256b1174b841b15b",
+      "test_path": "Tests/Portable/test_candle_vendor.py",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "disposition": "unreviewed",
+      "scope": "a consumed package file edited without its reviewed source binding."
+    },
+    {
+      "selector": "CandleVendorCustody.test_missing_upstream_file_is_refused",
+      "selector_sha256": "3d3fa56f7f8b641ab656c217d93794722f6fdef72263bb2a64fcf2c7c67c15a0",
+      "test_path": "Tests/Portable/test_candle_vendor.py",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "disposition": "unreviewed",
+      "scope": "silently dropped source or license files."
+    },
+    {
+      "selector": "CandleVendorCustody.test_unrecorded_library_lock_is_refused",
+      "selector_sha256": "c1111847cc86bbd0fd67e202288ef07029552dc37fc8e7ced0506fd3d00aff3f",
+      "test_path": "Tests/Portable/test_candle_vendor.py",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "disposition": "unreviewed",
+      "scope": "copied generated/unreviewed package members ignored by hash iteration."
+    },
+    {
+      "selector": "CandleVendorCustody.test_replaced_crate_identity_is_refused",
+      "selector_sha256": "abbfa16573c51cb10b1f3ddc6fab6a296beb7e863b50ffb104d9ce8df4614946",
+      "test_path": "Tests/Portable/test_candle_vendor.py",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "disposition": "unreviewed",
+      "scope": "a receipt silently naming a different package source."
+    },
+    {
+      "selector": "CandleVendorCustody.test_new_unreviewed_edit_scope_is_refused",
+      "selector_sha256": "34d15c83a84b7bf2ff52185b00ea199f65fc16c62f0aa9f95efad19685dc0ecc",
+      "test_path": "Tests/Portable/test_candle_vendor.py",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "disposition": "unreviewed",
+      "scope": "a new upstream edit disguised by updating only its current-byte hash."
+    },
+    {
+      "selector": "CandleVendorCustody.test_extra_erf_edit_is_refused_with_rehashed_source",
+      "selector_sha256": "dba472b79bd0a5c4b13431c1240da911a2c2e6a342c247d25eb2bf08d601d6c5",
+      "test_path": "Tests/Portable/test_candle_vendor.py",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "disposition": "unreviewed",
+      "scope": "accepting additional edits after their manifest hash is refreshed."
+    },
+    {
+      "selector": "CandleVendorCustody.test_replaced_erf_upstream_identity_is_refused",
+      "selector_sha256": "c4c9dc92495ee6eaf89ab4f82aefb856ad7bc41255325e7a6987d1ce76bd9a25",
+      "test_path": "Tests/Portable/test_candle_vendor.py",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "disposition": "unreviewed",
+      "scope": "using a matching but rewritten upstream digest to bless a second edit."
+    },
+    {
+      "selector": "CandleVendorCustody.test_nonlocal_receipt_path_is_refused",
+      "selector_sha256": "bb4e57613ddb1ab1e6857458e5ab84b5509dd341a5f3ff8da95cab44d8c25eb6",
+      "test_path": "Tests/Portable/test_candle_vendor.py",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "disposition": "unreviewed",
+      "scope": "traversal in a forged source receipt before any external file read."
+    },
+    {
+      "selector": "CandleVendorCustody.test_changed_patch_receipt_is_refused",
+      "selector_sha256": "cf352e6b63f39141485f936a4200e9b6047aab13bb7c9a54a98a83014434972f",
+      "test_path": "Tests/Portable/test_candle_vendor.py",
+      "reviewer": null,
+      "reviewer_type": null,
+      "reviewed_utc": null,
+      "disposition": "unreviewed",
+      "scope": "altered patch receipts despite unchanged final source files."
+    }
+  ]
+}

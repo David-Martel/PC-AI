@@ -158,6 +158,61 @@ Describe 'Initialize-CudaEnvironment' -Tag 'Unit', 'Cuda', 'Portable' {
             $global:LASTEXITCODE = $oldExitCode
         }
     }
+    # Protects: toolkit admission rejects native tool errors even when stdout appears valid.
+    # Detects: trusting output from a failing probe or losing the distinct empty-output diagnosis.
+    # Needs: Windows cmd.exe, an isolated toolkit and the exact real probe bodies.
+    # Breadcrumb: Select-CudaToolkit, Get-NvccGpuCodes and Get-PtxasGpuCodes.
+    It 'rejects invalid native capability probe <Case>' -Skip:(-not $IsWindows) -ForEach @(
+        @{
+            Case = 'nvcc nonzero with valid stdout'; Target = '89'
+            Nvcc = @('echo sm_89', 'exit /b 7')
+            ExpectedReason = 'nvcc could not list GPU targets:'
+        },
+        @{
+            Case = 'nvcc success with empty stdout'; Target = '89'
+            Nvcc = @('exit /b 0')
+            ExpectedReason = 'nvcc could not list GPU targets:'
+        },
+        @{
+            Case = 'ptxas nonzero with valid stdout'; Target = '120a'
+            Nvcc = @('echo sm_120', 'exit /b 0')
+            Ptxas = @(
+                'echo --gpu-name GPU (-arch)',
+                "echo     Allowed values for this option: 'compute_120a','lto_120a','sm_120','sm_120a'.",
+                'exit /b 9'
+            )
+            ExpectedReason = 'Unsupported CUDA targets sm_120a in .+ \(ptxas did not list them\)'
+        }
+    ) {
+        $nativeControl = New-ToolkitFixture $Case
+        $script:NativeNvccProbe = (Get-Command Get-NvccGpuCodes -CommandType Function).ScriptBlock
+        $script:NativePtxasProbe = (Get-Command Get-PtxasGpuCodes -CommandType Function).ScriptBlock
+        $nvccCmd = Join-Path $nativeControl 'bin/nvcc.cmd'
+        Set-Content -LiteralPath $nvccCmd -Value (@('@echo off') + $Nvcc) -Encoding ascii
+        if ($Ptxas) {
+            $null = New-Item -ItemType File -Path (Join-Path $nativeControl 'bin/ptxas.exe')
+            Set-Content -LiteralPath (Join-Path $nativeControl 'bin/ptxas.cmd') -Value (@('@echo off') + $Ptxas) -Encoding ascii
+        }
+
+        # The selector checks the toolkit's .exe paths. Substitute only the filename passed
+        # to the captured native probe function so its launch, parsing, and exit checks run.
+        Mock Get-NvccGpuCodes {
+            & $script:NativeNvccProbe -CompilerPath ([IO.Path]::ChangeExtension($CompilerPath, 'cmd'))
+        }
+        Mock Get-PtxasGpuCodes {
+            & $script:NativePtxasProbe -AssemblerPath ([IO.Path]::ChangeExtension($AssemblerPath, 'cmd'))
+        }
+        $PSNativeCommandUseErrorActionPreference = $false
+        $choice = Select-CudaToolkit -Candidates $nativeControl -TargetComputeCaps $Target
+
+        $choice.Path | Should -BeNullOrEmpty
+        ($choice.Notes -join ' ') | Should -Match $ExpectedReason
+        Should -Invoke Get-NvccGpuCodes -Times 1 -Exactly -ParameterFilter {
+            [IO.Path]::GetFileName($CompilerPath) -eq 'nvcc.exe'
+        }
+        $assemblerCalls = if ($Ptxas) { 1 } else { 0 }
+        Should -Invoke Get-PtxasGpuCodes -Times $assemblerCalls -Exactly
+    }
 }
 
 Describe 'PC-AI CUDA build admission' -Tag 'Unit', 'Cuda', 'Portable' {

@@ -7,9 +7,9 @@
 #>
 
 BeforeAll {
-    # Import module under test
-    $ModulePath = Join-Path $PSScriptRoot '..\..\Modules\PC-AI.USB\PC-AI.USB.psd1'
-    Import-Module $ModulePath -Force -ErrorAction Stop
+    # Import module under test. The helper removes every module an earlier file left loaded first; see its header.
+    . (Join-Path $PSScriptRoot '..\Helpers\Import-PcaiTestModule.ps1')
+    $null = Import-PcaiTestModule -Name 'PC-AI.USB'
 
     # Import mock data
     $MockDataPath = Join-Path $PSScriptRoot '..\Fixtures\MockData.psm1'
@@ -358,6 +358,6 @@ Describe "Test-UsbIpdInstalled (Private Function)" -Tag 'Unit', 'USB', 'Fast', '
 }
 
 AfterAll {
-    Remove-Module PC-AI.USB -Force -ErrorAction SilentlyContinue
+    Remove-PcaiTestModule
     Remove-Module MockData -Force -ErrorAction SilentlyContinue
 }

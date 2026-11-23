@@ -4,6 +4,10 @@
 # chain, with documentation-range addresses and made-up MACs and GUIDs.
 
 BeforeAll {
+    # This file imports no module, so it must not inherit one: a release package that PowerShell's autoloader pulled
+    # in during an earlier file exports Write-Error and shadows the one mocked below (see the helper header).
+    . (Join-Path $PSScriptRoot '..\Helpers\Import-PcaiTestModule.ps1')
+    Remove-PcaiTestModule
     $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
     . (Join-Path $repoRoot 'Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1')
     . (Join-Path $repoRoot 'Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1')
@@ -39,6 +43,11 @@ BeforeAll {
         [pscustomobject]@{ InterfaceIndex = $Index; Name = 'Ethernet 18'; Description = 'USB4(TM) P2P Network Adapter'; Guid = $Guid; Mac = $Mac; Status = $Status; LinkSpeed = '20 Gbps'; Ipv4 = $Ipv4; Forwarding = $Forwarding }
     }
     $script:Route = @([pscustomobject]@{ InterfaceIndex = 28; DestinationPrefix = '172.31.248.197/32'; NextHop = '172.31.255.22' })
+}
+
+AfterAll {
+    # Anything PowerShell's autoloader imported while this file ran must not reach the next file.
+    Remove-PcaiTestModule
 }
 
 Describe 'Link health adapter collection' -Tag 'Unit' {

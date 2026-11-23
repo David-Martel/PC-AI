@@ -2364,23 +2364,24 @@ function Invoke-FunctionGemmaOperation {
         '--grad-accum', '4'
     )
 
+    $prepareCargoArgs = @('run', '--locked', '--no-default-features', '--')
     $cargoArgs = switch ($Operation) {
         'router-data' {
             if ($OperationArgs.Count -gt 0) {
-                @('run', '--', 'prepare-router') + $OperationArgs
+                $prepareCargoArgs + @('prepare-router') + $OperationArgs
             } else {
-                @('run', '--', 'prepare-router') + $defaultRouterArgs
+                $prepareCargoArgs + @('prepare-router') + $defaultRouterArgs
             }
         }
         'token-cache' {
             if ($OperationArgs.Count -gt 0) {
-                @('run', '--', 'prepare-cache') + $OperationArgs
+                $prepareCargoArgs + @('prepare-cache') + $OperationArgs
             } else {
                 $chatTemplate = Join-Path $repoRoot 'Models\functiongemma-270m-it\chat_template.jinja'
                 if (Test-Path $chatTemplate) {
-                    @('run', '--', 'prepare-cache') + $defaultCacheArgs + @('--chat-template', $chatTemplate)
+                    $prepareCargoArgs + @('prepare-cache') + $defaultCacheArgs + @('--chat-template', $chatTemplate)
                 } else {
-                    @('run', '--', 'prepare-cache') + $defaultCacheArgs
+                    $prepareCargoArgs + @('prepare-cache') + $defaultCacheArgs
                 }
             }
         }

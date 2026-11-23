@@ -25,12 +25,14 @@ directory, so putting `fuzz\seeds\gguf_meta` first fills the committed seeds wit
 
 | Target | Code under test | Property |
 |---|---|---|
-| `gguf_meta` | `read_gguf_meta_from` in [`gguf.rs`](../pcai_core_lib/src/preflight/gguf.rs) | never panics, overflows the stack or hangs; a successful parse also gives a memory estimate |
+| `gguf_meta` | `read_gguf_meta_from` and `read_gguf_layout_from` (metadata plus the tensor-info section) in [`gguf.rs`](../pcai_core_lib/src/preflight/gguf.rs) | never panics, overflows the stack or hangs; a successful parse also gives a memory estimate |
 
 The target includes `gguf.rs` with `#[path]` instead of depending on `pcai_core_lib`: that crate
 is a `cdylib`, and libFuzzer's instrumentation then asks the DLL link for a `main` symbol
 (`LNK2001` on MSVC). `gguf.rs` needs only `anyhow`, `serde` and `thiserror`.
 
 The deterministic regressions for the same reader live in
-[`pcai_core_lib/tests/gguf_hardening.rs`](../pcai_core_lib/tests/gguf_hardening.rs); a fuzzer
-finding should become a test there before the fix.
+[`pcai_core_lib/tests/gguf_hardening.rs`](../pcai_core_lib/tests/gguf_hardening.rs) (metadata) and
+[`pcai_core_lib/tests/gguf_nvfp4.rs`](../pcai_core_lib/tests/gguf_nvfp4.rs) (tensor infos and sizes);
+a fuzzer finding should become a test there before the fix. The seed `nvfp4_tensors` reaches the
+tensor-info parser; a test in `gguf_nvfp4.rs` keeps it equal to that file's fixture.

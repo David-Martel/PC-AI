@@ -61,7 +61,8 @@ pub struct PreflightResult {
 
 /// Run a full preflight check for loading a GGUF model.
 ///
-/// 1. Parses the GGUF header to estimate memory requirements.
+/// 1. Parses the GGUF header and tensor infos to estimate memory requirements
+///    from the exact tensor sizes (never reading tensor data).
 /// 2. Queries NVML for live VRAM state on all GPUs.
 /// 3. Returns a verdict with the best GPU choice (or why it will not fit).
 ///
@@ -71,17 +72,11 @@ pub struct PreflightResult {
 /// # Errors
 ///
 /// Returns an error if the GGUF file cannot be read or NVML queries fail
-/// after successful initialisation.
+/// after successful initialisation. A model with a tensor of an unknown ggml
+/// type or an invalid shape is an error too ([`gguf::GgufTensorError`]), not a
+/// zero-size estimate.
 pub fn check_readiness(model_path: &str, context_length: u64) -> Result<PreflightResult> {
-    let path = Path::new(model_path);
-
-    let meta = gguf::read_gguf_meta(path)?;
-    let ctx = if context_length > 0 {
-        context_length
-    } else {
-        meta.context_length
-    };
-    let model_estimate_mb = gguf::estimate_model_memory_mb(&meta, ctx);
+    let model_estimate_mb = estimate_model_mb(Path::new(model_path), context_length)?;
     let gpus = vram_audit::vram_snapshot_all()?;
 
     let mut result = compute_verdict(&gpus, model_estimate_mb);
@@ -121,6 +116,25 @@ pub fn check_vram_state(required_mb: u64) -> Result<PreflightResult> {
 }
 
 // ── Private helpers ────────────────────────────────────────────────────────
+
+/// Estimate the megabytes of VRAM that loading `path` at `context_length` needs.
+///
+/// Reads the GGUF header and tensor infos (never tensor data) and sums the exact
+/// tensor sizes, so a quantization the reader knows (NVFP4 included) is sized by
+/// its real block layout. A model with a tensor of a ggml type the reader does
+/// not know is an error, not a size of zero: [`check_readiness`] then reports a
+/// `fail` verdict through its caller and never a `go`.
+///
+/// `context_length` of `0` means the model's own default.
+fn estimate_model_mb(path: &Path, context_length: u64) -> Result<u64> {
+    let layout = gguf::read_gguf_layout(path)?;
+    let ctx = if context_length > 0 {
+        context_length
+    } else {
+        layout.meta.context_length
+    };
+    Ok(gguf::estimate_layout_memory_mb(&layout, ctx))
+}
 
 /// Compute a readiness verdict from GPU snapshots and required VRAM.
 ///
@@ -210,6 +224,61 @@ fn compute_verdict(gpus: &[GpuVramSnapshot], model_estimate_mb: u64) -> Prefligh
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A GGUF v3 header with an NVFP4 file type and one tensor of `type_id` and `dims`.
+    fn one_tensor_gguf(type_id: u32, dims: &[u64]) -> Vec<u8> {
+        fn put_str(b: &mut Vec<u8>, s: &str) {
+            b.extend_from_slice(&(s.len() as u64).to_le_bytes());
+            b.extend_from_slice(s.as_bytes());
+        }
+        let mut b = b"GGUF".to_vec();
+        b.extend_from_slice(&3_u32.to_le_bytes());
+        b.extend_from_slice(&1_u64.to_le_bytes()); // tensors
+        b.extend_from_slice(&1_u64.to_le_bytes()); // metadata entries
+        put_str(&mut b, "general.file_type");
+        b.extend_from_slice(&4_u32.to_le_bytes()); // u32
+        b.extend_from_slice(&39_u32.to_le_bytes()); // NVFP4
+        put_str(&mut b, "w");
+        b.extend_from_slice(&(dims.len() as u32).to_le_bytes());
+        for d in dims {
+            b.extend_from_slice(&d.to_le_bytes());
+        }
+        b.extend_from_slice(&type_id.to_le_bytes());
+        b.extend_from_slice(&0_u64.to_le_bytes());
+        b
+    }
+
+    fn write_temp(bytes: &[u8]) -> tempfile::NamedTempFile {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().expect("temp file");
+        f.write_all(bytes).expect("write fixture");
+        f
+    }
+
+    /// Why: the readiness estimate must come from the tensor sizes. One NVFP4 tensor of
+    /// `[4096, 40960]` is 90 MiB; the default context of 2048 on the default 32 x 4096
+    /// dimensions adds a 1024 MiB KV cache, so `(90 + 1024) * 1.1` is 1225 MB with integer
+    /// division. Detects the estimate falling back to the dimension-based guess.
+    #[test]
+    fn estimate_uses_the_exact_nvfp4_tensor_size() {
+        let f = write_temp(&one_tensor_gguf(40, &[4096, 40_960]));
+        assert_eq!(estimate_model_mb(f.path(), 0).expect("estimate"), 1225);
+    }
+
+    /// Why: a model whose tensor type this build does not know must not be estimated at all,
+    /// least of all as 0 MB (which would be a `go`). The FFI turns the error into a `fail`.
+    #[test]
+    fn estimate_fails_for_an_unknown_tensor_type() {
+        let f = write_temp(&one_tensor_gguf(9_999, &[4096, 4096]));
+        let err = estimate_model_mb(f.path(), 0).expect_err("unknown tensor type");
+        assert!(
+            matches!(
+                err.downcast_ref::<gguf::GgufTensorError>(),
+                Some(gguf::GgufTensorError::UnknownType { index: 0, id: 9_999 })
+            ),
+            "got: {err:#}"
+        );
+    }
 
     #[test]
     fn verdict_go_when_enough_vram() {

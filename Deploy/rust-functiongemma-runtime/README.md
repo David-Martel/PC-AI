@@ -6,9 +6,10 @@ The FunctionGemma router provides OpenAI-compatible chat completions and tool ca
 
 Use the repository's Rust toolchain and the Windows MSVC or Linux system
 toolchain. For model inference, place the model configuration, tokenizer, chat
-template, and safetensors weights in a local directory. Set
-`runtime.router_model_path` in the [router configuration](../../Config/pcai-functiongemma.json)
-to that directory.
+template, and safetensors weights in a local directory. The repository
+configuration uses `Models\functiongemma-270m-it` on Windows and
+`Models/functiongemma-270m-it` on Linux. To use a different directory, set
+`runtime.router_model_path` in the [router configuration](../../Config/pcai-functiongemma.json).
 
 ## Build
 

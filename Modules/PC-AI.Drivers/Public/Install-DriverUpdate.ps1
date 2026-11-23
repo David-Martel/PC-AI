@@ -100,31 +100,19 @@ function Install-DriverUpdate {
         }
     }
 
-    # A preview or download may use the repository registry without elevation.
-    # Executing always loads the protected machine registry before selecting bytes.
-    $trustRoot = $null
-    if (-not $DownloadOnly -and -not $WhatIfPreference) {
+    $forInstall = -not ($DownloadOnly -or $WhatIfPreference)
+    $regParams = @{ ForInstall = $forInstall }
+    if ($RegistryPath) { $regParams['RegistryPath'] = $RegistryPath }
+    if ($forInstall) {
         try {
-            if (-not (Test-AdminElevation)) {
-                throw 'Administrator elevation is required to install drivers. Use -DownloadOnly to acquire the package.'
-            }
-            $trustRoot = Get-DriverInstallTrustRoot
-            $trustedRegistry = Join-Path $trustRoot 'driver-registry.json'
-            if ($RegistryPath -and [IO.Path]::GetFullPath($RegistryPath) -ine $trustedRegistry) {
-                throw "The installation registry must be '$trustedRegistry'. Use -DownloadOnly with any other registry."
-            }
-            Assert-DriverInstallTrustPath -Path $trustRoot -Directory
-            Assert-DriverInstallTrustPath -Path $trustedRegistry
-            $RegistryPath = $trustedRegistry
+            $reg = Get-DriverRegistry @regParams -ErrorAction Stop
         }
         catch {
             return New-InstallResult -Id $DeviceId -Action 'Failed' -Success $false -Message $_.Exception.Message
         }
+    } else {
+        $reg = Get-DriverRegistry @regParams
     }
-
-    $regParams = @{}
-    if ($RegistryPath) { $regParams['RegistryPath'] = $RegistryPath }
-    $reg = Get-DriverRegistry @regParams
 
     if (-not $reg) {
         Write-Error 'Install-DriverUpdate: could not load driver registry.'
@@ -247,6 +235,7 @@ function Install-DriverUpdate {
             }
         }
         else {
+            $trustRoot = Split-Path -LiteralPath $reg.RegistryPath
             $stage = New-DriverInstallStage -TrustRoot $trustRoot
             Assert-DriverInstallTrustPath -Path $stage -Directory
             $outFile = Join-Path $stage ($fileBaseName + $fileExtension)

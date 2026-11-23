@@ -838,6 +838,62 @@ Describe 'Windows driver install trust primitives' -Tag 'Unit', 'Drivers', 'Port
         $module = Get-Module PC-AI.Drivers
     }
 
+    # Protects: a registry controlled by a non-admin cannot select an executable.
+    # Detects: dropping both protected path checks before opening the registry.
+    # Needs: Windows TestDrive ACLs and inert package fields. All external effects are mocked.
+    # Breadcrumb: Resolve-DriverInstallRegistry calls Assert-DriverInstallTrustPath before Get-DriverRegistry reads.
+    It 'rejects an actual writable registry path before any driver download' -Skip:(-not $IsWindows) {
+        $fixtureTrustRoot = Join-Path $TestDrive 'writable-driver-trust'
+        [void][IO.Directory]::CreateDirectory($fixtureTrustRoot)
+        $fixtureRegistry = Join-Path $fixtureTrustRoot 'driver-registry.json'
+        $registry = $script:MockRegistryJson | ConvertFrom-Json
+        $registry.devices[0].driver.installerType = 'exe'
+        $registry.devices[0].driver.downloadUrl = 'https://www.realtek.com/fixture.exe'
+        $registry.devices[0].driver.sha256 = 'a' * 64
+        $registry.devices[0].driver | Add-Member -NotePropertyName publisherCertificateSha256 -NotePropertyValue ('b' * 64)
+        $registry | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $fixtureRegistry -Encoding utf8
+        $acl = Get-Acl -LiteralPath $fixtureTrustRoot
+        $everyone = [Security.Principal.SecurityIdentifier]::new('S-1-1-0')
+        $rule = [Security.AccessControl.FileSystemAccessRule]::new($everyone, 'WriteAttributes', 'Allow')
+        $acl.AddAccessRule($rule)
+        Set-Acl -LiteralPath $fixtureTrustRoot -AclObject $acl
+
+        Mock Test-AdminElevation { $true } -ModuleName PC-AI.Drivers
+        Mock Get-DriverInstallTrustRoot { $fixtureTrustRoot } -ModuleName PC-AI.Drivers
+        Mock New-DriverInstallStage { throw 'Fixture reached installation staging' } -ModuleName PC-AI.Drivers
+        Mock Invoke-TrustedDownload { throw 'Fixture reached downloader' } -ModuleName PC-AI.Drivers
+        $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -RegistryPath $fixtureRegistry -Confirm:$false
+        $result.Success | Should -BeFalse
+        $result.Message | Should -Match 'untrusted principal can modify|protected owner and DACL'
+        Should -Invoke New-DriverInstallStage -Times 0 -Exactly -ModuleName PC-AI.Drivers
+        Should -Invoke Invoke-TrustedDownload -Times 0 -Exactly -ModuleName PC-AI.Drivers
+    }
+
+    # Protects: a real path cannot escape the trust boundary through a junction.
+    # Detects: dropping the reparse-point check or opening the registry first.
+    # Needs: Windows NTFS TestDrive, inert target directory and one temporary junction.
+    # Breadcrumb: Assert-DriverInstallTrustPath rejects file and ancestor ReparsePoint attributes.
+    It 'rejects an actual junction in the trusted registry path' -Skip:(-not $IsWindows) {
+        $fixtureTarget = Join-Path $TestDrive 'junction-target'
+        [void][IO.Directory]::CreateDirectory($fixtureTarget)
+        [IO.File]::WriteAllText((Join-Path $fixtureTarget 'driver-registry.json'), '{"devices":[]}')
+        $fixtureTrustRoot = Join-Path $TestDrive 'junction-trust'
+        $null = New-Item -ItemType Junction -Path $fixtureTrustRoot -Target $fixtureTarget
+        try {
+            Mock Test-AdminElevation { $true } -ModuleName PC-AI.Drivers
+            Mock Get-DriverInstallTrustRoot { $fixtureTrustRoot } -ModuleName PC-AI.Drivers
+            Mock Invoke-TrustedDownload { throw 'Fixture reached downloader' } -ModuleName PC-AI.Drivers
+            $result = Install-DriverUpdate -DeviceId 'realtek-rtl8156' -Confirm:$false
+            $result.Success | Should -BeFalse
+            $result.Message | Should -Match 'reparse point cannot establish driver installation trust'
+            Should -Invoke Invoke-TrustedDownload -Times 0 -Exactly -ModuleName PC-AI.Drivers
+        }
+        finally {
+            [IO.Directory]::Delete($fixtureTrustRoot)
+        }
+        [IO.File]::Exists((Join-Path $fixtureTarget 'driver-registry.json')) | Should -BeTrue
+    }
+
     # Protects: protected leaves cannot be replaced through a writable ancestor.
     # Detects: leaf-only checks, trust for a caller-owned leaf, or granting delete-child to non-admins.
     # Needs: Windows local fixture and synthetic security descriptors. No operating system ACL changes.

@@ -8,6 +8,22 @@ function Get-DriverInstallTrustRoot {
     return Join-Path $programFiles 'PC-AI.DriverTrust'
 }
 
+function Resolve-DriverInstallRegistry {
+    param([string]$RegistryPath)
+
+    if (-not (Test-AdminElevation)) {
+        throw 'Administrator elevation is required to install drivers. Use -DownloadOnly to acquire the package.'
+    }
+    $trustRoot = Get-DriverInstallTrustRoot
+    $trustedRegistry = Join-Path $trustRoot 'driver-registry.json'
+    if ($RegistryPath -and [IO.Path]::GetFullPath($RegistryPath) -ine $trustedRegistry) {
+        throw "The installation registry must be '$trustedRegistry'. Use -DownloadOnly with any other registry."
+    }
+    Assert-DriverInstallTrustPath -Path $trustRoot -Directory
+    Assert-DriverInstallTrustPath -Path $trustedRegistry
+    return $trustedRegistry
+}
+
 function Assert-DriverInstallTrustPath {
     param([string]$Path, [switch]$Directory)
 

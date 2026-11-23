@@ -2,8 +2,9 @@
 
 ## Install
 
-Load the signed PC-AI Drivers module in Windows PowerShell 7. An administrator
-provisions the local Program Files directory `PC-AI.DriverTrust` and its
+Load the PC-AI Drivers module in PowerShell 7 from an administrator-controlled
+installation. An administrator provisions the local Program Files directory
+`PC-AI.DriverTrust` and its
 `driver-registry.json`. Administrators or SYSTEM must own both. Give regular
 users read access only. The [trust check](../Modules/PC-AI.Drivers/Private/Assert-DriverInstallTrust.ps1)
 rejects writable or replaceable paths, and checks parent ownership and
@@ -41,8 +42,9 @@ signature mocks.
 Invoke-Pester ./Tests/Unit/PC-AI.Drivers.Tests.ps1 -Tag Drivers
 ```
 
-See the [trust review record](../Tests/Unit/driver-install-trust-review.json)
-for exact source and fixture bindings.
+See the [registry and trust review record](../Tests/Unit/driver-registry-followup-review.json)
+for the batch registry and Windows path controls. The [initial trust review](../Tests/Unit/driver-install-trust-review.json)
+records the signer and staging evidence.
 
 ## Run
 
@@ -59,6 +61,12 @@ $registryPath = Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'PC-AI.
 Install-DriverUpdate -DeviceId $deviceId -RegistryPath $registryPath -WhatIf
 Install-DriverUpdate -DeviceId $deviceId -Confirm
 ```
+
+[Update-Drivers.ps1](../Tools/Update-Drivers.ps1) uses the machine registry
+for its install-mode scan, driver grouping and per-device installation.
+Scan-only, preview and download-only runs use the bundled registry or
+the caller's explicit registry. The batch utility prints manual download
+addresses for devices that need manual handling.
 
 `-WhatIf` previews the specified registry entry without touching the
 destination or requiring elevation. `-DownloadOnly` saves packages to the

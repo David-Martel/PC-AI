@@ -6,29 +6,35 @@
 .DESCRIPTION
     Looks up the specified device by its registry ID, downloads the installer from
     the device's trusted source URL, and runs the appropriate installation method
-    (exe, zip-with-exe, inf, or msi).
+    (exe, zip-with-exe, or msi).
 
     Devices with installerType 'none' or 'windows-update' are reported but skipped;
     no download or execution is attempted.
 
-    Administrator rights are required for actual installation. -DownloadOnly bypasses
-    this requirement and leaves the installer file in $DownloadDir for manual use.
-    -WhatIf suppresses directory creation, download and execution in both modes.
-    Existing downloads with an expected SHA256 must match before they are reused;
-    a mismatch is reported and the existing bytes are preserved.
+    Actual installation requires elevation and a registry under the protected
+    Program Files PC-AI.DriverTrust directory. The registry pins both the package
+    SHA256 and the signer's certificate SHA256. Each install uses a fresh protected
+    stage, verifies the actual executable or MSI, and removes the stage after use.
+    INF packages remain available through -DownloadOnly.
 
-    Contract evidence: Reports/driver-download-contract-review.md.
+    -DownloadOnly leaves the installer file in $DownloadDir for manual use. The
+    digest is optional in this mode and is checked when present. Existing bytes
+    with a different digest are preserved. -WhatIf suppresses directory creation,
+    download and execution in both modes.
+
+.LINK
+    docs/driver-installation.md
 
 .PARAMETER DeviceId
     The registry entry id (e.g. 'realtek-rtl8156'). Must match exactly.
 
 .PARAMETER RegistryPath
-    Full path to an alternate driver-registry.json. When omitted the default path
-    under PC_AI\Config\ is resolved automatically.
+    Registry path for a preview or download. Installs use driver-registry.json in
+    the protected Program Files PC-AI.DriverTrust directory.
 
 .PARAMETER DownloadDir
-    Directory for downloaded installer files. Created if it does not exist.
-    Defaults to $env:TEMP\DriverUpdates.
+    Directory for -DownloadOnly output, created if needed. Defaults to
+    $env:TEMP\DriverUpdates. Installation stages fresh bytes in its protected directory.
 
 .PARAMETER Force
     Re-download the installer even if the file already exists in $DownloadDir.
@@ -37,8 +43,8 @@
     Download the installer but do not execute it. Admin rights are not required.
 
 .EXAMPLE
-    Install-DriverUpdate -DeviceId 'realtek-rtl8156'
-    Downloads and installs the Realtek USB ethernet driver.
+    Install-DriverUpdate -DeviceId $deviceId -Confirm
+    Installs an entry from the configured machine trust registry.
 
 .EXAMPLE
     Install-DriverUpdate -DeviceId 'caldigit-element-hub' -DownloadOnly
@@ -94,15 +100,19 @@ function Install-DriverUpdate {
         }
     }
 
-    # --- Step 1: Admin check (skip when DownloadOnly) ---
-    if (-not $DownloadOnly -and -not (Test-AdminElevation)) {
-        Write-Warning 'Install-DriverUpdate: administrator elevation is recommended for driver installation. Re-run as Administrator, or use -DownloadOnly.'
-    }
-
-    # --- Step 2: Load registry, find device ---
-    $regParams = @{}
+    $forInstall = -not ($DownloadOnly -or $WhatIfPreference)
+    $regParams = @{ ForInstall = $forInstall }
     if ($RegistryPath) { $regParams['RegistryPath'] = $RegistryPath }
-    $reg = Get-DriverRegistry @regParams
+    if ($forInstall) {
+        try {
+            $reg = Get-DriverRegistry @regParams -ErrorAction Stop
+        }
+        catch {
+            return New-InstallResult -Id $DeviceId -Action 'Failed' -Success $false -Message $_.Exception.Message
+        }
+    } else {
+        $reg = Get-DriverRegistry @regParams
+    }
 
     if (-not $reg) {
         Write-Error 'Install-DriverUpdate: could not load driver registry.'
@@ -122,6 +132,7 @@ function Install-DriverUpdate {
     $downloadUrl   = $entry.driver.downloadUrl
     $manualUrl     = $entry.driver.manualDownloadUrl
     $sha256        = $entry.driver.sha256
+    $publisherSha256 = $entry.driver.publisherCertificateSha256
     $sharedGroup   = $entry.sharedDriverGroup
 
     Write-Verbose "Install-DriverUpdate: '$DeviceId' - name='$deviceName' installerType='$installerType'"
@@ -160,6 +171,11 @@ function Install-DriverUpdate {
     # Use the shared driver group name (if present) to avoid downloading the same
     # package multiple times for sibling devices (e.g. RTL8156 and RTL8157).
     $fileBaseName = if ($sharedGroup) { $sharedGroup } else { $DeviceId }
+    if ($fileBaseName -notmatch '\A[a-zA-Z0-9][a-zA-Z0-9._-]{0,126}\z' -or
+        $fileBaseName -match '\A(?:AUX|CON|NUL|PRN|COM[1-9]|LPT[1-9])(?:\.|\z)') {
+        return New-InstallResult -Id $DeviceId -Name $deviceName -Action 'Failed' -Success $false `
+            -Message 'The registry must identify an ordinary installer filename.'
+    }
 
     $fileExtension = '.exe'
     if ($installerType -eq 'zip-with-exe') { $fileExtension = '.zip' }
@@ -167,6 +183,11 @@ function Install-DriverUpdate {
     elseif ($installerType -eq 'msi')      { $fileExtension = '.msi' }
 
     $outFile = Join-Path $DownloadDir ($fileBaseName + $fileExtension)
+    if ($DownloadOnly -and -not $sha256) {
+        # Unpinned bytes cannot be proven to belong to the selected package URL.
+        $downloadId = [guid]::NewGuid().ToString('N')
+        $outFile = Join-Path $DownloadDir "$fileBaseName-unverified-$downloadId$fileExtension"
+    }
 
     if (-not $downloadUrl) {
         $msg = "No download URL configured for '$deviceName'."
@@ -183,116 +204,91 @@ function Install-DriverUpdate {
             -FilePath $null -ExitCode $null -Success $true -Message 'WhatIf: no changes made.'
     }
 
-    # --- Step 8: Create the download directory only after approval ---
-    if (-not (Test-Path -LiteralPath $DownloadDir)) {
-        New-Item -ItemType Directory -Path $DownloadDir -Force | Out-Null
-        Write-Verbose "Created download directory: $DownloadDir"
-    }
-
-    # --- Step 9: Download ---
-    Write-Host "  [*] Downloading driver for '$deviceName' ..." -ForegroundColor Gray
-
-    $downloadParams = @{
-        Url          = $downloadUrl
-        OutFile      = $outFile
-        TrustedHosts = $trustedHosts
-        ForceDownload = $Force.IsPresent
-    }
-    if ($sha256) { $downloadParams['ExpectedSha256'] = $sha256 }
-
-    $downloaded = Invoke-TrustedDownload @downloadParams
-
-    # --- Step 9: Handle download failure ---
-    if (-not $downloaded) {
-        $msg = "Download failed for '$deviceName'."
-        if ($manualUrl) {
-            Write-Warning "  [!!] $msg"
-            Write-Warning "  [!!] Manual download: $manualUrl"
-            Write-Warning "  [!!] Save as: $outFile  then re-run."
+    if (-not $DownloadOnly) {
+        $prerequisiteError = if ($installerType -notin @('exe', 'zip-with-exe', 'msi')) {
+            "Automatic installation does not support '$installerType'. Use -DownloadOnly or Windows Update."
         }
-        else {
-            Write-Warning "  [!!] $msg"
+        elseif ($sha256 -isnot [string] -or $sha256 -notmatch '\A[0-9a-fA-F]{64}\z') {
+            "A 64-character hexadecimal SHA256 digest is required to install '$deviceName'."
         }
-        return New-InstallResult -Id $DeviceId -Name $deviceName -Action 'Failed' `
-            -FilePath $null -ExitCode $null -Success $false -Message $msg
-    }
+        elseif ($publisherSha256 -isnot [string] -or $publisherSha256 -notmatch '\A[0-9a-fA-F]{64}\z') {
+            "A 64-character publisher certificate SHA256 pin is required to install '$deviceName'."
+        }
+        elseif (-not $trustedHosts.Count -or $downloadUrl -notmatch '\Ahttps://') {
+            "An HTTPS package URL and a trusted source are required to install '$deviceName'."
+        }
 
-    Write-Host "  [OK] Downloaded: $(Split-Path $downloaded -Leaf)" -ForegroundColor Green
-
-    # --- Step 10: DownloadOnly exit ---
-    if ($DownloadOnly) {
-        $msg = "Download complete. Installer saved to: $downloaded"
-        Write-Host "  [--] $msg" -ForegroundColor DarkGray
-        return New-InstallResult -Id $DeviceId -Name $deviceName -Action 'DownloadOnly' `
-            -FilePath $downloaded -ExitCode $null -Success $true -Message $msg
-    }
-
-    # --- Step 11: Install ---
-    $action  = 'Install'
-    $exitCode = $null
-
-    try {
-        if ($installerType -eq 'exe') {
-            Write-Host "  [*] Launching installer: $(Split-Path $downloaded -Leaf) ..." -ForegroundColor Gray
-            $proc = Start-Process -FilePath $downloaded -Wait -PassThru
-            $exitCode = $proc.ExitCode
-        }
-        elseif ($installerType -eq 'zip-with-exe') {
-            $extractDir = Join-Path $DownloadDir ($fileBaseName + '-extracted')
-            if ($Force -and (Test-Path $extractDir)) {
-                Remove-Item -Path $extractDir -Recurse -Force
-            }
-            if (-not (Test-Path $extractDir)) {
-                Expand-Archive -Path $downloaded -DestinationPath $extractDir -Force
-            }
-            $exeFile = Get-ChildItem -Path $extractDir -Recurse -Filter '*.exe' |
-                Select-Object -First 1
-            if (-not $exeFile) {
-                $msg = "No .exe found in extracted archive at: $extractDir"
-                Write-Warning "  [!!] $msg"
-                return New-InstallResult -Id $DeviceId -Name $deviceName -Action 'Failed' `
-                    -FilePath $downloaded -ExitCode $null -Success $false -Message $msg
-            }
-            Write-Host "  [*] Launching installer: $($exeFile.Name) ..." -ForegroundColor Gray
-            $proc = Start-Process -FilePath $exeFile.FullName -Wait -PassThru
-            $exitCode = $proc.ExitCode
-        }
-        elseif ($installerType -eq 'inf') {
-            # Expand archive if needed, find .inf file
-            $extractDir = Join-Path $DownloadDir ($fileBaseName + '-extracted')
-            if ($Force -and (Test-Path $extractDir)) {
-                Remove-Item -Path $extractDir -Recurse -Force
-            }
-            if (-not (Test-Path $extractDir)) {
-                Expand-Archive -Path $downloaded -DestinationPath $extractDir -Force
-            }
-            $infFile = Get-ChildItem -Path $extractDir -Recurse -Filter '*.inf' |
-                Select-Object -First 1
-            if (-not $infFile) {
-                $msg = "No .inf found in extracted archive at: $extractDir"
-                Write-Warning "  [!!] $msg"
-                return New-InstallResult -Id $DeviceId -Name $deviceName -Action 'Failed' `
-                    -FilePath $downloaded -ExitCode $null -Success $false -Message $msg
-            }
-            Write-Host "  [*] Installing via pnputil: $($infFile.Name) ..." -ForegroundColor Gray
-            $proc = Start-Process -FilePath 'pnputil.exe' `
-                -ArgumentList "/add-driver `"$($infFile.FullName)`" /install" `
-                -Wait -PassThru
-            $exitCode = $proc.ExitCode
-        }
-        elseif ($installerType -eq 'msi') {
-            Write-Host "  [*] Launching MSI installer: $(Split-Path $downloaded -Leaf) ..." -ForegroundColor Gray
-            $proc = Start-Process -FilePath 'msiexec.exe' `
-                -ArgumentList "/i `"$downloaded`" /qb" `
-                -Wait -PassThru
-            $exitCode = $proc.ExitCode
-        }
-        else {
-            $msg = "Unsupported installerType '$installerType' for device '$DeviceId'."
-            Write-Warning "  [!!] $msg"
+        if ($prerequisiteError) {
+            Write-Warning $prerequisiteError
             return New-InstallResult -Id $DeviceId -Name $deviceName -Action 'Failed' `
-                -FilePath $downloaded -ExitCode $null -Success $false -Message $msg
+                -FilePath $null -ExitCode $null -Success $false -Message $prerequisiteError
         }
+    }
+
+    # Separate the reusable download cache from the one-time execution stage.
+    $stage = $null
+    $downloaded = $null
+    try {
+        if ($DownloadOnly) {
+            if (-not (Test-Path -LiteralPath $DownloadDir)) {
+                New-Item -ItemType Directory -Path $DownloadDir -Force -ErrorAction Stop | Out-Null
+            }
+        }
+        else {
+            $trustRoot = Split-Path -LiteralPath $reg.RegistryPath
+            $stage = New-DriverInstallStage -TrustRoot $trustRoot
+            Assert-DriverInstallTrustPath -Path $stage -Directory
+            $outFile = Join-Path $stage ($fileBaseName + $fileExtension)
+        }
+
+        Write-Host "  [*] Downloading driver for '$deviceName' ..." -ForegroundColor Gray
+        $downloadParams = @{
+            Url           = $downloadUrl
+            OutFile       = $outFile
+            TrustedHosts  = $trustedHosts
+            ForceDownload = $Force.IsPresent
+        }
+        if ($sha256) { $downloadParams['ExpectedSha256'] = $sha256 }
+        $downloaded = Invoke-TrustedDownload @downloadParams
+        if (-not $downloaded) {
+            throw "Download failed for '$deviceName'."
+        }
+        if ($DownloadOnly) {
+            return New-InstallResult -Id $DeviceId -Name $deviceName -Action 'DownloadOnly' `
+                -FilePath $downloaded -ExitCode $null -Success $true -Message "Download complete. Installer saved to: $downloaded"
+        }
+        if ($downloaded -ine $outFile) {
+            throw 'The download did not return the expected protected installer path.'
+        }
+
+        Assert-DriverInstallTrustPath -Path $outFile
+        $actualSha256 = (Get-FileHash -LiteralPath $outFile -Algorithm SHA256 -ErrorAction Stop).Hash
+        if ($actualSha256 -ne $sha256) {
+            throw "SHA256 mismatch for installer '$outFile'."
+        }
+
+        $payload = $outFile
+        if ($installerType -eq 'zip-with-exe') {
+            $extractDir = Join-Path $stage 'payload'
+            New-Item -ItemType Directory -Path $extractDir -ErrorAction Stop | Out-Null
+            Assert-DriverInstallTrustPath -Path $extractDir -Directory
+            Expand-Archive -LiteralPath $outFile -DestinationPath $extractDir -ErrorAction Stop
+            $payload = Assert-DriverArchivePayload -Path $extractDir
+        }
+
+        Assert-DriverInstallerSignature -Path $payload -PublisherCertificateSha256 $publisherSha256
+        $processParams = @{
+            FilePath = $payload
+            WorkingDirectory = (Split-Path $payload -Parent)
+            Wait = $true
+            PassThru = $true
+            ErrorAction = 'Stop'
+        }
+        if ($installerType -eq 'msi') {
+            $processParams.FilePath = Join-Path ([Environment]::SystemDirectory) 'msiexec.exe'
+            $processParams.ArgumentList = "/i `"$payload`" /qb"
+        }
+        $exitCode = (Start-Process @processParams).ExitCode
 
         $rebootRequired = ($exitCode -eq 3010)
         $success = ($exitCode -eq 0 -or $rebootRequired)
@@ -311,14 +307,34 @@ function Install-DriverUpdate {
             Write-Warning "  [!!] $msg"
         }
 
-        return New-InstallResult -Id $DeviceId -Name $deviceName -Action $action `
-            -FilePath $downloaded -ExitCode $exitCode -Success $success -Message $msg
+        return New-InstallResult -Id $DeviceId -Name $deviceName -Action 'Install' `
+            -FilePath $null -ExitCode $exitCode -Success $success -Message $msg
 
     }
     catch {
-        $msg = "Installer launch failed: $($_.Exception.Message)"
+        $msg = "Installer preparation or launch failed: $($_.Exception.Message)"
         Write-Warning "  [!!] $msg"
         return New-InstallResult -Id $DeviceId -Name $deviceName -Action 'Failed' `
-            -FilePath $downloaded -ExitCode $null -Success $false -Message $msg
+            -FilePath $null -ExitCode $null -Success $false -Message $msg
+    }
+    finally {
+        if ($stage) {
+            try {
+                $expectedParent = [IO.Path]::GetFullPath($trustRoot)
+                $resolvedStage = [IO.Path]::GetFullPath($stage)
+                if ([IO.Path]::GetDirectoryName($resolvedStage) -ine $expectedParent -or
+                    [IO.Path]::GetFileName($resolvedStage) -notmatch '\Ainstall-[0-9a-f]{32}\z') {
+                    throw 'The staging path is outside its expected install directory.'
+                }
+                $stageItem = Get-Item -LiteralPath $resolvedStage -Force -ErrorAction Stop
+                if (-not $stageItem.PSIsContainer -or $stageItem.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                    throw 'The installation stage is not an ordinary directory.'
+                }
+                Remove-Item -LiteralPath $stageItem.FullName -Recurse -Force -ErrorAction Stop
+            }
+            catch {
+                Write-Warning "Driver staging cleanup failed: $($_.Exception.Message)"
+            }
+        }
     }
 }

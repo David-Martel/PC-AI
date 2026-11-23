@@ -11,8 +11,9 @@
     Devices that share a driver package (sharedDriverGroup) are processed once - only the
     first representative in each group triggers a download and install.
 
-    This is the generalized successor to Update-UsbDrivers.ps1. It is driven entirely by
-    Config\driver-registry.json; no device-specific code lives in this script.
+    Scan, preview and download modes use the bundled registry unless overridden.
+    Installation scans and groups devices using the protected machine registry
+    it passes to Install-DriverUpdate.
 
 .PARAMETER ScanOnly
     Run Phase 1 (report) only. No downloads or installs are attempted.
@@ -30,8 +31,8 @@
     Directory for downloaded driver packages. Defaults to $env:TEMP\DriverUpdates.
 
 .PARAMETER RegistryPath
-    Full path to an alternate driver-registry.json. When omitted the default path
-    under PC_AI\Config\ is resolved automatically.
+    Optional registry for scans, previews and downloads. Installation uses the
+    protected PC-AI.DriverTrust registry in Program Files.
 
 .EXAMPLE
     .\Update-Drivers.ps1
@@ -52,7 +53,7 @@
 .NOTES
     Successor to: Tools\Update-UsbDrivers.ps1
     Requires:     PC-AI.Drivers module (auto-resolved from script location)
-    Re-runnable:  Yes - skips files already downloaded unless -Force is specified.
+    Downloads can reuse verified cached files. Installs use a fresh protected stage.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
@@ -131,6 +132,17 @@ else              { Write-Status "Mode      : Scan + install" }
 Write-Section 'Phase 1 - Device Scan'
 Write-Status 'Enumerating PnP devices and comparing against registry ...'
 
+$regLookupParams = @{}
+if ($RegistryPath) { $regLookupParams['RegistryPath'] = $RegistryPath }
+
+# Resolve installation trust before scanning so the offered version and package
+# grouping come from the same registry passed to the installer.
+$reg = $null
+if (-not ($ScanOnly -or $DownloadOnly -or $WhatIfPreference)) {
+    $reg = Get-DriverRegistry @regLookupParams -ForInstall
+    $RegistryPath = $reg.RegistryPath
+}
+
 $reportParams = @{}
 if ($RegistryPath) { $reportParams['RegistryPath'] = $RegistryPath }
 if ($Category)     { $reportParams['Category']     = $Category     }
@@ -208,20 +220,6 @@ if ($actionable.Count -eq 0) {
     exit 0
 }
 
-# Admin check (only block if we actually intend to install)
-if (-not $DownloadOnly) {
-    $identity  = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
-    $isAdmin   = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-
-    if (-not $isAdmin) {
-        Write-Warn 'Administrator elevation is required to install drivers.'
-        Write-Warn 'Re-run this script as Administrator, or use -DownloadOnly to just fetch the files.'
-        Write-Host ''
-        exit 1
-    }
-}
-
 # Process items, respecting sharedDriverGroup - download/install a shared package only once.
 $processedGroups = [System.Collections.Generic.HashSet[string]]::new(
     [System.StringComparer]::OrdinalIgnoreCase
@@ -229,10 +227,9 @@ $processedGroups = [System.Collections.Generic.HashSet[string]]::new(
 
 $installResults = @()
 
-# Load registry once outside the loop (not per-item)
-$regLookupParams = @{}
-if ($RegistryPath) { $regLookupParams['RegistryPath'] = $RegistryPath }
-$reg = Get-DriverRegistry @regLookupParams
+if (-not $reg) {
+    $reg = Get-DriverRegistry @regLookupParams
+}
 
 foreach ($item in $actionable) {
     $deviceId    = $item.RegistryId
@@ -266,8 +263,7 @@ foreach ($item in $actionable) {
         $manualUrl = $regEntry.driver.manualDownloadUrl
         if ($manualUrl) {
             Write-Warn "  $deviceName requires manual download."
-            Write-Status "  Opening: $manualUrl" -Color Magenta
-            Start-Process $manualUrl
+            Write-Status "  Download address: $manualUrl" -Color Magenta
         } else {
             Write-Warn "  $deviceName requires manual update (no URL available)."
         }
@@ -276,7 +272,7 @@ foreach ($item in $actionable) {
             DeviceName = $deviceName
             Action     = 'ManualDownload'
             Success    = $true
-            Message    = "Opened browser for manual download: $manualUrl"
+            Message    = "Manual download address: $manualUrl"
         }
         if ($groupKey) { $processedGroups.Add($groupKey) | Out-Null }
         continue
@@ -333,6 +329,8 @@ else {
 }
 
 Write-Host ''
-Write-Host "  Downloads stored in: $DownloadDir" -ForegroundColor DarkGray
+if ($DownloadOnly) {
+    Write-Host "  Downloads stored in: $DownloadDir" -ForegroundColor DarkGray
+}
 Write-Host '  Re-run this script at any time to check for updates.' -ForegroundColor DarkGray
 Write-Host ''

@@ -8,8 +8,9 @@
     creates a new entry if none exists), updates only the fields that were explicitly
     provided, sets lastUpdated to the current UTC timestamp, and writes the file back.
 
-    Fields that are omitted (empty string or not supplied) are left unchanged in
-    existing entries. For brand-new entries, omitted fields are written as $null.
+    Omitted fields are left unchanged in existing entries except when changing
+    the package URL. A new package URL clears the old digest unless -Sha256
+    supplies a replacement. New entries store omitted fields as $null.
 
 .PARAMETER DeviceId
     Registry id for the device (e.g. 'realtek-rtl8156'). Mandatory.
@@ -32,6 +33,10 @@
 .PARAMETER DownloadUrl
     Direct download URL for the installer.
 
+.PARAMETER Sha256
+    Trusted SHA256 digest for the exact installer package, as 64 hexadecimal
+    characters. Pass a separately verified digest when changing the package URL.
+
 .PARAMETER ReleaseDate
     Release date string (ISO 8601 preferred, e.g. '2026-02-27').
 
@@ -50,6 +55,9 @@
 
 .OUTPUTS
     None. Writes back to the registry JSON file.
+
+.LINK
+    docs/driver-installation.md
 #>
 function Update-DriverRegistry {
     [CmdletBinding(SupportsShouldProcess)]
@@ -80,7 +88,11 @@ function Update-DriverRegistry {
         [string]$ReleaseDate,
 
         [Parameter()]
-        [string]$RegistryPath
+        [string]$RegistryPath,
+
+        [Parameter()]
+        [ValidatePattern('\A[0-9a-fA-F]{64}\z')]
+        [string]$Sha256
     )
 
     try {
@@ -148,8 +160,16 @@ function Update-DriverRegistry {
         if ($Name)          { $entry.name            = $Name }
         if ($Category)      { $entry.category        = $Category }
         if ($LatestVersion) { $entry.driver.latestVersion  = $LatestVersion }
-        if ($DownloadUrl)   { $entry.driver.downloadUrl    = $DownloadUrl }
         if ($ReleaseDate)   { $entry.driver.releaseDate    = $ReleaseDate }
+
+        $downloadUrlChanged = $DownloadUrl -and $DownloadUrl -cne $entry.driver.downloadUrl
+        if ($downloadUrlChanged) {
+            $entry.driver | Add-Member -NotePropertyName downloadUrl -NotePropertyValue $DownloadUrl -Force
+        }
+        if ($Sha256 -or $downloadUrlChanged) {
+            $packageDigest = if ($Sha256) { $Sha256.ToUpperInvariant() } else { $null }
+            $entry.driver | Add-Member -NotePropertyName sha256 -NotePropertyValue $packageDigest -Force
+        }
 
         # Update VID/PID match rules on existing entries only when explicitly supplied
         # (avoids destroying existing multi-rule entries on a partial update).

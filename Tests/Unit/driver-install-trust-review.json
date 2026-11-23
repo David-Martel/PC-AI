@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "f0ccae1dd7916e0dbf62c767bc288a2fb23d9554",
+  "previousRecord": "Tests/Unit/driver-install-review.json",
+  "hashConvention": "SHA-256 of UTF-8 LF text and exact parsed Pester It command extents.",
+  "sourceBindings": {
+    "Tests/Unit/PC-AI.Drivers.Tests.ps1": "6993d2cb27cbf18c959a6148bba5b57c14d7a283b3360fe6034d6b8703217b97",
+    "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1": "10a8e3ce5f63cd170b42ab0c3dd10df0b0f404d8bf3a78041400a915cd551530",
+    "Modules/PC-AI.Drivers/Private/Assert-DriverInstallTrust.ps1": "11c1e0114b8a35142099cf83813f8606955f2ace3818b399e48ce0d8bbc5eff9",
+    "Modules/PC-AI.Drivers/Private/Invoke-TrustedDownload.ps1": "a32aa249048e5ec0501bbc10c57790d9901da652ac2bfe56ea02e3d9b9cca736",
+    "docs/driver-installation.md": "c84045882ea5b02c3f79aa52cc62d253fec1d56b604bae7d7340a0cd40229091"
+  },
+  "selectors": [
+    {
+      "selector": "performs no write or download in WhatIf with DownloadOnly=<DownloadOnly> Existing=<Existing>",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "4a8777a867d6f9a7f062c076c59be8dd62edd62fe8cb01f30b8b078ec3cd8135",
+      "protects": "both download and install WhatIf modes suppress all mutation, with absent or existing destinations.",
+      "detects": "premature directory creation, DownloadOnly bypass, network access, cache reads, or installer dispatch.",
+      "needs": "private fixture registry and bytes; all four DownloadOnly/Existing case combinations are inert.",
+      "breadcrumb": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1; Private/Invoke-TrustedDownload.ps1.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "downloads verified bytes normally without executing an installer",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "406f0c7d6365a468c66a124a6032083b79353da9a591c460593e8f2aa7a29fd6",
+      "protects": "normal DownloadOnly still produces a verified private file without launching or extracting it.",
+      "detects": "a fix that blocks useful downloads, alters forwarding, or dispatches an installer.",
+      "needs": "actual public/private maintained functions, private registry, inert web-response bytes \"abc\".",
+      "breadcrumb": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1; Private/Invoke-TrustedDownload.ps1.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "rejects an unelevated install before creating a directory or downloading",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "98ef9bfd7702f7d45cae0f515bf52f37338f195c88e972a5ec8c8cb351617002",
+      "protects": "an unelevated caller cannot trigger any actual installation work.",
+      "detects": "a warning-only elevation check that lets a web request or launch proceed.",
+      "needs": "a fixture registry with a valid digest and mocked elevation/network/process.",
+      "breadcrumb": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "rejects an install with a <Kind> digest before touching the cache",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "7083228bf40983ea812702fb2430fe6d4b95f280ca1a84f593f22665fa173b95",
+      "protects": "missing, non-hex, short, and newline-suffixed digests cannot authorize installation.",
+      "detects": "any digest case that reaches download or installer dispatch.",
+      "needs": "a private registry, inert cases, and mocked elevated identity and side effects.",
+      "breadcrumb": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "skips a <InstallerType> entry without elevation or a digest",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "78d252d7fc052983cd4e7f5526eef7ff020149b1f45ea90eb380c52323497b73",
+      "protects": "Windows Update and inbox entries remain read-only skip routes.",
+      "detects": "querying install prerequisites, downloading, or dispatching for either skip type.",
+      "needs": "fixture registry and mocked elevation/network/process for both installer types.",
+      "breadcrumb": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "fails closed when the actual returned installer path has different bytes",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "6590f5f46c39a0f4de8fd192c998ab8ab7e449e5021e3c5bba154d0351adfb70",
+      "protects": "the selected installer path is checked against the pin before dispatch.",
+      "detects": "launch after the selected file's contents fail the final source check.",
+      "needs": "inert private file, stubbed download return and mocked process launch.",
+      "breadcrumb": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "dispatches signed staged bytes and preserves the separate download cache",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "4d4e9f83c0c54d8334b6c6bf78276ba3b1bd990145b8e9369842bdcee63730ec",
+      "protects": "a valid pinned executable can still reach the installer boundary.",
+      "detects": "a guard that returns success or failure without ever dispatching approved bytes.",
+      "needs": "inert fixture bytes, staged directory and mocked signer and process.",
+      "breadcrumb": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "extracts each signed ZIP install into a fresh protected directory and cleans it",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "8dd5e2da2b441f5c8b8ba10c2a754faef942fea0f5e900e1c673f3068eea0e5e",
+      "protects": "each archive-backed install dispatches entries from its own extraction directory.",
+      "detects": "reuse of the legacy extraction directory or of a prior invocation's package tree.",
+      "needs": "two runs per installer type, a private ZIP of inert text files and mocked process launch.",
+      "breadcrumb": "Modules/PC-AI.Drivers/Public/Install-DriverUpdate.ps1.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "refuses a caller registry outside the installation trust root",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "29aa2f3009b0c195c493b4485518a935b0d6d37146b8891bc9b45167398756fa",
+      "protects": "an execution request reads only the administrator-controlled machine registry.",
+      "detects": "a caller-owned registry substituting URL, digest and signer in one edit.",
+      "needs": "copied inert registry and mocked admin, downloader and launcher.",
+      "breadcrumb": "Install-DriverUpdate trust-root admission.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "cleans its protected stage when <Boundary> fails",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "36ad437cf273c73ce43e8fd536df296c129bb157577fc0f7c6870e8550967e75",
+      "protects": "signature or access rejection leaves no executable behind and never dispatches.",
+      "detects": "continuing to execution after any failed custody check.",
+      "needs": "inert package bytes and mocked contract violation.",
+      "breadcrumb": "Install-DriverUpdate stage and signature admission.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "leaves INF archives available only for manual acquisition",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "e54410f6b6418aa50a3186498af21e3578e149db077bbf7be2b12e2381853afa",
+      "protects": "automatic install fails when its package format cannot be publisher-qualified.",
+      "detects": "invoking pnputil on an arbitrary member of a ZIP.",
+      "needs": "inert registry entry, no signature platform, drivers or network.",
+      "breadcrumb": "Install-DriverUpdate format admission.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "accepts only the protected owner and ancestry for <Case>",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "d4b3ce6dd3c6b1726829a5f318b1449f380da9bba224abbf3e3d2957ba90a416",
+      "protects": "protected leaves cannot be replaced through a writable ancestor.",
+      "detects": "leaf-only checks, trust for a caller-owned leaf, or granting delete-child to non-admins.",
+      "needs": "Windows local fixture and synthetic security descriptors. No operating system ACL changes.",
+      "breadcrumb": "Assert-DriverInstallTrustPath walks the path and inspects every raw allow ACE.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "requires both a valid signature and identical publisher fingerprint for <Case>",
+      "source": "Tests/Unit/PC-AI.Drivers.Tests.ps1",
+      "sha256": "747078030a492731decbe8e63d470bb617a23ebeed940b026b380037e88a826a",
+      "protects": "only a valid signature from the certificate pinned in the machine registry passes.",
+      "detects": "subject-only matching, ignoring the status, or allowing a different valid signer.",
+      "needs": "Windows Authenticode command mocked with an inert three-byte DER stand-in.",
+      "breadcrumb": "Assert-DriverInstallerSignature status and certificate SHA256 checks.",
+      "reviewer": null,
+      "reviewerType": null,
+      "disposition": "unreviewed"
+    }
+  ]
+}

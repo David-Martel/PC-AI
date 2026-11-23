@@ -14,6 +14,7 @@ BeforeAll {
         (Join-Path $script:ProjectRoot 'Build.ps1'), [ref]$null, [ref]$parseErrors
     )
     if ($parseErrors) { throw ($parseErrors | Out-String) }
+    $script:BuildAst = $buildAst
     $operation = $buildAst.Find({
             param($node)
             $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
@@ -61,5 +62,102 @@ Describe 'FunctionGemma build operation routing' -Tag 'Unit', 'Portable' {
         $result = Invoke-FunctionGemmaOperation -Operation $Operation -OperationArgs $arguments
         $result.Success | Should -BeTrue
         ($script:CapturedCargoArgs -join '|') | Should -BeExactly (($Expected + $arguments) -join '|')
+    }
+}
+
+Describe 'FunctionGemma build entry-point forwarding' -Tag 'Unit', 'Portable', 'FunctionGemmaForwarding' {
+    BeforeAll {
+        foreach ($name in 'Invoke-FunctionGemmaBuild', 'Invoke-PostBuildTests') {
+            $definition = $script:BuildAst.Find({
+                param($node)
+                $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
+            }, $false)
+            if (-not $definition) { throw "Missing build function $name" }
+            . ([scriptblock]::Create($definition.Extent.Text))
+        }
+
+        $statements = $script:BuildAst.EndBlock.Statements
+        $targetSelection = $statements | Where-Object {
+            $_ -is [Management.Automation.Language.AssignmentStatementAst] -and
+                $_.Left.Extent.Text -eq '$buildTargets'
+        }
+        $postTests = $statements | Where-Object {
+            $_ -is [Management.Automation.Language.IfStatementAst] -and
+                $_.Clauses[0].Item1.Extent.Text -eq '$SkipTests'
+        }
+        if (@($targetSelection).Count -ne 1 -or @($postTests).Count -ne 1) {
+            throw 'Expected one component selector and one post-build test gate.'
+        }
+        $start = $targetSelection.Extent.StartOffset
+        $length = $postTests.Extent.EndOffset - $start
+        $script:ForwardingDispatch = [scriptblock]::Create($script:BuildAst.Extent.Text.Substring($start, $length))
+
+        function Write-BuildStep {}
+        function Write-BuildPhase {}
+        function Write-BuildResult {}
+        function New-ForwardingFixtureResult {
+            @{ Success = $true; Duration = [timespan]::Zero; Artifacts = @() }
+        }
+        function Invoke-InferenceBuild { New-ForwardingFixtureResult }
+        function Invoke-MediaBuild { New-ForwardingFixtureResult }
+        function Invoke-TuiBuild { New-ForwardingFixtureResult }
+        function Invoke-DotnetComponentBuild { New-ForwardingFixtureResult }
+        function Invoke-NukeNulBuild { New-ForwardingFixtureResult }
+        function Resolve-CargoOutputDirectory { $script:ForwardingCargoOutput }
+        function Resolve-PowerShellExecutable { 'Invoke-ForwardingMediaFixture' }
+        function Invoke-ForwardingMediaFixture { $global:LASTEXITCODE = 0 }
+        function Invoke-RustBuildCommand {
+            param([string]$Path, [string[]]$CargoArgs)
+            $crate = Split-Path $Path -Leaf
+            if ($crate -in 'rust-functiongemma-runtime', 'rust-functiongemma-train') {
+                $script:ForwardingCalls.Add((@($crate) + $CargoArgs -join '|'))
+            }
+            return $true
+        }
+    }
+
+    # Protects: both component dispatch and requested post-build tests forward the same CUDA setting.
+    # Detects: dropped forwarding at either top-level or helper call, loss of FunctionGemma from all,
+    # or invoking tests despite SkipTests.
+    # Needs: PowerShell and Pester 5. Actual Build.ps1 dispatch calls inert Cargo and media fixtures.
+    # Breadcrumb: Build.ps1 component selection, Invoke-FunctionGemmaBuild and Invoke-PostBuildTests.
+    It 'forwards <Mode> through the <Target> entry point with SkipTests=<SkipRequested>' -ForEach @(
+        @{ Target = 'functiongemma'; Mode = 'CPU';  WithCuda = $false; SkipRequested = $false }
+        @{ Target = 'functiongemma'; Mode = 'CUDA'; WithCuda = $true;  SkipRequested = $false }
+        @{ Target = 'all';           Mode = 'CPU';  WithCuda = $false; SkipRequested = $false }
+        @{ Target = 'all';           Mode = 'CUDA'; WithCuda = $true;  SkipRequested = $false }
+        @{ Target = 'all';           Mode = 'CUDA'; WithCuda = $true;  SkipRequested = $true }
+    ) {
+        $script:ProjectRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $script:BuildLogsDir = Join-Path $script:ProjectRoot 'logs'
+        $script:BuildArtifactsDir = Join-Path $script:ProjectRoot 'artifacts'
+        $script:ForwardingCargoOutput = Join-Path $script:ProjectRoot 'cargo'
+        foreach ($relative in @('Deploy/rust-functiongemma-runtime', 'Deploy/rust-functiongemma-train', 'cargo')) {
+            [void][IO.Directory]::CreateDirectory((Join-Path $script:ProjectRoot $relative))
+        }
+        $script:ForwardingCalls = [Collections.Generic.List[string]]::new()
+        $Component = $Target
+        $EnableCuda = $WithCuda
+        $Configuration = 'Release'
+        $RunTests = $true
+        $SkipTests = $SkipRequested
+        $priorExitCode = $global:LASTEXITCODE
+        try {
+            . $script:ForwardingDispatch
+        } finally {
+            $global:LASTEXITCODE = $priorExitCode
+        }
+
+        $failedCount | Should -Be 0
+        $results['functiongemma'].Success | Should -BeTrue
+        $commands = if ($SkipRequested) { @('build') } else { @('build', 'test') }
+        $expected = foreach ($command in $commands) {
+            $runtimeFeature = if ($WithCuda) { 'cuda' } else { 'model' }
+            $trainerFeatures = if ($WithCuda) { '|--features|cuda,flash-attn' } else { '' }
+            "rust-functiongemma-runtime|$command|--locked|--no-default-features|--release|--features|$runtimeFeature"
+            "rust-functiongemma-train|$command|--locked|--no-default-features|--release$trainerFeatures"
+        }
+        ($script:ForwardingCalls -join [Environment]::NewLine) |
+            Should -BeExactly ($expected -join [Environment]::NewLine)
     }
 }

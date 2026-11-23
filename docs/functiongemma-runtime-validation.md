@@ -76,6 +76,9 @@ and other CPU-only core tests. The runtime still uses its default heuristic
 configuration. In a core build without CUDA, [runtime memory queries](../Deploy/rust-functiongemma-core/src/gpu.rs)
 report metrics and pool controls as unavailable. The [model](../Deploy/rust-functiongemma-core/src/model.rs)
 accepts full-precision weights and rejects an explicit 4-bit QLoRA request.
+The [tool-output parser](../Deploy/rust-functiongemma-core/src/prompt.rs)
+requires a complete call envelope and complete escaped argument values. The
+core tests cover formatted calls, Unicode values, and partial model output.
 The trainer, model-backed HTTP integration, CUDA kernels,
 production throughput and GPU memory limits require separate validation. Existing test rationale
 and hash-bound review coverage remain subject to the repository's shared

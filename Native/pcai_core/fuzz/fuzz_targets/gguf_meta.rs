@@ -15,11 +15,19 @@ use libfuzzer_sys::fuzz_target;
 #[expect(dead_code, reason = "the fuzz target exercises only the two reader entry points and the estimators; the rest of the module is shipped code compiled along with it")]
 mod gguf;
 
-use gguf::{estimate_layout_memory_mb, estimate_model_memory_mb, read_gguf_layout_from, read_gguf_meta_from};
+use gguf::{
+    estimate_layout_memory_mb, estimate_model_memory_mb, read_gguf_header_from, read_gguf_layout_from, read_gguf_meta_from,
+};
 
 fuzz_target!(|data: &[u8]| {
     if let Ok(meta) = read_gguf_meta_from(data) {
         let _ = estimate_model_memory_mb(&meta, meta.context_length);
+        // The readiness scan must never fail where the metadata reader succeeds: the tensor
+        // section is best effort there, and main never read it.
+        assert!(
+            read_gguf_header_from(data).is_ok(),
+            "header scan failed where the metadata reader succeeded"
+        );
     }
     if let Ok(layout) = read_gguf_layout_from(data) {
         let _ = estimate_layout_memory_mb(&layout, layout.meta.context_length);

@@ -3,14 +3,19 @@
 //! Reads only the header of a GGUF file to extract the fields needed for VRAM
 //! estimation. Never reads tensor data.
 //!
-//! Two entry points share one bounded reader:
+//! Three entry points share one bounded reader:
 //!
 //! - [`read_gguf_meta_from`] stops after the key-value metadata and estimates
 //!   the weight size from the architecture dimensions and `general.file_type`.
-//! - [`read_gguf_layout_from`] also reads the tensor-info section and sums the
-//!   exact byte size of every tensor from its ggml type and shape, the way
+//! - [`read_gguf_header_from`] reads the same metadata, then looks through the
+//!   tensor-info section only to say whether the model uses NVFP4. It never
+//!   fails because of the tensor section, so for every other model it behaves
+//!   exactly as [`read_gguf_meta_from`]. This is what the readiness check uses.
+//! - [`read_gguf_layout_from`] reads the tensor-info section in full and sums
+//!   the exact byte size of every tensor from its ggml type and shape, the way
 //!   upstream llama.cpp does (`ggml/src/gguf.cpp`). A tensor whose type this
-//!   module does not know is an error, never a size of zero.
+//!   module does not know is an error, never a size of zero. The readiness
+//!   check does not use it yet.
 
 use std::io::{self, Read};
 use std::path::Path;
@@ -565,6 +570,15 @@ pub enum GgufTensorError {
     },
 }
 
+/// The metadata of a GGUF file and whether the model uses NVFP4.
+#[derive(Debug, Clone, Serialize)]
+pub struct GgufHeader {
+    /// The key-value metadata, exactly as [`read_gguf_meta_from`] returns it.
+    pub meta: GgufModelMeta,
+    /// `general.file_type` is NVFP4, or at least one tensor has the NVFP4 type.
+    pub uses_nvfp4: bool,
+}
+
 /// Header of a GGUF file with the exact weight size read from its tensor infos.
 #[derive(Debug, Clone, Serialize)]
 pub struct GgufLayout {
@@ -605,7 +619,11 @@ pub fn estimate_model_memory_mb(meta: &GgufModelMeta, context_length: u64) -> u6
 ///
 /// Same components as [`estimate_model_memory_mb`], except the weights are the
 /// sum of the tensor sizes read from the header rather than a figure derived
-/// from the architecture dimensions and `general.file_type`. A header that
+/// from the architecture dimensions and `general.file_type`.
+///
+/// Available but **not** used by the readiness check: it has not been
+/// calibrated against measured VRAM, and the KV cache and activation overhead it
+/// adds are fixed guesses that differ per inference backend. A header that
 /// declares no tensors has nothing to sum, so this falls back to that
 /// dimension-based estimate.
 ///
@@ -752,6 +770,63 @@ pub fn read_gguf_meta(path: &Path) -> Result<GgufModelMeta> {
 /// ```
 pub fn read_gguf_meta_from<R: Read>(reader: R) -> Result<GgufModelMeta> {
     with_budget(reader, |reader| parse_header(reader).map(|(meta, _tensor_count)| meta))
+}
+
+/// Read GGUF header metadata and whether the model uses NVFP4, from a file path.
+///
+/// A thin wrapper over [`read_gguf_header_from`].
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, or for any reason
+/// [`read_gguf_meta`] fails. Never because of the tensor-info section.
+///
+/// # Panics
+///
+/// Never; see [`read_gguf_meta`].
+pub fn read_gguf_header(path: &Path) -> Result<GgufHeader> {
+    let file = std::fs::File::open(path).with_context(|| format!("Cannot open GGUF file: {}", path.display()))?;
+    read_gguf_header_from(io::BufReader::new(file))
+}
+
+/// Read GGUF header metadata and whether the model uses NVFP4.
+///
+/// The metadata is parsed as [`read_gguf_meta_from`] parses it, and any failure
+/// there is the same error. The tensor-info section is then scanned for the
+/// NVFP4 tensor type only: it is read best effort, with no size computed and no
+/// type validated, and a tensor section that is truncated, over a limit or
+/// otherwise unreadable counts as "no NVFP4 tensor found" rather than an error.
+/// A model is therefore treated as it always was unless `general.file_type` is
+/// NVFP4 or a readable tensor-info record carries the NVFP4 type id.
+///
+/// # Errors
+///
+/// Exactly those of [`read_gguf_meta_from`].
+///
+/// # Panics
+///
+/// Never; see [`read_gguf_meta`].
+///
+/// # Examples
+///
+/// ```
+/// use pcai_core_lib::preflight::gguf::read_gguf_header_from;
+///
+/// let mut bytes = b"GGUF".to_vec();
+/// bytes.extend_from_slice(&3_u32.to_le_bytes()); // version
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // tensor count
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // metadata entries
+/// let header = read_gguf_header_from(bytes.as_slice())?;
+/// assert!(!header.uses_nvfp4);
+/// # Ok::<(), anyhow::Error>(())
+/// ```
+pub fn read_gguf_header_from<R: Read>(reader: R) -> Result<GgufHeader> {
+    with_budget(reader, |reader| {
+        let (meta, tensor_count) = parse_header(&mut *reader)?;
+        let uses_nvfp4 = matches!(meta.file_type, GgufFileType::Nvfp4)
+            || scan_for_nvfp4(&mut *reader, tensor_count.min(MAX_TENSOR_COUNT)).unwrap_or(false);
+        Ok(GgufHeader { meta, uses_nvfp4 })
+    })
 }
 
 /// Read GGUF header metadata and the exact tensor sizes from a file path.
@@ -987,37 +1062,67 @@ fn parse_header(mut reader: impl Read) -> Result<(GgufModelMeta, u64)> {
     Ok((meta, tensor_count))
 }
 
+/// One tensor-info record, with the name skipped and the data offset ignored.
+struct TensorRecord {
+    /// Extents, innermost first; only the first `n_dims` are meaningful.
+    dims: [u64; MAX_TENSOR_DIMS],
+    n_dims: usize,
+    /// The raw ggml type id, not validated.
+    type_id: u32,
+}
+
+/// Read one tensor-info record.
+///
+/// Nothing is allocated from a name length: the name is skipped, and at most
+/// [`MAX_TENSOR_DIMS`] extents are held. A dimension count above the maximum is
+/// rejected before any extent is read, so a hostile count reads nothing more.
+fn read_tensor_record(r: &mut impl Read, index: u64) -> Result<TensorRecord> {
+    skip_gguf_string(r)?;
+    let n_dims = read_u32_le(r)?;
+    let n_dims = usize::try_from(n_dims)
+        .ok()
+        .filter(|&n| n <= MAX_TENSOR_DIMS)
+        .ok_or_else(|| GgufTensorError::InvalidShape {
+            index,
+            source: GgufTensorSizeError::TooManyDims {
+                n_dims: u64::from(n_dims),
+            },
+        })?;
+    let mut dims = [0_u64; MAX_TENSOR_DIMS];
+    for dim in dims.iter_mut().take(n_dims) {
+        *dim = read_u64_le(r)?;
+    }
+    let type_id = read_u32_le(r)?;
+    let _data_offset = read_u64_le(r)?;
+    Ok(TensorRecord { dims, n_dims, type_id })
+}
+
+/// Look through up to `tensor_count` tensor-info records for one of the NVFP4 type.
+///
+/// Stops at the first NVFP4 record. Validates nothing about the records it
+/// passes: an unknown type id or an odd shape is not an error here.
+fn scan_for_nvfp4(r: &mut impl Read, tensor_count: u64) -> Result<bool> {
+    for index in 0..tensor_count {
+        if GgmlType::from_id(read_tensor_record(r, index)?.type_id) == Some(GgmlType::Nvfp4) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 /// Read `tensor_count` tensor-info records and return the sum of their sizes
 /// and the number of NVFP4 tensors among them.
-///
-/// Nothing is allocated from the declared count or from a name length: names
-/// are skipped, and at most [`MAX_TENSOR_DIMS`] extents are held at a time.
 fn read_tensor_bytes(r: &mut impl Read, tensor_count: u64) -> Result<(u64, u64)> {
     let mut total = 0_u64;
     let mut nvfp4 = 0_u64;
     for index in 0..tensor_count {
-        skip_gguf_string(r)?;
-        let n_dims = read_u32_le(r)?;
-        // Checked before reading any extent, so a hostile count reads nothing more.
-        let n_dims = usize::try_from(n_dims)
-            .ok()
-            .filter(|&n| n <= MAX_TENSOR_DIMS)
-            .ok_or_else(|| GgufTensorError::InvalidShape {
-                index,
-                source: GgufTensorSizeError::TooManyDims {
-                    n_dims: u64::from(n_dims),
-                },
-            })?;
-        let mut dims = [0_u64; MAX_TENSOR_DIMS];
-        for dim in dims.iter_mut().take(n_dims) {
-            *dim = read_u64_le(r)?;
-        }
-        let type_id = read_u32_le(r)?;
-        let _data_offset = read_u64_le(r)?;
-
-        let ggml_type = GgmlType::from_id(type_id).ok_or(GgufTensorError::UnknownType { index, id: type_id })?;
+        let record = read_tensor_record(r, index)?;
+        let ggml_type = GgmlType::from_id(record.type_id).ok_or(GgufTensorError::UnknownType {
+            index,
+            id: record.type_id,
+        })?;
         let size = ggml_type
-            .tensor_byte_size(&dims[..n_dims])
+            .tensor_byte_size(&record.dims[..record.n_dims])
             .map_err(|source| GgufTensorError::InvalidShape { index, source })?;
         total = total
             .checked_add(size)

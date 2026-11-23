@@ -22,8 +22,9 @@
 use std::io::{self, Cursor};
 
 use pcai_core_lib::preflight::gguf::{
-    estimate_layout_memory_mb, estimate_model_memory_mb, read_gguf_layout, read_gguf_layout_from, read_gguf_meta_from,
-    GgmlType, GgufFileType, GgufLayout, GgufLimitError, GgufTensorError, GgufTensorSizeError, MAX_TENSOR_COUNT,
+    estimate_layout_memory_mb, estimate_model_memory_mb, read_gguf_header_from, read_gguf_layout,
+    read_gguf_layout_from, read_gguf_meta_from, GgmlType, GgufFileType, GgufLayout, GgufLimitError, GgufTensorError,
+    GgufTensorSizeError, MAX_TENSOR_COUNT,
 };
 use proptest::prelude::*;
 
@@ -205,6 +206,73 @@ fn the_metadata_only_reader_ignores_the_tensor_section() {
 fn the_fuzz_seed_is_the_fixture() {
     let seed: &[u8] = include_bytes!("../../fuzz/seeds/gguf_meta/nvfp4_tensors");
     assert_eq!(seed, nvfp4_fixture().as_slice());
+}
+
+// -- The NVFP4 scan used by readiness ---------------------------------------------
+
+/// `read_gguf_header_from` reports NVFP4 by file type or by any tensor, and not otherwise.
+///
+/// Detects: a scan that checks only one of the two signals, or that reports NVFP4 for other types.
+#[test]
+fn the_header_scan_reports_nvfp4_by_file_type_or_by_tensor() {
+    let uses = |bytes: &[u8]| read_gguf_header_from(Cursor::new(bytes)).expect("parses").uses_nvfp4;
+
+    assert!(uses(&nvfp4_fixture()), "file type and tensor");
+    assert!(uses(&header_with(0, FILE_TYPE_NVFP4)), "file type alone, no tensors");
+
+    let mut tensor_only = header_with(1, 7); // general.file_type 7, not NVFP4
+    tensor_info(&mut tensor_only, "w", &[64], TENSOR_NVFP4);
+    assert!(uses(&tensor_only), "an NVFP4 tensor alone");
+
+    let mut other = header_with(1, 7);
+    tensor_info(&mut other, "w", &[64], TENSOR_F32);
+    assert!(!uses(&other), "an F32 model is not NVFP4");
+    assert!(
+        !uses(&header_with(0, 15)),
+        "a Q4_K_M header without tensors is not NVFP4"
+    );
+}
+
+/// For a model that is not NVFP4 the scan never fails on the tensor section, because main never
+/// read it: an unknown tensor type, an invalid shape, five dimensions or a truncated section
+/// all leave the same metadata the metadata-only reader returns.
+///
+/// Detects: the scan becoming strict, which would turn estimates that main made into errors.
+#[test]
+fn the_header_scan_never_fails_on_the_tensor_section() {
+    let mut unknown = header_with(1, 7);
+    tensor_info(&mut unknown, "w", &[64], 9_999);
+    let mut bad_shape = header_with(1, 7);
+    tensor_info(&mut bad_shape, "w", &[96], TENSOR_NVFP4); // NVFP4 row of 96: invalid, but found
+    let mut five_dims = header_with(1, 7);
+    tensor_info(&mut five_dims, "w", &[1, 1, 1, 1, 1], TENSOR_F32);
+    let mut truncated = nvfp4_fixture();
+    truncated.truncate(truncated.len() - 3);
+    let mut absurd_count = header_with(u64::MAX, 7);
+    tensor_info(&mut absurd_count, "w", &[64], TENSOR_F32);
+
+    for (name, bytes) in [
+        ("unknown type", unknown),
+        ("invalid shape", bad_shape),
+        ("five dimensions", five_dims),
+        ("truncated", truncated),
+        ("absurd tensor count", absurd_count),
+    ] {
+        let header = read_gguf_header_from(Cursor::new(bytes.as_slice())).unwrap_or_else(|e| panic!("{name}: {e:#}"));
+        let meta = read_gguf_meta_from(Cursor::new(bytes.as_slice())).expect("metadata-only reader");
+        assert_eq!(header.meta.embedding_length, meta.embedding_length, "{name}");
+        assert_eq!(header.meta.parameter_count, meta.parameter_count, "{name}");
+        assert_eq!(header.meta.context_length, meta.context_length, "{name}");
+    }
+}
+
+/// A failure in the metadata is the metadata reader's failure, unchanged.
+#[test]
+fn the_header_scan_fails_exactly_where_the_metadata_reader_fails() {
+    for bytes in [b"NOPE".to_vec(), b"GGUF".to_vec(), header_with(0, 15)[..20].to_vec()] {
+        assert!(read_gguf_meta_from(Cursor::new(bytes.as_slice())).is_err());
+        assert!(read_gguf_header_from(Cursor::new(bytes.as_slice())).is_err());
+    }
 }
 
 // -- Unknown and invalid tensors --------------------------------------------------

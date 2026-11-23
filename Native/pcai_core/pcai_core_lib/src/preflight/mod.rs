@@ -85,16 +85,19 @@ pub enum PreflightError {
 
 /// Run a full preflight check for loading a GGUF model.
 ///
-/// 1. Parses the GGUF header and tensor infos to estimate memory requirements
-///    from the exact tensor sizes (never reading tensor data).
+/// 1. Parses the GGUF header to estimate memory requirements (never reading
+///    tensor data).
 /// 2. Queries NVML for live VRAM state on all GPUs.
 /// 3. Returns a verdict with the best GPU choice (or why it will not fit).
 ///
 /// # What a [`Verdict::Go`] proves, and what it does not
 ///
-/// A `go` proves one thing: the sum of the tensor sizes the header declares,
-/// plus a KV cache at fp16 for `context_length` and 10% overhead, fits in the
-/// free VRAM of one GPU with at least 20% to spare, at the moment of the check.
+/// A `go` proves one thing: an estimate of the weights (from the architecture
+/// dimensions and `general.file_type`), plus a KV cache at fp16 for
+/// `context_length` and 10% overhead, fits in the free VRAM of one GPU with at
+/// least 20% to spare, at the moment of the check. The estimate is a heuristic,
+/// not a measurement: the KV cache and activation overhead differ per inference
+/// backend.
 ///
 /// It does **not** prove that the file loads. The check reads the header only:
 /// it does not validate the declared tensor offsets, their alignment or the
@@ -111,9 +114,8 @@ pub enum PreflightError {
 /// # Errors
 ///
 /// Returns an error if the GGUF file cannot be read or NVML queries fail
-/// after successful initialisation. A model with a tensor of an unknown ggml
-/// type or an invalid shape is an error too ([`gguf::GgufTensorError`]), not a
-/// zero-size estimate, and an NVFP4 model is [`PreflightError::Nvfp4NotAssessed`].
+/// after successful initialisation, and for an NVFP4 model, which is
+/// [`PreflightError::Nvfp4NotAssessed`].
 pub fn check_readiness(model_path: &str, context_length: u64) -> Result<PreflightResult> {
     readiness(Path::new(model_path), context_length, vram_audit::vram_snapshot_all)
 }
@@ -170,11 +172,12 @@ fn readiness(
 
 /// Estimate the megabytes of VRAM that loading `path` at `context_length` needs.
 ///
-/// Reads the GGUF header and tensor infos (never tensor data) and sums the exact
-/// tensor sizes, so a quantization the reader knows (NVFP4 included) is sized by
-/// its real block layout. A model with a tensor of a ggml type the reader does
-/// not know is an error, not a size of zero: [`check_readiness`] then reports a
-/// `fail` verdict through its caller and never a `go`.
+/// For every model except NVFP4 this is exactly the estimate this check has
+/// always made: the weights come from the architecture dimensions and
+/// `general.file_type` ([`gguf::estimate_model_memory_mb`]), not from the
+/// tensor sizes. The exact tensor-size estimator
+/// ([`gguf::estimate_layout_memory_mb`]) exists but is deliberately not used
+/// here until it is calibrated against measured VRAM.
 ///
 /// An NVFP4 model, by file type or by any tensor, is not sized at all
 /// ([`PreflightError::Nvfp4NotAssessed`]) until offset, alignment and
@@ -182,16 +185,16 @@ fn readiness(
 ///
 /// `context_length` of `0` means the model's own default.
 fn estimate_model_mb(path: &Path, context_length: u64) -> Result<u64> {
-    let layout = gguf::read_gguf_layout(path)?;
-    if layout.nvfp4_tensors > 0 || matches!(layout.meta.file_type, gguf::GgufFileType::Nvfp4) {
+    let header = gguf::read_gguf_header(path)?;
+    if header.uses_nvfp4 {
         return Err(PreflightError::Nvfp4NotAssessed.into());
     }
     let ctx = if context_length > 0 {
         context_length
     } else {
-        layout.meta.context_length
+        header.meta.context_length
     };
-    Ok(gguf::estimate_layout_memory_mb(&layout, ctx))
+    Ok(gguf::estimate_model_memory_mb(&header.meta, ctx))
 }
 
 /// Compute a readiness verdict from GPU snapshots and required VRAM.
@@ -313,30 +316,58 @@ mod tests {
         f
     }
 
-    /// Why: the readiness estimate must come from the tensor sizes. One Q8_0 tensor of
-    /// `[4096, 40960]` is 128 blocks of 34 bytes per row, 40960 rows: 170 MiB. The default
-    /// context of 2048 on the default 32 x 4096 dimensions adds a 1024 MiB KV cache, so
-    /// `(170 + 1024) * 1.1` is 1313 MB with integer division. Detects the estimate falling
-    /// back to the dimension-based guess.
+    /// Weights, KV cache and overhead that main's heuristic gives for the default
+    /// 32-layer, 4096-wide dimensions that these fixtures leave unset, at the default
+    /// 2048-token context, worked out by hand.
+    ///
+    /// Parameters: `4 * 4096^2 * 32 + 32000 * 4096 = 2_278_555_648`.
+    /// - Q4_K_M (4.5 bits): 1_281_687_552 B = 1222 MiB, plus 1024 MiB KV = 2246, plus 10% (224) = 2470.
+    /// - Q8_0 (8.5 bits): 2_420_965_376 B = 2308 MiB, plus 1024 = 3332, plus 10% (333) = 3665.
+    const MAIN_ESTIMATES: [(u32, u64); 2] = [(15, 2470), (9, 3665)];
+
+    /// Why: non-NVFP4 models must get exactly the estimate and verdict that main gave them, so
+    /// this change cannot move any existing result. The tensor here is deliberately tiny and
+    /// would size to a very different figure (an exact sum of this one Q8_0 tensor is 1313 MB at
+    /// this context), so an estimate that followed the tensors fails the assertion.
+    /// Detects: the readiness estimate being switched to the tensor sum.
     #[test]
-    fn estimate_uses_the_exact_tensor_size() {
-        let f = write_temp(&one_tensor_gguf(7, 8, &[4096, 40_960]));
-        assert_eq!(estimate_model_mb(f.path(), 0).expect("estimate"), 1313);
+    fn non_nvfp4_estimate_is_exactly_mains_heuristic() {
+        for (file_type, expected) in MAIN_ESTIMATES {
+            let f = write_temp(&one_tensor_gguf(file_type, 8, &[4096, 40_960]));
+            assert_eq!(
+                estimate_model_mb(f.path(), 0).expect("estimate"),
+                expected,
+                "file_type {file_type}"
+            );
+            // And it is literally what main computes from the metadata.
+            let meta = gguf::read_gguf_meta(f.path()).expect("meta");
+            assert_eq!(
+                estimate_model_mb(f.path(), 0).expect("estimate"),
+                gguf::estimate_model_memory_mb(&meta, meta.context_length)
+            );
+        }
     }
 
-    /// Why: a model whose tensor type this build does not know must not be estimated at all,
-    /// least of all as 0 MB (which would be a `go`). The FFI turns the error into a `fail`.
+    /// Why: an explicit context length still overrides the model's, as on main.
     #[test]
-    fn estimate_fails_for_an_unknown_tensor_type() {
-        let f = write_temp(&one_tensor_gguf(7, 9_999, &[4096, 4096]));
-        let err = estimate_model_mb(f.path(), 0).expect_err("unknown tensor type");
-        assert!(
-            matches!(
-                err.downcast_ref::<gguf::GgufTensorError>(),
-                Some(gguf::GgufTensorError::UnknownType { index: 0, id: 9_999 })
-            ),
-            "got: {err:#}"
-        );
+    fn explicit_context_length_overrides_as_on_main() {
+        // Q4_K_M at 4096: KV is 2048 MiB, so (1222 + 2048) * 1.1 = 3270 + 327 = 3597.
+        let f = write_temp(&one_tensor_gguf(15, 8, &[64]));
+        assert_eq!(estimate_model_mb(f.path(), 4096).expect("estimate"), 3597);
+    }
+
+    /// Why: main never read the tensor-info section, so a non-NVFP4 model with a tensor type this
+    /// build does not know, or with a truncated tensor section, must still be estimated, not
+    /// rejected. (The exact reader is where unknown types are errors.)
+    #[test]
+    fn non_nvfp4_models_with_odd_tensor_sections_are_estimated_as_on_main() {
+        let unknown_type = write_temp(&one_tensor_gguf(15, 9_999, &[4096, 4096]));
+        assert_eq!(estimate_model_mb(unknown_type.path(), 0).expect("estimate"), 2470);
+
+        let mut truncated = one_tensor_gguf(15, 8, &[64]);
+        truncated.truncate(truncated.len() - 10);
+        let f = write_temp(&truncated);
+        assert_eq!(estimate_model_mb(f.path(), 0).expect("estimate"), 2470);
     }
 
     fn not_assessed(err: &anyhow::Error) -> bool {
@@ -354,6 +385,24 @@ mod tests {
             let err = estimate_model_mb(f.path(), 0).expect_err("NVFP4 is not assessed");
             assert!(not_assessed(&err), "file_type {file_type}, tensor {type_id}: {err:#}");
         }
+    }
+
+    /// Why: an NVFP4 tensor must trip the gate even when another tensor has a type this build does
+    /// not know, because the gate scans for NVFP4 without validating the rest.
+    #[test]
+    fn an_nvfp4_tensor_next_to_an_unknown_tensor_is_still_not_assessed() {
+        let mut b = one_tensor_gguf(7, 9_999, &[64]);
+        // Declare a second tensor and append an NVFP4 record: the count sits at byte 8.
+        b[8..16].copy_from_slice(&2_u64.to_le_bytes());
+        b.extend_from_slice(&1_u64.to_le_bytes());
+        b.push(b'n');
+        b.extend_from_slice(&1_u32.to_le_bytes());
+        b.extend_from_slice(&64_u64.to_le_bytes());
+        b.extend_from_slice(&40_u32.to_le_bytes());
+        b.extend_from_slice(&0_u64.to_le_bytes());
+        let f = write_temp(&b);
+        let err = estimate_model_mb(f.path(), 0).expect_err("NVFP4 present");
+        assert!(not_assessed(&err), "got: {err:#}");
     }
 
     /// A GPU with a terabyte free, far more than any model needs.

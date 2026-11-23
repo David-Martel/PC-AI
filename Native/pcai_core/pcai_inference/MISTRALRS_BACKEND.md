@@ -154,14 +154,20 @@ A partial split (a number of GPU layers) is not offered: the mixed placement is 
 ### Readiness
 
 `pcai-mistralrs` runs one short deterministic generation (a few tokens, temperature 0) after the model loads,
-before it binds the socket. mistral.rs 0.8.1 has no warm-up result to read, and loading the weights proves
-nothing about the first forward pass: a model whose layers are split between the CPU and a GPU loads, then
-fails every request with `device mismatch in rms-norm`. If the probe fails the server logs the full error,
-unloads the model and still starts, so a supervisor can see why:
+before it binds the socket. mistral.rs 0.8.1 does run a one-token dummy run at load, but it logs
+"Dummy run completed" even when the run returned an error and exposes no result, and loading the weights
+proves nothing about the first forward pass: a model whose layers are split between the CPU and a GPU loads,
+then fails every request with `device mismatch in rms-norm`. If the probe fails the server logs the full
+error (target `pcai_inference_lib`, enabled by the default log filter), unloads the model and still starts,
+so a supervisor can see that it is not usable:
 
-- `GET /health` answers `503` with `{"status":"not_ready","reason":"<first line of the error>"}`. The route is
-  unauthenticated, so the reason is one line; the backtrace stays in the log.
-- Every inference route answers `503` (after the bearer-token check, which still runs first).
+- `GET /health` answers `503` with `{"status":"not_ready","reason":"generation_probe_failed","message":"..."}`.
+  `generation_probe_timeout` is the code when the probe does not finish in 300 s. The route is
+  unauthenticated, so the reason is a stable code with a fixed message and never text from the error, which
+  can hold file paths; read the log for the cause.
+- `GET /v1/models` and every inference route answer `503` with the same code (after the bearer-token check,
+  which still runs first). Chat requests that the FunctionGemma router answers do not use the local model,
+  so only their fallback to local inference is gated.
 
 `GET /health` answers `200` with `"status":"ready"` only after the probe passes. It answered `200` with
 `not_ready` before, which clients that only check the HTTP status (the PowerShell callers) read as healthy.

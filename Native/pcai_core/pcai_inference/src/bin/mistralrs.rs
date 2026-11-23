@@ -9,6 +9,11 @@ use pcai_inference_lib::{
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+/// Log filter used when `RUST_LOG` is unset. It must name the library target
+/// (`pcai_inference_lib`): the device policy, the startup probe and its failure are logged
+/// there, and a filter that only names `pcai_mistralrs` would hide them.
+const DEFAULT_LOG_FILTER: &str = "pcai_mistralrs=info,pcai_inference_lib=info,tower_http=debug";
+
 fn extract_config_path(args: &[String]) -> Option<String> {
     let mut i = 0usize;
     while i < args.len() {
@@ -47,10 +52,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize tracing
     tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "pcai_mistralrs=info,tower_http=debug".into()),
-        )
+        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| DEFAULT_LOG_FILTER.into()))
         .with(tracing_subscriber::fmt::layer())
         .init();
 
@@ -102,4 +104,24 @@ async fn main() -> anyhow::Result<()> {
     run_server_probed(server_config, router_config, backend).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DEFAULT_LOG_FILTER;
+    use std::str::FromStr;
+    use tracing::Level;
+    use tracing_subscriber::filter::Targets;
+
+    // Protects the diagnosis path of a failed startup probe: with RUST_LOG unset the library's
+    // ERROR events (the full probe error) must reach the log. Detects a default filter that names
+    // only the binary's own target, which hid them. Needs no model.
+    #[test]
+    fn default_log_filter_shows_library_errors_and_infos() {
+        let filter = Targets::from_str(DEFAULT_LOG_FILTER).expect("test: the default filter must parse");
+        assert!(filter.would_enable("pcai_inference_lib::backends", &Level::ERROR));
+        assert!(filter.would_enable("pcai_inference_lib::http", &Level::INFO));
+        assert!(filter.would_enable("pcai_mistralrs", &Level::INFO));
+        assert!(!filter.would_enable("pcai_inference_lib::http", &Level::TRACE));
+    }
 }

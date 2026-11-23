@@ -109,6 +109,34 @@ const PROBE_MAX_TOKENS: usize = 4;
 /// a wedged device cannot keep a server from ever reporting its state.
 const PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
 
+/// Why a generation probe failed.
+///
+/// `Display` carries the full detail and is meant for logs only: it can hold file paths and other
+/// diagnostics from the backend. Anything shown to an unauthenticated caller must use the variant,
+/// never the text.
+#[derive(Debug)]
+pub enum ProbeFailure {
+    /// The backend returned an error for the probe request.
+    Failed(Error),
+    /// The probe did not finish within its time limit.
+    TimedOut(std::time::Duration),
+}
+
+impl std::fmt::Display for ProbeFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Failed(error) => write!(f, "the generation probe failed: {error}"),
+            Self::TimedOut(limit) => write!(
+                f,
+                "the generation probe did not finish within {:.0} s",
+                limit.as_secs_f64()
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ProbeFailure {}
+
 /// Run one short, deterministic generation to prove the loaded model can answer a request.
 ///
 /// A backend that reports [`InferenceBackend::is_loaded`] has only shown that the weights are in
@@ -119,12 +147,16 @@ const PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
 ///
 /// # Errors
 ///
-/// The backend's own error, or [`Error::Backend`] when the probe exceeds its time limit.
-pub async fn probe_generation(backend: &dyn InferenceBackend) -> Result<()> {
+/// [`ProbeFailure::Failed`] with the backend's own error, or [`ProbeFailure::TimedOut`] when the
+/// probe exceeds its time limit.
+pub async fn probe_generation(backend: &dyn InferenceBackend) -> std::result::Result<(), ProbeFailure> {
     probe_within(backend, PROBE_TIMEOUT).await
 }
 
-async fn probe_within(backend: &dyn InferenceBackend, limit: std::time::Duration) -> Result<()> {
+async fn probe_within(
+    backend: &dyn InferenceBackend,
+    limit: std::time::Duration,
+) -> std::result::Result<(), ProbeFailure> {
     let request = GenerateRequest {
         prompt: PROBE_PROMPT.to_string(),
         max_tokens: Some(PROBE_MAX_TOKENS),
@@ -133,34 +165,30 @@ async fn probe_within(backend: &dyn InferenceBackend, limit: std::time::Duration
         stop: Vec::new(),
     };
     match tokio::time::timeout(limit, backend.generate(request)).await {
-        Ok(result) => result.map(|_| ()),
-        Err(_) => Err(Error::Backend(format!(
-            "the generation probe did not finish within {:.0} s",
-            limit.as_secs_f64()
-        ))),
+        Ok(result) => result.map(|_| ()).map_err(ProbeFailure::Failed),
+        Err(_) => Err(ProbeFailure::TimedOut(limit)),
     }
 }
 
 /// Probe a freshly loaded backend and unload it when the probe fails.
 ///
 /// After an `Err` the backend reports `is_loaded() == false`, so nothing downstream can mistake a
-/// model that cannot generate for a ready one. The real error is logged here and returned with
-/// context, never replaced by a success message.
+/// model that cannot generate for a ready one. The full error is logged here and returned as a
+/// [`ProbeFailure`], never replaced by a success message.
 ///
 /// # Errors
 ///
-/// [`Error::Backend`] carrying the probe failure.
-pub async fn probe_or_unload(backend: &mut dyn InferenceBackend) -> Result<()> {
+/// The [`ProbeFailure`]. Its text is for logs; callers that answer remote clients must publish a
+/// fixed message chosen from the variant instead.
+pub async fn probe_or_unload(backend: &mut dyn InferenceBackend) -> std::result::Result<(), ProbeFailure> {
     match probe_generation(&*backend).await {
         Ok(()) => Ok(()),
-        Err(error) => {
-            tracing::error!(%error, backend = backend.backend_name(), "model loaded but the generation probe failed");
+        Err(failure) => {
+            tracing::error!(error = %failure, backend = backend.backend_name(), "model loaded but the generation probe failed");
             if let Err(unload_error) = backend.unload_model().await {
                 tracing::warn!(%unload_error, "unloading after a failed probe also failed");
             }
-            Err(Error::Backend(format!(
-                "model loaded but the generation probe failed: {error}"
-            )))
+            Err(failure)
         }
     }
 }
@@ -335,8 +363,9 @@ mod tests {
             fail_with: Some("device mismatch in rms-norm, lhs: Cpu, rhs: Cuda"),
             hang: false,
         };
-        let error = probe_or_unload(&mut backend).await.expect_err("the probe must fail");
-        let message = error.to_string();
+        let failure = probe_or_unload(&mut backend).await.expect_err("the probe must fail");
+        assert!(matches!(failure, ProbeFailure::Failed(_)), "{failure:?}");
+        let message = failure.to_string();
         assert!(message.contains("generation probe failed"), "{message}");
         assert!(message.contains("device mismatch in rms-norm"), "{message}");
         assert!(!backend.is_loaded(), "a failed probe must leave the backend not loaded");
@@ -365,6 +394,7 @@ mod tests {
         let error = probe_within(&backend, std::time::Duration::from_millis(50))
             .await
             .expect_err("a hung probe must fail");
+        assert!(matches!(error, ProbeFailure::TimedOut(_)), "{error:?}");
         assert!(error.to_string().contains("did not finish"), "{error}");
     }
 

@@ -16,6 +16,16 @@ Generate a build plan from target OS/architecture, configured features, discover
 
 The November 22 audit observed an Intel iGPU and an RTX PRO 2000 Blackwell Laptop GPU with 8,151 MiB on Gen9. Both enumerate in Vulkan and the NVIDIA driver responds, while `nvcc` was absent. The NUC reports Iris Xe and a Vulkan probe, with no CUDA compiler. An eGPU destination remains a valid declared build target independent of what is attached today. No machine name is needed by the capability rules. [Upstream llama.cpp build options](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md) · [Intel SYCL device support](https://github.com/ggml-org/llama.cpp/blob/master/docs/backend/SYCL.md)
 
+The [Windows CUDA bootstrap](../Tools/Initialize-CudaEnvironment.ps1) accepts
+explicit compiler targets such as `-TargetComputeCaps '89,120'`. It checks each
+complete toolkit's `nvcc --list-gpu-code` for each numeric target. For `120a` or
+`120f`, nvcc must advertise `sm_120` and the same toolkit's `ptxas --help` must
+list the exact suffixed code. Plain numeric targets use only the nvcc list. The
+[native inference build](../Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1)
+validates its requested targets before invoking Cargo. The legacy llama-rs
+backend builds for numeric targets. NVFP4 execution belongs to the modern
+llama.cpp qualification path. [NVIDIA nvcc target listing](https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#list-gpu-code-code-ls)
+
 ## Model admission
 
 The [inference workspace](../Native/pcai_core/Cargo.toml) pins archived rustformers llama-rs. Its [legacy loader](../Native/pcai_core/pcai_inference/src/backends/llamacpp.rs) infers architectures from filenames. The Qwen2.5 GGUF paired with `llama_cpp` in the [server example](../Config/pcai-inference-server.json) therefore needs a compatible backend before promotion. Start with a pinned modern llama.cpp process behind the existing provider interface. Require a port-bound health check, an explicit device, and actual GGUF architecture and projector checks. Reuse the [native GGUF header parser](../Native/pcai_core/pcai_core_lib/src/preflight/gguf.rs) in [model discovery](../Tools/Invoke-ModelDiscovery.ps1) before advertising compatibility. [Archived llama-rs project](https://github.com/rustformers/llm) · [Current llama.cpp releases](https://github.com/ggml-org/llama.cpp/releases)

@@ -14,6 +14,10 @@
 .PARAMETER CudaPath
     Explicit CUDA installation path to prefer over auto-detection.
 
+.PARAMETER TargetComputeCaps
+    Optional comma-, semicolon-, or space-separated targets, such as 89,120.
+    Require generic nvcc codes and exact ptxas support for a/f variants.
+
 .PARAMETER Quiet
     Suppress informational output (still returns a result object).
 #>
@@ -21,6 +25,7 @@
 param(
     [string[]]$PreferredVersions = @('v13.1', 'v13.2', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
     [string]$CudaPath,
+    [string]$TargetComputeCaps,
     [switch]$Quiet,
     [switch]$InstallMachineGlobal,
     [switch]$WorkaroundMsvc1944
@@ -35,6 +40,16 @@ function Add-ToPath {
         return $true
     }
     return $false
+}
+
+function Set-PreferredCudaBinPath {
+    param([string]$BinPath)
+
+    $segments = if ($env:PATH) { $env:PATH -split ';' }
+    $preferred = (@($BinPath) + @($segments | Where-Object { $_ -ine $BinPath })) -join ';'
+    if ($preferred -ceq $env:PATH) { return $false }
+    $env:PATH = $preferred
+    return $true
 }
 
 function Add-ToEnvList {
@@ -95,6 +110,83 @@ function Get-CudaCandidates {
     return $candidates |
         Where-Object { $_ -and $_.Trim().Length -gt 0 } |
         Select-Object -Unique
+}
+
+function Get-NvccGpuCodes {
+    param([string]$CompilerPath)
+
+    try {
+        $output = @(& $CompilerPath --list-gpu-code 2>$null)
+        if ($LASTEXITCODE -eq 0) { $output | ForEach-Object { $_.Trim() } }
+    } catch {
+        Write-Verbose "nvcc target probe failed: $($_.Exception.Message)"
+    }
+}
+
+function Get-PtxasGpuCodes {
+    param([string]$AssemblerPath)
+
+    try {
+        $output = (& $AssemblerPath --help 2>$null) -join [char]10
+        if ($LASTEXITCODE -ne 0) { return }
+        $gpuName = [regex]::Match($output, '(?ms)^[ \t]*--gpu-name[ \t][^\r\n]*\r?\n(?<help>.*?)(?=^[ \t]*--|\z)')
+        # The GPU-name values include a block of LTO targets between compute and SM codes.
+        $allowed = [regex]::Match($gpuName.Groups['help'].Value, '(?m)^[ \t]*Allowed values for this option:\s*(?<codes>''(?:compute|lto|sm)_[0-9]{2,3}[af]?''(?:\s*,\s*''(?:compute|lto|sm)_[0-9]{2,3}[af]?'')*)')
+        [regex]::Matches($allowed.Groups['codes'].Value, '(?<=\x27)sm_[0-9]{2,3}[af](?=\x27)') | ForEach-Object { $_.Value }
+    } catch {
+        Write-Verbose "ptxas target probe failed: $($_.Exception.Message)"
+    }
+}
+function Select-CudaToolkit {
+    param([string[]]$Candidates, [string]$TargetComputeCaps)
+
+    $targetCodes = @($TargetComputeCaps -split '[,;\s]+' | Where-Object { $_ } | ForEach-Object {
+        $target = $_ -replace '^(sm|compute)_?', ''
+        if ($target -match '^\d{1,2}\.\d$') { $target = $target.Replace('.', '') }
+        if ($target -cnotmatch '^\d{2,3}[af]?$') { throw "Invalid CUDA compute target: $_" }
+        "sm_$target"
+    } | Select-Object -Unique)
+    # nvcc lists generic codes; its sibling assembler lists the a/f variants.
+    $suffixTargets = @($targetCodes | Where-Object { $_ -cmatch '[af]$' })
+    $reasons = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($candidate in $Candidates) {
+        $nvcc = Join-Path $candidate 'bin\nvcc.exe'
+        $header = Join-Path $candidate 'include\cuda_runtime.h'
+        if (-not (Test-Path -LiteralPath $nvcc -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $header -PathType Leaf)) {
+            $reasons.Add("Incomplete CUDA toolkit: $candidate")
+            continue
+        }
+        if ($targetCodes.Count) {
+            $supported = @(Get-NvccGpuCodes -CompilerPath $nvcc)
+            if (-not $supported.Count) {
+                $reasons.Add("nvcc could not list GPU targets: $candidate")
+                continue
+            }
+            $missing = @($targetCodes | Where-Object { ($_ -creplace '[af]$', '') -cnotin $supported })
+            if ($missing.Count) {
+                $reasons.Add("Unsupported CUDA targets $($missing -join ', ') in $candidate")
+                continue
+            }
+            if ($suffixTargets.Count) {
+                $ptxas = Join-Path $candidate 'bin\ptxas.exe'
+                if (-not (Test-Path -LiteralPath $ptxas -PathType Leaf)) {
+                    $reasons.Add("ptxas is missing for CUDA targets $($suffixTargets -join ', ') in $candidate")
+                    continue
+                }
+                $assemblerCodes = @(Get-PtxasGpuCodes -AssemblerPath $ptxas)
+                $missing = @($suffixTargets | Where-Object { $_ -cnotin $assemblerCodes })
+                if ($missing.Count) {
+                    $reasons.Add("Unsupported CUDA targets $($missing -join ', ') in $candidate (ptxas did not list them)")
+                    continue
+                }
+            }
+        }
+        return @{ Path = $candidate; Notes = $reasons.ToArray(); TargetCodes = $targetCodes }
+    }
+
+    return @{ Path = $null; Notes = $reasons.ToArray(); TargetCodes = $targetCodes }
 }
 
 function Resolve-MsvcCompilerBin {
@@ -161,36 +253,15 @@ function Initialize-CudaEnvironment {
     param(
         [string[]]$PreferredVersions = @('v13.1', 'v13.2', 'v13.0', 'v12.9', 'v12.8', 'v12.6', 'v12.5'),
         [string]$CudaPath,
+        [string]$TargetComputeCaps,
         [switch]$Quiet,
         [switch]$InstallMachineGlobal,
         [switch]$WorkaroundMsvc1944
     )
 
     $candidates = Get-CudaCandidates -PreferredVersions $PreferredVersions -CudaPath $CudaPath
-    $selected = $null
-    $reasons = @()
-
-    foreach ($candidate in $candidates) {
-        if (-not (Test-Path $candidate)) {
-            $reasons += "Not found: $candidate"
-            continue
-        }
-
-        $nvcc = Join-Path $candidate 'bin\nvcc.exe'
-        $include = Join-Path $candidate 'include\cuda_runtime.h'
-
-        if (-not (Test-Path $nvcc)) {
-            $reasons += "nvcc missing: $candidate"
-            continue
-        }
-        if (-not (Test-Path $include)) {
-            $reasons += "cuda_runtime.h missing: $candidate"
-            continue
-        }
-
-        $selected = $candidate
-        break
-    }
+    $toolkit = Select-CudaToolkit -Candidates $candidates -TargetComputeCaps $TargetComputeCaps
+    $selected = $toolkit.Path
 
     if (-not $selected) {
         return [PSCustomObject]@{
@@ -200,7 +271,8 @@ function Initialize-CudaEnvironment {
             Cicc        = $null
             Include     = $null
             PathUpdated = $false
-            Notes       = $reasons
+            TargetCodes = $toolkit.TargetCodes
+            Notes       = $toolkit.Notes
         }
     }
 
@@ -215,7 +287,6 @@ function Initialize-CudaEnvironment {
     $env:CUDA_DIR = $selected
 
     $pathUpdated = $false
-    $pathUpdated = (Add-ToPath (Join-Path $selected 'bin')) -or $pathUpdated
     $pathUpdated = (Add-ToPath (Join-Path $selected 'nvvm\bin')) -or $pathUpdated
     $pathUpdated = (Add-ToPath (Join-Path $selected 'libnvvp')) -or $pathUpdated
 
@@ -332,6 +403,9 @@ function Initialize-CudaEnvironment {
         }
     }
 
+    # Rust CUDA builders launch bare nvcc. Keep the admitted compiler first in PATH.
+    $pathUpdated = (Set-PreferredCudaBinPath (Join-Path $selected 'bin')) -or $pathUpdated
+
     $result = [PSCustomObject]@{
         Found                = $true
         CudaPath             = $selected
@@ -344,9 +418,10 @@ function Initialize-CudaEnvironment {
         IncludeUpdated       = $includeUpdated
         LibUpdated           = $libUpdated
         CudaArchs            = $env:CUDAARCHS
+        TargetCodes          = $toolkit.TargetCodes
         NvccCcbin            = $env:NVCC_CCBIN
         CompatibilityWarning = $null
-        Notes                = @()
+        Notes                = @($toolkit.Notes)
     }
 
     $majorVersion = 0
@@ -378,5 +453,5 @@ function Initialize-CudaEnvironment {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-    Initialize-CudaEnvironment -PreferredVersions $PreferredVersions -CudaPath $CudaPath -Quiet:$Quiet -InstallMachineGlobal:$InstallMachineGlobal -WorkaroundMsvc1944:$WorkaroundMsvc1944
+    Initialize-CudaEnvironment -PreferredVersions $PreferredVersions -CudaPath $CudaPath -TargetComputeCaps $TargetComputeCaps -Quiet:$Quiet -InstallMachineGlobal:$InstallMachineGlobal -WorkaroundMsvc1944:$WorkaroundMsvc1944
 }

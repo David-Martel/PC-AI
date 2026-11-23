@@ -642,8 +642,23 @@ function Initialize-BuildEnvironment {
         $cudaHelper = Join-Path $ToolsDir 'Initialize-CudaEnvironment.ps1'
         if (Test-Path -LiteralPath $cudaHelper -PathType Leaf) {
             . $cudaHelper
-            $cudaInfo = Initialize-CudaEnvironment -Quiet
+            # The legacy Cargo build reads GGML/PCAI, never the bootstrap's CMake defaults.
+            $ggmlCaps = if ($Backend -ne 'mistralrs') {
+                if ($env:GGML_CUDA_ARCH_LIST) { $env:GGML_CUDA_ARCH_LIST }
+                elseif ($env:PCAI_CUDA_ARCH_LIST) { $env:PCAI_CUDA_ARCH_LIST }
+                else { $env:CUDA_COMPUTE_CAPS }
+            }
+            $mistralCaps = if ($Backend -ne 'llamacpp') {
+                if ($env:CUDA_COMPUTE_CAP) { $env:CUDA_COMPUTE_CAP }
+                elseif ($env:CUDA_COMPUTE_CAPS) { $env:CUDA_COMPUTE_CAPS }
+                else { $env:CUDAARCHS }
+            }
+            if ($ggmlCaps -match '(?:^|[,;\s])(?:(?:sm|compute)_?)?\d{1,2}\.?\d[af](?:$|[,;\s])') {
+                throw 'The legacy llama-rs build accepts numeric CUDA targets only. Use the modern llama.cpp runtime for NVFP4 kernels.'
+            }
+            $cudaInfo = Initialize-CudaEnvironment -Quiet -TargetComputeCaps (@($ggmlCaps, $mistralCaps) -join ',')
             if ($cudaInfo.Found) {
+                if ($ggmlCaps) { $env:GGML_CUDA_ARCH_LIST = $ggmlCaps }
                 Write-Host "  CUDA initialized: $($cudaInfo.CudaPath)" -ForegroundColor Green
                 $env:LLAMA_CUDA = '1'
                 $env:GGML_CUDA = 'ON'
@@ -700,8 +715,10 @@ function Initialize-BuildEnvironment {
                 # Optional CUDA libraries (cuDNN/TensorRT)
                 Initialize-CudnnEnvironment -CudaPath $cudaInfo.CudaPath
                 Initialize-TensorRtEnvironment
+                $null = Set-PreferredCudaBinPath (Join-Path $cudaInfo.CudaPath 'bin')
             } else {
-                throw 'CUDA build requested but no complete CUDA Toolkit was found. Install a toolkit with nvcc.exe and cuda_runtime.h or omit -EnableCuda for CPU.'
+                $detail = $cudaInfo.Notes -join '; '
+                throw "CUDA build requested but no complete CUDA Toolkit was found for the requested targets. Install a compatible toolkit with nvcc.exe and cuda_runtime.h or omit -EnableCuda for CPU. $detail"
             }
         } else {
             throw "CUDA build requested but the toolkit discovery helper is missing: $cudaHelper"

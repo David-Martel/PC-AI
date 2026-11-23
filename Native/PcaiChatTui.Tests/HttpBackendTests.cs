@@ -12,7 +12,8 @@ namespace PcaiChatTui.Tests;
 
 public class HttpBackendTests
 {
-    private const string TestEndpoint = "http://localhost:8080";
+    // The mocked handler inspects the URL without opening a connection.
+    private const string TestEndpoint = "https://inference.example.test";
 
     [Fact]
     public async Task CheckAvailabilityAsync_SuccessResponse_ReturnsTrue()

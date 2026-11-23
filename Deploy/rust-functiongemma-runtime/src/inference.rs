@@ -1,5 +1,7 @@
 #![cfg(feature = "model")]
 
+mod hf_gemma3;
+
 use crate::config::{default_model, router_lora_path_override, router_model_path_override, runtime_config};
 use crate::gpu::{default_dtype, maybe_configure_cuda_mem_pool, maybe_log_cuda_snapshot, resolve_device};
 use crate::routing::build_tool_calls;
@@ -16,7 +18,7 @@ use rust_functiongemma_core::{
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 use tokenizers::Tokenizer;
 
@@ -29,18 +31,24 @@ use crate::metrics::{TOTAL_INFER_MS, TOTAL_REQUESTS, TOTAL_TOKENS};
 /// All per-process model state loaded once at first inference and reused for
 /// every subsequent request.
 struct ModelCache {
-    model: Model,
+    model: LoadedModel,
     tokenizer: Tokenizer,
+}
+
+enum LoadedModel {
+    Legacy(Box<LegacyModel>),
+    HfGemma3(Box<Mutex<hf_gemma3::Backend>>),
+}
+
+struct LegacyModel {
+    model: Model,
     config: Config,
 }
 
-// SAFETY: `Model` is composed entirely of `candle_core::Tensor` (which uses
-// `Arc` storage and is `Send + Sync`) and standard `Arc<Mutex<_>>` wrappers
-// (`RotaryEmbedding`).  `Tokenizer` and `Config` are also `Send + Sync`.
-// The compiler cannot derive the impls automatically because some transitive
-// types are opaque, so we assert them here.
-unsafe impl Send for ModelCache {}
-unsafe impl Sync for ModelCache {}
+// SAFETY: Legacy inference never calls the training setters on the private
+// Model. Generation only reads its training Cells, updates the mutex-backed
+// RoPE tensors, and uses per-request KV caches. Gemma3 uses its own mutex.
+unsafe impl Sync for LegacyModel {}
 
 /// Stores either the successfully initialised cache or the error message that
 /// prevented initialisation.  Using `String` for the error keeps the type
@@ -65,15 +73,25 @@ fn get_or_init_model() -> anyhow::Result<&'static ModelCache> {
 
 /// Performs the one-time expensive model loading and returns a [`ModelCache`].
 fn load_model_cache() -> anyhow::Result<ModelCache> {
+    let runtime = runtime_config();
+    let use_hf_gemma3 = match runtime.router_model_profile.as_deref() {
+        None => false,
+        Some(hf_gemma3::PROFILE) => true,
+        Some(other) => anyhow::bail!("unsupported router_model_profile {other:?}"),
+    };
+    if use_hf_gemma3 {
+        hf_gemma3::validate_options(runtime)?;
+    }
     let model_id = router_model_path_override().unwrap_or_else(default_model);
     let model_path = crate::model_support::resolve_model_path(&model_id)?;
-    let lora_info = resolve_lora_adapter(&model_path);
-    let lora_r = lora_info.as_ref().map(|l| l.r).unwrap_or(0);
-    let lora_alpha = lora_info.as_ref().map(|l| l.alpha).unwrap_or(32.0);
-    let lora_dropout = lora_info.as_ref().map(|l| l.dropout).unwrap_or(0.0);
-
+    if use_hf_gemma3 {
+        anyhow::ensure!(
+            !model_path.join("adapter_model.safetensors").exists(),
+            "{} does not support a checkpoint with a LoRA adapter",
+            hf_gemma3::PROFILE
+        );
+    }
     let config_raw = std::fs::read_to_string(model_path.join("config.json"))?;
-    let config: Config = serde_json::from_str(&config_raw)?;
 
     let (device, device_index) = resolve_device(runtime_config());
     maybe_configure_cuda_mem_pool(device_index);
@@ -113,34 +131,48 @@ fn load_model_cache() -> anyhow::Result<ModelCache> {
         ));
     }
     let st = open_mmaped_safetensors(&model_files)?;
-    let tie_embeddings = detect_tie_embeddings(&st);
+    let model = if use_hf_gemma3 {
+        let backend = hf_gemma3::Backend::load(
+            &model_path,
+            serde_json::from_str(&config_raw)?,
+            st,
+            runtime,
+            default_dtype(&device),
+            &device,
+        )?;
+        LoadedModel::HfGemma3(Box::new(Mutex::new(backend)))
+    } else {
+        let config: Config = serde_json::from_str(&config_raw)?;
+        let lora_info = resolve_lora_adapter(&model_path);
+        let lora_r = lora_info.as_ref().map(|l| l.r).unwrap_or(0);
+        let lora_alpha = lora_info.as_ref().map(|l| l.alpha).unwrap_or(32.0);
+        let lora_dropout = lora_info.as_ref().map(|l| l.dropout).unwrap_or(0.0);
+        let tie_embeddings = detect_tie_embeddings(&st);
 
-    let varmap = VarMap::new();
-    let vb = VarBuilder::from_varmap(&varmap, default_dtype(&device), &device);
-    let mut lora_settings = LoraSettings::new(lora_r, lora_alpha, lora_dropout, false);
-    if runtime_config().router_flash_attn && device.is_cuda() {
-        lora_settings.enable_flash_attn();
-    }
-    if runtime_config().router_candle_qmatmul {
-        let dtype = parse_ggml_dtype(runtime_config().router_candle_qmatmul_dtype.as_deref())
-            .unwrap_or(candle_core::quantized::GgmlDType::Q4_0);
-        lora_settings.enable_candle_qmatmul(dtype);
-    }
-    let model = Model::new(&config, lora_settings, vb, tie_embeddings)?;
-    maybe_log_cuda_snapshot("after_model_init", device_index);
-    custom_load(&varmap, &model_files)?;
-    if let Some(lora) = lora_info {
-        custom_load(&varmap, &[lora.path])?;
-    }
+        let varmap = VarMap::new();
+        let vb = VarBuilder::from_varmap(&varmap, default_dtype(&device), &device);
+        let mut lora_settings = LoraSettings::new(lora_r, lora_alpha, lora_dropout, false);
+        if runtime_config().router_flash_attn && device.is_cuda() {
+            lora_settings.enable_flash_attn();
+        }
+        if runtime_config().router_candle_qmatmul {
+            let dtype = parse_ggml_dtype(runtime_config().router_candle_qmatmul_dtype.as_deref())
+                .unwrap_or(candle_core::quantized::GgmlDType::Q4_0);
+            lora_settings.enable_candle_qmatmul(dtype);
+        }
+        let model = Model::new(&config, lora_settings, vb, tie_embeddings)?;
+        maybe_log_cuda_snapshot("after_model_init", device_index);
+        custom_load(&varmap, &model_files)?;
+        if let Some(lora) = lora_info {
+            custom_load(&varmap, &[lora.path])?;
+        }
+        LoadedModel::Legacy(Box::new(LegacyModel { model, config }))
+    };
     maybe_log_cuda_snapshot("after_weights_load", device_index);
 
     let tokenizer = Tokenizer::from_file(model_path.join("tokenizer.json")).map_err(anyhow::Error::msg)?;
 
-    Ok(ModelCache {
-        model,
-        tokenizer,
-        config,
-    })
+    Ok(ModelCache { model, tokenizer })
 }
 
 pub(crate) fn resolve_lora_adapter(model_path: &Path) -> Option<LoraInfo> {
@@ -203,39 +235,53 @@ pub(crate) fn infer_with_model(req: &crate::types::ChatCompletionRequest) -> any
 
     let encoding = cache.tokenizer.encode(prompt, true).map_err(anyhow::Error::msg)?;
     let mut input_ids = encoding.get_ids().to_vec();
-    if let Some(max_len) = runtime_config().router_max_seq_len {
-        input_ids = trim_input_ids(input_ids, max_len);
+    if matches!(&cache.model, LoadedModel::Legacy(_)) {
+        if let Some(max_len) = runtime_config().router_max_seq_len {
+            input_ids = trim_input_ids(input_ids, max_len);
+        }
     }
     let input_tensor = Tensor::new(input_ids, &device)?.unsqueeze(0)?;
 
     let max_tokens = req.max_tokens.unwrap_or(runtime_config().router_default_max_tokens) as usize;
     let start = Instant::now();
-    let kv_quant = KvCacheQuant::from_str(runtime_config().router_kv_cache_quant.as_deref());
-    let kv_max_len = runtime_config().router_kv_cache_max_len;
-    let kv_store_on_cpu = runtime_config().router_kv_cache_store.eq_ignore_ascii_case("cpu");
     maybe_log_cuda_snapshot("before_generate", device_index);
-    let output_ids = if use_kv_cache() {
-        // Use the pre-allocated ring-buffer KV cache when int8 quantisation
-        // is not requested (int8 requires per-step re-quantisation with a
-        // varying scale factor, which is incompatible with the fixed buffer).
-        let use_prealloc = !matches!(kv_quant, KvCacheQuant::Int8) && !kv_store_on_cpu;
-        if use_prealloc {
-            let prealloc_max = kv_max_len.unwrap_or(cache.config.num_hidden_layers.max(4096));
-            cache
-                .model
-                .generate_with_prealloc_cache(&input_tensor, max_tokens, &device, &cache.config, prealloc_max)?
-        } else {
-            cache.model.generate_with_cache(
-                &input_tensor,
-                max_tokens,
-                &device,
-                kv_quant,
-                kv_max_len,
-                kv_store_on_cpu,
-            )?
+    let output_ids = match &cache.model {
+        LoadedModel::Legacy(legacy) => {
+            let kv_quant = KvCacheQuant::from_str(runtime_config().router_kv_cache_quant.as_deref());
+            let kv_max_len = runtime_config().router_kv_cache_max_len;
+            let kv_store_on_cpu = runtime_config().router_kv_cache_store.eq_ignore_ascii_case("cpu");
+            if use_kv_cache() {
+                // Use the pre-allocated ring-buffer KV cache when int8 quantisation
+                // is not requested (int8 requires per-step re-quantisation with a
+                // varying scale factor, which is incompatible with the fixed buffer).
+                let use_prealloc = !matches!(kv_quant, KvCacheQuant::Int8) && !kv_store_on_cpu;
+                if use_prealloc {
+                    let prealloc_max = kv_max_len.unwrap_or(legacy.config.num_hidden_layers.max(4096));
+                    legacy.model.generate_with_prealloc_cache(
+                        &input_tensor,
+                        max_tokens,
+                        &device,
+                        &legacy.config,
+                        prealloc_max,
+                    )?
+                } else {
+                    legacy.model.generate_with_cache(
+                        &input_tensor,
+                        max_tokens,
+                        &device,
+                        kv_quant,
+                        kv_max_len,
+                        kv_store_on_cpu,
+                    )?
+                }
+            } else {
+                legacy.model.generate(&input_tensor, max_tokens, &device)?
+            }
         }
-    } else {
-        cache.model.generate(&input_tensor, max_tokens, &device)?
+        LoadedModel::HfGemma3(backend) => backend
+            .lock()
+            .map_err(|_| anyhow::anyhow!("Gemma3 model lock poisoned"))?
+            .generate(&input_tensor, max_tokens)?,
     };
     drop(input_tensor);
     maybe_log_cuda_snapshot("after_generate", device_index);

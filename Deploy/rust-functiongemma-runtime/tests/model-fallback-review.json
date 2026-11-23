@@ -7,7 +7,7 @@
     "Deploy/rust-functiongemma-runtime/src/metrics.rs": "f30f02aebab4149b8fab467ebc36c242c72493a0013e15097c6d11ac116e76b1",
     "Deploy/rust-functiongemma-runtime/src/types.rs": "9c18217d46c789f7a9ce564d16a5e2b00a6fb136a0868427dda64cfb4f5d5006",
     "Deploy/rust-functiongemma-runtime/tests/model_fallback.rs": "b8db6dbef999dba20a684e6d5d06a8c60ba7a41244bd3cb2b8bf8e0968ce48dc",
-    "Deploy/rust-functiongemma-runtime/README.md": "f6ca3e1ffdd17eb103dc77740beea69d0e454adfc948d1472b6ce729a2c834ff",
+    "Deploy/rust-functiongemma-runtime/README.md": "dac8fe7188e3ae71834be26eee25981e50050e1e545331179f4495a9d0c4601f",
     "docs/functiongemma-runtime-validation.md": "1f7f81bad860e217dd882de7623af0b268cb382ded24ee7241df1c274e712f37"
   },
   "selectors": [

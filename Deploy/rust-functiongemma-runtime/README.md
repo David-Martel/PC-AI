@@ -62,5 +62,25 @@ CUDA preferences. With the CUDA profile, `runtime.router_device` still accepts
 [shared device selection](../rust-functiongemma-core/src/gpu.rs) for GPU
 selection and telemetry. Set `runtime.router_kv_cache` to tune KV caching.
 
+### Publisher FunctionGemma checkpoint
+
+For the publisher's unmodified tied-weight checkpoint, set
+`runtime.router_model_profile` to `hf_gemma3_4_57_3` with `router_engine`
+set to `model`. This selects Candle's locked Gemma3 implementation. Use an
+unquantized device-local KV cache and leave custom FlashAttention, qmatmul,
+and LoRA settings off. If extending the repository example, remove its
+`router_kv_cache_quant` setting or set it to `none`. The prompt and requested
+output must fit within 4,096 tokens or the lower configured context limit.
+Each request starts with a fresh KV cache. Existing native-model and training
+configurations keep their default profile. [Publisher checkpoint](https://huggingface.co/google/functiongemma-270m-it)
+
+Run the [local checkpoint fixture](tests/model_hf_gemma3.rs) with
+`PCAI_TEST_FUNCTIONGEMMA_MODEL_DIR` set to the local model directory. It
+requires `x-pcai-router-engine: model` and a structured tool call.
+
+```sh
+cargo test --locked --manifest-path Deploy/Cargo.toml -p rust-functiongemma-runtime --features model --test model_hf_gemma3 -- --ignored
+```
+
 For the exact feature sets and CPU contract, see the
 [manifest](Cargo.toml) and [device selection fixture](src/gpu.rs).

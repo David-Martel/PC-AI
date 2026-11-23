@@ -17,6 +17,8 @@ pub(crate) struct RuntimeConfig {
     pub(crate) router_addr: String,
     pub(crate) router_model: String,
     pub(crate) router_model_path: String,
+    #[cfg(feature = "model")]
+    pub(crate) router_model_profile: Option<String>,
     pub(crate) router_engine: String,
     pub(crate) tools_path: String,
     pub(crate) router_kv_cache: bool,
@@ -51,6 +53,8 @@ impl Default for RuntimeConfig {
             router_addr: "127.0.0.1:8000".to_string(),
             router_model: "functiongemma-270m-it".to_string(),
             router_model_path: String::new(),
+            #[cfg(feature = "model")]
+            router_model_profile: None,
             router_engine: "heuristic".to_string(),
             tools_path: "Config/pcai-tools.json".to_string(),
             router_kv_cache: true,

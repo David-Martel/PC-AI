@@ -103,6 +103,34 @@ impl MistralRsBackend {
         })
     }
 
+    /// The `CUDA_VISIBLE_DEVICES` entry to start this process with so that `requested` becomes
+    /// logical device 0, or a message saying why none exists.
+    ///
+    /// `requested` is a LOGICAL index, as the CUDA runtime numbers devices after applying an
+    /// inherited `CUDA_VISIBLE_DEVICES`. Putting it into the variable unchanged selects a
+    /// different GPU whenever the variable is already set: with `1,0`, logical 1 is physical 0,
+    /// and `CUDA_VISIBLE_DEVICES=1` would pick physical 1. So the index is resolved through the
+    /// inherited list and the exact entry (an integer, `GPU-<uuid>` or `MIG-<uuid>`) is returned.
+    /// With the variable unset the logical and physical indexes agree and `requested` is returned.
+    /// Entries are separated by commas; surrounding whitespace is ignored and empty entries are
+    /// skipped.
+    fn visible_device_entry(requested: usize, inherited: Option<&str>) -> std::result::Result<String, String> {
+        let Some(list) = inherited else {
+            return Ok(requested.to_string());
+        };
+        let entries: Vec<&str> = list
+            .split(',')
+            .map(str::trim)
+            .filter(|entry| !entry.is_empty())
+            .collect();
+        entries.get(requested).map(|entry| (*entry).to_string()).ok_or_else(|| {
+            format!(
+                "cuda:{requested} is outside the inherited CUDA_VISIBLE_DEVICES={list:?}, which lists {} device(s)",
+                entries.len()
+            )
+        })
+    }
+
     /// Pure device policy: `Ok(true)` means force the CPU, `Ok(false)` means let the builder use
     /// CUDA device 0, `Err` means the request cannot be honoured. `cuda_compiled` and
     /// `probe_cuda` are parameters so every branch is testable without a GPU.
@@ -110,6 +138,18 @@ impl MistralRsBackend {
         device: DeviceSpec,
         cuda_compiled: bool,
         probe_cuda: impl FnOnce(usize) -> std::result::Result<(), String>,
+    ) -> Result<bool> {
+        let inherited = std::env::var("CUDA_VISIBLE_DEVICES").ok();
+        Self::plan_device_with_visibility(device, cuda_compiled, probe_cuda, inherited.as_deref())
+    }
+
+    /// [`Self::plan_device`] with the inherited `CUDA_VISIBLE_DEVICES` passed in, so the advice for
+    /// `cuda:N` (N > 0) is testable.
+    fn plan_device_with_visibility(
+        device: DeviceSpec,
+        cuda_compiled: bool,
+        probe_cuda: impl FnOnce(usize) -> std::result::Result<(), String>,
+        inherited_visible_devices: Option<&str>,
     ) -> Result<bool> {
         match device {
             DeviceSpec::Cpu => Ok(true),
@@ -138,9 +178,15 @@ impl MistralRsBackend {
                     // for both the GGUF and the text builder, so `with_device` has no effect and
                     // the model would land on CUDA device 0. Refuse instead of loading on the
                     // wrong GPU.
+                    let entry = Self::visible_device_entry(ordinal, inherited_visible_devices).map_err(|reason| {
+                        Error::Backend(format!(
+                            "device cuda:{ordinal} cannot be selected: mistral.rs 0.8.1 can only load models on CUDA \
+                             device 0, and {reason}"
+                        ))
+                    })?;
                     return Err(Error::Backend(format!(
                         "device cuda:{ordinal} exists, but mistral.rs 0.8.1 can only load models on CUDA \
-                         device 0; start this process with CUDA_VISIBLE_DEVICES={ordinal} and use device \
+                         device 0; start this process with CUDA_VISIBLE_DEVICES={entry} and use device \
                          \"cuda:0\""
                     )));
                 }
@@ -390,15 +436,69 @@ mod tests {
     // GGUF and text builders, so only ordinal 0 can be honoured. Detects `cuda:1` loading on 0.
     #[test]
     fn explicit_cuda_other_than_zero_is_refused_with_the_workaround() {
-        let message = MistralRsBackend::plan_device(DeviceSpec::Cuda(1), true, |_| Ok(()))
+        let message = MistralRsBackend::plan_device_with_visibility(DeviceSpec::Cuda(1), true, |_| Ok(()), None)
             .expect_err("cuda:1 cannot be honoured")
             .to_string();
-        assert!(message.contains("CUDA_VISIBLE_DEVICES=1"), "{message}");
+        assert!(message.contains("CUDA_VISIBLE_DEVICES=1 "), "{message}");
+
+        // Inherited visibility 1,0: logical cuda:1 is physical GPU 0, so the advice must say 0.
+        let remapped =
+            MistralRsBackend::plan_device_with_visibility(DeviceSpec::Cuda(1), true, |_| Ok(()), Some("1,0"))
+                .expect_err("cuda:1 cannot be honoured")
+                .to_string();
+        assert!(remapped.contains("CUDA_VISIBLE_DEVICES=0 "), "{remapped}");
+        assert!(!remapped.contains("CUDA_VISIBLE_DEVICES=1"), "{remapped}");
+
+        // The inherited list is out of step with what the probe saw: say so instead of guessing.
+        let outside = MistralRsBackend::plan_device_with_visibility(DeviceSpec::Cuda(1), true, |_| Ok(()), Some("0"))
+            .expect_err("cuda:1 is outside a one-entry list")
+            .to_string();
+        assert!(outside.contains("outside") && outside.contains("1 device"), "{outside}");
 
         let missing = MistralRsBackend::plan_device(DeviceSpec::Cuda(1), true, |_| Err("no such device".into()))
             .expect_err("a missing device must be an error")
             .to_string();
         assert!(missing.contains("no such device"), "{missing}");
+    }
+
+    // Protects the CUDA_VISIBLE_DEVICES advice for `cuda:N`, N > 0. The index is logical, so with
+    // a variable inherited from the environment it must be mapped to the entry at that position,
+    // not copied. Detects advising the logical ordinal (picks the wrong physical GPU with `1,0`),
+    // and mishandling of UUID, MIG, whitespace and empty entries. Needs no device.
+    #[test]
+    fn visible_device_entry_resolves_the_logical_index_through_the_inherited_list() {
+        let entry = MistralRsBackend::visible_device_entry;
+        // Unset: logical and physical indexes agree.
+        assert_eq!(entry(1, None).unwrap(), "1");
+        assert_eq!(entry(3, None).unwrap(), "3");
+        // Identity list.
+        assert_eq!(entry(1, Some("0,1")).unwrap(), "1");
+        // Reordered list: logical 1 is physical 0, logical 0 is physical 1.
+        assert_eq!(entry(1, Some("1,0")).unwrap(), "0");
+        assert_eq!(entry(0, Some("1,0")).unwrap(), "1");
+        // A subset: logical 1 is the second visible device.
+        assert_eq!(entry(1, Some("2,3")).unwrap(), "3");
+        // UUID and MIG entries are returned verbatim.
+        assert_eq!(entry(1, Some("GPU-aaaa-1111,GPU-bbbb-2222")).unwrap(), "GPU-bbbb-2222");
+        assert_eq!(entry(1, Some("MIG-aaaa-1111,MIG-bbbb-2222")).unwrap(), "MIG-bbbb-2222");
+        // Whitespace is trimmed and empty entries are skipped.
+        assert_eq!(entry(1, Some(" 2 , 3 ")).unwrap(), "3");
+        assert_eq!(entry(1, Some("2,,3,")).unwrap(), "3");
+        assert_eq!(entry(1, Some(",, 4 ,5")).unwrap(), "5");
+    }
+
+    #[test]
+    fn visible_device_entry_reports_an_index_outside_the_inherited_list() {
+        let entry = MistralRsBackend::visible_device_entry;
+        for list in ["0", "0,1", "", " , ", "GPU-aaaa-1111"] {
+            let error = entry(2, Some(list)).expect_err(list);
+            assert!(
+                error.contains("cuda:2") && error.contains("outside"),
+                "{list:?}: {error}"
+            );
+        }
+        assert!(entry(1, Some("0")).unwrap_err().contains("1 device(s)"));
+        assert!(entry(0, Some("")).unwrap_err().contains("0 device(s)"));
     }
 
     // Protects `device_layers = "all"`: a single-entry map that covers every layer. Detects a

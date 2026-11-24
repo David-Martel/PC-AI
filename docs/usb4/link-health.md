@@ -132,7 +132,7 @@ the scheduler result together after an error. The watcher reads the IPv4 route
 table once per inventory and filters it to the USB4 interface indices. A
 successful read with no USB4 routes still feeds the normal comparison.
 See the [adapter error test review](../../Tests/Unit/pcai-link-health-adapter-error-review.json)
-and [route collection fixtures](../../Tests/Unit/PcaiLinkHealth.Tests.ps1).
+and [route inventory test review](../../Tests/Unit/pcai-link-health-route-inventory-review.json).
 The [route validity test review](../../Tests/Unit/pcai-link-health-validity-review.json)
 records the watcher and saved-script expiry controls.
 

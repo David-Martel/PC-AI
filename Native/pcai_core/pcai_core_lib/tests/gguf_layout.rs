@@ -524,6 +524,24 @@ fn a_total_that_overflows_u64_is_a_typed_error() {
     );
 }
 
+/// Protects: the final tensor's absolute end fits in the declared file length.
+/// Detects: clamping an overflowing file offset to the maximum declared length.
+/// Needs: a synthetic header and a declared length. No tensor data or model files.
+/// Breadcrumb: src/preflight/gguf.rs#validate_gguf_layout_from.
+#[test]
+fn an_absolute_tensor_end_that_overflows_u64_is_a_typed_error() {
+    let tensor = T::new("last", (1_u64 << 62) - 8, 0);
+    let bytes = header(&[], &[tensor]);
+    let err = validate(&bytes, u64::MAX).expect_err("absolute tensor end overflow");
+    assert_eq!(
+        layout_err(&err),
+        GgufLayoutError::TensorSizeOverflow {
+            index: 0,
+            name: "last".into(),
+        }
+    );
+}
+
 /// More tensors than the reader's limit is the shared limit error, before any tensor is read.
 #[test]
 fn too_many_tensors_is_a_limit_error() {
@@ -678,7 +696,13 @@ const INVALID_EXPECTED: u64 = 320_550_400;
 ///     --test gguf_layout -- --ignored --nocapture real_gguf_files
 /// ```
 ///
-/// Reads headers only (the truncated copy excepted, which copies the file's bytes once).
+/// Protects: the validator's offsets and extent agree with the recorded llama.cpp results for
+/// the supplied models.
+/// Detects: accepting a known invalid or truncated model, or rejecting an intact model.
+/// Needs: local GGUF fixtures and temporary space for an optional truncated copy. Record the
+/// SHA-256 and exact source revision of each supplied file and retain the case output. Reads
+/// model headers, except for generating the truncated copy.
+/// Breadcrumb: src/preflight/gguf.rs#validate_gguf_layout.
 #[test]
 #[ignore = "needs real GGUF files; set PCAI_GGUF_INVALID and optionally PCAI_GGUF_VALID, PCAI_GGUF_POSITIVE, PCAI_GGUF_TRUNCATE_SOURCE"]
 fn real_gguf_files() {
@@ -698,11 +722,15 @@ fn real_gguf_files() {
 
     let valid = std::env::var_os("PCAI_GGUF_VALID").map(PathBuf::from);
     let positives = std::env::var("PCAI_GGUF_POSITIVE").unwrap_or_default();
-    for path in valid
+    let mut positive_paths = valid
         .iter()
         .cloned()
         .chain(positives.split(';').filter(|p| !p.is_empty()).map(PathBuf::from))
-    {
+        .peekable();
+    if positive_paths.peek().is_none() {
+        eprintln!("SKIP VALID: no PCAI_GGUF_VALID or PCAI_GGUF_POSITIVE paths supplied");
+    }
+    for path in positive_paths {
         let layout = validate_gguf_layout(&path).unwrap_or_else(|e| panic!("{} must be valid: {e:#}", path.display()));
         let padded_end = layout.data_offset + layout.data_bytes;
         eprintln!(
@@ -722,7 +750,32 @@ fn real_gguf_files() {
         );
         let source_layout = validate_gguf_layout(&source).expect("the intact source is valid");
         assert_eq!(source_layout.file_len - copy.len(), 1 << 20);
+    } else {
+        eprintln!("SKIP TRUNCATED: PCAI_GGUF_TRUNCATE_SOURCE not supplied");
     }
+}
+
+/// Protects: concurrent truncated fixtures have independent paths and cleanup.
+/// Detects: a shared PID-derived name causing one fixture to overwrite or remove another.
+/// Needs: writable system temporary storage for small synthetic files. No model files.
+/// Breadcrumb: tests/gguf_layout.rs#TempCopy.
+#[test]
+fn temporary_truncated_copies_are_independent_and_owned() {
+    let source = tempfile::NamedTempFile::new().expect("temporary source");
+    std::fs::write(source.path(), b"fixture").expect("write source");
+    let first = TempCopy::truncated(source.path(), 2);
+    let second = TempCopy::truncated(source.path(), 3);
+    assert_ne!(first.path(), second.path());
+    assert_eq!(std::fs::read(first.path()).expect("first copy"), b"fixtu");
+    assert_eq!(std::fs::read(second.path()).expect("second copy"), b"fixt");
+
+    let first_path = first.path().to_path_buf();
+    drop(first);
+    assert!(!first_path.exists());
+    let second_path = second.path().to_path_buf();
+    drop(second);
+    assert!(!second_path.exists());
+    assert_eq!(std::fs::read(source.path()).expect("original fixture"), b"fixture");
 }
 
 fn layout_index(err: &anyhow::Error) -> u64 {
@@ -734,32 +787,30 @@ fn layout_index(err: &anyhow::Error) -> u64 {
 
 /// A temporary copy of `source` without its last `cut` bytes, deleted on drop.
 struct TempCopy {
-    path: PathBuf,
+    file: tempfile::NamedTempFile,
     len: u64,
 }
 
 impl TempCopy {
     fn truncated(source: &Path, cut: u64) -> Self {
-        let total = std::fs::metadata(source).expect("source metadata").len();
+        let source = std::fs::File::open(source).expect("open source");
+        let total = source.metadata().expect("source metadata").len();
         assert!(total > cut, "source smaller than the cut");
-        let path = std::env::temp_dir().join(format!("pcai-gguf-layout-truncated-{}.gguf", std::process::id()));
-        let mut input = std::fs::File::open(source).expect("open source").take(total - cut);
-        let mut output = std::fs::File::create(&path).expect("create temp copy");
-        let len = io::copy(&mut input, &mut output).expect("copy");
-        Self { path, len }
+        let mut input = source.take(total - cut);
+        let mut file = tempfile::Builder::new()
+            .prefix("pcai-gguf-layout-truncated-")
+            .suffix(".gguf")
+            .tempfile()
+            .expect("create temp copy");
+        let len = io::copy(&mut input, file.as_file_mut()).expect("copy");
+        Self { file, len }
     }
 
     fn path(&self) -> &Path {
-        &self.path
+        self.file.path()
     }
 
     fn len(&self) -> u64 {
         self.len
-    }
-}
-
-impl Drop for TempCopy {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.path);
     }
 }

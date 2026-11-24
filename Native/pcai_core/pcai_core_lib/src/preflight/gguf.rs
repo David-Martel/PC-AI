@@ -615,8 +615,8 @@ pub enum GgufLayoutError {
         /// The previous tensor's offset plus its size padded to the alignment.
         expected: u64,
     },
-    /// A tensor's padded size, or the running total, overflows `u64` (`gguf.cpp:790-805`).
-    #[error("tensor '{name}' size overflows after padding to the alignment")]
+    /// A tensor's padded size, running total or absolute end overflows `u64`.
+    #[error("tensor '{name}' size or file offset overflows u64")]
     TensorSizeOverflow {
         /// Zero-based position of the tensor in the header.
         index: u64,
@@ -1163,7 +1163,9 @@ pub fn validate_gguf_layout_from<R: Read>(reader: R, file_len: u64) -> Result<Gg
             return Err(GgufLayoutError::DataSectionPastEof { data_offset, file_len }.into());
         }
         if let Some((index, name, end_in_data)) = last {
-            let end = data_offset.saturating_add(end_in_data);
+            let Some(end) = data_offset.checked_add(end_in_data) else {
+                return Err(GgufLayoutError::TensorSizeOverflow { index, name }.into());
+            };
             if end > file_len {
                 return Err(GgufLayoutError::TensorPastEof {
                     index,

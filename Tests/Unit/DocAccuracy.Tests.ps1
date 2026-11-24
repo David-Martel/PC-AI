@@ -18,9 +18,22 @@ BeforeAll {
     $script:Pipeline = Join-Path $script:RepoRoot 'Tools/Invoke-DocPipeline.ps1'
     $script:Utf8 = [System.Text.UTF8Encoding]::new($false)
 
+    # Resolve fixture-helper destinations immediately before writing. Pester can
+    # change caller variables, and .NET can resolve relative paths against a
+    # different directory than PowerShell's current location.
+    function Resolve-FixturePath {
+        param([string]$Root, [string]$Relative)
+        if (-not [System.IO.Path]::IsPathFullyQualified($Root)) { throw "Fixture root must be absolute: '$Root'" }
+        $full = [System.IO.Path]::GetFullPath((Join-Path $Root $Relative))
+        $drive = [System.IO.Path]::GetFullPath($TestDrive).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+        $comparison = if ($IsWindows) { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
+        if (-not $full.StartsWith($drive, $comparison)) { throw "Refusing to write outside TestDrive: '$full'" }
+        return $full
+    }
+
     function Write-FixtureFile {
         param([string]$Root, [string]$Relative, [string]$Text)
-        $full = Join-Path $Root $Relative
+        $full = Resolve-FixturePath $Root $Relative
         $dir = Split-Path -Parent $full
         if (-not (Test-Path -LiteralPath $dir)) { $null = New-Item -ItemType Directory -Path $dir -Force }
         # Here-strings take the line endings of this file (CRLF in a Windows checkout); fixtures are always LF.
@@ -142,12 +155,12 @@ fn router() {
 
     function Add-FixtureText {
         param([string]$Root, [string]$Relative, [string]$Text)
-        [System.IO.File]::AppendAllText((Join-Path $Root $Relative), $Text, $script:Utf8)
+        [System.IO.File]::AppendAllText((Resolve-FixturePath $Root $Relative), $Text, $script:Utf8)
     }
 
     function Edit-FixtureText {
         param([string]$Root, [string]$Relative, [string]$Old, [string]$New)
-        $full = Join-Path $Root $Relative
+        $full = Resolve-FixturePath $Root $Relative
         $text = [System.IO.File]::ReadAllText($full)
         if (-not $text.Contains($Old)) { throw "fixture text not found in ${Relative}: $Old" }
         [System.IO.File]::WriteAllText($full, $text.Replace($Old, $New), $script:Utf8)
@@ -669,7 +682,7 @@ Describe 'versioning check against real tags' -Tag 'Unit', 'Portable' {
         if (-not $script:HasGit) { Set-ItResult -Skipped -Because 'git is not available'; return }
         $repo = New-VersionRepo 'ver-shallow' '0.3.0'
         # A shallow clone is a repository whose .git/shallow lists its cut-off commits.
-        [System.IO.File]::WriteAllText((Join-Path $repo.Root '.git/shallow'), "$($repo.Commit)`n", $script:Utf8)
+        [System.IO.File]::WriteAllText((Resolve-FixturePath $repo.Root '.git/shallow'), "$($repo.Commit)`n", $script:Utf8)
         $r = Invoke-Gate -Root $repo.Root -Check 'versioning'
         $r.Exit | Should -Be 0
         (Get-Findings $r 'versioning' 'pass').claim | Should -Match 'tags not visible \(shallow clone\)'
@@ -831,6 +844,59 @@ Describe 'documentation accuracy gate is deterministic and idempotent' -Tag 'Uni
         @(& git -C $script:RepoRoot status --porcelain) | Should -Be $before
         $r1.Report.checks.Count | Should -Be $r2.Report.checks.Count
         ($r1.Report.checks | ConvertTo-Json -Depth 8) | Should -Be ($r2.Report.checks | ConvertTo-Json -Depth 8)
+    }
+}
+
+Describe 'fixture writes stay inside TestDrive' -Tag 'Unit', 'Portable' {
+    # Protects: fixture helper writes stay within TestDrive.
+    # Detects: write, append or edit ignoring the guard, plus relative and traversal paths.
+    # Needs: PowerShell 7 and TestDrive. Each write-negative destination is an
+    #   absolute, uniquely named temporary path, even if the guard regresses.
+    # Breadcrumb: Resolve-FixturePath in this file's top-level BeforeAll.
+    It 'refuses to write, append or edit a canary outside TestDrive' {
+        $outside = Join-Path (Split-Path -Parent $TestDrive) ('pcai-guard-probe-' + [guid]::NewGuid().ToString('N'))
+        $canary = Join-Path $outside 'canary.txt'
+        $probe = Join-Path $outside 'probe.txt'
+        $null = [System.IO.Directory]::CreateDirectory($outside)
+        try {
+            [System.IO.File]::WriteAllText($canary, 'original', $script:Utf8)
+            { Write-FixtureFile $outside 'probe.txt' 'must not be written' } | Should -Throw '*outside TestDrive*'
+            { Add-FixtureText $outside 'canary.txt' 'append' } | Should -Throw '*outside TestDrive*'
+            { Edit-FixtureText $outside 'canary.txt' 'original' 'changed' } | Should -Throw '*outside TestDrive*'
+            Test-Path -LiteralPath $probe | Should -BeFalse
+            [System.IO.File]::ReadAllText($canary) | Should -BeExactly 'original'
+        } finally {
+            [System.IO.File]::Delete($probe)
+            [System.IO.File]::Delete($canary)
+            [System.IO.Directory]::Delete($outside)
+        }
+    }
+
+    It 'refuses a path that climbs out of TestDrive with ..' {
+        $name = 'pcai-guard-escape-' + [guid]::NewGuid().ToString('N') + '.txt'
+        $probe = Join-Path (Split-Path -Parent $TestDrive) $name
+        try {
+            { Write-FixtureFile $TestDrive "../$name" 'must not be written' } | Should -Throw '*outside TestDrive*'
+            Test-Path -LiteralPath $probe | Should -BeFalse
+        } finally {
+            [System.IO.File]::Delete($probe)
+        }
+    }
+
+    It 'requires a fully qualified root before resolving a write destination' {
+        { Resolve-FixturePath 'relative-root' 'probe.txt' } | Should -Throw '*must be absolute*'
+        if ($IsWindows) {
+            $volumeRoot = [System.IO.Path]::GetPathRoot($TestDrive)
+            if ($volumeRoot -match '^[A-Za-z]:') {
+                $currentDriveRelative = $TestDrive.Substring($volumeRoot.Length - 1)
+                { Resolve-FixturePath $currentDriveRelative 'probe.txt' } | Should -Throw '*must be absolute*'
+            }
+        }
+    }
+
+    It 'writes a destination inside TestDrive (positive control)' {
+        Write-FixtureFile $TestDrive 'guard/inside.txt' 'ok'
+        [System.IO.File]::ReadAllText((Join-Path $TestDrive 'guard/inside.txt')) | Should -Be 'ok'
     }
 }
 

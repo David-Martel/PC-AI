@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-24T22:53:29.1307649Z",
+  "reviewer": "codex-p1gen9-link-health-review",
+  "reviewerType": "independent source agent",
+  "sourceBaseline": "38ced988759de2fafc6c26649f39c6a579bad8f5",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent.",
+  "sourceBindings": {
+    "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1": "1f14f15660208a8f437d490f2051afc331310fff6fdee85ee340f815b741fa16",
+    "Tests/Unit/PcaiLinkHealth.Tests.ps1": "f4b811060c63646b6e3eafbe852566c3c5f006b20b5b125b95f44fbe2d245e34"
+  },
+  "selectors": [
+    {
+      "selector": "preserves the last observation when the Windows route provider fails",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "1ca3d167a5e2bd1b1cc184ecd8819716c1e7a97201aed77c8c62a641e94636fd",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1",
+      "disposition": "keep",
+      "reviewScope": "Independently ran the exact test against the watcher where provider errors must stop comparison and recovery and preserve old status. The fail-first control rejected the previous swallowed error."
+    },
+    {
+      "selector": "keeps only routes on the selected USB4 interface indices",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "ce23cf16f62ce6c27ed01b61cf24d2fd0c8168257c506ea79f3fcdbbf3ea2da9",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Invoke-PcaiLinkHealth.ps1",
+      "disposition": "keep",
+      "reviewScope": "Verified successful enumeration keeps only the selected USB4 route and treats an actual empty match as usable evidence. The observed result includes the route index and next hop."
+    }
+  ]
+}

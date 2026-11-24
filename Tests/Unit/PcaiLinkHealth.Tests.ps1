@@ -73,6 +73,54 @@ Describe 'Link health adapter collection' -Tag 'Unit' {
     }
 }
 
+Describe 'Link health IPv4 route collection' -Tag 'Unit' {
+    # Protects: failure to read the route table cannot authorize recovery or replace the last status.
+    # Detects: treating a Windows route-provider error as an empty route inventory.
+    # Needs: Windows, a mocked route provider and recovery calls, and a temporary status root.
+    # Breadcrumb: Invoke-PcaiLinkHealth.ps1::Get-PcaiIpv4HostRoute and Invoke-PcaiLinkHealth.
+    It 'preserves the last observation when the Windows route provider fails' -Skip:(-not $IsWindows) {
+        Mock Get-PcaiHostName { 'hosta' }
+        Mock Read-PcaiRoutePlan { $Plan }
+        Mock Get-PcaiRoutePlanWindow { [pscustomobject]@{ State = 'Fresh'; EvaluatedAtUtc = [DateTimeOffset]'2026-11-21T11:50:17Z'; ExpiresAtUtc = [DateTimeOffset]'2026-11-21T11:51:17Z' } }
+        Mock Get-PcaiUsb4Adapter { , @(New-TestAdapter) }
+        Mock Get-NetRoute { Write-Error 'route provider fixture failed' }
+        Mock Test-PcaiPeerReachability { , @() }
+        Mock Get-PcaiUsb4Service { , @() }
+        Mock Invoke-PcaiServiceRecovery { , @() }
+        Mock Get-PcaiAutoApplyPolicy { [pscustomobject]@{ Enabled = $false; Reason = 'fixture'; PlanPath = $null } }
+        $root = Join-Path $TestDrive 'unavailable-route-provider'
+        $null = New-Item -ItemType Directory -Path $root
+        $status = Join-Path $root 'status.json'
+        Set-Content -LiteralPath $status -Value '{"state":"InSync"}' -NoNewline
+
+        { Invoke-PcaiLinkHealth -Root $root -SkipBus | Out-Null } | Should -Throw '*route provider fixture failed*'
+        Get-Content -LiteralPath $status -Raw | Should -BeExactly '{"state":"InSync"}'
+        Test-Path -LiteralPath (Join-Path $root 'history.jsonl') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $root 'pending-apply-0123456789abcdef.ps1') | Should -BeFalse
+        Should -Invoke Test-PcaiPeerReachability -Times 0 -Exactly
+        Should -Invoke Invoke-PcaiServiceRecovery -Times 0 -Exactly
+    }
+
+    # Protects: a successful route inventory keeps USB4 routes and allows a genuine empty match.
+    # Detects: accepting foreign routes or treating a successful read with no USB4 routes as a fault.
+    # Needs: Windows and fake IPv4 route rows, with no real route query.
+    # Breadcrumb: Invoke-PcaiLinkHealth.ps1::Get-PcaiIpv4HostRoute.
+    It 'keeps only routes on the selected USB4 interface indices' -Skip:(-not $IsWindows) {
+        Mock Get-NetRoute {
+            [pscustomobject]@{ ifIndex = 28; DestinationPrefix = '192.0.2.1/32'; NextHop = '198.51.100.1' }
+            [pscustomobject]@{ ifIndex = 99; DestinationPrefix = '0.0.0.0/0'; NextHop = '198.51.100.2' }
+        }
+
+        $routes = Get-PcaiIpv4HostRoute -InterfaceIndex @(28, 29)
+        $routes.Count | Should -Be 1
+        $routes[0].InterfaceIndex | Should -Be 28
+        $routes[0].DestinationPrefix | Should -Be '192.0.2.1/32'
+        $routes[0].NextHop | Should -Be '198.51.100.1'
+        (Get-PcaiIpv4HostRoute -InterfaceIndex @(29)).Count | Should -Be 0
+        Should -Invoke Get-NetRoute -Times 2 -Exactly -ParameterFilter { $AddressFamily -eq 'IPv4' -and -not $InterfaceIndex }
+    }
+}
+
 Describe 'Compare-PcaiLinkPlan classifies the live USB4 state against the plan' -Tag 'Unit', 'Portable' {
     It 'reports InSync when guards match and every planned address and route is present' {
         $r = Compare-PcaiLinkPlan -Plan $Plan -HostName 'hosta' -Adapter @(New-TestAdapter) -Route $Route

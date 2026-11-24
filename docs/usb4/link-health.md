@@ -125,11 +125,14 @@ the units as enabled.
    tags `repo:PC-AI` and `host:<name>`, sender `pcai-link-health-<host>`).
 
 Exit codes: 0 when the severity is ok, 2 when there is something to report, 1 on an error.
-If Windows cannot enumerate network adapters, the run exits 1 before comparing
-routes, attempting recovery or replacing `status.json`. The saved observation
-keeps its original timestamp. Use its age and the scheduler result together when
-reading it after an error. A successful enumeration with zero USB4 adapters
-still produces an ordinary observation. See the [adapter error test review](../../Tests/Unit/pcai-link-health-adapter-error-review.json).
+If Windows cannot complete the initial adapter or IPv4 route inventory, the run
+exits 1 before comparing the plan or attempting recovery. The previous
+`status.json` and history remain intact. Use the saved observation's age and
+the scheduler result together after an error. The watcher reads the IPv4 route
+table once per inventory and filters it to the USB4 interface indices. A
+successful read with no USB4 routes still feeds the normal comparison.
+See the [adapter error test review](../../Tests/Unit/pcai-link-health-adapter-error-review.json)
+and [route inventory test review](../../Tests/Unit/pcai-link-health-route-inventory-review.json).
 The [route validity test review](../../Tests/Unit/pcai-link-health-validity-review.json)
 records the watcher and saved-script expiry controls.
 

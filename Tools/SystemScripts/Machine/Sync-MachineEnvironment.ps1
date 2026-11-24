@@ -8,7 +8,7 @@
     4. Sets canonical developer, Rust/Cargo/SCCache, CMake, GitGuard, and PowerShell environment variables directly in HKCU:\Environment (with CARGO_PREFLIGHT=0 so cargo/rust-analyzer never block on PowerShell hooks).
     5. Deduplicates, removes dead paths, and deterministically orders HKCU:\Environment\Path with user shim directories first (~/.local/bin, ~/bin, ~/.cargo/bin, ~/.dotnet/tools, ~/go/bin, %LOCALAPPDATA%\agy\bin).
     6. (Not done here.) PSModulePath sanitising and module copies stay in the host's installed script until they get their own reviewed change.
-    7. Repairs broken symlinks in ~/bin and ~/.local/bin and ensures git-guard shims exist in ~/bin.
+    7. Repairs supported developer links and adds a staged Poppler directory with colocated DLLs to the user PATH.
 .PARAMETER DryRun
     Print what the PATH step would do and exit before any write: no backup, registry, module, link or file change.
 .PARAMETER PassThru
@@ -42,6 +42,53 @@ Import-Module (Join-Path $machinePathDir 'MachinePath.psm1') -Force
 $pathContext = Get-MachinePathContext
 $UserHomeReal = $pathContext.UserHome
 
+function Find-StagedPopplerBin {
+    param([string]$UserProfilePath, [string[]]$PathDirectories = @())
+
+    $requiredFiles = 'pdftotext.exe', 'pdftoppm.exe', 'poppler.dll', 'lcms2.dll'
+    $hasBundle = {
+        param([string]$Directory)
+
+        foreach ($name in $requiredFiles) {
+            if (-not (Test-Path -LiteralPath (Join-Path $Directory $name) -PathType Leaf)) { return $false }
+        }
+        return $true
+    }
+    foreach ($directory in $PathDirectories) {
+        if (& $hasBundle $directory) { return }
+    }
+
+    $staging = Join-Path $UserProfilePath 'bin\pdf-tools'
+    if (-not (Test-Path -LiteralPath $staging -PathType Container)) { return }
+
+    $versioned = Get-ChildItem -LiteralPath $staging -Directory -Filter 'poppler-*-bin' |
+        Where-Object Name -Match '^poppler-\d+\.\d+\.\d+-bin$' |
+        Sort-Object { [version]($_.Name -replace '^poppler-|-bin$', '') } -Descending
+    $candidates = @($versioned | ForEach-Object FullName) + @(
+        Join-Path $staging 'poppler-winget-bin'
+        Join-Path $staging 'poppler-download-bin'
+        Join-Path $staging 'poppler-pdf24-bin'
+    )
+    foreach ($candidate in $candidates) {
+        if (& $hasBundle $candidate) { return $candidate }
+    }
+}
+
+function Get-SyncMachinePathPlan {
+    param($Policy, $Context, [string[]]$UserEntries = @(), [string[]]$MachineEntries = @())
+
+    $planArgs = @{ UserEntries = $UserEntries; MachineEntries = $MachineEntries; Policy = $Policy; Context = $Context }
+    $plan = Get-MachinePathPlan @planArgs
+    $directories = @(Get-MachineEffectivePathDirectories -Plan $plan -CurrentMachineEntry $MachineEntries -Context $Context)
+    $staged = Find-StagedPopplerBin -UserProfilePath $Context.UserHome -PathDirectories $directories
+    if ($staged) {
+        $planArgs.Policy = $Policy.PSObject.Copy()
+        $planArgs.Policy.RequiredUserEntries = @($Policy.RequiredUserEntries) + $staged
+        $plan = Get-MachinePathPlan @planArgs
+    }
+    $plan | Add-Member -NotePropertyName StagedPopplerBin -NotePropertyValue $staged -PassThru
+}
+
 # Build concurrency honours the host's machine profile (Config/machine-profiles/<host>.json buildPolicy.maxNativeBuildJobs);
 # the NUC and dtm-work cap native builds at two jobs, and a fleet-wide constant would override that.
 $profileDirs = @((Join-Path $machinePathDir '..\..\..\Config\machine-profiles'), 'C:\codedev\PC-AI\Config\machine-profiles') | Where-Object { Test-Path -LiteralPath $_ -PathType Container } | ForEach-Object { (Resolve-Path -LiteralPath $_).Path }
@@ -51,10 +98,11 @@ if ($DryRun) {
     $plannedCargoHome = if (Test-Path -LiteralPath 'T:\RustCache') { 'T:\RustCache\cargo-home' } else { Join-Path $UserHomeReal '.cargo' }
     $dryContext = Get-MachinePathContext -CargoHome $plannedCargoHome
     $dryPolicy = Read-MachinePathPolicy -Path (Join-Path $machinePathDir 'machine-path.policy.json') -Context $dryContext
-    $dryPlan = Get-MachinePathPlan -UserEntries (Get-MachinePathRegistry -Scope User).Entries -MachineEntries (Get-MachinePathRegistry -Scope Machine).Entries -Policy $dryPolicy -Context $dryContext
+    $dryPlan = Get-SyncMachinePathPlan -UserEntries (Get-MachinePathRegistry -Scope User).Entries -MachineEntries (Get-MachinePathRegistry -Scope Machine).Entries -Policy $dryPolicy -Context $dryContext
     "Dry run for $($env:COMPUTERNAME): nothing is written."
     "  CARGO_HOME would be $plannedCargoHome; build jobs would be $buildJobs"
     "  user PATH: $((Get-MachinePathRegistry -Scope User).Entries.Count) -> $($dryPlan.UserEntries.Count) entries"
+    if ($dryPlan.StagedPopplerBin) { "  add staged Poppler: $($dryPlan.StagedPopplerBin)" }
     foreach ($r in ($dryPlan.Removed | Where-Object Scope -eq 'User')) { "    remove $($r.Entry) ($($r.Reason))" }
     '  not evaluated in a dry run: HKCU backup and environment values, PowerToys keys, link and shim repair.'
     return
@@ -226,7 +274,7 @@ foreach ($ensureDir in @(
     New-Item -ItemType Directory -Force -Path $ensureDir | Out-Null
 }
 $pathPolicy = Read-MachinePathPolicy -Path (Join-Path $machinePathDir 'machine-path.policy.json') -Context $pathContext
-$pathPlan = Get-MachinePathPlan -UserEntries (Get-MachinePathRegistry -Scope User).Entries -MachineEntries (Get-MachinePathRegistry -Scope Machine).Entries -Policy $pathPolicy -Context $pathContext
+$pathPlan = Get-SyncMachinePathPlan -UserEntries (Get-MachinePathRegistry -Scope User).Entries -MachineEntries (Get-MachinePathRegistry -Scope Machine).Entries -Policy $pathPolicy -Context $pathContext
 $removedUserPaths = [System.Collections.Generic.List[string]]::new()
 foreach ($r in ($pathPlan.Removed | Where-Object Scope -eq 'User')) { $removedUserPaths.Add("$($r.Entry) ($($r.Reason))") }
 $cleanUserPath = $pathPlan.UserEntries
@@ -346,15 +394,7 @@ if ((Test-Path -LiteralPath $cargoBinDir) -and ([IO.Path]::GetPathRoot((Get-Item
     }
 }
 
-# Ensure pdf-tools (pdftoppm.exe, pdftotext.exe) and uv/uvx/uvw hardlinks exist
-foreach ($pdfExe in @('pdftoppm.exe','pdftotext.exe')) {
-    $src = Join-Path $UserHomeReal "bin\pdf-tools\poppler-25.07.0-bin\$pdfExe"
-    $dst = Join-Path $UserHomeReal "bin\$pdfExe"
-    if ((Test-Path -LiteralPath $src) -and -not (Test-Path -LiteralPath $dst)) {
-        New-Item -ItemType HardLink -Path $dst -Target $src | Out-Null
-        $repairedLinks.Add("Restored pdf-tools hardlink: $dst")
-    }
-}
+# Ensure uv/uvx/uvw hardlinks exist.
 foreach ($u in @('uv.exe','uvx.exe','uvw.exe')) {
     $src = Join-Path $UserHomeReal "bin\$u"
     $dst = Join-Path $UserHomeReal ".local\bin\$u"

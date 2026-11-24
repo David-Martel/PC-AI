@@ -3,7 +3,7 @@
 //! Reads only the header of a GGUF file to extract the fields needed for VRAM
 //! estimation. Never reads tensor data.
 //!
-//! Three entry points share one bounded reader:
+//! Four entry points share one bounded reader:
 //!
 //! - [`read_gguf_meta_from`] stops after the key-value metadata and estimates
 //!   the weight size from the architecture dimensions and `general.file_type`.
@@ -16,6 +16,10 @@
 //!   upstream llama.cpp does (`ggml/src/gguf.cpp`). A tensor whose type this
 //!   module does not know is an error, never a size of zero. The readiness
 //!   check does not use it yet.
+//! - [`validate_gguf_layout_from`] checks the declared tensor offsets, the
+//!   alignment and the file extent the way upstream's `gguf_init_from_reader`
+//!   does, against the length of the file. It reads the header only. The
+//!   readiness check does not call it yet either: see its documentation.
 
 use std::io::{self, Read};
 use std::path::Path;
@@ -570,6 +574,97 @@ pub enum GgufTensorError {
     },
 }
 
+/// The declared tensor layout of a GGUF file does not match what upstream accepts.
+///
+/// Returned (wrapped in [`anyhow::Error`]) by [`validate_gguf_layout`] and
+/// [`validate_gguf_layout_from`]; recover it with
+/// `err.downcast_ref::<GgufLayoutError>()`. The checks and their order mirror
+/// `gguf_init_from_reader` in llama.cpp `ggml/src/gguf.cpp`; the line numbers on
+/// each variant are for commit `f4f6f2e7` (b12646).
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[non_exhaustive]
+pub enum GgufLayoutError {
+    /// `general.alignment` is present but is not a `UINT32` (`gguf.cpp:604-610`).
+    #[error("key 'general.alignment' must be of type UINT32 but has GGUF value type {type_id}")]
+    AlignmentKeyType {
+        /// The raw GGUF value type id found.
+        type_id: u32,
+    },
+    /// `general.alignment` appears more than once. Upstream rejects a duplicate of any key.
+    #[error("key 'general.alignment' appears more than once")]
+    DuplicateAlignment,
+    /// The alignment is zero or not a power of two (`gguf.cpp:614-618`).
+    #[error("alignment {alignment} is not a power of 2")]
+    InvalidAlignment {
+        /// The declared alignment.
+        alignment: u32,
+    },
+    /// A tensor's declared offset is not the end of the previous tensor plus padding (`gguf.cpp:782-788`).
+    ///
+    /// This is the error upstream gives for a file written with a different
+    /// block layout than the reader expects: every tensor after the first
+    /// mis-sized one is displaced.
+    #[error("tensor '{name}' has offset {declared}, expected {expected}")]
+    TensorOffsetMismatch {
+        /// Zero-based position of the tensor in the header.
+        index: u64,
+        /// The tensor name.
+        name: String,
+        /// The offset the file declares, relative to the data section.
+        declared: u64,
+        /// The previous tensor's offset plus its size padded to the alignment.
+        expected: u64,
+    },
+    /// A tensor's padded size, running total or absolute end overflows `u64`.
+    #[error("tensor '{name}' size or file offset overflows u64")]
+    TensorSizeOverflow {
+        /// Zero-based position of the tensor in the header.
+        index: u64,
+        /// The tensor name.
+        name: String,
+    },
+    /// The padded start of the data section lies beyond the end of the file (`gguf.cpp:768-773`).
+    #[error("data section starts at byte {data_offset}, past the end of the {file_len}-byte file")]
+    DataSectionPastEof {
+        /// Absolute offset of the data section.
+        data_offset: u64,
+        /// The length of the file.
+        file_len: u64,
+    },
+    /// The last tensor ends after the end of the file: the file is truncated.
+    ///
+    /// Upstream notices only when it reads the data blob (`gguf.cpp:872`); the
+    /// check here is on the last tensor's own end, without its trailing padding.
+    #[error("tensor '{name}' ends at byte {end}, past the end of the {file_len}-byte file")]
+    TensorPastEof {
+        /// Zero-based position of the tensor in the header.
+        index: u64,
+        /// The tensor name.
+        name: String,
+        /// Absolute offset one past the last byte of the tensor data.
+        end: u64,
+        /// The length of the file.
+        file_len: u64,
+    },
+}
+
+/// Where the tensor data of a GGUF file starts and how large it is, as validated.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct GgufDataLayout {
+    /// The effective alignment: `general.alignment`, or [`GGUF_DEFAULT_ALIGNMENT`].
+    pub alignment: u32,
+    /// Number of tensors the header declares.
+    pub tensor_count: u64,
+    /// Bytes of header: magic, metadata and tensor infos.
+    pub header_bytes: u64,
+    /// Absolute offset of the data section: the header padded to `alignment`.
+    pub data_offset: u64,
+    /// Size of the data section as upstream computes it, each tensor padded to `alignment`.
+    pub data_bytes: u64,
+    /// The file length the extent was checked against.
+    pub file_len: u64,
+}
+
 /// The metadata of a GGUF file and whether the model uses NVFP4.
 #[derive(Debug, Clone, Serialize)]
 pub struct GgufHeader {
@@ -666,6 +761,12 @@ fn add_kv_and_overhead_mb(weight_mb: u64, meta: &GgufModelMeta, context_length: 
 // -- GGUF binary parser -----------------------------------------------------------
 
 const GGUF_MAGIC: &[u8; 4] = b"GGUF";
+
+/// The metadata key that sets the alignment of the data section (`GGUF_KEY_GENERAL_ALIGNMENT`).
+const GGUF_KEY_ALIGNMENT: &str = "general.alignment";
+
+/// The alignment when `general.alignment` is absent (`GGUF_DEFAULT_ALIGNMENT`).
+pub const GGUF_DEFAULT_ALIGNMENT: u32 = 32;
 
 /// GGUF metadata value types (subset we need for parsing).
 #[derive(Debug, Clone, Copy)]
@@ -769,7 +870,7 @@ pub fn read_gguf_meta(path: &Path) -> Result<GgufModelMeta> {
 /// # Ok::<(), anyhow::Error>(())
 /// ```
 pub fn read_gguf_meta_from<R: Read>(reader: R) -> Result<GgufModelMeta> {
-    with_budget(reader, |reader| parse_header(reader).map(|(meta, _tensor_count)| meta))
+    with_budget(reader, |reader| parse_header(reader).map(|parsed| parsed.meta))
 }
 
 /// Read GGUF header metadata and whether the model uses NVFP4, from a file path.
@@ -822,7 +923,7 @@ pub fn read_gguf_header(path: &Path) -> Result<GgufHeader> {
 /// ```
 pub fn read_gguf_header_from<R: Read>(reader: R) -> Result<GgufHeader> {
     with_budget(reader, |reader| {
-        let (meta, tensor_count) = parse_header(&mut *reader)?;
+        let ParsedHeader { meta, tensor_count, .. } = parse_header(&mut *reader)?;
         let uses_nvfp4 = matches!(meta.file_type, GgufFileType::Nvfp4)
             || scan_for_nvfp4(&mut *reader, tensor_count.min(MAX_TENSOR_COUNT)).unwrap_or(false);
         Ok(GgufHeader { meta, uses_nvfp4 })
@@ -890,7 +991,7 @@ pub fn read_gguf_layout(path: &Path) -> Result<GgufLayout> {
 /// ```
 pub fn read_gguf_layout_from<R: Read>(reader: R) -> Result<GgufLayout> {
     with_budget(reader, |reader| {
-        let (meta, tensor_count) = parse_header(&mut *reader)?;
+        let ParsedHeader { meta, tensor_count, .. } = parse_header(&mut *reader)?;
         if tensor_count > MAX_TENSOR_COUNT {
             return Err(GgufLimitError::TooManyTensors {
                 count: tensor_count,
@@ -907,6 +1008,204 @@ pub fn read_gguf_layout_from<R: Read>(reader: R) -> Result<GgufLayout> {
             header_bytes: reader.consumed(),
         })
     })
+}
+
+/// Validate the declared tensor layout of a GGUF file against its length.
+///
+/// A thin wrapper over [`validate_gguf_layout_from`] that opens `path` and takes
+/// the file length from the file's metadata. Reads the header only; never reads
+/// tensor data.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened or measured, or for any reason
+/// [`validate_gguf_layout_from`] fails.
+///
+/// # Panics
+///
+/// Never; see [`read_gguf_meta`].
+pub fn validate_gguf_layout(path: &Path) -> Result<GgufDataLayout> {
+    let file = std::fs::File::open(path).with_context(|| format!("Cannot open GGUF file: {}", path.display()))?;
+    let file_len = file
+        .metadata()
+        .with_context(|| format!("Cannot read the length of GGUF file: {}", path.display()))?
+        .len();
+    validate_gguf_layout_from(io::BufReader::new(file), file_len)
+}
+
+/// Validate the declared tensor layout of a GGUF stream of `file_len` bytes.
+///
+/// Mirrors `gguf_init_from_reader` in llama.cpp `ggml/src/gguf.cpp` (commit
+/// `f4f6f2e7`, b12646), in its order:
+///
+/// 1. `general.alignment` must be a `UINT32` (default [`GGUF_DEFAULT_ALIGNMENT`]
+///    when absent) and a power of two; zero is not (`gguf.cpp:604-618`).
+/// 2. Every tensor-info record is read and sized as [`read_gguf_layout_from`]
+///    sizes it, so an unknown type or invalid shape is the same [`GgufTensorError`].
+/// 3. The data section starts at the end of the header padded up to the
+///    alignment, and must not start past `file_len` (`gguf.cpp:768-775`). A
+///    header with no tensors is not padded, as upstream.
+/// 4. The first tensor's declared offset is 0 and each next offset is the
+///    previous offset plus the previous size padded to the alignment
+///    (`gguf.cpp:782-805`). Offsets are relative to the data section.
+/// 5. The last tensor, which ends furthest because the offsets only grow, must
+///    end within `file_len`.
+///
+/// Step 5 is the one place this differs from upstream: upstream reads the whole
+/// padded data section as one blob (`gguf.cpp:872`) and so also needs the
+/// padding after the last tensor, while a memory-mapped load needs only the
+/// tensor. A file missing only that trailing padding is accepted here.
+///
+/// The offsets are checked while the tensor infos stream by, so a file with two
+/// defects reports the first one in tensor order, where upstream would first
+/// report a defect in any tensor's shape or type.
+///
+/// Reads at most [`MAX_METADATA_BYTES`], never tensor data, and holds one tensor
+/// name at a time. On success the returned [`GgufDataLayout`] says where the data
+/// section starts and how large it is.
+///
+/// # Errors
+///
+/// Everything [`read_gguf_layout_from`] rejects, plus a [`GgufLayoutError`],
+/// recoverable with `err.downcast_ref::<GgufLayoutError>()`.
+///
+/// # Panics
+///
+/// Never; see [`read_gguf_meta`].
+///
+/// # Examples
+///
+/// ```
+/// use pcai_core_lib::preflight::gguf::{validate_gguf_layout_from, GgufLayoutError};
+///
+/// // One F32 tensor of 8 values (32 bytes) named "w", declared at offset 0.
+/// let mut bytes = b"GGUF".to_vec();
+/// bytes.extend_from_slice(&3_u32.to_le_bytes()); // version
+/// bytes.extend_from_slice(&1_u64.to_le_bytes()); // tensor count
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // metadata entries
+/// bytes.extend_from_slice(&1_u64.to_le_bytes()); // name length
+/// bytes.push(b'w'); // name
+/// bytes.extend_from_slice(&1_u32.to_le_bytes()); // dimensions
+/// bytes.extend_from_slice(&8_u64.to_le_bytes()); // extent
+/// bytes.extend_from_slice(&0_u32.to_le_bytes()); // F32
+/// bytes.extend_from_slice(&0_u64.to_le_bytes()); // data offset
+/// let header_len = bytes.len() as u64;
+/// let data_offset = header_len.next_multiple_of(32);
+///
+/// // With the data present the layout is valid...
+/// let file_len = data_offset + 32;
+/// let layout = validate_gguf_layout_from(bytes.as_slice(), file_len)?;
+/// assert_eq!(layout.data_offset, data_offset);
+///
+/// // ...and a file cut short is not.
+/// let err = validate_gguf_layout_from(bytes.as_slice(), file_len - 1).unwrap_err();
+/// assert!(matches!(err.downcast_ref(), Some(GgufLayoutError::TensorPastEof { .. })));
+/// # Ok::<(), anyhow::Error>(())
+/// ```
+pub fn validate_gguf_layout_from<R: Read>(reader: R, file_len: u64) -> Result<GgufDataLayout> {
+    with_budget(reader, |reader| {
+        let ParsedHeader {
+            tensor_count,
+            alignment,
+            ..
+        } = parse_header(&mut *reader)?;
+        let alignment = resolve_alignment(alignment)?;
+        if tensor_count > MAX_TENSOR_COUNT {
+            return Err(GgufLimitError::TooManyTensors {
+                count: tensor_count,
+                max: MAX_TENSOR_COUNT,
+            }
+            .into());
+        }
+        let align = u64::from(alignment);
+
+        // `expected` is upstream's running `ctx->size`: the offset the next tensor must declare.
+        let mut expected = 0_u64;
+        // The last tensor: its index, name and end relative to the data section.
+        let mut last: Option<(u64, String, u64)> = None;
+        for index in 0..tensor_count {
+            let record = read_tensor_record(&mut *reader, index, true)?;
+            let name = record.name.unwrap_or_default();
+            let ggml_type = GgmlType::from_id(record.type_id).ok_or(GgufTensorError::UnknownType {
+                index,
+                id: record.type_id,
+            })?;
+            let size = ggml_type
+                .tensor_byte_size(&record.dims[..record.n_dims])
+                .map_err(|source| GgufTensorError::InvalidShape { index, source })?;
+            if record.data_offset != expected {
+                return Err(GgufLayoutError::TensorOffsetMismatch {
+                    index,
+                    name,
+                    declared: record.data_offset,
+                    expected,
+                }
+                .into());
+            }
+            let overflow = || GgufLayoutError::TensorSizeOverflow {
+                index,
+                name: name.clone(),
+            };
+            let padded = pad_to(size, align).ok_or_else(overflow)?;
+            let end = expected.checked_add(size).ok_or_else(overflow)?;
+            expected = expected.checked_add(padded).ok_or_else(overflow)?;
+            last = Some((index, name, end));
+        }
+
+        let header_bytes = reader.consumed();
+        // Upstream aligns the data section only when there are tensors.
+        let data_offset = if tensor_count > 0 {
+            pad_to(header_bytes, align).unwrap_or(u64::MAX)
+        } else {
+            header_bytes
+        };
+        if data_offset > file_len {
+            return Err(GgufLayoutError::DataSectionPastEof { data_offset, file_len }.into());
+        }
+        if let Some((index, name, end_in_data)) = last {
+            let Some(end) = data_offset.checked_add(end_in_data) else {
+                return Err(GgufLayoutError::TensorSizeOverflow { index, name }.into());
+            };
+            if end > file_len {
+                return Err(GgufLayoutError::TensorPastEof {
+                    index,
+                    name,
+                    end,
+                    file_len,
+                }
+                .into());
+            }
+        }
+        Ok(GgufDataLayout {
+            alignment,
+            tensor_count,
+            header_bytes,
+            data_offset,
+            data_bytes: expected,
+            file_len,
+        })
+    })
+}
+
+/// The alignment `general.alignment` selects, checked as upstream checks it.
+fn resolve_alignment(key: AlignmentKey) -> Result<u32, GgufLayoutError> {
+    let alignment = match key {
+        AlignmentKey::Absent => GGUF_DEFAULT_ALIGNMENT,
+        AlignmentKey::U32(value) => value,
+        AlignmentKey::WrongType { type_id } => return Err(GgufLayoutError::AlignmentKeyType { type_id }),
+        AlignmentKey::Duplicate => return Err(GgufLayoutError::DuplicateAlignment),
+    };
+    if alignment.is_power_of_two() {
+        Ok(alignment)
+    } else {
+        Err(GgufLayoutError::InvalidAlignment { alignment })
+    }
+}
+
+/// `GGML_PAD(n, align)`: `n` rounded up to a multiple of the power-of-two `align`, or `None` on overflow.
+fn pad_to(n: u64, align: u64) -> Option<u64> {
+    debug_assert!(align.is_power_of_two());
+    Some(n.checked_add(align - 1)? & !(align - 1))
 }
 
 /// Run `parse` over `reader` limited to [`MAX_METADATA_BYTES`], and report a spent budget as a typed error.
@@ -977,10 +1276,32 @@ impl<R: Read> Read for BudgetReader<R> {
     }
 }
 
+/// How `general.alignment` appeared in the key-value metadata.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AlignmentKey {
+    /// The key is absent: upstream's default alignment applies.
+    Absent,
+    /// A `UINT32` value, the only type upstream accepts. Not yet range checked.
+    U32(u32),
+    /// The key is present with another value type.
+    WrongType {
+        /// The raw GGUF value type id.
+        type_id: u32,
+    },
+    /// The key appears more than once, which upstream rejects for every key.
+    Duplicate,
+}
+
+/// What [`parse_header`] reads: the metadata, the tensor count and the alignment key.
+struct ParsedHeader {
+    meta: GgufModelMeta,
+    tensor_count: u64,
+    alignment: AlignmentKey,
+}
+
 /// Parse the magic, counts and key-value metadata from an already budgeted
-/// stream. Returns the metadata and the declared tensor count; the reader is
-/// left at the start of the tensor-info section.
-fn parse_header(mut reader: impl Read) -> Result<(GgufModelMeta, u64)> {
+/// stream. The reader is left at the start of the tensor-info section.
+fn parse_header(mut reader: impl Read) -> Result<ParsedHeader> {
     // Magic
     let mut magic = [0u8; 4];
     reader.read_exact(&mut magic).context("Failed to read GGUF magic")?;
@@ -1013,6 +1334,7 @@ fn parse_header(mut reader: impl Read) -> Result<(GgufModelMeta, u64)> {
     let mut context_length: Option<u64> = None;
     let mut embedding_length: Option<u64> = None;
     let mut block_count: Option<u64> = None;
+    let mut alignment = AlignmentKey::Absent;
 
     for _ in 0..kv_count {
         let key = read_gguf_string(&mut reader)?;
@@ -1025,6 +1347,19 @@ fn parse_header(mut reader: impl Read) -> Result<(GgufModelMeta, u64)> {
             }
             "general.file_type" => {
                 file_type_raw = read_gguf_typed_u32(&mut reader, vtype)?;
+            }
+            GGUF_KEY_ALIGNMENT => {
+                let found = if let Some(GgufValueType::Uint32) = vtype {
+                    AlignmentKey::U32(read_u32_le(&mut reader)?)
+                } else {
+                    skip_gguf_value_by_type(&mut reader, vtype, 0)?;
+                    AlignmentKey::WrongType { type_id: vtype_raw }
+                };
+                alignment = if alignment == AlignmentKey::Absent {
+                    found
+                } else {
+                    AlignmentKey::Duplicate
+                };
             }
             k if k.ends_with(".context_length") => {
                 context_length = read_gguf_typed_u64(&mut reader, vtype)?;
@@ -1059,25 +1394,40 @@ fn parse_header(mut reader: impl Read) -> Result<(GgufModelMeta, u64)> {
         embedding_length: emb,
         block_count: blocks,
     };
-    Ok((meta, tensor_count))
+    Ok(ParsedHeader {
+        meta,
+        tensor_count,
+        alignment,
+    })
 }
 
-/// One tensor-info record, with the name skipped and the data offset ignored.
+/// One tensor-info record.
 struct TensorRecord {
+    /// The tensor name, held only when the caller asked for it.
+    name: Option<String>,
     /// Extents, innermost first; only the first `n_dims` are meaningful.
     dims: [u64; MAX_TENSOR_DIMS],
     n_dims: usize,
     /// The raw ggml type id, not validated.
     type_id: u32,
+    /// The declared offset of the tensor data, relative to the data section.
+    data_offset: u64,
 }
 
 /// Read one tensor-info record.
 ///
-/// Nothing is allocated from a name length: the name is skipped, and at most
+/// The name is skipped unless `keep_name` is set, so the readers that never
+/// report a name allocate nothing from a name length. A kept name is capped at
+/// [`MAX_STRING_LEN`] and grows only with the bytes actually read. At most
 /// [`MAX_TENSOR_DIMS`] extents are held. A dimension count above the maximum is
 /// rejected before any extent is read, so a hostile count reads nothing more.
-fn read_tensor_record(r: &mut impl Read, index: u64) -> Result<TensorRecord> {
-    skip_gguf_string(r)?;
+fn read_tensor_record(r: &mut impl Read, index: u64, keep_name: bool) -> Result<TensorRecord> {
+    let name = if keep_name {
+        Some(read_gguf_string(r)?)
+    } else {
+        skip_gguf_string(r)?;
+        None
+    };
     let n_dims = read_u32_le(r)?;
     let n_dims = usize::try_from(n_dims)
         .ok()
@@ -1093,8 +1443,14 @@ fn read_tensor_record(r: &mut impl Read, index: u64) -> Result<TensorRecord> {
         *dim = read_u64_le(r)?;
     }
     let type_id = read_u32_le(r)?;
-    let _data_offset = read_u64_le(r)?;
-    Ok(TensorRecord { dims, n_dims, type_id })
+    let data_offset = read_u64_le(r)?;
+    Ok(TensorRecord {
+        name,
+        dims,
+        n_dims,
+        type_id,
+        data_offset,
+    })
 }
 
 /// Look through up to `tensor_count` tensor-info records for one of the NVFP4 type.
@@ -1103,7 +1459,7 @@ fn read_tensor_record(r: &mut impl Read, index: u64) -> Result<TensorRecord> {
 /// passes: an unknown type id or an odd shape is not an error here.
 fn scan_for_nvfp4(r: &mut impl Read, tensor_count: u64) -> Result<bool> {
     for index in 0..tensor_count {
-        if GgmlType::from_id(read_tensor_record(r, index)?.type_id) == Some(GgmlType::Nvfp4) {
+        if GgmlType::from_id(read_tensor_record(r, index, false)?.type_id) == Some(GgmlType::Nvfp4) {
             return Ok(true);
         }
     }
@@ -1116,7 +1472,7 @@ fn read_tensor_bytes(r: &mut impl Read, tensor_count: u64) -> Result<(u64, u64)>
     let mut total = 0_u64;
     let mut nvfp4 = 0_u64;
     for index in 0..tensor_count {
-        let record = read_tensor_record(r, index)?;
+        let record = read_tensor_record(r, index, false)?;
         let ggml_type = GgmlType::from_id(record.type_id).ok_or(GgufTensorError::UnknownType {
             index,
             id: record.type_id,

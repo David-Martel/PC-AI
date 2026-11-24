@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 LF, selector includes contiguous rationale and attributes through its final newline",
+  "base_commit": "1b0becefa09519ffcd6e2aaa2b66db7e4141ab36",
+  "reviewed_commit": "0b73f5cf2ed97cf26a5f9bc3430f0d50159e7a3c",
+  "verification": "Isolated Windows parser harness compiled exact sources under Rust 1.99.1. 29 passed and one hardware fixture selector ignored.",
+  "reviews": [
+    {
+      "selector": "gguf_layout::an_absolute_tensor_end_that_overflows_u64_is_a_typed_error",
+      "disposition": "keep",
+      "reviewer": "codex-p1gen9-gguf-verification",
+      "reviewer_type": "independent source agent",
+      "reviewed_utc": "2026-11-24T22:59:12.2494053Z",
+      "rationale": "The prior addition accepted the synthetic overflowing absolute offset. The current parser returns the existing typed overflow.",
+      "selector_sha256": "9240c20631891bd2afcc5da6309be3c1f6736597dc3fd6e46c29dc293abc6ee7",
+      "source_files": [
+        {
+          "path": "tests/gguf_layout.rs",
+          "sha256": "96b08bea867ea48523702e35e3f68eee39db8313cf9a927ee1f0af7a1a8bdbec"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "084d0d390ffb2a6d07d4533f7019c889806f6382752c5938e0565e117f94cbfb"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_layout::temporary_truncated_copies_are_independent_and_owned",
+      "disposition": "keep",
+      "reviewer": "codex-p1gen9-gguf-verification",
+      "reviewer_type": "independent source agent",
+      "reviewed_utc": "2026-11-24T22:59:12.2534755Z",
+      "rationale": "The prior shared temporary name failed two-copy independence. The current unique handles preserve both expected prefixes and their source.",
+      "selector_sha256": "1b914bc5dda2c97ebf0266e4a0dc85b83f64ca975b1be7bb868b52572fe7fdf6",
+      "source_files": [
+        {
+          "path": "tests/gguf_layout.rs",
+          "sha256": "96b08bea867ea48523702e35e3f68eee39db8313cf9a927ee1f0af7a1a8bdbec"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "084d0d390ffb2a6d07d4533f7019c889806f6382752c5938e0565e117f94cbfb"
+        }
+      ]
+    },
+    {
+      "selector": "gguf_layout::real_gguf_files",
+      "disposition": "unreviewed",
+      "reviewer": "codex-p1gen9-gguf-verification",
+      "reviewer_type": "independent source agent",
+      "reviewed_utc": "2026-11-24T22:59:12.2544923Z",
+      "rationale": "Use hash-identified real valid and invalid models and capture selected case output. This run explicitly left physical model fixtures unexecuted.",
+      "selector_sha256": "fc3c2886963efb6dbc38877b2083387dea85d4160932f6a5e1294a5b4d368e07",
+      "source_files": [
+        {
+          "path": "tests/gguf_layout.rs",
+          "sha256": "96b08bea867ea48523702e35e3f68eee39db8313cf9a927ee1f0af7a1a8bdbec"
+        },
+        {
+          "path": "src/preflight/gguf.rs",
+          "sha256": "084d0d390ffb2a6d07d4533f7019c889806f6382752c5938e0565e117f94cbfb"
+        }
+      ]
+    }
+  ]
+}

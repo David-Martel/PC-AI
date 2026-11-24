@@ -70,10 +70,12 @@ pub enum PreflightError {
     /// The model uses NVFP4, and NVFP4 readiness is deferred.
     ///
     /// The GGUF reader sizes NVFP4 tensors from the upstream block layout, but
-    /// does not yet validate the declared tensor offsets, alignment or the
-    /// file extent. A file written with a different NVFP4 block layout, which
-    /// llama.cpp refuses to load, sums to a plausible size, so an estimate
-    /// could report `go` for a model that cannot load.
+    /// readiness does not yet validate the declared tensor offsets, alignment
+    /// or the file extent. A file written with a different NVFP4 block layout,
+    /// which llama.cpp refuses to load, sums to a plausible size, so an
+    /// estimate could report `go` for a model that cannot load. The validator
+    /// exists ([`gguf::validate_gguf_layout`]) but is not wired in here: that,
+    /// and lifting this gate, are separate changes.
     #[error(
         "NVFP4 model not assessed: readiness for NVFP4 is deferred until tensor offsets, alignment and file extent \
          are validated, because a plausible size estimate can describe a file that llama.cpp refuses to load"

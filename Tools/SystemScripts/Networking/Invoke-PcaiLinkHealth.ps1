@@ -209,10 +209,11 @@ function Get-PcaiIpv4HostRoute {
     [CmdletBinding()]
     param([int[]]$InterfaceIndex)
     if (-not $IsWindows -or -not $InterfaceIndex) { return , @() }
-    $routes = foreach ($i in $InterfaceIndex) {
-        Get-NetRoute -InterfaceIndex $i -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-            ForEach-Object { [pscustomobject]@{ InterfaceIndex = [int]$_.ifIndex; DestinationPrefix = [string]$_.DestinationPrefix; NextHop = [string]$_.NextHop } }
-    }
+    # A provider-side interface filter reports a missing row as an error. Read
+    # successfully first so the comparison can distinguish empty from unavailable.
+    $routes = Get-NetRoute -AddressFamily IPv4 -ErrorAction Stop |
+        Where-Object { [int]$_.ifIndex -in $InterfaceIndex } |
+        ForEach-Object { [pscustomobject]@{ InterfaceIndex = [int]$_.ifIndex; DestinationPrefix = [string]$_.DestinationPrefix; NextHop = [string]$_.NextHop } }
     return , @($routes)
 }
 

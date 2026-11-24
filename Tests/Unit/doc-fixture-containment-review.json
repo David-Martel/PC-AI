@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-24T22:58:16.0833967Z",
+  "reviewer": "codex-p1gen9-doc-fixture-review",
+  "reviewerType": "independent source agent",
+  "sourceBaseline": "8a6c62f2784bb034f1fbb1e06ec6450a83810f77",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent.",
+  "sourceBindings": {
+    "Tests/Unit/DocAccuracy.Tests.ps1": "917084b41b798f9b1bd66b65d22e066f7c9b958548da574addc97ffdfaf2abfb"
+  },
+  "selectors": [
+    {
+      "selector": "refuses to write, append or edit a canary outside TestDrive",
+      "source": "Tests/Unit/DocAccuracy.Tests.ps1",
+      "sha256": "d182c8039286317282c8946be70f0c3b01b802dbbcc8b97369f82a5682343aad",
+      "codeUnderTest": "Tests/Unit/DocAccuracy.Tests.ps1",
+      "disposition": "keep",
+      "reviewScope": "All three write operations reject a safe canary outside TestDrive and preserve its original bytes."
+    },
+    {
+      "selector": "refuses a path that climbs out of TestDrive with ..",
+      "source": "Tests/Unit/DocAccuracy.Tests.ps1",
+      "sha256": "fadabcf7cd85099d18b1ec7d28bdf67aafb35c945e443df8fd0ae05309318328",
+      "codeUnderTest": "Tests/Unit/DocAccuracy.Tests.ps1",
+      "disposition": "keep",
+      "reviewScope": "A normalized parent traversal reaches a safe sibling path and is rejected before writing."
+    },
+    {
+      "selector": "requires a fully qualified root before resolving a write destination",
+      "source": "Tests/Unit/DocAccuracy.Tests.ps1",
+      "sha256": "ada07658b8f4a06d07d425c7bac0f85bb0a17805d219095b13e61cfc657de831",
+      "codeUnderTest": "Tests/Unit/DocAccuracy.Tests.ps1",
+      "disposition": "keep",
+      "reviewScope": "The resolver rejects relative roots without attempting a file write and the Windows drive-relative mutation fails this case."
+    },
+    {
+      "selector": "writes a destination inside TestDrive (positive control)",
+      "source": "Tests/Unit/DocAccuracy.Tests.ps1",
+      "sha256": "101ed16e99350fe2ddc167de7d7d4aa3ca144d01c21f365b751f43345af46196",
+      "codeUnderTest": "Tests/Unit/DocAccuracy.Tests.ps1",
+      "disposition": "keep",
+      "reviewScope": "A nested path within TestDrive writes the expected bytes. Valid fixtures still work."
+    }
+  ]
+}

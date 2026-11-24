@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "9b119292cfe0368de00b1bc21d2f1230d3496c75",
+  "hashConvention": "SHA-256 of UTF-8 LF source and exact Pester It AST extent.",
+  "sourceBindings": {
+    "Build.ps1": "35c99916d5ba1bb75cae5ed1c6c30636f34347829f3f0a49aab69b3aa5de7dec",
+    "Tests/Unit/FunctionGemmaPreparation.Tests.ps1": "58901af89df1ec8b246f685ff6294e7c407f2327d8639bd069429c85bbd840ca",
+    ".github/workflows/functiongemma-runtime.yml": "30231668f523e4bc4d0cb3274272a38d2aad6c2b1653f55ea26405f9dd3d4102",
+    "Deploy/rust-functiongemma-runtime/Cargo.toml": "7529f15ed56f54b0ac0e360e4dd10522d59bb01621a61b985bb370c446099758",
+    "docs/functiongemma-runtime-validation.md": "f3a1c3e77e244f4857649482d9f3cd94622a1e9907319a2fec133e1f0a48a1eb"
+  },
+  "selectors": [
+    {
+      "selector": "uses <Project> <Mode> features for both builds and tests",
+      "source": "Tests/Unit/FunctionGemmaPreparation.Tests.ps1",
+      "sha256": "9f1173ec90506c1a2cc98d78b9c42cfd24caaee2d07aca9f624d15f03740b930",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed"
+    }
+  ]
+}

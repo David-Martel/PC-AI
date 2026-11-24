@@ -37,6 +37,15 @@ Describe 'FunctionGemma runtime config' -Tag 'Unit', 'FunctionGemma', 'Portable'
         Test-Path -LiteralPath (Join-Path $resolvedModelPath 'model.safetensors') -PathType Leaf | Should -BeTrue
     }
 
+    # Protects: the shipped config leaves the HF Gemma3 profile opt-in.
+    # Detects: advertising the legacy int8 cache defaults under the incompatible HF profile.
+    # Needs: the tracked config JSON only. Breadcrumb: Config/pcai-functiongemma.json runtime.
+    It 'keeps the shipped runtime on the legacy profile and cache settings' {
+        $script:Config.runtime.router_model_profile | Should -BeNullOrEmpty
+        $script:Config.runtime.router_kv_cache | Should -BeTrue
+        $script:Config.runtime.router_kv_cache_quant | Should -BeExactly 'int8'
+    }
+
     It 'uses an existing tool schema path' {
         $toolsPath = $script:Config.runtime.tools_path
         $toolsPath | Should -Not -BeNullOrEmpty

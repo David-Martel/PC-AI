@@ -69,9 +69,10 @@ if ($ApplyArchive) {
 Import-Module (Join-Path $PSScriptRoot 'MachinePath.psm1') -Force
 
 $ctx = Get-MachinePathContext -UserHome $UserHome
-$policy = Read-MachinePathPolicy -Path $PolicyPath -Context $ctx
+$computerName = if ([string]::IsNullOrWhiteSpace($env:COMPUTERNAME)) { [Environment]::MachineName } else { $env:COMPUTERNAME }
+$policy = Read-MachinePathPolicy -Path $PolicyPath -Context $ctx -HostName $computerName
 if (-not $BackupDir) { $BackupDir = Join-Path $ctx.UserHome '.machine\backups\path' }
-$hostName = $env:COMPUTERNAME.ToLowerInvariant()
+$hostName = $computerName.ToLowerInvariant()
 $actions = [System.Collections.Generic.List[object]]::new()
 $sha12 = { param($p) ((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash).Substring(0, 12).ToLowerInvariant() }
 

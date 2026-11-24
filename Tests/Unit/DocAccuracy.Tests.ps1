@@ -63,6 +63,18 @@ $tree
 | ``ci.yml`` | PR | active |
 | ``release.yml`` | tag | disabled_manually |
 
+### Version Information
+
+``````powershell
+# a comment line inside the fence is not a heading
+.\Tools\Get-BuildVersion.ps1
+``````
+
+**Version Format:** ``{semver}[.{commits}]+{hash}[.dirty]``
+
+- Example: ``0.2.0.15+abc1234`` (15 commits since v0.2.0)
+- Example: ``0.2.0+abc1234`` (exactly at tag v0.2.0)
+
 ### pcai-inference Endpoints
 
 - Health check: ``GET http://127.0.0.1:8080/health``
@@ -83,7 +95,27 @@ $tree
         Write-FixtureFile $root 'Tools/b.ps1' "# script`n"
         Write-FixtureFile $root '.github/workflows/ci.yml' "name: CI`non: push`njobs: {}`n"
         Write-FixtureFile $root '.github/workflows/release.yml' "name: Release`non: push`njobs: {}`n"
-        Write-FixtureFile $root 'Native/pcai_core/Cargo.toml' "[workspace]`nmembers = [`n    `"pcai_one`",`n    `"pcai_two`",`n]`n"
+        Write-FixtureFile $root 'Native/pcai_core/Cargo.toml' "[workspace]`nmembers = [`n    `"pcai_one`",`n    `"pcai_two`",`n]`n`n[workspace.package]`nversion = `"0.2.0`"`n"
+        Write-FixtureFile $root 'docs/VERSIONING.md' @'
+# Versioning
+
+**Baseline version:** `0.2.0`
+
+**Version Format:** `{semver}[.{commits}]+{hash}[.dirty]`
+
+- Example: `0.2.0.3+abc1234.dirty`
+'@
+        Write-FixtureFile $root 'Tools/Get-BuildVersion.ps1' @'
+<#
+.DESCRIPTION
+    Version Format: {semver}[.{commits}]+{hash}[.dirty]
+    Example: 0.2.0.15+abc1234
+
+.EXAMPLE
+    .\Get-BuildVersion.ps1
+#>
+param()
+'@
         Write-FixtureFile $root 'Native/pcai_core/pcai_inference/src/http/mod.rs' @'
 fn router() {
     Router::new()
@@ -157,7 +189,7 @@ Describe 'documentation accuracy gate on the real repository' -Tag 'Unit', 'Port
 
     It 'ran every check and each one produced a pass entry or a finding' {
         $ids = @($script:Real.Report.checks | ForEach-Object id | Select-Object -Unique)
-        foreach ($id in 'build-components', 'rust-crates', 'workflows', 'endpoints', 'tool-schema', 'relative-links', 'module-exports', 'retired-hosts') {
+        foreach ($id in 'build-components', 'rust-crates', 'workflows', 'endpoints', 'tool-schema', 'relative-links', 'module-exports', 'retired-hosts', 'versioning') {
             $ids | Should -Contain $id
         }
         $script:Real.Report.schema_version | Should -Be 1
@@ -319,6 +351,67 @@ Describe 'documentation accuracy gate positive controls' -Tag 'Unit', 'Portable'
             $r = Invoke-Gate -Root $root -Check 'training-data'
             $r.Exit | Should -Be 1
             (Get-Findings $r 'training-data' 'fail').actual | Should -Match 'not_a_tool'
+        }
+    }
+
+    Context 'versioning' {
+        # Why: docs/VERSIONING.md is only true while the workspace version, the tags and the three places that document
+        # the build-version string agree. Before this check they disagreed (see the header example below) and nothing
+        # failed. Each control breaks one of those facts.
+        It 'fails when the workspace version is below the baseline' {
+            $root = New-DocFixture 'ver-below' { param($r) Edit-FixtureText $r 'Native/pcai_core/Cargo.toml' 'version = "0.2.0"' 'version = "0.1.0"' }
+            $r = Invoke-Gate -Root $root -Check 'versioning'
+            $r.Exit | Should -Be 1
+            (Get-Findings $r 'versioning' 'fail').claim | Should -Match 'not below the baseline 0\.2\.0'
+        }
+        It 'fails when the workspace version carries a pre-release suffix' {
+            $root = New-DocFixture 'ver-pre' { param($r) Edit-FixtureText $r 'Native/pcai_core/Cargo.toml' 'version = "0.2.0"' 'version = "0.3.0-dev"' }
+            $r = Invoke-Gate -Root $root -Check 'versioning'
+            $r.Exit | Should -Be 1
+            (Get-Findings $r 'versioning' 'fail').claim | Should -Match 'plain X\.Y\.Z'
+        }
+        It 'fails on the pre-policy Get-BuildVersion header, whose format and example the script never emitted' {
+            $root = New-DocFixture 'ver-header' {
+                param($r)
+                Edit-FixtureText $r 'Tools/Get-BuildVersion.ps1' 'Version Format: {semver}[.{commits}]+{hash}[.dirty]' 'Version Format: {semver}-{commits}+{hash}.{timestamp}'
+                Edit-FixtureText $r 'Tools/Get-BuildVersion.ps1' 'Example: 0.2.0.15+abc1234' 'Example: 0.2.0-15+abc1234.20260201T143000Z'
+            }
+            $r = Invoke-Gate -Root $root -Check 'versioning'
+            $r.Exit | Should -Be 1
+            $f = @(Get-Findings $r 'versioning' 'fail')
+            $f.Count | Should -Be 2
+            $f.file | Should -Be @('Tools/Get-BuildVersion.ps1', 'Tools/Get-BuildVersion.ps1')
+            $f.actual | Should -Contain '{semver}-{commits}+{hash}.{timestamp}'
+            $f.actual | Should -Contain '0.2.0-15+abc1234.20260201T143000Z'
+        }
+        It 'fails when a CLAUDE.md example has no commit hash, which is what CargoTools returns when git fails' {
+            $root = New-DocFixture 'ver-claude-example' { param($r) Edit-FixtureText $r 'CLAUDE.md' '`0.2.0+abc1234`' '`0.2.0`' }
+            $r = Invoke-Gate -Root $root -Check 'versioning'
+            $r.Exit | Should -Be 1
+            $f = @(Get-Findings $r 'versioning' 'fail')
+            $f.file | Should -Be 'CLAUDE.md'
+            $f.actual | Should -Be '0.2.0'
+        }
+        It 'fails when the CLAUDE.md Version Information section documents no format' {
+            $root = New-DocFixture 'ver-claude-missing' { param($r) Edit-FixtureText $r 'CLAUDE.md' '### Version Information' '### Version Notes' }
+            $r = Invoke-Gate -Root $root -Check 'versioning'
+            $r.Exit | Should -Be 1
+            (Get-Findings $r 'versioning' 'fail').claim | Should -Match 'Documents the build-version format'
+        }
+        It 'fails when docs/VERSIONING.md is missing or declares no baseline' {
+            $missing = New-DocFixture 'ver-policy-missing' { param($r) Remove-Item -LiteralPath (Join-Path $r 'docs/VERSIONING.md') }
+            $r = Invoke-Gate -Root $missing -Check 'versioning'
+            $r.Exit | Should -Be 1
+            @(Get-Findings $r 'versioning' 'fail' | Where-Object actual -EQ 'file missing').Count | Should -Be 1
+            $nobase = New-DocFixture 'ver-policy-nobase' { param($r) Edit-FixtureText $r 'docs/VERSIONING.md' '**Baseline version:** `0.2.0`' 'No baseline.' }
+            $r = Invoke-Gate -Root $nobase -Check 'versioning'
+            $r.Exit | Should -Be 1
+            (Get-Findings $r 'versioning' 'fail').actual | Should -Be 'no baseline line'
+        }
+        It 'says in the summary that only the baseline was checked when there is no .git to read tags from' {
+            $r = Invoke-Gate -Root (New-DocFixture 'ver-nogit') -Check 'versioning'
+            $r.Exit | Should -Be 0
+            (Get-Findings $r 'versioning' 'pass').claim | Should -Match "tags not visible \(no \.git\), so only 'not below baseline 0\.2\.0' was checked"
         }
     }
 
@@ -488,6 +581,218 @@ Describe 'documentation accuracy gate file inventory' -Tag 'Unit', 'Portable' {
             & git -C $root add README.md .gitignore 2>&1 | Out-Null
             (Invoke-Gate -Root $root -Check 'relative-links').Exit | Should -Be 1
         }
+    }
+}
+
+Describe 'versioning check against real tags' -Tag 'Unit', 'Portable' {
+    # Protects: docs/VERSIONING.md's rule that [workspace.package] version is the latest v* tag or the next version
+    #   after it, and exactly the baseline before the first tag.
+    # Detects: a release tagged without bumping the workspace (behind the tag), a bump that skips a version, a tag
+    #   ordering that compares strings (v0.9.0 above v0.10.0) or ranks a candidate above its release, and a shallow
+    #   clone (CI's checkout, which has no tags) being treated as a history with no tags.
+    # Needs: PowerShell 7, TestDrive and git (skipped without git). Commits are made with plumbing (write-tree,
+    #   commit-tree, update-ref), which runs no hooks; tags are refs written with update-ref.
+    # Breadcrumb: Tools/validate-doc-accuracy.ps1 Test-Versioning and Get-ReleaseTagState.
+    BeforeAll {
+        $script:HasGit = [bool](Get-Command git -ErrorAction SilentlyContinue)
+        $script:SavedGitIdentity = @{}
+        foreach ($name in 'GIT_AUTHOR_NAME', 'GIT_AUTHOR_EMAIL', 'GIT_COMMITTER_NAME', 'GIT_COMMITTER_EMAIL') {
+            $script:SavedGitIdentity[$name] = [Environment]::GetEnvironmentVariable($name)
+            [Environment]::SetEnvironmentVariable($name, $(if ($name -like '*EMAIL') { 'fixture@example.invalid' } else { 'fixture' }))
+        }
+
+        function Add-FixtureCommit {
+            param([string]$Root, [string]$Message = 'fixture')
+            & git -C $Root add -A 2>&1 | Out-Null
+            $tree = ([string](& git -C $Root write-tree)).Trim()
+            $parent = & git -C $Root rev-parse -q --verify HEAD 2>$null
+            $commitArgs = @('commit-tree', $tree, '-m', $Message)
+            if ($LASTEXITCODE -eq 0 -and $parent) { $commitArgs += @('-p', ([string]$parent).Trim()) }
+            $commit = ([string](& git -C $Root @commitArgs)).Trim()
+            & git -C $Root update-ref HEAD $commit 2>&1 | Out-Null
+            return $commit
+        }
+
+        function New-VersionRepo {
+            param([string]$Name, [string]$Workspace, [string[]]$Tags = @())
+            $root = New-DocFixture $Name
+            Edit-FixtureText $root 'Native/pcai_core/Cargo.toml' 'version = "0.2.0"' "version = `"$Workspace`""
+            & git -C $root init --quiet 2>&1 | Out-Null
+            $commit = Add-FixtureCommit $root
+            foreach ($tag in $Tags) { & git -C $root update-ref "refs/tags/$tag" $commit 2>&1 | Out-Null }
+            return [pscustomobject]@{ Root = $root; Commit = $commit }
+        }
+    }
+    AfterAll {
+        foreach ($name in $script:SavedGitIdentity.Keys) { [Environment]::SetEnvironmentVariable($name, $script:SavedGitIdentity[$name]) }
+    }
+
+    It 'passes at the latest tag and at the next PATCH, MINOR or MAJOR version (<Workspace>)' -ForEach @(
+        @{ Workspace = '0.2.0' }, @{ Workspace = '0.2.1' }, @{ Workspace = '0.3.0' }, @{ Workspace = '1.0.0' }
+    ) {
+        if (-not $script:HasGit) { Set-ItResult -Skipped -Because 'git is not available'; return }
+        $repo = New-VersionRepo "ver-tag-ok-$Workspace" $Workspace @('v0.2.0')
+        $r = Invoke-Gate -Root $repo.Root -Check 'versioning'
+        $r.Exit | Should -Be 0
+        (Get-Findings $r 'versioning' 'pass').claim | Should -Match 'latest tag v0\.2\.0'
+    }
+
+    It 'fails when the workspace version skips a release or stays behind the latest tag (<Workspace> at <Tag>)' -ForEach @(
+        @{ Workspace = '0.4.0'; Tag = 'v0.2.0' }, @{ Workspace = '0.2.0'; Tag = 'v0.3.0' }
+    ) {
+        if (-not $script:HasGit) { Set-ItResult -Skipped -Because 'git is not available'; return }
+        $repo = New-VersionRepo "ver-tag-bad-$Workspace-$Tag" $Workspace @($Tag)
+        $r = Invoke-Gate -Root $repo.Root -Check 'versioning'
+        $r.Exit | Should -Be 1
+        (Get-Findings $r 'versioning' 'fail').claim | Should -Match "latest tag $([regex]::Escape($Tag)) or the next version"
+    }
+
+    It 'orders tags numerically and ranks a release above its candidates' {
+        if (-not $script:HasGit) { Set-ItResult -Skipped -Because 'git is not available'; return }
+        $repo = New-VersionRepo 'ver-tag-order' '0.10.1' @('v0.9.0', 'v0.10.0-rc.1', 'v0.10.0')
+        $r = Invoke-Gate -Root $repo.Root -Check 'versioning'
+        $r.Exit | Should -Be 0
+        (Get-Findings $r 'versioning' 'pass').claim | Should -Match 'latest tag v0\.10\.0\)'
+    }
+
+    It 'requires exactly the baseline when the complete history has no tag' {
+        if (-not $script:HasGit) { Set-ItResult -Skipped -Because 'git is not available'; return }
+        $ahead = New-VersionRepo 'ver-notag-ahead' '0.3.0'
+        $r = Invoke-Gate -Root $ahead.Root -Check 'versioning'
+        $r.Exit | Should -Be 1
+        (Get-Findings $r 'versioning' 'fail').claim | Should -Match 'No v\* tag exists yet'
+        $exact = New-VersionRepo 'ver-notag-exact' '0.2.0'
+        (Invoke-Gate -Root $exact.Root -Check 'versioning').Exit | Should -Be 0
+    }
+
+    It 'checks only the baseline in a shallow clone, which carries no tags, and says so' {
+        if (-not $script:HasGit) { Set-ItResult -Skipped -Because 'git is not available'; return }
+        $repo = New-VersionRepo 'ver-shallow' '0.3.0'
+        # A shallow clone is a repository whose .git/shallow lists its cut-off commits.
+        [System.IO.File]::WriteAllText((Join-Path $repo.Root '.git/shallow'), "$($repo.Commit)`n", $script:Utf8)
+        $r = Invoke-Gate -Root $repo.Root -Check 'versioning'
+        $r.Exit | Should -Be 0
+        (Get-Findings $r 'versioning' 'pass').claim | Should -Match 'tags not visible \(shallow clone\)'
+        Edit-FixtureText $repo.Root 'Native/pcai_core/Cargo.toml' 'version = "0.3.0"' 'version = "0.1.0"'
+        (Invoke-Gate -Root $repo.Root -Check 'versioning').Exit | Should -Be 1
+    }
+}
+
+Describe 'Get-BuildVersion emits the format the versioning check enforces' -Tag 'Unit', 'Portable' {
+    # Protects: the documented build-version format (one pattern, $script:BuildVersionPattern in
+    #   Tools/validate-doc-accuracy.ps1) is what Tools/Get-BuildVersion.ps1 really returns, through both of its paths:
+    #   CargoTools' Get-BuildVersionInfo when installed, and the script's own git fallback otherwise (every CI runner).
+    # Detects: a header, CLAUDE.md or docs/VERSIONING.md format that passes the gate but that the script does not emit;
+    #   an untagged history building as a literal version instead of [workspace.package] version; a tagged commit
+    #   that does not build as exactly the tag.
+    # Needs: PowerShell 7, TestDrive and git (skipped without git); the CargoTools case is skipped when the module is
+    #   not installed. The script runs in a child pwsh so module state cannot leak between the two paths.
+    # Breadcrumb: docs/VERSIONING.md "Untagged builds"; Tools/Get-BuildVersion.ps1 Get-PcaiWorkspaceVersion.
+    BeforeAll {
+        $script:HasGit = [bool](Get-Command git -ErrorAction SilentlyContinue)
+        $script:Pwsh = (Get-Process -Id $PID).Path
+        $script:GbvSource = Join-Path $script:RepoRoot 'Tools/Get-BuildVersion.ps1'
+        $gateAst = [System.Management.Automation.Language.Parser]::ParseFile($script:Gate, [ref]$null, [ref]$null)
+        $assignment = $gateAst.Find({
+                param($n)
+                $n -is [System.Management.Automation.Language.AssignmentStatementAst] -and $n.Left.Extent.Text -eq '$script:BuildVersionPattern'
+            }, $true)
+        $script:VersionPattern = $assignment.Right.Find({ param($n) $n -is [System.Management.Automation.Language.StringConstantExpressionAst] }, $true).Value
+
+        $script:SavedGitIdentity = @{}
+        foreach ($name in 'GIT_AUTHOR_NAME', 'GIT_AUTHOR_EMAIL', 'GIT_COMMITTER_NAME', 'GIT_COMMITTER_EMAIL') {
+            $script:SavedGitIdentity[$name] = [Environment]::GetEnvironmentVariable($name)
+            [Environment]::SetEnvironmentVariable($name, $(if ($name -like '*EMAIL') { 'fixture@example.invalid' } else { 'fixture' }))
+        }
+
+        $script:Runner = Join-Path $TestDrive 'run-build-version.ps1'
+        Write-FixtureFile $TestDrive 'run-build-version.ps1' @'
+param([string]$Script, [string]$ModulePath)
+if ($ModulePath) { $env:PSModulePath = $ModulePath }
+$info = & $Script -Quiet
+[pscustomobject]@{
+    Version    = $info.Version
+    SemVer     = $info.SemVer
+    BuildType  = $info.BuildType
+    CargoTools = [bool](Get-Command Get-BuildVersionInfo -ErrorAction SilentlyContinue)
+} | ConvertTo-Json -Compress
+'@
+        $script:EmptyModules = Join-Path $TestDrive 'no-modules'
+        $null = New-Item -ItemType Directory -Path $script:EmptyModules -Force
+
+        function Invoke-BuildVersionChild {
+            param([string]$Script, [switch]$WithoutModules)
+            $runArgs = @('-NoProfile', '-NonInteractive', '-File', $script:Runner, '-Script', $Script)
+            if ($WithoutModules) { $runArgs += @('-ModulePath', $script:EmptyModules) }
+            $out = & $script:Pwsh @runArgs 2>&1
+            $json = @($out | Where-Object { $_ -is [string] -and $_.StartsWith('{') })
+            if ($json.Count -eq 0) { throw "Get-BuildVersion produced no result: $($out -join "`n")" }
+            return $json[-1] | ConvertFrom-Json
+        }
+
+        function New-BuildVersionRepo {
+            # A repository holding only the real script and a workspace manifest at 0.7.0, committed with plumbing.
+            param([string]$Name)
+            $root = Join-Path $TestDrive $Name
+            Write-FixtureFile $root 'Tools/Get-BuildVersion.ps1' ([System.IO.File]::ReadAllText($script:GbvSource))
+            Write-FixtureFile $root 'Native/pcai_core/Cargo.toml' "[workspace]`nmembers = []`n`n[workspace.package]`nversion = `"0.7.0`"`n"
+            & git -C $root init --quiet 2>&1 | Out-Null
+            & git -C $root add -A 2>&1 | Out-Null
+            $tree = ([string](& git -C $root write-tree)).Trim()
+            $commit = ([string](& git -C $root commit-tree $tree -m fixture)).Trim()
+            & git -C $root update-ref HEAD $commit 2>&1 | Out-Null
+            return [pscustomobject]@{ Root = $root; Commit = $commit; Script = (Join-Path $root 'Tools/Get-BuildVersion.ps1') }
+        }
+    }
+    AfterAll {
+        foreach ($name in $script:SavedGitIdentity.Keys) { [Environment]::SetEnvironmentVariable($name, $script:SavedGitIdentity[$name]) }
+    }
+
+    It 'has one pattern that accepts every documented shape and rejects the ones the script cannot emit' {
+        $script:VersionPattern | Should -Not -BeNullOrEmpty
+        foreach ($ok in '0.2.0+abc1234', '0.2.0.15+abc1234', '0.2.0.3+abc1234.dirty', '0.3.0-rc.1.4+abc1234', '0.2.0+unknown') {
+            $ok | Should -MatchExactly $script:VersionPattern -Because "$ok is a documented shape"
+        }
+        foreach ($bad in '0.2.0', '0.2.0-15+abc1234.20260201T143000Z', 'v0.2.0+abc1234', '0.2.0.15') {
+            $bad | Should -Not -MatchExactly $script:VersionPattern -Because "$bad is not a shape Get-BuildVersion emits"
+        }
+    }
+
+    It 'matches the live output for this checkout, through whichever path is installed' {
+        if (-not $script:HasGit -or -not (Test-Path -LiteralPath (Join-Path $script:RepoRoot '.git'))) {
+            Set-ItResult -Skipped -Because 'git or a .git entry is not available'
+            return
+        }
+        $info = Invoke-BuildVersionChild -Script $script:GbvSource
+        $info.Version | Should -MatchExactly $script:VersionPattern
+    }
+
+    It 'without CargoTools builds an untagged history as the workspace version, and a tagged commit as the tag' {
+        if (-not $script:HasGit) { Set-ItResult -Skipped -Because 'git is not available'; return }
+        $repo = New-BuildVersionRepo 'gbv-fallback'
+        $info = Invoke-BuildVersionChild -Script $repo.Script -WithoutModules
+        if ($info.CargoTools) { Set-ItResult -Skipped -Because 'CargoTools loaded from a hard-coded path; the fallback did not run'; return }
+        $info.SemVer | Should -Be '0.7.0'
+        $info.Version | Should -MatchExactly '^0\.7\.0\.1\+[0-9a-f]{7}$'
+        $info.Version | Should -MatchExactly $script:VersionPattern
+        & git -C $repo.Root update-ref refs/tags/v0.7.0 $repo.Commit 2>&1 | Out-Null
+        $tagged = Invoke-BuildVersionChild -Script $repo.Script -WithoutModules
+        $tagged.Version | Should -MatchExactly '^0\.7\.0\+[0-9a-f]{7}$'
+        $tagged.BuildType | Should -Be 'release'
+    }
+
+    It 'through CargoTools emits the same shapes and the same workspace default' {
+        if (-not $script:HasGit) { Set-ItResult -Skipped -Because 'git is not available'; return }
+        if (-not (Get-Module -ListAvailable -Name CargoTools)) { Set-ItResult -Skipped -Because 'CargoTools is not installed'; return }
+        $repo = New-BuildVersionRepo 'gbv-cargotools'
+        $info = Invoke-BuildVersionChild -Script $repo.Script
+        $info.CargoTools | Should -BeTrue
+        $info.SemVer | Should -Be '0.7.0'
+        $info.Version | Should -MatchExactly $script:VersionPattern
+        & git -C $repo.Root update-ref refs/tags/v0.7.0 $repo.Commit 2>&1 | Out-Null
+        $tagged = Invoke-BuildVersionChild -Script $repo.Script
+        $tagged.Version | Should -MatchExactly '^0\.7\.0\+[0-9a-f]{7}$'
+        $tagged.BuildType | Should -Be 'release'
     }
 }
 

@@ -1,5 +1,7 @@
 use crate::config::{default_model, router_engine, runtime_config};
-use crate::types::{LoraMetadata, RouterMetadata, RouterStats, SystemMetrics, ToolsMetadata};
+#[cfg(not(feature = "model"))]
+use crate::types::LoraMetadata;
+use crate::types::{RouterMetadata, RouterStats, SystemMetrics, ToolsMetadata};
 use serde_json::Value;
 use std::fs;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -16,6 +18,7 @@ use crate::types::RouterEngine;
 pub(crate) static TOTAL_REQUESTS: AtomicU64 = AtomicU64::new(0);
 pub(crate) static TOTAL_TOKENS: AtomicU64 = AtomicU64::new(0);
 pub(crate) static TOTAL_INFER_MS: AtomicU64 = AtomicU64::new(0);
+pub(crate) static MODEL_FALLBACKS: AtomicU64 = AtomicU64::new(0);
 
 /// Cached tools metadata (loaded once from disk)
 pub(crate) static TOOLS_METADATA_CACHE: OnceLock<ToolsMetadata> = OnceLock::new();
@@ -77,7 +80,7 @@ pub(crate) fn router_metadata() -> RouterMetadata {
     };
 
     #[cfg(feature = "model")]
-    let device = Some(device_label());
+    let device = Some(device_label(runtime_config()));
     #[cfg(not(feature = "model"))]
     let device: Option<String> = None;
 
@@ -154,6 +157,7 @@ pub(crate) fn router_stats() -> Option<RouterStats> {
     let requests = TOTAL_REQUESTS.load(Ordering::Relaxed);
     let tokens = TOTAL_TOKENS.load(Ordering::Relaxed);
     let infer_ms = TOTAL_INFER_MS.load(Ordering::Relaxed);
+    let model_fallbacks = MODEL_FALLBACKS.load(Ordering::Relaxed);
 
     if requests == 0 {
         return Some(RouterStats {
@@ -161,6 +165,7 @@ pub(crate) fn router_stats() -> Option<RouterStats> {
             tokens_generated: 0,
             avg_tokens_per_sec: 0.0,
             avg_latency_ms: 0.0,
+            model_fallbacks,
         });
     }
 
@@ -173,6 +178,7 @@ pub(crate) fn router_stats() -> Option<RouterStats> {
         tokens_generated: tokens,
         avg_tokens_per_sec,
         avg_latency_ms,
+        model_fallbacks,
     })
 }
 

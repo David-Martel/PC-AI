@@ -186,7 +186,7 @@ pub fn custom_load(varmap: &VarMap, paths: &[PathBuf]) -> Result<usize> {
                 _ => name.clone(),
             };
             if st_names.contains(&lookup) {
-                let mut st_tensor = st.load(&lookup, &var.device())?;
+                let mut st_tensor = st.load(&lookup, var.device())?;
                 if st_tensor.dtype() != var.dtype() {
                     st_tensor = st_tensor.to_dtype(var.dtype())?;
                 }
@@ -248,7 +248,7 @@ pub fn custom_load_verbose(varmap: &VarMap, paths: &[PathBuf], verbose: bool) ->
                 _ => name.clone(),
             };
             if st_names.contains(&lookup) {
-                let mut st_tensor = st.load(&lookup, &var.device())?;
+                let mut st_tensor = st.load(&lookup, var.device())?;
                 if st_tensor.dtype() != var.dtype() {
                     st_tensor = st_tensor.to_dtype(var.dtype())?;
                 }
@@ -284,7 +284,7 @@ pub fn custom_load_verbose(varmap: &VarMap, paths: &[PathBuf], verbose: bool) ->
         let sample_keys: Vec<_> = st_names.iter().take(5).cloned().collect();
         println!("Safetensors sample keys: {:?}", sample_keys);
         let mut missing = Vec::new();
-        for (name, _) in data.iter() {
+        for name in data.keys() {
             let lookup = match applied_prefix.as_deref() {
                 Some(pfx) if !pfx.is_empty() => format!("{pfx}.{name}"),
                 _ => name.clone(),

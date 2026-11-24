@@ -4,39 +4,119 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
-    // Detect CUDA installation
-    if env::var("CUDA_PATH").is_ok() || env::var("CUDA_HOME").is_ok() {
+    // Whether this artifact has CUDA is a property of the features it is compiled with, never of the build host.
+    // Deriving it from the CUDA toolkit environment made builds without a CUDA feature report `has_cuda: true`
+    // (reported by codex on PR #403). Cargo sets CARGO_FEATURE_* for the compiled features, and a feature change
+    // already gives this script a new run, so these reads need no trigger of their own.
+    let has_cuda = cuda_compiled();
+
+    // PATH is an input of every build, not only CUDA builds: `git` (the commit, the branch, `git describe` and the
+    // watch paths below) and, with a CUDA feature, `nvcc` are looked up on it. A first build without git on PATH
+    // embeds `unknown` and records no Git watch paths, so without this declaration a later warm build with git
+    // available never reruns the script and keeps `unknown` (reported by codex on PR #403). Declaring it costs a
+    // rerun when a shell or wrapper changes PATH, which is the point: the metadata then reflects the tools the
+    // build can actually see. Tests/Portable/test_inference_build_metadata.py checks the declaration and replays
+    // that exact sequence.
+    println!("cargo:rerun-if-env-changed=PATH");
+
+    if has_cuda {
         println!("cargo:rustc-cfg=has_cuda");
-        println!("cargo:rerun-if-env-changed=CUDA_PATH");
-        println!("cargo:rerun-if-env-changed=CUDA_HOME");
     }
 
     // Generate version information
-    generate_version_info();
+    generate_version_info(has_cuda);
 
     // Rerun build script if these change
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=.git/HEAD");
-    println!("cargo:rerun-if-changed=.git/index");
-    println!("cargo:rerun-if-env-changed=PCAI_VERSION");
-    println!("cargo:rerun-if-env-changed=PCAI_GIT_HASH");
-    println!("cargo:rerun-if-env-changed=PCAI_BUILD_TIMESTAMP");
+    emit_git_rerun_paths();
 }
 
-fn generate_version_info() {
+/// True when a CUDA backend feature is compiled in. `cuda` is an umbrella feature that enables both of these, and
+/// src/version.rs tests that the result agrees with the compiler's own `cfg!(feature = ...)`.
+fn cuda_compiled() -> bool {
+    env::var_os("CARGO_FEATURE_CUDA_LLAMACPP").is_some() || env::var_os("CARGO_FEATURE_CUDA_MISTRALRS").is_some()
+}
+
+/// Reads an environment variable the generated metadata depends on, after declaring it to Cargo.
+///
+/// Every external input of this script goes through here, so the declaration cannot be forgotten. Since the Git
+/// watch paths were fixed (PR #403) Cargo caches this script, and an input without `rerun-if-env-changed` leaves the
+/// previous value embedded after a rebuild: changing only `PCAI_BUILD_VERSION` used to keep the old version.
+/// Variables Cargo sets for build scripts (`OUT_DIR`, `TARGET`, `PROFILE`, `CARGO_*`) are read directly: a change to
+/// any of them already gives this script a new run. Tests/Portable/test_inference_build_metadata.py checks both the
+/// declarations and a warm rebuild per input.
+fn tracked_env(name: &str) -> Option<String> {
+    println!("cargo:rerun-if-env-changed={name}");
+    env::var(name).ok()
+}
+
+/// Runs git in the crate directory and returns trimmed stdout, or `None` when git is absent or fails.
+fn git_output(args: &[&str]) -> Option<String> {
+    let manifest_dir = env::var_os("CARGO_MANIFEST_DIR")?;
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(&manifest_dir)
+        .args(args)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8(output.stdout).ok()?.trim().to_string();
+    if text.is_empty() {
+        None
+    } else {
+        Some(text)
+    }
+}
+
+/// Tells Cargo to rerun this script when the commit or the tags behind the embedded version change.
+///
+/// The paths come from `git rev-parse --git-path`, which resolves them for the repository this crate is in: a plain
+/// checkout keeps them under `<root>/.git/`, a linked worktree keeps `HEAD` and its reflog in
+/// `.git/worktrees/<name>/` and the refs in the common directory. The previous literal `.git/HEAD` was resolved
+/// against this crate's directory, where no such file exists, and Cargo reruns a build script on every build when a
+/// `rerun-if-changed` path is missing. Only paths that exist are emitted for the same reason, and nothing is emitted
+/// when git is unavailable (for example in a source archive), so `build.rs` stays the only trigger there.
+/// `.git/index` is no longer watched: nothing this script embeds depends on the index, and it changes on every
+/// `git add` and status refresh.
+fn emit_git_rerun_paths() {
+    let mut relative = vec![
+        "HEAD".to_string(),      // branch switches and detached checkouts
+        "logs/HEAD".to_string(), // every commit, reset or checkout in this worktree
+        "packed-refs".to_string(),
+        "refs/tags".to_string(), // a new tag changes `git describe`
+    ];
+    if let Some(head_ref) = git_output(&["symbolic-ref", "-q", "HEAD"]) {
+        relative.push(head_ref); // the loose branch ref, when it is not packed
+    }
+    for rel in relative {
+        let Some(path) = git_output(&["rev-parse", "--path-format=absolute", "--git-path", &rel]) else {
+            continue;
+        };
+        if Path::new(&path).exists() {
+            println!("cargo:rerun-if-changed={path}");
+        }
+    }
+}
+
+fn generate_version_info(has_cuda: bool) {
     let out_dir = env::var_os("OUT_DIR").expect("build script: required operation failed");
     let dest_path = Path::new(&out_dir).join("build_info.rs");
 
-    // Try to get version from environment (set by Build.ps1)
-    let version = env::var("PCAI_VERSION")
-        .or_else(|_| env::var("PCAI_BUILD_VERSION"))
-        .unwrap_or_else(|_| get_version_from_git());
+    // Try to get version from environment (set by Build.ps1). Both names are read eagerly so both stay declared
+    // even while PCAI_VERSION takes precedence.
+    let pcai_version = tracked_env("PCAI_VERSION");
+    let pcai_build_version = tracked_env("PCAI_BUILD_VERSION");
+    let version = pcai_version.or(pcai_build_version).unwrap_or_else(get_version_from_git);
 
-    let semver = env::var("PCAI_SEMVER").unwrap_or_else(|_| "0.1.0".to_string());
+    // The crate version is the workspace (product) version, so an untagged build falls back to it rather than to a
+    // literal that has to be kept in step by hand. See docs/VERSIONING.md.
+    let semver = tracked_env("PCAI_SEMVER").unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
 
-    let git_hash = env::var("PCAI_GIT_HASH").unwrap_or_else(|_| get_git_hash());
+    let git_hash = tracked_env("PCAI_GIT_HASH").unwrap_or_else(get_git_hash);
 
-    let git_hash_short = env::var("PCAI_GIT_HASH_SHORT").unwrap_or_else(|_| {
+    let git_hash_short = tracked_env("PCAI_GIT_HASH_SHORT").unwrap_or_else(|| {
         if git_hash.len() >= 7 {
             git_hash[..7].to_string()
         } else {
@@ -44,12 +124,12 @@ fn generate_version_info() {
         }
     });
 
-    let git_branch = env::var("PCAI_GIT_BRANCH").unwrap_or_else(|_| get_git_branch());
+    let git_branch = tracked_env("PCAI_GIT_BRANCH").unwrap_or_else(get_git_branch);
 
-    let build_timestamp = env::var("PCAI_BUILD_TIMESTAMP")
-        .unwrap_or_else(|_| chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string());
+    let build_timestamp = tracked_env("PCAI_BUILD_TIMESTAMP")
+        .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string());
 
-    let build_type = env::var("PCAI_BUILD_TYPE").unwrap_or_else(|_| "dev".to_string());
+    let build_type = tracked_env("PCAI_BUILD_TYPE").unwrap_or_else(|| "dev".to_string());
 
     let target = env::var("TARGET").unwrap_or_else(|_| "unknown".to_string());
     let profile = env::var("PROFILE").unwrap_or_else(|_| "unknown".to_string());
@@ -76,8 +156,7 @@ fn generate_version_info() {
     }
     let features_str = features.join(",");
 
-    // Check for CUDA
-    let has_cuda = env::var("CUDA_PATH").is_ok() || env::var("CUDA_HOME").is_ok();
+    // has_cuda comes from the compiled features (see cuda_compiled); a build without CUDA reports "none".
     let cuda_version = if has_cuda {
         get_cuda_version()
     } else {
@@ -247,7 +326,7 @@ fn get_version_from_git() -> String {
         });
 
     if let Some(desc) = describe {
-        // Parse: v0.1.0-5-gabcdef or just abcdef
+        // Parse: v0.2.0-5-gabcdef or just abcdef
         if desc.contains('-') {
             // Has tag info
             let parts: Vec<&str> = desc.rsplitn(3, '-').collect();
@@ -261,17 +340,19 @@ fn get_version_from_git() -> String {
                     format!("{}.{}+{}", tag, commits, hash)
                 }
             } else {
-                format!("0.1.0+{}", &desc[..7.min(desc.len())])
+                format!("{}+{}", env!("CARGO_PKG_VERSION"), &desc[..7.min(desc.len())])
             }
         } else {
             // Just a hash
-            format!("0.1.0+{}", &desc[..7.min(desc.len())])
+            format!("{}+{}", env!("CARGO_PKG_VERSION"), &desc[..7.min(desc.len())])
         }
     } else {
-        "0.1.0+unknown".to_string()
+        format!("{}+unknown", env!("CARGO_PKG_VERSION"))
     }
 }
 
+/// Labels a CUDA build with the toolkit release that `nvcc --version` reports, or "unknown". Called only when a
+/// CUDA feature is compiled; the toolkit environment never decides whether the build has CUDA.
 fn get_cuda_version() -> String {
     // Try nvcc --version
     Command::new("nvcc")
@@ -297,17 +378,5 @@ fn get_cuda_version() -> String {
                 None
             }
         })
-        .unwrap_or_else(|| {
-            // Fallback: check CUDA_PATH
-            env::var("CUDA_PATH")
-                .ok()
-                .and_then(|path| {
-                    // Extract version from path like "C:\...\CUDA\v13.1"
-                    path.split(['\\', '/'])
-                        .next_back()
-                        .filter(|s| s.starts_with('v') || s.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false))
-                        .map(|s| s.trim_start_matches('v').to_string())
-                })
-                .unwrap_or_else(|| "unknown".to_string())
-        })
+        .unwrap_or_else(|| "unknown".to_string())
 }

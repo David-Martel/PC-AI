@@ -161,6 +161,7 @@ pub(crate) struct RouterStats {
     pub(crate) tokens_generated: u64,
     pub(crate) avg_tokens_per_sec: f64,
     pub(crate) avg_latency_ms: f64,
+    pub(crate) model_fallbacks: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

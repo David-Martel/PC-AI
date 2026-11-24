@@ -280,6 +280,57 @@ Describe 'Sync-MachineEnvironment.ps1 safety contract' {
         $script:SyncText | Should -Not -Match "'CARGO_BUILD_JOBS'\s*=\s*'8'"
         $script:SyncText | Should -Not -Match "'MAKEFLAGS'\s*=\s*'-j8'"
     }
+
+    # Protects: staged Poppler tools run beside their DLLs while unrelated PATH ordering survives.
+    # Detects: a newer incomplete bundle winning, a second complete PATH bundle, or split executable links returning.
+    # Needs: temporary staged file names and the real PATH planner. No registry writes or native tools.
+    # Breadcrumb: Tools/SystemScripts/Machine/Sync-MachineEnvironment.ps1
+    It 'appends a usable staged Poppler directory once and leaves legacy links alone' {
+        $profile = Join-Path $TestDrive 'profile'
+        $staging = Join-Path $profile 'bin\pdf-tools'
+        $complete = Join-Path $staging 'poppler-25.11.0-bin'
+        $incomplete = Join-Path $staging 'poppler-26.2.0-bin'
+        foreach ($directory in $complete, $incomplete) {
+            New-Item -Path $directory -ItemType Directory -Force | Out-Null
+            foreach ($name in 'pdftotext.exe', 'pdftoppm.exe', 'poppler.dll') {
+                New-Item -Path (Join-Path $directory $name) -ItemType File | Out-Null
+            }
+        }
+        New-Item -Path (Join-Path $complete 'lcms2.dll') -ItemType File | Out-Null
+
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($script:Sync, [ref]$null, [ref]$null)
+        $functions = $ast.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                $node.Name -in 'Find-StagedPopplerBin', 'Get-SyncMachinePathPlan'
+        }, $false)
+        $functions.Count | Should -Be 2
+        foreach ($function in $functions) { . ([scriptblock]::Create($function.Extent.Text)) }
+
+        $ctx = Get-MachinePathContext -UserHome $profile -CargoHome (Join-Path $TestDrive 'cargo')
+        $policy = Read-MachinePathPolicy -Path (Join-Path (Split-Path $script:Sync) 'machine-path.policy.json') -Context $ctx
+        $policy.UserPathHead = @()
+        $policy.RequiredUserEntries = @()
+        $original = @((Join-Path $TestDrive 'Tools'), (Join-Path $TestDrive 'OtherTools'))
+        New-Item -Path $original -ItemType Directory | Out-Null
+        $plan = Get-SyncMachinePathPlan -UserEntries $original -Policy $policy -Context $ctx
+        $plan.StagedPopplerBin | Should -Be $complete
+        ($plan.UserEntries -join ';') | Should -Be (($original + @($complete)) -join ';')
+        $again = Get-SyncMachinePathPlan -UserEntries $plan.UserEntries -Policy $policy -Context $ctx
+        $again.StagedPopplerBin | Should -BeNullOrEmpty
+        ($again.UserEntries -join ';') | Should -Be ($plan.UserEntries -join ';')
+
+        $installed = Join-Path $TestDrive 'WinGetPoppler'
+        Copy-Item -LiteralPath $complete -Destination $installed -Recurse
+        $userPlan = Get-SyncMachinePathPlan -UserEntries ($original + @($installed)) -Policy $policy -Context $ctx
+        $userPlan.StagedPopplerBin | Should -BeNullOrEmpty
+        ($userPlan.UserEntries -join ';') | Should -Be (($original + @($installed)) -join ';')
+        $machinePlan = Get-SyncMachinePathPlan -UserEntries $original -MachineEntries @($installed) -Policy $policy -Context $ctx
+        $machinePlan.StagedPopplerBin | Should -BeNullOrEmpty
+        ($machinePlan.UserEntries -join ';') | Should -Be ($original -join ';')
+        $policy.RequiredUserEntries | Should -BeNullOrEmpty
+        $script:SyncText | Should -Not -Match '\$pdfExe|Restored pdf-tools hardlink'
+    }
 }
 
 
@@ -601,9 +652,20 @@ Describe 'Repair-MachinePath.ps1 refuses -ApplyArchive' {
             $files -join "`n"
         }
     }
+    # Protects: the report-only positive control demonstrates that the temp candidate is eligible.
+    # Detects: an empty candidate report or a crash when a restricted launcher omits COMPUTERNAME.
+    # Needs: a temp fixture and a Windows PowerShell child with COMPUTERNAME intentionally removed.
+    # Breadcrumb: Tools/SystemScripts/Machine/Repair-MachinePath.ps1
     It 'positive control: the report lists the temp candidate as eligible' {
-        $out = & (Get-Command pwsh).Source -NoProfile -File $script:RepairPath2 -UserHome $script:Home2 -PolicyPath $script:Policy2 -BackupDir $script:Backups2 -SkipWrappers 2>&1 | Out-String
-        $LASTEXITCODE | Should -Be 0
+        $originalComputerName = $env:COMPUTERNAME
+        try {
+            $env:COMPUTERNAME = $null
+            $out = & (Get-Command pwsh).Source -NoProfile -File $script:RepairPath2 -UserHome $script:Home2 -PolicyPath $script:Policy2 -BackupDir $script:Backups2 -SkipWrappers 2>&1 | Out-String
+            $reportExitCode = $LASTEXITCODE
+        } finally {
+            $env:COMPUTERNAME = $originalComputerName
+        }
+        $reportExitCode | Should -Be 0
         $out | Should -Match 'zzprobe-abc1234\.exe'
         $out | Should -Match 'eligible'
         $out | Should -Match 'REPORT ONLY'

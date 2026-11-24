@@ -5,7 +5,10 @@ use std::fs;
 use std::path::Path;
 
 fn main() {
-    let version = env::var("PCAI_BUILD_VERSION").unwrap_or_else(|_| "0.1.0-dev".to_string());
+    // Without PCAI_BUILD_VERSION (set by Build.ps1 from Tools/Get-BuildVersion.ps1) the commit count is unknown, so
+    // report the workspace version with an explicit "unknown" build: a "-dev" pre-release would sort before the
+    // release it was built after. See docs/VERSIONING.md.
+    let version = env::var("PCAI_BUILD_VERSION").unwrap_or_else(|_| format!("{}+unknown", env!("CARGO_PKG_VERSION")));
     let out_dir = env::var_os("OUT_DIR").expect("build script: required operation failed (no OUT_DIR)");
     let dest_path = Path::new(&out_dir).join("version.rs");
 

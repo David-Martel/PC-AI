@@ -4,11 +4,11 @@
   "sourceBaseline": "2c8504d38b3d2d94348db73e0c07acd3ea6ca96a",
   "hashConvention": "SHA-256 of UTF-8 LF file text, with exact selector extents including indentation and final LF",
   "sourceBindings": {
-    ".github/workflows/functiongemma-runtime.yml": "0631271eb8e6455eff5243a716679fbb4efcec4363a92635c7a24cc87006bef1",
-    "Deploy/Cargo.lock": "29305303d42b346d9ce98cbf803d410d682532df3d6364a65b4522a0fc1543ef",
+    ".github/workflows/functiongemma-runtime.yml": "30231668f523e4bc4d0cb3274272a38d2aad6c2b1653f55ea26405f9dd3d4102",
+    "Deploy/Cargo.lock": "2409d74fef9e5ac3ca76c72fa84cfe6dbf07ddc23fed01b925f34f5284a73e00",
     "Deploy/rust-functiongemma-core/Cargo.toml": "11408bb3a7cf1491f9e0d9c6f8414f8641d212d52b3b1d23ff676eba14cca144",
-    "Deploy/rust-functiongemma-core/src/gpu.rs": "3dc8e75dc074bdd91a86feacc510c7266b98ccd925a1eb0c1f11245dfad9026c",
-    "Deploy/rust-functiongemma-core/src/model.rs": "07607583d019323109f7e6a70bc848a0eb8933bd67314559a0b2f8e8ac69dc5f",
+    "Deploy/rust-functiongemma-core/src/gpu.rs": "c9249e5ff8d513d8a368850b664dc4e849d29dcf62ff4998437384afd73b9df3",
+    "Deploy/rust-functiongemma-core/src/model.rs": "f7bdfff55c9f413659954c83a6ed0b4994c5cf57c3bd994073d05af5a1a69d77",
     "Deploy/rust-functiongemma-core/src/config.rs": "6d64103c00d85e347698e2c0d2d6ab43a02d1fbd4788441fb6b8cbfe34fbd982"
   },
   "selectors": [
@@ -92,6 +92,26 @@
       "reviewerType": "author-family source review",
       "disposition": "keep",
       "reviewScope": "The fixture distinguishes an explicitly empty address from a missing value and verifies that the default remains selected."
+    }
+  ],
+  "sourceRechecks": [
+    {
+      "source": ".github/workflows/functiongemma-runtime.yml",
+      "previousSha256": "0631271eb8e6455eff5243a716679fbb4efcec4363a92635c7a24cc87006bef1",
+      "sha256": "30231668f523e4bc4d0cb3274272a38d2aad6c2b1653f55ea26405f9dd3d4102",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
+    },
+    {
+      "source": "Deploy/rust-functiongemma-core/src/model.rs",
+      "previousSha256": "07607583d019323109f7e6a70bc848a0eb8933bd67314559a0b2f8e8ac69dc5f",
+      "sha256": "a4ca9eab1f43dd6fb302c2e2e56df535c1ba57cd79e1a9d52109c7cfbb41576d",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
     }
   ]
 }

@@ -1,12 +1,12 @@
 {
   "SchemaVersion": 1,
-  "SourceBaseline": "88fae92d6de9af3de719a2a6d443652452de0631",
-  "ReviewedAtUtc": "2026-11-23T03:44:44.6448531+00:00",
+  "SourceBaseline": "54229a8c7f1194e340926b40586796bf01d46b7f",
+  "ReviewedAtUtc": "2026-11-22T22:44:44.6448531-05:00",
   "HashConvention": "SHA-256 of UTF-8 LF sources and the exact Pester It command AST extent without a trailing newline.",
   "SourceBindings": {
-    "Build.ps1": "61d0a3ba0ad637238f2e9b9f5698d38585142e3dbfee2a025be2c2110a66fabc",
-    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "0072caa17dc407192ef1d7607283ae942315ed96a1edb658d1fec73450b4d153",
-    "Tests/Unit/BuildReleaseGate.Tests.ps1": "6a13b346a1ca73a5e9965b5c7ad0bfb546b07a697ba438dc5fef60ff09c4c921"
+    "Build.ps1": "35c99916d5ba1bb75cae5ed1c6c30636f34347829f3f0a49aab69b3aa5de7dec",
+    "Native/pcai_core/pcai_inference/Invoke-PcaiBuild.ps1": "dca555c90db61518e8e5fa6a74a0ecc0b816d4c1e5795064e2f0e825fa1d68e2",
+    "Tests/Unit/BuildReleaseGate.Tests.ps1": "cb04097b0b099e0e2c4e854698575d89b7f46560f16d5b9c1c64533dc6372bf6"
   },
   "Validation": "PowerShell 7 and Pester 5.7.1 on Windows. Isolated fixtures exercise the publication and child-failure boundaries with local temporary files. Real build, release contents, fleet installation, and CUDA hardware qualification remain separate.",
   "Selectors": [
@@ -100,6 +100,35 @@
       "ReviewerType": "author self-review",
       "Disposition": "unreviewed",
       "ReviewScope": "The fixture links a parent outside the named build path, verifies early refusal, and verifies untouched destination and archive paths."
+    }
+  ],
+  "sourceRechecks": [
+    {
+      "source": "Build.ps1",
+      "previousSha256": "46b50d68f18f9854a171c729dc9208458adb4ac556759399696d988444cf5885",
+      "sha256": "a95867bea2bff74bc0f61d436ba1450f7eb788e76f9438c53e033c86fb37030e",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
+    },
+    {
+      "source": "Tests/Unit/BuildReleaseGate.Tests.ps1",
+      "previousSha256": "7d621dfaa476907e12f79bcead5610bf3882f456478b54305101256943e313c9",
+      "sha256": "ae8ec99cd063617eb2a8adb4a8c530bcb0cfc29b196e4e3ee88e29d79c1dba15",
+      "reviewer": "codex-gen9-pcai-fleet",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "Explicit CPU/CUDA feature routing and scalar token generation. Existing selector records remain attached to their original extents."
+    },
+    {
+      "source": "Build.ps1",
+      "previousSha256": "a95867bea2bff74bc0f61d436ba1450f7eb788e76f9438c53e033c86fb37030e",
+      "sha256": "96282de082bf632df8c6f267d1d71c493d34ac86e1d9bc3ed488e61784de40d6",
+      "reviewer": "codex-gpu-lane",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "scope": "The existing release gates exercise the same exact Build.ps1 source. Only the Rust build wrapper argument transport and its comment changed for this follow-up."
     }
   ]
 }

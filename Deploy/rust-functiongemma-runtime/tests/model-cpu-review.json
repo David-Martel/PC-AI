@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-23T01:11:02.706Z",
+  "sourceBaseline": "9e69f7b4e386ce9f01f5b5eb16c00d036353f34d",
+  "hashConvention": "SHA-256 of UTF-8 LF text. Rust selector extents include the test attribute through the closing brace and final LF.",
+  "sourceBindings": {
+    "Deploy/Cargo.lock": "2409d74fef9e5ac3ca76c72fa84cfe6dbf07ddc23fed01b925f34f5284a73e00",
+    "Deploy/rust-functiongemma-runtime/Cargo.toml": "7529f15ed56f54b0ac0e360e4dd10522d59bb01621a61b985bb370c446099758",
+    "Deploy/rust-functiongemma-runtime/src/gpu.rs": "11fd8ddc6a0cc11dbd7c4694b24f7c11996bc5826bd25a97e3dcbf21e845a9b8",
+    "Deploy/rust-functiongemma-runtime/src/inference.rs": "82f90513ddaf33f8f0ad1d77b8f8bd599b1c5e098bcf2ff9e4ef08e9fb8dcaa7",
+    "Deploy/rust-functiongemma-runtime/src/config.rs": "81fa113ff8abbb7b412c058d7b63cac815d997692b3eaf8880f2eebac5e8ad5f",
+    "Deploy/rust-functiongemma-core/src/model.rs": "f7bdfff55c9f413659954c83a6ed0b4994c5cf57c3bd994073d05af5a1a69d77",
+    "Deploy/rust-functiongemma-runtime/src/metrics.rs": "f30f02aebab4149b8fab467ebc36c242c72493a0013e15097c6d11ac116e76b1",
+    "Deploy/rust-functiongemma-runtime/src/model_support.rs": "fd74546b048027da4ba6a1d836b7792017777209704ccbe63ddb3677a83a3b31",
+    "Deploy/rust-functiongemma-runtime/src/handlers.rs": "2e30c117831f4aceae7cb65cf5c2133bb680199abd15a87f7cb1e176e01d5f8c",
+    "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs": "541e3aa230e0173e9bb570d3a8c6ac50338c46d19c6ae24366a9482e26de55e1",
+    "Deploy/rust-functiongemma-runtime/README.md": "ea9d3f11b7f488bb5d1551701233b68ca2d17eb56a52e8a4340f1d7809c776ab"
+  },
+  "selectors": [
+    {
+      "selector": "cpu_model_uses_cpu_even_with_cuda_preferences",
+      "source": "Deploy/rust-functiongemma-runtime/src/gpu.rs",
+      "reviewScope": "Use CPU tensors and verify the selected device, absent CUDA index and CPU telemetry for auto, cpu and cuda:1 configuration with a GPU preference.",
+      "sha256": "161a16dc9439b0baad4026c0d962dbd60fb9e06874b548880cf0afeca4e03b9c",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "test_resolve_nonexistent_returns_error_or_fallback",
+      "source": "Deploy/rust-functiongemma-runtime/src/model_support.rs",
+      "reviewScope": "The pre-existing missing-path smoke reaches the real network fallback. Run it explicitly with the Hub available. Portable tests continue to verify both local resolution paths without the network.",
+      "sha256": "4ec75fa549e3fc0d7fc617400e426be70fad2efe50164352718ed8572eba35b6",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "greedy_generation_selects_tokens_with_and_without_cache",
+      "source": "Deploy/rust-functiongemma-core/src/model.rs",
+      "reviewScope": "Decode two deterministic CPU tokens through uncached, dynamic KV cache and preallocated KV cache modes. Before the rank fix, the local model route fell back to heuristics after reading a scalar argmax as a rank-one vector.",
+      "sha256": "55a8cdf6352c15e057f13ac1f19fc0b82864d668cba2bfa8b5a27823384f2add",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed"
+    },
+    {
+      "selector": "cpu_model_routes_valid_output_and_reports_malformed_fallback",
+      "source": "Deploy/rust-functiongemma-runtime/tests/model_cpu.rs",
+      "reviewScope": "Run synthetic one-layer weights with the preallocated cache. Require the model engine for an exact NO_TOOL and recorded heuristic fallback for malformed output containing the same sentinel.",
+      "sha256": "d63106b23935e3ab61c765c214249df72f08eb3b0ce0e0ba779772981e3afd4e",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed"
+    }
+  ]
+}

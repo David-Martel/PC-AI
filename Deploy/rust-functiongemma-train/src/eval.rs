@@ -136,8 +136,8 @@ pub fn evaluate_sample(
     let mut arg_match = false;
     let mut no_tool_match = false;
     let mut schema_valid = true;
-    let mut expected_label = String::new();
-    let mut predicted_label = String::new();
+    let expected_label;
+    let predicted_label;
 
     match (expected_tool, parsed_tool) {
         (Some((exp_name, exp_args)), Some((act_name, act_args))) => {
@@ -209,7 +209,7 @@ fn parse_tool_call_json(output: &str) -> Option<Value> {
 
 fn extract_expected_tool(tool_calls: Option<&Value>) -> Option<(String, Value)> {
     let tool_calls = tool_calls?.as_array()?;
-    let tc = tool_calls.get(0)?;
+    let tc = tool_calls.first()?;
     let func = tc.get("function")?;
     let name = func.get("name")?.as_str()?.to_string();
     let args = func
@@ -222,7 +222,7 @@ fn extract_expected_tool(tool_calls: Option<&Value>) -> Option<(String, Value)> 
 fn extract_parsed_tool(value: Value) -> Option<(String, Value)> {
     if value.is_array() {
         let arr = value.as_array()?;
-        let tc = arr.get(0)?;
+        let tc = arr.first()?;
         let func = tc.get("function")?;
         let name = func.get("name")?.as_str()?.to_string();
         let args = func
@@ -390,11 +390,16 @@ mod tests {
         assert!(m.per_tool_f1().is_empty());
     }
 
+    // Protects the report labels used by evaluation readers.
+    // Detects the omission of per-tool F1 or tool accuracy.
+    // Needs an in-memory metrics sample. Breadcrumb: EvaluationMetrics::summary_report.
     #[test]
     fn test_summary_report_includes_f1() {
-        let mut m = EvaluationMetrics::default();
-        m.total = 3;
-        m.tool_name_correct = 2;
+        let mut m = EvaluationMetrics {
+            total: 3,
+            tool_name_correct: 2,
+            ..EvaluationMetrics::default()
+        };
         m.record_prediction("A", "A");
         m.record_prediction("A", "A");
         m.record_prediction("B", "A");

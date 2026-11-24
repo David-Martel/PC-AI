@@ -86,7 +86,7 @@ pub fn infer_lora_r_from_weights(path: &Path) -> Option<usize> {
     let tensors = safetensors::SafeTensors::deserialize(&data).ok()?;
     for name in tensors.names() {
         if name.contains("lora_a") {
-            if let Ok(info) = tensors.tensor(&name) {
+            if let Ok(info) = tensors.tensor(name) {
                 let shape = info.shape();
                 if let Some(&first) = shape.first() {
                     return Some(first);

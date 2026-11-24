@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "0cf6a7bdc76a885d971cce2534555d6b059c165d",
+  "hashConvention": "SHA-256 of UTF-8 LF source and the exact Rust test from its attribute through the final LF.",
+  "sourceBindings": {
+    "Deploy/rust-functiongemma-runtime/src/handlers.rs": "2e30c117831f4aceae7cb65cf5c2133bb680199abd15a87f7cb1e176e01d5f8c",
+    "Deploy/rust-functiongemma-runtime/src/metrics.rs": "f30f02aebab4149b8fab467ebc36c242c72493a0013e15097c6d11ac116e76b1",
+    "Deploy/rust-functiongemma-runtime/src/types.rs": "9c18217d46c789f7a9ce564d16a5e2b00a6fb136a0868427dda64cfb4f5d5006",
+    "Deploy/rust-functiongemma-runtime/tests/model_fallback.rs": "b8db6dbef999dba20a684e6d5d06a8c60ba7a41244bd3cb2b8bf8e0968ce48dc",
+    "Deploy/rust-functiongemma-runtime/README.md": "ea9d3f11b7f488bb5d1551701233b68ca2d17eb56a52e8a4340f1d7809c776ab",
+    "docs/functiongemma-runtime-validation.md": "f3a1c3e77e244f4857649482d9f3cd94622a1e9907319a2fec133e1f0a48a1eb"
+  },
+  "selectors": [
+    {
+      "selector": "failed_model_requests_report_fallback_for_json_and_sse",
+      "source": "Deploy/rust-functiongemma-runtime/tests/model_fallback.rs",
+      "sha256": "e66a074df4bfa4c27e3a751a871fd2b3a9b57618a41d7a1cfb4c728c681f8c2c",
+      "protects": "JSON and SSE report a heuristic response produced after model failure. Health counts those requests once.",
+      "detects": "An HTTP 200 hiding a model failure, an SSE-specific missing header, or a miscount.",
+      "needs": "An empty local model directory and an ephemeral loopback socket. No weights, internet, or GPU.",
+      "breadcrumb": "handlers::route_request and metrics::router_stats",
+      "reviewer": "codex",
+      "reviewerType": "author self-review",
+      "disposition": "unreviewed",
+      "reviewScope": "An empty model directory causes each request to use the heuristic, so clients can read the reason without relying on response-text or private log strings."
+    }
+  ]
+}

@@ -243,6 +243,10 @@ measured chain). [`Tests/Unit/TestModuleIsolation.Tests.ps1`](Unit/TestModuleIso
 its [review register](Unit/test-module-isolation-review.json) binds each selector and the six adopting files by hash, and the
 [whole-suite before/after evidence](Unit/test-module-isolation-evidence.json) records the `known_failures` entries this change removed.
 
+The [media unit tests](Unit/PC-AI.Media.Tests.ps1) place analysis and upscale
+fixtures in each Pester session's TestDrive. The [fixture review](Unit/media-test-fixtures-review.json)
+records the shared-scratch regression and the concurrent validation.
+
 ## Code Coverage
 
 ### Coverage Requirements

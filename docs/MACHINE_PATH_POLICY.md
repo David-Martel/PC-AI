@@ -56,7 +56,12 @@ See also `~/.agents/RUST_TOOLING.md` for the cargo home.
 * **Per-host overrides** live in `hostOverrides` in the policy. dtm-work uses `keepOrder` and a machine-PATH addition because
   its services and sshd sessions never see the user PATH (it keeps `~/bin` and `~/.local/bin` in the machine PATH on purpose) and
   its `python.cmd` and `npm.cmd` wrappers are deliberate. A directory present in both scopes is informational, not a defect.
-* **Hardlinks are left alone.** Rustup proxies and pdf-tools links are maintained by `Sync-MachineEnvironment.ps1`.
+* **Poppler runs from its staged directory.** `Sync-MachineEnvironment.ps1` appends a staged Poppler directory to the user PATH
+  if no planned user PATH or current machine PATH directory already contains `pdftotext.exe`, `pdftoppm.exe`,
+  `poppler.dll`, and `lcms2.dll`. The newest qualifying versioned directory under `~/bin/pdf-tools/` takes precedence over
+  staged installer copies. The sync preserves existing PATH order and command files.
+  Older top-level Poppler hardlinks can still shadow the staged executables. Assess them with the existing reference and
+  replacement checks before archiving. Rustup proxy maintenance stays separate.
 
 ## Running it
 

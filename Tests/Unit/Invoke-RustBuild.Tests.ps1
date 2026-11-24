@@ -280,3 +280,101 @@ Describe 'Invoke-RustBuild' -Tag 'Unit', 'Portable' {
         }
     }
 }
+
+
+Describe 'Rust build argument transport' -Tag 'Unit', 'Portable' {
+    BeforeAll {
+        $repoRoot = Join-Path $PSScriptRoot '../..'
+        $build = [Management.Automation.Language.Parser]::ParseFile((Join-Path $repoRoot 'Build.ps1'), [ref]$null, [ref]$null)
+        foreach ($name in 'Invoke-RustBuildCommand', 'Add-CargoDependencyFlags') {
+            $function = $build.Find({
+                param($node)
+                $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq $name
+            }, $true)
+            . ([scriptblock]::Create($function.Extent.Text))
+        }
+
+        $script:FixturePwsh = Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })
+        function Resolve-PowerShellExecutable { $script:FixturePwsh }
+        function Write-RustBuildFailureLog { param([string]$LogFile) }
+
+        $stage = Join-Path $TestDrive 'wrapper stage'
+        $script:FixtureProject = Join-Path $TestDrive 'project path'
+        $null = New-Item -ItemType Directory -Path $stage, $script:FixtureProject
+        $script:RustBuildWrapper = Join-Path $stage 'Invoke-RustBuild.ps1'
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'Tools/Invoke-RustBuild.ps1') -Destination $script:RustBuildWrapper
+        @'
+function Invoke-FixtureCargo {
+    [Console]::WriteLine('PCAI_ARGV=' + (ConvertTo-Json -InputObject @($args) -Compress))
+    $global:LASTEXITCODE = if ($args -contains 'doesnotexist') { 37 } else { 0 }
+}
+function Get-Command {
+    param($Name, $ErrorAction)
+    if ($Name -eq 'cargo') { return [pscustomobject]@{ Path = 'Invoke-FixtureCargo' } }
+    Microsoft.PowerShell.Core\Get-Command @PSBoundParameters
+}
+'@ | Set-Content -LiteralPath (Join-Path $stage 'PcaiModuleBootstrap.ps1')
+    }
+
+    # Protects: the top-level builder delivers the ordered argument array to Cargo.
+    # Detects: dropped dash-prefixed flags, wrapper binder collisions and lost child failure.
+    # Needs: pwsh, Pester and an inert Cargo recorder in an isolated wrapper copy.
+    # Breadcrumb: Build.ps1 Invoke-RustBuildCommand and Tools/Invoke-RustBuild.ps1.
+    It 'delivers exact Cargo tokens and status for <Case>' -ForEach @(
+        @{ Case = 'ordered build flags'; InputArgs = @('build', '--release', '--features', 'cuda,cudnn', '-p', 'pcai-train', '--target-dir', 'project cache'); ExpectedSuccess = $true },
+        @{ Case = 'invalid feature'; InputArgs = @('tree', '--features', 'doesnotexist'); ExpectedSuccess = $false },
+        @{ Case = 'test name filter'; InputArgs = @('test', '--lib', 'model::test_cpu_only'); ExpectedSuccess = $true }
+    ) {
+        $log = Join-Path $TestDrive "cargo-$Case.log"
+        $oldDependency = $script:DependencyStrategy
+        $oldDisableCache = $env:PCAI_DISABLE_CACHE
+        try {
+            $script:DependencyStrategy = 'locked'
+            $env:PCAI_DISABLE_CACHE = '0'
+            $succeeded = Invoke-RustBuildCommand -Path $script:FixtureProject -CargoArgs $InputArgs -LogFile $log
+            $actual = @(Get-Content -LiteralPath $log | Where-Object { $_.StartsWith('PCAI_ARGV=') })
+            $actual.Count | Should -Be 1
+            $actual[0].Substring('PCAI_ARGV='.Length) | Should -BeExactly (ConvertTo-Json -InputObject ($InputArgs + '--locked') -Compress)
+            $succeeded | Should -Be $ExpectedSuccess
+        } finally {
+            $script:DependencyStrategy = $oldDependency
+            $env:PCAI_DISABLE_CACHE = $oldDisableCache
+        }
+    }
+
+    # Protects: existing direct -File callers can mix a bound subcommand with trailing flags.
+    # Detects: silently accepting a command whose invalid feature flag never reaches Cargo.
+    # Needs: profile-free pwsh child and the staged inert Cargo recorder.
+    # Breadcrumb: Tools/Invoke-RustBuild.ps1 CargoArgs and RemainingArgs binding.
+    It 'preserves mixed bound and trailing Cargo arguments' {
+        $log = & $script:FixturePwsh -NoProfile -File $script:RustBuildWrapper -Path $script:FixtureProject -CargoArgs tree --locked --features doesnotexist
+        $exitCode = $LASTEXITCODE
+        $actual = @($log | Where-Object { $_.StartsWith('PCAI_ARGV=') })
+        $actual.Count | Should -Be 1
+        $actual[0] | Should -BeExactly 'PCAI_ARGV=["tree","--locked","--features","doesnotexist"]'
+        $exitCode | Should -Be 37
+    }
+
+    # Protects: Cargo-level policy flags stay before the tool argument separator.
+    # Detects: consuming a test-runner separator or moving its filter before the separator.
+    # Needs: the extracted build caller and an inert same-process Cargo recorder.
+    # Breadcrumb: Build.ps1 Add-CargoDependencyFlags and Invoke-RustBuildCommand direct path.
+    It 'preserves test filter arguments after the tool separator' {
+        $oldDependency = $script:DependencyStrategy
+        $oldExitCode = $global:LASTEXITCODE
+        function cargo {
+            Write-Output ('PCAI_ARGV=' + (ConvertTo-Json -InputObject @($args) -Compress))
+            $global:LASTEXITCODE = 0
+        }
+        try {
+            $script:DependencyStrategy = 'locked'
+            $log = Join-Path $TestDrive 'cargo separator.log'
+            $result = Invoke-RustBuildCommand -Path $script:FixtureProject -CargoArgs @('test', '--lib', '--', '--exact', 'named test') -LogFile $log
+            $result | Should -BeTrue
+            (Get-Content -LiteralPath $log) | Should -BeExactly 'PCAI_ARGV=["test","--lib","--locked","--","--exact","named test"]'
+        } finally {
+            $script:DependencyStrategy = $oldDependency
+            $global:LASTEXITCODE = $oldExitCode
+        }
+    }
+}

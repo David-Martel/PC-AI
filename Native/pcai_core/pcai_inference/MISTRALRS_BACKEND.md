@@ -124,11 +124,53 @@ pub struct MistralRsBackend {
 
 ### Device Selection
 
-The backend automatically selects the best available device:
+`backend.device` in the configuration selects where the model runs. The accepted values are defined once,
+by `DeviceSpec` in `src/config.rs`, and shared by the `pcai-mistralrs` binary and the backend:
 
-1. **Windows**: Always uses CPU (due to bindgen_cuda issues)
-2. **Linux/WSL2**: Prefers CUDA if available, falls back to CPU
-3. **macOS**: Uses Metal if compiled with `metal` feature, otherwise CPU
+| Value | Behaviour |
+|---|---|
+| unset, `""`, `auto` | CUDA when the build has it (`cuda-mistralrs`) and device 0 initializes; otherwise CPU. A Windows build without CUDA uses CPU. |
+| `cpu` | CPU, even when CUDA is available. |
+| `cuda:0` | CUDA device 0. Never falls back: a build without CUDA, or a device that fails to initialize, stops the load with an error naming the cause. |
+| `cuda:N`, N > 0 | Refused at load. mistral.rs 0.8.1 resolves the device for its GGUF and text builders without looking at `with_device`, so it can only load on CUDA device 0. Start the process with `CUDA_VISIBLE_DEVICES=N` and use `cuda:0`. |
+
+Any other string is a configuration error that lists the accepted forms.
+
+### Layer placement
+
+`backend.device_layers` controls how layers are placed on the device (default `auto`):
+
+| Value | Behaviour |
+|---|---|
+| unset, `auto` | mistral.rs chooses. A model that does not fit the GPU is split, with the last layers on the CPU. For GGUF models that split loads and then fails the first forward pass with `device mismatch in rms-norm, lhs: Cpu, rhs: Cuda` (seen with Qwen2.5-7B Q4_K_M on an 8 GB GPU); the readiness probe below turns that into a not-ready server. |
+| `all` | Every layer on the selected device. A model that does not fit fails at load with the loader's out-of-memory error instead of loading as a split. It has no effect with `device: "cpu"`, where every layer is already on the CPU. |
+
+```json
+{ "backend": { "type": "mistral_rs", "device": "cuda:0", "device_layers": "all" } }
+```
+
+A partial split (a number of GPU layers) is not offered: the mixed placement is the one that fails.
+
+### Readiness
+
+`pcai-mistralrs` runs one short deterministic generation (a few tokens, temperature 0) after the model loads,
+before it binds the socket. mistral.rs 0.8.1 does run a one-token dummy run at load, but it logs
+"Dummy run completed" even when the run returned an error and exposes no result, and loading the weights
+proves nothing about the first forward pass: a model whose layers are split between the CPU and a GPU loads,
+then fails every request with `device mismatch in rms-norm`. If the probe fails the server logs the full
+error (target `pcai_inference_lib`, enabled by the default log filter), unloads the model and still starts,
+so a supervisor can see that it is not usable:
+
+- `GET /health` answers `503` with `{"status":"not_ready","reason":"generation_probe_failed","message":"..."}`.
+  `generation_probe_timeout` is the code when the probe does not finish in 300 s. The route is
+  unauthenticated, so the reason is a stable code with a fixed message and never text from the error, which
+  can hold file paths; read the log for the cause.
+- `GET /v1/models` and every inference route answer `503` with the same code (after the bearer-token check,
+  which still runs first). Chat requests that the FunctionGemma router answers do not use the local model,
+  so only their fallback to local inference is gated.
+
+`GET /health` answers `200` with `"status":"ready"` only after the probe passes. It answered `200` with
+`not_ready` before, which clients that only check the HTTP status (the PowerShell callers) read as healthy.
 
 ### Response Mapping
 

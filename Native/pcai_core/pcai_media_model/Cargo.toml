@@ -1,6 +1,6 @@
 [package]
 name = "pcai-media-model"
-version = "0.1.0"
+version.workspace = true
 edition = "2021"
 description = "Janus-Pro model architecture for PC_AI media agent"
 license = "MIT"

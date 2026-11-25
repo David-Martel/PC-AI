@@ -34,8 +34,14 @@ fn main() {
 
     // 1. State acquisition recovers from poison by consuming the held guard.
     let lock = function(&text, "fn lock_state_recovering() -> MutexGuard<'static, MediaState> {");
-    assert!(lock.contains("get_state().lock()"), "acquisition takes the one global state lock");
-    assert!(lock.contains("PoisonError::into_inner"), "poisoned-lock recovery must use into_inner");
+    assert!(
+        lock.contains("get_state().lock()"),
+        "acquisition takes the one global state lock"
+    );
+    assert!(
+        lock.contains("PoisonError::into_inner"),
+        "poisoned-lock recovery must use into_inner"
+    );
     assert!(
         !lock.contains(".expect(") && !lock.contains(".unwrap()"),
         "acquisition must not panic on poison"
@@ -60,12 +66,17 @@ fn main() {
     }
     let during_publish = between(worker, "begin_publish(id)", "finish_publish(id, terminal);");
     assert!(
-        during_publish.contains("publish(&staged, dest)"),
+        during_publish.contains("publish_owned_staging(&staged, dest, publish)"),
         "the publish step sits between begin and finish"
+    );
+    let checked_publish = function(&text, "fn publish_owned_staging(");
+    assert!(
+        checked_publish.contains("publish(staged, dest)"),
+        "the custody check must call the publisher"
     );
     for forbidden in ["lock_state_recovering()", "get_state()", ".lock("] {
         assert!(
-            !during_publish.contains(forbidden),
+            !during_publish.contains(forbidden) && !checked_publish.contains(forbidden),
             "no global lock may be held across the publish step: {forbidden}"
         );
     }

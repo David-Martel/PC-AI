@@ -952,7 +952,7 @@ fn encode_for(dest: &Path) -> impl FnOnce(&image::RgbImage, &mut File) -> io::Re
 /// The file is private from the moment it exists, so a half-written image is
 /// never readable by other users: on Unix it is created `0600`; on Windows it
 /// is created with a protected DACL naming only the owner and SYSTEM, so it
-/// inherits nothing from the directory.  [`publish_staged`] then gives it the
+/// inherits nothing from the directory. [`publish_staged_owned`] gives it the
 /// destination's access control (or, for a new destination, what a plain
 /// `File::create` would have produced) before the rename.
 fn create_staging_file(dest: &Path) -> io::Result<(PathBuf, File)> {
@@ -1105,10 +1105,14 @@ const STAGING_ATTEMPTS: u32 = 8;
 ///
 /// The path alone does not say whose bytes are there: another writer can rename a
 /// file over it.  Cleanup therefore goes through [`discard_staging`], which deletes
-/// the path only while it still holds this identity.  Dereferences to the path.
+/// the originally identified entry. Production publish checks custody before
+/// handing off the path. On Unix the file descriptor pins the inode until the
+/// caller finishes. Dereferences to the path.
 struct StagedFile {
     path: PathBuf,
     identity: FileIdentity,
+    #[cfg(unix)]
+    file: File,
 }
 
 impl AsRef<Path> for StagedFile {
@@ -1125,12 +1129,12 @@ impl std::ops::Deref for StagedFile {
     }
 }
 
-/// Which file object a path or handle refers to: volume and file index (Windows
-/// `GetFileInformationByHandle`), device and inode (Unix).
+/// Which file object a path or handle refers to: volume and full `FileIdInfo`
+/// identifier (Windows), or device and inode (Unix).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct FileIdentity {
     volume: u64,
-    index: u64,
+    index: u128,
 }
 
 #[cfg(unix)]
@@ -1139,7 +1143,7 @@ fn identity_of_file(file: &File) -> io::Result<FileIdentity> {
     let metadata = file.metadata()?;
     Ok(FileIdentity {
         volume: metadata.dev(),
-        index: metadata.ino(),
+        index: u128::from(metadata.ino()),
     })
 }
 
@@ -1150,25 +1154,39 @@ fn identity_at(path: &Path) -> io::Result<FileIdentity> {
     let metadata = fs::symlink_metadata(path)?;
     Ok(FileIdentity {
         volume: metadata.dev(),
-        index: metadata.ino(),
+        index: u128::from(metadata.ino()),
     })
 }
 
 #[cfg(windows)]
 fn identity_of_file(file: &File) -> io::Result<FileIdentity> {
     use std::os::windows::io::AsRawHandle;
-    use windows_sys::Win32::Storage::FileSystem::{GetFileInformationByHandle, BY_HANDLE_FILE_INFORMATION};
-    // SAFETY: an all-zero BY_HANDLE_FILE_INFORMATION is a valid value to overwrite.
-    let mut info: BY_HANDLE_FILE_INFORMATION = unsafe { std::mem::zeroed() };
-    // SAFETY: the handle is valid while `file` is borrowed and `info` is a valid
-    // out pointer for the call.
-    if unsafe { GetFileInformationByHandle(file.as_raw_handle(), &mut info) } == 0 {
+    use windows_sys::Win32::Storage::FileSystem::{FileIdInfo, GetFileInformationByHandleEx, FILE_ID_INFO};
+
+    let mut info = FILE_ID_INFO::default();
+    // SAFETY: the borrowed handle is valid and the writable output points to a FILE_ID_INFO
+    // of the size the FileIdInfo class requires.
+    let found = unsafe {
+        GetFileInformationByHandleEx(
+            file.as_raw_handle(),
+            FileIdInfo,
+            (&mut info as *mut FILE_ID_INFO).cast(),
+            std::mem::size_of::<FILE_ID_INFO>() as u32,
+        )
+    };
+    if found == 0 {
         return Err(io::Error::last_os_error());
     }
-    Ok(FileIdentity {
-        volume: u64::from(info.dwVolumeSerialNumber),
-        index: (u64::from(info.nFileIndexHigh) << 32) | u64::from(info.nFileIndexLow),
-    })
+
+    Ok(windows_file_identity(info.VolumeSerialNumber, info.FileId.Identifier))
+}
+
+#[cfg(windows)]
+fn windows_file_identity(volume: u64, identifier: [u8; 16]) -> FileIdentity {
+    FileIdentity {
+        volume,
+        index: u128::from_le_bytes(identifier),
+    }
 }
 
 /// Identity of whatever is at `path`; a reparse point is opened, not followed.  A
@@ -1177,9 +1195,9 @@ fn identity_of_file(file: &File) -> io::Result<FileIdentity> {
 fn identity_at(path: &Path) -> io::Result<FileIdentity> {
     use std::fs::OpenOptions;
     use std::os::windows::fs::OpenOptionsExt;
-    const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+    use windows_sys::Win32::Storage::FileSystem::{FILE_FLAG_OPEN_REPARSE_POINT, FILE_READ_ATTRIBUTES};
     let file = OpenOptions::new()
-        .read(true)
+        .access_mode(FILE_READ_ATTRIBUTES)
         .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
         .open(path)?;
     identity_of_file(&file)
@@ -1196,24 +1214,58 @@ fn identity_at(path: &Path) -> io::Result<FileIdentity> {
 }
 
 /// Encode `image` into a fresh, exclusively created staging file next to
-/// `dest` and flush it to disk.  Any failure removes the staging file.
+/// `dest` and flush it to disk.
+///
+/// The identity of the new file is recorded from the open handle immediately after
+/// it is created, before any encoding runs.  Encoding can take long enough for
+/// another writer to rename a file onto the staging name, so every failure after
+/// creation (encode, write, flush) goes through [`discard_staging`]. On Unix the
+/// descriptor is retained to pin the inode and apply publish permissions to it.
 fn stage_image(
     image: &image::RgbImage,
     dest: &Path,
     encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
 ) -> io::Result<StagedFile> {
+    stage_image_with(image, dest, encode, identity_of_file)
+}
+
+/// [`stage_image`] with the identity step injected, so tests can make it fail.
+///
+/// If the identity of the new file cannot be read, ownership cannot be checked
+/// later, so the file is NOT deleted by name: it is left in place (it is empty and
+/// ours) and the error names it.
+fn stage_image_with(
+    image: &image::RgbImage,
+    dest: &Path,
+    encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
+    identify: impl FnOnce(&File) -> io::Result<FileIdentity>,
+) -> io::Result<StagedFile> {
     let (path, mut file) = create_staging_file(dest)?;
-    let written = encode(image, &mut file)
-        .and_then(|()| file.sync_all())
-        .and_then(|()| identity_of_file(&file));
-    drop(file);
-    match written {
-        Ok(identity) => Ok(StagedFile { path, identity }),
+    let identity = match identify(&file) {
+        Ok(identity) => identity,
         Err(error) => {
-            // The file was created a moment ago by this call; nothing else has it.
-            let _ = fs::remove_file(&path);
-            Err(error)
+            drop(file);
+            return Err(io::Error::new(
+                error.kind(),
+                format!(
+                    "{error}; the staging file {} was left in place because its identity could not be recorded",
+                    path.display()
+                ),
+            ));
         }
+    };
+    let written = encode(image, &mut file).and_then(|()| file.sync_all());
+    #[cfg(not(unix))]
+    drop(file);
+    let staged = StagedFile {
+        path,
+        identity,
+        #[cfg(unix)]
+        file,
+    };
+    match written {
+        Ok(()) => Ok(staged),
+        Err(error) => Err(with_note(error, discard_staging(&staged))),
     }
 }
 
@@ -1243,8 +1295,8 @@ fn rescue_move(from: &Path, to: &Path) -> io::Result<()> {
 
 /// [`discard_staging`] with the rescue move injected, so tests can make it fail.
 fn discard_staging_with(staged: &StagedFile, rescue: impl FnOnce(&Path, &Path) -> io::Result<()>) -> Option<String> {
-    match identity_at(&staged.path) {
-        Ok(found) if found == staged.identity => match fs::remove_file(&staged.path) {
+    match discard_owned_staging(staged) {
+        Some(result) => match result {
             Ok(()) => None,
             Err(error) if error.kind() == io::ErrorKind::NotFound => None,
             Err(error) => Some(format!(
@@ -1252,8 +1304,7 @@ fn discard_staging_with(staged: &StagedFile, rescue: impl FnOnce(&Path, &Path) -
                 staged.path.display()
             )),
         },
-        Err(error) if error.kind() == io::ErrorKind::NotFound => None,
-        _ => {
+        None => {
             let rescued = staged
                 .path
                 .with_file_name(format!(".pcai-{:016x}.rescued", rand::random::<u64>()));
@@ -1270,6 +1321,57 @@ fn discard_staging_with(staged: &StagedFile, rescue: impl FnOnce(&Path, &Path) -
             })
         }
     }
+}
+
+/// Check the staging identity before the Unix unlink. The open staging file
+/// prevents inode reuse during this check, but the unlink still takes a path.
+/// `None` means that custody could not be established.
+#[cfg(not(windows))]
+fn discard_owned_staging(staged: &StagedFile) -> Option<io::Result<()>> {
+    match identity_at(&staged.path) {
+        Ok(found) if found == staged.identity => Some(fs::remove_file(&staged.path)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Some(Ok(())),
+        _ => None,
+    }
+}
+
+/// Read identity and request deletion through the same Windows handle.
+#[cfg(windows)]
+fn discard_owned_staging(staged: &StagedFile) -> Option<io::Result<()>> {
+    use std::os::windows::{fs::OpenOptionsExt, io::AsRawHandle};
+    use windows_sys::Win32::Storage::FileSystem::{
+        FileDispositionInfo, SetFileInformationByHandle, DELETE, FILE_DISPOSITION_INFO, FILE_FLAG_OPEN_REPARSE_POINT,
+        FILE_READ_ATTRIBUTES,
+    };
+
+    let file = match fs::OpenOptions::new()
+        .access_mode(FILE_READ_ATTRIBUTES | DELETE)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(&staged.path)
+    {
+        Ok(file) => file,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Some(Ok(())),
+        Err(_) => return None,
+    };
+    if !matches!(identity_of_file(&file), Ok(found) if found == staged.identity) {
+        return None;
+    }
+    let disposition = FILE_DISPOSITION_INFO { DeleteFile: true };
+    // SAFETY: `file` keeps the validated handle live and the buffer is the
+    // FILE_DISPOSITION_INFO required by the FileDispositionInfo class.
+    let removed = unsafe {
+        SetFileInformationByHandle(
+            file.as_raw_handle(),
+            FileDispositionInfo,
+            (&disposition as *const FILE_DISPOSITION_INFO).cast(),
+            std::mem::size_of::<FILE_DISPOSITION_INFO>() as u32,
+        )
+    };
+    Some(if removed == 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
+    })
 }
 
 /// `error` with `note` (from [`discard_staging`]) appended.
@@ -1326,6 +1428,34 @@ fn has_access_acl(path: &Path) -> io::Result<bool> {
             0,
         )
     };
+    acl_probe_result(size)
+}
+
+/// Other Unix systems: ACLs are not inspected here, so none are reported.
+#[cfg(all(unix, not(target_os = "linux")))]
+fn has_access_acl(_path: &Path) -> io::Result<bool> {
+    Ok(false)
+}
+
+/// Read the staging file's POSIX access ACL without reopening its name.
+#[cfg(target_os = "linux")]
+fn has_staged_access_acl(file: &File) -> io::Result<bool> {
+    use std::os::fd::AsRawFd;
+    // SAFETY: the descriptor is borrowed from a live File. A null buffer with
+    // size zero queries the attribute size.
+    let size = unsafe {
+        libc::fgetxattr(
+            file.as_raw_fd(),
+            c"system.posix_acl_access".as_ptr(),
+            std::ptr::null_mut(),
+            0,
+        )
+    };
+    acl_probe_result(size)
+}
+
+#[cfg(target_os = "linux")]
+fn acl_probe_result(size: libc::ssize_t) -> io::Result<bool> {
     if size >= 0 {
         return Ok(true);
     }
@@ -1336,13 +1466,12 @@ fn has_access_acl(path: &Path) -> io::Result<bool> {
     }
 }
 
-/// Other Unix systems: ACLs are not inspected here, so none are reported.
 #[cfg(all(unix, not(target_os = "linux")))]
-fn has_access_acl(_path: &Path) -> io::Result<bool> {
+fn has_staged_access_acl(_file: &File) -> io::Result<bool> {
     Ok(false)
 }
 
-/// Remove `path`'s POSIX access ACL, leaving only its mode bits.
+/// Remove the staged file's POSIX access ACL, leaving only its mode bits.
 ///
 /// A file created in a directory with a default ACL inherits an access ACL; its
 /// named entries are held back by the mask, which follows the group bits of the
@@ -1352,11 +1481,11 @@ fn has_access_acl(_path: &Path) -> io::Result<bool> {
 /// A filesystem without ACL support has nothing to remove; any other error is
 /// returned, so the publish fails instead of keeping the entries.
 #[cfg(target_os = "linux")]
-fn strip_access_acl(path: &Path) -> io::Result<()> {
-    use std::os::unix::ffi::OsStrExt;
-    let path = CString::new(path.as_os_str().as_bytes()).map_err(io::Error::other)?;
-    // SAFETY: the strings are NUL-terminated and outlive the call.
-    let status = unsafe { libc::removexattr(path.as_ptr(), c"system.posix_acl_access".as_ptr()) };
+fn strip_access_acl(file: &File) -> io::Result<()> {
+    use std::os::fd::AsRawFd;
+    // SAFETY: the descriptor is borrowed from a live File and the attribute
+    // name is a NUL-terminated string.
+    let status = unsafe { libc::fremovexattr(file.as_raw_fd(), c"system.posix_acl_access".as_ptr()) };
     if status == 0 {
         return Ok(());
     }
@@ -1369,7 +1498,7 @@ fn strip_access_acl(path: &Path) -> io::Result<()> {
 
 /// Other Unix systems: ACLs are not inspected here, so there is nothing to strip.
 #[cfg(all(unix, not(target_os = "linux")))]
-fn strip_access_acl(_path: &Path) -> io::Result<()> {
+fn strip_access_acl(_file: &File) -> io::Result<()> {
     Ok(())
 }
 
@@ -1385,7 +1514,9 @@ fn strip_access_acl(_path: &Path) -> io::Result<()> {
 /// removed first (and its absence checked afterwards), because the mode copy
 /// would otherwise raise the ACL mask and activate the inherited named entries.
 /// For a new destination the inherited ACL is kept, as a plain `File::create`
-/// would have.  Every failure is returned before
+/// would have. The permission changes use the retained file descriptor, then
+/// the source name is rechecked before the pathname operation. Preparation
+/// errors are returned before
 /// anything is renamed, so the destination is left untouched.  The owning user
 /// and extended attributes other than the access ACL are not carried over.
 ///
@@ -1393,11 +1524,19 @@ fn strip_access_acl(_path: &Path) -> io::Result<()> {
 /// destination that is a symlink, directory or special file is refused.
 /// Callers remove the staging file on error.
 #[cfg(unix)]
-fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
-    publish_staged_checked(staged, dest, |path| fs::symlink_metadata(path), copy_access_control)
+fn publish_staged_owned(staged: &StagedFile, dest: &Path) -> io::Result<()> {
+    publish_staged_checked(
+        &staged.path,
+        dest,
+        |path| fs::symlink_metadata(path),
+        |_, dest, existing| {
+            copy_access_control(&staged.file, dest, existing)?;
+            verify_staging_identity(staged)
+        },
+    )
 }
 
-/// [`publish_staged`] with the access-control step injected, so tests can make it
+/// [`publish_staged_owned`] with the access-control step injected, so tests can make it
 /// fail.  The rename happens only if that step succeeded.
 #[cfg(all(unix, test))]
 fn publish_staged_with(
@@ -1408,7 +1547,7 @@ fn publish_staged_with(
     publish_staged_checked(staged, dest, |path| fs::symlink_metadata(path), preserve)
 }
 
-/// [`publish_staged`] with the metadata call and the access-control step injected.
+/// [`publish_staged_owned`] with the metadata call and the access-control step injected.
 ///
 /// ONE probe of the destination, classified by [`classify_destination`] (with
 /// `symlink_metadata`, so a symlink is seen as a symlink), makes the decision, and
@@ -1586,10 +1725,10 @@ fn move_by_linking_with(
 }
 
 /// Give the staged file the access control `dest` has (or will have): see
-/// [`publish_staged`].  `existing` is the metadata from the publish decision
+/// [`publish_staged_owned`]. `existing` is the metadata from the publish decision
 /// (`None`: the destination is absent); the destination is not classified again.
 #[cfg(unix)]
-fn copy_access_control(staged: &Path, dest: &Path, existing: Option<&fs::Metadata>) -> io::Result<()> {
+fn copy_access_control(staged: &File, dest: &Path, existing: Option<&fs::Metadata>) -> io::Result<()> {
     use std::os::unix::fs::MetadataExt;
     let permissions = match existing {
         Some(existing) => {
@@ -1604,9 +1743,7 @@ fn copy_access_control(staged: &Path, dest: &Path, existing: Option<&fs::Metadat
                     ),
                 ));
             }
-            let file = File::open(staged)?;
-            std::os::unix::fs::fchown(&file, None, Some(existing.gid()))?;
-            drop(file);
+            std::os::unix::fs::fchown(staged, None, Some(existing.gid()))?;
             // The destination has no access ACL (checked above), so the staged
             // file must not have one either: drop what the directory's default
             // ACL gave it before the mode copy can make its entries effective.
@@ -1615,8 +1752,8 @@ fn copy_access_control(staged: &Path, dest: &Path, existing: Option<&fs::Metadat
         }
         None => plain_create_permissions(dest)?,
     };
-    fs::set_permissions(staged, permissions)?;
-    if existing.is_some() && has_access_acl(staged)? {
+    staged.set_permissions(permissions)?;
+    if existing.is_some() && has_staged_access_acl(staged)? {
         return Err(io::Error::new(
             io::ErrorKind::PermissionDenied,
             format!(
@@ -1875,10 +2012,15 @@ fn create_private_file(path: &Path) -> io::Result<File> {
     OpenOptions::new().write(true).create_new(true).open(path)
 }
 
+#[cfg(not(unix))]
+fn publish_staged_owned(staged: &StagedFile, dest: &Path) -> io::Result<()> {
+    publish_staged(&staged.path, dest)
+}
+
 /// Stage and publish in one step, for the synchronous paths that cannot be
 /// cancelled but must still never leave a partial destination.
 fn write_image_atomically(image: &image::RgbImage, dest: &Path) -> io::Result<()> {
-    write_image_atomically_with(image, dest, publish_staged)
+    write_image_atomically_with(image, dest, publish_staged_owned)
 }
 
 /// [`write_image_atomically`] with the publish step injected, so tests can make it
@@ -1886,10 +2028,32 @@ fn write_image_atomically(image: &image::RgbImage, dest: &Path) -> io::Result<()
 fn write_image_atomically_with(
     image: &image::RgbImage,
     dest: &Path,
-    publish: impl FnOnce(&Path, &Path) -> io::Result<()>,
+    publish: impl FnOnce(&StagedFile, &Path) -> io::Result<()>,
 ) -> io::Result<()> {
     let staged = stage_image(image, dest, encode_for(dest))?;
-    publish(&staged.path, dest).map_err(|error| with_note(error, discard_staging(&staged)))
+    publish_owned_staging(&staged, dest, publish).map_err(|error| with_note(error, discard_staging(&staged)))
+}
+
+/// Refuse a displaced staging entry before the publisher can change permissions
+/// or move it. This check does not make the later pathname operation atomic.
+fn publish_owned_staging(
+    staged: &StagedFile,
+    dest: &Path,
+    publish: impl FnOnce(&StagedFile, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    verify_staging_identity(staged)?;
+    publish(staged, dest)
+}
+
+fn verify_staging_identity(staged: &StagedFile) -> io::Result<()> {
+    let found = identity_at(&staged.path)?;
+    if found != staged.identity {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("the staging file {} changed before publishing", staged.path.display()),
+        ));
+    }
+    Ok(())
 }
 
 /// Run one queued async generation request to a terminal status.
@@ -1920,7 +2084,7 @@ fn execute_async_request_with(
     generate: impl FnOnce() -> anyhow::Result<image::RgbImage>,
     encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
 ) {
-    execute_async_request_staged(id, output_path, generate, encode, publish_staged);
+    execute_async_request_staged(id, output_path, generate, encode, publish_staged_owned);
 }
 
 /// [`execute_async_request_with`] with an injectable publish step, so tests
@@ -1930,7 +2094,7 @@ fn execute_async_request_staged(
     output_path: String,
     generate: impl FnOnce() -> anyhow::Result<image::RgbImage>,
     encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
-    publish: impl FnOnce(&Path, &Path) -> io::Result<()>,
+    publish: impl FnOnce(&StagedFile, &Path) -> io::Result<()>,
 ) {
     let gate = acquire_inference_gate();
 
@@ -1965,10 +2129,12 @@ fn execute_async_request_staged(
 
     // Commit to publishing under the lock, then rename without it.
     if !begin_publish(id) {
-        let _ = discard_staging(&staged);
+        if let Some(note) = discard_staging(&staged) {
+            tracing::warn!(request_id = id, %note, "could not discard cancelled image staging");
+        }
         return;
     }
-    let terminal = match publish(&staged, dest) {
+    let terminal = match publish_owned_staging(&staged, dest, publish) {
         Ok(()) => MediaRequestStatus::Complete(output_path),
         Err(e) => {
             let e = with_note(e, discard_staging(&staged));
@@ -3785,13 +3951,13 @@ mod tests {
         }
     }
 
-    // Protects: a failure while preparing the publish (here the staging file vanishes before
-    //   the permission copy) reports Failed, leaves the existing destination untouched and
+    // Protects: a failure while preparing the publish (here the staging name disappears)
+    //   reports Failed, leaves the existing destination untouched and
     //   leaves no staging file.
     // Detects: publish errors that are swallowed, or a destination replaced or truncated
     //   despite the failure.
-    // Needs: nothing platform specific; the real publish_staged runs after the staging file
-    //   is removed, which makes both the Unix permission copy and Windows ReplaceFileW fail.
+    // Needs: a temporary directory; the real publisher runs after the staging name
+    //   is removed, so the Unix name recheck or Windows replacement refuses it.
     #[test]
     fn test_failed_permission_step_leaves_destination_untouched() {
         let _serial = serialize_global_state();
@@ -3805,7 +3971,7 @@ mod tests {
         let encode = encode_for(Path::new(&dest));
         execute_async_request_staged(id, dest, mock_image, encode, |staged, dest| {
             fs::remove_file(staged)?;
-            publish_staged(staged, dest)
+            publish_staged_owned(staged, dest)
         });
         let (status, text) = poll_full(id);
         assert_eq!(status, 3, "the failed publish is reported as Failed");
@@ -3815,8 +3981,9 @@ mod tests {
         assert_eq!(unix_mode(&existing), mode_before);
         assert_eq!(dir_listing(tmp.path()), ["existing.png"]);
 
-        let staged = tmp.path().join("gone.partial");
-        assert!(publish_staged(&staged, &existing).is_err());
+        let staged = stage_image(&mock_image().unwrap(), &existing, encode_for(&existing)).expect("stage");
+        fs::remove_file(&staged).unwrap();
+        assert!(publish_staged_owned(&staged, &existing).is_err());
         assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
     }
 
@@ -4206,7 +4373,7 @@ mod tests {
             dest.to_string_lossy().into_owned(),
             mock_image,
             encode,
-            publish_staged,
+            publish_staged_owned,
         );
         let (status, _) = poll_full(id);
         assert_eq!(status, 2, "the publish completes");
@@ -4409,11 +4576,14 @@ mod tests {
 
     #[cfg(unix)]
     fn real_publish_with_probe(
-        staged: &Path,
+        staged: &StagedFile,
         dest: &Path,
         probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
     ) -> io::Result<()> {
-        publish_staged_checked(staged, dest, probe, copy_access_control)
+        publish_staged_checked(staged, dest, probe, |_, dest, existing| {
+            copy_access_control(&staged.file, dest, existing)?;
+            verify_staging_identity(staged)
+        })
     }
 
     // Protects: the no-replace move fills a free name and, when the name is occupied,
@@ -4668,8 +4838,8 @@ mod tests {
             mock_image,
             encode,
             |staged, dest| {
-                publish_staged_with(staged, dest, |staged, dest, existing| {
-                    copy_access_control(staged, dest, existing)?;
+                publish_staged_with(staged, dest, |_, dest, existing| {
+                    copy_access_control(&staged.file, dest, existing)?;
                     fs::remove_file(dest).unwrap();
                     Ok(())
                 })
@@ -4735,13 +4905,12 @@ mod tests {
             return;
         }
         let (staged, file) = create_staging_file(&dest).expect("staging file");
-        drop(file);
         assert!(
             has_access_acl(&staged).unwrap(),
             "positive control: the staging file inherited an access ACL from the directory"
         );
         let existing = fs::metadata(&dest).unwrap();
-        copy_access_control(&staged, &dest, Some(&existing)).expect("access control");
+        copy_access_control(&file, &dest, Some(&existing)).expect("access control");
         assert!(
             !has_access_acl(&staged).unwrap(),
             "the inherited access ACL is gone after the step"
@@ -4827,7 +4996,7 @@ mod tests {
             async_dest.to_string_lossy().into_owned(),
             mock_image,
             encode,
-            publish_staged,
+            publish_staged_owned,
         );
         assert_eq!(poll_full(id).0, 2, "the async publish completes");
 
@@ -4859,8 +5028,8 @@ mod tests {
             mock_image,
             encode,
             |staged, dest| {
-                publish_staged_with(staged, dest, |staged, dest, existing| {
-                    copy_access_control(staged, dest, existing)?;
+                publish_staged_with(staged, dest, |_, dest, existing| {
+                    copy_access_control(&staged.file, dest, existing)?;
                     between(dest);
                     Ok(())
                 })
@@ -5097,6 +5266,57 @@ mod tests {
         assert_eq!(dir_listing(tmp.path()), Vec::<String>::new());
     }
 
+    // Protects: the publisher receives only the staging identity held by the caller.
+    // Detects: handing a mismatched identity to an operation that changes permissions
+    //   or publishes the file.
+    // Needs: Unix or Windows, one temporary file and a synthetic identity mismatch.
+    // Breadcrumb: Native/pcai_core/pcai_media/src/ffi/mod.rs#publish_owned_staging
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_publish_does_not_run_for_an_unexpected_staging_identity() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let mut staged = staged_in(tmp.path());
+        let dest = tmp.path().join("destination.png");
+        let before = fs::read(&staged.path).expect("staging bytes");
+        staged.identity.index ^= 1;
+        let called = std::cell::Cell::new(false);
+        let error = publish_owned_staging(&staged, &dest, |_, _| {
+            called.set(true);
+            Ok(())
+        })
+        .expect_err("the staging identity differs");
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(!called.get(), "the publisher must not be called");
+        assert!(!dest.exists());
+        assert_eq!(fs::read(&staged.path).unwrap(), before);
+    }
+
+    // Protects: Unix publication prepares the retained staging descriptor and
+    //   refuses to publish when its former pathname is absent.
+    // Detects: reopening the staging path for permissions, dropping the inode
+    //   before preparation, or publishing without a staging entry.
+    // Needs: Unix and ordinary temporary files on a filesystem with mode bits.
+    // Breadcrumb: Native/pcai_core/pcai_media/src/ffi/mod.rs#publish_staged_owned
+    #[cfg(unix)]
+    #[test]
+    fn test_unix_publish_prepares_the_retained_staging_inode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = staged_in(tmp.path());
+        let dest = tmp.path().join("existing.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o640)).unwrap();
+        fs::remove_file(&staged).unwrap();
+
+        let error = publish_staged_owned(&staged, &dest).expect_err("the source pathname is absent");
+        assert_eq!(error.kind(), io::ErrorKind::NotFound);
+        assert_eq!(identity_of_file(&staged.file).unwrap(), staged.identity);
+        assert_eq!(staged.file.metadata().unwrap().permissions().mode() & 0o777, 0o640);
+        assert!(!staged.exists());
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL);
+    }
+
     // Protects: if something other than the generated file is at the staging path (another
     //   writer renamed a file over it), cleanup never deletes it: the file is moved to a
     //   `.pcai-<hex>.rescued` name beside it, with its bytes, and the note names that path.
@@ -5222,6 +5442,155 @@ mod tests {
             2,
             "only the destination and the rescued file"
         );
+    }
+
+    /// The staging file `stage_image` is working on in `dir`, found by its name pattern.
+    #[cfg(any(unix, windows))]
+    fn staging_file_in(dir: &Path) -> PathBuf {
+        dir_listing(dir)
+            .into_iter()
+            .find(|name| name.starts_with(".pcai-") && name.ends_with(".partial"))
+            .map(|name| dir.join(name))
+            .expect("a staging file exists")
+    }
+
+    // Protects: an encoding failure leaves no staging file behind when the name still refers
+    //   to the file that was created (the identity-checked cleanup removes it) and returns the
+    //   encoder's error.
+    // Detects: a failure path that leaves the partial file, or that swallows the error.
+    // Needs: Unix or Windows; the encode failure is injected; no global state.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_encode_failure_removes_the_staging_file_when_it_is_still_ours() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let error = stage_image(&image::RgbImage::new(1, 1), &dest, |_, file| {
+            file.write_all(b"partial bytes")?;
+            Err(io::Error::other("injected encode failure"))
+        })
+        .err()
+        .expect("the encode failed");
+        assert!(error.to_string().contains("injected encode failure"), "{error}");
+        assert_eq!(
+            dir_listing(tmp.path()),
+            Vec::<String>::new(),
+            "the partial file is gone"
+        );
+    }
+
+    // Protects: if another writer renames a file onto the staging name WHILE the image is being
+    //   encoded, the encode failure does not delete that file: it is rescued to a `.rescued`
+    //   name with its bytes and the error names it.  The identity was recorded at creation, so
+    //   the replacement does not match it.
+    // Detects: a failure path that unlinks the staging name (the other writer's data would be
+    //   lost), or one that records the identity only after encoding (it would record the
+    //   replacement's identity and delete it).
+    // Needs: Unix or Windows; the swap and the failure are injected from inside the encoder.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_encode_failure_rescues_a_staging_name_that_was_swapped_during_encoding() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let dir = tmp.path().to_path_buf();
+        let error = stage_image(&image::RgbImage::new(1, 1), &dest, |_, file| {
+            file.write_all(b"partial bytes")?;
+            replace_with_foreign_file(&staging_file_in(&dir), b"somebody else's data");
+            Err(io::Error::other("injected encode failure"))
+        })
+        .err()
+        .expect("the encode failed");
+        let rescued = rescued_file(tmp.path()).expect("the foreign file was rescued");
+        let text = error.to_string();
+        assert!(text.contains("injected encode failure"), "{text}");
+        assert!(
+            text.contains(rescued.to_string_lossy().as_ref()),
+            "the error names {rescued:?}: {text}"
+        );
+        assert_eq!(
+            fs::read(&rescued).unwrap(),
+            b"somebody else's data",
+            "its bytes are intact"
+        );
+        assert_eq!(dir_listing(tmp.path()).len(), 1, "only the rescued file remains");
+    }
+
+    // Protects: after a successful staging, the identity recorded in the `StagedFile` is the
+    //   identity of the file at the staging name, so the later identity-checked cleanup
+    //   recognises it as ours and removes it.
+    // Detects: recording some other object's identity (for example reading it from the name
+    //   after the encoder has run, when another file could be there).
+    // Needs: Unix or Windows; no global state.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_staged_files_recorded_identity_is_the_file_at_the_name() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let staged = stage_image(&image::RgbImage::new(1, 1), &dest, encode_for(&dest)).expect("stage");
+        assert_eq!(
+            identity_at(&staged.path).expect("identity"),
+            staged.identity,
+            "the recorded identity is the identity of the file at the name"
+        );
+        assert_eq!(discard_staging(&staged), None);
+    }
+
+    // Protects: if the identity of the new staging file cannot be read, ownership cannot be
+    //   checked later, so the file is NOT deleted by name: it is left in place, nothing is
+    //   encoded into it, and the error names it.
+    // Detects: a fallback that unlinks the name when the identity step fails.
+    // Needs: Unix or Windows; the identity failure is injected.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_identity_capture_failure_leaves_the_staging_file_and_names_it() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let encoded = std::cell::Cell::new(false);
+        let error = stage_image_with(
+            &image::RgbImage::new(1, 1),
+            &dest,
+            |_, _| {
+                encoded.set(true);
+                Ok(())
+            },
+            |_| Err(io::Error::other("injected identity failure")),
+        )
+        .err()
+        .expect("the identity step failed");
+        let leftover = staging_file_in(tmp.path());
+        let text = error.to_string();
+        assert!(text.contains("injected identity failure"), "{text}");
+        assert!(
+            text.contains(leftover.to_string_lossy().as_ref()),
+            "the error names {leftover:?}: {text}"
+        );
+        assert!(
+            !encoded.get(),
+            "nothing was encoded into a file whose identity is unknown"
+        );
+        assert_eq!(
+            fs::metadata(&leftover).unwrap().len(),
+            0,
+            "the file is untouched and empty"
+        );
+    }
+
+    // Protects: Windows staging comparisons use all 128 file ID bits and all 64 volume serial bits.
+    // Detects: distinct FileIdInfo values comparing equal after truncation to the legacy widths.
+    // Needs: Windows; synthetic identifier bytes, no particular filesystem or device.
+    // Breadcrumb: Native/pcai_core/pcai_media/src/ffi/mod.rs#windows_file_identity
+    #[cfg(windows)]
+    #[test]
+    fn test_windows_file_identity_preserves_full_file_id_and_volume_serial() {
+        let volume = 0x0000_0001_0000_0001;
+        let identifier = [0x53; 16];
+        let original = windows_file_identity(volume, identifier);
+        assert_eq!(original.index.to_le_bytes(), identifier);
+        assert_eq!(original.volume, volume);
+
+        let mut other_identifier = identifier;
+        other_identifier[15] ^= 1;
+        assert_ne!(original, windows_file_identity(volume, other_identifier));
+        assert_ne!(original, windows_file_identity(1, identifier));
     }
 
     // Protects: every test that touches the process-wide FFI state takes the serial

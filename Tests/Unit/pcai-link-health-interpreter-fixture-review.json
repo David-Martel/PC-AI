@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-24T23:53:00.4260877Z",
+  "reviewer": "codex-p1gen9-link-health-interpreter-review",
+  "reviewerType": "independent source agent",
+  "sourceBaseline": "7724f815a49aa67b2bddb3c9955b454d728ae649",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent.",
+  "sourceBindings": {
+    "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1": "f8aa9635ac1e1df1247cd9f3a4c82cafb0576af583a2e5de62684077d8563662",
+    "Tests/Unit/PcaiLinkHealth.Tests.ps1": "4a9906165843621603a48eda65c6f6881289fc2d2327a022bfa077d1b4a87e8c"
+  },
+  "selectors": [
+    {
+      "selector": "uses the first candidate whose executable and directory are trusted",
+      "source": "Tests/Unit/PcaiLinkHealth.Tests.ps1",
+      "sha256": "254293a4364da64d533c42471b4be8d344382ef618fda3cc49972a62d9bc1057",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Install-PcaiLinkHealthTrigger.ps1#Resolve-PcaiSystemPwsh",
+      "disposition": "keep",
+      "reviewScope": "Ran the exact selector and installer function under a temporary path with a b-prefixed ancestor. Four source mutations failed the selector by omitting the executable check, omitting the directory check, sorting alphabetically, or reversing the input. The fixture uses temporary files and does not register any task."
+    }
+  ]
+}

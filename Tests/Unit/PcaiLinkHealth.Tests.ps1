@@ -786,13 +786,20 @@ Describe 'SYSTEM install and restore trust the whole ancestor chain' -Tag 'Unit'
         Should -Invoke New-PcaiProtectedDirectory -Times 0 -Exactly
         Test-Path -LiteralPath (Join-Path $TestDrive 'real') | Should -BeFalse
     }
+    # Protects: SYSTEM interpreter selection requires trust in both the binary and its runtime
+    # directory. Detects: accepting either partially trusted candidate or skipping the first fully
+    # trusted one. Needs: temporary files and exact path responses. Breadcrumb: Resolve-PcaiSystemPwsh.
     It 'uses the first candidate whose executable and directory are trusted' -Skip:(-not $IsWindows) {
-        $first = Join-Path $TestDrive 'a/pwsh.exe'
-        $second = Join-Path $TestDrive 'b/pwsh.exe'
-        $null = New-Item -ItemType File -Force -Path $first, $second
-        Mock Test-PcaiSystemTrustedPath { $Path -like '*\b*' }
-        Resolve-PcaiSystemPwsh -Candidate @($first, $second) | Should -Be $second
-        Should -Invoke Test-PcaiSystemTrustedPath -ParameterFilter { $Path -eq (Join-Path $TestDrive 'b') }
+        $fileOnly = Join-Path $TestDrive 'a/pwsh.exe'
+        $directoryOnly = Join-Path $TestDrive 'b/pwsh.exe'
+        $firstTrusted = Join-Path $TestDrive 'd/pwsh.exe'
+        $laterTrusted = Join-Path $TestDrive 'c/pwsh.exe'
+        $candidates = @($fileOnly, $directoryOnly, $firstTrusted, $laterTrusted)
+        $null = New-Item -ItemType File -Force -Path $candidates
+        Mock Test-PcaiSystemTrustedPath {
+            [IO.Path]::GetRelativePath($TestDrive, $Path) -in @('a\pwsh.exe', 'b', 'c', 'c\pwsh.exe', 'd', 'd\pwsh.exe')
+        }
+        Resolve-PcaiSystemPwsh -Candidate $candidates | Should -Be $firstTrusted
     }
     It 'refuses a SYSTEM install whose link-health root holds a planted state file' -Skip:(-not $IsWindows) {
         Mock Get-ScheduledTask { }

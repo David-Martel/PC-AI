@@ -1747,7 +1747,7 @@ Describe "Invoke-ThunderboltPeerLifecycle" -Tag 'Unit', 'Drivers', 'Thunderbolt'
             } -ModuleName PC-AI.Drivers
         }
 
-        It "Should mark gen7-gen9 ready, ms01-plugable disconnected, preserve Milly bridge, withdraw stale ms01/canary routes, and never claim always-on transit" {
+        It "Should mark gen7-gen9 ready, ms01-plugable disconnected, omit the retired bridge, and withdraw stale routes without claiming always-on transit" {
             $report = Invoke-ThunderboltPeerLifecycle -ComputerName 'dtm-p1gen9' -EvidenceObservedAtUtc ([datetime]::UtcNow)
             $report.AnyAlwaysOnTransitClaim | Should -BeFalse
             $report.Ms01UplinkCapMbps | Should -Be 1000
@@ -1766,14 +1766,13 @@ Describe "Invoke-ThunderboltPeerLifecycle" -Tag 'Unit', 'Drivers', 'Thunderbolt'
             $plugableLink.WindowsXDomainPresent | Should -BeFalse
 
             $millyLink = $report.Links | Where-Object LinkId -eq 'ms01-milly-usb4-bridge'
-            $millyLink.PreserveBridgeCustody | Should -BeTrue
-            $millyLink.State | Should -Be 'ready'
+            $millyLink | Should -BeNullOrEmpty
 
             $gen7Route = $report.RouteActions | Where-Object DestinationPrefix -eq 'fd00:7462:7032::7/128'
             $gen7Route.Action | Should -Be 'PreserveActiveOrBridgeRoute'
 
             $millyRoute = $report.RouteActions | Where-Object DestinationPrefix -eq 'fd00:7462:7032::21/128'
-            $millyRoute.Action | Should -Be 'PreserveActiveOrBridgeRoute'
+            $millyRoute.Action | Should -Be 'WithdrawStaleOwnedRoute'
 
             $ms01Route = $report.RouteActions | Where-Object DestinationPrefix -eq 'fd00:7462:7032::1/128'
             $ms01Route.Action | Should -Be 'WithdrawStaleOwnedRoute'

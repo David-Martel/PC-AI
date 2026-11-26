@@ -862,7 +862,7 @@ pub fn evaluate_link_lifecycle_state(
         return (Usb4LifecycleState::Probing, false, transit_reasons);
     }
 
-    // 3. Preserve Linux MS01 <-> Milly USB4 bridge custody when topology marks preserveBridgeCustody
+    // 3. Preserve externally owned bridge custody when the topology requests it.
     if link.preserve_bridge_custody == Some(true)
         && !local_host_canon.eq_ignore_ascii_case(&link.source_host)
         && !local_host_canon.eq_ignore_ascii_case(&link.target_host)
@@ -958,7 +958,7 @@ fn bound_route_adapter<'a>(
 
 /// Plans and optionally executes withdrawal of PC-AI-owned stale routes (`/128` ULA in `fd00:7462:7032::/48`
 /// and pairwise `/30` or `/32` in `172.31.240.0/20`) for peers whose lifecycle state is not `Ready`,
-/// while strictly preserving `millylaptop1` bridge custody, active `dtm-p1gen7<->dtm-p1gen9` pairs,
+/// while preserving configured bridge custody, active pairs such as `dtm-p1gen7<->dtm-p1gen9`,
 /// and default routes (`0.0.0.0/0`, `::/0`).
 pub fn plan_and_withdraw_stale_owned_routes<R: CommandRunner>(
     runner: &R,
@@ -982,8 +982,7 @@ pub fn plan_and_withdraw_stale_owned_routes<R: CommandRunner>(
     for pl in peer_links {
         let peer_lower = pl.peer_host.to_ascii_lowercase();
 
-        // Strictly preserve Milly bridge custody (10.254.253.0/30, ms01-milly-usb4-bridge)
-        if pl.preserve_bridge_custody || pl.link_id.eq_ignore_ascii_case("ms01-milly-usb4-bridge") {
+        if pl.preserve_bridge_custody {
             actions.push(StaleRouteWithdrawalAction {
                 link_id: pl.link_id.clone(),
                 peer_name: pl.peer_host.clone(),
@@ -992,10 +991,10 @@ pub fn plan_and_withdraw_stale_owned_routes<R: CommandRunner>(
                 route_prefix: pl.link_id.clone(),
                 address_family: "BridgeCustody".to_string(),
                 lifecycle_state: pl.lifecycle_state,
-                reason: "Preserving Milly USB4 bridge custody (external owner ms01-usb4-extension)".to_string(),
+                reason: "Preserving externally owned USB4 bridge custody".to_string(),
                 preserved: true,
                 withdrawn: false,
-                command_summary: "No-op: preserve Milly bridge custody".to_string(),
+                command_summary: "No-op: preserve configured bridge custody".to_string(),
                 error: None,
             });
             continue;

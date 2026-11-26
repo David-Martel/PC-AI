@@ -44,7 +44,15 @@ static CUDA_ENV_MUTEX: Mutex<()> = Mutex::new(());
 /// matching the documented 1B model settings used by the repo's default path.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PipelineConfig {
-    /// HuggingFace model ID **or** absolute path to a local model directory.
+    /// HuggingFace model ID **or** path to a local model directory.
+    ///
+    /// The directory must hold `config.json`, `tokenizer.json` and complete
+    /// SafeTensors weights; the loader never reads PyTorch `.bin` files and
+    /// refuses random weights. A Hub id resolves to a prepared
+    /// `Models/<name>/` (or `$PCAI_MODELS_DIR/<name>/`) copy when one exists,
+    /// otherwise only config and tokenizer are downloaded and the load fails
+    /// with the preparation commands (`Tools/Get-JanusProModel.ps1`, then
+    /// `Tools/convert-sharded-weights.py`); see `docs/media-weight-preparation.md`.
     ///
     /// Defaults to `"deepseek-ai/Janus-Pro-1B"`.
     #[serde(default = "default_model")]

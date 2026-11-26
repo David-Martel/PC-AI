@@ -1,0 +1,2467 @@
+{
+  "schema_version": 1,
+  "hash_normalization": "UTF-8 LF; the selector span is its contiguous leading comment block, any attributes and the function through its closing brace plus a final newline; source_files hash the whole file",
+  "base_commit": "eb921585d04010d16a32319fae42e069c8263ba7",
+  "scope": "Every Rust test selector in the media crates that is new or whose text changed since base_commit on the claude/media-weight-safety branch. Bound individually; author self-review only, so nothing here is marked independently reviewed or covered.",
+  "verifier": "Tests/Portable/test_media_register_custody.py recomputes every hash and fails on drift",
+  "reviews": [
+    {
+      "selector": "ffi::tests::test_double_init_no_panic",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "pcai_media_init is idempotent: a second call with a valid device also succeeds.",
+      "detects": "A second init that errors, panics or re-validates differently.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "3b41d683e76c3840773d8faba4e470f8de55220e9f1675832e09f650948ba27a",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_init_null_device_defaults_to_cuda",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a null device selects the default and init succeeds (validation does not open the device).",
+      "detects": "Init dereferencing the null pointer or rejecting a null device.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "97eb6c59ae11b0873562b37bdfd2c1e15f7a1bc8a19f6983100282c2d1248d72",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_init_invalid_device_returns_error",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "an unparsable device string is rejected with InvalidInput.",
+      "detects": "Accepting a bad device string, or reporting a different error code.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "87235ea0e15e0c3f3b68bd0fcdc5278442effd935344ec7b39f7b2daf43a6775",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_shutdown_without_init_no_panic",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "pcai_media_shutdown is safe whether or not init ran or a model was loaded.",
+      "detects": "A panic from missing state.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "39b2d2949d3cbfeb9e73226cb9d0731529b65b621e209e976468f19100917363",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_shutdown_twice_no_panic",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a second shutdown after init is a no-op.",
+      "detects": "A panic or double release on the second call.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "19f466055e5b8492ccaf1b7829baf9f62d8f4ee59a4055e1b3cb64f2cdb2bdad",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_understand_image_null_image_path",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a null image path makes pcai_media_understand_image return null with InvalidInput.",
+      "detects": "Dereferencing the null path, or any other error code.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "ea4d5a3713c649c5a51e461e3c202ef5d6004bd6e15500818de0897633f135fa",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_understand_image_null_prompt",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a null prompt makes pcai_media_understand_image return null with InvalidInput.",
+      "detects": "Dereferencing the null prompt, or any other error code.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "a7cd86eeba3a2eafc521e2c0cad6e26e4d28cd9c39f5fc1104b7d7206c263e2a",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_understand_image_no_model_loaded",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "understanding without a loaded model fails with a null result and a nonzero error code.",
+      "detects": "A result produced without a model, or an error code of 0.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "1e89299b8186d0e9dfb9a3bbfc16241d07bbf7a986c300cb1a96b4594734bc85",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_generate_image_bytes_null_out_data",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a null out_data pointer is rejected with InvalidInput before any write.",
+      "detects": "A write through the null out pointer, or a different error code.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "bdc4ae871e79c6c87af94db9d7a4162591a1db8933af3eca27c6301e1845156c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_generate_image_bytes_null_out_len",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a null out_len pointer is rejected with InvalidInput before any write.",
+      "detects": "A write through the null out pointer, or a different error code.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "bf5a1f30464005f1d44456530539c6174525568bdf058a1a8f005731d51add6d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_generate_image_bytes_null_prompt",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a null prompt is rejected with InvalidInput.",
+      "detects": "Dereferencing the null prompt, or a different error code.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "93084f46eb2fed8bc17a05f7e312c661a4abc462bd6848fd914c675846507677",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_async_generate_null_prompt",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a null prompt makes pcai_media_generate_image_async return -1 with InvalidInput.",
+      "detects": "Dereferencing the null prompt, queueing a request, or another error code.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "6e06612df0b2ac43749c9867c5ca8b6971e8b9406ccd0ec29d74ab8ca0644fe5",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_async_generate_null_output_path",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a null output path makes pcai_media_generate_image_async return -1 with InvalidInput.",
+      "detects": "Dereferencing the null path, queueing a request, or another error code.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "b9a43ee297c5f449317c0ac4c240e0bb8e1fd27b66c713e5a24307035eb9de0a",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_async_generate_no_model_loaded",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "an async request without a loaded model returns -1 with a nonzero error code.",
+      "detects": "Queueing a request that can never run, or an error code of 0.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "5f41d42e25bf24de05dfac068a64bdd335898fbd54638dad573e76d9d04d3017",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_poll_result_unknown_id",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "polling an unknown request id reports status -1 and a null text.",
+      "detects": "A fabricated status or a non-null text pointer for an id that was never issued.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "b5a07567bdc33c96756b0c56f780ab8ea0b4560c7d2e1cdbc74aee5afd81b35c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_cancel_unknown_id",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "cancelling an unknown request id returns -1.",
+      "detects": "Reporting success for a request that does not exist.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "2a46039603608482d796e4e35f87a3378e90d281f797d280611dcbd4a0c4c37d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_async_requests_are_serialized_and_all_complete",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "one generation at a time, so model and KV-cache memory stay bounded.",
+      "detects": "removing the inference gate lets queued async requests overlap.",
+      "needs": "no model or GPU; a temp directory for the PNG outputs.",
+      "selector_sha256": "9c31cff0bb0e0f5a4fc5cb0d8d6bb34ee54b6af41bf26dfe18767b80fe2bc09a",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_poll_and_cancel_respond_during_generation_and_cancel_skips_queued_work",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "poll, cancel, init and shutdown stay responsive during a generation.",
+      "detects": "holding the state mutex across generation (poll would time out here), a queued request leaving Pending before it owns the gate, a cancelled queued request still running.",
+      "needs": "no model or GPU; the in-flight generation is a mock blocked on a channel.",
+      "selector_sha256": "3f1e77e5d92443f33a923e8ec6d290ccd92117190de9ece9d84ed43c78f99def",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_sync_entry_points_queue_behind_gate_without_blocking_status",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "every synchronous inference entry point (generate, bytes, understand, load) queues behind the gate, so model replacement cannot race a generation.",
+      "detects": "an entry point that skips acquire_inference_gate, or one that holds the state mutex while waiting for it (the status calls below would then hang).",
+      "needs": "no model loaded in this process; the gate is held by the test as a stand-in for a running generation.",
+      "selector_sha256": "cd7a8948ed211bebaa0cba7a8ded0377761d77e1e4bc11a5f62301ff49bfeaea",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_load_model_rejects_incomplete_checkpoint_and_stays_unloaded",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "an incomplete checkpoint is refused at the FFI boundary with an existing status code and a diagnostic naming the missing tensors, and leaves no model loaded.",
+      "detects": "a weight-completeness check that is bypassed or whose typed error is flattened into a success; a half-loaded pipeline left behind after failure.",
+      "needs": "a temp directory only; the 7B constructor metadata uses scalar-backed views, so nothing large is allocated and no GPU or download is involved.",
+      "selector_sha256": "2d25b7f8d9b4a97bac17b68e26b9eca73d62f10a7df249ad925d6650878d2d85",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_cancel_during_generation_leaves_destination_untouched",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a request cancelled while generating never creates or overwrites the caller's destination file, and leaves no staging file.",
+      "detects": "encoding straight to the destination before the cancel check.",
+      "needs": "a temp directory; the cancel is issued from inside the mock generate.",
+      "selector_sha256": "dc9c94e2f7627bff4c95d9a61ffed8965cccfa75b66c856b04da7e2acf818bd8",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_cancel_after_encode_before_publish_discards_staged_file",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a cancel that lands after encoding but before publish still leaves the destination untouched and removes the staging file.",
+      "detects": "moving the cancellation check after the publish step (the destination would be replaced and Complete reported).",
+      "needs": "a temp directory; the cancel is issued from inside the mock encoder.",
+      "selector_sha256": "a79979f64d1f13a96924f6f67930d42383381a26b7c58dd8f0bdbb2a8a254bdd",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_completion_publishes_full_file_and_leaves_no_partial",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a normal completion publishes the whole file and removes the staging file.",
+      "detects": "a publish that leaves the `.partial` name behind or writes a truncated file.",
+      "needs": "a temp directory only.",
+      "selector_sha256": "55708206da01a1f3814aa0837a524eed74a229a70067339224da60954e9e7528",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_write_and_publish_failures_leave_no_partial_and_keep_destination",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a failed write reports Failed, leaves no partial file and never touches an existing destination; a failed publish does the same.",
+      "detects": "encoding in place, or a staging file leaked on the error path.",
+      "needs": "a temp directory; the encoder writes some bytes then fails, and a directory squatting on the destination makes the rename fail.",
+      "selector_sha256": "90fb9868ba53b68cf35257e489a382ba04b8338babfad1cf3514cd4b491a0ae8",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_sync_write_failure_keeps_existing_destination_and_leaves_no_partial",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the synchronous save path is atomic too: a failure keeps the old file.",
+      "detects": "`image.save` writing in place and leaving a truncated destination.",
+      "needs": "a temp directory; the destination name has no usable image extension.",
+      "selector_sha256": "e5a254f74d97df21302cd1ce81eec3a24bce4695c525e8d1446c5c1758c065c5",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_long_valid_destination_name_publishes_on_both_paths",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a destination near the 255-character component limit still publishes, on both the asynchronous and synchronous paths, new and existing (on Windows the full path is over MAX_PATH, so the raw Win32 calls need the verbatim form).",
+      "detects": "a staging name derived from the destination basename (248 + suffix exceeds 255 and the exclusive create fails with an invalid-name error).",
+      "needs": "a temp directory on a filesystem with a 255-character component limit.",
+      "selector_sha256": "9429b0985290540e8b4a81500b70994ea198dc9c022c9b8262ce88baa45dce00",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_staging_path_is_short_unique_and_beside_destination",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "staging names are short, independent of the destination, unique per call and live next to the destination.",
+      "detects": "a name that embeds the destination basename or repeats between calls.",
+      "needs": "nothing on disk.",
+      "selector_sha256": "81e88541247864769c3031d37d937ce65c40fb0319c13ac9ed88b153f28671fa",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_shutdown_during_load_discards_the_stale_model",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "shutdown during an in-flight load is final: the finished model is discarded (outside the slot lock) and nothing is loaded afterwards.",
+      "detects": "an unconditional install after load (the pre-fix behaviour), or a stale model freed while the slot lock is held.",
+      "needs": "no model; the paused load is a closure blocked on a channel.",
+      "selector_sha256": "a6eb2f2bf0ee8b3844e425d15bf6f5bd00e9816ee530807a67b09a4ca8d9e41b",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_load_after_shutdown_installs_and_replacement_drops_outside_lock",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the reverse ordering still works: shutdown, then a new load, installs normally, and replacing a model frees the old one outside the lock.",
+      "detects": "an epoch check that rejects every load after the first shutdown.",
+      "needs": "no model.",
+      "selector_sha256": "a57035ac3551cfd7ea601e14278c71b1632b1ab1917e6ce316d2bbf441dc399e",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_load_queued_behind_generation_is_cancelled_by_shutdown_before_reading",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a load queued behind a running generation is cancelled when shutdown runs first: it never reaches the loader and the slot stays empty.",
+      "detects": "capturing the lifecycle epoch after the gate is held (the load then adopts the post-shutdown epoch and installs a model after shutdown), or dropping the stale check that runs before any weights are read.",
+      "needs": "no model; the generation is the test holding the gate.",
+      "selector_sha256": "42e10c651afce804c463003ebf31d7b5835caf62189e35667b389c221524e37c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_load_admitted_after_shutdown_installs_once_the_gate_frees",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a load admitted after shutdown installs normally, even while a generation still holds the gate when shutdown ran.",
+      "detects": "a stale check that rejects every load once any shutdown has happened.",
+      "needs": "no model.",
+      "selector_sha256": "71cbfe9a4325411190c2b55c7bc82aee50d1efac79ecf4b2463b4fba3435753a",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_exported_load_queued_behind_generation_is_cancelled_by_shutdown",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the exported load path is wired to the lifecycle: a pcai_media_load_model style request queued behind a generation, then shutdown, reports ModelNotLoaded and never tries to read the (nonexistent) model path.",
+      "detects": "load_model_at taking the gate itself before admission, or passing the wrong slot or gate, which would surface as an I/O error for the missing path.",
+      "needs": "no model; the path does not exist, so reaching the loader would fail loudly.",
+      "selector_sha256": "3908f20430f2b4d838839e0b0ffbf1fa8f24807eb9eea5c8a4bbb8f3bf61c3cf",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_failed_load_keeps_existing_model",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a failed load leaves the slot, and the epoch, alone.",
+      "detects": "an error path that clears a previously loaded model.",
+      "needs": "no model.",
+      "selector_sha256": "4fc33b92465e47f24a4e821b4dfd255aec9eed077cafa00cebeea1255b82403d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_exported_shutdown_bumps_the_global_epoch",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the exported pcai_media_shutdown invalidates in-flight loads of the real global slot (not just the generic helper).",
+      "detects": "shutdown that stops touching MODEL_SLOT, or only clears the handle without bumping the epoch.",
+      "needs": "no model.",
+      "selector_sha256": "c5c4e0ad3e8d664bf6046afe42c2cc3ea02fff23d026b094eb89043874e8e876",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_slow_publish_does_not_block_status_of_other_requests",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a publish on slow or stalled storage blocks nobody else: poll and cancel of other requests answer within 100 ms while one request sits in its rename.",
+      "detects": "the rename (or any file IO) running under the global request-table lock.",
+      "needs": "no model; the rename is a mock publish step blocked on a channel.",
+      "selector_sha256": "66c16c934424df216d3b9908b0f9c67b7baa1b67c2ca2c4ba3aef51bc9124ffa",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_failed_publish_step_reports_failed_and_cleans_up",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a failing rename while publishing reports Failed, removes the staging file and leaves the destination alone, again without the global lock.",
+      "detects": "an error path that leaves the request Publishing or leaks the partial file.",
+      "needs": "a temp directory; the publish step is a mock that fails.",
+      "selector_sha256": "3b7735d13a17d5ffd69d518623533e86bf7292aca7680c33b6196eee119f9745",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_publish_keeps_the_existing_destination_mode_on_sync_and_async_paths",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "replacing an existing output keeps its access mode on the sync and the async path: a private 0600 file stays 0600 and a 0640 file stays 0640.",
+      "detects": "a staged file that keeps its own default mode (0644 under umask 022) after the rename, which would expose a private image, or one forced to a fixed mode.",
+      "needs": "Unix; the umask is set to 022 so a default-mode staging file would be 0644.",
+      "selector_sha256": "665d399174410424e37e2264d524614d10e3ba3c1a9997c2b691649a421813a7",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_staging_file_is_private_while_it_exists",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the staging file is private (0600) for as long as it exists, so a half-written image is never readable by other users.",
+      "detects": "a staging file created with the default mode (0644 under umask 022).",
+      "needs": "Unix; the encoder stats the open staging file, so no extra seam is needed.",
+      "selector_sha256": "ec5385423f749df2925dd84bb629af1e51ddf280279fe8b4e37a333bc42bdd6e",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_new_destination_gets_the_umask_derived_mode",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a brand-new output gets the mode a plain File::create would have given it (0666 filtered by the umask), not the private staging mode and not a wider one.",
+      "detects": "a new file left at the private 0600 staging mode, or opened up beyond the umask.",
+      "needs": "Unix; sets the umask explicitly (027 and 077) and restores it.",
+      "selector_sha256": "c609dd0b428bb754c4f6eb66d5f86b43ba640a97152bfe46ff3d630e485af031",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_failed_permission_step_leaves_destination_untouched",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "codex-p1gen9-media-custody",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-25T02:00:58.136167+00:00",
+      "protects": "a failure while preparing the publish (here the staging file vanishes before the permission copy) reports Failed, leaves the existing destination untouched and leaves no staging file.",
+      "detects": "publish errors that are swallowed, or a destination replaced or truncated despite the failure.",
+      "needs": "nothing platform specific; the real publish_staged runs after the staging file is removed, which makes both the Unix permission copy and Windows ReplaceFileW fail.",
+      "selector_sha256": "5d3eec912fe7304223dfd5ebf131a639ec569b67f93eec2b521d0cea416d7633",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_publish_keeps_the_existing_destinations_explicit_acl",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "replacing an existing file whose ACL was explicitly restricted keeps that ACL (ReplaceFileW merges it) instead of leaving the new file with the directory's inherited ACL.",
+      "detects": "a plain rename of the staged file over the destination.",
+      "needs": "Windows with icacls on PATH; the test restricts its own temp file only.",
+      "selector_sha256": "e52a4ff5cd7d264d72be939bb4b3cb78896d46f88ff28b9718bd1263ec1160f4",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_publish_keeps_the_existing_destination_group",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "replacing an existing output keeps its owning group, so a 0640 file is not handed to a different group when its mode bits are preserved.",
+      "detects": "a publish that copies the mode but leaves the staged file in the process's own group, on the sync and the async path.",
+      "needs": "Unix and a second group this process may use (any group as root); the test returns early with a message when there is none, so its positive control is the mutation that skips the group copy.",
+      "selector_sha256": "f8b3ee98f33f70fdc1b529c5f30b35186561ddb006c1b69e7a8b049f16aec85f",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_destination_with_an_access_acl_is_refused_and_left_untouched",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a destination with a POSIX access ACL is not silently replaced by a file that has lost it: the publish is refused with an explicit error, the destination keeps its bytes, mode and ACL, and no staging file is left.",
+      "detects": "an ACL-blind publish that widens access, or one that reports success.",
+      "needs": "Linux and a filesystem with POSIX ACL xattrs; returns early with a message when the xattr cannot be set.  After a successful setxattr the test reads the xattr back, so a passing run proves the ACL was really present.",
+      "selector_sha256": "e3afbf285804a2b0017d1040446a3e2c7eb34ff9fd1fba0c470b79b09b43af43",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_staging_file_acl_is_private_before_publish",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the staging file is never readable by other users while it exists: its DACL is protected (no inherited entries) and names only the owner and SYSTEM.",
+      "detects": "a staging file that inherits the directory's ACL, which would expose a half-written image during encoding even when the destination is restricted.",
+      "needs": "Windows with icacls on PATH; reads the staging ACL before any publish.",
+      "selector_sha256": "6ea1a30b96137cfd04b4c0f2a69f9dc37021f16cc15b6705786e53fb5ea813fe",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_acl_merge_failure_fails_closed_and_leaves_the_destination_untouched",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a failure to carry the destination's ACL onto the replacement is an error, not a silent success that publishes the directory's inherited ACL.",
+      "detects": "ReplaceFileW called with REPLACEFILE_IGNORE_MERGE_ERRORS.  The merge is made to fail by denying WRITE_DAC on the staged file.",
+      "needs": "Windows with icacls on PATH.",
+      "selector_sha256": "fb96911eb1b0365543b1208cce7205d70bc7661111f0b682a4ca8e1f0144e875",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_new_destination_gets_the_directorys_inherited_acl",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a brand-new output gets the directory's inherited ACL, exactly what a plain File::create would have produced, not the private staging ACL.",
+      "detects": "a new file left owner/SYSTEM-only after the rename.",
+      "needs": "Windows with icacls on PATH.",
+      "selector_sha256": "2e07fd6a229b75a86a33e468db7341b82fc08037c411d6a2bade6ca1af09526f",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_injected_replace_failure_leaves_destination_acl_and_bytes_and_removes_staging",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "when the replace step fails (for example the merge of the destination's ACL), the request is Failed, the destination keeps its bytes and ACL, and the staging file is removed; nothing is published.",
+      "detects": "a publish that swallows the replace error, falls back to a plain rename, or leaves the staging file behind.",
+      "needs": "Windows with icacls on PATH; the failure is injected through the replace seam.",
+      "selector_sha256": "f2223915ec296bff8f51274506c2c7dba6b88b497e39125c2d962aa88841b008",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_injected_preservation_failure_publishes_nothing",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "when preserving the destination's access control fails (group copy, ACL check or mode copy), the request is Failed, the destination keeps its bytes and mode, and the staging file is removed; nothing is published.",
+      "detects": "a publish that goes ahead after the preservation step reported an error.",
+      "needs": "Unix; the failure is injected through the preserve seam.",
+      "selector_sha256": "fe1df62c6000df231d9a5c043d2e92a780ebb5763bc76553882d704ad7683a3e",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_successful_replace_leaves_no_backup_or_staging_file",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "codex-p1gen9-media-custody",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-25T02:00:58.136167+00:00",
+      "protects": "a successful publish over an existing destination keeps its ACL and leaves neither the ReplaceFileW backup nor the staging file behind.",
+      "detects": "a publish that forgets to delete the backup (the user's previous image would linger as a hidden `.pcai-*.bak` file), or one that leaks the staging file.",
+      "needs": "Windows with icacls on PATH; the real ReplaceFileW runs.",
+      "selector_sha256": "c5cdaf431d61e05448a5de287e29b2f04d6e366e1097bfd2cb9d29534b768ab0",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_replace_file_keeps_the_original_at_the_backup_name",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "`replace_file_keeping_acl` really passes the backup name to ReplaceFileW, so Windows keeps the original under that name while it swaps; the failure paths below can only restore from a backup that exists.",
+      "detects": "a null `lpBackupFileName`: with it ERROR_UNABLE_TO_MOVE_REPLACEMENT (1176) deletes the user's image and nothing can bring it back.",
+      "needs": "Windows; calls the real ReplaceFileW on throwaway files.",
+      "selector_sha256": "3fd4ce64c3da78bcd89bf5e003823aafa3eee8e22d962b2b563cd867db4e2ab6",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_replace_error_1176_with_a_backup_leaves_the_destination_alone",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "ERROR_UNABLE_TO_MOVE_REPLACEMENT (1176) with a backup requested.  Microsoft Learn (ReplaceFileW, return value): \"If lpBackupFileName was specified, the replaced and replacement files retain their original file names.\"  So the destination is still the original and no backup exists; the restore must be a no-op that does not touch the destination, the request is Failed, and the staging file is removed.",
+      "detects": "a restore that moves or deletes something when nothing was moved aside, or a publish that reports the failure as success.",
+      "needs": "Windows with icacls on PATH; the documented file state is injected through the replace seam (nothing is moved).",
+      "selector_sha256": "cefa40d5f17a21efd7229f6aa377ef8e6d61dcaa732a74719928d3feb96477b9",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_replace_error_1177_restores_the_original_from_the_backup",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "ERROR_UNABLE_TO_MOVE_REPLACEMENT_2 (1177).  Microsoft Learn: \"The replacement file still exists under its original name ... The file to be replaced still exists with a different name. If lpBackupFileName is specified, it will be the name of the replaced file.\"  So the original is at the backup name and the destination name is free: the original is moved back (without replacing), the staging file is removed, the request is Failed, and no backup is left.",
+      "detects": "a publish that leaves the original at the backup name, or one that deletes the backup before restoring it.",
+      "needs": "Windows with icacls on PATH; the documented file state is injected through the replace seam.",
+      "selector_sha256": "ede370cae59f317d52efe8dcfe28554484584e5fa69ac6e2c50d8fe97cea5100",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_other_replace_errors_leave_the_destination_and_make_no_backup",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "any other ReplaceFileW failure (the documented rule is that the files keep their names and no backup exists) leaves the destination as it was, with no backup name left over; nothing is \"restored\" from a backup that was never made.",
+      "detects": "a publish that treats a missing backup as an error of its own, or that moves or deletes the destination while cleaning up.",
+      "needs": "Windows with icacls on PATH; the failure is injected through the replace seam.",
+      "selector_sha256": "6126f6d6282354d6252710ee61edd48845e5fea2dbd8e0c6bcbd437cdb6608f9",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_failed_restore_keeps_the_backup_and_names_its_path",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "when the restore itself fails, the backup is kept (it is the user's only copy) and the error names its path, so the original can be recovered by hand.",
+      "detects": "a publish that deletes the backup after a failed restore, or reports the failure without the backup's location.",
+      "needs": "Windows; the failure state is injected through the replace seam and the move is made to fail for real by putting a directory under the destination name, which a file cannot replace.  (Holding the backup open instead would also block deleting it, so the test could not tell \"kept\" from \"could not delete\".)",
+      "selector_sha256": "6fb251358cb3462cb53b02a8df8b5001714a993b1eafa6ac8a485418055f0b10",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_no_replace_move_refuses_an_occupied_destination",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the no-replace move fills a free name and, when the name is occupied, fails with AlreadyExists and leaves both the destination and the staged file exactly as they were.",
+      "detects": "a replacing rename on the new-output path: a file that appears after the existence check would be overwritten.",
+      "needs": "Unix or Windows; plain files in a temporary directory.",
+      "selector_sha256": "9c87d0f2affab2ffcd10b66f920ee7c4bfbad78f3d00a1a74ef847fa94fc2772",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_link_fallback_refuses_an_occupied_destination",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the hard-link fallback (used where `renameat2` is unavailable) has the same contract as the primary no-replace move.",
+      "detects": "a fallback that overwrites, or that leaves the staging name behind.",
+      "needs": "Unix on a filesystem with hard links (a temporary directory).",
+      "selector_sha256": "ec7c6e8a08eb8740c0a289f5cd9bbf0ef93ef39448ff3b859666ef78aa4e40a5",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_destination_appearing_after_the_check_is_not_overwritten_on_windows",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a file that appears at a new output's path between the existence check and the publish is not overwritten: the request is Failed with an explicit error, the file keeps its bytes and ACL, and the staging file is removed.",
+      "detects": "a replacing rename after \"not found\" (the other process's private file would be clobbered by the generated image).",
+      "needs": "Windows with icacls on PATH; the appearance is injected through the metadata seam, which reports \"not found\" and then creates the file.",
+      "selector_sha256": "b1fa5a5109b1f9609c38b916ef823129c730f78aafcc97ab52d3ffd45f2ca4f5",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_metadata_error_other_than_not_found_fails_closed_on_windows",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a metadata error other than \"not found\" (here access denied) is not read as \"the destination is absent\": the publish fails closed with that error, the existing destination keeps its bytes and ACL, and the staging file is removed.",
+      "detects": "a check that treats every metadata error as absence and then publishes over a file it could not see.",
+      "needs": "Windows with icacls on PATH; the error is injected through the metadata seam.",
+      "selector_sha256": "52e1d6cddb3c6786956385ca17470a8acc6a3c822c8b6f8e3e3e40f615180cf7",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_destination_appearing_after_the_check_is_not_overwritten_on_unix",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "as the Windows test of the same name, on Unix: a file that appears at a new output's path after the check is not overwritten; the request is Failed with an explicit error, the file keeps its bytes and mode, and the staging file is removed.",
+      "detects": "a replacing rename after \"not found\".",
+      "needs": "Unix; the appearance is injected through the metadata seam.",
+      "selector_sha256": "c2e032d8171d38158ed1fe7722a92b235570f471abb56604cf84bb720e48c56c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_metadata_error_other_than_not_found_fails_closed_on_unix",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "as the Windows test of the same name, on Unix: a metadata error other than \"not found\" fails the publish closed, before the access-control step runs.",
+      "detects": "a check that treats every metadata error as absence.",
+      "needs": "Unix; the error is injected through the metadata seam.",
+      "selector_sha256": "e8052c40480076f21fe4f7366da1fe9f15304c9d6922bf36e978323822875871",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_restore_does_not_overwrite_a_file_that_appeared_at_the_destination",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a regular file that appears at the destination while a failed replace is being undone belongs to another writer and is never overwritten by the restore: the request is Failed, the concurrent file keeps its bytes and ACL, the backup is kept, and the error names the backup and says the destination exists.",
+      "detects": "a restore with a replacing rename (MOVEFILE_REPLACE_EXISTING), which would clobber the concurrent file with the original.",
+      "needs": "Windows with icacls on PATH; the 1177 state is injected through the replace seam, which then creates the concurrent file at the free destination name.",
+      "selector_sha256": "6dbe420cf8070ca7b912e19e06500bb3c015c0aafe11871be09d226b3ee7d4cc",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_target_removed_before_the_replace_is_not_published_as_a_replacement",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "codex-p1gen9-media-custody",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-25T02:00:58.136167+00:00",
+      "protects": "one probe decides \"new or existing\" for the permission policy AND the publication primitive.  A target that is removed after the probe (here: after the access-control step) is not published as a replacement: the request is Failed with an explicit error, the destination is not created, and the staging file is removed.",
+      "detects": "a flow that re-probes in the access-control step and then renames over (or into) whatever is there, applying existing-file semantics to a file that is gone.",
+      "needs": "Unix; the removal is injected through the preserve seam after the real step.",
+      "selector_sha256": "aa3e9583603870a2561bbf2b3a6d4b77b66daf1ecac9f268ad10382ae6757ab6",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_stale_existing_decision_does_not_create_the_destination",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the decision made from the probe is the only one: when the probe reports an existing file that the access-control step then cannot find, the publish fails closed instead of switching to new-file permissions and a replacing rename.",
+      "detects": "an access-control step that probes the destination again and disagrees with the first decision.",
+      "needs": "Unix; the stale probe result is injected through the metadata seam (it reports another, existing file for a destination that is absent).",
+      "selector_sha256": "a1f9bff011c24bf1cf01d8a70ae27a09370d0d256937fa5b40d36d206389f53a",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_staged_files_inherited_acl_is_stripped_before_the_mode_is_copied",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "codex-p1gen9-media-custody",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-25T02:00:58.136167+00:00",
+      "protects": "the access ACL a staging file inherits from a directory's DEFAULT ACL is removed by the access-control step before the destination's mode is copied, so the mode copy cannot raise the ACL mask and activate the inherited named entry.",
+      "detects": "a missing or misplaced strip (the staged file would keep the named user's entry, effective at the copied 0640).",
+      "needs": "Linux and a filesystem with POSIX ACL xattrs; returns early with a message when the default ACL cannot be set.  Positive control: the staging file really carries an inherited access ACL before the step runs.",
+      "selector_sha256": "4d7ee047bccffc057a6d5be22723db638a1cff407592ee0d852e27c27d86445c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_inherited_default_acl_is_not_activated_by_the_mode_copy",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "codex-p1gen9-media-custody",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-25T02:00:58.136167+00:00",
+      "protects": "a destination with plain mode bits (0640, no ACL) in a directory that has a DEFAULT ACL with a named user entry is replaced without gaining an access ACL, on the synchronous and the asynchronous path.  The staging file inherits the default ACL with its named entry masked by the 0600 mode; copying the destination's 0640 would raise the mask and make that entry effective, widening access to the image.",
+      "detects": "a publish that copies the mode but leaves the inherited access ACL on the staged file (the published image would then be readable by the named user).",
+      "needs": "Linux and a filesystem with POSIX ACL xattrs; returns early with a message when the default ACL cannot be set.  A positive control creates a probe file and requires it to carry an inherited access ACL, so a passing run proves the directory's default ACL was operative.",
+      "selector_sha256": "7a421ace8c618c831f2c8d0095a0dfa9855876cb186c813f69a460e9bd415ce2",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_directory_substituted_after_validation_is_not_exchanged",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a directory that takes the destination's name after validation is never swapped out of place: the request is Failed, the directory and its contents are still at the destination path, and the staging file is removed.  The destination is re-checked just before a plain rename, and the kernel would refuse the rename of a file over a directory anyway.",
+      "detects": "a publish that skips the re-check and reports a different outcome than the explicit \"changed\" refusal (here the kernel's EISDIR, with no custody message).",
+      "needs": "Linux; the substitution is injected between the validation and the publish.",
+      "selector_sha256": "33ec8f7432c844d9c77d8a6253cb320bc79d6a39b6896676770da102b75461fa",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_other_regular_file_substituted_after_validation_is_left_alone",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a different regular file that replaces the validated one (another writer, new inode) is not displaced either: Failed, that file is back at the destination with its bytes, and the staging file is removed.",
+      "detects": "a re-check that looks only at the file type, not the identity (dev and inode) recorded at validation: a plain rename would replace the other writer's file.",
+      "needs": "Linux; the substitute is created under another name first and renamed over the destination, so it cannot reuse the old inode number.",
+      "selector_sha256": "674fcbf43e78ec287ffeb2429e91f0e276b6bf75b7b0b8ff9956815b11729d64",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_symlink_substituted_after_validation_is_left_alone",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a symlink that replaces the destination after validation is neither followed nor replaced: Failed, the symlink is still at the destination path and still points at its target, whose bytes are untouched.",
+      "detects": "a re-check that lets a symlink through (a plain rename replaces the link itself), or a publish that writes through the link.",
+      "needs": "Linux; the substitution is injected between validation and publish.",
+      "selector_sha256": "06d0037a664081634004f12a0047ed45211b63ab98cf05a424dc87edc469bc10",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_symlink_destination_is_refused",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a destination that already is a symlink is refused, not followed and not replaced: the publish returns an explicit error, the link and its target are untouched and no staging file is left.  (The destination is classified with `symlink_metadata`, so a link is never mistaken for the regular file behind it.)",
+      "detects": "a publish that follows the link, or replaces the link with a regular file and reports success.",
+      "needs": "Unix.",
+      "selector_sha256": "cc0a38227bcca17f9b18551c4b9b8111c124796d000ab77e6a0e5626b9a265a3",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_noreplace_falls_back_to_linking_when_renameat2_is_unsupported",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "when `renameat2(RENAME_NOREPLACE)` is unsupported, the no-replace move uses `link` followed by `unlink`, which is atomic and never overwrites: a free name is filled and the staging name removed; an occupied one is refused with \"not overwritten\" and both files are untouched.",
+      "detects": "a fallback that checks and then renames (a vanished path could be recreated in the gap), or one that overwrites.",
+      "needs": "Unix on a filesystem with hard links (a temporary directory); the unsupported primitive is injected.",
+      "selector_sha256": "ab651658a6cb7eb527644475b984cf45c640e555a91c8742c3c4684460b10873",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_noreplace_fails_closed_without_renameat2_or_hard_links",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "where neither `renameat2(RENAME_NOREPLACE)` nor hard links are available the publish fails closed with an explicit error instead of falling back to a check followed by a rename: nothing is published and the staged file is untouched.",
+      "detects": "a fallback that renames when it cannot link.",
+      "needs": "Unix; both primitives are injected as unsupported.",
+      "selector_sha256": "e58428e0f3239dfe3e81a550fec1160e36f0fc5da3b1c3e063bb5330dac5dcdd",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_discard_staging_removes_the_generated_file_and_tolerates_absence",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "cleanup after a failed publish deletes the staging path only while it still holds the file this process created, and does nothing if it is already gone.",
+      "detects": "a cleanup that leaves our own staging file behind, or that reports a problem where there is none.",
+      "needs": "Unix or Windows (file identity is read from the OS); no global state.",
+      "selector_sha256": "79c47fde7ee036096e354171c99df0d13064ae82a96b434c51ecc0f22374d49c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_discard_staging_rescues_a_file_that_is_not_the_generated_image",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "if something other than the generated file is at the staging path (another writer renamed a file over it), cleanup never deletes it: the file is moved to a `.pcai-<hex>.rescued` name beside it, with its bytes, and the note names that path.",
+      "detects": "a cleanup that unlinks by path (the other writer's data would be lost), or that drops the identity comparison, or that skips the rescue.",
+      "needs": "Unix or Windows; no global state.",
+      "selector_sha256": "beebd46a7ece7aee5e411af676671c035f0156f98f292867ecd4e7b9ce76ceb9",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_failed_rescue_leaves_the_foreign_file_in_place_and_names_it",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "if the rescue itself fails, the file that is not ours is left exactly where it is (never deleted) and the note names the staging path.",
+      "detects": "a cleanup that unlinks after a failed rescue.",
+      "needs": "Unix or Windows; the rescue failure is injected; no global state.",
+      "selector_sha256": "bbde1db8490bda4f71b899c0aa42b282f8af88d397790c92979b600fec25a401",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_async_publish_failure_never_deletes_a_file_that_took_the_staging_path",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "on the asynchronous path, a publish that fails after another writer has put a file at the staging path does not delete it: the request is Failed, the error names the `.rescued` file, which holds the other writer's bytes, and the destination keeps its own bytes.",
+      "detects": "a caller that unlinks the staging path on any error.",
+      "needs": "Unix or Windows; the failure and the foreign file are injected through the publish seam.",
+      "selector_sha256": "0629cd734b7de8b001f2169cb4b978bdf1f07a2ffd54e0af5c08af2b4454abae",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_sync_publish_failure_never_deletes_a_file_that_took_the_staging_path",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the same on the synchronous path.",
+      "detects": "a caller that unlinks the staging path on any error.",
+      "needs": "Unix or Windows; the failure and the foreign file are injected through the publish seam.",
+      "selector_sha256": "71c1402b9de729b13400ab9368a0d2283c2b171bdf459fca63a7b5f7e6d8ea38",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_encode_failure_removes_the_staging_file_when_it_is_still_ours",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "an encoding failure leaves no staging file behind when the name still refers to the file that was created (the identity-checked cleanup removes it) and returns the encoder's error.",
+      "detects": "a failure path that leaves the partial file, or that swallows the error.",
+      "needs": "Unix or Windows; the encode failure is injected; no global state.",
+      "selector_sha256": "0da4cccd559af2a2f48ac73b0ba46d1cf8aaba3d8a36cc8bd304be9a66d523d7",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_encode_failure_rescues_a_staging_name_that_was_swapped_during_encoding",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "if another writer renames a file onto the staging name WHILE the image is being encoded, the encode failure does not delete that file: it is rescued to a `.rescued` name with its bytes and the error names it.  The identity was recorded at creation, so the replacement does not match it.",
+      "detects": "a failure path that unlinks the staging name (the other writer's data would be lost), or one that records the identity only after encoding (it would record the replacement's identity and delete it).",
+      "needs": "Unix or Windows; the swap and the failure are injected from inside the encoder.",
+      "selector_sha256": "af48ee9ce50a2daa39d8e8a2b332c7aeabaec714e21a669ecee2310650902104",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_staged_files_recorded_identity_is_the_file_at_the_name",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "after a successful staging, the identity recorded in the `StagedFile` is the identity of the file at the staging name, so the later identity-checked cleanup recognises it as ours and removes it.",
+      "detects": "recording some other object's identity (for example reading it from the name after the encoder has run, when another file could be there).",
+      "needs": "Unix or Windows; no global state.",
+      "selector_sha256": "cef35c7b764389469e6d4a1bfaf96ab2035eeaad0f4ef936d3b6749e3fbb912c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_identity_capture_failure_leaves_the_staging_file_and_names_it",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "if the identity of the new staging file cannot be read, ownership cannot be checked later, so the file is NOT deleted by name: it is left in place, nothing is encoded into it, and the error names it.",
+      "detects": "a fallback that unlinks the name when the identity step fails.",
+      "needs": "Unix or Windows; the identity failure is injected.",
+      "selector_sha256": "3d23a5bcb7946ed23d977417aab104144d0aac8aad56650317ff488f5cc0fcf0",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_global_state_tests_take_the_serial_guard",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "every test that touches the process-wide FFI state takes the serial guard, so libtest's parallel threads cannot race on the lifecycle epoch, the model slot, the inference gate or the request table.",
+      "detects": "a new or edited test that calls an exported entry point, the state mutex, the slot or the gate (directly or through a helper) without `serialize_global_state()`; the dropped guard otherwise surfaces only as an intermittent failure under plain `cargo test`, which nextest hides.",
+      "needs": "nothing but this file's own source (read with include_str!).",
+      "selector_sha256": "6f08805342f5bec93a40a37e01496a20312bca4236eb103cd368cdfbd3f4c701",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_metadata_probe_uses_scalar_storage_for_7b_shape",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the metadata probe describes 7B tensor shapes without allocating them.",
+      "detects": "a probe that materializes real payloads (tens of GiB) or answers presence queries as true.",
+      "needs": "CPU only; one scalar tensor.",
+      "selector_sha256": "685adbf55b8e511b01d90c61f27bfc7fc7d7cd4aa19e43f42d56cdc7883767ab",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_metadata_7b_schema_preserves_required_components",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the derived 7B required-tensor schema keeps every generation component and drops the aligner and GGUF backbone.",
+      "detects": "constructor changes that silently remove a required tensor from the preflight, or leak optional ones into it.",
+      "needs": "CPU only; constructor metadata, no weights.",
+      "selector_sha256": "8cc42851bb3363092edcef0710ed45468a660d133c1d8e1df0f664190801d90d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_metadata_rejects_invalid_attention_dimensions",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "invalid head counts fail as an error instead of a divide-by-zero or a wrong schema.",
+      "detects": "removal of the divisibility guards in required_generation_metadata.",
+      "needs": "CPU only.",
+      "selector_sha256": "07a97826e48df12706dc38fab3646542854184b95ee3fe649ffca4871235df73",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_load_rejects_nonempty_partial_7b_checkpoint_before_allocation",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a nonempty but incomplete 7B checkpoint is refused before the VarMap or GGUF is touched, in both load modes.",
+      "detects": "a preflight that is skipped or reordered after allocation (this would try to allocate a 7B model).",
+      "needs": "temp directory; no model download, GPU or GGUF file.",
+      "selector_sha256": "7cc0804df9148caa03afa5b9d11e59bef727655327e9e9b2dea24741bbef113f",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_load_refuses_pytorch_only_directory_with_conversion_command",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a model directory holding only PyTorch weights is refused with the exact conversion command for that directory, not a bare \"no shards\" message.",
+      "detects": "the refusal losing its preparation guidance, or load proceeding to allocate.",
+      "needs": "a temp directory only; no model, GPU or network.",
+      "selector_sha256": "a6b18cedee6984b379aebc388d8064b39afb710424cbf2c7c07f907b6b2f7888",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_weights_load_without_optional_vision",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "generation-only checkpoints load while understanding stays unavailable.",
+      "detects": "treating a missing vision tower or aligner as a fatal generation error, or as loaded.",
+      "needs": "CPU only; tiny safetensors fixture.",
+      "selector_sha256": "a0663fd2cff2dc9a568310caf7f96dbcc8cacfbaa621f1b209cc2c548a6c43b9",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_weights_report_complete_understanding_aligner",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "aligner readiness is reported true only when every aligner tensor is present.",
+      "detects": "a partial aligner being reported as ready (random aligner weights would then reach understanding).",
+      "needs": "CPU only; tiny safetensors fixture.",
+      "selector_sha256": "21e59c1e73163e9947270a9e6b79fead766758a7ef5621b9e8ace0035013ce38",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_generation_weights_require_generation_with_complete_aligner",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a checkpoint with only aligner tensors cannot pass as a generation checkpoint.",
+      "detects": "optional components masking missing required generation tensors.",
+      "needs": "CPU only; tiny safetensors fixture.",
+      "selector_sha256": "3fac6f69dbd3be35c8f1d50f9253278bf51aeffe7687122968913c8c9d7c1545",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_load_rejects_missing_generation_weights_in_both_modes",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a model directory with no safetensors shards fails for both safetensors and GGUF loads.",
+      "detects": "the old behaviour of warning and running with random weights.",
+      "needs": "temp directory only.",
+      "selector_sha256": "d821e1a43470cf07e4837264dd63923803666483a14a14b4207f6aaa914b276b",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_load_rejects_empty_generation_archive_before_allocation",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a safetensors archive with zero tensors is rejected before any allocation.",
+      "detects": "an empty archive being treated as present weights.",
+      "needs": "temp directory only.",
+      "selector_sha256": "dc35f7cc47e4a188df4e7d19ac4a4a3f6c5d597c9ded91fedf67928015e5deeb",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "generate::tests::test_gguf_quantization_path_routing",
+      "test_path": "Native/pcai_core/pcai_media/src/generate.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "build_janus_model selects the GGUF loader when a GGUF path is supplied",
+      "detects": "Routing to the safetensors loader, or accepting a non-GGUF dummy file; the test now targets the model-build helper because the pipeline loader preflights checkpoint metadata first",
+      "needs": "temporary directory; no model weights",
+      "selector_sha256": "cae4898e94f5c669be23799c39dff67dc7b98e46b2c6726fcb63093b2f495897",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/generate.rs",
+          "sha256": "dd5bbe2073ba52bde54eb8c267fc076013e90500862e8685bdd8776e0fcd4da3"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_weight_metadata_accepts_complete_mixed_prefix_headers",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "header preflight accepts a complete checkpoint that mixes plain and \"model.\"-prefixed names.",
+      "detects": "prefix detection that rejects valid real-world checkpoints.",
+      "needs": "temp directory only.",
+      "selector_sha256": "f0b45db59b12235b6f1f2f2ebb569f4ad4bcbe20af1fbb37075ddb1722816cc4",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_weight_metadata_rejects_partial_headers",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "header preflight reports missing tensors with a typed IncompleteWeights error.",
+      "detects": "a preflight that checks only some tensors or loses the typed error.",
+      "needs": "temp directory only.",
+      "selector_sha256": "93caf6f8a2bbf8960569678ab1e6fc069fcf564e8cc880d862d0a74d89a2faff",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_weight_metadata_rejects_wrong_shape_headers",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a tensor with the wrong shape is refused from the header alone.",
+      "detects": "preflight comparing names but not shapes.",
+      "needs": "temp directory only.",
+      "selector_sha256": "1129df8e85a0f2405a08ff9abb215776f1e90d0e9e31bd6855d9fea26c55cc6e",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_load_weights_rejects_unregistered_variables",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "loading into an empty VarMap is an error, not a silent no-op that leaves a later model random.",
+      "detects": "a load_weights that returns Ok(0) for an empty registry.",
+      "needs": "temp directory only.",
+      "selector_sha256": "0f1a7b6146162cc4b21ca220deb03f8a53c039aa5efc01fd828e7909026f910d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_load_weights_rejects_empty_archive",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "an empty archive cannot satisfy required variables.",
+      "detects": "the removed one-third-found heuristic returning success.",
+      "needs": "temp directory only.",
+      "selector_sha256": "4105848eff0678a37950c080521440ff8d86911f9ab3df2e890ecaeea042953d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_load_weights_rejects_partial_archive_before_mutation",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a partial archive fails before any variable is overwritten.",
+      "detects": "check-and-set interleaving that leaves a half-loaded model after an error.",
+      "needs": "temp directory only.",
+      "selector_sha256": "e508fcb7b3a25e616c4725dba37b8678afc8b4bba8177efb387b293183bf560d",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_load_weights_accepts_complete_mixed_prefix_archive",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a complete archive with mixed prefixes loads every variable with the right values.",
+      "detects": "prefix handling regressions and HashSet-order-dependent prefix detection.",
+      "needs": "temp directory only.",
+      "selector_sha256": "b5f297f84e419ebe3a3902a5cf0ddf39cf7e1c4c35c541c2edd20d4936161dbe",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_load_weights_rejects_wrong_shape",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a wrong-shaped tensor is an error naming the tensor.",
+      "detects": "shape mismatches being cast or truncated into the variable.",
+      "needs": "temp directory only.",
+      "selector_sha256": "7559672ed9e11ab5a630d44505fccdb717a4dd5adc8a14aead5fa20203263b56",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_missing_explicit_path_is_an_error_not_a_prepared_fallback",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a mistyped or missing explicit path is an error naming that path, never a fallback to the official prepared model that shares its last component.",
+      "detects": "the basename fallback, which silently loaded Models/Janus-Pro-1B for `<missing dir>/Janus-Pro-1B` or a typo'd absolute path, and any download attempt.",
+      "needs": "temp directories; the downloader fails the test if called.",
+      "selector_sha256": "c58b55b138a3dc97015edb46f44a63e66e76cfbda1dabb208794e031f1333c02",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_only_exact_supported_ids_resolve_to_prepared_copy",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "only the exact supported DeepSeek ids resolve to a prepared copy; a third-party repo or a case variant goes to the normal download path (and then to the SafeTensors refusal), never to the local official model.",
+      "detects": "matching on the last component or ignoring case, which would load the wrong model. Rule: exact, case-sensitive (see PREPARED_MODEL_IDS).",
+      "needs": "a temp directory; the downloader is a mock that records its calls.",
+      "selector_sha256": "53ae4674a8bb7933705d51b15eac0392684414d4719004660bad4749d6fcb125",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_preparation_commands_are_runnable_and_match_the_documentation",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the emitted refusal text and docs/media-weight-preparation.md carry the same runnable commands: -SkipAuth for the public DeepSeek repos (no Bitwarden prompt) and explicit uv dependencies for the converter.",
+      "detects": "either side drifting from the shared command constants, or a command that only works in an environment that already has torch, safetensors and numpy.",
+      "needs": "the repository docs directory (read through CARGO_MANIFEST_DIR).",
+      "selector_sha256": "511ab4f93f51b5d984168a381326fb88298021f79af894096ef94f56fa1ea4f7",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_prepared_copy_resolves_without_network",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the cold-cache path for the default model id: a prepared SafeTensors copy is used without touching the network.",
+      "detects": "resolution that downloads (or fails) even though Models/<name> is ready.",
+      "needs": "a temp directory; the downloader is a mock that fails the test if called.",
+      "selector_sha256": "fd3acdbe52ac1bbbdb40c19e91d8bd481014a2c233530f12493257c6913e4e7e",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_cold_cache_falls_back_to_download_and_hint_names_the_commands",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a cold cache (nothing prepared) falls back to the downloader, and the resulting config-only directory yields an actionable hint naming the repo's tools.",
+      "detects": "a hint that omits the download or convert command, the target directory, or the way to point the loader at the result; an incomplete prepared directory (no tokenizer) being treated as usable.",
+      "needs": "temp directories; the downloader is a mock returning a config-only cache dir.",
+      "selector_sha256": "65e7ec0b74259d8b880453e18e97fbce4a497be2415658f574fe6830c5acfafd",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_local_pytorch_directory_hint_converts_in_place",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a local directory that already has PyTorch weights gets an in-place convert command and no download step; an existing local directory is never replaced by a prepared copy.",
+      "detects": "telling the user to re-download what is already on disk, or a hint that names the wrong directory.",
+      "needs": "a temp directory.",
+      "selector_sha256": "64111e8be3dfa194c56ccce2eb9ec586eddb309539841e565e1e0a702e6522a6",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_corrupt_and_truncated_safetensors_are_rejected",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a corrupt or truncated checkpoint is a typed error at preflight and at load, never a panic and never a silently random-weight model.",
+      "detects": "header parsing that unwraps, or a loader that treats an unreadable archive as \"no tensors present, use random weights\".",
+      "needs": "a temp directory only; no model, GPU or network.",
+      "selector_sha256": "93ee459c91c06809f6ea3f43096ec762c04ea1de3e5e741b866e1bb98b86c9a0",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "hub::tests::test_weight_metadata_rejects_empty_requirements",
+      "test_path": "Native/pcai_core/pcai_media/src/hub.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the metadata preflight itself refuses to run with nothing to check.",
+      "detects": "an empty expected-tensor map making every checkpoint pass vacuously.",
+      "needs": "a temp directory only.",
+      "selector_sha256": "12177b6f74ccd9d86a8763fe0465309230921061464457f36786ab91542ed86b",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/hub.rs",
+          "sha256": "42dcc67c0d5e25dd2cc7bae1385a7063b2b4f668e8a2193a2a0c0b9b0144b2c2"
+        }
+      ]
+    },
+    {
+      "selector": "upscale::tests::test_tensor_to_image_rejects_wrong_spatial_shape",
+      "test_path": "Native/pcai_core/pcai_media/src/upscale.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a model output whose height or width differs from the expectation is refused.",
+      "detects": "the old check that compared only batch and channel dimensions.",
+      "needs": "linked ONNX Runtime (feature `upscale`); no model file.",
+      "selector_sha256": "cf967783af122eb786c56a74a47199e8d80723bf0e5b1dcf146f8442d21c45f6",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/upscale.rs",
+          "sha256": "f0d208b9312b376c3590c68b48c5924d9485d07b9d0aac88bf96c8bc04361374"
+        }
+      ]
+    },
+    {
+      "selector": "upscale::tests::test_tensor_to_image_rejects_oversized_expected_dimensions",
+      "test_path": "Native/pcai_core/pcai_media/src/upscale.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "overflowing output dimensions fail instead of wrapping or allocating.",
+      "detects": "unchecked multiplication of height and width.",
+      "needs": "linked ONNX Runtime (feature `upscale`); no model file.",
+      "selector_sha256": "8b6503479fc1f3030194aff8656cc72f00ace61a23d3b124cd97c989c96a2ca9",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/upscale.rs",
+          "sha256": "f0d208b9312b376c3590c68b48c5924d9485d07b9d0aac88bf96c8bc04361374"
+        }
+      ]
+    },
+    {
+      "selector": "upscale::tests::test_tensor_to_image_preserves_rgb_planes",
+      "test_path": "Native/pcai_core/pcai_media/src/upscale.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "planar CHW output is converted to the right RGB pixels.",
+      "detects": "plane-order or clamping regressions in tensor_to_image.",
+      "needs": "linked ONNX Runtime (feature `upscale`); no model file.",
+      "selector_sha256": "17fa1da6e91a30fa032f6f82a00618a1f58cbddf318943f88ff030eb7b0ac61a",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/upscale.rs",
+          "sha256": "f0d208b9312b376c3590c68b48c5924d9485d07b9d0aac88bf96c8bc04361374"
+        }
+      ]
+    },
+    {
+      "selector": "upscale::tests::test_image_to_tensor_shape",
+      "test_path": "Native/pcai_core/pcai_media/src/upscale.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "image_to_tensor yields the planar CHW element count for a 6x8 RGB image",
+      "detects": "A wrong plane count or layout; the edit only removes a clippy identity_op multiplication (1 * 3 * 6 * 8 became 3 * 6 * 8) with the same value",
+      "needs": "no model weights or GPU",
+      "selector_sha256": "3d4ca4d5040d4a897a794f318f78956790d01b0a5af027c3a7ab2ab338637143",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/upscale.rs",
+          "sha256": "f0d208b9312b376c3590c68b48c5924d9485d07b9d0aac88bf96c8bc04361374"
+        }
+      ]
+    },
+    {
+      "selector": "janus_llama::tests::test_cpu_forward_with_flash_requested",
+      "test_path": "Native/pcai_core/pcai_media_model/src/janus_llama.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a flash-attn build still runs on CPU for both cache types.",
+      "detects": "the use_flash_attn path being taken without a CUDA device.",
+      "needs": "CPU only; the flash-attn feature itself is exercised on CUDA hosts.",
+      "selector_sha256": "faf5f9f1e94fd5fba5f1c052a5d073d93aa945dff5ac54a575ccdc0302ae4251",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_model/src/janus_llama.rs",
+          "sha256": "d99e62456270258d95a0f8b011ba68e7cc7642d5adfaef9a3dfc0c322c2da78b"
+        }
+      ]
+    },
+    {
+      "selector": "janus_llama_quantized::tests::test_from_gguf_smoke",
+      "test_path": "Native/pcai_core/pcai_media_model/src/janus_llama_quantized.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the quantized backbone loads from an explicitly supplied tiny GGUF and decodes one CPU step",
+      "detects": "GGUF metadata or tensor-name drift in from_gguf, or a malformed header requesting a large dequantization buffer; the test stays ignored unless PCAI_TEST_GGUF_WEIGHTS is set",
+      "needs": "PCAI_TEST_GGUF_WEIGHTS pointing at a Llama GGUF of at most 64 MiB; skipped (ignored) otherwise, so it is not exercised here",
+      "selector_sha256": "bb9db4b456cecdfef6456d9e52e05f2908617fa9304db7262aa0f01c7587cee1",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_model/src/janus_llama_quantized.rs",
+          "sha256": "bb53c43a5ca25af05443855afa3e5373826dbb9ad3fb78b8c65821462bcbd87c"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_janus_model_construct",
+      "test_path": "Native/pcai_core/pcai_media_model/src/lib.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the full Janus-Pro 7B constructor smoke test is only run on purpose",
+      "detects": "Nothing new: the edit corrects the ignore reason and doc comment to tens of GiB of F32 parameters; the body is unchanged",
+      "needs": "tens of GiB of memory; ignored by default and not exercised here",
+      "selector_sha256": "3393d09105ff7775e72c52461126a3d89037f0c4f47b6a479d6d2853a2b0e241",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_model/src/lib.rs",
+          "sha256": "c8aeb56867eb65e071ab273a6a65d81509bce6b2e2654b2d51ebef78863b9464"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_janus_model_construct_1b",
+      "test_path": "Native/pcai_core/pcai_media_model/src/lib.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the 1B Janus constructor smoke test is only run on purpose",
+      "detects": "Nothing new: the edit corrects the ignore reason and doc comment to several GiB of F32 parameters; the body is unchanged",
+      "needs": "several GiB of memory; ignored by default and not exercised here",
+      "selector_sha256": "b8a6928d35f9865930fee9d933490501c9a6d26c81bfaf6fa87bcacf29b710c0",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_model/src/lib.rs",
+          "sha256": "c8aeb56867eb65e071ab273a6a65d81509bce6b2e2654b2d51ebef78863b9464"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_generate_boundary_forwards_request_overrides",
+      "test_path": "Native/pcai_core/pcai_media_server/src/main.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "HTTP cfg_scale and temperature reach the pipeline call unchanged, defaults included.",
+      "detects": "overrides being dropped at the request boundary.",
+      "needs": "no model; a closure stands in for the pipeline.",
+      "selector_sha256": "eebf16ad1930f22eef1796986cc8d99013b099c3452bb3bd8598eea037f4be78",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_server/src/main.rs",
+          "sha256": "14a7db3c796784ba2059dd2c3c0b7b3c552ad2aef23f85ac7dad6bbecee9b2e7"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_shared_inference_admission_preserves_health_and_releases",
+      "test_path": "Native/pcai_core/pcai_media_server/src/main.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a second inference request queues while one is active, health stays responsive, and the permit is released.",
+      "detects": "a lock held across generation that blocks /health, or a leaked permit.",
+      "needs": "no model; the admission semaphore is exercised directly.",
+      "selector_sha256": "9142754de5108f13b4eeea5a8967482de643edda78965035410a1cd32c41ec17",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_server/src/main.rs",
+          "sha256": "14a7db3c796784ba2059dd2c3c0b7b3c552ad2aef23f85ac7dad6bbecee9b2e7"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_inference_admission_released_on_generation_error",
+      "test_path": "Native/pcai_core/pcai_media_server/src/main.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "a failing generation releases the admission permit.",
+      "detects": "an early return that leaks the single permit and wedges the server.",
+      "needs": "no model; an injected failing closure.",
+      "selector_sha256": "b05fee99560ccbbf233be45afc62c9ef49c04da92707d3a574808bf50b164acd",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_server/src/main.rs",
+          "sha256": "14a7db3c796784ba2059dd2c3c0b7b3c552ad2aef23f85ac7dad6bbecee9b2e7"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_invalid_requests_fail_before_inference_admission",
+      "test_path": "Native/pcai_core/pcai_media_server/src/main.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "invalid requests are rejected without waiting for admission.",
+      "detects": "validation moved after the queue, letting bad requests wait behind a long generation.",
+      "needs": "no model; the test holds the only permit.",
+      "selector_sha256": "269748619747ea8669ab66fcd2fb0bd52203dc9a9b557765203fbe6614e3430a",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_server/src/main.rs",
+          "sha256": "14a7db3c796784ba2059dd2c3c0b7b3c552ad2aef23f85ac7dad6bbecee9b2e7"
+        }
+      ]
+    },
+    {
+      "selector": "tests::test_health_response_serde",
+      "test_path": "Native/pcai_core/pcai_media_server/src/main.rs",
+      "change_since_base": "changed",
+      "disposition": "keep",
+      "reviewer": "claude-sonnet-5.5-media-weight-safety",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-23T03:39:39.671383+00:00",
+      "protects": "the media server health response serialises the new native_understanding_available field",
+      "detects": "A health payload that drops or renames native_understanding_available",
+      "needs": "no model weights or GPU",
+      "selector_sha256": "4287497a95232d4c0cbfa44893869b3f892d4b59d24cc725f0e076c7430cb19c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media_server/src/main.rs",
+          "sha256": "14a7db3c796784ba2059dd2c3c0b7b3c552ad2aef23f85ac7dad6bbecee9b2e7"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_windows_file_identity_preserves_full_file_id_and_volume_serial",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "codex-p1gen9-media-386",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-24T23:43:07.176119+00:00",
+      "protects": "Windows staging identity comparisons keep all 128 file ID bits and all 64 volume serial bits.",
+      "detects": "Distinct FileIdInfo values comparing equal after truncation to the legacy widths.",
+      "needs": "Windows and synthetic identifier bytes. The test needs no particular filesystem or device.",
+      "selector_sha256": "4b51f9357e461bd1b05a359a8a4b6eb8f74423434ea1c7154d4b8ed559000990",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_publish_does_not_run_for_an_unexpected_staging_identity",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "codex-p1gen9-media-custody",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-25T01:02:57.273436+00:00",
+      "protects": "Publication only hands an entry to the publisher when its identity matches the staging file.",
+      "detects": "An unexpected file identity reaching code that can change permissions or publish the file.",
+      "needs": "Unix or Windows, one temporary file and a synthetic identity mismatch.",
+      "selector_sha256": "7be38cd928c8a914dbab2cb5c8f469a636c4ff6dfb2429d7b3fa5864940aa9f2",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_unix_publish_prepares_the_retained_staging_inode",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "codex-p1gen9-media-custody",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-25T02:00:58.136167+00:00",
+      "protects": "Unix permission preparation applies to the retained staging file and refuses an absent source pathname.",
+      "detects": "Reopening the staging name for mode changes, dropping the inode before preparation, or accepting an absent source name.",
+      "needs": "Unix and temporary files on a filesystem with mode bits.",
+      "selector_sha256": "51b4a03e1161de4ea2d628efd901bf6a8ad6aed457741e4cb976d313e6313093",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_verbatim_path_refuses_drive_relative_paths",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-opus-5.5-pr386-drive-relative",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-26T20:35:00.959090+00:00",
+      "protects": "A drive-relative path (C:name) is never converted to a drive-rooted verbatim path; a rooted path still converts.",
+      "detects": "verbatim_path adding the prefix to a path that has a drive but no root, so the converted form names a different file.",
+      "needs": "nothing on disk; Windows path semantics (cfg(windows)).",
+      "selector_sha256": "76cdbeb978db4fb63f06655b5e0fc8ec56e966d23df5f148bfd05a6744ce6849",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_absolute_destination_resolves_drive_relative_and_rooted_driveless_forms",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-opus-5.5-pr386-drive-relative",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-26T20:35:00.959090+00:00",
+      "protects": "C:name and \name resolve to the absolute file the process would open; an absolute path is unchanged and an empty path is refused.",
+      "detects": "C:name resolving to the drive root, or \name staying driveless.",
+      "needs": "the current directory on a lettered drive (cfg(windows)).",
+      "selector_sha256": "9a27e0620d5a4247c006a813cb0a81c94ae7beb3e696cd3aaad803246490e68e",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_sync_write_to_long_drive_relative_destination_lands_beside_staging",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-opus-5.5-pr386-drive-relative",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-26T20:35:00.959090+00:00",
+      "protects": "A long drive-relative destination publishes, new and replacing, to the file staging used on the synchronous path.",
+      "detects": "The publish step converting C:rel to the drive root while staging stayed in the current directory.",
+      "needs": "write access to the current directory and a lettered drive (cfg(windows)); takes the serial guard.",
+      "selector_sha256": "9aed9b390c9f1c8456082c9f40f644c57777c041588b062953f3c41bbf6d5706",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_async_write_to_long_drive_relative_destination_lands_beside_staging",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-opus-5.5-pr386-drive-relative",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-26T20:35:00.959090+00:00",
+      "protects": "The asynchronous worker publishes a long drive-relative destination to the file it staged and reports success only then.",
+      "detects": "The worker staging against the current directory and publishing against the drive root.",
+      "needs": "write access to the current directory and a lettered drive (cfg(windows)); takes the serial guard.",
+      "selector_sha256": "b2613a46ab25d46df4eb650acaa2e11e64c911001485c9afbe4331a5fc880c8c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_generate_entry_points_resolve_the_output_path_before_any_work",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-opus-5.5-pr386-drive-relative",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-26T20:35:00.959090+00:00",
+      "protects": "Both generate entry points refuse an unresolvable output_path as invalid input before any model check or generation.",
+      "detects": "Resolution left to the worker or the writer, where it runs after generation and an async caller sees a queued request that cannot publish.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "168cc984080ad020b9b3b5d4b4cc3ae13353886c7c903e2cc7e7bb702b44482f",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    }
+  ],
+  "source_rebind": {
+    "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+    "from_sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15",
+    "to_sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57",
+    "recorded_utc": "2026-11-26T20:35:00.959090+00:00",
+    "scope": "Source hashes rebound after resolving media output paths to absolute paths before staging (drive-relative destination fix) and adding five tests for it. Earlier reviewer attributions describe existing selectors. Independent review of the changed source is pending."
+  }
+}

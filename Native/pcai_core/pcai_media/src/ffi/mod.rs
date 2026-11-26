@@ -47,9 +47,14 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
+#[cfg(not(windows))]
+use std::fs::OpenOptions;
+use std::fs::{self, File};
+use std::io::{self, BufWriter, Write};
 use std::os::raw::c_char;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
 use tokio::runtime::Runtime;
 
@@ -115,6 +120,10 @@ enum MediaRequestStatus {
     Pending,
     /// Worker thread is actively running generation.
     Running,
+    /// The worker won the Running -> Publishing transition and is moving the
+    /// finished file into place.  Polls report it as running; a cancel now
+    /// loses (returns -1) because the publish is already committed.
+    Publishing,
     /// Generation finished successfully; path is the output file.
     Complete(String),
     /// Generation failed; text is the error message.
@@ -226,8 +235,6 @@ struct MediaState {
         reason = "Tokio runtime retained for future async hub download operations; not yet exercised by synchronous FFI paths"
     )]
     runtime: Runtime,
-    /// Loaded generation pipeline (None until `pcai_media_load_model` succeeds).
-    pipeline: Option<GenerationPipeline>,
     /// Device string set by `pcai_media_init`, propagated to `load_model`.
     device: String,
     /// Async request status map (request ID → status).
@@ -246,10 +253,180 @@ fn get_state() -> &'static Mutex<MediaState> {
         let runtime = Runtime::new().expect("failed to create Tokio runtime for pcai_media");
         Mutex::new(MediaState {
             runtime,
-            pipeline: None,
             device: "cuda:0".to_string(),
             requests: HashMap::new(),
         })
+    })
+}
+
+/// Serializes model load/replace, generation and understanding.
+///
+/// One generation at a time bounds model/KV-cache memory.  Lock order is
+/// always this gate first, then the state mutex, and the state mutex is only
+/// held for short bookkeeping, never across inference or model loading.  The
+/// loaded model lives in [`MODEL_SLOT`] under its own short-lived mutex.
+/// `pcai_media_poll_result`, `pcai_media_cancel`, `pcai_media_init` and
+/// `pcai_media_shutdown` take only the state mutex, so they stay responsive
+/// while a generation is running.
+static INFERENCE_GATE: Mutex<()> = Mutex::new(());
+
+/// A loaded-model handle guarded by a lifecycle epoch.
+///
+/// `epoch` increments on every shutdown.  A load captures the epoch when it
+/// is admitted, before it waits for [`INFERENCE_GATE`], and is cancelled if the
+/// epoch has moved by the time it holds the gate (before any weights are read)
+/// or by the time its model is finished (the model is dropped, not installed).
+/// A shutdown therefore cannot be undone by a load that was queued behind a
+/// generation or that was running when the shutdown arrived.
+struct ModelSlot<T> {
+    epoch: u64,
+    model: Option<Arc<T>>,
+}
+
+impl<T> ModelSlot<T> {
+    const fn new() -> Self {
+        Self { epoch: 0, model: None }
+    }
+}
+
+/// The loaded generation pipeline.  Its mutex is only ever held for a field
+/// read or write, and models are always dropped after it is released.
+static MODEL_SLOT: Mutex<ModelSlot<GenerationPipeline>> = Mutex::new(ModelSlot::new());
+
+fn lock_slot<T>(slot: &Mutex<ModelSlot<T>>) -> MutexGuard<'_, ModelSlot<T>> {
+    // The slot is two plain fields, so it stays consistent after a panic.
+    slot.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// Clone the current model handle, if any.
+fn slot_current<T>(slot: &Mutex<ModelSlot<T>>) -> Option<Arc<T>> {
+    lock_slot(slot).model.clone()
+}
+
+/// Capture the lifecycle epoch at load admission.
+fn slot_begin_load<T>(slot: &Mutex<ModelSlot<T>>) -> u64 {
+    lock_slot(slot).epoch
+}
+
+/// Install `model` if no shutdown happened since `epoch` was captured.
+///
+/// Returns whether it was installed.  A stale model and any model it
+/// replaces are dropped here, after the slot lock is released, because
+/// freeing a large model can be slow.
+fn slot_install<T>(slot: &Mutex<ModelSlot<T>>, epoch: u64, model: T) -> bool {
+    let (installed, displaced) = {
+        let mut guard = lock_slot(slot);
+        if guard.epoch == epoch {
+            (true, guard.model.replace(Arc::new(model)))
+        } else {
+            (false, None)
+        }
+    };
+    drop(displaced);
+    installed
+}
+
+/// Release the model and invalidate every in-flight load.
+fn slot_shutdown<T>(slot: &Mutex<ModelSlot<T>>) {
+    let released = {
+        let mut guard = lock_slot(slot);
+        guard.epoch = guard.epoch.wrapping_add(1);
+        guard.model.take()
+    };
+    drop(released);
+}
+
+/// Whether no shutdown has happened since `epoch` was captured.
+fn slot_epoch_is<T>(slot: &Mutex<ModelSlot<T>>, epoch: u64) -> bool {
+    lock_slot(slot).epoch == epoch
+}
+
+/// How a load request ended.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LoadOutcome {
+    /// The model was loaded and installed.
+    Installed,
+    /// A shutdown ran while the request waited for the gate; the loader was
+    /// never called, so no weights were read.
+    CancelledWhileQueued,
+    /// A shutdown ran during the load; the finished model was dropped.
+    DiscardedAfterLoad,
+}
+
+/// Take `gate`, recovering from poison.  The gate guards no data, so a panic
+/// in an earlier holder must not wedge every later caller.
+fn lock_gate(gate: &Mutex<()>) -> MutexGuard<'_, ()> {
+    gate.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// [`load_into_slot_observed`] without an admission hook.
+#[cfg(test)]
+fn load_into_slot<T>(
+    slot: &Mutex<ModelSlot<T>>,
+    gate: &Mutex<()>,
+    load: impl FnOnce() -> anyhow::Result<T>,
+) -> anyhow::Result<LoadOutcome> {
+    load_into_slot_observed(slot, gate, || {}, load)
+}
+
+/// Load a model under `gate` and install it unless a shutdown intervened.
+///
+/// Order matters.  The epoch is captured at admission, before waiting for the
+/// gate, so a shutdown that runs while this request is queued behind a
+/// generation is seen: once the gate is held the epoch is re-checked and a
+/// stale request is cancelled before `load` reads or allocates anything.  The
+/// epoch is checked again at install, so a shutdown during `load` still wins.
+///
+/// Lock order: the slot mutex is only taken briefly, never while waiting for
+/// the gate, and the gate is never taken while the slot mutex is held, so the
+/// two cannot invert.  `load` runs under the gate but under no other lock.
+///
+/// `admitted` runs right after admission (epoch captured) and before the wait
+/// for the gate.  Production passes a no-op; tests use it to know a request is
+/// queued before they shut down.
+fn load_into_slot_observed<T>(
+    slot: &Mutex<ModelSlot<T>>,
+    gate: &Mutex<()>,
+    admitted: impl FnOnce(),
+    load: impl FnOnce() -> anyhow::Result<T>,
+) -> anyhow::Result<LoadOutcome> {
+    let epoch = slot_begin_load(slot);
+    admitted();
+    let _gate = lock_gate(gate);
+    if !slot_epoch_is(slot, epoch) {
+        return Ok(LoadOutcome::CancelledWhileQueued);
+    }
+    let model = load()?;
+    Ok(if slot_install(slot, epoch, model) {
+        LoadOutcome::Installed
+    } else {
+        LoadOutcome::DiscardedAfterLoad
+    })
+}
+
+/// Take the inference gate, recovering from poison.
+///
+/// The gate guards no data, so a panic in an earlier holder must not wedge
+/// every later inference call.
+fn acquire_inference_gate() -> MutexGuard<'static, ()> {
+    lock_gate(&INFERENCE_GATE)
+}
+
+/// Lock the state mutex briefly for request-map bookkeeping, recovering from
+/// poison (the request map stays structurally valid after a panic).
+fn lock_state_recovering() -> MutexGuard<'static, MediaState> {
+    get_state().lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// Clone the loaded pipeline handle without holding any lock afterwards.
+///
+/// Returns the status code and message the FFI boundary should report.
+fn loaded_pipeline() -> Result<Arc<GenerationPipeline>, (PcaiMediaErrorCode, String)> {
+    slot_current(&MODEL_SLOT).ok_or_else(|| {
+        (
+            PcaiMediaErrorCode::ModelNotLoaded,
+            "No model loaded — call pcai_media_load_model first".to_string(),
+        )
     })
 }
 
@@ -339,33 +516,53 @@ pub extern "C" fn pcai_media_load_model(model_path: *const c_char, gpu_layers: i
         Err(code) => return code as i32,
     };
 
-    let state = get_state();
-    let mut guard = match state.lock() {
-        Ok(g) => g,
-        Err(e) => {
-            set_error(
-                format!("Failed to acquire state lock: {e}"),
-                PcaiMediaErrorCode::GenerationError,
-            );
-            return PcaiMediaErrorCode::GenerationError as i32;
-        }
-    };
+    load_model_at(path_str, gpu_layers, || {})
+}
 
-    let config = PipelineConfig {
-        model: path_str.clone(),
-        gpu_layers,
-        device: guard.device.clone(),
-        ..PipelineConfig::default()
-    };
-
-    // `GenerationPipeline::load` is synchronous (uses blocking I/O internally
-    // through hf-hub and safetensors).  Call it directly — no async executor
-    // is required for the load path.
-    match GenerationPipeline::load(config) {
-        Ok(pipeline) => {
-            guard.pipeline = Some(pipeline);
+/// Body of [`pcai_media_load_model`].  `admitted` runs after the load is
+/// admitted (lifecycle epoch captured) and before it waits for the gate; the
+/// exported function passes a no-op and tests use it to know a load is queued.
+///
+/// No generation may run while the model is loaded or replaced, and neither
+/// the state mutex nor the model slot is held for the (long) load.
+/// `GenerationPipeline::load` is synchronous (blocking hf-hub and safetensors
+/// I/O), so it is called directly with no async executor.  A shutdown that
+/// arrives while the request is queued cancels it before any weights are read;
+/// one that arrives during the load discards the finished model.
+fn load_model_at(path_str: String, gpu_layers: i32, admitted: impl FnOnce()) -> i32 {
+    let outcome = load_into_slot_observed(&MODEL_SLOT, &INFERENCE_GATE, admitted, || {
+        let device = get_state()
+            .lock()
+            .map(|guard| guard.device.clone())
+            .map_err(|e| anyhow::anyhow!("Failed to acquire state lock: {e}"))?;
+        let config = PipelineConfig {
+            model: path_str.clone(),
+            gpu_layers,
+            device,
+            ..PipelineConfig::default()
+        };
+        GenerationPipeline::load(config)
+    });
+    match outcome {
+        Ok(LoadOutcome::Installed) => {
             tracing::info!(model = %path_str, gpu_layers, "model loaded");
             PcaiMediaErrorCode::Success as i32
+        }
+        Ok(LoadOutcome::CancelledWhileQueued) => {
+            set_error(
+                format!(
+                    "Model '{path_str}' load was queued when pcai_media_shutdown ran and was cancelled before any weights were read"
+                ),
+                PcaiMediaErrorCode::ModelNotLoaded,
+            );
+            PcaiMediaErrorCode::ModelNotLoaded as i32
+        }
+        Ok(LoadOutcome::DiscardedAfterLoad) => {
+            set_error(
+                format!("Model '{path_str}' finished loading after pcai_media_shutdown and was discarded"),
+                PcaiMediaErrorCode::ModelNotLoaded,
+            );
+            PcaiMediaErrorCode::ModelNotLoaded as i32
         }
         Err(e) => {
             let msg = format!("Failed to load model '{path_str}': {e:#}");
@@ -393,7 +590,9 @@ pub extern "C" fn pcai_media_load_model(model_path: *const c_char, gpu_layers: i
 ///   default of `5.0`.
 /// * `temperature` — Sampling temperature (1.0 = neutral; lower = sharper).
 ///   Pass `0.0` to use the default of `1.0`.
-/// * `output_path` — Absolute file path where the PNG will be written.
+/// * `output_path` — File path where the PNG will be written.  Resolved to an
+///   absolute path at this call (so `C:name.png` and `\name.png` mean what the
+///   process would open), before any staging or publishing.
 ///
 /// # Returns
 ///
@@ -419,30 +618,26 @@ pub extern "C" fn pcai_media_generate_image(
         Ok(s) => s.to_string(),
         Err(code) => return code as i32,
     };
-
-    let state = get_state();
-    let guard = match state.lock() {
-        Ok(g) => g,
+    // Resolve before the (long) generation, so the destination is the one named by the
+    // caller's current directory at this call and a bad path fails before any work.
+    let out_path = match absolute_destination(Path::new(&out_str)) {
+        Ok(path) => path,
         Err(e) => {
             set_error(
-                format!("Failed to acquire state lock: {e}"),
-                PcaiMediaErrorCode::GenerationError,
+                format!("output_path '{out_str}' cannot be resolved: {e}"),
+                PcaiMediaErrorCode::InvalidInput,
             );
-            return PcaiMediaErrorCode::GenerationError as i32;
+            return PcaiMediaErrorCode::InvalidInput as i32;
         }
     };
 
-    // Apply caller-supplied hyper-parameters to the loaded pipeline's config
-    // by overwriting the fields in a cloned config.  The pipeline is rebuilt
-    // in-place only when cfg_scale or temperature differ from the defaults.
-    let pipeline = match guard.pipeline.as_ref() {
-        Some(p) => p,
-        None => {
-            set_error(
-                "No model loaded — call pcai_media_load_model first",
-                PcaiMediaErrorCode::ModelNotLoaded,
-            );
-            return PcaiMediaErrorCode::ModelNotLoaded as i32;
+    // Serialize inference; the state mutex is only held to clone the handle.
+    let _gate = acquire_inference_gate();
+    let pipeline = match loaded_pipeline() {
+        Ok(p) => p,
+        Err((code, message)) => {
+            set_error(message, code);
+            return code as i32;
         }
     };
 
@@ -466,7 +661,7 @@ pub extern "C" fn pcai_media_generate_image(
     };
 
     // Save to PNG.
-    if let Err(e) = image.save(&out_str) {
+    if let Err(e) = write_image_atomically(&image, &out_path) {
         set_error(
             format!("Failed to save image to '{out_str}': {e}"),
             PcaiMediaErrorCode::IoError,
@@ -521,25 +716,11 @@ pub extern "C" fn pcai_media_understand_image(
         Err(_) => return std::ptr::null_mut(),
     };
 
-    let state = get_state();
-    let guard = match state.lock() {
-        Ok(g) => g,
-        Err(e) => {
-            set_error(
-                format!("Failed to acquire state lock: {e}"),
-                PcaiMediaErrorCode::GenerationError,
-            );
-            return std::ptr::null_mut();
-        }
-    };
-
-    let pipeline = match guard.pipeline.as_ref() {
-        Some(p) => p,
-        None => {
-            set_error(
-                "No model loaded — call pcai_media_load_model first",
-                PcaiMediaErrorCode::ModelNotLoaded,
-            );
+    let _gate = acquire_inference_gate();
+    let pipeline = match loaded_pipeline() {
+        Ok(p) => p,
+        Err((code, message)) => {
+            set_error(message, code);
             return std::ptr::null_mut();
         }
     };
@@ -558,7 +739,7 @@ pub extern "C" fn pcai_media_understand_image(
 
     // Run understanding pipeline (borrows from GenerationPipeline).
     let result = UnderstandingPipeline::understand_with_fallback(
-        pipeline,
+        &pipeline,
         &dyn_image,
         Some(std::path::Path::new(&path_str)),
         &prompt_str,
@@ -632,26 +813,13 @@ pub extern "C" fn pcai_media_generate_image_bytes(
         Err(code) => return code as i32,
     };
 
-    let state = get_state();
-    let guard = match state.lock() {
-        Ok(g) => g,
-        Err(e) => {
-            set_error(
-                format!("Failed to acquire state lock: {e}"),
-                PcaiMediaErrorCode::GenerationError,
-            );
-            return PcaiMediaErrorCode::GenerationError as i32;
-        }
-    };
-
-    let pipeline = match guard.pipeline.as_ref() {
-        Some(p) => p,
-        None => {
-            set_error(
-                "No model loaded — call pcai_media_load_model first",
-                PcaiMediaErrorCode::ModelNotLoaded,
-            );
-            return PcaiMediaErrorCode::ModelNotLoaded as i32;
+    // Serialize inference; the state mutex is only held to clone the handle.
+    let _gate = acquire_inference_gate();
+    let pipeline = match loaded_pipeline() {
+        Ok(p) => p,
+        Err((code, message)) => {
+            set_error(message, code);
+            return code as i32;
         }
     };
 
@@ -705,6 +873,1375 @@ pub extern "C" fn pcai_media_generate_image_bytes(
     PcaiMediaErrorCode::Success as i32
 }
 
+// ----------------------------------------------------------------------------
+// Staged output files
+// ----------------------------------------------------------------------------
+//
+// A generated image is never written straight to the caller's destination.
+// It is encoded into a staging file next to the destination, and only
+// published (renamed over the destination) if the request is still live.
+// That way a cancelled request can never create or overwrite the caller's
+// file, and a failed write never leaves a partial file behind.
+
+/// Short staging path in `dest`'s parent directory: `.pcai-<16 hex>.partial`.
+///
+/// The name is independent of the destination's, so a valid destination near
+/// the 255-character component limit still gets a legal staging name.
+fn staging_path(dest: &Path) -> PathBuf {
+    let name = format!(".pcai-{:016x}.partial", rand::random::<u64>());
+    match dest.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent.join(name),
+        _ => PathBuf::from(name),
+    }
+}
+
+/// Resolve a caller-supplied destination to one absolute path, once, before any
+/// staging, metadata or publish step looks at it.
+///
+/// On Windows `C:name.png` is relative to the *current directory of drive `C:`* and
+/// `\name.png` to the *root of the current drive*.  Left unresolved, the short staging
+/// and metadata calls follow those rules while the raw Win32 publish calls (which get a
+/// `\\?\` form for long paths) cannot, so the steps could touch different files.
+/// Resolving here means every later step receives the same absolute path, so the file
+/// that was staged is the file that is published over.  The relative parts are
+/// resolved against the process state at this call, so an asynchronous request calls
+/// this at submission, not on its worker thread.
+///
+/// # Errors
+///
+/// Fails when the path is empty or the current directory cannot be read.
+fn absolute_destination(path: &Path) -> io::Result<PathBuf> {
+    std::path::absolute(path)
+}
+
+/// Backup path for a `ReplaceFileW` call: `.pcai-<16 hex>.bak` beside `dest`.
+///
+/// ReplaceFileW needs the backup on the same volume as the replaced file, and
+/// the same directory guarantees that.  The short name follows the staging
+/// names, so a destination near the component limit still gets a legal one.
+#[cfg(windows)]
+fn backup_path(dest: &Path) -> PathBuf {
+    let name = format!(".pcai-{:016x}.bak", rand::random::<u64>());
+    match dest.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent.join(name),
+        _ => PathBuf::from(name),
+    }
+}
+
+/// Whether the destination exists, from the result of a metadata call.
+///
+/// Only "not found" (`ERROR_FILE_NOT_FOUND`, `ERROR_PATH_NOT_FOUND`, `ENOENT`)
+/// means the destination is absent.  Any other error (access denied, a sharing
+/// violation, an I/O error) says nothing about whether the file exists, so it is
+/// returned and the publish fails closed instead of treating the destination as
+/// free and overwriting whatever is there.
+#[cfg(windows)]
+fn destination_exists(probe: io::Result<fs::Metadata>) -> io::Result<bool> {
+    classify_destination(probe).map(|existing| existing.is_some())
+}
+
+/// [`destination_exists`] that keeps the metadata: `Some` if the destination exists,
+/// `None` if it is absent, an error for anything else.  Publication takes its
+/// decision from this one result.
+#[cfg(any(unix, windows))]
+fn classify_destination(probe: io::Result<fs::Metadata>) -> io::Result<Option<fs::Metadata>> {
+    match probe {
+        Ok(metadata) => Ok(Some(metadata)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+/// The error for a no-replace move that found the destination occupied.
+#[cfg(any(unix, windows))]
+fn not_overwritten(error: io::Error, dest: &Path) -> io::Error {
+    if error.kind() == io::ErrorKind::AlreadyExists {
+        io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            format!(
+                "{} appeared while the image was being written and was not overwritten",
+                dest.display()
+            ),
+        )
+    } else {
+        error
+    }
+}
+
+/// Encoder for `dest`: the image format follows the destination extension,
+/// as `RgbImage::save` did.
+fn encode_for(dest: &Path) -> impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()> {
+    let format = image::ImageFormat::from_path(dest);
+    move |image, file| {
+        let format = format.map_err(io::Error::other)?;
+        let mut writer = BufWriter::new(file);
+        image.write_to(&mut writer, format).map_err(io::Error::other)?;
+        writer.flush()
+    }
+}
+
+/// Exclusively create a staging file, retrying with a new name on collision.
+///
+/// The file is private from the moment it exists, so a half-written image is
+/// never readable by other users: on Unix it is created `0600`; on Windows it
+/// is created with a protected DACL naming only the owner and SYSTEM, so it
+/// inherits nothing from the directory. [`publish_staged_owned`] gives it the
+/// destination's access control (or, for a new destination, what a plain
+/// `File::create` would have produced) before the rename.
+fn create_staging_file(dest: &Path) -> io::Result<(PathBuf, File)> {
+    for _ in 0..STAGING_ATTEMPTS {
+        let staged = staging_path(dest);
+        match create_private_file(&staged) {
+            Ok(file) => return Ok((staged, file)),
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error),
+        }
+    }
+    Err(io::Error::new(
+        io::ErrorKind::AlreadyExists,
+        "no unused staging file name after several attempts",
+    ))
+}
+
+/// Exclusively create `path`, readable and writable by this user only (Unix).
+#[cfg(unix)]
+fn create_private_file(path: &Path) -> io::Result<File> {
+    use std::os::unix::fs::OpenOptionsExt;
+    OpenOptions::new().write(true).create_new(true).mode(0o600).open(path)
+}
+
+/// Exclusively create `path` with a protected, owner-and-SYSTEM-only DACL
+/// (Windows).  The descriptor is applied by `CreateFileW` itself, so there is
+/// no moment at which the file carries an inherited ACL.
+#[cfg(windows)]
+fn create_private_file(path: &Path) -> io::Result<File> {
+    use std::os::windows::io::FromRawHandle;
+    use windows_sys::Win32::Foundation::{LocalFree, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::Security::Authorization::{
+        ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
+    };
+    use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
+    use windows_sys::Win32::Storage::FileSystem::{
+        CreateFileW, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_WRITE, FILE_SHARE_DELETE, FILE_SHARE_READ,
+        FILE_SHARE_WRITE,
+    };
+
+    // D:P = protected DACL (no inheritance); FA = file all access; OW = the owner
+    // (OWNER RIGHTS); SY = SYSTEM.
+    let sddl: Vec<u16> = "D:P(A;;FA;;;OW)(A;;FA;;;SY)"
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
+    let mut descriptor = std::ptr::null_mut();
+    // SAFETY: `sddl` is NUL-terminated and outlives the call; `descriptor` receives a
+    // LocalAlloc'd buffer that is freed below on every path.
+    let converted = unsafe {
+        ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            sddl.as_ptr(),
+            SDDL_REVISION_1,
+            &mut descriptor,
+            std::ptr::null_mut(),
+        )
+    };
+    if converted == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let attributes = SECURITY_ATTRIBUTES {
+        nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
+        lpSecurityDescriptor: descriptor,
+        bInheritHandle: 0,
+    };
+    let name = wide_path(path);
+    // SAFETY: `name` is NUL-terminated and `attributes` points at a valid descriptor
+    // for the duration of the call.
+    let handle = unsafe {
+        CreateFileW(
+            name.as_ptr(),
+            FILE_GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            &attributes,
+            CREATE_NEW,
+            FILE_ATTRIBUTE_NORMAL,
+            std::ptr::null_mut(),
+        )
+    };
+    let created = if handle == INVALID_HANDLE_VALUE {
+        Err(io::Error::last_os_error())
+    } else {
+        // SAFETY: `handle` is a valid, owned file handle that nothing else closes.
+        Ok(unsafe { File::from_raw_handle(handle) })
+    };
+    // SAFETY: `descriptor` was allocated by the conversion above and is no longer used.
+    unsafe { LocalFree(descriptor) };
+    created
+}
+
+/// UTF-16, NUL-terminated copy of `path` for Win32 calls.
+///
+/// `std::fs` lifts the `MAX_PATH` limit by itself; raw Win32 calls such as
+/// `ReplaceFileW` and `MoveFileExW` do not, so a long absolute path is passed in
+/// its `\\?\` form (see [`verbatim_path`]).
+#[cfg(windows)]
+fn wide_path(path: &Path) -> Vec<u16> {
+    use std::os::windows::ffi::OsStrExt;
+    let verbatim = verbatim_path(path);
+    let path = verbatim.as_deref().unwrap_or(path);
+    path.as_os_str().encode_wide().chain(std::iter::once(0)).collect()
+}
+
+/// The `\\?\` form of a long, absolute, drive or UNC path, or `None` when `path`
+/// is short enough, relative, already verbatim or contains `..` (which verbatim
+/// paths do not resolve).  Separators are normalised to backslashes, because
+/// verbatim paths are not.
+#[cfg(windows)]
+fn verbatim_path(path: &Path) -> Option<PathBuf> {
+    use std::ffi::OsString;
+    use std::path::{Component, Prefix};
+    /// Below `MAX_PATH` (260) with room to spare for a file name and a NUL.
+    const LONG: usize = 240;
+    if path.as_os_str().len() < LONG {
+        return None;
+    }
+    let mut components = path.components();
+    let Some(Component::Prefix(prefix)) = components.next() else {
+        return None;
+    };
+    // `C:name` has a drive but no root: it means "relative to that drive's current
+    // directory", and verbatim has no such form.  Prefixing it would silently
+    // turn it into `\\?\C:\name`, the drive's root.  Only rooted paths convert.
+    if !path.has_root() {
+        return None;
+    }
+    let mut out = match prefix.kind() {
+        Prefix::Disk(letter) => OsString::from(format!(r"\\?\{}:", char::from(letter))),
+        Prefix::UNC(server, share) => {
+            let mut unc = OsString::from(r"\\?\UNC\");
+            unc.push(server);
+            unc.push(r"\");
+            unc.push(share);
+            unc
+        }
+        _ => return None,
+    };
+    for component in components {
+        match component {
+            Component::RootDir | Component::CurDir => {}
+            Component::Normal(name) => {
+                out.push(r"\");
+                out.push(name);
+            }
+            Component::ParentDir | Component::Prefix(_) => return None,
+        }
+    }
+    Some(PathBuf::from(out))
+}
+
+/// Attempts to find an unused staging name before giving up.
+const STAGING_ATTEMPTS: u32 = 8;
+
+/// A staging file this process created: its path and the identity of the file
+/// object behind it when it was created.
+///
+/// The path alone does not say whose bytes are there: another writer can rename a
+/// file over it.  Cleanup therefore goes through [`discard_staging`], which deletes
+/// the originally identified entry. Production publish checks custody before
+/// handing off the path. On Unix the file descriptor pins the inode until the
+/// caller finishes. Dereferences to the path.
+struct StagedFile {
+    path: PathBuf,
+    identity: FileIdentity,
+    #[cfg(unix)]
+    file: File,
+}
+
+impl AsRef<Path> for StagedFile {
+    fn as_ref(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl std::ops::Deref for StagedFile {
+    type Target = Path;
+
+    fn deref(&self) -> &Path {
+        &self.path
+    }
+}
+
+/// Which file object a path or handle refers to: volume and full `FileIdInfo`
+/// identifier (Windows), or device and inode (Unix).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct FileIdentity {
+    volume: u64,
+    index: u128,
+}
+
+#[cfg(unix)]
+fn identity_of_file(file: &File) -> io::Result<FileIdentity> {
+    use std::os::unix::fs::MetadataExt;
+    let metadata = file.metadata()?;
+    Ok(FileIdentity {
+        volume: metadata.dev(),
+        index: u128::from(metadata.ino()),
+    })
+}
+
+/// Identity of whatever is at `path`, without following a symlink.
+#[cfg(unix)]
+fn identity_at(path: &Path) -> io::Result<FileIdentity> {
+    use std::os::unix::fs::MetadataExt;
+    let metadata = fs::symlink_metadata(path)?;
+    Ok(FileIdentity {
+        volume: metadata.dev(),
+        index: u128::from(metadata.ino()),
+    })
+}
+
+#[cfg(windows)]
+fn identity_of_file(file: &File) -> io::Result<FileIdentity> {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Storage::FileSystem::{FileIdInfo, GetFileInformationByHandleEx, FILE_ID_INFO};
+
+    let mut info = FILE_ID_INFO::default();
+    // SAFETY: the borrowed handle is valid and the writable output points to a FILE_ID_INFO
+    // of the size the FileIdInfo class requires.
+    let found = unsafe {
+        GetFileInformationByHandleEx(
+            file.as_raw_handle(),
+            FileIdInfo,
+            (&mut info as *mut FILE_ID_INFO).cast(),
+            std::mem::size_of::<FILE_ID_INFO>() as u32,
+        )
+    };
+    if found == 0 {
+        return Err(io::Error::last_os_error());
+    }
+
+    Ok(windows_file_identity(info.VolumeSerialNumber, info.FileId.Identifier))
+}
+
+#[cfg(windows)]
+fn windows_file_identity(volume: u64, identifier: [u8; 16]) -> FileIdentity {
+    FileIdentity {
+        volume,
+        index: u128::from_le_bytes(identifier),
+    }
+}
+
+/// Identity of whatever is at `path`; a reparse point is opened, not followed.  A
+/// directory cannot be opened this way and is reported as an error.
+#[cfg(windows)]
+fn identity_at(path: &Path) -> io::Result<FileIdentity> {
+    use std::fs::OpenOptions;
+    use std::os::windows::fs::OpenOptionsExt;
+    use windows_sys::Win32::Storage::FileSystem::{FILE_FLAG_OPEN_REPARSE_POINT, FILE_READ_ATTRIBUTES};
+    let file = OpenOptions::new()
+        .access_mode(FILE_READ_ATTRIBUTES)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(path)?;
+    identity_of_file(&file)
+}
+
+#[cfg(not(any(unix, windows)))]
+fn identity_of_file(_file: &File) -> io::Result<FileIdentity> {
+    Ok(FileIdentity { volume: 0, index: 0 })
+}
+
+#[cfg(not(any(unix, windows)))]
+fn identity_at(path: &Path) -> io::Result<FileIdentity> {
+    fs::symlink_metadata(path).map(|_| FileIdentity { volume: 0, index: 0 })
+}
+
+/// Encode `image` into a fresh, exclusively created staging file next to
+/// `dest` and flush it to disk.
+///
+/// The identity of the new file is recorded from the open handle immediately after
+/// it is created, before any encoding runs.  Encoding can take long enough for
+/// another writer to rename a file onto the staging name, so every failure after
+/// creation (encode, write, flush) goes through [`discard_staging`]. On Unix the
+/// descriptor is retained to pin the inode and apply publish permissions to it.
+fn stage_image(
+    image: &image::RgbImage,
+    dest: &Path,
+    encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
+) -> io::Result<StagedFile> {
+    stage_image_with(image, dest, encode, identity_of_file)
+}
+
+/// [`stage_image`] with the identity step injected, so tests can make it fail.
+///
+/// If the identity of the new file cannot be read, ownership cannot be checked
+/// later, so the file is NOT deleted by name: it is left in place (it is empty and
+/// ours) and the error names it.
+fn stage_image_with(
+    image: &image::RgbImage,
+    dest: &Path,
+    encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
+    identify: impl FnOnce(&File) -> io::Result<FileIdentity>,
+) -> io::Result<StagedFile> {
+    let (path, mut file) = create_staging_file(dest)?;
+    let identity = match identify(&file) {
+        Ok(identity) => identity,
+        Err(error) => {
+            drop(file);
+            return Err(io::Error::new(
+                error.kind(),
+                format!(
+                    "{error}; the staging file {} was left in place because its identity could not be recorded",
+                    path.display()
+                ),
+            ));
+        }
+    };
+    let written = encode(image, &mut file).and_then(|()| file.sync_all());
+    #[cfg(not(unix))]
+    drop(file);
+    let staged = StagedFile {
+        path,
+        identity,
+        #[cfg(unix)]
+        file,
+    };
+    match written {
+        Ok(()) => Ok(staged),
+        Err(error) => Err(with_note(error, discard_staging(&staged))),
+    }
+}
+
+/// Remove the staging file after a failed or abandoned publish, but only if it is
+/// still ours; return a note for the caller's error when something was kept.
+///
+/// - the path holds the file this process created: it is deleted, `None`;
+/// - the path is gone: nothing to do, `None`;
+/// - the path holds anything else, or its identity cannot be read: that is
+///   somebody's data and is NEVER deleted.  It is moved to a
+///   `.pcai-<hex>.rescued` name beside it (never over an existing file) and the
+///   note names that path; if the move fails the file stays where it is and the
+///   note names the staging path.
+fn discard_staging(staged: &StagedFile) -> Option<String> {
+    discard_staging_with(staged, rescue_move)
+}
+
+#[cfg(any(unix, windows))]
+fn rescue_move(from: &Path, to: &Path) -> io::Result<()> {
+    move_without_replacing(from, to)
+}
+
+#[cfg(not(any(unix, windows)))]
+fn rescue_move(from: &Path, to: &Path) -> io::Result<()> {
+    fs::rename(from, to)
+}
+
+/// [`discard_staging`] with the rescue move injected, so tests can make it fail.
+fn discard_staging_with(staged: &StagedFile, rescue: impl FnOnce(&Path, &Path) -> io::Result<()>) -> Option<String> {
+    match discard_owned_staging(staged) {
+        Some(result) => match result {
+            Ok(()) => None,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => None,
+            Err(error) => Some(format!(
+                "the staging file {} could not be removed ({error})",
+                staged.path.display()
+            )),
+        },
+        None => {
+            let rescued = staged
+                .path
+                .with_file_name(format!(".pcai-{:016x}.rescued", rand::random::<u64>()));
+            Some(match rescue(&staged.path, &rescued) {
+                Ok(()) => format!(
+                    "a file that is not the generated image was found at the staging path {} and was kept at {}",
+                    staged.path.display(),
+                    rescued.display()
+                ),
+                Err(error) => format!(
+                    "a file that is not the generated image was found at {} and was left there ({error})",
+                    staged.path.display()
+                ),
+            })
+        }
+    }
+}
+
+/// Check the staging identity before the Unix unlink. The open staging file
+/// prevents inode reuse during this check, but the unlink still takes a path.
+/// `None` means that custody could not be established.
+#[cfg(not(windows))]
+fn discard_owned_staging(staged: &StagedFile) -> Option<io::Result<()>> {
+    match identity_at(&staged.path) {
+        Ok(found) if found == staged.identity => Some(fs::remove_file(&staged.path)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Some(Ok(())),
+        _ => None,
+    }
+}
+
+/// Read identity and request deletion through the same Windows handle.
+#[cfg(windows)]
+fn discard_owned_staging(staged: &StagedFile) -> Option<io::Result<()>> {
+    use std::os::windows::{fs::OpenOptionsExt, io::AsRawHandle};
+    use windows_sys::Win32::Storage::FileSystem::{
+        FileDispositionInfo, SetFileInformationByHandle, DELETE, FILE_DISPOSITION_INFO, FILE_FLAG_OPEN_REPARSE_POINT,
+        FILE_READ_ATTRIBUTES,
+    };
+
+    let file = match fs::OpenOptions::new()
+        .access_mode(FILE_READ_ATTRIBUTES | DELETE)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(&staged.path)
+    {
+        Ok(file) => file,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Some(Ok(())),
+        Err(_) => return None,
+    };
+    if !matches!(identity_of_file(&file), Ok(found) if found == staged.identity) {
+        return None;
+    }
+    let disposition = FILE_DISPOSITION_INFO { DeleteFile: true };
+    // SAFETY: `file` keeps the validated handle live and the buffer is the
+    // FILE_DISPOSITION_INFO required by the FileDispositionInfo class.
+    let removed = unsafe {
+        SetFileInformationByHandle(
+            file.as_raw_handle(),
+            FileDispositionInfo,
+            (&disposition as *const FILE_DISPOSITION_INFO).cast(),
+            std::mem::size_of::<FILE_DISPOSITION_INFO>() as u32,
+        )
+    };
+    Some(if removed == 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
+    })
+}
+
+/// `error` with `note` (from [`discard_staging`]) appended.
+fn with_note(error: io::Error, note: Option<String>) -> io::Error {
+    match note {
+        Some(note) => io::Error::new(error.kind(), format!("{error}; {note}")),
+        None => error,
+    }
+}
+
+/// The permissions `File::create` would give a new file next to `dest`: 0666
+/// filtered by the process umask.
+///
+/// The kernel applies the umask when a file is created with `mode(0o666)`, so
+/// creating and inspecting a throwaway file reads it without touching the
+/// process-wide umask (setting it, even briefly, would race with other threads
+/// creating files).  The probe is empty and removed immediately.
+#[cfg(unix)]
+fn plain_create_permissions(dest: &Path) -> io::Result<fs::Permissions> {
+    use std::os::unix::fs::OpenOptionsExt;
+    for _ in 0..STAGING_ATTEMPTS {
+        let probe = staging_path(dest);
+        match OpenOptions::new().write(true).create_new(true).mode(0o666).open(&probe) {
+            Ok(file) => {
+                let permissions = file.metadata().map(|metadata| metadata.permissions());
+                drop(file);
+                let _ = fs::remove_file(&probe);
+                return permissions;
+            }
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error),
+        }
+    }
+    Err(io::Error::new(
+        io::ErrorKind::AlreadyExists,
+        "no unused probe file name after several attempts",
+    ))
+}
+
+/// Whether `path` carries a POSIX access ACL (the `system.posix_acl_access`
+/// extended attribute).  A filesystem without ACL support reports `false`; any
+/// other error is returned, so an unreadable attribute fails the publish.
+#[cfg(target_os = "linux")]
+fn has_access_acl(path: &Path) -> io::Result<bool> {
+    use std::os::unix::ffi::OsStrExt;
+    let path = CString::new(path.as_os_str().as_bytes()).map_err(io::Error::other)?;
+    // SAFETY: both strings are NUL-terminated; a null buffer with size 0 asks only
+    // for the attribute's size.
+    let size = unsafe {
+        libc::getxattr(
+            path.as_ptr(),
+            c"system.posix_acl_access".as_ptr(),
+            std::ptr::null_mut(),
+            0,
+        )
+    };
+    acl_probe_result(size)
+}
+
+/// Other Unix systems: ACLs are not inspected here, so none are reported.
+#[cfg(all(unix, not(target_os = "linux")))]
+fn has_access_acl(_path: &Path) -> io::Result<bool> {
+    Ok(false)
+}
+
+/// Read the staging file's POSIX access ACL without reopening its name.
+#[cfg(target_os = "linux")]
+fn has_staged_access_acl(file: &File) -> io::Result<bool> {
+    use std::os::fd::AsRawFd;
+    // SAFETY: the descriptor is borrowed from a live File. A null buffer with
+    // size zero queries the attribute size.
+    let size = unsafe {
+        libc::fgetxattr(
+            file.as_raw_fd(),
+            c"system.posix_acl_access".as_ptr(),
+            std::ptr::null_mut(),
+            0,
+        )
+    };
+    acl_probe_result(size)
+}
+
+#[cfg(target_os = "linux")]
+fn acl_probe_result(size: libc::ssize_t) -> io::Result<bool> {
+    if size >= 0 {
+        return Ok(true);
+    }
+    let error = io::Error::last_os_error();
+    match error.raw_os_error() {
+        Some(libc::ENODATA | libc::ENOTSUP) => Ok(false),
+        _ => Err(error),
+    }
+}
+
+#[cfg(all(unix, not(target_os = "linux")))]
+fn has_staged_access_acl(_file: &File) -> io::Result<bool> {
+    Ok(false)
+}
+
+/// Remove the staged file's POSIX access ACL, leaving only its mode bits.
+///
+/// A file created in a directory with a default ACL inherits an access ACL; its
+/// named entries are held back by the mask, which follows the group bits of the
+/// mode.  Raising the group bits (copying a `0640` destination's mode onto a
+/// `0600` staging file) raises the mask and makes those entries effective, so the
+/// staged file would grant named users access the destination never gave.
+/// A filesystem without ACL support has nothing to remove; any other error is
+/// returned, so the publish fails instead of keeping the entries.
+#[cfg(target_os = "linux")]
+fn strip_access_acl(file: &File) -> io::Result<()> {
+    use std::os::fd::AsRawFd;
+    // SAFETY: the descriptor is borrowed from a live File and the attribute
+    // name is a NUL-terminated string.
+    let status = unsafe { libc::fremovexattr(file.as_raw_fd(), c"system.posix_acl_access".as_ptr()) };
+    if status == 0 {
+        return Ok(());
+    }
+    let error = io::Error::last_os_error();
+    match error.raw_os_error() {
+        Some(libc::ENODATA | libc::ENOTSUP) => Ok(()),
+        _ => Err(error),
+    }
+}
+
+/// Other Unix systems: ACLs are not inspected here, so there is nothing to strip.
+#[cfg(all(unix, not(target_os = "linux")))]
+fn strip_access_acl(_file: &File) -> io::Result<()> {
+    Ok(())
+}
+
+/// Replace `dest` with the staged file without widening access to it.
+///
+/// Unix: the staged file is `0600`.  Before the rename it takes the
+/// destination's owning group (`fchown`, so a 0640 file stays with its group)
+/// and permission bits, or, for a new destination, the mode a plain
+/// `File::create` would have produced (0666 filtered by the umask).  A
+/// destination with a POSIX access ACL is refused with an explicit error,
+/// because the ACL cannot be carried over.  For an existing destination the
+/// access ACL the staged file inherited from the directory's default ACL is
+/// removed first (and its absence checked afterwards), because the mode copy
+/// would otherwise raise the ACL mask and activate the inherited named entries.
+/// For a new destination the inherited ACL is kept, as a plain `File::create`
+/// would have. The permission changes use the retained file descriptor, then
+/// the source name is rechecked before the pathname operation. Preparation
+/// errors are returned before
+/// anything is renamed, so the destination is left untouched.  The owning user
+/// and extended attributes other than the access ACL are not carried over.
+///
+/// One probe of `dest` decides everything (see [`publish_staged_checked`]); a
+/// destination that is a symlink, directory or special file is refused.
+/// Callers remove the staging file on error.
+#[cfg(unix)]
+fn publish_staged_owned(staged: &StagedFile, dest: &Path) -> io::Result<()> {
+    publish_staged_checked(
+        &staged.path,
+        dest,
+        |path| fs::symlink_metadata(path),
+        |_, dest, existing| {
+            copy_access_control(&staged.file, dest, existing)?;
+            verify_staging_identity(staged)
+        },
+    )
+}
+
+/// [`publish_staged_owned`] with the access-control step injected, so tests can make it
+/// fail.  The rename happens only if that step succeeded.
+#[cfg(all(unix, test))]
+fn publish_staged_with(
+    staged: &Path,
+    dest: &Path,
+    preserve: impl FnOnce(&Path, &Path, Option<&fs::Metadata>) -> io::Result<()>,
+) -> io::Result<()> {
+    publish_staged_checked(staged, dest, |path| fs::symlink_metadata(path), preserve)
+}
+
+/// [`publish_staged_owned`] with the metadata call and the access-control step injected.
+///
+/// ONE probe of the destination, classified by [`classify_destination`] (with
+/// `symlink_metadata`, so a symlink is seen as a symlink), makes the decision, and
+/// that decision picks the permission policy and the publication primitive together:
+///
+/// - absent: new-file permissions, then [`move_without_replacing`]; a file that
+///   appears in the meantime is never overwritten ("not overwritten" error);
+/// - existing regular file: its mode, group and ACL handling, then
+///   [`replace_existing`], which re-checks the probe's file type and identity
+///   (device and inode) just before a plain rename;
+/// - any other probe error, or an existing destination that is not a regular file
+///   (a symlink, a directory, a device): the publish fails before anything is
+///   changed.
+///
+/// The access-control step receives the decision rather than probing again, so the
+/// two can never disagree.
+#[cfg(unix)]
+fn publish_staged_checked(
+    staged: &Path,
+    dest: &Path,
+    probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
+    preserve: impl FnOnce(&Path, &Path, Option<&fs::Metadata>) -> io::Result<()>,
+) -> io::Result<()> {
+    let existing = classify_destination(probe(dest))?;
+    if let Some(metadata) = &existing {
+        if !metadata.is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!(
+                    "{} exists and is not a regular file (a symlink, directory or special file); refusing to replace it",
+                    dest.display()
+                ),
+            ));
+        }
+    }
+    preserve(staged, dest, existing.as_ref())?;
+    match &existing {
+        Some(validated) => replace_existing(staged, dest, validated),
+        None => move_without_replacing(staged, dest),
+    }
+}
+
+/// Replace `dest`, a regular file at the probe (`validated`), with `staged`.
+///
+/// A plain `rename(2)`, after one more look at `dest`: it must still be the
+/// regular file that was validated (same device and inode, not a symlink), else
+/// the publish fails ("changed" if something else is there, "disappeared" if
+/// nothing is) and nothing has been touched.
+///
+/// There is deliberately no `renameat2(RENAME_EXCHANGE)`.  It would make a vanished
+/// target fail atomically, but the kernel lets it swap objects of different types,
+/// which needs a rollback, and a rollback that fails or is contended leaves an
+/// object that is not ours at the staging path.  A failed `rename` changes
+/// nothing: afterwards the staging path still holds our own file and `dest` is
+/// as it was, so cleanup has nothing to get wrong.
+///
+/// What the primitive enforces: the rename is atomic, and the kernel refuses to
+/// rename a file over a directory (`EISDIR`).  What it does NOT: the look at `dest`
+/// and the rename are two steps, so a target that vanishes, or is swapped for
+/// another regular file or a symlink, in that gap is not detected; the rename then
+/// replaces that file or symlink (never follows it) or creates `dest`.  That is
+/// the same window every rename-based atomic save has.
+#[cfg(unix)]
+fn replace_existing(staged: &Path, dest: &Path, validated: &fs::Metadata) -> io::Result<()> {
+    use std::os::unix::fs::MetadataExt;
+    match fs::symlink_metadata(dest) {
+        Ok(now) if now.is_file() && now.dev() == validated.dev() && now.ino() == validated.ino() => {
+            fs::rename(staged, dest)
+        }
+        Ok(_) => Err(io::Error::other(format!(
+            "{} changed while the image was being published (it is no longer the file that was checked); \
+             nothing was published",
+            dest.display()
+        ))),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Err(disappeared(dest)),
+        Err(error) => Err(error),
+    }
+}
+
+/// Whether `error` says the kernel or filesystem does not support the operation.
+#[cfg(unix)]
+fn is_unsupported(error: &io::Error) -> bool {
+    matches!(error.raw_os_error(), Some(libc::ENOSYS | libc::EINVAL | libc::ENOTSUP))
+}
+
+/// The error for a replacement whose target is no longer there.
+#[cfg(unix)]
+fn disappeared(dest: &Path) -> io::Error {
+    io::Error::new(
+        io::ErrorKind::NotFound,
+        format!(
+            "{} disappeared while the image was being published; not publishing a replacement for a file that is gone",
+            dest.display()
+        ),
+    )
+}
+
+/// Move `staged` to `dest` only if nothing is at `dest`: atomic, never overwrites.
+///
+/// `renameat2(RENAME_NOREPLACE)` on Linux.  If that is unsupported (and on other
+/// Unix systems) [`move_by_linking_with`]: `link` then `unlink`, both atomic.  If
+/// hard links are unsupported too the publish FAILS with an explicit error; there
+/// is no check-then-rename fallback, because it cannot keep a vanished or appearing
+/// path from being clobbered or recreated in the gap.
+#[cfg(unix)]
+fn move_without_replacing(staged: &Path, dest: &Path) -> io::Result<()> {
+    move_without_replacing_with(staged, dest, rename_noreplace, |from, to| fs::hard_link(from, to))
+}
+
+#[cfg(unix)]
+fn move_without_replacing_with(
+    staged: &Path,
+    dest: &Path,
+    primary: impl FnOnce(&Path, &Path) -> io::Result<()>,
+    link: impl FnOnce(&Path, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    match primary(staged, dest) {
+        Ok(()) => Ok(()),
+        Err(error) if is_unsupported(&error) => move_by_linking_with(staged, dest, link),
+        Err(error) => Err(not_overwritten(error, dest)),
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
+    use std::os::unix::ffi::OsStrExt;
+    let from = CString::new(from.as_os_str().as_bytes()).map_err(io::Error::other)?;
+    let to = CString::new(to.as_os_str().as_bytes()).map_err(io::Error::other)?;
+    // SAFETY: both strings are NUL-terminated and outlive the call.
+    let status = unsafe {
+        libc::renameat2(
+            libc::AT_FDCWD,
+            from.as_ptr(),
+            libc::AT_FDCWD,
+            to.as_ptr(),
+            libc::RENAME_NOREPLACE,
+        )
+    };
+    if status == 0 {
+        Ok(())
+    } else {
+        Err(io::Error::last_os_error())
+    }
+}
+
+#[cfg(all(unix, not(target_os = "linux")))]
+fn rename_noreplace(_from: &Path, _to: &Path) -> io::Result<()> {
+    Err(io::Error::from_raw_os_error(libc::ENOSYS))
+}
+
+#[cfg(unix)]
+fn move_by_linking_with(
+    staged: &Path,
+    dest: &Path,
+    link: impl FnOnce(&Path, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    link(staged, dest).map_err(|error| {
+        if matches!(error.raw_os_error(), Some(libc::EPERM | libc::ENOSYS | libc::ENOTSUP)) {
+            io::Error::new(
+                io::ErrorKind::Unsupported,
+                format!(
+                    "cannot publish {} without risking an overwrite: the filesystem supports neither \
+                     renameat2(RENAME_NOREPLACE) nor hard links ({error}); refusing to publish",
+                    dest.display()
+                ),
+            )
+        } else {
+            not_overwritten(error, dest)
+        }
+    })?;
+    if let Err(error) = fs::remove_file(staged) {
+        tracing::warn!(staging = %staged.display(), %error, "published, but the staging file could not be removed");
+    }
+    Ok(())
+}
+
+/// Give the staged file the access control `dest` has (or will have): see
+/// [`publish_staged_owned`]. `existing` is the metadata from the publish decision
+/// (`None`: the destination is absent); the destination is not classified again.
+#[cfg(unix)]
+fn copy_access_control(staged: &File, dest: &Path, existing: Option<&fs::Metadata>) -> io::Result<()> {
+    use std::os::unix::fs::MetadataExt;
+    let permissions = match existing {
+        Some(existing) => {
+            // If the destination has vanished since the decision this fails (ENOENT)
+            // rather than guessing: the decision and the file no longer agree.
+            if has_access_acl(dest)? {
+                return Err(io::Error::new(
+                    io::ErrorKind::Unsupported,
+                    format!(
+                        "{} has a POSIX access ACL, which a staged replace cannot preserve; refusing to publish over it",
+                        dest.display()
+                    ),
+                ));
+            }
+            std::os::unix::fs::fchown(staged, None, Some(existing.gid()))?;
+            // The destination has no access ACL (checked above), so the staged
+            // file must not have one either: drop what the directory's default
+            // ACL gave it before the mode copy can make its entries effective.
+            strip_access_acl(staged)?;
+            existing.permissions()
+        }
+        None => plain_create_permissions(dest)?,
+    };
+    staged.set_permissions(permissions)?;
+    if existing.is_some() && has_staged_access_acl(staged)? {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!(
+                "the staged file for {} still carries an access ACL after it was removed; refusing to publish",
+                dest.display()
+            ),
+        ));
+    }
+    Ok(())
+}
+
+/// Replace `dest` with the staged file, keeping the destination's ACL.
+///
+/// Windows: `ReplaceFileW` swaps the staged file in and merges the replaced
+/// file's attributes, ACL and creation time into it.  It is called WITHOUT
+/// `REPLACEFILE_IGNORE_MERGE_ERRORS`, so a failed merge fails the call and the
+/// publish fails; the destination is never replaced by a file that carries the
+/// wrong ACL.
+///
+/// The call always names a backup file, `.pcai-<16 hex>.bak` beside the
+/// destination.  Without one, `ERROR_UNABLE_TO_MOVE_REPLACEMENT` (1176) leaves
+/// the replaced file deleted and the replacement under its staging name, which
+/// would lose the user's existing image.  With one, Windows keeps the original
+/// under the backup name while it swaps, and this function undoes a failed swap:
+///
+/// - success: the backup is deleted;
+/// - failure with a backup present (1177): the backup is the original, so it is
+///   moved back to the destination WITHOUT replacing anything, and the original
+///   error is returned;
+/// - failure with no backup (1176 with a backup requested, and every other error:
+///   the documented "files keep their names" cases): the destination was never
+///   touched, and the original error is returned;
+/// - the restore itself fails, including because another writer put a file at the
+///   destination meanwhile: the backup is KEPT, because it is the user's only copy,
+///   that file is left untouched, and the error names the backup's path.
+///
+/// For a new destination the private staging DACL is reset to the directory's
+/// inherited entries first, so the file ends up with what a plain `File::create`
+/// would have given it.  Callers remove the staging file on error.
+#[cfg(windows)]
+fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
+    publish_staged_checked(
+        staged,
+        dest,
+        |path| fs::symlink_metadata(path),
+        replace_file_keeping_acl,
+    )
+}
+
+/// [`publish_staged`] with the replace step injected, so tests can make it fail.
+#[cfg(all(windows, test))]
+fn publish_staged_with(
+    staged: &Path,
+    dest: &Path,
+    replace: impl FnOnce(&Path, &Path, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    publish_staged_checked(staged, dest, |path| fs::symlink_metadata(path), replace)
+}
+
+/// [`publish_staged`] with the metadata call and the replace step injected.
+///
+/// The destination is classified first, with [`destination_exists`]: an error
+/// other than "not found" fails the publish before anything is changed.  A new
+/// destination is filled by [`publish_new_destination`], which never replaces, so
+/// a file created there after the check (by another process) is left as it was and
+/// the publish fails with an explicit error instead of overwriting it.
+#[cfg(windows)]
+fn publish_staged_checked(
+    staged: &Path,
+    dest: &Path,
+    probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
+    replace: impl FnOnce(&Path, &Path, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    const ERROR_FILE_NOT_FOUND: i32 = 2;
+    if !destination_exists(probe(dest))? {
+        return publish_new_destination(staged, dest);
+    }
+    let backup = backup_path(dest);
+    match replace(dest, staged, &backup) {
+        Ok(()) => {
+            discard_backup(&backup);
+            Ok(())
+        }
+        Err(error) => {
+            let nothing_moved_aside = matches!(destination_exists(fs::symlink_metadata(dest)), Ok(false))
+                && matches!(destination_exists(fs::symlink_metadata(&backup)), Ok(false));
+            if error.raw_os_error() == Some(ERROR_FILE_NOT_FOUND) && nothing_moved_aside {
+                // The destination vanished between the check and the call, and
+                // nothing was moved aside: publish as a new file.
+                return publish_new_destination(staged, dest);
+            }
+            Err(restore_from_backup(dest, &backup, error))
+        }
+    }
+}
+
+/// Delete the backup after a successful replace.
+///
+/// The publish has already succeeded, so a failure to delete the backup is not
+/// reported as one; it is logged with the path, because the file is the user's
+/// previous image and should not be left unmentioned.
+#[cfg(windows)]
+fn discard_backup(backup: &Path) {
+    match fs::remove_file(backup) {
+        Ok(()) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => tracing::warn!(
+            backup = %backup.display(),
+            %error,
+            "published, but the previous image's backup file could not be deleted"
+        ),
+    }
+}
+
+/// Undo a failed `ReplaceFileW` and return the error to report.
+///
+/// `cause` is the error the replace step returned.  Microsoft Learn (ReplaceFileW,
+/// return value) documents the states: with a backup requested, 1176 leaves "the
+/// replaced and replacement files" under "their original file names", so there is
+/// no backup and nothing to undo; 1177 leaves the replacement under its own name and
+/// "the file to be replaced ... with a different name", which is the backup name.
+/// So if `backup` exists it holds the original, and it is moved back to `dest`
+/// WITHOUT replacing ([`move_without_replacing`]): a file that appeared at `dest`
+/// meanwhile belongs to someone else and is left untouched.
+///
+/// If the move fails, for that collision or any other reason, the backup is left
+/// where it is and the returned error names it and says why, so the original can
+/// be recovered by hand; it is never deleted here.
+#[cfg(windows)]
+fn restore_from_backup(dest: &Path, backup: &Path, cause: io::Error) -> io::Error {
+    if matches!(destination_exists(fs::symlink_metadata(backup)), Ok(false)) {
+        return cause;
+    }
+    match move_without_replacing(backup, dest) {
+        Ok(()) => cause,
+        Err(restore) => {
+            let why = if restore.kind() == io::ErrorKind::AlreadyExists {
+                format!(
+                    "{} now exists (a file appeared there) and was not overwritten",
+                    dest.display()
+                )
+            } else {
+                format!("the move failed ({restore})")
+            };
+            io::Error::new(
+                cause.kind(),
+                format!(
+                    "replacing {dest} failed ({cause}); the original could not be restored because {why}; \
+                     the original image is kept at {backup}",
+                    dest = dest.display(),
+                    backup = backup.display(),
+                ),
+            )
+        }
+    }
+}
+
+/// Move the staged file to a destination that does not exist, after giving it
+/// the directory's inherited ACL instead of its private one.
+///
+/// The move is `MoveFileExW` WITHOUT `MOVEFILE_REPLACE_EXISTING`, so it fails with
+/// `ERROR_ALREADY_EXISTS` if a file has appeared at `dest` since it was checked;
+/// that file is never overwritten.
+#[cfg(windows)]
+fn publish_new_destination(staged: &Path, dest: &Path) -> io::Result<()> {
+    reset_to_inherited_dacl(staged)?;
+    move_without_replacing(staged, dest)
+}
+
+/// `MoveFileExW(staged, dest, 0)`: rename that fails if `dest` exists.
+#[cfg(windows)]
+fn move_without_replacing(staged: &Path, dest: &Path) -> io::Result<()> {
+    use windows_sys::Win32::Storage::FileSystem::MoveFileExW;
+    let (from, to) = (wide_path(staged), wide_path(dest));
+    // SAFETY: both arguments are NUL-terminated UTF-16 buffers that outlive the
+    // call; flags 0 means no replace, no copy fallback and no write-through.
+    let ok = unsafe { MoveFileExW(from.as_ptr(), to.as_ptr(), 0) };
+    if ok == 0 {
+        Err(not_overwritten(io::Error::last_os_error(), dest))
+    } else {
+        Ok(())
+    }
+}
+
+/// `ReplaceFileW(dest, staged, backup, no flags)`: the replaced file's ACL is
+/// merged into the replacement, and a merge failure is an error.  The original is
+/// kept at `backup` (same directory, unused name); the caller deletes it on
+/// success and restores from it on failure.
+#[cfg(windows)]
+fn replace_file_keeping_acl(dest: &Path, staged: &Path, backup: &Path) -> io::Result<()> {
+    use windows_sys::Win32::Storage::FileSystem::ReplaceFileW;
+    let (replaced, replacement, backup) = (wide_path(dest), wide_path(staged), wide_path(backup));
+    // SAFETY: the three paths are NUL-terminated UTF-16 buffers that outlive the
+    // call; the exclude and reserved parameters may be null.
+    let ok = unsafe {
+        ReplaceFileW(
+            replaced.as_ptr(),
+            replacement.as_ptr(),
+            backup.as_ptr(),
+            0,
+            std::ptr::null(),
+            std::ptr::null(),
+        )
+    };
+    if ok == 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
+    }
+}
+
+/// Replace `path`'s explicit DACL with an empty, unprotected one, which makes
+/// Windows re-apply the parent directory's inheritable entries.
+#[cfg(windows)]
+fn reset_to_inherited_dacl(path: &Path) -> io::Result<()> {
+    use windows_sys::Win32::Security::Authorization::{SetNamedSecurityInfoW, SE_FILE_OBJECT};
+    use windows_sys::Win32::Security::{
+        InitializeAcl, ACL, ACL_REVISION, DACL_SECURITY_INFORMATION, UNPROTECTED_DACL_SECURITY_INFORMATION,
+    };
+    // An ACL header is 8 bytes; a u32 array gives it the alignment it needs.
+    let mut buffer = [0u32; 2];
+    let acl = buffer.as_mut_ptr().cast::<ACL>();
+    // SAFETY: `acl` points at `buffer`, which is large enough for an empty ACL.
+    if unsafe { InitializeAcl(acl, std::mem::size_of_val(&buffer) as u32, ACL_REVISION) } == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let mut name = wide_path(path);
+    // SAFETY: `name` is NUL-terminated and `acl` is a valid empty ACL for the call.
+    let status = unsafe {
+        SetNamedSecurityInfoW(
+            name.as_mut_ptr(),
+            SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION | UNPROTECTED_DACL_SECURITY_INFORMATION,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            acl,
+            std::ptr::null(),
+        )
+    };
+    if status == 0 {
+        Ok(())
+    } else {
+        Err(io::Error::from_raw_os_error(status as i32))
+    }
+}
+
+/// Replace `dest` with the staged file where neither Unix permissions nor
+/// Windows ACLs apply.
+#[cfg(not(any(unix, windows)))]
+fn publish_staged(staged: &Path, dest: &Path) -> io::Result<()> {
+    fs::rename(staged, dest)
+}
+
+#[cfg(not(any(unix, windows)))]
+fn create_private_file(path: &Path) -> io::Result<File> {
+    OpenOptions::new().write(true).create_new(true).open(path)
+}
+
+#[cfg(not(unix))]
+fn publish_staged_owned(staged: &StagedFile, dest: &Path) -> io::Result<()> {
+    publish_staged(&staged.path, dest)
+}
+
+/// Stage and publish in one step, for the synchronous paths that cannot be
+/// cancelled but must still never leave a partial destination.
+fn write_image_atomically(image: &image::RgbImage, dest: &Path) -> io::Result<()> {
+    write_image_atomically_with(image, dest, publish_staged_owned)
+}
+
+/// [`write_image_atomically`] with the publish step injected, so tests can make it
+/// fail.  A failed publish goes through [`discard_staging`], never a bare unlink.
+fn write_image_atomically_with(
+    image: &image::RgbImage,
+    dest: &Path,
+    publish: impl FnOnce(&StagedFile, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    let dest = absolute_destination(dest)?;
+    let dest = dest.as_path();
+    let staged = stage_image(image, dest, encode_for(dest))?;
+    publish_owned_staging(&staged, dest, publish).map_err(|error| with_note(error, discard_staging(&staged)))
+}
+
+/// Refuse a displaced staging entry before the publisher can change permissions
+/// or move it. This check does not make the later pathname operation atomic.
+fn publish_owned_staging(
+    staged: &StagedFile,
+    dest: &Path,
+    publish: impl FnOnce(&StagedFile, &Path) -> io::Result<()>,
+) -> io::Result<()> {
+    verify_staging_identity(staged)?;
+    publish(staged, dest)
+}
+
+fn verify_staging_identity(staged: &StagedFile) -> io::Result<()> {
+    let found = identity_at(&staged.path)?;
+    if found != staged.identity {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("the staging file {} changed before publishing", staged.path.display()),
+        ));
+    }
+    Ok(())
+}
+
+/// Run one queued async generation request to a terminal status.
+///
+/// The request stays `Pending` while it waits for the inference gate, so
+/// `pcai_media_cancel` can drop it before any work starts and
+/// `pcai_media_poll_result` reports it truthfully.  The global state mutex is
+/// taken only for short status flips: never while waiting for the gate, never
+/// across `generate`, encoding, the rename or file cleanup, so a slow or
+/// stalled destination cannot block poll/cancel of any request.
+///
+/// Per-request exclusion between cancel and publish is a small state machine
+/// (`Pending -> Running -> Publishing -> Complete | Failed`, or `Cancelled`
+/// from `Pending`/`Running`): the worker flips `Running -> Publishing` under
+/// the lock, then renames with no lock held.  A cancel that lands first wins
+/// (the staging file is removed, the destination untouched); a cancel that
+/// finds `Publishing` loses and returns -1, and the request completes.
+fn execute_async_request(id: i64, output_path: String, generate: impl FnOnce() -> anyhow::Result<image::RgbImage>) {
+    let encode = encode_for(Path::new(&output_path));
+    execute_async_request_with(id, output_path, generate, encode);
+}
+
+/// [`execute_async_request`] with an injectable encoder, so tests can use a
+/// slow or failing one.
+fn execute_async_request_with(
+    id: i64,
+    output_path: String,
+    generate: impl FnOnce() -> anyhow::Result<image::RgbImage>,
+    encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
+) {
+    execute_async_request_staged(id, output_path, generate, encode, publish_staged_owned);
+}
+
+/// [`execute_async_request_with`] with an injectable publish step, so tests
+/// can stall the rename.
+fn execute_async_request_staged(
+    id: i64,
+    output_path: String,
+    generate: impl FnOnce() -> anyhow::Result<image::RgbImage>,
+    encode: impl FnOnce(&image::RgbImage, &mut File) -> io::Result<()>,
+    publish: impl FnOnce(&StagedFile, &Path) -> io::Result<()>,
+) {
+    let gate = acquire_inference_gate();
+
+    if !begin_async_request(id) {
+        return;
+    }
+
+    let result = generate();
+    drop(gate);
+
+    let image = match result {
+        Ok(image) => image,
+        Err(e) => {
+            record_terminal_status(id, generation_failure_status(&e));
+            return;
+        }
+    };
+
+    // A cancel during generation: do not even create the staging file.
+    if !request_is_running(id) {
+        return;
+    }
+
+    // The submission already resolved the path; this makes the worker correct on its
+    // own too (a no-op for an absolute path), so staging and publishing share one path.
+    let dest = match absolute_destination(Path::new(&output_path)) {
+        Ok(dest) => dest,
+        Err(e) => {
+            record_terminal_status(id, MediaRequestStatus::Failed(format!("Save failed: {e}")));
+            return;
+        }
+    };
+    let dest = dest.as_path();
+    let staged = match stage_image(&image, dest, encode) {
+        Ok(staged) => staged,
+        Err(e) => {
+            record_terminal_status(id, MediaRequestStatus::Failed(format!("Save failed: {e}")));
+            return;
+        }
+    };
+
+    // Commit to publishing under the lock, then rename without it.
+    if !begin_publish(id) {
+        if let Some(note) = discard_staging(&staged) {
+            tracing::warn!(request_id = id, %note, "could not discard cancelled image staging");
+        }
+        return;
+    }
+    let terminal = match publish_owned_staging(&staged, dest, publish) {
+        Ok(()) => MediaRequestStatus::Complete(output_path),
+        Err(e) => {
+            let e = with_note(e, discard_staging(&staged));
+            MediaRequestStatus::Failed(format!("Save failed: {e}"))
+        }
+    };
+    finish_publish(id, terminal);
+}
+
+/// Pending -> Running, unless the request was cancelled while queued.
+///
+/// Returns whether the worker may run.  The state lock is released before
+/// this returns, so generation never runs under it.
+fn begin_async_request(id: i64) -> bool {
+    let mut guard = lock_state_recovering();
+    if !matches!(guard.requests.get(&id), Some(MediaRequestStatus::Pending)) {
+        return false;
+    }
+    guard.requests.insert(id, MediaRequestStatus::Running);
+    true
+}
+
+/// Running -> Publishing.  `false` means a cancel got there first.
+fn begin_publish(id: i64) -> bool {
+    let mut guard = lock_state_recovering();
+    if !matches!(guard.requests.get(&id), Some(MediaRequestStatus::Running)) {
+        return false;
+    }
+    guard.requests.insert(id, MediaRequestStatus::Publishing);
+    true
+}
+
+/// Publishing -> Complete | Failed.  Nothing can cancel a publishing request,
+/// so the transition is unconditional for that state.
+fn finish_publish(id: i64, terminal: MediaRequestStatus) {
+    let mut guard = lock_state_recovering();
+    if matches!(guard.requests.get(&id), Some(MediaRequestStatus::Publishing)) {
+        guard.requests.insert(id, terminal);
+    }
+}
+
+/// Whether the request is still `Running` (not cancelled or already polled away).
+fn request_is_running(id: i64) -> bool {
+    matches!(
+        lock_state_recovering().requests.get(&id),
+        Some(MediaRequestStatus::Running)
+    )
+}
+
+/// Store a terminal status unless the request was cancelled mid-flight.
+fn record_terminal_status(id: i64, status: MediaRequestStatus) {
+    let mut guard = lock_state_recovering();
+    if matches!(guard.requests.get(&id), Some(MediaRequestStatus::Running)) {
+        guard.requests.insert(id, status);
+    }
+}
+
 /// Submit an asynchronous image generation request.
 ///
 /// Returns a request ID (`> 0`) immediately.  The caller should poll for
@@ -716,7 +2253,9 @@ pub extern "C" fn pcai_media_generate_image_bytes(
 /// * `prompt`      — Text prompt.
 /// * `cfg_scale`   — CFG scale (pass `0.0` for default).
 /// * `temperature` — Sampling temperature (pass `0.0` for default).
-/// * `output_path` — File path where the PNG will be written on success.
+/// * `output_path` — File path where the PNG will be written on success.  Resolved
+///   to an absolute path at submission; `pcai_media_poll_result` reports that
+///   absolute path.
 ///
 /// # Returns
 ///
@@ -742,27 +2281,35 @@ pub extern "C" fn pcai_media_generate_image_async(
         Ok(s) => s.to_string(),
         Err(_) => return -1,
     };
-
-    // Validate that a model is loaded before allocating an ID.
-    {
-        let state = get_state();
-        let guard = match state.lock() {
-            Ok(g) => g,
-            Err(e) => {
+    // Pin drive-relative and rooted-driveless paths now: the worker runs later, and
+    // the current directory may have changed by then.
+    let out_str = match absolute_destination(Path::new(&out_str)).map(PathBuf::into_os_string) {
+        Ok(path) => match path.into_string() {
+            Ok(path) => path,
+            Err(_) => {
                 set_error(
-                    format!("Failed to lock state: {e}"),
-                    PcaiMediaErrorCode::GenerationError,
+                    "output_path resolves to a path that is not valid UTF-8",
+                    PcaiMediaErrorCode::InvalidInput,
                 );
                 return -1;
             }
-        };
-        if guard.pipeline.is_none() {
+        },
+        Err(e) => {
             set_error(
-                "No model loaded — call pcai_media_load_model first",
-                PcaiMediaErrorCode::ModelNotLoaded,
+                format!("output_path '{out_str}' cannot be resolved: {e}"),
+                PcaiMediaErrorCode::InvalidInput,
             );
             return -1;
         }
+    };
+
+    // Validate that a model is loaded before allocating an ID.
+    if slot_current(&MODEL_SLOT).is_none() {
+        set_error(
+            "No model loaded — call pcai_media_load_model first",
+            PcaiMediaErrorCode::ModelNotLoaded,
+        );
+        return -1;
     }
 
     // Allocate a unique request ID and register it as Pending.
@@ -775,84 +2322,17 @@ pub extern "C" fn pcai_media_generate_image_async(
     }
 
     // Spawn a plain OS thread (not Tokio) to avoid nesting block_on.
-    let cfg_scale_val = cfg_scale;
-    let temperature_val = temperature;
+    let override_cfg = if cfg_scale > 0.0 { Some(cfg_scale as f64) } else { None };
+    let override_temp = if temperature > 0.0 {
+        Some(temperature as f64)
+    } else {
+        None
+    };
     std::thread::spawn(move || {
-        // Transition: Pending → Running (unless already cancelled).
-        {
-            let state = get_state();
-            if let Ok(mut g) = state.lock() {
-                if matches!(g.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
-                    return;
-                }
-                g.requests.insert(id, MediaRequestStatus::Running);
-            }
-        }
-
-        // Run the synchronous generation under the lock.
-        let result = {
-            let state = get_state();
-            let guard = match state.lock() {
-                Ok(g) => g,
-                Err(error) => {
-                    let message = format!("Lock failed: {error}");
-                    // PoisonError owns this guard; locking the same mutex again deadlocks.
-                    let mut guard = error.into_inner();
-                    guard.requests.insert(id, MediaRequestStatus::Failed(message));
-                    return;
-                }
-            };
-
-            // Check for cancellation before expensive work.
-            if matches!(guard.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
-                return;
-            }
-
-            let pipeline = match guard.pipeline.as_ref() {
-                Some(p) => p,
-                None => {
-                    drop(guard);
-                    if let Ok(mut g2) = get_state().lock() {
-                        g2.requests
-                            .insert(id, MediaRequestStatus::Failed("Model not loaded".to_string()));
-                    }
-                    return;
-                }
-            };
-
-            let override_cfg = if cfg_scale_val > 0.0 {
-                Some(cfg_scale_val as f64)
-            } else {
-                None
-            };
-            let override_temp = if temperature_val > 0.0 {
-                Some(temperature_val as f64)
-            } else {
-                None
-            };
-
+        execute_async_request(id, out_str, move || {
+            let pipeline = loaded_pipeline().map_err(|(_, message)| anyhow::anyhow!(message))?;
             pipeline.generate_with_overrides(&prompt_str, override_cfg, override_temp)
-        };
-
-        // Store the terminal status.
-        if let Ok(mut g) = get_state().lock() {
-            if matches!(g.requests.get(&id), Some(MediaRequestStatus::Cancelled)) {
-                return;
-            }
-            match result {
-                Ok(image) => {
-                    if let Err(e) = image.save(&out_str) {
-                        g.requests
-                            .insert(id, MediaRequestStatus::Failed(format!("Save failed: {e}")));
-                    } else {
-                        g.requests.insert(id, MediaRequestStatus::Complete(out_str));
-                    }
-                }
-                Err(e) => {
-                    g.requests.insert(id, generation_failure_status(&e));
-                }
-            }
-        }
+        });
     });
 
     id
@@ -867,7 +2347,7 @@ pub extern "C" fn pcai_media_generate_image_async(
 /// Status codes:
 /// * 0 = pending
 /// * 1 = running
-/// * 2 = complete (`text` = output file path)
+/// * 2 = complete (`text` = absolute output file path)
 /// * 3 = failed (`text` = error message)
 /// * 4 = cancelled
 /// * -1 = unknown request ID
@@ -893,7 +2373,7 @@ pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResul
             status: 0,
             text: std::ptr::null_mut(),
         },
-        Some(MediaRequestStatus::Running) => PcaiMediaAsyncResult {
+        Some(MediaRequestStatus::Running | MediaRequestStatus::Publishing) => PcaiMediaAsyncResult {
             status: 1,
             text: std::ptr::null_mut(),
         },
@@ -951,7 +2431,9 @@ pub extern "C" fn pcai_media_poll_result(request_id: i64) -> PcaiMediaAsyncResul
 /// # Returns
 ///
 /// `0` if the request was successfully cancelled, `-1` if the ID was not
-/// found or the request had already finished.
+/// found or the request had already finished.  A request whose output is
+/// already being moved into place (it still polls as running) can no longer be
+/// cancelled: this returns `-1` and the request completes.
 #[no_mangle]
 pub extern "C" fn pcai_media_cancel(request_id: i64) -> i32 {
     let state = get_state();
@@ -1045,19 +2527,17 @@ pub extern "C" fn pcai_media_upscale_image(
 /// Release the loaded pipeline and free associated memory.
 ///
 /// After this call [`pcai_media_generate_image`] will fail until
-/// [`pcai_media_load_model`] is called again.  Calling this function before
-/// [`pcai_media_init`] is safe and is a no-op.
+/// [`pcai_media_load_model`] is called again.  A load that was queued behind
+/// a generation when this ran is cancelled before it reads any weights, and a
+/// load already running finishes and is discarded; both report `ModelNotLoaded`.
+/// A generation already running finishes on its own handle.  Calling this
+/// function before [`pcai_media_init`] is safe and is a no-op.
 #[no_mangle]
 pub extern "C" fn pcai_media_shutdown() {
     clear_error();
 
-    // If the global state has never been initialised there is nothing to do.
-    if let Some(state) = MEDIA_STATE.get() {
-        if let Ok(mut guard) = state.lock() {
-            guard.pipeline = None;
-            tracing::info!("pcai_media_shutdown: pipeline released");
-        }
-    }
+    slot_shutdown(&MODEL_SLOT);
+    tracing::info!("pcai_media_shutdown: pipeline released");
 }
 
 /// Return a pointer to the last error message for the current thread.
@@ -1155,6 +2635,36 @@ pub extern "C" fn pcai_media_free_bytes(data: *mut u8, len: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Serializes every test that touches the process-wide FFI state: the state
+    /// mutex (device, request table), the model slot and its lifecycle epoch, the
+    /// inference gate, and init/shutdown.  Without it, libtest's parallel threads
+    /// let one test's `pcai_media_shutdown` bump the epoch under another test's
+    /// load (which then correctly reports `ModelNotLoaded`) and let tests see each
+    /// other's requests.  nextest isolates tests by process and so hides the race;
+    /// plain `cargo test` (used by Build.ps1) does not.  Tests with a private
+    /// `ProbeRig` (own slot and gate) and tests that use only thread-local error
+    /// state do not need it.  `test_global_state_tests_take_the_serial_guard`
+    /// enforces that every test touching a global takes this guard.
+    static FFI_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    /// Take [`FFI_TEST_LOCK`], recovering from poison so one failed test does not
+    /// cascade into every later one.
+    fn serialize_global_state() -> MutexGuard<'static, ()> {
+        FFI_TEST_LOCK.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// The calling thread's last error text, or a marker when there is none.
+    /// `pcai_media_last_error` returns null when nothing was recorded, and
+    /// `CStr::from_ptr` on null is undefined behaviour, so check first.
+    fn last_error_text() -> String {
+        let pointer = pcai_media_last_error();
+        if pointer.is_null() {
+            return "<no error recorded>".to_string();
+        }
+        // SAFETY: non-null, and the thread-local CString stays live until the next FFI call.
+        unsafe { CStr::from_ptr(pointer) }.to_string_lossy().into_owned()
+    }
 
     fn chained_generation_error() -> anyhow::Error {
         anyhow::Error::new(std::io::Error::new(
@@ -1309,8 +2819,12 @@ mod tests {
 
     // ── double-init doesn't panic ─────────────────────────────────────────
 
+    // Protects: pcai_media_init is idempotent: a second call with a valid device also succeeds.
+    // Detects: A second init that errors, panics or re-validates differently.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_double_init_no_panic() {
+        let _serial = serialize_global_state();
         let device = CString::new("cpu").expect("valid C string");
         let first = pcai_media_init(device.as_ptr());
         assert_eq!(first, PcaiMediaErrorCode::Success as i32);
@@ -1318,16 +2832,24 @@ mod tests {
         assert_eq!(second, PcaiMediaErrorCode::Success as i32);
     }
 
+    // Protects: a null device selects the default and init succeeds (validation does not open the device).
+    // Detects: Init dereferencing the null pointer or rejecting a null device.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_init_null_device_defaults_to_cuda() {
+        let _serial = serialize_global_state();
         // NULL device should succeed (defaults to "cuda:0" but validation does
         // not actually open the device, so it is always Success here).
         let result = pcai_media_init(std::ptr::null());
         assert_eq!(result, PcaiMediaErrorCode::Success as i32);
     }
 
+    // Protects: an unparsable device string is rejected with InvalidInput.
+    // Detects: Accepting a bad device string, or reporting a different error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_init_invalid_device_returns_error() {
+        let _serial = serialize_global_state();
         let bad = CString::new("tpu:0").expect("valid C string");
         let result = pcai_media_init(bad.as_ptr());
         assert_eq!(result, PcaiMediaErrorCode::InvalidInput as i32);
@@ -1335,16 +2857,24 @@ mod tests {
 
     // ── shutdown without init doesn't panic ──────────────────────────────
 
+    // Protects: pcai_media_shutdown is safe whether or not init ran or a model was loaded.
+    // Detects: A panic from missing state.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_shutdown_without_init_no_panic() {
+        let _serial = serialize_global_state();
         // This test must be robust to other tests having already initialised
         // the global state on this test-runner process.  The important thing
         // is that it does not panic.
         pcai_media_shutdown();
     }
 
+    // Protects: a second shutdown after init is a no-op.
+    // Detects: A panic or double release on the second call.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_shutdown_twice_no_panic() {
+        let _serial = serialize_global_state();
         let device = CString::new("cpu").expect("valid C string");
         pcai_media_init(device.as_ptr());
         pcai_media_shutdown();
@@ -1380,24 +2910,36 @@ mod tests {
 
     // ── understand_image null safety ────────────────────────────────────
 
+    // Protects: a null image path makes pcai_media_understand_image return null with InvalidInput.
+    // Detects: Dereferencing the null path, or any other error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_understand_image_null_image_path() {
+        let _serial = serialize_global_state();
         let prompt = CString::new("describe this").expect("valid");
         let result = pcai_media_understand_image(std::ptr::null(), prompt.as_ptr(), 128, 0.7);
         assert!(result.is_null(), "null image_path should return null");
         assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
+    // Protects: a null prompt makes pcai_media_understand_image return null with InvalidInput.
+    // Detects: Dereferencing the null prompt, or any other error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_understand_image_null_prompt() {
+        let _serial = serialize_global_state();
         let path = CString::new("test.png").expect("valid");
         let result = pcai_media_understand_image(path.as_ptr(), std::ptr::null(), 128, 0.7);
         assert!(result.is_null(), "null prompt should return null");
         assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
+    // Protects: understanding without a loaded model fails with a null result and a nonzero error code.
+    // Detects: A result produced without a model, or an error code of 0.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_understand_image_no_model_loaded() {
+        let _serial = serialize_global_state();
         // Ensure init has run (other tests may have already done this).
         let device = CString::new("cpu").expect("valid");
         pcai_media_init(device.as_ptr());
@@ -1413,8 +2955,12 @@ mod tests {
 
     // ── generate_image_bytes null safety ────────────────────────────────
 
+    // Protects: a null out_data pointer is rejected with InvalidInput before any write.
+    // Detects: A write through the null out pointer, or a different error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_generate_image_bytes_null_out_data() {
+        let _serial = serialize_global_state();
         let prompt = CString::new("test").expect("valid");
         let mut len: usize = 0;
         let result =
@@ -1422,8 +2968,12 @@ mod tests {
         assert_eq!(result, PcaiMediaErrorCode::InvalidInput as i32);
     }
 
+    // Protects: a null out_len pointer is rejected with InvalidInput before any write.
+    // Detects: A write through the null out pointer, or a different error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_generate_image_bytes_null_out_len() {
+        let _serial = serialize_global_state();
         let prompt = CString::new("test").expect("valid");
         let mut data: *mut u8 = std::ptr::null_mut();
         let result = pcai_media_generate_image_bytes(
@@ -1436,8 +2986,12 @@ mod tests {
         assert_eq!(result, PcaiMediaErrorCode::InvalidInput as i32);
     }
 
+    // Protects: a null prompt is rejected with InvalidInput.
+    // Detects: Dereferencing the null prompt, or a different error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_generate_image_bytes_null_prompt() {
+        let _serial = serialize_global_state();
         let mut data: *mut u8 = std::ptr::null_mut();
         let mut len: usize = 0;
         let result = pcai_media_generate_image_bytes(
@@ -1452,24 +3006,66 @@ mod tests {
 
     // ── async FFI tests ──────────────────────────────────────────────────
 
+    // Protects: a null prompt makes pcai_media_generate_image_async return -1 with InvalidInput.
+    // Detects: Dereferencing the null prompt, queueing a request, or another error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_async_generate_null_prompt() {
+        let _serial = serialize_global_state();
         let out = CString::new("out.png").expect("valid");
         let id = pcai_media_generate_image_async(std::ptr::null(), 0.0, 0.0, out.as_ptr());
         assert_eq!(id, -1, "null prompt should return -1");
         assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
+    // Protects: a null output path makes pcai_media_generate_image_async return -1 with InvalidInput.
+    // Detects: Dereferencing the null path, queueing a request, or another error code.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_async_generate_null_output_path() {
+        let _serial = serialize_global_state();
         let prompt = CString::new("test").expect("valid");
         let id = pcai_media_generate_image_async(prompt.as_ptr(), 0.0, 0.0, std::ptr::null());
         assert_eq!(id, -1, "null output_path should return -1");
         assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
     }
 
+    // Protects: both generate entry points resolve `output_path` themselves, before any
+    //   model check or generation, so an unresolvable path is refused as invalid input
+    //   and (for async) never registers a request.
+    // Detects: resolution left to the worker or the writer, where it would run after
+    //   generation and the async caller would see a queued request that cannot publish.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
+    #[test]
+    fn test_generate_entry_points_resolve_the_output_path_before_any_work() {
+        let _serial = serialize_global_state();
+        let prompt = CString::new("test").expect("valid");
+        let empty = CString::new("").expect("valid");
+
+        let id = pcai_media_generate_image_async(prompt.as_ptr(), 0.0, 0.0, empty.as_ptr());
+        assert_eq!(id, -1, "an empty output_path cannot be resolved");
+        assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32);
+        assert!(
+            last_error_text().contains("cannot be resolved"),
+            "{}",
+            last_error_text()
+        );
+
+        let rc = pcai_media_generate_image(prompt.as_ptr(), 0.0, 0.0, empty.as_ptr());
+        assert_eq!(rc, PcaiMediaErrorCode::InvalidInput as i32);
+        assert!(
+            last_error_text().contains("cannot be resolved"),
+            "{}",
+            last_error_text()
+        );
+    }
+
+    // Protects: an async request without a loaded model returns -1 with a nonzero error code.
+    // Detects: Queueing a request that can never run, or an error code of 0.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_async_generate_no_model_loaded() {
+        let _serial = serialize_global_state();
         let device = CString::new("cpu").expect("valid");
         pcai_media_init(device.as_ptr());
         pcai_media_shutdown(); // ensure no model
@@ -1481,15 +3077,23 @@ mod tests {
         assert_ne!(pcai_media_last_error_code(), 0);
     }
 
+    // Protects: polling an unknown request id reports status -1 and a null text.
+    // Detects: A fabricated status or a non-null text pointer for an id that was never issued.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_poll_result_unknown_id() {
+        let _serial = serialize_global_state();
         let result = pcai_media_poll_result(999_999);
         assert_eq!(result.status, -1, "unknown ID should return status -1");
         assert!(result.text.is_null());
     }
 
+    // Protects: cancelling an unknown request id returns -1.
+    // Detects: Reporting success for a request that does not exist.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
     #[test]
     fn test_cancel_unknown_id() {
+        let _serial = serialize_global_state();
         let rc = pcai_media_cancel(999_999);
         assert_eq!(rc, -1, "cancelling an unknown ID should return -1");
     }
@@ -1506,6 +3110,2843 @@ mod tests {
             std::mem::size_of::<PcaiMediaAsyncResult>(),
             expected_size,
             "PcaiMediaAsyncResult layout must match expected C ABI size"
+        );
+    }
+
+    // ── Inference gate and lock scope ─────────────────────────────────────
+    //
+    // The global state mutex must never be held across generation or model
+    // load, otherwise pcai_media_poll_result and pcai_media_cancel block for
+    // the whole run (the bug fixed for pcai_inference in #374).  These tests
+    // use a mock generate closure through `execute_async_request`, so no
+    // model, GPU or download is needed.
+
+    /// Register a fresh async request id in the global request map.
+    fn register_request(status: MediaRequestStatus) -> i64 {
+        let id = NEXT_REQUEST_ID.fetch_add(1, AtomicOrdering::SeqCst);
+        lock_state_recovering().requests.insert(id, status);
+        id
+    }
+
+    /// Run `call` on a helper thread; fail instead of hanging if it blocks.
+    fn finishes_within<T: Send + 'static>(what: &str, call: impl FnOnce() -> T + Send + 'static) -> T {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = tx.send(call());
+        });
+        match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+            Ok(value) => value,
+            Err(_) => panic!("{what} blocked while inference was in flight"),
+        }
+    }
+
+    /// Poll a request through the C ABI, freeing any returned text.
+    fn poll_status(id: i64) -> i32 {
+        let result = pcai_media_poll_result(id);
+        pcai_media_free_string(result.text);
+        result.status
+    }
+
+    fn mock_image() -> anyhow::Result<image::RgbImage> {
+        Ok(image::RgbImage::new(1, 1))
+    }
+
+    // Protects: one generation at a time, so model and KV-cache memory stay bounded.
+    // Detects: removing the inference gate lets queued async requests overlap.
+    // Needs: no model or GPU; a temp directory for the PNG outputs.
+    #[test]
+    fn test_async_requests_are_serialized_and_all_complete() {
+        let _serial = serialize_global_state();
+        use std::sync::atomic::AtomicUsize;
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let active = Arc::new(AtomicUsize::new(0));
+        let peak = Arc::new(AtomicUsize::new(0));
+        let mut workers = Vec::new();
+        let mut ids = Vec::new();
+        for index in 0..4 {
+            let id = register_request(MediaRequestStatus::Pending);
+            ids.push(id);
+            let output = tmp
+                .path()
+                .join(format!("out{index}.png"))
+                .to_string_lossy()
+                .into_owned();
+            let (active, peak) = (active.clone(), peak.clone());
+            workers.push(std::thread::spawn(move || {
+                execute_async_request(id, output, move || {
+                    let now = active.fetch_add(1, AtomicOrdering::SeqCst) + 1;
+                    peak.fetch_max(now, AtomicOrdering::SeqCst);
+                    std::thread::sleep(std::time::Duration::from_millis(25));
+                    active.fetch_sub(1, AtomicOrdering::SeqCst);
+                    mock_image()
+                });
+            }));
+        }
+        for worker in workers {
+            worker.join().expect("worker must not panic");
+        }
+        assert_eq!(peak.load(AtomicOrdering::SeqCst), 1, "generations must not overlap");
+        for id in ids {
+            assert_eq!(poll_status(id), 2, "request {id} must complete");
+        }
+    }
+
+    // Protects: poll, cancel, init and shutdown stay responsive during a generation.
+    // Detects: holding the state mutex across generation (poll would time out here),
+    //   a queued request leaving Pending before it owns the gate, a cancelled queued
+    //   request still running.
+    // Needs: no model or GPU; the in-flight generation is a mock blocked on a channel.
+    #[test]
+    fn test_poll_and_cancel_respond_during_generation_and_cancel_skips_queued_work() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let running = register_request(MediaRequestStatus::Pending);
+        let queued = register_request(MediaRequestStatus::Pending);
+        let (entered_tx, entered_rx) = std::sync::mpsc::channel::<()>();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+        let ran_queued = Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+        let running_out = tmp.path().join("running.png").to_string_lossy().into_owned();
+        let first = std::thread::spawn(move || {
+            execute_async_request(running, running_out, move || {
+                entered_tx.send(()).expect("test is listening");
+                release_rx
+                    .recv_timeout(std::time::Duration::from_secs(10))
+                    .map_err(|_| anyhow::anyhow!("test never released the generation"))?;
+                mock_image()
+            });
+        });
+        entered_rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("first generation must start");
+
+        let queued_out = tmp.path().join("queued.png").to_string_lossy().into_owned();
+        let flag = ran_queued.clone();
+        let second = std::thread::spawn(move || {
+            execute_async_request(queued, queued_out, move || {
+                flag.store(true, AtomicOrdering::SeqCst);
+                mock_image()
+            });
+        });
+
+        // The first generation still owns the gate; every status path must answer.
+        assert_eq!(finishes_within("poll", move || poll_status(running)), 1);
+        assert_eq!(
+            finishes_within("poll", move || poll_status(queued)),
+            0,
+            "queued stays Pending"
+        );
+        assert_eq!(finishes_within("cancel", move || pcai_media_cancel(queued)), 0);
+        assert_eq!(finishes_within("poll", move || poll_status(queued)), 4);
+        assert_eq!(finishes_within("cancel", || pcai_media_cancel(999_998)), -1);
+        assert_eq!(
+            finishes_within("init", || pcai_media_init(c"cpu".as_ptr())),
+            PcaiMediaErrorCode::Success as i32
+        );
+        finishes_within("shutdown", || pcai_media_shutdown());
+
+        release_tx.send(()).expect("generation is waiting");
+        first.join().expect("first worker must not panic");
+        second.join().expect("second worker must not panic");
+        assert!(
+            !ran_queued.load(AtomicOrdering::SeqCst),
+            "a request cancelled while queued must never generate"
+        );
+        assert_eq!(poll_status(running), 2);
+    }
+
+    // Protects: every synchronous inference entry point (generate, bytes, understand,
+    //   load) queues behind the gate, so model replacement cannot race a generation.
+    // Detects: an entry point that skips acquire_inference_gate, or one that holds the
+    //   state mutex while waiting for it (the status calls below would then hang).
+    // Needs: no model loaded in this process; the gate is held by the test as a stand-in
+    //   for a running generation.
+    #[test]
+    fn test_sync_entry_points_queue_behind_gate_without_blocking_status() {
+        let _serial = serialize_global_state();
+        let model_dir = tempfile::tempdir().expect("tempdir");
+        let model_dir = CString::new(model_dir.path().to_string_lossy().into_owned()).unwrap();
+        let (tx, rx) = std::sync::mpsc::channel::<(&'static str, i64)>();
+        let gate = acquire_inference_gate();
+
+        let mut workers = Vec::new();
+        let sender = tx.clone();
+        workers.push(std::thread::spawn(move || {
+            let rc = pcai_media_generate_image(c"a dog".as_ptr(), 0.0, 0.0, c"x.png".as_ptr());
+            sender.send(("generate", i64::from(rc))).unwrap();
+        }));
+        let sender = tx.clone();
+        workers.push(std::thread::spawn(move || {
+            let mut data: *mut u8 = std::ptr::null_mut();
+            let mut len = 0usize;
+            let rc = pcai_media_generate_image_bytes(c"a dog".as_ptr(), 0.0, 0.0, &mut data, &mut len);
+            sender.send(("bytes", i64::from(rc))).unwrap();
+        }));
+        let sender = tx.clone();
+        workers.push(std::thread::spawn(move || {
+            let text = pcai_media_understand_image(c"x.png".as_ptr(), c"describe".as_ptr(), 8, 0.0);
+            sender.send(("understand", i64::from(text.is_null()))).unwrap();
+        }));
+        let sender = tx.clone();
+        workers.push(std::thread::spawn(move || {
+            let rc = pcai_media_load_model(model_dir.as_ptr(), 0);
+            sender.send(("load", i64::from(rc))).unwrap();
+        }));
+        drop(tx);
+
+        assert!(
+            rx.recv_timeout(std::time::Duration::from_millis(300)).is_err(),
+            "inference entry points must wait for the gate"
+        );
+        assert_eq!(finishes_within("poll", || poll_status(999_997)), -1);
+        assert_eq!(finishes_within("cancel", || pcai_media_cancel(999_997)), -1);
+        drop(gate);
+
+        let mut outcomes = std::collections::HashMap::new();
+        for _ in 0..4 {
+            let (name, value) = rx
+                .recv_timeout(std::time::Duration::from_secs(10))
+                .expect("entry points must finish after the gate is released");
+            outcomes.insert(name, value);
+        }
+        for worker in workers {
+            worker.join().expect("entry point must not panic");
+        }
+        assert_eq!(outcomes["generate"], PcaiMediaErrorCode::ModelNotLoaded as i64);
+        assert_eq!(outcomes["bytes"], PcaiMediaErrorCode::ModelNotLoaded as i64);
+        assert_eq!(outcomes["understand"], 1, "understand returns NULL without a model");
+        assert_ne!(outcomes["load"], 0, "an empty model directory must not load");
+    }
+
+    // Protects: an incomplete checkpoint is refused at the FFI boundary with an existing
+    //   status code and a diagnostic naming the missing tensors, and leaves no model loaded.
+    // Detects: a weight-completeness check that is bypassed or whose typed error is
+    //   flattened into a success; a half-loaded pipeline left behind after failure.
+    // Needs: a temp directory only; the 7B constructor metadata uses scalar-backed views,
+    //   so nothing large is allocated and no GPU or download is involved.
+    #[test]
+    fn test_load_model_rejects_incomplete_checkpoint_and_stays_unloaded() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let config = pcai_media_model::config::JanusConfig::janus_pro_7b();
+        std::fs::write(tmp.path().join("config.json"), serde_json::to_vec(&config).unwrap()).unwrap();
+        let unrelated = candle_core::Tensor::zeros(1, candle_core::DType::F32, &candle_core::Device::Cpu).unwrap();
+        candle_core::safetensors::save(
+            &HashMap::from([("unrelated.weight", unrelated)]),
+            tmp.path().join("model.safetensors"),
+        )
+        .unwrap();
+        let path = CString::new(tmp.path().to_string_lossy().into_owned()).unwrap();
+
+        assert_eq!(pcai_media_init(c"cpu".as_ptr()), PcaiMediaErrorCode::Success as i32);
+        let rc = pcai_media_load_model(path.as_ptr(), 0);
+        assert_eq!(rc, PcaiMediaErrorCode::GenerationError as i32);
+        let message = last_error_text();
+        assert!(message.contains("incomplete safetensors weights"), "{message}");
+        assert!(message.contains("required tensors"), "{message}");
+
+        let rc = pcai_media_generate_image(c"a dog".as_ptr(), 0.0, 0.0, c"x.png".as_ptr());
+        assert_eq!(rc, PcaiMediaErrorCode::ModelNotLoaded as i32);
+    }
+
+    // ── Staged output: cancel must never touch the destination ────────────
+
+    /// Sorted file names in `dir`, to assert no staging file is left behind.
+    fn dir_listing(dir: &Path) -> Vec<String> {
+        let mut names: Vec<String> = fs::read_dir(dir)
+            .expect("read_dir")
+            .map(|entry| entry.expect("dir entry").file_name().to_string_lossy().into_owned())
+            .collect();
+        names.sort();
+        names
+    }
+
+    /// Poll a request and return its status with any text.
+    fn poll_full(id: i64) -> (i32, Option<String>) {
+        let result = pcai_media_poll_result(id);
+        let text = if result.text.is_null() {
+            None
+        } else {
+            Some(unsafe { CStr::from_ptr(result.text) }.to_string_lossy().into_owned())
+        };
+        pcai_media_free_string(result.text);
+        (result.status, text)
+    }
+
+    const ORIGINAL: &[u8] = b"original destination bytes";
+
+    // Protects: a request cancelled while generating never creates or overwrites
+    //   the caller's destination file, and leaves no staging file.
+    // Detects: encoding straight to the destination before the cancel check.
+    // Needs: a temp directory; the cancel is issued from inside the mock generate.
+    #[test]
+    fn test_cancel_during_generation_leaves_destination_untouched() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.png");
+        fs::write(&existing, ORIGINAL).unwrap();
+        let fresh = tmp.path().join("fresh.png");
+        for dest in [&existing, &fresh] {
+            let id = register_request(MediaRequestStatus::Pending);
+            execute_async_request(id, dest.to_string_lossy().into_owned(), move || {
+                assert_eq!(pcai_media_cancel(id), 0, "request is Running while generating");
+                mock_image()
+            });
+            assert_eq!(poll_status(id), 4, "poll reports the cancellation");
+        }
+        assert_eq!(
+            fs::read(&existing).unwrap(),
+            ORIGINAL,
+            "existing destination keeps its bytes"
+        );
+        assert!(!fresh.exists(), "cancelled request must not create the destination");
+        assert_eq!(dir_listing(tmp.path()), ["existing.png"], "no staging file left");
+    }
+
+    // Protects: a cancel that lands after encoding but before publish still leaves the
+    //   destination untouched and removes the staging file.
+    // Detects: moving the cancellation check after the publish step (the destination
+    //   would be replaced and Complete reported).
+    // Needs: a temp directory; the cancel is issued from inside the mock encoder.
+    #[test]
+    fn test_cancel_after_encode_before_publish_discards_staged_file() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.png");
+        fs::write(&existing, ORIGINAL).unwrap();
+        let fresh = tmp.path().join("fresh.png");
+        for dest in [&existing, &fresh] {
+            let id = register_request(MediaRequestStatus::Pending);
+            let dest_path = dest.to_string_lossy().into_owned();
+            let encode = encode_for(Path::new(&dest_path));
+            execute_async_request_with(id, dest_path, mock_image, move |image, file| {
+                encode(image, file)?;
+                assert_eq!(pcai_media_cancel(id), 0, "request is still Running after encode");
+                Ok(())
+            });
+            assert_eq!(poll_status(id), 4);
+        }
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+        assert!(!fresh.exists());
+        assert_eq!(dir_listing(tmp.path()), ["existing.png"], "staging file removed");
+    }
+
+    // Protects: a normal completion publishes the whole file and removes the staging file.
+    // Detects: a publish that leaves the `.partial` name behind or writes a truncated file.
+    // Needs: a temp directory only.
+    #[test]
+    fn test_completion_publishes_full_file_and_leaves_no_partial() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("out.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest_path = dest.to_string_lossy().into_owned();
+        execute_async_request(id, dest_path.clone(), mock_image);
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 2);
+        assert_eq!(text.as_deref(), Some(dest_path.as_str()));
+        let decoded = image::open(&dest).expect("published file is a complete PNG");
+        assert_eq!(decoded.width(), 1);
+        assert_eq!(dir_listing(tmp.path()), ["out.png"]);
+    }
+
+    // Protects: a failed write reports Failed, leaves no partial file and never touches
+    //   an existing destination; a failed publish does the same.
+    // Detects: encoding in place, or a staging file leaked on the error path.
+    // Needs: a temp directory; the encoder writes some bytes then fails, and a
+    //   directory squatting on the destination makes the rename fail.
+    #[test]
+    fn test_write_and_publish_failures_leave_no_partial_and_keep_destination() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.png");
+        fs::write(&existing, ORIGINAL).unwrap();
+
+        let id = register_request(MediaRequestStatus::Pending);
+        execute_async_request_with(id, existing.to_string_lossy().into_owned(), mock_image, |_, file| {
+            file.write_all(b"half an image")?;
+            Err(io::Error::other("disk full"))
+        });
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3);
+        let text = text.expect("failure carries a message");
+        assert!(text.contains("Save failed") && text.contains("disk full"), "{text}");
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["existing.png"],
+            "no partial after write failure"
+        );
+
+        let blocked = tmp.path().join("blocked.png");
+        fs::create_dir(&blocked).unwrap();
+        let id = register_request(MediaRequestStatus::Pending);
+        execute_async_request(id, blocked.to_string_lossy().into_owned(), mock_image);
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3, "publishing over a directory must fail");
+        assert!(text.expect("message").contains("Save failed"));
+        assert!(blocked.is_dir());
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["blocked.png", "existing.png"],
+            "no partial after publish failure"
+        );
+    }
+
+    // Protects: the synchronous save path is atomic too: a failure keeps the old file.
+    // Detects: `image.save` writing in place and leaving a truncated destination.
+    // Needs: a temp directory; the destination name has no usable image extension.
+    #[test]
+    fn test_sync_write_failure_keeps_existing_destination_and_leaves_no_partial() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.unknownext");
+        fs::write(&existing, ORIGINAL).unwrap();
+        assert!(write_image_atomically(&image::RgbImage::new(1, 1), &existing).is_err());
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+        assert_eq!(dir_listing(tmp.path()), ["existing.unknownext"]);
+
+        let good = tmp.path().join("good.png");
+        write_image_atomically(&image::RgbImage::new(2, 2), &good).expect("png write");
+        assert_eq!(image::open(&good).unwrap().width(), 2);
+        assert_eq!(dir_listing(tmp.path()), ["existing.unknownext", "good.png"]);
+    }
+
+    // Protects: a destination near the 255-character component limit still publishes,
+    //   on both the asynchronous and synchronous paths, new and existing (on Windows the
+    //   full path is over MAX_PATH, so the raw Win32 calls need the verbatim form).
+    // Detects: a staging name derived from the destination basename (248 + suffix
+    //   exceeds 255 and the exclusive create fails with an invalid-name error).
+    // Needs: a temp directory on a filesystem with a 255-character component limit.
+    #[test]
+    fn test_long_valid_destination_name_publishes_on_both_paths() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let name = format!("{}.png", "a".repeat(244));
+        assert_eq!(name.len(), 248);
+        let dest = tmp.path().join(&name);
+
+        let id = register_request(MediaRequestStatus::Pending);
+        execute_async_request(id, dest.to_string_lossy().into_owned(), mock_image);
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 2, "async publish failed: {text:?}");
+        assert_eq!(dir_listing(tmp.path()), std::slice::from_ref(&name));
+        fs::remove_file(&dest).unwrap();
+
+        write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("sync publish");
+        assert_eq!(image::open(&dest).unwrap().width(), 2);
+        assert_eq!(dir_listing(tmp.path()), std::slice::from_ref(&name));
+
+        // Over the now-existing long destination: ReplaceFileW (with its backup) on
+        // Windows, a rename elsewhere.
+        write_image_atomically(&image::RgbImage::new(3, 3), &dest).expect("replace publish");
+        assert_eq!(image::open(&dest).unwrap().width(), 3);
+        assert_eq!(dir_listing(tmp.path()), [name]);
+    }
+
+    // ── Drive-relative destinations resolve once, to one absolute path ────
+
+    /// The drive letter of the process's current directory, or `None` when it is
+    /// not on a lettered drive (a UNC share), where drive-relative forms do not apply.
+    #[cfg(windows)]
+    fn current_drive_letter() -> Option<char> {
+        use std::path::{Component, Prefix};
+        match std::env::current_dir().ok()?.components().next()? {
+            Component::Prefix(prefix) => match prefix.kind() {
+                Prefix::Disk(letter) | Prefix::VerbatimDisk(letter) => Some(char::from(letter)),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    /// A uniquely named directory under the current directory, removed on drop.
+    /// Drive-relative paths resolve against the current directory, so the fixtures
+    /// for them have to live there; the random name keeps parallel runs apart.
+    #[cfg(windows)]
+    struct CwdFixture {
+        /// The fixture directory relative to the current directory, one name.
+        name: String,
+    }
+
+    #[cfg(windows)]
+    impl CwdFixture {
+        fn new() -> Self {
+            Self {
+                name: format!("pcai-drive-relative-{:016x}", rand::random::<u64>()),
+            }
+        }
+
+        fn absolute(&self) -> PathBuf {
+            std::env::current_dir().expect("current dir").join(&self.name)
+        }
+    }
+
+    #[cfg(windows)]
+    impl Drop for CwdFixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(self.absolute());
+        }
+    }
+
+    /// `C:<fixture>\dddd…\out.png`, a drive-relative destination whose spelling is
+    /// over the 240-character threshold for the verbatim form, in a nested
+    /// directory tree that is created under the current directory.
+    #[cfg(windows)]
+    fn long_drive_relative_destination(fixture: &CwdFixture, drive: char) -> (String, PathBuf) {
+        let mut relative = PathBuf::from(&fixture.name);
+        for _ in 0..4 {
+            relative.push("d".repeat(61));
+        }
+        relative.push("out.png");
+        let spelled = format!("{drive}:{}", relative.display());
+        assert!(
+            spelled.len() > 240,
+            "fixture must exceed the verbatim threshold: {}",
+            spelled.len()
+        );
+        let expected = std::env::current_dir().expect("current dir").join(&relative);
+        fs::create_dir_all(expected.parent().unwrap()).expect("create fixture tree");
+        (spelled, expected)
+    }
+
+    // Protects: a drive-relative path is never turned into a drive-rooted one.
+    //   `C:name` means the current directory of `C:`, `\\?\C:\name` means its root.
+    // Detects: `verbatim_path` adding the prefix to a path that has a drive but no
+    //   root (the converted form silently names a different file).
+    // Needs: nothing on disk; Windows path semantics.
+    #[cfg(windows)]
+    #[test]
+    fn test_verbatim_path_refuses_drive_relative_paths() {
+        let long_name = "n".repeat(250);
+        let drive_relative = PathBuf::from(format!("C:{long_name}"));
+        assert_eq!(verbatim_path(&drive_relative), None);
+        assert_eq!(verbatim_path(&PathBuf::from(format!(r"C:dir\{long_name}"))), None);
+        // Positive control: the same name under a root still converts, so the
+        // refusal above is about the missing root and not a broken helper.
+        let rooted = PathBuf::from(format!(r"C:\{long_name}"));
+        assert_eq!(
+            verbatim_path(&rooted),
+            Some(PathBuf::from(format!(r"\\?\C:\{long_name}")))
+        );
+    }
+
+    // Protects: every spelling of a destination resolves to the absolute file the
+    //   caller's own process would open, and an absolute path is left as it is.
+    // Detects: `C:name` resolving to the drive root, or `\name` staying driveless.
+    // Needs: the current directory on a lettered drive.
+    #[cfg(windows)]
+    #[test]
+    fn test_absolute_destination_resolves_drive_relative_and_rooted_driveless_forms() {
+        let Some(drive) = current_drive_letter() else {
+            eprintln!("skipped: the current directory is not on a lettered drive");
+            return;
+        };
+        let cwd = std::env::current_dir().expect("current dir");
+
+        let drive_relative = absolute_destination(Path::new(&format!("{drive}:out.png"))).expect("resolves");
+        assert!(drive_relative.is_absolute(), "{drive_relative:?}");
+        assert_eq!(drive_relative, cwd.join("out.png"));
+
+        let rooted_driveless = absolute_destination(Path::new(r"\out.png")).expect("resolves");
+        assert!(rooted_driveless.is_absolute(), "{rooted_driveless:?}");
+        assert_eq!(rooted_driveless, PathBuf::from(format!(r"{drive}:\out.png")));
+
+        let already = cwd.join("out.png");
+        assert_eq!(absolute_destination(&already).expect("resolves"), already);
+        assert!(
+            absolute_destination(Path::new("")).is_err(),
+            "an empty path has no meaning"
+        );
+    }
+
+    // Protects: staging, metadata and publication all act on one file when the
+    //   caller passes a long drive-relative destination (`C:fixture\...\out.png`),
+    //   on the synchronous path, first as a new file and then replacing it.
+    // Detects: the publish step converting `C:rel` to the drive root (`\\?\C:\rel`)
+    //   while staging stayed in the current directory, which fails or, worse,
+    //   replaces an unrelated file at the root.
+    // Needs: write access to the current directory; a lettered drive.
+    #[cfg(windows)]
+    #[test]
+    fn test_sync_write_to_long_drive_relative_destination_lands_beside_staging() {
+        let _serial = serialize_global_state();
+        let Some(drive) = current_drive_letter() else {
+            eprintln!("skipped: the current directory is not on a lettered drive");
+            return;
+        };
+        let fixture = CwdFixture::new();
+        let (spelled, expected) = long_drive_relative_destination(&fixture, drive);
+
+        write_image_atomically(&image::RgbImage::new(2, 2), Path::new(&spelled)).expect("new destination");
+        assert_eq!(image::open(&expected).expect("file at the resolved path").width(), 2);
+        assert_eq!(dir_listing(expected.parent().unwrap()), ["out.png"]);
+
+        write_image_atomically(&image::RgbImage::new(3, 3), Path::new(&spelled)).expect("replace destination");
+        assert_eq!(image::open(&expected).expect("replaced file").width(), 3);
+        assert_eq!(dir_listing(expected.parent().unwrap()), ["out.png"]);
+    }
+
+    // Protects: the same guarantee on the asynchronous worker, and that the request
+    //   reports success only after the file is at the resolved path.
+    // Detects: the worker staging against the current directory and publishing
+    //   against the drive root.
+    // Needs: write access to the current directory; a lettered drive.
+    #[cfg(windows)]
+    #[test]
+    fn test_async_write_to_long_drive_relative_destination_lands_beside_staging() {
+        let _serial = serialize_global_state();
+        let Some(drive) = current_drive_letter() else {
+            eprintln!("skipped: the current directory is not on a lettered drive");
+            return;
+        };
+        let fixture = CwdFixture::new();
+        let (spelled, expected) = long_drive_relative_destination(&fixture, drive);
+
+        let id = register_request(MediaRequestStatus::Pending);
+        execute_async_request(id, spelled, mock_image);
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 2, "async publish failed: {text:?}");
+        assert_eq!(image::open(&expected).expect("file at the resolved path").width(), 1);
+        assert_eq!(dir_listing(expected.parent().unwrap()), ["out.png"]);
+    }
+
+    // Protects: staging names are short, independent of the destination, unique per
+    //   call and live next to the destination.
+    // Detects: a name that embeds the destination basename or repeats between calls.
+    // Needs: nothing on disk.
+    #[test]
+    fn test_staging_path_is_short_unique_and_beside_destination() {
+        let dest = Path::new("some_dir").join("x".repeat(240));
+        let first = staging_path(&dest);
+        let second = staging_path(&dest);
+        assert_ne!(first, second);
+        assert_eq!(first.parent(), dest.parent());
+        let leaf = first.file_name().unwrap().to_string_lossy().into_owned();
+        assert!(leaf.starts_with(".pcai-") && leaf.ends_with(".partial"), "{leaf}");
+        assert!(leaf.len() < 40, "{leaf}");
+        assert_eq!(staging_path(Path::new("bare.png")).parent(), Some(Path::new("")));
+    }
+
+    // ── Model slot lifecycle: shutdown must win over an in-flight load ────
+
+    /// Model stand-in that records when it is dropped and whether the slot
+    /// lock was held at that moment.
+    struct Probe {
+        slot: Arc<Mutex<ModelSlot<Probe>>>,
+        drops: Arc<std::sync::atomic::AtomicUsize>,
+        dropped_under_lock: Arc<std::sync::atomic::AtomicBool>,
+    }
+
+    impl Drop for Probe {
+        fn drop(&mut self) {
+            if self.slot.try_lock().is_err() {
+                self.dropped_under_lock.store(true, AtomicOrdering::SeqCst);
+            }
+            self.drops.fetch_add(1, AtomicOrdering::SeqCst);
+        }
+    }
+
+    struct ProbeRig {
+        slot: Arc<Mutex<ModelSlot<Probe>>>,
+        gate: Arc<Mutex<()>>,
+        drops: Arc<std::sync::atomic::AtomicUsize>,
+        dropped_under_lock: Arc<std::sync::atomic::AtomicBool>,
+    }
+
+    impl ProbeRig {
+        fn new() -> Self {
+            Self {
+                slot: Arc::new(Mutex::new(ModelSlot::new())),
+                gate: Arc::new(Mutex::new(())),
+                drops: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                dropped_under_lock: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            }
+        }
+        fn probe(&self) -> Probe {
+            Probe {
+                slot: self.slot.clone(),
+                drops: self.drops.clone(),
+                dropped_under_lock: self.dropped_under_lock.clone(),
+            }
+        }
+        fn drops(&self) -> usize {
+            self.drops.load(AtomicOrdering::SeqCst)
+        }
+        fn dropped_under_lock(&self) -> bool {
+            self.dropped_under_lock.load(AtomicOrdering::SeqCst)
+        }
+    }
+
+    // Protects: shutdown during an in-flight load is final: the finished model is
+    //   discarded (outside the slot lock) and nothing is loaded afterwards.
+    // Detects: an unconditional install after load (the pre-fix behaviour), or a stale
+    //   model freed while the slot lock is held.
+    // Needs: no model; the paused load is a closure blocked on a channel.
+    #[test]
+    fn test_shutdown_during_load_discards_the_stale_model() {
+        let rig = ProbeRig::new();
+        let (started_tx, started_rx) = std::sync::mpsc::channel::<()>();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+        let slot = rig.slot.clone();
+        let gate = rig.gate.clone();
+        let probe = rig.probe();
+        let loader = std::thread::spawn(move || {
+            load_into_slot(&slot, &gate, move || {
+                started_tx.send(()).unwrap();
+                release_rx
+                    .recv_timeout(std::time::Duration::from_secs(10))
+                    .map_err(|_| anyhow::anyhow!("test never released the load"))?;
+                Ok(probe)
+            })
+        });
+        started_rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("load starts");
+
+        let slot = rig.slot.clone();
+        finishes_within("slot shutdown", move || slot_shutdown(&slot));
+
+        release_tx.send(()).unwrap();
+        let outcome = loader
+            .join()
+            .expect("loader must not panic")
+            .expect("load itself succeeds");
+        assert_eq!(
+            outcome,
+            LoadOutcome::DiscardedAfterLoad,
+            "a load that finished after shutdown must not install"
+        );
+        assert!(slot_current(&rig.slot).is_none(), "slot stays unloaded");
+        assert_eq!(rig.drops(), 1, "the stale model is dropped");
+        assert!(
+            !rig.dropped_under_lock(),
+            "the stale model is dropped outside the slot lock"
+        );
+    }
+
+    // Protects: the reverse ordering still works: shutdown, then a new load, installs
+    //   normally, and replacing a model frees the old one outside the lock.
+    // Detects: an epoch check that rejects every load after the first shutdown.
+    // Needs: no model.
+    #[test]
+    fn test_load_after_shutdown_installs_and_replacement_drops_outside_lock() {
+        let rig = ProbeRig::new();
+        slot_shutdown(&rig.slot);
+        let first = rig.probe();
+        assert_eq!(
+            load_into_slot(&rig.slot, &rig.gate, move || Ok(first)).unwrap(),
+            LoadOutcome::Installed
+        );
+        assert!(slot_current(&rig.slot).is_some());
+        assert_eq!(rig.drops(), 0);
+
+        let second = rig.probe();
+        assert_eq!(
+            load_into_slot(&rig.slot, &rig.gate, move || Ok(second)).unwrap(),
+            LoadOutcome::Installed
+        );
+        assert_eq!(rig.drops(), 1, "the replaced model is dropped");
+        assert!(!rig.dropped_under_lock());
+
+        slot_shutdown(&rig.slot);
+        assert!(slot_current(&rig.slot).is_none());
+        assert_eq!(rig.drops(), 2, "shutdown releases the model");
+        assert!(!rig.dropped_under_lock());
+    }
+
+    /// Start `load_into_slot_observed` on a thread and return once the request is
+    /// admitted (epoch captured) and therefore queued behind whoever holds the
+    /// gate.  The loader counts its invocations in `calls`.
+    fn spawn_queued_load(
+        rig: &ProbeRig,
+        calls: &Arc<std::sync::atomic::AtomicUsize>,
+    ) -> std::thread::JoinHandle<anyhow::Result<LoadOutcome>> {
+        let (admitted_tx, admitted_rx) = std::sync::mpsc::channel::<()>();
+        let slot = rig.slot.clone();
+        let gate = rig.gate.clone();
+        let probe = rig.probe();
+        let calls = calls.clone();
+        let handle = std::thread::spawn(move || {
+            load_into_slot_observed(
+                &slot,
+                &gate,
+                move || admitted_tx.send(()).expect("test is waiting for admission"),
+                move || {
+                    calls.fetch_add(1, AtomicOrdering::SeqCst);
+                    Ok(probe)
+                },
+            )
+        });
+        admitted_rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("load is admitted");
+        handle
+    }
+
+    // Protects: a load queued behind a running generation is cancelled when shutdown
+    //   runs first: it never reaches the loader and the slot stays empty.
+    // Detects: capturing the lifecycle epoch after the gate is held (the load then
+    //   adopts the post-shutdown epoch and installs a model after shutdown), or
+    //   dropping the stale check that runs before any weights are read.
+    // Needs: no model; the generation is the test holding the gate.
+    #[test]
+    fn test_load_queued_behind_generation_is_cancelled_by_shutdown_before_reading() {
+        let rig = ProbeRig::new();
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let generation = lock_gate(&rig.gate);
+        let loader = spawn_queued_load(&rig, &calls);
+
+        // Shutdown takes only the slot lock, so it runs while the load waits.
+        let slot = rig.slot.clone();
+        finishes_within("slot shutdown with a queued load", move || slot_shutdown(&slot));
+        drop(generation);
+
+        let outcome = loader
+            .join()
+            .expect("loader must not panic")
+            .expect("a cancelled load is not an error");
+        assert_eq!(outcome, LoadOutcome::CancelledWhileQueued);
+        assert_eq!(calls.load(AtomicOrdering::SeqCst), 0, "the loader must not be reached");
+        assert!(slot_current(&rig.slot).is_none(), "slot stays empty");
+    }
+
+    // Protects: a load admitted after shutdown installs normally, even while a
+    //   generation still holds the gate when shutdown ran.
+    // Detects: a stale check that rejects every load once any shutdown has happened.
+    // Needs: no model.
+    #[test]
+    fn test_load_admitted_after_shutdown_installs_once_the_gate_frees() {
+        let rig = ProbeRig::new();
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let generation = lock_gate(&rig.gate);
+        let slot = rig.slot.clone();
+        finishes_within("slot shutdown", move || slot_shutdown(&slot));
+        let loader = spawn_queued_load(&rig, &calls);
+        drop(generation);
+
+        let outcome = loader.join().expect("loader must not panic").expect("load succeeds");
+        assert_eq!(outcome, LoadOutcome::Installed);
+        assert_eq!(calls.load(AtomicOrdering::SeqCst), 1);
+        assert!(slot_current(&rig.slot).is_some());
+    }
+
+    // Protects: the exported load path is wired to the lifecycle: a pcai_media_load_model
+    //   style request queued behind a generation, then shutdown, reports ModelNotLoaded
+    //   and never tries to read the (nonexistent) model path.
+    // Detects: load_model_at taking the gate itself before admission, or passing the
+    //   wrong slot or gate, which would surface as an I/O error for the missing path.
+    // Needs: no model; the path does not exist, so reaching the loader would fail loudly.
+    #[test]
+    fn test_exported_load_queued_behind_generation_is_cancelled_by_shutdown() {
+        let _serial = serialize_global_state();
+        // A guaranteed-missing child of a fresh temp directory, so reaching the
+        // loader would fail loudly whatever else exists on the machine.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let missing = tmp.path().join("missing-model").to_string_lossy().into_owned();
+        let generation = acquire_inference_gate();
+        let (admitted_tx, admitted_rx) = std::sync::mpsc::channel::<()>();
+        let loader = std::thread::spawn(move || {
+            let rc = load_model_at(missing, 0, move || {
+                admitted_tx.send(()).expect("test is waiting for admission");
+            });
+            (rc, last_error_text())
+        });
+        admitted_rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("load is admitted");
+        finishes_within("exported shutdown with a queued load", || pcai_media_shutdown());
+        drop(generation);
+
+        let (rc, message) = loader.join().expect("loader must not panic");
+        assert_eq!(rc, PcaiMediaErrorCode::ModelNotLoaded as i32, "{message}");
+        assert!(message.contains("cancelled before any weights were read"), "{message}");
+        assert!(slot_current(&MODEL_SLOT).is_none());
+    }
+
+    // Protects: a failed load leaves the slot, and the epoch, alone.
+    // Detects: an error path that clears a previously loaded model.
+    // Needs: no model.
+    #[test]
+    fn test_failed_load_keeps_existing_model() {
+        let rig = ProbeRig::new();
+        let kept = rig.probe();
+        assert_eq!(
+            load_into_slot(&rig.slot, &rig.gate, move || Ok(kept)).unwrap(),
+            LoadOutcome::Installed
+        );
+        let error = load_into_slot(&rig.slot, &rig.gate, || -> anyhow::Result<Probe> {
+            anyhow::bail!("bad checkpoint")
+        })
+        .expect_err("load error propagates");
+        assert!(error.to_string().contains("bad checkpoint"));
+        assert!(slot_current(&rig.slot).is_some());
+        assert_eq!(rig.drops(), 0);
+    }
+
+    // Protects: the exported pcai_media_shutdown invalidates in-flight loads of the
+    //   real global slot (not just the generic helper).
+    // Detects: shutdown that stops touching MODEL_SLOT, or only clears the handle
+    //   without bumping the epoch.
+    // Needs: no model.
+    #[test]
+    fn test_exported_shutdown_bumps_the_global_epoch() {
+        let _serial = serialize_global_state();
+        let before = slot_begin_load(&MODEL_SLOT);
+        pcai_media_shutdown();
+        assert_ne!(slot_begin_load(&MODEL_SLOT), before);
+        assert!(slot_current(&MODEL_SLOT).is_none());
+    }
+
+    // ── Slow publish must not block other requests ──────────────────────
+
+    /// Run `call` on a helper thread and require it to answer within 100 ms.
+    fn answers_within_100ms<T: Send + 'static>(what: &str, call: impl FnOnce() -> T + Send + 'static) -> T {
+        let (value, elapsed) = finishes_within(what, move || {
+            let started = std::time::Instant::now();
+            let value = call();
+            (value, started.elapsed())
+        });
+        assert!(
+            elapsed < std::time::Duration::from_millis(100),
+            "{what} took {elapsed:?} while another request was publishing"
+        );
+        value
+    }
+
+    // Protects: a publish on slow or stalled storage blocks nobody else: poll and cancel
+    //   of other requests answer within 100 ms while one request sits in its rename.
+    // Detects: the rename (or any file IO) running under the global request-table lock.
+    // Needs: no model; the rename is a mock publish step blocked on a channel.
+    #[test]
+    fn test_slow_publish_does_not_block_status_of_other_requests() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let publishing = register_request(MediaRequestStatus::Pending);
+        let other_running = register_request(MediaRequestStatus::Running);
+        let other_queued = register_request(MediaRequestStatus::Pending);
+        let (entered_tx, entered_rx) = std::sync::mpsc::channel::<()>();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+
+        let dest = tmp.path().join("slow.png");
+        let dest_path = dest.to_string_lossy().into_owned();
+        let encode = encode_for(Path::new(&dest_path));
+        let worker = std::thread::spawn(move || {
+            execute_async_request_staged(publishing, dest_path, mock_image, encode, move |staged, target| {
+                entered_tx.send(()).expect("test is listening");
+                release_rx
+                    .recv_timeout(std::time::Duration::from_secs(10))
+                    .map_err(|_| io::Error::other("test never released the rename"))?;
+                fs::rename(staged, target)
+            });
+        });
+        entered_rx
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("worker reaches the rename");
+
+        // The publishing request is mid-rename; everything else must still answer.
+        assert_eq!(
+            answers_within_100ms("poll other", move || poll_status(other_running)),
+            1
+        );
+        assert_eq!(
+            answers_within_100ms("poll queued", move || poll_status(other_queued)),
+            0
+        );
+        assert_eq!(
+            answers_within_100ms("cancel queued", move || pcai_media_cancel(other_queued)),
+            0
+        );
+        assert_eq!(
+            answers_within_100ms("poll cancelled", move || poll_status(other_queued)),
+            4
+        );
+        assert_eq!(
+            answers_within_100ms("cancel unknown", || pcai_media_cancel(999_996)),
+            -1
+        );
+        assert_eq!(
+            answers_within_100ms("cancel other", move || pcai_media_cancel(other_running)),
+            0
+        );
+        assert_eq!(
+            answers_within_100ms("poll other", move || poll_status(other_running)),
+            4
+        );
+
+        // Same request: it reports running while publishing, and a cancel loses.
+        assert_eq!(
+            answers_within_100ms("poll publishing", move || poll_status(publishing)),
+            1
+        );
+        assert_eq!(
+            answers_within_100ms("cancel publishing", move || pcai_media_cancel(publishing)),
+            -1
+        );
+
+        release_tx.send(()).unwrap();
+        worker.join().expect("worker must not panic");
+        let (status, text) = poll_full(publishing);
+        assert_eq!(status, 2, "the publish that already started completes: {text:?}");
+        assert_eq!(image::open(&dest).expect("published file is a complete PNG").width(), 1);
+        assert_eq!(dir_listing(tmp.path()), ["slow.png"]);
+    }
+
+    // Protects: a failing rename while publishing reports Failed, removes the staging
+    //   file and leaves the destination alone, again without the global lock.
+    // Detects: an error path that leaves the request Publishing or leaks the partial file.
+    // Needs: a temp directory; the publish step is a mock that fails.
+    #[test]
+    fn test_failed_publish_step_reports_failed_and_cleans_up() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.png");
+        fs::write(&existing, ORIGINAL).unwrap();
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest = existing.to_string_lossy().into_owned();
+        let encode = encode_for(Path::new(&dest));
+        execute_async_request_staged(id, dest, mock_image, encode, |_, _| {
+            Err(io::Error::other("share went away"))
+        });
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3);
+        assert!(text.expect("message").contains("share went away"));
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+        assert_eq!(dir_listing(tmp.path()), ["existing.png"]);
+    }
+
+    // ── Publishing must not widen access to an output file ────────────────
+
+    #[cfg(unix)]
+    fn unix_mode(path: &Path) -> u32 {
+        use std::os::unix::fs::PermissionsExt;
+        fs::metadata(path).expect("metadata").permissions().mode() & 0o7777
+    }
+
+    /// Run `body` with the process umask set to `mask`, then restore it.  The
+    /// umask is process-wide, so callers hold `serialize_global_state()`.
+    #[cfg(unix)]
+    fn with_umask<T>(mask: u32, body: impl FnOnce() -> T) -> T {
+        struct Restore(libc::mode_t);
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                // SAFETY: umask only swaps the process umask and cannot fail.
+                unsafe { libc::umask(self.0) };
+            }
+        }
+        // SAFETY: as above.
+        let _restore = Restore(unsafe { libc::umask(mask as libc::mode_t) });
+        body()
+    }
+
+    // Protects: replacing an existing output keeps its access mode on the sync and the
+    //   async path: a private 0600 file stays 0600 and a 0640 file stays 0640.
+    // Detects: a staged file that keeps its own default mode (0644 under umask 022)
+    //   after the rename, which would expose a private image, or one forced to a fixed mode.
+    // Needs: Unix; the umask is set to 022 so a default-mode staging file would be 0644.
+    #[cfg(unix)]
+    #[test]
+    fn test_publish_keeps_the_existing_destination_mode_on_sync_and_async_paths() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        with_umask(0o022, || {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            for (name, mode) in [("private.png", 0o600), ("group.png", 0o640)] {
+                let dest = tmp.path().join(name);
+                fs::write(&dest, ORIGINAL).unwrap();
+                fs::set_permissions(&dest, fs::Permissions::from_mode(mode)).unwrap();
+                write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("sync publish");
+                assert_eq!(unix_mode(&dest), mode, "sync path, {name}");
+                assert_eq!(image::open(&dest).unwrap().width(), 2, "sync path replaced the file");
+
+                fs::set_permissions(&dest, fs::Permissions::from_mode(mode)).unwrap();
+                let id = register_request(MediaRequestStatus::Pending);
+                execute_async_request(id, dest.to_string_lossy().into_owned(), mock_image);
+                assert_eq!(poll_full(id).0, 2, "async request completes");
+                assert_eq!(unix_mode(&dest), mode, "async path, {name}");
+                assert_eq!(image::open(&dest).unwrap().width(), 1, "async path replaced the file");
+            }
+        });
+    }
+
+    // Protects: the staging file is private (0600) for as long as it exists, so a
+    //   half-written image is never readable by other users.
+    // Detects: a staging file created with the default mode (0644 under umask 022).
+    // Needs: Unix; the encoder stats the open staging file, so no extra seam is needed.
+    #[cfg(unix)]
+    #[test]
+    fn test_staging_file_is_private_while_it_exists() {
+        let _serial = serialize_global_state();
+        with_umask(0o022, || {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let dest = tmp.path().join("out.png");
+            let seen = std::cell::Cell::new(0);
+            let staged = stage_image(&image::RgbImage::new(1, 1), &dest, |_, file| {
+                use std::os::unix::fs::PermissionsExt;
+                seen.set(file.metadata()?.permissions().mode() & 0o7777);
+                Ok(())
+            })
+            .expect("stage");
+            assert_eq!(seen.get(), 0o600);
+            assert_eq!(unix_mode(&staged), 0o600);
+        });
+    }
+
+    // Protects: a brand-new output gets the mode a plain File::create would have given
+    //   it (0666 filtered by the umask), not the private staging mode and not a wider one.
+    // Detects: a new file left at the private 0600 staging mode, or opened up beyond the umask.
+    // Needs: Unix; sets the umask explicitly (027 and 077) and restores it.
+    #[cfg(unix)]
+    #[test]
+    fn test_new_destination_gets_the_umask_derived_mode() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        for (mask, expected) in [(0o027, 0o640), (0o022, 0o644), (0o077, 0o600)] {
+            with_umask(mask, || {
+                let direct = tmp.path().join(format!("direct-{mask:o}.png"));
+                fs::File::create(&direct).unwrap();
+                assert_eq!(unix_mode(&direct), expected, "File::create under umask {mask:o}");
+
+                let dest = tmp.path().join(format!("new-{mask:o}.png"));
+                write_image_atomically(&image::RgbImage::new(1, 1), &dest).expect("publish");
+                assert_eq!(unix_mode(&dest), expected, "published file under umask {mask:o}");
+                assert_eq!(
+                    dir_listing(tmp.path())
+                        .iter()
+                        .filter(|n| n.starts_with(".pcai-"))
+                        .count(),
+                    0
+                );
+            });
+        }
+    }
+
+    // Protects: a failure while preparing the publish (here the staging name disappears)
+    //   reports Failed, leaves the existing destination untouched and
+    //   leaves no staging file.
+    // Detects: publish errors that are swallowed, or a destination replaced or truncated
+    //   despite the failure.
+    // Needs: a temporary directory; the real publisher runs after the staging name
+    //   is removed, so the Unix name recheck or Windows replacement refuses it.
+    #[test]
+    fn test_failed_permission_step_leaves_destination_untouched() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let existing = tmp.path().join("existing.png");
+        fs::write(&existing, ORIGINAL).unwrap();
+        #[cfg(unix)]
+        let mode_before = unix_mode(&existing);
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest = existing.to_string_lossy().into_owned();
+        let encode = encode_for(Path::new(&dest));
+        execute_async_request_staged(id, dest, mock_image, encode, |staged, dest| {
+            fs::remove_file(staged)?;
+            publish_staged_owned(staged, dest)
+        });
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3, "the failed publish is reported as Failed");
+        assert!(text.expect("failure message").contains("Save failed"));
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+        #[cfg(unix)]
+        assert_eq!(unix_mode(&existing), mode_before);
+        assert_eq!(dir_listing(tmp.path()), ["existing.png"]);
+
+        let staged = stage_image(&mock_image().unwrap(), &existing, encode_for(&existing)).expect("stage");
+        fs::remove_file(&staged).unwrap();
+        assert!(publish_staged_owned(&staged, &existing).is_err());
+        assert_eq!(fs::read(&existing).unwrap(), ORIGINAL);
+    }
+
+    #[cfg(windows)]
+    fn acl_listing(path: &Path) -> String {
+        let output = std::process::Command::new("icacls")
+            .arg(path)
+            .output()
+            .expect("run icacls");
+        assert!(output.status.success(), "icacls failed: {output:?}");
+        String::from_utf8_lossy(&output.stdout)
+            .replace(path.to_string_lossy().as_ref(), "<PATH>")
+            .trim()
+            .to_string()
+    }
+
+    // Protects: replacing an existing file whose ACL was explicitly restricted keeps that
+    //   ACL (ReplaceFileW merges it) instead of leaving the new file with the directory's
+    //   inherited ACL.
+    // Detects: a plain rename of the staged file over the destination.
+    // Needs: Windows with icacls on PATH; the test restricts its own temp file only.
+    #[cfg(windows)]
+    #[test]
+    fn test_publish_keeps_the_existing_destinations_explicit_acl() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let user = std::env::var("USERNAME").expect("USERNAME is set");
+        let status = std::process::Command::new("icacls")
+            .arg(&dest)
+            .args(["/inheritance:r", "/grant:r", &format!("{user}:(F)")])
+            .output()
+            .expect("run icacls");
+        assert!(status.status.success(), "icacls restrict failed: {status:?}");
+        let before = acl_listing(&dest);
+        assert!(!before.contains("(I)"), "precondition: explicit ACL only: {before}");
+
+        // Positive control: a fresh file in the same directory inherits the directory ACL,
+        // so a plain rename of a staged file would differ from `before`.
+        let control = tmp.path().join("control.png");
+        fs::write(&control, ORIGINAL).unwrap();
+        assert!(acl_listing(&control).contains("(I)"), "control must inherit");
+
+        write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("publish");
+        assert_eq!(image::open(&dest).unwrap().width(), 2, "the file was replaced");
+        assert_eq!(acl_listing(&dest), before, "the explicit ACL survives the replace");
+    }
+
+    // ── Access control that must survive a staged replace ─────────────────
+
+    /// A supplementary group of this process other than its effective group, or
+    /// any group when running as root; `None` when there is none to use.
+    #[cfg(unix)]
+    fn other_group() -> Option<u32> {
+        // SAFETY: getegid and geteuid cannot fail; getgroups writes at most
+        // `groups.len()` entries into the buffer it is given.
+        let (egid, root) = unsafe { (libc::getegid(), libc::geteuid() == 0) };
+        let count = unsafe { libc::getgroups(0, std::ptr::null_mut()) };
+        let mut groups = vec![0 as libc::gid_t; usize::try_from(count).unwrap_or(0)];
+        let count = unsafe { libc::getgroups(i32::try_from(groups.len()).unwrap_or(0), groups.as_mut_ptr()) };
+        groups.truncate(usize::try_from(count).unwrap_or(0));
+        groups.into_iter().find(|group| *group != egid).or(root.then_some(4242))
+    }
+
+    // Protects: replacing an existing output keeps its owning group, so a 0640 file
+    //   is not handed to a different group when its mode bits are preserved.
+    // Detects: a publish that copies the mode but leaves the staged file in the
+    //   process's own group, on the sync and the async path.
+    // Needs: Unix and a second group this process may use (any group as root); the
+    //   test returns early with a message when there is none, so its positive control
+    //   is the mutation that skips the group copy.
+    #[cfg(unix)]
+    #[test]
+    fn test_publish_keeps_the_existing_destination_group() {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let _serial = serialize_global_state();
+        let Some(group) = other_group() else {
+            eprintln!("SKIP test_publish_keeps_the_existing_destination_group: no second group available");
+            return;
+        };
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("grouped.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        std::os::unix::fs::chown(&dest, None, Some(group)).expect("chgrp the destination");
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o640)).unwrap();
+        assert_eq!(fs::metadata(&dest).unwrap().gid(), group, "precondition");
+
+        write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("sync publish");
+        assert_eq!(fs::metadata(&dest).unwrap().gid(), group, "sync path keeps the group");
+        assert_eq!(unix_mode(&dest), 0o640);
+
+        let id = register_request(MediaRequestStatus::Pending);
+        execute_async_request(id, dest.to_string_lossy().into_owned(), mock_image);
+        assert_eq!(poll_full(id).0, 2, "async request completes");
+        assert_eq!(fs::metadata(&dest).unwrap().gid(), group, "async path keeps the group");
+    }
+
+    // Protects: a destination with a POSIX access ACL is not silently replaced by a file
+    //   that has lost it: the publish is refused with an explicit error, the destination
+    //   keeps its bytes, mode and ACL, and no staging file is left.
+    // Detects: an ACL-blind publish that widens access, or one that reports success.
+    // Needs: Linux and a filesystem with POSIX ACL xattrs; returns early with a message
+    //   when the xattr cannot be set.  After a successful setxattr the test reads the
+    //   xattr back, so a passing run proves the ACL was really present.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_destination_with_an_access_acl_is_refused_and_left_untouched() {
+        use std::os::unix::ffi::OsStrExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("acl.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        // user::rw-, user:<me>:r--, group::r--, mask::rw-, other::---
+        // SAFETY: geteuid cannot fail.
+        let uid = unsafe { libc::geteuid() };
+        let mut acl = 2u32.to_le_bytes().to_vec();
+        for (tag, perm, id) in [
+            (0x01u16, 6u16, u32::MAX),
+            (0x02, 4, uid),
+            (0x04, 4, u32::MAX),
+            (0x10, 6, u32::MAX),
+            (0x20, 0, u32::MAX),
+        ] {
+            acl.extend_from_slice(&tag.to_le_bytes());
+            acl.extend_from_slice(&perm.to_le_bytes());
+            acl.extend_from_slice(&id.to_le_bytes());
+        }
+        let path = CString::new(dest.as_os_str().as_bytes()).unwrap();
+        let name = c"system.posix_acl_access";
+        // SAFETY: valid NUL-terminated strings and a buffer of the stated length.
+        let set = unsafe { libc::setxattr(path.as_ptr(), name.as_ptr(), acl.as_ptr().cast(), acl.len(), 0) };
+        if set != 0 {
+            eprintln!(
+                "SKIP access-acl test: cannot set the ACL here: {}",
+                io::Error::last_os_error()
+            );
+            return;
+        }
+        // SAFETY: as above; a null buffer with size 0 asks only for the size.
+        let size = unsafe { libc::getxattr(path.as_ptr(), name.as_ptr(), std::ptr::null_mut(), 0) };
+        assert!(
+            size > 0,
+            "positive control: the ACL xattr is present before the publish"
+        );
+        let mode_before = unix_mode(&dest);
+
+        let error = write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect_err("publish must be refused");
+        assert!(error.to_string().contains("access ACL"), "explicit error, got: {error}");
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(unix_mode(&dest), mode_before, "destination mode untouched");
+        // SAFETY: as above.
+        let after = unsafe { libc::getxattr(path.as_ptr(), name.as_ptr(), std::ptr::null_mut(), 0) };
+        assert_eq!(after, size, "the ACL is still on the destination");
+        assert_eq!(dir_listing(tmp.path()), ["acl.png"], "no staging file left");
+    }
+
+    /// The access entries of an `acl_listing`, without the path column (icacls pads
+    /// continuation lines to the path length, so listings of different names differ in
+    /// whitespace only).
+    #[cfg(windows)]
+    fn acl_entries(listing: &str) -> Vec<String> {
+        listing
+            .lines()
+            .map(|line| line.trim().trim_start_matches("<PATH>").trim().to_string())
+            .filter(|line| line.contains(":("))
+            .collect()
+    }
+
+    /// Principals named in an `acl_listing`, e.g. `NT AUTHORITY\\SYSTEM`.
+    #[cfg(windows)]
+    fn acl_principals(listing: &str) -> Vec<String> {
+        listing
+            .lines()
+            .filter_map(|line| {
+                let line = line.trim().trim_start_matches("<PATH>").trim();
+                line.rfind(":(").map(|index| line[..index].trim().to_string())
+            })
+            .collect()
+    }
+
+    // Protects: the staging file is never readable by other users while it exists: its
+    //   DACL is protected (no inherited entries) and names only the owner and SYSTEM.
+    // Detects: a staging file that inherits the directory's ACL, which would expose a
+    //   half-written image during encoding even when the destination is restricted.
+    // Needs: Windows with icacls on PATH; reads the staging ACL before any publish.
+    #[cfg(windows)]
+    #[test]
+    fn test_staging_file_acl_is_private_before_publish() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("out.png");
+        let staged = stage_image(&image::RgbImage::new(1, 1), &dest, encode_for(&dest)).expect("stage");
+        let listing = acl_listing(&staged);
+        assert!(
+            !listing.contains("(I)"),
+            "no inherited entries on the staging file: {listing}"
+        );
+        let mut principals = acl_principals(&listing);
+        principals.sort();
+        assert_eq!(
+            principals,
+            ["NT AUTHORITY\\SYSTEM", "OWNER RIGHTS"],
+            "owner and SYSTEM only: {listing}"
+        );
+
+        // Positive control: an ordinary new file in the same directory inherits entries.
+        let control = tmp.path().join("control.bin");
+        fs::write(&control, ORIGINAL).unwrap();
+        assert!(acl_listing(&control).contains("(I)"), "control must inherit");
+        fs::remove_file(&staged).unwrap();
+    }
+
+    // Protects: a failure to carry the destination's ACL onto the replacement is an
+    //   error, not a silent success that publishes the directory's inherited ACL.
+    // Detects: ReplaceFileW called with REPLACEFILE_IGNORE_MERGE_ERRORS.  The merge is
+    //   made to fail by denying WRITE_DAC on the staged file.
+    // Needs: Windows with icacls on PATH.
+    #[cfg(windows)]
+    #[test]
+    fn test_acl_merge_failure_fails_closed_and_leaves_the_destination_untouched() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let user = std::env::var("USERNAME").expect("USERNAME is set");
+        let restrict = std::process::Command::new("icacls")
+            .arg(&dest)
+            .args(["/inheritance:r", "/grant:r", &format!("{user}:(F)")])
+            .output()
+            .expect("run icacls");
+        assert!(restrict.status.success(), "icacls restrict failed: {restrict:?}");
+        let acl_before = acl_listing(&dest);
+
+        let staged = stage_image(&image::RgbImage::new(2, 2), &dest, encode_for(&dest)).expect("stage");
+        let deny = std::process::Command::new("icacls")
+            .arg(&staged.path)
+            .args(["/deny", &format!("{user}:(WDAC)")])
+            .output()
+            .expect("run icacls");
+        assert!(deny.status.success(), "icacls deny failed: {deny:?}");
+
+        let result = publish_staged(&staged, &dest);
+        let _ = fs::remove_file(&staged);
+        assert!(result.is_err(), "a failed ACL merge must fail the publish");
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(acl_listing(&dest), acl_before, "destination ACL untouched");
+    }
+
+    // Protects: a brand-new output gets the directory's inherited ACL, exactly what a plain
+    //   File::create would have produced, not the private staging ACL.
+    // Detects: a new file left owner/SYSTEM-only after the rename.
+    // Needs: Windows with icacls on PATH.
+    #[cfg(windows)]
+    #[test]
+    fn test_new_destination_gets_the_directorys_inherited_acl() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let control = tmp.path().join("control.png");
+        fs::write(&control, ORIGINAL).unwrap();
+        let dest = tmp.path().join("new.png");
+        write_image_atomically(&image::RgbImage::new(2, 2), &dest).expect("publish");
+        assert_eq!(image::open(&dest).unwrap().width(), 2);
+        assert_eq!(acl_entries(&acl_listing(&dest)), acl_entries(&acl_listing(&control)));
+    }
+
+    // Protects: when the replace step fails (for example the merge of the destination's
+    //   ACL), the request is Failed, the destination keeps its bytes and ACL, and the
+    //   staging file is removed; nothing is published.
+    // Detects: a publish that swallows the replace error, falls back to a plain rename,
+    //   or leaves the staging file behind.
+    // Needs: Windows with icacls on PATH; the failure is injected through the replace seam.
+    #[cfg(windows)]
+    #[test]
+    fn test_injected_replace_failure_leaves_destination_acl_and_bytes_and_removes_staging() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let user = std::env::var("USERNAME").expect("USERNAME is set");
+        let restrict = std::process::Command::new("icacls")
+            .arg(&dest)
+            .args(["/inheritance:r", "/grant:r", &format!("{user}:(F)")])
+            .output()
+            .expect("run icacls");
+        assert!(restrict.status.success(), "icacls restrict failed: {restrict:?}");
+        let acl_before = acl_entries(&acl_listing(&dest));
+
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest_text = dest.to_string_lossy().into_owned();
+        let encode = encode_for(&dest);
+        execute_async_request_staged(id, dest_text, mock_image, encode, |staged, dest| {
+            publish_staged_with(staged, dest, |_, _, _| {
+                Err(io::Error::other("injected ACL merge failure"))
+            })
+        });
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3, "the failed replace is reported as Failed");
+        assert!(text.expect("failure message").contains("injected ACL merge failure"));
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            acl_before,
+            "destination ACL untouched"
+        );
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: when preserving the destination's access control fails (group copy, ACL
+    //   check or mode copy), the request is Failed, the destination keeps its bytes and
+    //   mode, and the staging file is removed; nothing is published.
+    // Detects: a publish that goes ahead after the preservation step reported an error.
+    // Needs: Unix; the failure is injected through the preserve seam.
+    #[cfg(unix)]
+    #[test]
+    fn test_injected_preservation_failure_publishes_nothing() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o600)).unwrap();
+
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest_text = dest.to_string_lossy().into_owned();
+        let encode = encode_for(&dest);
+        execute_async_request_staged(id, dest_text, mock_image, encode, |staged, dest| {
+            publish_staged_with(staged, dest, |_, _, _| Err(io::Error::other("injected chgrp failure")))
+        });
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3, "the failed preservation is reported as Failed");
+        assert!(text.expect("failure message").contains("injected chgrp failure"));
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(unix_mode(&dest), 0o600, "destination mode untouched");
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    /// Run an async request whose publish step uses the injected `replace`, and
+    /// return its final status and text.
+    #[cfg(windows)]
+    fn publish_with_injected_replace(
+        dest: &Path,
+        replace: impl FnOnce(&Path, &Path, &Path) -> io::Result<()>,
+    ) -> (i32, Option<String>) {
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest_text = dest.to_string_lossy().into_owned();
+        let encode = encode_for(dest);
+        execute_async_request_staged(id, dest_text, mock_image, encode, |staged, dest| {
+            publish_staged_with(staged, dest, replace)
+        });
+        poll_full(id)
+    }
+
+    /// Write `ORIGINAL` to `dir/private.png` and cut its ACL down to the current user
+    /// alone, so a replacement carrying any other ACL would be noticed.  Returns the
+    /// path and its normalised ACL entries.
+    #[cfg(windows)]
+    fn owner_only_destination(dir: &Path) -> (PathBuf, Vec<String>) {
+        let dest = dir.join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let user = std::env::var("USERNAME").expect("USERNAME is set");
+        let restrict = std::process::Command::new("icacls")
+            .arg(&dest)
+            .args(["/inheritance:r", "/grant:r", &format!("{user}:(F)")])
+            .output()
+            .expect("run icacls");
+        assert!(restrict.status.success(), "icacls restrict failed: {restrict:?}");
+        let acl = acl_entries(&acl_listing(&dest));
+        (dest, acl)
+    }
+
+    // Protects: a successful publish over an existing destination keeps its ACL and
+    //   leaves neither the ReplaceFileW backup nor the staging file behind.
+    // Detects: a publish that forgets to delete the backup (the user's previous image
+    //   would linger as a hidden `.pcai-*.bak` file), or one that leaks the staging file.
+    // Needs: Windows with icacls on PATH; the real ReplaceFileW runs.
+    #[cfg(windows)]
+    #[test]
+    fn test_successful_replace_leaves_no_backup_or_staging_file() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, acl_before) = owner_only_destination(tmp.path());
+        let id = register_request(MediaRequestStatus::Pending);
+        let encode = encode_for(&dest);
+        execute_async_request_staged(
+            id,
+            dest.to_string_lossy().into_owned(),
+            mock_image,
+            encode,
+            publish_staged_owned,
+        );
+        let (status, _) = poll_full(id);
+        assert_eq!(status, 2, "the publish completes");
+        assert!(
+            image::open(&dest).is_ok(),
+            "destination holds the new image, not the original bytes"
+        );
+        assert_eq!(acl_entries(&acl_listing(&dest)), acl_before, "ACL kept");
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "no backup or staging file");
+    }
+
+    // Protects: `replace_file_keeping_acl` really passes the backup name to ReplaceFileW,
+    //   so Windows keeps the original under that name while it swaps; the failure paths
+    //   below can only restore from a backup that exists.
+    // Detects: a null `lpBackupFileName`: with it ERROR_UNABLE_TO_MOVE_REPLACEMENT
+    //   (1176) deletes the user's image and nothing can bring it back.
+    // Needs: Windows; calls the real ReplaceFileW on throwaway files.
+    #[cfg(windows)]
+    #[test]
+    fn test_replace_file_keeps_the_original_at_the_backup_name() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("image.png");
+        let staged = tmp.path().join("staged.partial");
+        let backup = tmp.path().join("original.bak");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::write(&staged, b"replacement bytes").unwrap();
+        replace_file_keeping_acl(&dest, &staged, &backup).expect("replace");
+        assert_eq!(fs::read(&dest).unwrap(), b"replacement bytes");
+        assert_eq!(
+            fs::read(&backup).unwrap(),
+            ORIGINAL,
+            "the original is kept at the backup name"
+        );
+        assert!(!staged.exists(), "the staged file became the destination");
+    }
+
+    // Protects: ERROR_UNABLE_TO_MOVE_REPLACEMENT (1176) with a backup requested.  Microsoft
+    //   Learn (ReplaceFileW, return value): "If lpBackupFileName was specified, the replaced
+    //   and replacement files retain their original file names."  So the destination is
+    //   still the original and no backup exists; the restore must be a no-op that does not
+    //   touch the destination, the request is Failed, and the staging file is removed.
+    // Detects: a restore that moves or deletes something when nothing was moved aside, or
+    //   a publish that reports the failure as success.
+    // Needs: Windows with icacls on PATH; the documented file state is injected through
+    //   the replace seam (nothing is moved).
+    #[cfg(windows)]
+    #[test]
+    fn test_replace_error_1176_with_a_backup_leaves_the_destination_alone() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, acl_before) = owner_only_destination(tmp.path());
+        let (status, text) = publish_with_injected_replace(&dest, |dest, staged, backup| {
+            assert_eq!(
+                backup.parent(),
+                dest.parent(),
+                "backup is in the destination's directory"
+            );
+            let name = backup.file_name().unwrap().to_string_lossy().into_owned();
+            assert!(
+                name.starts_with(".pcai-") && name.ends_with(".bak"),
+                "backup name {name}"
+            );
+            assert!(!backup.exists(), "backup name is unused");
+            assert!(staged.exists(), "the replacement keeps its own name");
+            Err(io::Error::from_raw_os_error(1176))
+        });
+        assert_eq!(status, 3, "the failed replace is reported as Failed");
+        assert!(text.expect("failure message").contains("1176"));
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            acl_before,
+            "destination ACL untouched"
+        );
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "no backup or staging file");
+    }
+
+    // Protects: ERROR_UNABLE_TO_MOVE_REPLACEMENT_2 (1177).  Microsoft Learn: "The replacement
+    //   file still exists under its original name ... The file to be replaced still exists
+    //   with a different name. If lpBackupFileName is specified, it will be the name of the
+    //   replaced file."  So the original is at the backup name and the destination name is
+    //   free: the original is moved back (without replacing), the staging file is removed,
+    //   the request is Failed, and no backup is left.
+    // Detects: a publish that leaves the original at the backup name, or one that deletes
+    //   the backup before restoring it.
+    // Needs: Windows with icacls on PATH; the documented file state is injected through
+    //   the replace seam.
+    #[cfg(windows)]
+    #[test]
+    fn test_replace_error_1177_restores_the_original_from_the_backup() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, acl_before) = owner_only_destination(tmp.path());
+        let (status, text) = publish_with_injected_replace(&dest, |dest, staged, backup| {
+            fs::rename(dest, backup).unwrap();
+            assert!(staged.exists(), "the replacement still exists under its original name");
+            Err(io::Error::from_raw_os_error(1177))
+        });
+        assert_eq!(status, 3, "the failed replace is reported as Failed");
+        assert!(text.expect("failure message").contains("1177"));
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes restored");
+        assert_eq!(acl_entries(&acl_listing(&dest)), acl_before, "destination ACL restored");
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "no backup or staging file");
+    }
+
+    // Protects: any other ReplaceFileW failure (the documented rule is that the files
+    //   keep their names and no backup exists) leaves the destination as it was, with no
+    //   backup name left over; nothing is "restored" from a backup that was never made.
+    // Detects: a publish that treats a missing backup as an error of its own, or that
+    //   moves or deletes the destination while cleaning up.
+    // Needs: Windows with icacls on PATH; the failure is injected through the replace seam.
+    #[cfg(windows)]
+    #[test]
+    fn test_other_replace_errors_leave_the_destination_and_make_no_backup() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, acl_before) = owner_only_destination(tmp.path());
+        let (status, text) = publish_with_injected_replace(&dest, |_, _, _| Err(io::Error::from_raw_os_error(87)));
+        assert_eq!(status, 3);
+        assert!(text.expect("failure message").contains("87"));
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            acl_before,
+            "destination ACL untouched"
+        );
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "no backup or staging file");
+    }
+
+    // Protects: when the restore itself fails, the backup is kept (it is the user's only
+    //   copy) and the error names its path, so the original can be recovered by hand.
+    // Detects: a publish that deletes the backup after a failed restore, or reports the
+    //   failure without the backup's location.
+    // Needs: Windows; the failure state is injected through the replace seam and the move
+    //   is made to fail for real by putting a directory under the destination name, which
+    //   a file cannot replace.  (Holding the backup open instead would also block deleting
+    //   it, so the test could not tell "kept" from "could not delete".)
+    #[cfg(windows)]
+    #[test]
+    fn test_failed_restore_keeps_the_backup_and_names_its_path() {
+        use std::cell::RefCell;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, _acl) = owner_only_destination(tmp.path());
+        let backup_seen: RefCell<Option<PathBuf>> = RefCell::new(None);
+        let (status, text) = publish_with_injected_replace(&dest, |dest, _staged, backup| {
+            fs::rename(dest, backup).unwrap();
+            fs::create_dir(dest).unwrap();
+            *backup_seen.borrow_mut() = Some(backup.to_path_buf());
+            Err(io::Error::from_raw_os_error(1176))
+        });
+        let backup = backup_seen.into_inner().expect("the replace step ran");
+        assert_eq!(status, 3, "the failed replace is reported as Failed");
+        let text = text.expect("failure message");
+        assert!(
+            text.contains(backup.to_string_lossy().as_ref()),
+            "the error names the backup path {backup:?}: {text}"
+        );
+        assert_eq!(
+            fs::read(&backup).unwrap(),
+            ORIGINAL,
+            "the backup still holds the original"
+        );
+        assert!(
+            dest.is_dir(),
+            "the blocker is still in the way, so the restore really failed"
+        );
+        let backup_name = backup.file_name().unwrap().to_string_lossy().into_owned();
+        assert_eq!(
+            dir_listing(tmp.path()),
+            [backup_name, "private.png".to_string()],
+            "only the backup and the blocker remain; the staging file is gone"
+        );
+    }
+
+    /// Run an async request whose publish step is the real one but whose metadata
+    /// check is the injected `probe`, and return its final status and text.
+    #[cfg(any(unix, windows))]
+    fn publish_with_injected_probe(
+        dest: &Path,
+        probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
+    ) -> (i32, Option<String>) {
+        let id = register_request(MediaRequestStatus::Pending);
+        let dest_text = dest.to_string_lossy().into_owned();
+        let encode = encode_for(dest);
+        execute_async_request_staged(id, dest_text, mock_image, encode, |staged, dest| {
+            real_publish_with_probe(staged, dest, probe)
+        });
+        poll_full(id)
+    }
+
+    #[cfg(windows)]
+    fn real_publish_with_probe(
+        staged: &Path,
+        dest: &Path,
+        probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
+    ) -> io::Result<()> {
+        publish_staged_checked(staged, dest, probe, replace_file_keeping_acl)
+    }
+
+    #[cfg(unix)]
+    fn real_publish_with_probe(
+        staged: &StagedFile,
+        dest: &Path,
+        probe: impl FnOnce(&Path) -> io::Result<fs::Metadata>,
+    ) -> io::Result<()> {
+        publish_staged_checked(staged, dest, probe, |_, dest, existing| {
+            copy_access_control(&staged.file, dest, existing)?;
+            verify_staging_identity(staged)
+        })
+    }
+
+    // Protects: the no-replace move fills a free name and, when the name is occupied,
+    //   fails with AlreadyExists and leaves both the destination and the staged file
+    //   exactly as they were.
+    // Detects: a replacing rename on the new-output path: a file that appears after the
+    //   existence check would be overwritten.
+    // Needs: Unix or Windows; plain files in a temporary directory.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_no_replace_move_refuses_an_occupied_destination() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = tmp.path().join("staged.partial");
+        let dest = tmp.path().join("dest.png");
+        fs::write(&staged, b"first").unwrap();
+        move_without_replacing(&staged, &dest).expect("a free name is filled");
+        assert_eq!(fs::read(&dest).unwrap(), b"first");
+        assert!(!staged.exists(), "the staged file was moved");
+
+        fs::write(&staged, b"second").unwrap();
+        let error = move_without_replacing(&staged, &dest).expect_err("an occupied name is refused");
+        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+        assert!(error.to_string().contains("not overwritten"), "explicit error: {error}");
+        assert_eq!(fs::read(&dest).unwrap(), b"first", "the destination is untouched");
+        assert_eq!(fs::read(&staged).unwrap(), b"second", "the staged file is untouched");
+    }
+
+    // Protects: the hard-link fallback (used where `renameat2` is unavailable) has the
+    //   same contract as the primary no-replace move.
+    // Detects: a fallback that overwrites, or that leaves the staging name behind.
+    // Needs: Unix on a filesystem with hard links (a temporary directory).
+    #[cfg(unix)]
+    #[test]
+    fn test_link_fallback_refuses_an_occupied_destination() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = tmp.path().join("staged.partial");
+        let dest = tmp.path().join("dest.png");
+        fs::write(&staged, b"first").unwrap();
+        move_by_linking_with(&staged, &dest, |from, to| fs::hard_link(from, to)).expect("a free name is filled");
+        assert_eq!(fs::read(&dest).unwrap(), b"first");
+        assert!(!staged.exists(), "the staging name was removed");
+
+        fs::write(&staged, b"second").unwrap();
+        let error = move_by_linking_with(&staged, &dest, |from, to| fs::hard_link(from, to))
+            .expect_err("an occupied name is refused");
+        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(fs::read(&dest).unwrap(), b"first", "the destination is untouched");
+        assert_eq!(fs::read(&staged).unwrap(), b"second", "the staged file is untouched");
+    }
+
+    // Protects: a file that appears at a new output's path between the existence check
+    //   and the publish is not overwritten: the request is Failed with an explicit error,
+    //   the file keeps its bytes and ACL, and the staging file is removed.
+    // Detects: a replacing rename after "not found" (the other process's private file
+    //   would be clobbered by the generated image).
+    // Needs: Windows with icacls on PATH; the appearance is injected through the metadata
+    //   seam, which reports "not found" and then creates the file.
+    #[cfg(windows)]
+    #[test]
+    fn test_destination_appearing_after_the_check_is_not_overwritten_on_windows() {
+        use std::cell::RefCell;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let acl_before: RefCell<Vec<String>> = RefCell::new(Vec::new());
+        let (status, text) = publish_with_injected_probe(&dest, |path| {
+            let result = fs::symlink_metadata(path);
+            assert!(result.is_err(), "the destination is absent at the check");
+            let (_, acl) = owner_only_destination(tmp.path());
+            *acl_before.borrow_mut() = acl;
+            result
+        });
+        assert_eq!(status, 3, "the publish is Failed, not completed over the new file");
+        assert!(text.expect("failure message").contains("not overwritten"));
+        assert_eq!(
+            fs::read(&dest).unwrap(),
+            ORIGINAL,
+            "the other file's bytes are untouched"
+        );
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            acl_before.into_inner(),
+            "the other file's ACL is untouched"
+        );
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: a metadata error other than "not found" (here access denied) is not read
+    //   as "the destination is absent": the publish fails closed with that error, the
+    //   existing destination keeps its bytes and ACL, and the staging file is removed.
+    // Detects: a check that treats every metadata error as absence and then publishes
+    //   over a file it could not see.
+    // Needs: Windows with icacls on PATH; the error is injected through the metadata seam.
+    #[cfg(windows)]
+    #[test]
+    fn test_metadata_error_other_than_not_found_fails_closed_on_windows() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, acl_before) = owner_only_destination(tmp.path());
+        let (status, text) = publish_with_injected_probe(&dest, |_| {
+            Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "injected metadata failure",
+            ))
+        });
+        assert_eq!(status, 3);
+        assert!(
+            text.expect("failure message").contains("injected metadata failure"),
+            "the metadata error itself is reported"
+        );
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            acl_before,
+            "destination ACL untouched"
+        );
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: as the Windows test of the same name, on Unix: a file that appears at a
+    //   new output's path after the check is not overwritten; the request is Failed with
+    //   an explicit error, the file keeps its bytes and mode, and the staging file is
+    //   removed.
+    // Detects: a replacing rename after "not found".
+    // Needs: Unix; the appearance is injected through the metadata seam.
+    #[cfg(unix)]
+    #[test]
+    fn test_destination_appearing_after_the_check_is_not_overwritten_on_unix() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let (status, text) = publish_with_injected_probe(&dest, |path| {
+            let result = fs::metadata(path);
+            assert!(result.is_err(), "the destination is absent at the check");
+            fs::write(path, ORIGINAL).unwrap();
+            fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
+            result
+        });
+        assert_eq!(status, 3, "the publish is Failed, not completed over the new file");
+        assert!(text.expect("failure message").contains("not overwritten"));
+        assert_eq!(
+            fs::read(&dest).unwrap(),
+            ORIGINAL,
+            "the other file's bytes are untouched"
+        );
+        assert_eq!(unix_mode(&dest), 0o600, "the other file's mode is untouched");
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: as the Windows test of the same name, on Unix: a metadata error other than
+    //   "not found" fails the publish closed, before the access-control step runs.
+    // Detects: a check that treats every metadata error as absence.
+    // Needs: Unix; the error is injected through the metadata seam.
+    #[cfg(unix)]
+    #[test]
+    fn test_metadata_error_other_than_not_found_fails_closed_on_unix() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o600)).unwrap();
+        let (status, text) = publish_with_injected_probe(&dest, |_| {
+            Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "injected metadata failure",
+            ))
+        });
+        assert_eq!(status, 3);
+        assert!(
+            text.expect("failure message").contains("injected metadata failure"),
+            "the metadata error itself is reported"
+        );
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "destination bytes untouched");
+        assert_eq!(unix_mode(&dest), 0o600, "destination mode untouched");
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: a regular file that appears at the destination while a failed replace is being
+    //   undone belongs to another writer and is never overwritten by the restore: the request
+    //   is Failed, the concurrent file keeps its bytes and ACL, the backup is kept, and the
+    //   error names the backup and says the destination exists.
+    // Detects: a restore with a replacing rename (MOVEFILE_REPLACE_EXISTING), which would
+    //   clobber the concurrent file with the original.
+    // Needs: Windows with icacls on PATH; the 1177 state is injected through the replace
+    //   seam, which then creates the concurrent file at the free destination name.
+    #[cfg(windows)]
+    #[test]
+    fn test_restore_does_not_overwrite_a_file_that_appeared_at_the_destination() {
+        use std::cell::RefCell;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let (dest, _original_acl) = owner_only_destination(tmp.path());
+        let concurrent_acl: RefCell<Vec<String>> = RefCell::new(Vec::new());
+        let backup_seen: RefCell<Option<PathBuf>> = RefCell::new(None);
+        let (status, text) = publish_with_injected_replace(&dest, |dest, _staged, backup| {
+            fs::rename(dest, backup).unwrap();
+            fs::write(dest, b"another writer's file").unwrap();
+            *concurrent_acl.borrow_mut() = acl_entries(&acl_listing(dest));
+            *backup_seen.borrow_mut() = Some(backup.to_path_buf());
+            Err(io::Error::from_raw_os_error(1177))
+        });
+        let backup = backup_seen.into_inner().expect("the replace step ran");
+        assert_eq!(status, 3, "the failed replace is reported as Failed");
+        let text = text.expect("failure message");
+        assert!(
+            text.contains(backup.to_string_lossy().as_ref()),
+            "the error names the backup {backup:?}: {text}"
+        );
+        assert!(text.contains("now exists"), "the error states the collision: {text}");
+        assert_eq!(
+            fs::read(&dest).unwrap(),
+            b"another writer's file",
+            "the concurrent file is byte-identical"
+        );
+        assert_eq!(
+            acl_entries(&acl_listing(&dest)),
+            concurrent_acl.into_inner(),
+            "the concurrent file's ACL is untouched"
+        );
+        assert_eq!(fs::read(&backup).unwrap(), ORIGINAL, "the backup keeps the original");
+        let backup_name = backup.file_name().unwrap().to_string_lossy().into_owned();
+        assert_eq!(
+            dir_listing(tmp.path()),
+            [backup_name, "private.png".to_string()],
+            "only the backup and the concurrent file remain; the staging file is gone"
+        );
+    }
+
+    // Protects: one probe decides "new or existing" for the permission policy AND the
+    //   publication primitive.  A target that is removed after the probe (here: after the
+    //   access-control step) is not published as a replacement: the request is Failed with
+    //   an explicit error, the destination is not created, and the staging file is removed.
+    // Detects: a flow that re-probes in the access-control step and then renames over (or
+    //   into) whatever is there, applying existing-file semantics to a file that is gone.
+    // Needs: Unix; the removal is injected through the preserve seam after the real step.
+    #[cfg(unix)]
+    #[test]
+    fn test_target_removed_before_the_replace_is_not_published_as_a_replacement() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o640)).unwrap();
+        let id = register_request(MediaRequestStatus::Pending);
+        let encode = encode_for(&dest);
+        execute_async_request_staged(
+            id,
+            dest.to_string_lossy().into_owned(),
+            mock_image,
+            encode,
+            |staged, dest| {
+                publish_staged_with(staged, dest, |_, dest, existing| {
+                    copy_access_control(&staged.file, dest, existing)?;
+                    fs::remove_file(dest).unwrap();
+                    Ok(())
+                })
+            },
+        );
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 3, "a replacement of a vanished target is Failed");
+        assert!(text.expect("failure message").contains("disappeared"));
+        assert!(!dest.exists(), "nothing was published at the vanished path");
+        assert_eq!(dir_listing(tmp.path()), Vec::<String>::new(), "staging file removed");
+    }
+
+    // Protects: the decision made from the probe is the only one: when the probe reports an
+    //   existing file that the access-control step then cannot find, the publish fails
+    //   closed instead of switching to new-file permissions and a replacing rename.
+    // Detects: an access-control step that probes the destination again and disagrees with
+    //   the first decision.
+    // Needs: Unix; the stale probe result is injected through the metadata seam (it
+    //   reports another, existing file for a destination that is absent).
+    #[cfg(unix)]
+    #[test]
+    fn test_stale_existing_decision_does_not_create_the_destination() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let other = tmp.path().join("other.png");
+        fs::write(&other, ORIGINAL).unwrap();
+        fs::set_permissions(&other, fs::Permissions::from_mode(0o640)).unwrap();
+        let dest = tmp.path().join("gone.png");
+        let (status, _text) = publish_with_injected_probe(&dest, |_| fs::metadata(&other));
+        assert_eq!(status, 3, "the conflicted decision is Failed");
+        assert!(!dest.exists(), "the destination was not created");
+        assert_eq!(dir_listing(tmp.path()), ["other.png"], "staging file removed");
+    }
+
+    // Protects: the access ACL a staging file inherits from a directory's DEFAULT ACL is
+    //   removed by the access-control step before the destination's mode is copied, so the
+    //   mode copy cannot raise the ACL mask and activate the inherited named entry.
+    // Detects: a missing or misplaced strip (the staged file would keep the named user's
+    //   entry, effective at the copied 0640).
+    // Needs: Linux and a filesystem with POSIX ACL xattrs; returns early with a message when
+    //   the default ACL cannot be set.  Positive control: the staging file really carries
+    //   an inherited access ACL before the step runs.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_staged_files_inherited_acl_is_stripped_before_the_mode_is_copied() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("dest.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o640)).unwrap();
+        // SAFETY: geteuid cannot fail.
+        let other_user = unsafe { libc::geteuid() }.wrapping_add(1);
+        let default_acl = [
+            (0x01u16, 7u16, u32::MAX),
+            (0x02, 6, other_user),
+            (0x04, 5, u32::MAX),
+            (0x10, 7, u32::MAX),
+            (0x20, 0, u32::MAX),
+        ];
+        if let Err(error) = set_posix_acl(tmp.path(), c"system.posix_acl_default", &default_acl) {
+            eprintln!("SKIP staged-acl test: cannot set a default ACL here: {error}");
+            return;
+        }
+        let (staged, file) = create_staging_file(&dest).expect("staging file");
+        assert!(
+            has_access_acl(&staged).unwrap(),
+            "positive control: the staging file inherited an access ACL from the directory"
+        );
+        let existing = fs::metadata(&dest).unwrap();
+        copy_access_control(&file, &dest, Some(&existing)).expect("access control");
+        assert!(
+            !has_access_acl(&staged).unwrap(),
+            "the inherited access ACL is gone after the step"
+        );
+        assert_eq!(unix_mode(&staged), 0o640, "the destination's mode was copied");
+    }
+
+    /// Set a POSIX ACL extended attribute (`system.posix_acl_access` or
+    /// `system.posix_acl_default`) from `(tag, perm, id)` entries.
+    #[cfg(target_os = "linux")]
+    fn set_posix_acl(path: &Path, attribute: &CStr, entries: &[(u16, u16, u32)]) -> io::Result<()> {
+        use std::os::unix::ffi::OsStrExt;
+        let mut acl = 2u32.to_le_bytes().to_vec();
+        for (tag, perm, id) in entries {
+            acl.extend_from_slice(&tag.to_le_bytes());
+            acl.extend_from_slice(&perm.to_le_bytes());
+            acl.extend_from_slice(&id.to_le_bytes());
+        }
+        let path = CString::new(path.as_os_str().as_bytes()).map_err(io::Error::other)?;
+        // SAFETY: valid NUL-terminated strings and a buffer of the stated length.
+        let status = unsafe { libc::setxattr(path.as_ptr(), attribute.as_ptr(), acl.as_ptr().cast(), acl.len(), 0) };
+        if status == 0 {
+            Ok(())
+        } else {
+            Err(io::Error::last_os_error())
+        }
+    }
+
+    // Protects: a destination with plain mode bits (0640, no ACL) in a directory that has a
+    //   DEFAULT ACL with a named user entry is replaced without gaining an access ACL, on
+    //   the synchronous and the asynchronous path.  The staging file inherits the default
+    //   ACL with its named entry masked by the 0600 mode; copying the destination's 0640
+    //   would raise the mask and make that entry effective, widening access to the image.
+    // Detects: a publish that copies the mode but leaves the inherited access ACL on the
+    //   staged file (the published image would then be readable by the named user).
+    // Needs: Linux and a filesystem with POSIX ACL xattrs; returns early with a message
+    //   when the default ACL cannot be set.  A positive control creates a probe file and
+    //   requires it to carry an inherited access ACL, so a passing run proves the
+    //   directory's default ACL was operative.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_inherited_default_acl_is_not_activated_by_the_mode_copy() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let sync_dest = tmp.path().join("sync.png");
+        let async_dest = tmp.path().join("async.png");
+        for dest in [&sync_dest, &async_dest] {
+            fs::write(dest, ORIGINAL).unwrap();
+            fs::set_permissions(dest, fs::Permissions::from_mode(0o640)).unwrap();
+            assert!(
+                !has_access_acl(dest).unwrap(),
+                "precondition: the destination has plain mode bits"
+            );
+        }
+        // SAFETY: geteuid cannot fail.
+        let other_user = unsafe { libc::geteuid() }.wrapping_add(1);
+        // default: user::rwx, user:<other>:rw-, group::r-x, mask::rwx, other::---
+        let default_acl = [
+            (0x01u16, 7u16, u32::MAX),
+            (0x02, 6, other_user),
+            (0x04, 5, u32::MAX),
+            (0x10, 7, u32::MAX),
+            (0x20, 0, u32::MAX),
+        ];
+        if let Err(error) = set_posix_acl(tmp.path(), c"system.posix_acl_default", &default_acl) {
+            eprintln!("SKIP default-acl test: cannot set a default ACL here: {error}");
+            return;
+        }
+        let probe = tmp.path().join("probe");
+        File::create(&probe).unwrap();
+        assert!(
+            has_access_acl(&probe).unwrap(),
+            "positive control: a file created in the directory inherits an access ACL"
+        );
+        fs::remove_file(&probe).unwrap();
+
+        write_image_atomically(&image::RgbImage::new(2, 2), &sync_dest).expect("sync publish");
+        let id = register_request(MediaRequestStatus::Pending);
+        let encode = encode_for(&async_dest);
+        execute_async_request_staged(
+            id,
+            async_dest.to_string_lossy().into_owned(),
+            mock_image,
+            encode,
+            publish_staged_owned,
+        );
+        assert_eq!(poll_full(id).0, 2, "the async publish completes");
+
+        for (label, dest) in [("sync", &sync_dest), ("async", &async_dest)] {
+            assert_ne!(fs::read(dest).unwrap(), ORIGINAL, "{label}: the new image is published");
+            assert!(
+                !has_access_acl(dest).unwrap(),
+                "{label}: the published file carries no inherited access ACL"
+            );
+            assert_eq!(unix_mode(dest), 0o640, "{label}: the destination's mode is kept");
+        }
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["async.png", "sync.png"],
+            "no staging file left"
+        );
+    }
+
+    /// Publish over `dest` through the real access-control step, then run `between`,
+    /// which stands in for another process acting after the destination was validated
+    /// and before the replacement is published.  Returns the request's status and text.
+    #[cfg(unix)]
+    fn publish_after_validation(dest: &Path, between: impl FnOnce(&Path)) -> (i32, Option<String>) {
+        let id = register_request(MediaRequestStatus::Pending);
+        let encode = encode_for(dest);
+        execute_async_request_staged(
+            id,
+            dest.to_string_lossy().into_owned(),
+            mock_image,
+            encode,
+            |staged, dest| {
+                publish_staged_with(staged, dest, |_, dest, existing| {
+                    copy_access_control(&staged.file, dest, existing)?;
+                    between(dest);
+                    Ok(())
+                })
+            },
+        );
+        poll_full(id)
+    }
+
+    // Protects: a directory that takes the destination's name after validation is never
+    //   swapped out of place: the request is Failed, the directory and its contents are
+    //   still at the destination path, and the staging file is removed.  The destination is
+    //   re-checked just before a plain rename, and the kernel would refuse the rename of a
+    //   file over a directory anyway.
+    // Detects: a publish that skips the re-check and reports a different outcome than the
+    //   explicit "changed" refusal (here the kernel's EISDIR, with no custody message).
+    // Needs: Linux; the substitution is injected between the validation and the publish.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_directory_substituted_after_validation_is_not_exchanged() {
+        use std::os::unix::fs::PermissionsExt;
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o640)).unwrap();
+        let (status, text) = publish_after_validation(&dest, |dest| {
+            fs::remove_file(dest).unwrap();
+            fs::create_dir(dest).unwrap();
+            fs::write(dest.join("keep.txt"), b"inside").unwrap();
+        });
+        assert_eq!(status, 3, "no success is reported for a replaced destination");
+        assert!(text.expect("failure message").contains("changed"));
+        assert!(dest.is_dir(), "the directory is still at the destination path");
+        assert_eq!(
+            fs::read(dest.join("keep.txt")).unwrap(),
+            b"inside",
+            "its contents are intact"
+        );
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["private.png"],
+            "nothing left at the staging name"
+        );
+    }
+
+    // Protects: a different regular file that replaces the validated one (another writer,
+    //   new inode) is not displaced either: Failed, that file is back at the destination
+    //   with its bytes, and the staging file is removed.
+    // Detects: a re-check that looks only at the file type, not the identity (dev and inode)
+    //   recorded at validation: a plain rename would replace the other writer's file.
+    // Needs: Linux; the substitute is created under another name first and renamed over the
+    //   destination, so it cannot reuse the old inode number.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_other_regular_file_substituted_after_validation_is_left_alone() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let (status, text) = publish_after_validation(&dest, |dest| {
+            let other = dest.with_file_name("other.new");
+            fs::write(&other, b"another writer").unwrap();
+            fs::rename(&other, dest).unwrap();
+        });
+        assert_eq!(status, 3);
+        assert!(text.expect("failure message").contains("changed"));
+        assert_eq!(
+            fs::read(&dest).unwrap(),
+            b"another writer",
+            "the other writer's file is intact"
+        );
+        assert_eq!(dir_listing(tmp.path()), ["private.png"], "staging file removed");
+    }
+
+    // Protects: a symlink that replaces the destination after validation is neither
+    //   followed nor replaced: Failed, the symlink is still at the destination path and still
+    //   points at its target, whose bytes are untouched.
+    // Detects: a re-check that lets a symlink through (a plain rename replaces the link
+    //   itself), or a publish that writes through the link.
+    // Needs: Linux; the substitution is injected between validation and publish.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_symlink_substituted_after_validation_is_left_alone() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let target = tmp.path().join("target.png");
+        fs::write(&target, ORIGINAL).unwrap();
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let (status, text) = publish_after_validation(&dest, |dest| {
+            let link = dest.with_file_name("link.new");
+            std::os::unix::fs::symlink(dest.with_file_name("target.png"), &link).unwrap();
+            fs::rename(&link, dest).unwrap();
+        });
+        assert_eq!(status, 3);
+        assert!(text.expect("failure message").contains("changed"));
+        assert!(
+            fs::symlink_metadata(&dest).unwrap().file_type().is_symlink(),
+            "still a symlink"
+        );
+        assert_eq!(fs::read_link(&dest).unwrap(), target, "still points at its target");
+        assert_eq!(fs::read(&target).unwrap(), ORIGINAL, "the target is untouched");
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["private.png", "target.png"],
+            "staging file removed"
+        );
+    }
+
+    // Protects: a destination that already is a symlink is refused, not followed and not
+    //   replaced: the publish returns an explicit error, the link and its target are
+    //   untouched and no staging file is left.  (The destination is classified with
+    //   `symlink_metadata`, so a link is never mistaken for the regular file behind it.)
+    // Detects: a publish that follows the link, or replaces the link with a regular file and
+    //   reports success.
+    // Needs: Unix.
+    #[cfg(unix)]
+    #[test]
+    fn test_symlink_destination_is_refused() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let target = tmp.path().join("target.png");
+        fs::write(&target, ORIGINAL).unwrap();
+        let link = tmp.path().join("link.png");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        let error = write_image_atomically(&image::RgbImage::new(2, 2), &link).expect_err("a symlink is refused");
+        assert!(
+            error.to_string().contains("not a regular file"),
+            "explicit error: {error}"
+        );
+        assert_eq!(fs::read_link(&link).unwrap(), target, "the link is untouched");
+        assert_eq!(fs::read(&target).unwrap(), ORIGINAL, "the target is untouched");
+        assert_eq!(
+            dir_listing(tmp.path()),
+            ["link.png", "target.png"],
+            "no staging file left"
+        );
+    }
+
+    // Protects: when `renameat2(RENAME_NOREPLACE)` is unsupported, the no-replace move uses
+    //   `link` followed by `unlink`, which is atomic and never overwrites: a free name is
+    //   filled and the staging name removed; an occupied one is refused with "not
+    //   overwritten" and both files are untouched.
+    // Detects: a fallback that checks and then renames (a vanished path could be recreated
+    //   in the gap), or one that overwrites.
+    // Needs: Unix on a filesystem with hard links (a temporary directory); the unsupported
+    //   primitive is injected.
+    #[cfg(unix)]
+    #[test]
+    fn test_noreplace_falls_back_to_linking_when_renameat2_is_unsupported() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = tmp.path().join("staged.partial");
+        let dest = tmp.path().join("dest.png");
+        let unsupported = |_: &Path, _: &Path| Err(io::Error::from_raw_os_error(libc::ENOTSUP));
+        fs::write(&staged, b"first").unwrap();
+        move_without_replacing_with(&staged, &dest, unsupported, |from, to| fs::hard_link(from, to))
+            .expect("a free name is filled through link");
+        assert_eq!(fs::read(&dest).unwrap(), b"first");
+        assert!(!staged.exists(), "the staging name was removed");
+
+        fs::write(&staged, b"second").unwrap();
+        let error = move_without_replacing_with(&staged, &dest, unsupported, |from, to| fs::hard_link(from, to))
+            .expect_err("an occupied name is refused");
+        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+        assert!(error.to_string().contains("not overwritten"), "explicit error: {error}");
+        assert_eq!(fs::read(&dest).unwrap(), b"first", "the destination is untouched");
+        assert_eq!(fs::read(&staged).unwrap(), b"second", "the staged file is untouched");
+    }
+
+    // Protects: where neither `renameat2(RENAME_NOREPLACE)` nor hard links are available the
+    //   publish fails closed with an explicit error instead of falling back to a check
+    //   followed by a rename: nothing is published and the staged file is untouched.
+    // Detects: a fallback that renames when it cannot link.
+    // Needs: Unix; both primitives are injected as unsupported.
+    #[cfg(unix)]
+    #[test]
+    fn test_noreplace_fails_closed_without_renameat2_or_hard_links() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = tmp.path().join("staged.partial");
+        let dest = tmp.path().join("dest.png");
+        fs::write(&staged, b"first").unwrap();
+        let error = move_without_replacing_with(
+            &staged,
+            &dest,
+            |_, _| Err(io::Error::from_raw_os_error(libc::EINVAL)),
+            |_, _| Err(io::Error::from_raw_os_error(libc::EPERM)),
+        )
+        .expect_err("no no-replace primitive is available");
+        assert_eq!(error.kind(), io::ErrorKind::Unsupported);
+        assert!(error.to_string().contains("neither"), "explicit error: {error}");
+        assert!(!dest.exists(), "nothing was published");
+        assert_eq!(fs::read(&staged).unwrap(), b"first", "the staged file is untouched");
+    }
+
+    /// Stage a small image next to a destination in `dir` and return it.
+    #[cfg(any(unix, windows))]
+    fn staged_in(dir: &Path) -> StagedFile {
+        let dest = dir.join("private.png");
+        stage_image(&image::RgbImage::new(1, 1), &dest, encode_for(&dest)).expect("stage")
+    }
+
+    /// Put another file's bytes at `path` by renaming a new file over it, so the path now
+    /// refers to a different file object (the new file is created while the old one exists,
+    /// so it cannot reuse its identity).
+    #[cfg(any(unix, windows))]
+    fn replace_with_foreign_file(path: &Path, bytes: &[u8]) {
+        let other = path.with_file_name("foreign.tmp");
+        fs::write(&other, bytes).unwrap();
+        fs::rename(&other, path).unwrap();
+    }
+
+    /// The `.pcai-*.rescued` file in `dir`, if any.
+    #[cfg(any(unix, windows))]
+    fn rescued_file(dir: &Path) -> Option<PathBuf> {
+        dir_listing(dir)
+            .into_iter()
+            .find(|name| name.ends_with(".rescued"))
+            .map(|name| dir.join(name))
+    }
+
+    // Protects: cleanup after a failed publish deletes the staging path only while it still
+    //   holds the file this process created, and does nothing if it is already gone.
+    // Detects: a cleanup that leaves our own staging file behind, or that reports a problem
+    //   where there is none.
+    // Needs: Unix or Windows (file identity is read from the OS); no global state.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_discard_staging_removes_the_generated_file_and_tolerates_absence() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = staged_in(tmp.path());
+        assert!(staged.exists());
+        assert_eq!(discard_staging(&staged), None, "an owned file is removed silently");
+        assert!(!staged.exists(), "the generated file is gone");
+        assert_eq!(discard_staging(&staged), None, "an absent staging path is not an error");
+        assert_eq!(dir_listing(tmp.path()), Vec::<String>::new());
+    }
+
+    // Protects: the publisher receives only the staging identity held by the caller.
+    // Detects: handing a mismatched identity to an operation that changes permissions
+    //   or publishes the file.
+    // Needs: Unix or Windows, one temporary file and a synthetic identity mismatch.
+    // Breadcrumb: Native/pcai_core/pcai_media/src/ffi/mod.rs#publish_owned_staging
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_publish_does_not_run_for_an_unexpected_staging_identity() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let mut staged = staged_in(tmp.path());
+        let dest = tmp.path().join("destination.png");
+        let before = fs::read(&staged.path).expect("staging bytes");
+        staged.identity.index ^= 1;
+        let called = std::cell::Cell::new(false);
+        let error = publish_owned_staging(&staged, &dest, |_, _| {
+            called.set(true);
+            Ok(())
+        })
+        .expect_err("the staging identity differs");
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(!called.get(), "the publisher must not be called");
+        assert!(!dest.exists());
+        assert_eq!(fs::read(&staged.path).unwrap(), before);
+    }
+
+    // Protects: Unix publication prepares the retained staging descriptor and
+    //   refuses to publish when its former pathname is absent.
+    // Detects: reopening the staging path for permissions, dropping the inode
+    //   before preparation, or publishing without a staging entry.
+    // Needs: Unix and ordinary temporary files on a filesystem with mode bits.
+    // Breadcrumb: Native/pcai_core/pcai_media/src/ffi/mod.rs#publish_staged_owned
+    #[cfg(unix)]
+    #[test]
+    fn test_unix_publish_prepares_the_retained_staging_inode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = staged_in(tmp.path());
+        let dest = tmp.path().join("existing.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        fs::set_permissions(&dest, fs::Permissions::from_mode(0o640)).unwrap();
+        fs::remove_file(&staged).unwrap();
+
+        let error = publish_staged_owned(&staged, &dest).expect_err("the source pathname is absent");
+        assert_eq!(error.kind(), io::ErrorKind::NotFound);
+        assert_eq!(identity_of_file(&staged.file).unwrap(), staged.identity);
+        assert_eq!(staged.file.metadata().unwrap().permissions().mode() & 0o777, 0o640);
+        assert!(!staged.exists());
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL);
+    }
+
+    // Protects: if something other than the generated file is at the staging path (another
+    //   writer renamed a file over it), cleanup never deletes it: the file is moved to a
+    //   `.pcai-<hex>.rescued` name beside it, with its bytes, and the note names that path.
+    // Detects: a cleanup that unlinks by path (the other writer's data would be lost), or
+    //   that drops the identity comparison, or that skips the rescue.
+    // Needs: Unix or Windows; no global state.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_discard_staging_rescues_a_file_that_is_not_the_generated_image() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = staged_in(tmp.path());
+        replace_with_foreign_file(&staged.path, b"somebody else's data");
+        let note = discard_staging(&staged).expect("a note: something was kept");
+        let rescued = rescued_file(tmp.path()).expect("the foreign file was rescued");
+        assert!(
+            note.contains(rescued.to_string_lossy().as_ref()),
+            "the note names {rescued:?}: {note}"
+        );
+        assert_eq!(
+            fs::read(&rescued).unwrap(),
+            b"somebody else's data",
+            "its bytes are intact"
+        );
+        assert!(!staged.exists(), "nothing is left at the staging path");
+        assert_eq!(dir_listing(tmp.path()).len(), 1, "only the rescued file remains");
+    }
+
+    // Protects: if the rescue itself fails, the file that is not ours is left exactly where
+    //   it is (never deleted) and the note names the staging path.
+    // Detects: a cleanup that unlinks after a failed rescue.
+    // Needs: Unix or Windows; the rescue failure is injected; no global state.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_failed_rescue_leaves_the_foreign_file_in_place_and_names_it() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let staged = staged_in(tmp.path());
+        replace_with_foreign_file(&staged.path, b"somebody else's data");
+        let note = discard_staging_with(&staged, |_, _| Err(io::Error::other("injected rescue failure")))
+            .expect("a note: something was kept");
+        assert!(
+            note.contains(staged.path.to_string_lossy().as_ref()),
+            "names the path: {note}"
+        );
+        assert!(note.contains("injected rescue failure"), "gives the reason: {note}");
+        assert_eq!(
+            fs::read(&staged.path).unwrap(),
+            b"somebody else's data",
+            "left in place, intact"
+        );
+        assert_eq!(rescued_file(tmp.path()), None, "no rescue happened");
+    }
+
+    // Protects: on the asynchronous path, a publish that fails after another writer has put a
+    //   file at the staging path does not delete it: the request is Failed, the error names
+    //   the `.rescued` file, which holds the other writer's bytes, and the destination keeps
+    //   its own bytes.
+    // Detects: a caller that unlinks the staging path on any error.
+    // Needs: Unix or Windows; the failure and the foreign file are injected through the
+    //   publish seam.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_async_publish_failure_never_deletes_a_file_that_took_the_staging_path() {
+        let _serial = serialize_global_state();
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let id = register_request(MediaRequestStatus::Pending);
+        let encode = encode_for(&dest);
+        execute_async_request_staged(
+            id,
+            dest.to_string_lossy().into_owned(),
+            mock_image,
+            encode,
+            |staged, _dest| {
+                replace_with_foreign_file(staged, b"somebody else's data");
+                Err(io::Error::other("injected publish failure"))
+            },
+        );
+        let (status, text) = poll_full(id);
+        let text = text.expect("failure message");
+        let rescued = rescued_file(tmp.path()).expect("the foreign file was rescued");
+        assert_eq!(status, 3);
+        assert!(text.contains("injected publish failure"));
+        assert!(
+            text.contains(rescued.to_string_lossy().as_ref()),
+            "the error names {rescued:?}: {text}"
+        );
+        assert_eq!(fs::read(&rescued).unwrap(), b"somebody else's data");
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "the destination is untouched");
+        assert_eq!(
+            dir_listing(tmp.path()).len(),
+            2,
+            "only the destination and the rescued file"
+        );
+    }
+
+    // Protects: the same on the synchronous path.
+    // Detects: a caller that unlinks the staging path on any error.
+    // Needs: Unix or Windows; the failure and the foreign file are injected through the
+    //   publish seam.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_sync_publish_failure_never_deletes_a_file_that_took_the_staging_path() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        fs::write(&dest, ORIGINAL).unwrap();
+        let error = write_image_atomically_with(&image::RgbImage::new(2, 2), &dest, |staged, _dest| {
+            replace_with_foreign_file(staged, b"somebody else's data");
+            Err(io::Error::other("injected publish failure"))
+        })
+        .expect_err("the publish failed");
+        let rescued = rescued_file(tmp.path()).expect("the foreign file was rescued");
+        let text = error.to_string();
+        assert!(text.contains("injected publish failure"));
+        assert!(
+            text.contains(rescued.to_string_lossy().as_ref()),
+            "the error names {rescued:?}: {text}"
+        );
+        assert_eq!(fs::read(&rescued).unwrap(), b"somebody else's data");
+        assert_eq!(fs::read(&dest).unwrap(), ORIGINAL, "the destination is untouched");
+        assert_eq!(
+            dir_listing(tmp.path()).len(),
+            2,
+            "only the destination and the rescued file"
+        );
+    }
+
+    /// The staging file `stage_image` is working on in `dir`, found by its name pattern.
+    #[cfg(any(unix, windows))]
+    fn staging_file_in(dir: &Path) -> PathBuf {
+        dir_listing(dir)
+            .into_iter()
+            .find(|name| name.starts_with(".pcai-") && name.ends_with(".partial"))
+            .map(|name| dir.join(name))
+            .expect("a staging file exists")
+    }
+
+    // Protects: an encoding failure leaves no staging file behind when the name still refers
+    //   to the file that was created (the identity-checked cleanup removes it) and returns the
+    //   encoder's error.
+    // Detects: a failure path that leaves the partial file, or that swallows the error.
+    // Needs: Unix or Windows; the encode failure is injected; no global state.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_encode_failure_removes_the_staging_file_when_it_is_still_ours() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let error = stage_image(&image::RgbImage::new(1, 1), &dest, |_, file| {
+            file.write_all(b"partial bytes")?;
+            Err(io::Error::other("injected encode failure"))
+        })
+        .err()
+        .expect("the encode failed");
+        assert!(error.to_string().contains("injected encode failure"), "{error}");
+        assert_eq!(
+            dir_listing(tmp.path()),
+            Vec::<String>::new(),
+            "the partial file is gone"
+        );
+    }
+
+    // Protects: if another writer renames a file onto the staging name WHILE the image is being
+    //   encoded, the encode failure does not delete that file: it is rescued to a `.rescued`
+    //   name with its bytes and the error names it.  The identity was recorded at creation, so
+    //   the replacement does not match it.
+    // Detects: a failure path that unlinks the staging name (the other writer's data would be
+    //   lost), or one that records the identity only after encoding (it would record the
+    //   replacement's identity and delete it).
+    // Needs: Unix or Windows; the swap and the failure are injected from inside the encoder.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_encode_failure_rescues_a_staging_name_that_was_swapped_during_encoding() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let dir = tmp.path().to_path_buf();
+        let error = stage_image(&image::RgbImage::new(1, 1), &dest, |_, file| {
+            file.write_all(b"partial bytes")?;
+            replace_with_foreign_file(&staging_file_in(&dir), b"somebody else's data");
+            Err(io::Error::other("injected encode failure"))
+        })
+        .err()
+        .expect("the encode failed");
+        let rescued = rescued_file(tmp.path()).expect("the foreign file was rescued");
+        let text = error.to_string();
+        assert!(text.contains("injected encode failure"), "{text}");
+        assert!(
+            text.contains(rescued.to_string_lossy().as_ref()),
+            "the error names {rescued:?}: {text}"
+        );
+        assert_eq!(
+            fs::read(&rescued).unwrap(),
+            b"somebody else's data",
+            "its bytes are intact"
+        );
+        assert_eq!(dir_listing(tmp.path()).len(), 1, "only the rescued file remains");
+    }
+
+    // Protects: after a successful staging, the identity recorded in the `StagedFile` is the
+    //   identity of the file at the staging name, so the later identity-checked cleanup
+    //   recognises it as ours and removes it.
+    // Detects: recording some other object's identity (for example reading it from the name
+    //   after the encoder has run, when another file could be there).
+    // Needs: Unix or Windows; no global state.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_staged_files_recorded_identity_is_the_file_at_the_name() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let staged = stage_image(&image::RgbImage::new(1, 1), &dest, encode_for(&dest)).expect("stage");
+        assert_eq!(
+            identity_at(&staged.path).expect("identity"),
+            staged.identity,
+            "the recorded identity is the identity of the file at the name"
+        );
+        assert_eq!(discard_staging(&staged), None);
+    }
+
+    // Protects: if the identity of the new staging file cannot be read, ownership cannot be
+    //   checked later, so the file is NOT deleted by name: it is left in place, nothing is
+    //   encoded into it, and the error names it.
+    // Detects: a fallback that unlinks the name when the identity step fails.
+    // Needs: Unix or Windows; the identity failure is injected.
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn test_identity_capture_failure_leaves_the_staging_file_and_names_it() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dest = tmp.path().join("private.png");
+        let encoded = std::cell::Cell::new(false);
+        let error = stage_image_with(
+            &image::RgbImage::new(1, 1),
+            &dest,
+            |_, _| {
+                encoded.set(true);
+                Ok(())
+            },
+            |_| Err(io::Error::other("injected identity failure")),
+        )
+        .err()
+        .expect("the identity step failed");
+        let leftover = staging_file_in(tmp.path());
+        let text = error.to_string();
+        assert!(text.contains("injected identity failure"), "{text}");
+        assert!(
+            text.contains(leftover.to_string_lossy().as_ref()),
+            "the error names {leftover:?}: {text}"
+        );
+        assert!(
+            !encoded.get(),
+            "nothing was encoded into a file whose identity is unknown"
+        );
+        assert_eq!(
+            fs::metadata(&leftover).unwrap().len(),
+            0,
+            "the file is untouched and empty"
+        );
+    }
+
+    // Protects: Windows staging comparisons use all 128 file ID bits and all 64 volume serial bits.
+    // Detects: distinct FileIdInfo values comparing equal after truncation to the legacy widths.
+    // Needs: Windows; synthetic identifier bytes, no particular filesystem or device.
+    // Breadcrumb: Native/pcai_core/pcai_media/src/ffi/mod.rs#windows_file_identity
+    #[cfg(windows)]
+    #[test]
+    fn test_windows_file_identity_preserves_full_file_id_and_volume_serial() {
+        let volume = 0x0000_0001_0000_0001;
+        let identifier = [0x53; 16];
+        let original = windows_file_identity(volume, identifier);
+        assert_eq!(original.index.to_le_bytes(), identifier);
+        assert_eq!(original.volume, volume);
+
+        let mut other_identifier = identifier;
+        other_identifier[15] ^= 1;
+        assert_ne!(original, windows_file_identity(volume, other_identifier));
+        assert_ne!(original, windows_file_identity(1, identifier));
+    }
+
+    // Protects: every test that touches the process-wide FFI state takes the serial
+    //   guard, so libtest's parallel threads cannot race on the lifecycle epoch, the
+    //   model slot, the inference gate or the request table.
+    // Detects: a new or edited test that calls an exported entry point, the state
+    //   mutex, the slot or the gate (directly or through a helper) without
+    //   `serialize_global_state()`; the dropped guard otherwise surfaces only as an
+    //   intermittent failure under plain `cargo test`, which nextest hides.
+    // Needs: nothing but this file's own source (read with include_str!).
+    #[test]
+    fn test_global_state_tests_take_the_serial_guard() {
+        const SHARED: &[&str] = &[
+            "pcai_media_init(",
+            "pcai_media_shutdown(",
+            "pcai_media_load_model(",
+            "pcai_media_generate_image(",
+            "pcai_media_generate_image_bytes(",
+            "pcai_media_generate_image_async(",
+            "pcai_media_understand_image(",
+            "pcai_media_poll_result(",
+            "pcai_media_cancel(",
+            "get_state()",
+            "MODEL_SLOT",
+            "INFERENCE_GATE",
+            "acquire_inference_gate(",
+            "lock_state_recovering(",
+            "execute_async_request",
+            "load_model_at(",
+        ];
+        let source = include_str!("mod.rs");
+        let tests = &source[source.find("mod tests {").expect("tests module")..];
+        let lines: Vec<&str> = tests.lines().collect();
+        // (name, body, is_test) for every function at the module's own indent.
+        let mut functions: Vec<(String, String, bool)> = Vec::new();
+        let mut i = 0;
+        while i < lines.len() {
+            if let Some(rest) = lines[i].strip_prefix("    fn ") {
+                let name: String = rest
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                    .collect();
+                let is_test = (i.saturating_sub(3)..i).any(|k| lines[k].trim() == "#[test]");
+                let mut end = i;
+                if !lines[i].trim_end().ends_with('}') {
+                    while lines[end] != "    }" {
+                        end += 1;
+                    }
+                }
+                functions.push((name, lines[i..=end].join("\n"), is_test));
+                i = end;
+            }
+            i += 1;
+        }
+        let touches = |body: &str| SHARED.iter().any(|pattern| body.contains(pattern));
+        let helpers: Vec<&str> = functions
+            .iter()
+            .filter(|(_, body, is_test)| !is_test && touches(body))
+            .map(|(name, _, _)| name.as_str())
+            .collect();
+        let calls_helper = |body: &str| helpers.iter().any(|h| body.contains(&format!("{h}(")));
+
+        let mut needing_guard = Vec::new();
+        let mut missing = Vec::new();
+        for (name, body, is_test) in &functions {
+            if !is_test || name == "test_global_state_tests_take_the_serial_guard" {
+                continue;
+            }
+            if touches(body) || calls_helper(body) {
+                needing_guard.push(name.as_str());
+                if !body.contains("serialize_global_state()") {
+                    missing.push(name.as_str());
+                }
+            }
+        }
+        // Positive controls: the audit really sees the known global-state tests and
+        // the known helpers, so an empty "missing" list is not an empty scan.
+        assert!(
+            needing_guard.contains(&"test_load_model_rejects_incomplete_checkpoint_and_stays_unloaded"),
+            "{needing_guard:?}"
+        );
+        assert!(needing_guard.len() >= 20, "{needing_guard:?}");
+        assert!(helpers.contains(&"register_request"), "{helpers:?}");
+        assert!(
+            missing.is_empty(),
+            "tests touching process-wide FFI state must start with `let _serial = serialize_global_state();`: {missing:?}"
         );
     }
 }

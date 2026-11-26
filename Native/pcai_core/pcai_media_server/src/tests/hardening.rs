@@ -14,7 +14,7 @@ use axum::{
     Router,
 };
 use pcai_media::config::PipelineConfig;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, Semaphore};
 use tower::ServiceExt;
 
 use crate::{build_router, AppState, ServeSecurity};
@@ -37,6 +37,7 @@ fn try_router(edit: impl FnOnce(&mut ServeSecurity)) -> anyhow::Result<Router> {
     let state = Arc::new(RwLock::new(AppState {
         pipeline: None,
         config: PipelineConfig::default(),
+        inference_admission: Arc::new(Semaphore::new(1)),
     }));
     build_router(state, &security(edit))
 }

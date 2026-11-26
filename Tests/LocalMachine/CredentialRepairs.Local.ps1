@@ -349,6 +349,7 @@ Describe 'Actual canonical Bitwarden launcher without credential I/O' -Tag 'BwLa
             [pscustomobject]@{ Success = $true; Message = 'fixture-sensitive-message'; Session = 'fixture-sensitive-result' }
         }
         Mock Set-BwVaultUserSession {}
+        Mock Set-BwVaultSessionFile {}
     }
     AfterEach { $env:BW_SESSION = $script:priorLauncherSession }
     It 'does no backend loading, initialization, or persistence in DryRun' {
@@ -384,6 +385,34 @@ Describe 'Actual canonical Bitwarden launcher without credential I/O' -Tag 'BwLa
         }
         Invoke-BwVaultUnlock -PersistSession -Quiet | Should -Be 0
         Should -Invoke Set-BwVaultUserSession -Times 1 -Exactly -ParameterFilter { $Session -eq 'validated-nonsecret-process-session' }
+    }
+    # A fresh process recovers from the protected session file, not from the User variable.
+    # When only the variable was refreshed (dtm-p1gen9, 2026-11-26), the file kept a dead
+    # session and every new process failed to unlock although the vault was unlocked.
+    It 'refreshes the protected session file before the User variable' {
+        $script:persistOrder = [System.Collections.Generic.List[string]]::new()
+        Mock Initialize-BitwardenSessionFromBackends {
+            $env:BW_SESSION = 'validated-nonsecret-process-session'
+            [pscustomobject]@{ Success = $true }
+        }
+        Mock Set-BwVaultSessionFile { $script:persistOrder.Add("file:$Session") }
+        Mock Set-BwVaultUserSession { $script:persistOrder.Add("user:$Session") }
+        Invoke-BwVaultUnlock -PersistSession -Quiet | Should -Be 0
+        @($script:persistOrder) | Should -Be @('file:validated-nonsecret-process-session', 'user:validated-nonsecret-process-session')
+    }
+    It 'fails closed without touching the User variable when the session file cannot be written' {
+        Mock Initialize-BitwardenSessionFromBackends {
+            $env:BW_SESSION = 'validated-nonsecret-process-session'
+            [pscustomobject]@{ Success = $true }
+        }
+        Mock Set-BwVaultSessionFile { throw 'fixture write failure' }
+        Invoke-BwVaultUnlock -PersistSession -Quiet -WarningAction SilentlyContinue | Should -Be 1
+        $env:BW_SESSION | Should -Be 'explicit-nonsecret-launcher-session'
+        Should -Invoke Set-BwVaultUserSession -Times 0 -Exactly
+    }
+    It 'does not write the session file unless persistence is requested' {
+        Invoke-BwVaultUnlock -Quiet | Should -Be 0
+        Should -Invoke Set-BwVaultSessionFile -Times 0 -Exactly
     }
     It 'rejects provider failure and restores a previous explicit session' {
         Mock Initialize-BitwardenSessionFromBackends {

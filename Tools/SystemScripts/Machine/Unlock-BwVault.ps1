@@ -10,7 +10,10 @@
 .PARAMETER Force
     Requests a fresh session from the validated backend.
 .PARAMETER PersistSession
-    Persists only the validated process session as a User environment variable.
+    Persists only the validated process session: first to the protected session file
+    (~/.bwdata/session.txt) that a fresh process recovers from, then to the User
+    environment variable that newly started shells inherit. If the file cannot be
+    written, nothing is persisted and the launcher fails.
 .PARAMETER DryRun
     Describes the operation without loading backends or accessing credentials.
 .PARAMETER Help
@@ -30,6 +33,21 @@ function Set-BwVaultUserSession {
     param([Parameter(Mandatory)][string]$Session)
     if ($PSCmdlet.ShouldProcess('User BW_SESSION', 'Persist validated session')) {
         [Environment]::SetEnvironmentVariable('BW_SESSION', $Session, 'User')
+    }
+}
+
+function Set-BwVaultSessionFile {
+    # Fresh-process recovery (Initialize-BitwardenSessionFromBackends) reads this file, not the
+    # User variable. Persisting only the variable leaves a dead session here, and every new
+    # process then fails to unlock although the vault is unlocked.
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)][string]$Session)
+    if (-not (Get-Command Write-BitwardenPrivateFile -CommandType Function -ErrorAction SilentlyContinue)) {
+        . (Join-Path $env:USERPROFILE '.machine\SecretBackendUtilities.ps1') *> $null
+    }
+    $sessionFile = Get-BitwardenSessionFile
+    if ($PSCmdlet.ShouldProcess('Protected Bitwarden session file', 'Persist validated session')) {
+        Write-BitwardenPrivateFile -LiteralPath $sessionFile -Value $Session -Overwrite -Confirm:$false -ErrorAction Stop
     }
 }
 
@@ -61,7 +79,10 @@ function Invoke-BwVaultUnlock {
             [string]::IsNullOrWhiteSpace($env:BW_SESSION)) {
             throw 'The backend did not establish a validated session.'
         }
-        if ($PersistSession) { Set-BwVaultUserSession -Session $env:BW_SESSION -ErrorAction Stop }
+        if ($PersistSession) {
+            Set-BwVaultSessionFile -Session $env:BW_SESSION -ErrorAction Stop
+            Set-BwVaultUserSession -Session $env:BW_SESSION -ErrorAction Stop
+        }
         if (-not $Quiet) { Write-Information 'Bitwarden session validated.' -InformationAction Continue }
         return 0
     }

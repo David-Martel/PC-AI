@@ -19,7 +19,10 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Unlock-BwVault.ps1')
 try {
     if ((Invoke-BwVaultUnlock -Quiet) -ne 0 -or -not $env:BW_SESSION) { Write-Warning 'Bitwarden unlock failed.'; exit 1 }
-    $exe, $rest = $Command
+    # Index, don't destructure: `$exe, $rest = $Command` leaves $rest a [string] when one
+    # argument follows the executable, and splatting a string passes it per character.
+    $exe = $Command[0]
+    [string[]]$rest = @($Command | Select-Object -Skip 1)
     & $exe @rest
     exit $LASTEXITCODE
 }

@@ -584,6 +584,26 @@ Describe 'A checkout reached through a junction or symlink is one checkout' -Tag
         $found[0].Path | Should -Be (Join-Path $root 'dtm-claude')
         $found[0].Name | Should -Be 'dtm-claude'
     }
+    # Protects: one fetch and fast-forward decision per physical checkout.
+    # Detects: duplicate discovery through a linked parent of a shared checkout.
+    # Needs: a local filesystem that supports directory junctions or symlinks.
+    # Breadcrumb: Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1
+    It 'reports one checkout through both an ordinary child and a link under aliased roots' {
+        $storage = Join-Path $script:linkRoot 'storage'
+        $sharedAlias = Join-Path $script:linkRoot 'storage-alias'
+        $checkout = Join-Path $storage 'PC-AI'
+        $null = New-Item -ItemType Directory -Path $storage
+        New-ConfigRepo -Path $checkout -Url 'https://github.com/David-Martel/PC-AI.git'
+        New-DirectoryLink -Link $sharedAlias -Target $storage
+        $nested = Join-Path $sharedAlias 'PC-AI'
+        $directLink = Join-Path $script:linkRoot 'checkout-link'
+        New-DirectoryLink -Link $directLink -Target $nested
+
+        $found = Find-PcaiToolingRepo -Config (New-FindConfig -Paths @($nested, $directLink) -Roots @($storage))
+
+        $found.Count | Should -Be 1
+        $found[0].Path | Should -Be $checkout
+    }
     It 'keeps two separate clones of the same repository' {
         $root = Join-Path $script:linkRoot 'root3'
         $null = New-Item -ItemType Directory -Path $root

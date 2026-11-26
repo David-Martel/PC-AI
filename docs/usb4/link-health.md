@@ -17,6 +17,14 @@ installs, updates and removes those triggers. It also installs the profile and t
 [source route](../../Tests/Unit/pcai-link-health-source-route-review.json) and
 [payload publication](../../Tests/Unit/pcai-link-health-payload-review.json) reviews.
 
+The [tooling check](../../Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1)
+resolves directory links above each checkout as well as links on the checkout
+itself. A shared storage root and its junction or symlink produce one repo
+entry and one fetch per run. Separate clones still receive separate entries.
+The [repository discovery tests](../../Tests/Unit/PcaiToolingHealth.Tests.ps1)
+exercise both cases. The [review record](../../Tests/Unit/pcai-tooling-health-checkout-review.json)
+binds the new fixture to its source.
+
 ## Install, run, remove
 
 ```powershell

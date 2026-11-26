@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-26T20:40:22.1598010Z",
+  "reviewer": "codex-p1gen9-fleet-routes",
+  "reviewerType": "independent source agent",
+  "sourceBaseline": "2d7df75b6e8426010be59e3ca8210d07d7b30ff3",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extent",
+  "sourceBindings": {
+    "Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1": "4fafabad24d3b6f3becc4aa0e0974bf8b6df675c052bd58e6a49dbe9abaeaabc",
+    "Tests/Unit/PcaiToolingHealth.Tests.ps1": "bee8bf7123e27dfacba1f146a04895b44a04eb13d10f05f627d741dfe500a6cb"
+  },
+  "selectors": [
+    {
+      "selector": "reports one checkout through both an ordinary child and a link under aliased roots",
+      "source": "Tests/Unit/PcaiToolingHealth.Tests.ps1",
+      "sha256": "ff8377c8de611d5c0bdfd7598710b95f969fa0fe0916c7e9bdf5cea311a36a5d",
+      "codeUnderTest": "Tools/SystemScripts/Machine/Invoke-PcaiToolingHealth.ps1",
+      "disposition": "keep",
+      "reviewScope": "Runner independently passed the Windows directory-link control. Legacy code reported two entries. Source resolves nested aliases without coalescing distinct clones."
+    }
+  ]
+}

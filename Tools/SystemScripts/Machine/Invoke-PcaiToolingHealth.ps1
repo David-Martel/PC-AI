@@ -330,7 +330,7 @@ function Find-PcaiToolingRepo {
         $name = ($slug -split '/')[1]
         if ($name -in @($Config.repoNames)) { $found.Add([pscustomobject]@{ Path = (Resolve-PcaiCheckoutPath -Path $c); Slug = $slug; Name = $name }) }
     }
-    # A junction or symlink to a checkout (C:\codedev\PC_AI -> PC-AI, ~\.claude -> dtm-claude) is the
+    # A checkout reached through a directory link, including one above the checkout root, is the
     # same repository. Reported twice it was fetched from two runspaces at once (ref lock failure,
     # FetchFailed) and fast-forwarded from one path while the other saw "HEAD moved" (Changed).
     $comparer = if ($IsWindows) { [StringComparer]::OrdinalIgnoreCase } else { [StringComparer]::Ordinal }
@@ -341,13 +341,19 @@ function Find-PcaiToolingRepo {
 }
 
 function Resolve-PcaiCheckoutPath {
-    <# The directory a checkout path really is: the final target of a junction or symlink, else the path itself. #>
+    <# Canonicalizes directory links on the checkout and its parents. #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path)
-    $full = [IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
+    $full = [IO.Path]::TrimEndingDirectorySeparator([IO.Path]::GetFullPath($Path))
     try {
-        $target = (Get-Item -LiteralPath $full -Force -ErrorAction Stop).ResolveLinkTarget($true)
-        if ($target) { return $target.FullName.TrimEnd('\', '/') }
+        for ($ancestor = [IO.DirectoryInfo]::new($full); $ancestor; $ancestor = $ancestor.Parent) {
+            $target = $ancestor.ResolveLinkTarget($true)
+            if ($target) {
+                $suffix = [IO.Path]::GetRelativePath($ancestor.FullName, $full)
+                $physicalParent = Resolve-PcaiCheckoutPath -Path $target.FullName
+                return [IO.Path]::TrimEndingDirectorySeparator([IO.Path]::GetFullPath($suffix, $physicalParent))
+            }
+        }
     } catch { Write-Verbose "link resolution failed for ${full}: $_" }
     return $full
 }

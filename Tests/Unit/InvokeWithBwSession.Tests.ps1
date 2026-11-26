@@ -9,9 +9,11 @@ Describe 'Invoke-WithBwSession argument forwarding' -Tag 'Unit' {
         New-Item -ItemType Directory -Path $script:fixture | Out-Null
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../Tools/SystemScripts/Machine/Invoke-WithBwSession.ps1') -Destination $script:fixture
         # Stub unlocker: same function contract as the real launcher, with a fixed non-secret session.
-        Set-Content -LiteralPath (Join-Path $script:fixture 'Unlock-BwVault.ps1') -Value @'
-function Invoke-BwVaultUnlock { param([switch]$Quiet) $env:BW_SESSION = 'stub-nonsecret-session'; return 0 }
-'@
+        # It drops a marker file when called, so tests can prove that an invocation never unlocked.
+        $script:marker = Join-Path $script:fixture 'unlock-called.marker'
+        Set-Content -LiteralPath (Join-Path $script:fixture 'Unlock-BwVault.ps1') -Value @"
+function Invoke-BwVaultUnlock { param([switch]`$Quiet) Set-Content -LiteralPath '$script:marker' -Value 1; `$env:BW_SESSION = 'stub-nonsecret-session'; return 0 }
+"@
         # Child that reports exactly what it received.
         $script:echo = Join-Path $script:fixture 'echo-args.ps1'
         Set-Content -LiteralPath $script:echo -Value @'
@@ -44,6 +46,37 @@ foreach ($a in $args) { "ARG=$a" }
         $out = Invoke-Wrapper @($script:pwsh, '-NoProfile', '-File', $script:echo, 'a', 'b c', '-Flag')
         $out | Should -Contain 'COUNT=3'
         ($out | Where-Object { $_ -like 'ARG=*' }) | Should -Be @('ARG=a', 'ARG=b c', 'ARG=-Flag')
+    }
+    # Help and dry-run are nonmutating: they must answer before any unlock can write a session.
+    It 'answers <Option> without unlocking' -ForEach @(
+        @{ Option = '-h' }, @{ Option = '--help' }, @{ Option = '-Help' }
+    ) {
+        Remove-Item -LiteralPath $script:marker -ErrorAction SilentlyContinue
+        $out = Invoke-Wrapper @($Option)
+        $LASTEXITCODE | Should -Be 0
+        ($out -join "`n") | Should -Match 'Usage: Invoke-WithBwSession\.ps1'
+        Test-Path -LiteralPath $script:marker | Should -BeFalse
+    }
+    # pwsh answers -? with the comment-based help before the script body runs.
+    It 'answers -? with comment help without unlocking' {
+        Remove-Item -LiteralPath $script:marker -ErrorAction SilentlyContinue
+        $out = Invoke-Wrapper @('-?')
+        $LASTEXITCODE | Should -Be 0
+        ($out -join "`n") | Should -Match 'Runs one command with a Bitwarden session'
+        Test-Path -LiteralPath $script:marker | Should -BeFalse
+    }
+    It 'describes a -DryRun command without unlocking or running it' {
+        Remove-Item -LiteralPath $script:marker -ErrorAction SilentlyContinue
+        $out = Invoke-Wrapper @('-DryRun', $script:pwsh, '-NoProfile', '-File', $script:echo, 'x')
+        $LASTEXITCODE | Should -Be 0
+        ($out -join "`n") | Should -Match 'Would unlock Bitwarden and run'
+        $out | Should -Not -Contain 'COUNT=1'
+        Test-Path -LiteralPath $script:marker | Should -BeFalse
+    }
+    It 'forwards help-like flags that follow the executable' {
+        $out = Invoke-Wrapper @($script:pwsh, '-NoProfile', '-File', $script:echo, '--help', '-DryRun')
+        $out | Should -Contain 'COUNT=2'
+        ($out | Where-Object { $_ -like 'ARG=*' }) | Should -Be @('ARG=--help', 'ARG=-DryRun')
     }
     It 'runs an executable with no arguments' {
         $out = Invoke-Wrapper @('hostname')

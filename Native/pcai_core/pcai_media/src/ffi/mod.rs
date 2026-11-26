@@ -881,6 +881,25 @@ fn staging_path(dest: &Path) -> PathBuf {
     }
 }
 
+/// Resolve a caller-supplied destination to one absolute path, once, before any
+/// staging, metadata or publish step looks at it.
+///
+/// On Windows `C:name.png` is relative to the *current directory of drive `C:`* and
+/// `\name.png` to the *root of the current drive*.  Left unresolved, the short staging
+/// and metadata calls follow those rules while the raw Win32 publish calls (which get a
+/// `\\?\` form for long paths) cannot, so the steps could touch different files.
+/// Resolving here means every later step receives the same absolute path, so the file
+/// that was staged is the file that is published over.  The relative parts are
+/// resolved against the process state at this call, so an asynchronous request calls
+/// this at submission, not on its worker thread.
+///
+/// # Errors
+///
+/// Fails when the path is empty or the current directory cannot be read.
+fn absolute_destination(path: &Path) -> io::Result<PathBuf> {
+    std::path::absolute(path)
+}
+
 /// Backup path for a `ReplaceFileW` call: `.pcai-<16 hex>.bak` beside `dest`.
 ///
 /// ReplaceFileW needs the backup on the same volume as the replaced file, and
@@ -1073,6 +1092,12 @@ fn verbatim_path(path: &Path) -> Option<PathBuf> {
     let Some(Component::Prefix(prefix)) = components.next() else {
         return None;
     };
+    // `C:name` has a drive but no root: it means "relative to that drive's current
+    // directory", and verbatim has no such form.  Prefixing it would silently
+    // turn it into `\\?\C:\name`, the drive's root.  Only rooted paths convert.
+    if !path.has_root() {
+        return None;
+    }
     let mut out = match prefix.kind() {
         Prefix::Disk(letter) => OsString::from(format!(r"\\?\{}:", char::from(letter))),
         Prefix::UNC(server, share) => {
@@ -2030,6 +2055,8 @@ fn write_image_atomically_with(
     dest: &Path,
     publish: impl FnOnce(&StagedFile, &Path) -> io::Result<()>,
 ) -> io::Result<()> {
+    let dest = absolute_destination(dest)?;
+    let dest = dest.as_path();
     let staged = stage_image(image, dest, encode_for(dest))?;
     publish_owned_staging(&staged, dest, publish).map_err(|error| with_note(error, discard_staging(&staged)))
 }
@@ -2118,7 +2145,16 @@ fn execute_async_request_staged(
         return;
     }
 
-    let dest = Path::new(&output_path);
+    // The submission already resolved the path; this makes the worker correct on its
+    // own too (a no-op for an absolute path), so staging and publishing share one path.
+    let dest = match absolute_destination(Path::new(&output_path)) {
+        Ok(dest) => dest,
+        Err(e) => {
+            record_terminal_status(id, MediaRequestStatus::Failed(format!("Save failed: {e}")));
+            return;
+        }
+    };
+    let dest = dest.as_path();
     let staged = match stage_image(&image, dest, encode) {
         Ok(staged) => staged,
         Err(e) => {
@@ -2228,6 +2264,27 @@ pub extern "C" fn pcai_media_generate_image_async(
     let out_str = match unsafe { c_str_to_str(output_path) } {
         Ok(s) => s.to_string(),
         Err(_) => return -1,
+    };
+    // Pin drive-relative and rooted-driveless paths now: the worker runs later, and
+    // the current directory may have changed by then.
+    let out_str = match absolute_destination(Path::new(&out_str)).map(PathBuf::into_os_string) {
+        Ok(path) => match path.into_string() {
+            Ok(path) => path,
+            Err(_) => {
+                set_error(
+                    "output_path resolves to a path that is not valid UTF-8",
+                    PcaiMediaErrorCode::InvalidInput,
+                );
+                return -1;
+            }
+        },
+        Err(e) => {
+            set_error(
+                format!("output_path '{out_str}' cannot be resolved: {e}"),
+                PcaiMediaErrorCode::InvalidInput,
+            );
+            return -1;
+        }
     };
 
     // Validate that a model is loaded before allocating an ID.
@@ -3439,6 +3496,173 @@ mod tests {
         write_image_atomically(&image::RgbImage::new(3, 3), &dest).expect("replace publish");
         assert_eq!(image::open(&dest).unwrap().width(), 3);
         assert_eq!(dir_listing(tmp.path()), [name]);
+    }
+
+    // ── Drive-relative destinations resolve once, to one absolute path ────
+
+    /// The drive letter of the process's current directory, or `None` when it is
+    /// not on a lettered drive (a UNC share), where drive-relative forms do not apply.
+    #[cfg(windows)]
+    fn current_drive_letter() -> Option<char> {
+        use std::path::{Component, Prefix};
+        match std::env::current_dir().ok()?.components().next()? {
+            Component::Prefix(prefix) => match prefix.kind() {
+                Prefix::Disk(letter) | Prefix::VerbatimDisk(letter) => Some(char::from(letter)),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    /// A uniquely named directory under the current directory, removed on drop.
+    /// Drive-relative paths resolve against the current directory, so the fixtures
+    /// for them have to live there; the random name keeps parallel runs apart.
+    #[cfg(windows)]
+    struct CwdFixture {
+        /// The fixture directory relative to the current directory, one name.
+        name: String,
+    }
+
+    #[cfg(windows)]
+    impl CwdFixture {
+        fn new() -> Self {
+            Self {
+                name: format!("pcai-drive-relative-{:016x}", rand::random::<u64>()),
+            }
+        }
+
+        fn absolute(&self) -> PathBuf {
+            std::env::current_dir().expect("current dir").join(&self.name)
+        }
+    }
+
+    #[cfg(windows)]
+    impl Drop for CwdFixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(self.absolute());
+        }
+    }
+
+    /// `C:<fixture>\dddd…\out.png`, a drive-relative destination whose spelling is
+    /// over the 240-character threshold for the verbatim form, in a nested
+    /// directory tree that is created under the current directory.
+    #[cfg(windows)]
+    fn long_drive_relative_destination(fixture: &CwdFixture, drive: char) -> (String, PathBuf) {
+        let mut relative = PathBuf::from(&fixture.name);
+        for _ in 0..4 {
+            relative.push("d".repeat(61));
+        }
+        relative.push("out.png");
+        let spelled = format!("{drive}:{}", relative.display());
+        assert!(
+            spelled.len() > 240,
+            "fixture must exceed the verbatim threshold: {}",
+            spelled.len()
+        );
+        let expected = std::env::current_dir().expect("current dir").join(&relative);
+        fs::create_dir_all(expected.parent().unwrap()).expect("create fixture tree");
+        (spelled, expected)
+    }
+
+    // Protects: a drive-relative path is never turned into a drive-rooted one.
+    //   `C:name` means the current directory of `C:`, `\\?\C:\name` means its root.
+    // Detects: `verbatim_path` adding the prefix to a path that has a drive but no
+    //   root (the converted form silently names a different file).
+    // Needs: nothing on disk; Windows path semantics.
+    #[cfg(windows)]
+    #[test]
+    fn test_verbatim_path_refuses_drive_relative_paths() {
+        let long_name = "n".repeat(250);
+        let drive_relative = PathBuf::from(format!("C:{long_name}"));
+        assert_eq!(verbatim_path(&drive_relative), None);
+        assert_eq!(verbatim_path(&PathBuf::from(format!(r"C:dir\{long_name}"))), None);
+        // Positive control: the same name under a root still converts, so the
+        // refusal above is about the missing root and not a broken helper.
+        let rooted = PathBuf::from(format!(r"C:\{long_name}"));
+        assert_eq!(
+            verbatim_path(&rooted),
+            Some(PathBuf::from(format!(r"\\?\C:\{long_name}")))
+        );
+    }
+
+    // Protects: every spelling of a destination resolves to the absolute file the
+    //   caller's own process would open, and an absolute path is left as it is.
+    // Detects: `C:name` resolving to the drive root, or `\name` staying driveless.
+    // Needs: the current directory on a lettered drive.
+    #[cfg(windows)]
+    #[test]
+    fn test_absolute_destination_resolves_drive_relative_and_rooted_driveless_forms() {
+        let Some(drive) = current_drive_letter() else {
+            eprintln!("skipped: the current directory is not on a lettered drive");
+            return;
+        };
+        let cwd = std::env::current_dir().expect("current dir");
+
+        let drive_relative = absolute_destination(Path::new(&format!("{drive}:out.png"))).expect("resolves");
+        assert!(drive_relative.is_absolute(), "{drive_relative:?}");
+        assert_eq!(drive_relative, cwd.join("out.png"));
+
+        let rooted_driveless = absolute_destination(Path::new(r"\out.png")).expect("resolves");
+        assert!(rooted_driveless.is_absolute(), "{rooted_driveless:?}");
+        assert_eq!(rooted_driveless, PathBuf::from(format!(r"{drive}:\out.png")));
+
+        let already = cwd.join("out.png");
+        assert_eq!(absolute_destination(&already).expect("resolves"), already);
+        assert!(
+            absolute_destination(Path::new("")).is_err(),
+            "an empty path has no meaning"
+        );
+    }
+
+    // Protects: staging, metadata and publication all act on one file when the
+    //   caller passes a long drive-relative destination (`C:fixture\...\out.png`),
+    //   on the synchronous path, first as a new file and then replacing it.
+    // Detects: the publish step converting `C:rel` to the drive root (`\\?\C:\rel`)
+    //   while staging stayed in the current directory, which fails or, worse,
+    //   replaces an unrelated file at the root.
+    // Needs: write access to the current directory; a lettered drive.
+    #[cfg(windows)]
+    #[test]
+    fn test_sync_write_to_long_drive_relative_destination_lands_beside_staging() {
+        let _serial = serialize_global_state();
+        let Some(drive) = current_drive_letter() else {
+            eprintln!("skipped: the current directory is not on a lettered drive");
+            return;
+        };
+        let fixture = CwdFixture::new();
+        let (spelled, expected) = long_drive_relative_destination(&fixture, drive);
+
+        write_image_atomically(&image::RgbImage::new(2, 2), Path::new(&spelled)).expect("new destination");
+        assert_eq!(image::open(&expected).expect("file at the resolved path").width(), 2);
+        assert_eq!(dir_listing(expected.parent().unwrap()), ["out.png"]);
+
+        write_image_atomically(&image::RgbImage::new(3, 3), Path::new(&spelled)).expect("replace destination");
+        assert_eq!(image::open(&expected).expect("replaced file").width(), 3);
+        assert_eq!(dir_listing(expected.parent().unwrap()), ["out.png"]);
+    }
+
+    // Protects: the same guarantee on the asynchronous worker, and that the request
+    //   reports success only after the file is at the resolved path.
+    // Detects: the worker staging against the current directory and publishing
+    //   against the drive root.
+    // Needs: write access to the current directory; a lettered drive.
+    #[cfg(windows)]
+    #[test]
+    fn test_async_write_to_long_drive_relative_destination_lands_beside_staging() {
+        let _serial = serialize_global_state();
+        let Some(drive) = current_drive_letter() else {
+            eprintln!("skipped: the current directory is not on a lettered drive");
+            return;
+        };
+        let fixture = CwdFixture::new();
+        let (spelled, expected) = long_drive_relative_destination(&fixture, drive);
+
+        let id = register_request(MediaRequestStatus::Pending);
+        execute_async_request(id, spelled, mock_image);
+        let (status, text) = poll_full(id);
+        assert_eq!(status, 2, "async publish failed: {text:?}");
+        assert_eq!(image::open(&expected).expect("file at the resolved path").width(), 1);
+        assert_eq!(dir_listing(expected.parent().unwrap()), ["out.png"]);
     }
 
     // Protects: staging names are short, independent of the destination, unique per

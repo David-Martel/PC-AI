@@ -9,16 +9,35 @@ The [planner](../../Native/pcai_core/pcai_tb_cli/src/route_plan.rs) and its
 
 For a directly cabled Windows pair, see the separate [USB4 NetworkDirect preview preflight](rdma-preview.md).
 
-## Why hub topologies broke
+## Scope the plan to the current site
 
-The fleet's USB4 links run Gen7 to the NUC to Gen9. Gen9's adapter sits behind a
-CalDigit Element 5 hub, and the NUC has one adapter per root router. Three
-things prevented traffic between Gen7 and Gen9 (observed 2026-11-21):
+Collect fresh observations from the endpoints and any explicitly approved
+transit hosts that will participate at the same physical site. Collect over an
+independently trusted management connection and establish USB4 adjacency from
+the endpoint observations.
+
+For example, when Gen9 is off site, qualify the direct Gen7–Super NUC link
+with two fresh observations and an empty `transit_hosts` list. Confirm the
+reciprocal adapter identities first, then bind a service probe to the selected
+USB4 source on each endpoint. A successful TCP handshake establishes transport
+reachability. Service identity, authentication and share access have separate
+checks. [Fabric observation and service qualification](fabric-topology.md#promotion-to-a-configured-connection)
+
+Preserve older plans as evidence. Recollect the participating endpoints after a
+site or cable change and create a fresh plan. Keep the original observation
+times on retained data and exclude off-site or stale observations from the
+current plan.
+
+## Why the November 21, 2026 hub topology broke
+
+On November 21, 2026, a USB4 chain linked Gen7 to the NUC to Gen9. Gen9's
+adapter sat behind a CalDigit Element 5 hub, and the NUC had one adapter per
+root router. Three things prevented traffic between Gen7 and Gen9:
 
 - **Configuration is tied to the adapter instance.** Windows creates a new
   `USB4(TM) P2P Network Adapter #N`, with a new interface GUID, MAC, ifIndex and
-  alias, for every parent router and port the cable passes through. Gen9 has
-  seven such instances; only `#12` is present. Addresses that `register --apply`
+  alias, for every parent router and port the cable passes through. Gen9 had
+  seven such instances, with only `#12` present at that observation. Addresses that `register --apply`
   put on an earlier instance vanished with it. The NUC kept `172.31.255.22/30`
   while Gen9's `.21` was gone, so the /30 was half-configured.
 - **Nothing routes between segments.** `register` adds only on-link addresses and
@@ -35,8 +54,9 @@ things prevented traffic between Gen7 and Gen9 (observed 2026-11-21):
    pair by reciprocal neighbor MAC and remote address, never by alias or index.
 2. It gives each segment the /30 that `compute_commutative_pairwise_ipv4`
    derives from the two registered host names. That address is the same on
-   every plug. It is also what `register --assign-pairwise-ipv4` uses: the NUC's
-   live `172.31.255.22` matches the derivation for `dtm-p1gen9 <-> dtm-super-nuc`.
+   every plug. It is also what `register --assign-pairwise-ipv4` uses. In the
+   November 21 observation, the NUC's `172.31.255.22` matched the derivation for
+   `dtm-p1gen9 <-> dtm-super-nuc`.
 3. It finds the shortest host path for each ordered pair. Only hosts listed in
    `transit_hosts` may appear between the two ends; adjacency never makes a
    host a router.
@@ -63,7 +83,7 @@ segments that derive the same /30 stop the plan.
 ## Run it
 
 ```powershell
-# On each host, over an independently trusted management channel:
+# On each participating host, over an independently trusted management channel:
 ./Tools/SystemScripts/Networking/Get-Usb4FabricObservation.ps1 -Source management-ssh |
     ConvertTo-Json -Depth 12 -Compress | Set-Content -LiteralPath C:/private/obs-<host>.json
 # Merge the hosts arrays into one pcai.usb4-fabric-observation/v1 envelope, then:
@@ -71,7 +91,7 @@ pcai-tb route-plan --input C:/private/observation.json --policy C:/private/route
     --registry Config/thunderbolt-peers.json
 ```
 
-The policy names transit hosts explicitly
+For a multi-hop plan, the policy names transit hosts explicitly
 ([example](../../Config/usb4-route-policy.example.json)):
 
 ```json

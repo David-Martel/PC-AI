@@ -590,7 +590,9 @@ fn load_model_at(path_str: String, gpu_layers: i32, admitted: impl FnOnce()) -> 
 ///   default of `5.0`.
 /// * `temperature` — Sampling temperature (1.0 = neutral; lower = sharper).
 ///   Pass `0.0` to use the default of `1.0`.
-/// * `output_path` — Absolute file path where the PNG will be written.
+/// * `output_path` — File path where the PNG will be written.  Resolved to an
+///   absolute path at this call (so `C:name.png` and `\name.png` mean what the
+///   process would open), before any staging or publishing.
 ///
 /// # Returns
 ///
@@ -615,6 +617,18 @@ pub extern "C" fn pcai_media_generate_image(
     let out_str = match unsafe { c_str_to_str(output_path) } {
         Ok(s) => s.to_string(),
         Err(code) => return code as i32,
+    };
+    // Resolve before the (long) generation, so the destination is the one named by the
+    // caller's current directory at this call and a bad path fails before any work.
+    let out_path = match absolute_destination(Path::new(&out_str)) {
+        Ok(path) => path,
+        Err(e) => {
+            set_error(
+                format!("output_path '{out_str}' cannot be resolved: {e}"),
+                PcaiMediaErrorCode::InvalidInput,
+            );
+            return PcaiMediaErrorCode::InvalidInput as i32;
+        }
     };
 
     // Serialize inference; the state mutex is only held to clone the handle.
@@ -647,7 +661,7 @@ pub extern "C" fn pcai_media_generate_image(
     };
 
     // Save to PNG.
-    if let Err(e) = write_image_atomically(&image, Path::new(&out_str)) {
+    if let Err(e) = write_image_atomically(&image, &out_path) {
         set_error(
             format!("Failed to save image to '{out_str}': {e}"),
             PcaiMediaErrorCode::IoError,
@@ -2239,7 +2253,9 @@ fn record_terminal_status(id: i64, status: MediaRequestStatus) {
 /// * `prompt`      — Text prompt.
 /// * `cfg_scale`   — CFG scale (pass `0.0` for default).
 /// * `temperature` — Sampling temperature (pass `0.0` for default).
-/// * `output_path` — File path where the PNG will be written on success.
+/// * `output_path` — File path where the PNG will be written on success.  Resolved
+///   to an absolute path at submission; `pcai_media_poll_result` reports that
+///   absolute path.
 ///
 /// # Returns
 ///
@@ -2331,7 +2347,7 @@ pub extern "C" fn pcai_media_generate_image_async(
 /// Status codes:
 /// * 0 = pending
 /// * 1 = running
-/// * 2 = complete (`text` = output file path)
+/// * 2 = complete (`text` = absolute output file path)
 /// * 3 = failed (`text` = error message)
 /// * 4 = cancelled
 /// * -1 = unknown request ID
@@ -3012,6 +3028,36 @@ mod tests {
         let id = pcai_media_generate_image_async(prompt.as_ptr(), 0.0, 0.0, std::ptr::null());
         assert_eq!(id, -1, "null output_path should return -1");
         assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32,);
+    }
+
+    // Protects: both generate entry points resolve `output_path` themselves, before any
+    //   model check or generation, so an unresolvable path is refused as invalid input
+    //   and (for async) never registers a request.
+    // Detects: resolution left to the worker or the writer, where it would run after
+    //   generation and the async caller would see a queued request that cannot publish.
+    // Needs: no model or device; takes the serial guard because it touches the process-wide FFI state.
+    #[test]
+    fn test_generate_entry_points_resolve_the_output_path_before_any_work() {
+        let _serial = serialize_global_state();
+        let prompt = CString::new("test").expect("valid");
+        let empty = CString::new("").expect("valid");
+
+        let id = pcai_media_generate_image_async(prompt.as_ptr(), 0.0, 0.0, empty.as_ptr());
+        assert_eq!(id, -1, "an empty output_path cannot be resolved");
+        assert_eq!(pcai_media_last_error_code(), PcaiMediaErrorCode::InvalidInput as i32);
+        assert!(
+            last_error_text().contains("cannot be resolved"),
+            "{}",
+            last_error_text()
+        );
+
+        let rc = pcai_media_generate_image(prompt.as_ptr(), 0.0, 0.0, empty.as_ptr());
+        assert_eq!(rc, PcaiMediaErrorCode::InvalidInput as i32);
+        assert!(
+            last_error_text().contains("cannot be resolved"),
+            "{}",
+            last_error_text()
+        );
     }
 
     // Protects: an async request without a loaded model returns -1 with a nonzero error code.

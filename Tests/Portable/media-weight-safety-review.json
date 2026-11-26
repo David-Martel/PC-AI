@@ -20,7 +20,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -39,7 +39,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -58,7 +58,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -77,7 +77,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -96,7 +96,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -115,7 +115,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -134,7 +134,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -153,7 +153,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -172,7 +172,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -191,7 +191,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -210,7 +210,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -229,7 +229,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -248,7 +248,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -267,7 +267,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -286,7 +286,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -305,7 +305,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -324,7 +324,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -343,7 +343,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -362,7 +362,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -381,7 +381,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -400,7 +400,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -419,7 +419,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -438,7 +438,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -457,7 +457,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -476,7 +476,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -495,7 +495,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -514,7 +514,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -533,7 +533,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -552,7 +552,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -571,7 +571,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -590,7 +590,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -609,7 +609,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -628,7 +628,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -647,7 +647,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -666,7 +666,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -685,7 +685,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -704,7 +704,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -723,7 +723,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -742,7 +742,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -761,7 +761,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -780,7 +780,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -799,7 +799,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -818,7 +818,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -837,7 +837,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -856,7 +856,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -875,7 +875,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -894,7 +894,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -913,7 +913,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -932,7 +932,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -951,7 +951,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -970,7 +970,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -989,7 +989,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1008,7 +1008,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1027,7 +1027,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1046,7 +1046,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1065,7 +1065,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1084,7 +1084,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1103,7 +1103,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1122,7 +1122,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1141,7 +1141,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1160,7 +1160,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1179,7 +1179,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1198,7 +1198,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1217,7 +1217,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1236,7 +1236,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1255,7 +1255,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1274,7 +1274,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1293,7 +1293,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1312,7 +1312,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1331,7 +1331,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1350,7 +1350,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1369,7 +1369,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1388,7 +1388,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1407,7 +1407,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1426,7 +1426,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1445,7 +1445,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1464,7 +1464,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1483,7 +1483,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1502,7 +1502,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1521,7 +1521,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -1540,7 +1540,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -2319,7 +2319,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -2338,7 +2338,7 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     },
@@ -2357,16 +2357,111 @@
       "source_files": [
         {
           "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-          "sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15"
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_verbatim_path_refuses_drive_relative_paths",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-opus-5.5-pr386-drive-relative",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-26T20:35:00.959090+00:00",
+      "protects": "A drive-relative path (C:name) is never converted to a drive-rooted verbatim path; a rooted path still converts.",
+      "detects": "verbatim_path adding the prefix to a path that has a drive but no root, so the converted form names a different file.",
+      "needs": "nothing on disk; Windows path semantics (cfg(windows)).",
+      "selector_sha256": "76cdbeb978db4fb63f06655b5e0fc8ec56e966d23df5f148bfd05a6744ce6849",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_absolute_destination_resolves_drive_relative_and_rooted_driveless_forms",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-opus-5.5-pr386-drive-relative",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-26T20:35:00.959090+00:00",
+      "protects": "C:name and \name resolve to the absolute file the process would open; an absolute path is unchanged and an empty path is refused.",
+      "detects": "C:name resolving to the drive root, or \name staying driveless.",
+      "needs": "the current directory on a lettered drive (cfg(windows)).",
+      "selector_sha256": "9a27e0620d5a4247c006a813cb0a81c94ae7beb3e696cd3aaad803246490e68e",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_sync_write_to_long_drive_relative_destination_lands_beside_staging",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-opus-5.5-pr386-drive-relative",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-26T20:35:00.959090+00:00",
+      "protects": "A long drive-relative destination publishes, new and replacing, to the file staging used on the synchronous path.",
+      "detects": "The publish step converting C:rel to the drive root while staging stayed in the current directory.",
+      "needs": "write access to the current directory and a lettered drive (cfg(windows)); takes the serial guard.",
+      "selector_sha256": "9aed9b390c9f1c8456082c9f40f644c57777c041588b062953f3c41bbf6d5706",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_async_write_to_long_drive_relative_destination_lands_beside_staging",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-opus-5.5-pr386-drive-relative",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-26T20:35:00.959090+00:00",
+      "protects": "The asynchronous worker publishes a long drive-relative destination to the file it staged and reports success only then.",
+      "detects": "The worker staging against the current directory and publishing against the drive root.",
+      "needs": "write access to the current directory and a lettered drive (cfg(windows)); takes the serial guard.",
+      "selector_sha256": "b2613a46ab25d46df4eb650acaa2e11e64c911001485c9afbe4331a5fc880c8c",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
+        }
+      ]
+    },
+    {
+      "selector": "ffi::tests::test_generate_entry_points_resolve_the_output_path_before_any_work",
+      "test_path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+      "change_since_base": "new",
+      "disposition": "keep",
+      "reviewer": "claude-opus-5.5-pr386-drive-relative",
+      "reviewer_type": "author self-review; independent review pending",
+      "reviewed_utc": "2026-11-26T20:35:00.959090+00:00",
+      "protects": "Both generate entry points refuse an unresolvable output_path as invalid input before any model check or generation.",
+      "detects": "Resolution left to the worker or the writer, where it runs after generation and an async caller sees a queued request that cannot publish.",
+      "needs": "no model or device; takes the serial guard because it touches the process-wide FFI state.",
+      "selector_sha256": "168cc984080ad020b9b3b5d4b4cc3ae13353886c7c903e2cc7e7bb702b44482f",
+      "source_files": [
+        {
+          "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
+          "sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57"
         }
       ]
     }
   ],
   "source_rebind": {
     "path": "Native/pcai_core/pcai_media/src/ffi/mod.rs",
-    "from_sha256": "af4c9549e9c72484639beff006659b4abcf002e60841e85f2070c40d04c9900a",
-    "to_sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15",
-    "recorded_utc": "2026-11-25T02:00:58.136167+00:00",
-    "scope": "Source hashes rebound after retaining the Unix staging descriptor for permission preparation. Earlier reviewer attributions describe existing selectors. Independent review of the changed source is pending."
+    "from_sha256": "7f084453d6090f07272462f5ed01d0fd75279c8750b43cdd6805b6aa824d3f15",
+    "to_sha256": "0acf600ac8aa8c26e132f00b3eeb5c02fcb8630876c274397185cbd1d4010e57",
+    "recorded_utc": "2026-11-26T20:35:00.959090+00:00",
+    "scope": "Source hashes rebound after resolving media output paths to absolute paths before staging (drive-relative destination fix) and adding five tests for it. Earlier reviewer attributions describe existing selectors. Independent review of the changed source is pending."
   }
 }

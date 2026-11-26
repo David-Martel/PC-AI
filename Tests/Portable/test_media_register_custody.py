@@ -138,6 +138,11 @@ EXPECTED_RUST_SELECTORS: frozenset[tuple[str, str]] = frozenset(
     {
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_acl_merge_failure_fails_closed_and_leaves_the_destination_untouched"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_async_generate_no_model_loaded"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_verbatim_path_refuses_drive_relative_paths"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_absolute_destination_resolves_drive_relative_and_rooted_driveless_forms"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_sync_write_to_long_drive_relative_destination_lands_beside_staging"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_async_write_to_long_drive_relative_destination_lands_beside_staging"),
+        ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_generate_entry_points_resolve_the_output_path_before_any_work"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_async_generate_null_output_path"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_async_generate_null_prompt"),
         ("Native/pcai_core/pcai_media/src/ffi/mod.rs", "ffi::tests::test_async_publish_failure_never_deletes_a_file_that_took_the_staging_path"),

@@ -6,7 +6,7 @@
     at logon for the current user. The task:
     - Reads master password from Windows Credential Manager
     - Handles login if vault is unauthenticated
-    - Unlocks the vault and persists BW_SESSION as a User env var
+    - Unlocks the vault and persists BW_SESSION to the protected session file and a User env var
     - Runs hidden (no console window)
 .PARAMETER Unregister
     Removes the scheduled task instead of creating it.
@@ -77,7 +77,7 @@ Register-ScheduledTask `
     -Trigger $trigger `
     -Settings $settings `
     -Principal $principal `
-    -Description "Auto-unlocks Bitwarden CLI vault at login using Windows Credential Manager. Sets BW_SESSION as User environment variable." `
+    -Description "Auto-unlocks Bitwarden CLI vault at login using Windows Credential Manager. Persists BW_SESSION to the protected session file and the User environment variable." `
     -Force | Out-Null
 
 Write-Host "Scheduled task '$TaskName' registered successfully." -ForegroundColor Green

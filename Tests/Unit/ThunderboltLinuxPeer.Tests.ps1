@@ -1,7 +1,22 @@
 BeforeAll {
     $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
     . (Join-Path $repoRoot 'Tools/SystemScripts/Networking/Invoke-ThunderboltLinuxPeer.ps1')
-    $profilePath = Join-Path $repoRoot 'Config/thunderbolt-peers.json'
+    $profilePath = Join-Path $TestDrive 'linux-peer-profiles.json'
+    @{
+        schemaVersion = 1
+        peers = @{
+            millylaptop1 = @{
+                sshAlias = 'millylaptop1'; expectedHostname = 'millylaptop1'
+                localAddress = '172.31.240.1'; peerAddress = '172.31.240.2'
+                prefixLength = 30; mtuBytes = 1500
+            }
+            asuspro13 = @{
+                sshAlias = 'asuspro13'; expectedHostname = 'asuspro13'
+                localAddress = '172.31.240.5'; peerAddress = '172.31.240.6'
+                prefixLength = 30; mtuBytes = 1500
+            }
+        }
+    } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $profilePath
     $adapter = [pscustomobject]@{ Name = 'Thunderbolt peer'; InterfaceDescription = 'Microsoft USB4 P2P Network Adapter'; Status = 'Up'; ifIndex = 42 }
     $linux = [pscustomobject]@{
         hostname   = 'millylaptop1'

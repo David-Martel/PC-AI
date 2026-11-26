@@ -81,7 +81,7 @@ impl Default for Usb4LifecyclePolicy {
             allow_always_on_transit_claim_when_selective_suspend: false,
             ms01_uplink_cap_mbps: Some(1000),
             preserved_active_pairs: vec!["dtm-p1gen7<->dtm-p1gen9".to_string()],
-            preserved_bridges: vec!["ms01-milly-usb4-bridge".to_string()],
+            preserved_bridges: Vec::new(),
         }
     }
 }
@@ -1447,8 +1447,6 @@ pub fn known_fleet_peer_names(explicit_registry: Option<&Path>, exclude_host: &s
         "dtm-work".to_string(),
         "dtm-work-mobo".to_string(),
         "minisforum".to_string(),
-        "asuspro13".to_string(),
-        "millylaptop1".to_string(),
     ];
     let (reg_opt, _) = load_peer_registry(explicit_registry)?;
     if let Some(reg) = reg_opt {
@@ -1467,6 +1465,27 @@ pub fn known_fleet_peer_names(explicit_registry: Option<&Path>, exclude_host: &s
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Protects registry-independent discovery defaults and bridge custody.
+    // Detects retired peers or bridge IDs being seeded without a configuration.
+    // Needs a temporary empty registry; no adapter or network access.
+    // Breadcrumb: known_fleet_peer_names and Usb4LifecyclePolicy::default.
+    #[test]
+    fn test_retired_hosts_are_not_discovery_or_bridge_defaults() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("peers.json");
+        fs::write(&path, r#"{"schemaVersion":1,"fleetPeers":[]}"#).expect("write empty registry");
+
+        let names = known_fleet_peer_names(Some(&path), "DTM-P1GEN9").expect("known peers");
+        assert!(names.iter().any(|name| name == "dtm-p1gen7"));
+        for excluded in ["dtm-p1gen9", "asuspro13", "millylaptop1", "spark-0060", "spark-3066"] {
+            assert!(
+                !names.iter().any(|name| name == excluded),
+                "unexpected default {excluded}"
+            );
+        }
+        assert!(Usb4LifecyclePolicy::default().preserved_bridges.is_empty());
+    }
 
     #[test]
     fn test_deterministic_identity_arbitrary_hosts() {

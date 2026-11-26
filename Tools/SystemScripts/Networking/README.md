@@ -25,9 +25,8 @@ display help. No report files are created automatically; output is a structured
 object that an operator may explicitly export.
 
 Supply a reviewed `-ConfigPath` whose `peers` map includes the explicit `-Peer`.
-The default [USB4 peer registry](../../../Config/thunderbolt-peers.json) has only the
-historical Milly and ASUS entries in that map. Its `fleetPeers` entries describe
-native CLI identities and cannot supply Linux peer profiles.
+The bundled [USB4 peer registry](../../../Config/thunderbolt-peers.json) leaves
+the `peers` map empty. Its `fleetPeers` entries describe native CLI identities.
 For a current LAN deployment, verify the hostname, SSH host key, adapter driver,
 carrier and nonconflicting routes before applying. See the
 [fleet deployment scope](../../../docs/usb4/fabric-deployment.md#fleet-deployment-scope)

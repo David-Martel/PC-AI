@@ -222,8 +222,11 @@ fn cli_rejects_missing_or_invalid_numeric_option_values() {
     }
 }
 
+// Protects active alias resolution and stable pair identity after fleet retirement.
+// Detects loss of registered aliases; needs the bundled registry and native CLI.
+// Breadcrumb: src/identity.rs::resolve_peer_identity.
 #[test]
-fn cli_resolves_minisforum_and_millylaptop1_pair() {
+fn cli_resolves_minisforum_and_gen9_pair() {
     let reg = repo_registry_path();
     let output = hidden_command(env!("CARGO_BIN_EXE_pcai-tb"))
         .args([
@@ -231,7 +234,7 @@ fn cli_resolves_minisforum_and_millylaptop1_pair() {
             "--computer",
             "minisforum-ms01",
             "--peer",
-            "millylaptop1-usb4",
+            "p1gen9",
             "--registry",
             reg.to_str().expect("utf8 path"),
             "--compact",
@@ -241,15 +244,15 @@ fn cli_resolves_minisforum_and_millylaptop1_pair() {
 
     assert!(
         output.status.success(),
-        "expected identity resolution for minisforum<->millylaptop1 to succeed, stderr={}",
+        "expected identity resolution for minisforum<->dtm-p1gen9 to succeed, stderr={}",
         String::from_utf8_lossy(&output.stderr)
     );
     let stdout = String::from_utf8_lossy(&output.stdout);
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("valid json output");
     assert_eq!(json["ComputerName"], "minisforum");
     assert_eq!(json["IsKnownFleetPeer"], true);
-    assert_eq!(json["PeerComputerName"], "millylaptop1");
-    assert_eq!(json["PairwiseIpv4"]["PairKey"], "millylaptop1<->minisforum");
+    assert_eq!(json["PeerComputerName"], "dtm-p1gen9");
+    assert_eq!(json["PairwiseIpv4"]["PairKey"], "dtm-p1gen9<->minisforum");
 }
 
 // trace: PENDING-FABRIC-F09 [pending-tpm-intake]
@@ -282,13 +285,7 @@ fn cli_switch_subcommand_parses_ipam_and_sfp_topologies() {
         json["TopologyLinks"].as_array().map(|a| a.len() >= 4).unwrap_or(false),
         "expected TopologyLinks array in switch output"
     );
-    assert!(
-        json["SharedSubnetRoutes"]
-            .as_array()
-            .map(|a| a.len() >= 2)
-            .unwrap_or(false),
-        "expected SharedSubnetRoutes array in switch output"
-    );
+    assert_eq!(json["SharedSubnetRoutes"], serde_json::json!([]));
 }
 
 // trace: PENDING-FABRIC-F10 [pending-tpm-intake]
@@ -582,13 +579,7 @@ fn cli_lifecycle_subcommand_evaluates_usb4_states_and_never_claims_always_on_tra
         serde_json::json!([7.86, 12.90, 14.12])
     );
 
-    // Case 4: Preserve Milly bridge custody
-    let milly = link_states
-        .iter()
-        .find(|l| l["LinkId"] == "ms01-milly-usb4-bridge")
-        .expect("ms01-milly-usb4-bridge entry");
-    assert_eq!(milly["PreserveBridgeCustody"], true);
-    assert_eq!(milly["LinkAdmitted"], true);
+    assert!(link_states.iter().all(|l| l["LinkId"] != "ms01-milly-usb4-bridge"));
 }
 
 // Protects valid observation without declared edges; detects treating every dry-run as failure.

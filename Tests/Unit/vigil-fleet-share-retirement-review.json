@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-11-26T20:40:47.1637107+00:00",
+  "reviewer": "codex-p1gen9-fleet-integration",
+  "reviewerType": "independent source agent",
+  "sourceBaseline": "2d7df75b6e8426010be59e3ca8210d07d7b30ff3",
+  "hashConvention": "SHA-256 of UTF-8 LF file text and exact Pester It AST extents. ForEach cases are recorded as a group.",
+  "sourceBindings": {
+    "Tests/Unit/VigilFleetShare.Tests.ps1": "0ccea3993dd4d13ebf9092ca37396dfb2119179234ab857f76ccab329c7a2138",
+    "Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1": "7f187c8b7b906e0874cd26e2549c4904938139f0acc410f6530081db54678cf7"
+  },
+  "selectors": [
+    {
+      "selector": "reports retirement even for an old apply command in dry run",
+      "source": "Tests/Unit/VigilFleetShare.Tests.ps1",
+      "sha256": "98a7b83e092b874d5262600fc1fa24ba2cae14defb11223b806bceb2ef10e7c0",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1",
+      "disposition": "keep",
+      "reviewScope": "Reviewed retirement of the obsolete mount and task-template routes and preservation of accepted command-line options. Existing native-process behavior remains covered in the separate shared process suite."
+    },
+    {
+      "selector": "refuses to emit a scheduler template",
+      "source": "Tests/Unit/VigilFleetShare.Tests.ps1",
+      "sha256": "2f337e3e85d2c8626d2e6734f04d5598f2187225d868368ac6a7f1fe968abc6c",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1",
+      "disposition": "keep",
+      "reviewScope": "Reviewed retirement of the obsolete mount and task-template routes and preservation of accepted command-line options. Existing native-process behavior remains covered in the separate shared process suite."
+    },
+    {
+      "selector": "rejects live <Action> for the retired share",
+      "source": "Tests/Unit/VigilFleetShare.Tests.ps1",
+      "sha256": "2212a37f644cc020983c2a233d17ff2db6051bce30bbed05d04e5d9d89d53b03",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1",
+      "disposition": "keep",
+      "reviewScope": "Reviewed retirement of the obsolete mount and task-template routes and preservation of accepted command-line options. Existing native-process behavior remains covered in the separate shared process suite."
+    },
+    {
+      "selector": "reports retirement in status and WhatIf without an endpoint",
+      "source": "Tests/Unit/VigilFleetShare.Tests.ps1",
+      "sha256": "3d0ae6271e397dc549f84a260b6067e5aeebf891ffab5a333cd299c0c8d05c47",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1",
+      "disposition": "keep",
+      "reviewScope": "Reviewed retirement of the obsolete mount and task-template routes and preservation of accepted command-line options. Existing native-process behavior remains covered in the separate shared process suite."
+    },
+    {
+      "selector": "describes retirement for short and long help requests",
+      "source": "Tests/Unit/VigilFleetShare.Tests.ps1",
+      "sha256": "4503c4ae5da8abc1a181c753b5842d68efbc572da8869419e55bb4ed4fa8cc66",
+      "codeUnderTest": "Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1",
+      "disposition": "keep",
+      "reviewScope": "Reviewed retirement of the obsolete mount and task-template routes and preservation of accepted command-line options. Existing native-process behavior remains covered in the separate shared process suite."
+    }
+  ]
+}

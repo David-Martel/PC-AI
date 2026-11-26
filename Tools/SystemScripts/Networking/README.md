@@ -138,46 +138,32 @@ of a cable defect or a working connection.
 
 ## Retired ASUS NFS share on Windows
 
-The ASUS host left the fleet. Retain this procedure for inspecting or unmounting
-existing mappings until their custody is reconciled.
-
-`Mount-VigilFleetShare.ps1` uses Windows Client for NFS to mount only
-`/srv/vigil-share` at the preferred unused drive `N:`. The server export enforces
-read-only access for Windows. The helper checks the approved source addresses on
-an Up local interface and probes TCP 2049 with a deadline: `192.168.50.42/24`
-to `192.168.50.2`, then `10.60.4.4/29` to `10.60.4.1`. It skips mounting when
-neither LAN is reachable. It preserves foreign drives and private backup exports.
-An existing recognized public-share mount stays mounted during a network outage.
-Its status becomes `ExistingEndpointUnavailable` when the original endpoint
-cannot be reached. Automatic triggers preserve that mapping; switching an active
-mount to the other LAN requires an explicit Unmount followed by Mount.
+The former fleet NFS share is retired. The [compatibility command](Mount-VigilFleetShare.ps1)
+reports `Retired` for status, dry runs and WhatIf. Apply requests to mount or
+unmount and requests for a task template fail before contacting a host. Existing
+drive mappings and scheduled-task definitions remain under their owners'
+custody. The [October Gen7 task inventory](../../../docs/scheduled-tasks/TASK_REGISTRY.md)
+preserves the historical task registration.
 
 ```powershell
-./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1
 ./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1 -Action Mount -DryRun
-./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1 -Action Unmount -Apply
-```
-
-Status is the default. Help and DryRun start no native process and write no files;
-state changes require Apply and honor WhatIf. Native mount/umount invocations use
-soft mounts, one-second RPC timeouts, one retry, captured output, hidden windows,
-and a bounded process lifetime. Mount and unmount success require observed NFS
-mapping state. No credentials, SMB settings, registry edits or task registration
-are performed by this helper.
-
-For a reviewed per-user login/network refresh task, `-ShowTaskTemplate` returns
-task XML as data. Its login and NetworkProfile connection triggers call
-`-Action Mount -Apply` with hidden, noninteractive PowerShell, least privilege,
-and an interactive user token so the drive belongs to the logged-in user.
-Concurrent triggers are ignored; execution is capped at one minute. Inspect the
-XML before registering it and preserve any existing task with the same name.
-The helper never registers the task itself.
-
-```powershell
-$plan = ./Tools/SystemScripts/Networking/Mount-VigilFleetShare.ps1 -ShowTaskTemplate
-$plan.Xml
 Invoke-Pester ./Tests/Unit/VigilFleetShare.Tests.ps1 -Output Detailed
 ```
+
+The [retirement test review](../../../Tests/Unit/vigil-fleet-share-retirement-review.json)
+binds these checks to the reviewed helper and fixture.
+
+For current QNAP storage, select an explicit signed SMB route, share and drive
+letter. The QNAP Windows mapper supports a preview when qualifying a route.
+Gen9 verified signed SMB 3.1.1 for the QNAP `net_drive` and DTM-WORK `net-share`
+shares. Use the maintained QNAP and Jones runbooks for their respective mappings.
+[QNAP Windows mapping](https://github.com/David-Martel/qnap/blob/main/docs/RESILIENCE-RUNBOOK.md) ·
+[Jones on-demand mappings](https://github.com/David-Martel/jones_analysis/pull/31)
+
+For PC-AI deployment, use the [LinkHealth installation guide](../../../docs/usb4/link-health.md).
+It stages an immutable payload with file hashes on each target before changing
+the task or service definition. Shared storage can transport the release
+payload, with its accepted revision and hashes verified on the destination.
 
 ## Cloud mounts after the cache image
 
